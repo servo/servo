@@ -22,7 +22,7 @@ use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
@@ -197,7 +197,7 @@ pub enum Msg {
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, PaintLayer),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
+    Exit(IpcSender<()>),
 }
 
 pub enum ChromeToPaintMsg {
@@ -205,7 +205,7 @@ pub enum ChromeToPaintMsg {
     PaintPermissionGranted,
     PaintPermissionRevoked,
     CollectReports(ReportsChan),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
+    Exit,
 }
 
 pub struct PaintTask<C> {
@@ -382,14 +382,21 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // FIXME(njn): should eventually measure the paint task.
                     channel.send(Vec::new())
                 }
-                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel, _)) |
-                Msg::FromChrome(ChromeToPaintMsg::Exit(ref response_channel, _)) => {
+                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel)) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);
 
                     debug!("PaintTask: Exiting.");
-                    response_channel.as_ref().map(|channel| channel.send(()));
+                    let _ = response_channel.send(());
+                    break;
+                }
+                Msg::FromChrome(ChromeToPaintMsg::Exit) => {
+                    // Ask the compositor to remove any layers it is holding for this paint task.
+                    // FIXME(mrobinson): This can probably move back to the constellation now.
+                    self.compositor.notify_paint_task_exiting(self.id);
+
+                    debug!("PaintTask: Exiting.");
                     break;
                 }
             }

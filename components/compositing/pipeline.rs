@@ -15,7 +15,7 @@ use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
-use msg::constellation_msg::{LoadData, MozBrowserEvent, PipelineExitType, WindowSizeData};
+use msg::constellation_msg::{LoadData, MozBrowserEvent, WindowSizeData};
 use msg::constellation_msg::{PipelineNamespaceId};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -248,13 +248,13 @@ impl Pipeline {
         let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::PaintPermissionRevoked);
     }
 
-    pub fn exit(&self, exit_type: PipelineExitType) {
+    pub fn exit(&self) {
         debug!("pipeline {:?} exiting", self.id);
 
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
         if self.script_chan
-               .send(ConstellationControlMsg::ExitPipeline(self.id, exit_type))
+               .send(ConstellationControlMsg::ExitPipeline(self.id))
                .is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
@@ -275,15 +275,10 @@ impl Pipeline {
     }
 
     pub fn force_exit(&self) {
-        let _ = self.script_chan.send(
-            ConstellationControlMsg::ExitPipeline(self.id,
-                                                  PipelineExitType::PipelineOnly)).unwrap();
-        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit(
-                    None,
-                    PipelineExitType::PipelineOnly));
+        let _ = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)).unwrap();
+        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit);
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        let _ = layout_channel.send(
-            LayoutControlMsg::ExitNow(PipelineExitType::PipelineOnly)).unwrap();
+        let _ = layout_channel.send(LayoutControlMsg::ExitNow).unwrap();
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {

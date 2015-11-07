@@ -40,7 +40,7 @@ use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
 use net_traits::{PendingAsyncLoad, load_bytes_iter};
 use opaque_node::OpaqueNodeMethods;
@@ -493,8 +493,8 @@ impl LayoutTask {
                         self.handle_request_helper(Msg::GetWebFontLoadState(sender),
                                                    possibly_locked_rw_data)
                     }
-                    LayoutControlMsg::ExitNow(exit_type) => {
-                        self.handle_request_helper(Msg::ExitNow(exit_type),
+                    LayoutControlMsg::ExitNow => {
+                        self.handle_request_helper(Msg::ExitNow,
                                                    possibly_locked_rw_data)
                     }
                 }
@@ -632,9 +632,9 @@ impl LayoutTask {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
-            Msg::ExitNow(exit_type) => {
+            Msg::ExitNow => {
                 debug!("layout: ExitNow received");
-                self.exit_now(possibly_locked_rw_data, exit_type);
+                self.exit_now(possibly_locked_rw_data);
                 return false
             }
         }
@@ -712,9 +712,9 @@ impl LayoutTask {
                         self.handle_reap_layout_data(dead_layout_data)
                     }
                 }
-                Msg::ExitNow(exit_type) => {
+                Msg::ExitNow => {
                     debug!("layout task is exiting...");
-                    self.exit_now(possibly_locked_rw_data, exit_type);
+                    self.exit_now(possibly_locked_rw_data);
                     break
                 }
                 Msg::CollectReports(_) => {
@@ -730,10 +730,7 @@ impl LayoutTask {
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now<'a>(&'a self,
-                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
-                    exit_type: PipelineExitType) {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-
+                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
             if let Some(ref mut traversal) = (&mut *rw_data).parallel_traversal {
@@ -742,7 +739,8 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(LayoutToPaintMsg::Exit(Some(response_chan), exit_type)).unwrap();
+        let (response_chan, response_port) = ipc::channel().unwrap();
+        self.paint_chan.send(LayoutToPaintMsg::Exit(response_chan)).unwrap();
         response_port.recv().unwrap()
     }
 

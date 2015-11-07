@@ -64,7 +64,7 @@ use mem::heap_size_of_self_and_children;
 use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
+use msg::constellation_msg::{MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
@@ -871,8 +871,8 @@ impl ScriptTask {
 
             let result = self.profile_event(category, move || {
                 match msg {
-                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
-                        if self.handle_exit_pipeline_msg(id, exit_type) {
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id)) => {
+                        if self.handle_exit_pipeline_msg(id) {
                             return Some(false)
                         }
                     },
@@ -1472,7 +1472,7 @@ impl ScriptTask {
 
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
-    fn handle_exit_pipeline_msg(&self, id: PipelineId, exit_type: PipelineExitType) -> bool {
+    fn handle_exit_pipeline_msg(&self, id: PipelineId) -> bool {
         self.closed_pipelines.borrow_mut().insert(id);
 
         // Check if the exit message is for an in progress load.
@@ -1490,7 +1490,7 @@ impl ScriptTask {
             if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
-                chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+                chan.send(layout_interface::Msg::ExitNow).ok();
             }
 
             let has_pending_loads = self.incomplete_loads.borrow().len() > 0;
@@ -1505,13 +1505,13 @@ impl ScriptTask {
         let window = page.window();
         if window.pipeline() == id {
             debug!("shutting down layout for root page {:?}", id);
-            shut_down_layout(&page, exit_type);
+            shut_down_layout(&page);
             return true
         }
 
         // otherwise find just the matching page and exit all sub-pages
         if let Some(ref mut child_page) = page.remove(id) {
-            shut_down_layout(&*child_page, exit_type);
+            shut_down_layout(&*child_page);
         }
         false
     }
@@ -2027,7 +2027,7 @@ impl Drop for ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
+fn shut_down_layout(page_tree: &Rc<Page>) {
     let mut channels = vec!();
 
     for page in page_tree.iter() {
@@ -2052,7 +2052,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for chan in channels {
-        chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+        chan.send(layout_interface::Msg::ExitNow).ok();
     }
 }
 

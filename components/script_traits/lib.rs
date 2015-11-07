@@ -33,7 +33,7 @@ use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineNamespaceId};
+use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -55,7 +55,7 @@ unsafe impl Send for UntrustedNodeAddress {}
 #[derive(Deserialize, Serialize)]
 pub enum LayoutControlMsg {
     /// Requests that this layout task exit.
-    ExitNow(PipelineExitType),
+    ExitNow,
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
     /// Asks layout to run another step in its animation.
@@ -115,7 +115,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipeline(PipelineId, PipelineExitType),
+    ExitPipeline(PipelineId),
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
