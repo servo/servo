@@ -931,15 +931,13 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
-    pub fn node_from_nodes_and_strings(&self, nodes: Vec<NodeOrString>)
+    pub fn node_from_nodes_and_strings(&self, mut nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>> {
         if nodes.len() == 1 {
-            match nodes.into_iter().next().unwrap() {
-                NodeOrString::eNode(node) => Ok(node),
-                NodeOrString::eString(string) => {
-                    Ok(Root::upcast(self.CreateTextNode(string)))
-                },
-            }
+            Ok(match nodes.pop().unwrap() {
+                NodeOrString::eNode(node) => node,
+                NodeOrString::eString(string) => Root::upcast(self.CreateTextNode(string)),
+            })
         } else {
             let fragment = Root::upcast::<Node>(self.CreateDocumentFragment());
             for node in nodes {
