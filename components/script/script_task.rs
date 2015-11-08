@@ -90,6 +90,7 @@ use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::io::{Write, stdout};
+use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
@@ -367,18 +368,18 @@ impl TimerEventChan for MainThreadTimerEventChan {
     }
 }
 
-pub struct StackRootTLS;
+pub struct StackRootTLS<'a>(PhantomData<&'a u32>);
 
-impl StackRootTLS {
-    pub fn new(roots: &RootCollection) -> StackRootTLS {
+impl<'a> StackRootTLS<'a> {
+    pub fn new(roots: &'a RootCollection) -> StackRootTLS<'a> {
         STACK_ROOTS.with(|ref r| {
             r.set(Some(RootCollectionPtr(roots as *const _)))
         });
-        StackRootTLS
+        StackRootTLS(PhantomData)
     }
 }
 
-impl Drop for StackRootTLS {
+impl<'a> Drop for StackRootTLS<'a> {
     fn drop(&mut self) {
         STACK_ROOTS.with(|ref r| r.set(None));
     }
