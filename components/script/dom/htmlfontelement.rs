@@ -3,17 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use std::cell::Cell;
 use string_cache::Atom;
 use style::values::specified;
 use util::str::{self, DOMString, parse_legacy_font_size};
@@ -21,7 +20,6 @@ use util::str::{self, DOMString, parse_legacy_font_size};
 #[dom_struct]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
-    color: Cell<Option<RGBA>>,
 }
 
 
@@ -29,7 +27,6 @@ impl HTMLFontElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            color: Cell::new(None),
         }
     }
 
@@ -47,7 +44,11 @@ impl HTMLFontElementMethods for HTMLFontElement {
     make_getter!(Color, "color");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-color
-    make_setter!(SetColor, "color");
+    fn SetColor(&self, value: DOMString) {
+        let element = self.upcast::<Element>();
+        let color = str::parse_legacy_color(&value).ok();
+        element.set_attribute(&atom!("color"), AttrValue::Color(value, color));
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
     make_getter!(Face);
@@ -71,21 +72,13 @@ impl VirtualMethods for HTMLFontElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(color) => {
-                self.color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
-            _ => {},
-        }
-    }
-
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("face") => AttrValue::from_atomic(value),
+            &atom!("color") => {
+                let color = str::parse_legacy_color(&value).ok();
+                AttrValue::Color(value, color)
+            },
             &atom!("size") => {
                 let length = parse_length(&value);
                 AttrValue::Length(value, length)
@@ -97,8 +90,14 @@ impl VirtualMethods for HTMLFontElement {
 
 
 impl HTMLFontElement {
+    #[allow(unsafe_code)]
     pub fn get_color(&self) -> Option<RGBA> {
-        self.color.get()
+        unsafe {
+            self.upcast::<Element>()
+                .get_attr_for_layout(&ns!(""), &atom!("color"))
+                .and_then(AttrValue::as_color)
+                .cloned()
+        }
     }
 
     #[allow(unsafe_code)]
