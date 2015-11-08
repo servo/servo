@@ -245,6 +245,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
+    fn GetSupportedExtensions(&self) -> Option<Vec<DOMString>> {
+        Some(vec![])
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
         // TODO(ecoal95) we actually do not support extensions.
         // `getSupportedExtensions` cannot be implemented as of right now (see #544)
