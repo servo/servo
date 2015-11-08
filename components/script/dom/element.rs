@@ -40,6 +40,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllabelelement::HTMLLabelElement;
@@ -309,6 +310,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = self.downcast::<HTMLBodyElement>() {
             // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
             (*this.unsafe_get()).get_color()
+        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:presentational-hints-5
+            this.get_color()
         } else {
             None
         };
