@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use url::{Url, UrlParser};
@@ -37,8 +36,8 @@ impl Location {
         self.window.get_url()
     }
 
-    fn set_url_component(&self, value: USVString,
-                         setter: fn(&mut Url, USVString)) {
+    fn set_url_component(&self, value: String,
+                         setter: fn(&mut Url, String)) {
         let mut url = self.window.get_url();
         setter(&mut url, value);
         self.window.load_url(url);
@@ -47,11 +46,11 @@ impl Location {
 
 impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
-    fn Assign(&self, url: USVString) {
+    fn Assign(&self, url: String) {
         // TODO: per spec, we should use the _API base URL_ specified by the
         //       _entry settings object_.
         let base_url = self.window.get_url();
-        if let Ok(url) = UrlParser::new().base_url(&base_url).parse(&url.0) {
+        if let Ok(url) = UrlParser::new().base_url(&base_url).parse(&url) {
             self.window.load_url(url);
         }
     }
@@ -62,89 +61,89 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
-    fn Hash(&self) -> USVString {
+    fn Hash(&self) -> String {
         UrlHelper::Hash(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
-    fn SetHash(&self, value: USVString) {
+    fn SetHash(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetHash);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
-    fn Host(&self) -> USVString {
+    fn Host(&self) -> String {
         UrlHelper::Host(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
-    fn SetHost(&self, value: USVString) {
+    fn SetHost(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetHost);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
-    fn Hostname(&self) -> USVString {
+    fn Hostname(&self) -> String {
         UrlHelper::Hostname(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
-    fn SetHostname(&self, value: USVString) {
+    fn SetHostname(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetHostname);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
-    fn Href(&self) -> USVString {
+    fn Href(&self) -> String {
         UrlHelper::Href(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
-    fn SetHref(&self, value: USVString) {
-        if let Ok(url) = UrlParser::new().base_url(&self.window.get_url()).parse(&value.0) {
+    fn SetHref(&self, value: String) {
+        if let Ok(url) = UrlParser::new().base_url(&self.window.get_url()).parse(&value) {
             self.window.load_url(url);
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
-    fn Pathname(&self) -> USVString {
+    fn Pathname(&self) -> String {
         UrlHelper::Pathname(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
-    fn SetPathname(&self, value: USVString) {
+    fn SetPathname(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetPathname);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
-    fn Port(&self) -> USVString {
+    fn Port(&self) -> String {
         UrlHelper::Port(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
-    fn SetPort(&self, value: USVString) {
+    fn SetPort(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetPort);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
-    fn Protocol(&self) -> USVString {
+    fn Protocol(&self) -> String {
         UrlHelper::Protocol(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
-    fn SetProtocol(&self, value: USVString) {
+    fn SetProtocol(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetProtocol);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn Stringifier(&self) -> DOMString {
-        DOMString(self.Href().0)
+        DOMString(self.Href())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
-    fn Search(&self) -> USVString {
+    fn Search(&self) -> String {
         UrlHelper::Search(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
-    fn SetSearch(&self, value: USVString) {
+    fn SetSearch(&self, value: String) {
         self.set_url_component(value, UrlHelper::SetSearch);
     }
 }

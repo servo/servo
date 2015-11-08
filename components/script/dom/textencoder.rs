@@ -8,7 +8,6 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::EncodingRef;
 use encoding::{EncoderTrap, Encoding};
@@ -71,9 +70,9 @@ impl TextEncoderMethods for TextEncoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
-    fn Encode(&self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
+    fn Encode(&self, cx: *mut JSContext, input: String) -> *mut JSObject {
         unsafe {
-            let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
+            let encoded = self.encoder.encode(&input, EncoderTrap::Strict).unwrap();
             let length = encoded.len() as u32;
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 

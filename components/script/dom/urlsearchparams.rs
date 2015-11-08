@@ -11,7 +11,6 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
 use encoding::types::EncodingRef;
 use url::form_urlencoded::{parse, serialize_with_encoding};
 use util::str::DOMString;
@@ -45,7 +44,7 @@ impl URLSearchParams {
         match init {
             Some(eUSVString(init)) => {
                 // Step 2.
-                *query.list.borrow_mut() = parse(init.0.as_bytes());
+                *query.list.borrow_mut() = parse(init.as_bytes());
             },
             Some(eURLSearchParams(init)) => {
                 // Step 3.
@@ -60,27 +59,27 @@ impl URLSearchParams {
 
 impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
-    fn Append(&self, name: USVString, value: USVString) {
+    fn Append(&self, name: String, value: String) {
         // Step 1.
-        self.list.borrow_mut().push((name.0, value.0));
+        self.list.borrow_mut().push((name, value));
         // Step 2.
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
-    fn Delete(&self, name: USVString) {
+    fn Delete(&self, name: String) {
         // Step 1.
-        self.list.borrow_mut().retain(|&(ref k, _)| k != &name.0);
+        self.list.borrow_mut().retain(|&(ref k, _)| k != &name);
         // Step 2.
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-get
-    fn Get(&self, name: USVString) -> Option<USVString> {
+    fn Get(&self, name: String) -> Option<String> {
         let list = self.list.borrow();
         list.iter().filter_map(|&(ref k, ref v)| {
-            if k == &name.0 {
-                Some(USVString(v.clone()))
+            if k == &name {
+                Some(v.clone())
             } else {
                 None
             }
@@ -88,31 +87,31 @@ impl URLSearchParamsMethods for URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
-    fn Has(&self, name: USVString) -> bool {
+    fn Has(&self, name: String) -> bool {
         let list = self.list.borrow();
-        list.iter().any(|&(ref k, _)| k == &name.0)
+        list.iter().any(|&(ref k, _)| k == &name)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set
-    fn Set(&self, name: USVString, value: USVString) {
+    fn Set(&self, name: String, value: String) {
         let mut list = self.list.borrow_mut();
         let mut index = None;
         let mut i = 0;
         list.retain(|&(ref k, _)| {
             if index.is_none() {
-                if k == &name.0 {
+                if k == &name {
                     index = Some(i);
                 } else {
                     i += 1;
                 }
                 true
             } else {
-                k != &name.0
+                k != &name
             }
         });
         match index {
-            Some(index) => list[index].1 = value.0,
-            None => list.push((name.0, value.0)),
+            Some(index) => list[index].1 = value,
+            None => list.push((name, value)),
         };
         self.update_steps();
     }

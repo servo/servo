@@ -8,7 +8,6 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
 use dom::urlhelper::UrlHelper;
 use std::borrow::ToOwned;
 use url::{Host, ParseResult, Url, UrlParser};
@@ -43,8 +42,8 @@ impl URL {
 
 impl URL {
     // https://url.spec.whatwg.org/#constructors
-    pub fn Constructor(global: GlobalRef, url: USVString,
-                       base: Option<USVString>)
+    pub fn Constructor(global: GlobalRef, url: String,
+                       base: Option<String>)
                        -> Fallible<Root<URL>> {
         let parsed_base = match base {
             None => {
@@ -53,7 +52,7 @@ impl URL {
             },
             Some(base) =>
                 // Step 2.1.
-                match Url::parse(&base.0) {
+                match Url::parse(&base) {
                     Ok(base) => Some(base),
                     Err(error) => {
                         // Step 2.2.
@@ -74,57 +73,57 @@ impl URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-domaintoasciidomain
-    pub fn DomainToASCII(_: GlobalRef, origin: USVString) -> USVString {
+    pub fn DomainToASCII(_: GlobalRef, origin: String) -> String {
         // Step 1.
-        let ascii_domain = Host::parse(&origin.0);
+        let ascii_domain = Host::parse(&origin);
         if let Ok(Host::Domain(string)) = ascii_domain {
             // Step 3.
-            USVString(string.to_owned())
+            string.to_owned()
         } else {
             // Step 2.
-            USVString("".to_owned())
+            "".to_owned()
         }
     }
 }
 
 impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-url-hash
-    fn Hash(&self) -> USVString {
+    fn Hash(&self) -> String {
         UrlHelper::Hash(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-hash
-    fn SetHash(&self, value: USVString) {
+    fn SetHash(&self, value: String) {
         UrlHelper::SetHash(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-host
-    fn Host(&self) -> USVString {
+    fn Host(&self) -> String {
         UrlHelper::Host(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-host
-    fn SetHost(&self, value: USVString) {
+    fn SetHost(&self, value: String) {
         UrlHelper::SetHost(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-hostname
-    fn Hostname(&self) -> USVString {
+    fn Hostname(&self) -> String {
         UrlHelper::Hostname(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-hostname
-    fn SetHostname(&self, value: USVString) {
+    fn SetHostname(&self, value: String) {
         UrlHelper::SetHostname(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-href
-    fn Href(&self) -> USVString {
+    fn Href(&self) -> String {
         UrlHelper::Href(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-href
-    fn SetHref(&self, value: USVString) -> ErrorResult {
+    fn SetHref(&self, value: String) -> ErrorResult {
         match parse_with_base(value, self.base.as_ref()) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
@@ -137,75 +136,75 @@ impl URLMethods for URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-password
-    fn Password(&self) -> USVString {
+    fn Password(&self) -> String {
         UrlHelper::Password(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-password
-    fn SetPassword(&self, value: USVString) {
+    fn SetPassword(&self, value: String) {
         UrlHelper::SetPassword(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-pathname
-    fn Pathname(&self) -> USVString {
+    fn Pathname(&self) -> String {
         UrlHelper::Pathname(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-pathname
-    fn SetPathname(&self, value: USVString) {
+    fn SetPathname(&self, value: String) {
         UrlHelper::SetPathname(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-port
-    fn Port(&self) -> USVString {
+    fn Port(&self) -> String {
         UrlHelper::Port(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-port
-    fn SetPort(&self, value: USVString) {
+    fn SetPort(&self, value: String) {
         UrlHelper::SetPort(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-protocol
-    fn Protocol(&self) -> USVString {
+    fn Protocol(&self) -> String {
         UrlHelper::Protocol(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-protocol
-    fn SetProtocol(&self, value: USVString) {
+    fn SetProtocol(&self, value: String) {
         UrlHelper::SetProtocol(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-search
-    fn Search(&self) -> USVString {
+    fn Search(&self) -> String {
         UrlHelper::Search(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-search
-    fn SetSearch(&self, value: USVString) {
+    fn SetSearch(&self, value: String) {
         UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
     }
 
     // https://url.spec.whatwg.org/#dom-url-href
     fn Stringifier(&self) -> DOMString {
-        DOMString(self.Href().0)
+        DOMString(self.Href())
     }
 
     // https://url.spec.whatwg.org/#dom-url-username
-    fn Username(&self) -> USVString {
+    fn Username(&self) -> String {
         UrlHelper::Username(&self.url.borrow())
     }
 
     // https://url.spec.whatwg.org/#dom-url-username
-    fn SetUsername(&self, value: USVString) {
+    fn SetUsername(&self, value: String) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
     }
 }
 
-fn parse_with_base(input: USVString, base: Option<&Url>) -> ParseResult<Url> {
+fn parse_with_base(input: String, base: Option<&Url>) -> ParseResult<Url> {
     let mut parser = UrlParser::new();
     if let Some(base) = base {
         parser.base_url(base);
     }
-    parser.parse(&input.0)
+    parser.parse(&input)
 }

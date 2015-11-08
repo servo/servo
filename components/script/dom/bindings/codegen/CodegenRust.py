@@ -855,11 +855,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() in (IDLType.Tags.domstring, IDLType.Tags.usvstring)
-            default = 'USVString("%s".to_owned())' % defaultValue.value
+            default = '"%s".to_owned()' % defaultValue.value
             if type.nullable():
                 default = "Some(%s)" % default
 
-        declType = "USVString"
+        declType = "String"
         if type.nullable():
             declType = "Option<%s>" % declType
 
@@ -1269,7 +1269,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isUSVString():
-        result = CGGeneric("USVString")
+        result = CGGeneric("String")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2000,7 +2000,6 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
-        'dom::bindings::str::USVString',
         'dom::types::*',
         'js::jsapi::JSContext',
         'js::jsapi::{HandleValue, MutableHandleValue}',
@@ -3495,7 +3494,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = "DOMString"
     elif type.isUSVString():
         name = type.name
-        typeName = "USVString"
+        typeName = "String"
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]
@@ -5240,7 +5239,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::num::Finite',
             'dom::bindings::str::ByteString',
-            'dom::bindings::str::USVString',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::str::DOMString',

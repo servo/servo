@@ -21,7 +21,7 @@
 //! | unrestricted double     | `f64`                            |
 //! | double                  | `Finite<f64>`                    |
 //! | DOMString               | `DOMString`                      |
-//! | USVString               | `USVString`                      |
+//! | USVString               | `String`                         |
 //! | ByteString              | `ByteString`                     |
 //! | object                  | `*mut JSObject`                  |
 //! | interface types         | `&T`            | `Root<T>`      |
@@ -38,7 +38,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::ByteString;
 use dom::bindings::utils::DOMClass;
 use js;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
@@ -431,13 +431,6 @@ impl ToJSValConvertible for str {
 }
 
 //http://heycam.github.io/webidl/#es-DOMString
-impl ToJSValConvertible for String {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        (**self).to_jsval(cx, rval);
-    }
-}
-
-//http://heycam.github.io/webidl/#es-DOMString
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
@@ -453,25 +446,31 @@ pub enum StringificationBehavior {
     Empty,
 }
 
+fn latin1_to_string(cx: *mut JSContext, s: *mut JSString) -> String {
+    let mut length = 0;
+    assert!(unsafe { JS_StringHasLatin1Chars(s) });
+    let chars = unsafe {
+        JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
+    };
+    assert!(!chars.is_null());
+
+    let mut buf = String::with_capacity(length as usize);
+    for i in 0..(length as isize) {
+        unsafe {
+            buf.push(*chars.offset(i) as char);
+        }
+    }
+    buf
+}
+
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
 /// contain valid UTF-16.
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
-    let mut length = 0;
     let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
     DOMString(if latin1 {
-        let chars = unsafe {
-            JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
-        };
-        assert!(!chars.is_null());
-
-        let mut buf = String::with_capacity(length as usize);
-        for i in 0..(length as isize) {
-            unsafe {
-                buf.push(*chars.offset(i) as char);
-            }
-        }
-        buf
+        latin1_to_string(cx, s)
     } else {
+        let mut length = 0;
         let chars = unsafe {
             JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s, &mut length)
         };
@@ -537,17 +536,16 @@ impl FromJSValConvertible for DOMString {
 }
 
 //http://heycam.github.io/webidl/#es-USVString
-impl ToJSValConvertible for USVString {
+impl ToJSValConvertible for String {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.0.to_jsval(cx, rval);
+        (**self).to_jsval(cx, rval);
     }
 }
 
 //http://heycam.github.io/webidl/#es-USVString
-impl FromJSValConvertible for USVString {
+impl FromJSValConvertible for String {
     type Config = ();
-    fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
-                  -> Result<USVString, ()> {
+    fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ()) -> Result<String, ()> {
         let jsstr = unsafe { ToString(cx, value) };
         if jsstr.is_null() {
             debug!("ToString failed");
@@ -555,14 +553,14 @@ impl FromJSValConvertible for USVString {
         }
         let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
-            return Ok(USVString(jsstring_to_str(cx, jsstr).0));
+            return Ok(latin1_to_string(cx, jsstr));
         }
         unsafe {
             let mut length = 0;
             let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
             assert!(!chars.is_null());
             let char_vec = slice::from_raw_parts(chars as *const u16, length as usize);
-            Ok(USVString(String::from_utf16_lossy(char_vec)))
+            Ok(String::from_utf16_lossy(char_vec))
         }
     }
 }
