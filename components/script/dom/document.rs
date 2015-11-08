@@ -930,6 +930,7 @@ impl Document {
                            ReflowReason::KeyEvent);
     }
 
+    // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
     pub fn node_from_nodes_and_strings(&self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>> {
         if nodes.len() == 1 {
