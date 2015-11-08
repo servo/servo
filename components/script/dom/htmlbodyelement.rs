@@ -20,12 +20,11 @@ use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::borrow::ToOwned;
-use std::cell::Cell;
 use std::rc::Rc;
 use string_cache::Atom;
 use time;
 use url::{Url, UrlParser};
-use util::str::{self, DOMString};
+use util::str::DOMString;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.
@@ -34,7 +33,6 @@ const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 #[dom_struct]
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<RGBA>>,
     background: DOMRefCell<Option<Url>>
 }
 
@@ -43,7 +41,6 @@ impl HTMLBodyElement {
                      -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            background_color: Cell::new(None),
             background: DOMRefCell::new(None)
         }
     }
@@ -61,17 +58,13 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     make_getter!(BgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-bgcolor
-    make_setter!(SetBgColor, "bgcolor");
+    make_legacy_color_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-text
     make_getter!(Text);
 
     // https://html.spec.whatwg.org/multipage/#dom-body-text
-    fn SetText(&self, value: DOMString) {
-        let element = self.upcast::<Element>();
-        let color = str::parse_legacy_color(&value).ok();
-        element.set_attribute(&atom!("text"), AttrValue::Color(value, color));
-    }
+    make_legacy_color_setter!(SetText, "text");
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
@@ -96,8 +89,14 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 
 
 impl HTMLBodyElement {
+    #[allow(unsafe_code)]
     pub fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
+        unsafe {
+            self.upcast::<Element>()
+                .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
+                .and_then(AttrValue::as_color)
+                .cloned()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -141,8 +140,9 @@ impl VirtualMethods for HTMLBodyElement {
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
-        match name {
-            &atom!("text") => AttrValue::from_legacy_color(value),
+        match *name {
+            atom!("bgcolor") |
+            atom!("text") => AttrValue::from_legacy_color(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -150,11 +150,6 @@ impl VirtualMethods for HTMLBodyElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match (attr.local_name(), mutation) {
-            (&atom!(bgcolor), _) => {
-                self.background_color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
             (&atom!(background), _) => {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let document = document_from_node(self);
