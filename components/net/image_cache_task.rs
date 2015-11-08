@@ -462,18 +462,12 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
         placeholder_path.push("rippy.jpg");
 
         let mut image_data = vec![];
-        let result = File::open(&placeholder_path).map(|mut file| {
-            let _ = file.read_to_end(&mut image_data);
-            Some(Arc::new(load_from_memory(&image_data).unwrap()))
+        let result = File::open(&placeholder_path).and_then(|mut file| {
+            file.read_to_end(&mut image_data)
         });
-
-        let placeholder_image = match result {
-            Ok(image) => image,
-            Err(..) => {
-                debug!("image_cache_task: failed loading the placeholder.");
-                None
-            }
-        };
+        let placeholder_image = result.ok().map(|_| {
+            Arc::new(load_from_memory(&image_data).unwrap())
+        });
 
         // Ask the router to proxy messages received over IPC to us.
         let cmd_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_command_receiver);
