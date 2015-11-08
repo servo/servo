@@ -656,6 +656,7 @@ impl VirtualMethods for HTMLInputElement {
                         }
                         RedrawSelection => {
                             self.force_relayout();
+                            event.PreventDefault();
                         }
                         Nothing => (),
                     }
