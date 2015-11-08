@@ -39,10 +39,11 @@ impl<'a> ParserContext<'a> {
 /// Defaults to a no-op.
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
-pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str) {
+pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str, parsercontext: &ParserContext) {
     if log_enabled!(log::LogLevel::Info) {
         let location = input.source_location(position);
         // TODO eventually this will got into a "web console" or something.
         info!("{}:{} {}", location.line, location.column, message)
     }
+    parsercontext.error_reporter.report_error(input, position, message);
 }

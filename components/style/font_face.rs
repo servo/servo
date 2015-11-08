@@ -40,7 +40,7 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                 let pos = range.start;
                 let message = format!("Unsupported @font-face descriptor declaration: '{}'",
                                       iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message);
+                log_css_error(iter.input, pos, &*message, context);
             }
             Ok(FontFaceDescriptorDeclaration::Family(value)) => {
                 family = Some(value);

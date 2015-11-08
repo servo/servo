@@ -5699,7 +5699,7 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
                 let pos = range.start;
                 let message = format!("Unsupported property declaration: '{}'",
                                       iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message);
+                log_css_error(iter.input, pos, &*message, &context);
             }
         }
     }
