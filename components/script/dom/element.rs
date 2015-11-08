@@ -47,7 +47,7 @@ use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
-use dom::htmltableelement::HTMLTableElement;
+use dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
@@ -276,7 +276,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            (*this.unsafe_get()).get_background_color()
+            this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
@@ -355,7 +355,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
-            (*this.unsafe_get()).get_cellspacing()
+            this.get_cellspacing()
         } else {
             None
         };
@@ -400,7 +400,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            (*this.unsafe_get()).get_width()
+            this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_width()
         } else {
@@ -490,7 +490,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let border = if let Some(this) = self.downcast::<HTMLTableElement>() {
-            (*this.unsafe_get()).get_border()
+            this.get_border()
         } else {
             None
         };
