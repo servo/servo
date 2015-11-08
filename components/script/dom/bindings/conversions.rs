@@ -47,6 +47,7 @@ use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
+use js::jsapi::{JS_NewArrayObject, HandleValueArray};
 use js::jsapi::{JS_NewUCStringCopyN, JS_StringHasLatin1Chars, JS_WrapValue};
 use js::jsval::{BooleanValue, Int32Value, NullValue, UInt32Value, UndefinedValue};
 use js::jsval::{JSVal, ObjectOrNullValue, ObjectValue, StringValue};
@@ -57,7 +58,7 @@ use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
 use std::rc::Rc;
-use std::{char, ptr, slice};
+use std::{char, mem, ptr, slice};
 use util::str::DOMString;
 
 trait As<O>: Copy {
@@ -802,6 +803,28 @@ impl<T: FromJSValConvertible> FromJSValConvertible for Option<T> {
         } else {
             let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
             result.map(Some)
+        }
+    }
+}
+
+impl<T: ToJSValConvertible> ToJSValConvertible for Vec<T> {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        unsafe {
+            let js_objects: Vec<JSVal> = self.iter().map(|obj| {
+                let mut val = mem::uninitialized();
+                obj.to_jsval(cx, MutableHandleValue::from_marked_location(&mut val));
+                val
+            }).collect();
+
+            let handle = HandleValueArray {
+                length_: js_objects.len() as u64,
+                elements_: js_objects.as_ptr(),
+            };
+
+            let js_array = JS_NewArrayObject(cx, &handle);
+            assert!(!js_array.is_null());
+
+            rval.set(ObjectOrNullValue(js_array));
         }
     }
 }
