@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -46,6 +46,10 @@ impl HTMLTableElement {
                -> Root<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
+    }
+
+    pub fn get_border(&self) -> Option<u32> {
+        self.border.get()
     }
 }
 
@@ -115,22 +119,40 @@ impl HTMLTableElementMethods for HTMLTableElement {
     make_setter!(SetBgColor, "bgcolor");
 }
 
+pub trait HTMLTableElementLayoutHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_border(&self) -> Option<u32>;
+    fn get_cellspacing(&self) -> Option<u32>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+}
 
-impl HTMLTableElement {
-    pub fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
+impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
+    #[allow(unsafe_code)]
+    fn get_background_color(&self) -> Option<RGBA> {
+        unsafe {
+            (*self.unsafe_get()).background_color.get()
+        }
     }
 
-    pub fn get_border(&self) -> Option<u32> {
-        self.border.get()
+    #[allow(unsafe_code)]
+    fn get_border(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).border.get()
+        }
     }
 
-    pub fn get_cellspacing(&self) -> Option<u32> {
-        self.cellspacing.get()
+    #[allow(unsafe_code)]
+    fn get_cellspacing(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).cellspacing.get()
+        }
     }
 
-    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
-        self.width.get()
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (*self.unsafe_get()).width.get()
+        }
     }
 }
 
