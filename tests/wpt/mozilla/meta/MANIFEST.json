@@ -4897,10 +4897,16 @@
             "url": "/_mozilla/mozilla/union.html"
           }
         ],
-        "mozilla/webgl_context_creation_error.html": [
+        "mozilla/webgl/context_creation_error.html": [
           {
-            "path": "mozilla/webgl_context_creation_error.html",
-            "url": "/_mozilla/mozilla/webgl_context_creation_error.html"
+            "path": "mozilla/webgl/context_creation_error.html",
+            "url": "/_mozilla/mozilla/webgl/context_creation_error.html"
+          }
+        ],
+        "mozilla/webgl/get_supported_extensions.html": [
+          {
+            "path": "mozilla/webgl/get_supported_extensions.html",
+            "url": "/_mozilla/mozilla/webgl/get_supported_extensions.html"
           }
         ],
         "mozilla/websocket_connection_fail.html": [
