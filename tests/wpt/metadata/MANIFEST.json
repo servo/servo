@@ -4486,6 +4486,16 @@
         "url": "/html/rendering/non-replaced-elements/the-fieldset-element-0/min-width-not-important.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/the-hr-element-0/color.html",
+        "references": [
+          [
+            "html/rendering/non-replaced-elements/the-hr-element-0/color-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/the-hr-element-0/color.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/the-page/body_text_00ffff.xhtml",
         "references": [
           [

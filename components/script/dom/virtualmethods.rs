@@ -22,6 +22,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -155,6 +156,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
             node.downcast::<HTMLHeadElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)) => {
+            node.downcast::<HTMLHRElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
             node.downcast::<HTMLImageElement>().unwrap() as &VirtualMethods
