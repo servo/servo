@@ -36,11 +36,11 @@ use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlfontelement::HTMLFontElement;
-use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
@@ -273,7 +273,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
-            (*this.unsafe_get()).get_background_color()
+            this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             (*this.unsafe_get()).get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
@@ -293,7 +293,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
         let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
-            (*this.unsafe_get()).get_background()
+            this.get_background()
         } else {
             None
         };
@@ -305,10 +305,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
         let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            (*this.unsafe_get()).get_color()
+            this.get_color()
         } else if let Some(this) = self.downcast::<HTMLBodyElement>() {
             // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
-            (*this.unsafe_get()).get_color()
+            this.get_color()
         } else {
             None
         };
@@ -322,7 +322,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
         let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            (*this.unsafe_get()).get_face()
+            this.get_face()
         } else {
             None
         };
@@ -337,7 +337,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
         let font_size = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            (*this.unsafe_get()).get_size()
+            this.get_size()
         } else {
             None
         };
@@ -394,7 +394,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
-            (*this.unsafe_get()).get_width()
+            this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             (*this.unsafe_get()).get_width()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
@@ -421,7 +421,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
-            (*this.unsafe_get()).get_height()
+            this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
