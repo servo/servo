@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -14,7 +14,7 @@ use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::{self, AttributeMutation, Element};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
@@ -156,28 +156,6 @@ impl HTMLIFrameElement {
         self.subpage_id.set(Some(new_subpage_id));
     }
 
-    #[allow(unsafe_code)]
-    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            element::get_attr_for_layout(self.upcast(),
-                                         &ns!(""),
-                                         &atom!("width")).map(|attribute| {
-                str::parse_length(&**attribute.value_for_layout())
-            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
-    }
-
-    #[allow(unsafe_code)]
-    pub fn get_height(&self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            element::get_attr_for_layout(self.upcast(),
-                                         &ns!(""),
-                                         &atom!("height")).map(|attribute| {
-                str::parse_length(&**attribute.value_for_layout())
-            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
-    }
-
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
@@ -211,6 +189,8 @@ impl HTMLIFrameElement {
 
 pub trait HTMLIFrameElementLayoutMethods {
     fn pipeline_id(self) -> Option<PipelineId>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
@@ -219,6 +199,26 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     fn pipeline_id(self) -> Option<PipelineId> {
         unsafe {
             (*self.unsafe_get()).pipeline_id.get()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("width"))
+                .map(|attribute| str::parse_length(&attribute))
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("height"))
+                .map(|attribute| str::parse_length(&attribute))
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
 }

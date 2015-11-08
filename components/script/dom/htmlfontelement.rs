@@ -7,7 +7,7 @@ use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
@@ -81,12 +81,17 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
+pub trait HTMLFontElementLayoutHelpers {
+    fn get_color(&self) -> Option<RGBA>;
+    fn get_face(&self) -> Option<Atom>;
+    fn get_size(&self) -> Option<specified::Length>;
+}
 
-impl HTMLFontElement {
+impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     #[allow(unsafe_code)]
-    pub fn get_color(&self) -> Option<RGBA> {
+    fn get_color(&self) -> Option<RGBA> {
         unsafe {
-            self.upcast::<Element>()
+            (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(""), &atom!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -94,9 +99,9 @@ impl HTMLFontElement {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_face(&self) -> Option<Atom> {
+    fn get_face(&self) -> Option<Atom> {
         unsafe {
-            self.upcast::<Element>()
+            (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(""), &atom!("face"))
                 .map(AttrValue::as_atom)
                 .cloned()
@@ -104,9 +109,9 @@ impl HTMLFontElement {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_size(&self) -> Option<specified::Length> {
+    fn get_size(&self) -> Option<specified::Length> {
         unsafe {
-            self.upcast::<Element>()
+            (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(""), &atom!("size"))
                 .and_then(AttrValue::as_length)
                 .cloned()

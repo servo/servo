@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -87,12 +87,17 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     }
 }
 
+pub trait HTMLBodyElementLayoutHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_color(&self) -> Option<RGBA>;
+    fn get_background(&self) -> Option<Url>;
+}
 
-impl HTMLBodyElement {
+impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     #[allow(unsafe_code)]
-    pub fn get_background_color(&self) -> Option<RGBA> {
+    fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            self.upcast::<Element>()
+            (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -100,9 +105,9 @@ impl HTMLBodyElement {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_color(&self) -> Option<RGBA> {
+    fn get_color(&self) -> Option<RGBA> {
         unsafe {
-            self.upcast::<Element>()
+            (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(""), &atom!("text"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -110,9 +115,9 @@ impl HTMLBodyElement {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_background(&self) -> Option<Url> {
+    fn get_background(&self) -> Option<Url> {
         unsafe {
-            self.background.borrow_for_layout().clone()
+            (&*self.unsafe_get()).background.borrow_for_layout().clone()
         }
     }
 }
