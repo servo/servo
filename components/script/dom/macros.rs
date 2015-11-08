@@ -215,6 +215,21 @@ macro_rules! make_atomic_setter(
     );
 );
 
+#[macro_export]
+macro_rules! make_legacy_color_setter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(&self, value: DOMString) {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            use string_cache::Atom;
+            let element = self.upcast::<Element>();
+            let value = AttrValue::from_legacy_color(value);
+            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            element.set_attribute(&Atom::from_slice($htmlname), value)
+        }
+    );
+);
+
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
 macro_rules! no_jsmanaged_fields(
