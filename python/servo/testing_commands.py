@@ -598,4 +598,5 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % ref_path)
             wpt_kwargs = vars(p.parse_args(args))
             self.context.commands.dispatch("test-wpt", self.context, **wpt_kwargs)
 
-        proc.wait()
+        if editor:
+            proc.wait()
