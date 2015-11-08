@@ -371,7 +371,19 @@ impl HTMLMediaElement {
 
         // Step 4
         if let Resource::Url(url) = resource {
-            // TODO 4.1 (preload=none)
+            // 4.1
+            if self.Preload() == "none" && !self.autoplaying.get(){
+                // 4.1.1
+                self.network_state.set(NETWORK_IDLE);
+
+                // 4.1.2
+                self.queue_fire_simple_event("suspend");
+
+                // TODO 4.1.3 (delay load flag)
+
+                // TODO 4.1.5-7 (state for load that initiates later)
+                return;
+            }
 
             // 4.2
             let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url.clone())));
@@ -493,6 +505,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_setter!(SetSrc, "src");
+
+    // https://html.spec.whatwg.org/multipage/#attr-media-preload
+    make_enumerated_getter!(Preload, "", ("none") | ("metadata") | ("auto"));
+    // https://html.spec.whatwg.org/multipage/#attr-media-preload
+    make_setter!(SetPreload, "preload");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     fn CurrentSrc(&self) -> DOMString {
