@@ -2,31 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use util::str::LengthOrPercentageOrAuto;
 use util::str::{parse_length, search_index, split_html_space_chars, str_join};
 
 
 #[test]
 pub fn test_parse_length() {
-    let mut value = "0%";
-    let mut parsed = parse_length(value);
-    assert_eq!(parsed, LengthOrPercentageOrAuto::Percentage(0.0));
+    fn check(input: &str, expected: LengthOrPercentageOrAuto) {
+        let parsed = parse_length(input);
+        assert_eq!(parsed, expected);
+    }
 
-    value = "0.000%";
-    parsed = parse_length(value);
-    assert_eq!(parsed, LengthOrPercentageOrAuto::Percentage(0.0));
-
-    value = "+5.82%";
-    parsed = parse_length(value);
-    assert_eq!(parsed, LengthOrPercentageOrAuto::Percentage(0.0582));
-
-    value = "invalid";
-    parsed = parse_length(value);
-    assert_eq!(parsed, LengthOrPercentageOrAuto::Auto);
-
-    value ="12.2% followed by invalid";
-    parsed = parse_length(value);
-    assert_eq!(parsed, LengthOrPercentageOrAuto::Percentage(0.122));
+    check("0", LengthOrPercentageOrAuto::Length(Au::from_px(0)));
+    check("0.000%", LengthOrPercentageOrAuto::Percentage(0.0));
+    check("+5.82%", LengthOrPercentageOrAuto::Percentage(0.0582));
+    check("invalid", LengthOrPercentageOrAuto::Auto);
+    check("12 followed by invalid", LengthOrPercentageOrAuto::Length(Au::from_px(12)));
 }
 
 #[test]
