@@ -173,22 +173,11 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     })
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f32),
     Length(Au),
-}
-
-impl PartialEq for LengthOrPercentageOrAuto {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (&LengthOrPercentageOrAuto::Auto, &LengthOrPercentageOrAuto::Auto) => true,
-            (&LengthOrPercentageOrAuto::Percentage(x), &LengthOrPercentageOrAuto::Percentage(y)) => x == y,
-            (&LengthOrPercentageOrAuto::Length(x), &LengthOrPercentageOrAuto::Length(y)) => x == y,
-            _ => false,
-        }
-    }
 }
 
 /// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
