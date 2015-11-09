@@ -126,11 +126,10 @@ impl TimerScheduler {
     }
 
     fn run_event_loop(&self) {
-        loop {
-            match self.receive_next_task() {
-                Some(Task::HandleRequest(request)) => self.handle_request(request),
-                Some(Task::DispatchDueEvents) => self.dispatch_due_events(),
-                None => break,
+        while let Some(task) = self.receive_next_task() {
+            match task {
+                Task::HandleRequest(request) => self.handle_request(request),
+                Task::DispatchDueEvents => self.dispatch_due_events(),
             }
         }
     }
