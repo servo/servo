@@ -48,6 +48,19 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                     impl_item.map(|it| push(Annotatable::Item(it)))
                 }
             };
+
+            let impl_item = quote_item!(cx,
+                impl ::js::conversions::ToJSValConvertible for $struct_name {
+                    #[allow(unsafe_code)]
+                    unsafe fn to_jsval(&self,
+                                       cx: *mut ::js::jsapi::JSContext,
+                                       rval: ::js::jsapi::MutableHandleValue) {
+                        let object = ::dom::bindings::reflector::Reflectable::reflector(self).get_jsobject();
+                        object.to_jsval(cx, rval)
+                    }
+                }
+            );
+            impl_item.map(|it| push(Annotatable::Item(it)));
         } else {
             cx.span_err(span, "#[dom_struct] seems to have been applied to a non-struct");
         }

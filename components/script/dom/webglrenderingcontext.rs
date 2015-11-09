@@ -189,19 +189,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
         // TODO(ecoal95): Implement the missing parameters from the spec
-        let mut rval = RootedValue::new(cx, UndefinedValue());
-        match parameter {
-            constants::VERSION =>
-                "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
-            constants::RENDERER |
-            constants::VENDOR =>
-                "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
-            _ => rval.ptr = NullValue(),
+        unsafe {
+            let mut rval = RootedValue::new(cx, UndefinedValue());
+            match parameter {
+                constants::VERSION =>
+                    "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
+                constants::RENDERER |
+                constants::VENDOR =>
+                    "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
+                _ => rval.ptr = NullValue(),
+            }
+            rval.ptr
         }
-        rval.ptr
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
