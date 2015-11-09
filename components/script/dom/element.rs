@@ -390,6 +390,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
+            this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
