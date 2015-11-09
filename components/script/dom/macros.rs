@@ -219,6 +219,7 @@ macro_rules! make_atomic_setter(
 macro_rules! make_legacy_color_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self, value: DOMString) {
+            use dom::attr::AttrValue;
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
