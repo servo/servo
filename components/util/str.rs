@@ -180,20 +180,55 @@ pub enum LengthOrPercentageOrAuto {
     Length(Au),
 }
 
+impl PartialEq for LengthOrPercentageOrAuto {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (&LengthOrPercentageOrAuto::Auto, &LengthOrPercentageOrAuto::Auto) => true,
+            (&LengthOrPercentageOrAuto::Percentage(x), &LengthOrPercentageOrAuto::Percentage(y)) => x == y,
+            (&LengthOrPercentageOrAuto::Length(x), &LengthOrPercentageOrAuto::Length(y)) => x == y,
+            _ => false,
+        }
+    }
+}
+
 /// Parses a length per HTML5 § 2.4.4.4. If unparseable, `Auto` is returned.
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
+    // Steps 1 & 2 are not relevant
+
+    // Step 3
     value = value.trim_left_matches(WHITESPACE);
-    if value.is_empty() {
-        return LengthOrPercentageOrAuto::Auto
-    }
-    if value.starts_with("+") {
-        value = &value[1..]
-    }
-    value = value.trim_left_matches('0');
+
+    // Step 4
     if value.is_empty() {
         return LengthOrPercentageOrAuto::Auto
     }
 
+    // Step 5
+    if value.starts_with("+") {
+        value = &value[1..]
+    }
+
+    // Step 6
+    if value.is_empty() {
+        return LengthOrPercentageOrAuto::Auto
+    }
+
+    // Step 7
+    for ch in value.chars() {
+        match ch {
+            '0'...'9' => break,
+            _ => return LengthOrPercentageOrAuto::Auto,
+        }
+    }
+
+    // Steps 8 to 13
+    // We trim the string length to the minimum of:
+    // 1. the end of the string
+    // 2. the first occurence of a '%' (U+0025 PERCENT SIGN)
+    // 3. the second occurrence of a '.' (U+002E FULL STOP)
+    // 4. the occurrence of a character that is neither a digit nor '%' nor '.'
+    // Note: Step 10 is directly subsumed by From::from_str
     let mut end_index = value.len();
     let (mut found_full_stop, mut found_percent) = (false, false);
     for (i, ch) in value.chars().enumerate() {
