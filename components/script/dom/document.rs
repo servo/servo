@@ -968,7 +968,9 @@ impl Document {
 
     pub fn set_body_attribute(&self, local_name: &Atom, value: DOMString) {
         if let Some(ref body) = self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
-            body.upcast::<Element>().set_string_attribute(local_name, value);
+            let body = body.upcast::<Element>();
+            let value = body.parse_attribute(&ns!(""), &local_name, value);
+            body.set_attribute(local_name, value);
         }
     }
 
