@@ -238,7 +238,7 @@ macro_rules! make_dimension_setter(
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
-            let value = AttrValue::parse_dimension(value);
+            let value = AttrValue::from_dimension(value);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_attribute(&Atom::from_slice($htmlname), value)
         }

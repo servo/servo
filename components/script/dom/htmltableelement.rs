@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
@@ -26,7 +26,6 @@ pub struct HTMLTableElement {
     background_color: Cell<Option<RGBA>>,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
-    width: Cell<LengthOrPercentageOrAuto>,
 }
 
 impl HTMLTableElement {
@@ -37,7 +36,6 @@ impl HTMLTableElement {
             background_color: Cell::new(None),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
-            width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
 
@@ -151,7 +149,11 @@ impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (*self.unsafe_get()).width.get()
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("width"))
+                .map(AttrValue::as_dimension)
+                .cloned()
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
 }
@@ -180,12 +182,6 @@ impl VirtualMethods for HTMLTableElement {
                     str::parse_unsigned_integer(value.chars())
                 }));
             },
-            atom!(width) => {
-                let width = mutation.new_value(attr).map(|value| {
-                    str::parse_length(&value)
-                });
-                self.width.set(width.unwrap_or(LengthOrPercentageOrAuto::Auto));
-            },
             _ => {},
         }
     }
@@ -193,6 +189,7 @@ impl VirtualMethods for HTMLTableElement {
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
             atom!("border") => AttrValue::from_u32(value, 1),
+            atom!("width") => AttrValue::from_dimension(value),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
