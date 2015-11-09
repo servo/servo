@@ -888,21 +888,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             handleInvalidEnumValueCode = "return true;"
 
-        transmute = "mem::transmute(index)"
-        if isMember == 'Dictionary':
-            transmute = 'unsafe { ' + transmute + ' }'
-
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok(Some(index)) => {\n"
             "        //XXXjdm need some range checks up in here.\n"
-            "        %(transmute)s\n"
+            "        mem::transmute(index)\n"
             "    },\n"
             "}" % {"values": enum + "Values::strings",
                    "exceptionCode": exceptionCode,
-                   "transmute": transmute,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
@@ -3644,7 +3639,7 @@ class CGUnionConversionStruct(CGThing):
             names.append(name)
 
         conversions.append(CGGeneric(
-            "throw_not_in_union(cx, \"%s\");\n"
+            "unsafe { throw_not_in_union(cx, \"%s\"); }\n"
             "Err(())" % ", ".join(names)))
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
@@ -4947,10 +4942,10 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl ${selfName} {\n"
-            "    pub fn empty(cx: *mut JSContext) -> ${selfName} {\n"
+            "    pub unsafe fn empty(cx: *mut JSContext) -> ${selfName} {\n"
             "        ${selfName}::new(cx, HandleValue::null()).unwrap()\n"
             "    }\n"
-            "    pub fn new(cx: *mut JSContext, val: HandleValue) -> Result<${selfName}, ()> {\n"
+            "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) -> Result<${selfName}, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
             "            RootedObject::new(cx, ptr::null_mut())\n"
             "        } else if val.get().is_object() {\n"
@@ -5154,6 +5149,7 @@ class CGBindingRoot(CGThing):
             'js::{JSCLASS_RESERVED_SLOTS_MASK}',
             'js::{JSPROP_ENUMERATE, JSPROP_SHARED}',
             'js::{JSITER_OWNONLY, JSITER_HIDDEN, JSITER_SYMBOLS}',
+            'js::error::throw_type_error',
             'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
             'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
             'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
@@ -5217,7 +5213,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
             'dom::bindings::error::Error::JSFailed',
             'dom::bindings::error::throw_dom_exception',
-            'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
