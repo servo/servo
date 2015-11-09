@@ -1,0 +1,56 @@
+<body></body>
+<script>
+function check1(args, callee) {
+  parent.t.step(function() {
+    parent.assert_equals(callee.length, 5);
+    parent.assert_equals(args.length, 5);
+    parent.assert_equals(args[0], reference_error.message);
+    parent.assert_equals(args[1], reference_error.filename);
+    parent.assert_equals(args[2], reference_error.lineno);
+    parent.assert_equals(args[3], reference_error.colno);
+    parent.assert_equals(args[4], reference_error.error);
+    parent.t.done();
+  });
+}
+
+var reference_error = new ErrorEvent("error", {
+  filename: "error_file.js",
+  lineno: 333,
+  colno: 999,
+  message: "there was an error",
+  error: {nondefault: 'some unusual object'},
+});
+
+parent.t.step(function() {
+  document.body.outerHTML = "<body onerror='check1(arguments, arguments.callee)'></body>"
+  window.dispatchEvent(reference_error);
+});
+
+function check2(args, callee) {
+  parent.t2.step(function() {
+    parent.assert_equals(callee.length, 5);
+    parent.assert_equals(args.length, 1);
+    parent.assert_false(args[0] instanceof ErrorEvent);
+    parent.t2.done()
+  });
+}
+
+parent.t2.step(function() {
+  document.body.outerHTML = "<body onerror='check2(arguments, arguments.callee)'></body>"
+  window.dispatchEvent(new Event("error"));
+});
+
+function check3(args, callee) {
+  parent.t3.step(function() {
+    parent.assert_equals(args.length, 1);
+    parent.assert_equals(callee.length, 1);
+  });
+}
+
+parent.t3.step(function() {
+  document.body.outerHTML = "<body><span onerror='check3(arguments, arguments.callee)'></span></body>"
+  document.body.firstChild.dispatchEvent(reference_error);
+  document.body.firstChild.dispatchEvent(new Event("error"));
+  parent.t3.done();
+});
+</script>
