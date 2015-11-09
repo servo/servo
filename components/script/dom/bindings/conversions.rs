@@ -33,7 +33,6 @@
 //! | union types             | `T`                              |
 
 use core::nonzero::NonZero;
-use dom::bindings::error::throw_type_error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
@@ -41,6 +40,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::DOMClass;
 use js;
+use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
@@ -146,7 +146,7 @@ fn enforce_range<D>(cx: *mut JSContext, d: f64) -> Result<D, ()>
           f64: As<D>
 {
     if d.is_infinite() {
-        throw_type_error(cx, "value out of range in an EnforceRange argument");
+        unsafe { throw_type_error(cx, "value out of range in an EnforceRange argument") };
         return Err(());
     }
 
@@ -154,7 +154,7 @@ fn enforce_range<D>(cx: *mut JSContext, d: f64) -> Result<D, ()>
     if D::min_value().cast() <= rounded && rounded <= D::max_value().cast() {
         Ok(rounded.cast())
     } else {
-        throw_type_error(cx, "value out of range in an EnforceRange argument");
+        unsafe { throw_type_error(cx, "value out of range in an EnforceRange argument") };
         Err(())
     }
 }
@@ -408,7 +408,7 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
         match Finite::new(result) {
             Some(v) => Ok(v),
             None => {
-                throw_type_error(cx, "this argument is not a finite floating-point value");
+                unsafe { throw_type_error(cx, "this argument is not a finite floating-point value") };
                 Err(())
             },
         }

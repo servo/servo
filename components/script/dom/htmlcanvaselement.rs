@@ -157,6 +157,7 @@ impl HTMLCanvasElement {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn get_or_init_webgl_context(&self,
                                  cx: *mut JSContext,
                                  attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
@@ -165,7 +166,7 @@ impl HTMLCanvasElement {
             let size = self.get_size();
 
             let attrs = if let Some(webgl_attributes) = attrs {
-                if let Ok(ref attrs) = WebGLContextAttributes::new(cx, webgl_attributes) {
+                if let Ok(ref attrs) = unsafe { WebGLContextAttributes::new(cx, webgl_attributes) } {
                     From::from(attrs)
                 } else {
                     debug!("Unexpected error on conversion of WebGLContextAttributes");
