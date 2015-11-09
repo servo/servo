@@ -1923,6 +1923,7 @@ dependencies = [
 name = "util_tests"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
