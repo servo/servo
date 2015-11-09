@@ -29826,6 +29826,12 @@
             "path": "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html",
             "url": "/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html"
           }
+        ],
+        "html/webappapis/scripting/events/onerroreventhandler.html": [
+          {
+            "path": "html/webappapis/scripting/events/onerroreventhandler.html",
+            "url": "/html/webappapis/scripting/events/onerroreventhandler.html"
+          }
         ]
       }
     },
