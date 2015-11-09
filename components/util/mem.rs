@@ -37,7 +37,7 @@ use std::result::Result;
 use std::sync::Arc;
 use str::{DOMString, LengthOrPercentageOrAuto};
 use string_cache::atom::Atom;
-use string_cache::namespace::Namespace;
+use string_cache::namespace::{QualName, Namespace};
 use url;
 
 extern {
@@ -420,7 +420,7 @@ known_heap_size!(0, bool, f32, f64);
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Range<T>);
 known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
 
-known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, Atom, Namespace);
+known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, QualName, Atom, Namespace);
 known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus);
 known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 

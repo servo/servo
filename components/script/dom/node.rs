@@ -57,6 +57,7 @@ use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cmp::max;
 use std::default::Default;
 use std::iter::{self, FilterMap, Peekable};
 use std::mem;
@@ -104,6 +105,9 @@ pub struct Node {
 
     /// A bitfield of flags for node items.
     flags: Cell<NodeFlags>,
+
+    /// The maximum version of any inclusive descendant of this node.
+    inclusive_descendants_version: Cell<u64>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -489,6 +493,19 @@ impl Node {
     }
 
     pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
+
+        // 0. Set version counter
+        // The new version counter is 1 plus the max of the node's current version counter,
+        // its descendants version, and the document's version. Normally, this will just be
+        // the document's version, but we do have to deal with the case where the node has moved
+        // document, so may have a higher version count than its owning document.
+        let doc: Root<Node> = Root::upcast(self.owner_doc());
+        let version = max(self.get_inclusive_descendants_version(), doc.get_inclusive_descendants_version()) + 1;
+        for ancestor in self.inclusive_ancestors() {
+            ancestor.inclusive_descendants_version.set(version);
+        }
+        doc.inclusive_descendants_version.set(version);
+
         // 1. Dirty self.
         match damage {
             NodeDamage::NodeStyleDamaged => {}
@@ -518,6 +535,11 @@ impl Node {
             if !force_ancestors && ancestor.get_has_dirty_descendants() { break }
             ancestor.set_has_dirty_descendants(true);
         }
+    }
+
+    /// The maximum version number of this node's descendants, including itself
+    pub fn get_inclusive_descendants_version(&self) -> u64 {
+        self.inclusive_descendants_version.get()
     }
 
     /// Iterates over this node and all its descendants, in preorder.
@@ -1284,6 +1306,7 @@ impl Node {
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
+            inclusive_descendants_version: Cell::new(0),
 
             layout_data: LayoutDataRef::new(),
 
