@@ -570,32 +570,32 @@ impl Runnable for MessageReceivedTask {
 
         // Step 2-5.
         let global = ws.global.root();
-        let cx = global.r().get_cx();
-        let _ar = JSAutoRequest::new(cx);
-        let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
-        let mut message = RootedValue::new(cx, UndefinedValue());
-        match self.message {
-            MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
-            MessageData::Binary(data) => {
-                match ws.binary_type.get() {
-                    BinaryType::Blob => {
-                        let blob = Blob::new(global.r(), Some(data), "");
-                        blob.to_jsval(cx, message.handle_mut());
-                    }
-                    BinaryType::Arraybuffer => {
-                        unsafe {
+        // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
+        unsafe {
+            let cx = global.r().get_cx();
+            let _ar = JSAutoRequest::new(cx);
+            let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
+            let mut message = RootedValue::new(cx, UndefinedValue());
+            match self.message {
+                MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
+                MessageData::Binary(data) => {
+                    match ws.binary_type.get() {
+                        BinaryType::Blob => {
+                            let blob = Blob::new(global.r(), Some(data), "");
+                            blob.to_jsval(cx, message.handle_mut());
+                        }
+                        BinaryType::Arraybuffer => {
                             let len = data.len() as uint32_t;
                             let buf = JS_NewArrayBuffer(cx, len);
                             let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, ptr::null());
                             ptr::copy_nonoverlapping(data.as_ptr(), buf_data, len as usize);
                             buf.to_jsval(cx, message.handle_mut());
                         }
+
                     }
-
-                }
-            },
+                },
+            }
+            MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
         }
-
-        MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
     }
 }

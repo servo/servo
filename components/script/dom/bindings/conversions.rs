@@ -39,26 +39,23 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::DOMClass;
 use js;
+pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBehavior};
 use js::error::throw_type_error;
-use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
+use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
-use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
+use js::jsapi::{JSClass, JSContext, JSObject, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
-use js::jsapi::{JS_NewArrayObject1, JS_DefineElement, RootedValue, RootedObject};
-use js::jsapi::{JS_NewUCStringCopyN, JS_StringHasLatin1Chars, JS_WrapValue};
-use js::jsval::{BooleanValue, Int32Value, NullValue, UInt32Value, UndefinedValue};
-use js::jsval::{JSVal, ObjectOrNullValue, ObjectValue, StringValue};
-use js::rust::{ToBoolean, ToNumber, ToString, ToUint16};
-use js::rust::{ToInt32, ToUint32};
-use js::rust::{ToInt64, ToUint64};
+use js::jsapi::{JS_StringHasLatin1Chars, JS_WrapValue};
+use js::jsval::{ObjectValue, StringValue};
+use js::rust::ToString;
 use libc;
 use num::Float;
-use num::traits::{Bounded, Zero};
-use std::rc::Rc;
-use std::{char, ptr, slice};
-use util::str::DOMString;
+use std::{ptr, slice};
+use util::str::{DOMString};
+pub use util::str::{StringificationBehavior, jsstring_to_str};
+
 
 trait As<O>: Copy {
     fn cast(self) -> O;
@@ -111,290 +108,9 @@ pub trait IDLInterface {
 #[rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`."]
 pub trait DerivedFrom<T: Castable>: Castable {}
 
-/// A trait to convert Rust types to `JSVal`s.
-pub trait ToJSValConvertible {
-    /// Convert `self` to a `JSVal`. JSAPI failure causes a task failure.
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue);
-}
-
-/// A trait to convert `JSVal`s to Rust types.
-pub trait FromJSValConvertible: Sized {
-    /// Optional configurable behaviour switch; use () for no configuration.
-    type Config;
-    /// Convert `val` to type `Self`.
-    /// Optional configuration of type `T` can be passed as the `option`
-    /// argument.
-    /// If it returns `Err(())`, a JSAPI exception is pending.
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: Self::Config) -> Result<Self, ()>;
-}
-
-/// Behavior for converting out-of-range integers.
-#[derive(PartialEq, Eq)]
-pub enum ConversionBehavior {
-    /// Wrap into the integer's range.
-    Default,
-    /// Throw an exception.
-    EnforceRange,
-    /// Clamp into the integer's range.
-    Clamp
-}
-
-/// Try to cast the number to a smaller type, but
-/// if it doesn't fit, it will return an error.
-fn enforce_range<D>(cx: *mut JSContext, d: f64) -> Result<D, ()>
-    where D: Bounded + As<f64>,
-          f64: As<D>
-{
-    if d.is_infinite() {
-        unsafe { throw_type_error(cx, "value out of range in an EnforceRange argument") };
-        return Err(());
-    }
-
-    let rounded = d.round();
-    if D::min_value().cast() <= rounded && rounded <= D::max_value().cast() {
-        Ok(rounded.cast())
-    } else {
-        unsafe { throw_type_error(cx, "value out of range in an EnforceRange argument") };
-        Err(())
-    }
-}
-
-/// Try to cast the number to a smaller type, but if it doesn't fit,
-/// round it to the MAX or MIN of the source type before casting it to
-/// the destination type.
-fn clamp_to<D>(d: f64) -> D
-    where D: Bounded + As<f64> + Zero,
-          f64: As<D>
-{
-    if d.is_nan() {
-        D::zero()
-    } else if d > D::max_value().cast() {
-        D::max_value()
-    } else if d < D::min_value().cast() {
-        D::min_value()
-    } else {
-        d.cast()
-    }
-}
-
-//http://heycam.github.io/webidl/#es-void
-impl ToJSValConvertible for () {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(UndefinedValue());
-    }
-}
-
-impl ToJSValConvertible for JSVal {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(*self);
-        if unsafe { !JS_WrapValue(cx, rval) } {
-            panic!("JS_WrapValue failed.");
-        }
-    }
-}
-
-impl ToJSValConvertible for HandleValue {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(self.get());
-        if unsafe { !JS_WrapValue(cx, rval) } {
-            panic!("JS_WrapValue failed.");
-        }
-    }
-}
-
-#[inline]
-unsafe fn convert_int_from_jsval<T, M>(cx: *mut JSContext, value: HandleValue,
-                                       option: ConversionBehavior,
-                                       convert_fn: unsafe fn(*mut JSContext, HandleValue) -> Result<M, ()>)
-                                       -> Result<T, ()>
-    where T: Bounded + Zero + As<f64>,
-          M: Zero + As<T>,
-          f64: As<T>
-{
-    match option {
-        ConversionBehavior::Default => Ok(try!(convert_fn(cx, value)).cast()),
-        ConversionBehavior::EnforceRange => enforce_range(cx, try!(ToNumber(cx, value))),
-        ConversionBehavior::Clamp => Ok(clamp_to(try!(ToNumber(cx, value)))),
-    }
-}
-
-//http://heycam.github.io/webidl/#es-boolean
-impl ToJSValConvertible for bool {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(BooleanValue(*self));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-boolean
-impl FromJSValConvertible for bool {
-    type Config = ();
-    fn from_jsval(_cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<bool, ()> {
-        Ok(unsafe { ToBoolean(val) })
-    }
-}
-
-//http://heycam.github.io/webidl/#es-byte
-impl ToJSValConvertible for i8 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(Int32Value(*self as i32));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-byte
-impl FromJSValConvertible for i8 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i8, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-octet
-impl ToJSValConvertible for u8 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(Int32Value(*self as i32));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-octet
-impl FromJSValConvertible for u8 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u8, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-short
-impl ToJSValConvertible for i16 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(Int32Value(*self as i32));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-short
-impl FromJSValConvertible for i16 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i16, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-unsigned-short
-impl ToJSValConvertible for u16 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(Int32Value(*self as i32));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-unsigned-short
-impl FromJSValConvertible for u16 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u16, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToUint16) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-long
-impl ToJSValConvertible for i32 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(Int32Value(*self));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-long
-impl FromJSValConvertible for i32 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i32, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-unsigned-long
-impl ToJSValConvertible for u32 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(UInt32Value(*self));
-    }
-}
-
-//http://heycam.github.io/webidl/#es-unsigned-long
-impl FromJSValConvertible for u32 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u32, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToUint32) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-long-long
-impl ToJSValConvertible for i64 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        unsafe {
-            rval.set(RUST_JS_NumberValue(*self as f64));
-        }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-long-long
-impl FromJSValConvertible for i64 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i64, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToInt64) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-unsigned-long-long
-impl ToJSValConvertible for u64 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        unsafe {
-            rval.set(RUST_JS_NumberValue(*self as f64));
-        }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-unsigned-long-long
-impl FromJSValConvertible for u64 {
-    type Config = ConversionBehavior;
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u64, ()> {
-        unsafe { convert_int_from_jsval(cx, val, option, ToUint64) }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-float
-impl ToJSValConvertible for f32 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        unsafe {
-            rval.set(RUST_JS_NumberValue(*self as f64));
-        }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-float
-impl FromJSValConvertible for f32 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f32, ()> {
-        let result = unsafe { ToNumber(cx, val) };
-        result.map(|f| f as f32)
-    }
-}
-
-//http://heycam.github.io/webidl/#es-double
-impl ToJSValConvertible for f64 {
-    fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
-        unsafe {
-            rval.set(RUST_JS_NumberValue(*self));
-        }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-double
-impl FromJSValConvertible for f64 {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f64, ()> {
-        unsafe { ToNumber(cx, val) }
-    }
-}
-
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let value = **self;
         value.to_jsval(cx, rval);
     }
@@ -403,107 +119,16 @@ impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
 impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite<T> {
     type Config = ();
 
-    fn from_jsval(cx: *mut JSContext, value: HandleValue, option: ()) -> Result<Finite<T>, ()> {
+    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, option: ()) -> Result<Finite<T>, ()> {
         let result = try!(FromJSValConvertible::from_jsval(cx, value, option));
         match Finite::new(result) {
             Some(v) => Ok(v),
             None => {
-                unsafe { throw_type_error(cx, "this argument is not a finite floating-point value") };
+                throw_type_error(cx, "this argument is not a finite floating-point value");
                 Err(())
             },
         }
     }
-}
-
-impl ToJSValConvertible for str {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        let mut string_utf16: Vec<u16> = Vec::with_capacity(self.len());
-        unsafe {
-            string_utf16.extend(self.utf16_units());
-            let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(),
-                                            string_utf16.len() as libc::size_t);
-            if jsstr.is_null() {
-                panic!("JS_NewUCStringCopyN failed");
-            }
-            rval.set(StringValue(&*jsstr));
-        }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-DOMString
-impl ToJSValConvertible for String {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        (**self).to_jsval(cx, rval);
-    }
-}
-
-//http://heycam.github.io/webidl/#es-DOMString
-impl ToJSValConvertible for DOMString {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        (**self).to_jsval(cx, rval);
-    }
-}
-
-/// Behavior for stringification of `JSVal`s.
-#[derive(PartialEq)]
-pub enum StringificationBehavior {
-    /// Convert `null` to the string `"null"`.
-    Default,
-    /// Convert `null` to the empty string.
-    Empty,
-}
-
-/// Convert the given `JSString` to a `DOMString`. Fails if the string does not
-/// contain valid UTF-16.
-pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
-    let mut length = 0;
-    let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
-    DOMString(if latin1 {
-        let chars = unsafe {
-            JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
-        };
-        assert!(!chars.is_null());
-
-        let mut buf = String::with_capacity(length as usize);
-        for i in 0..(length as isize) {
-            unsafe {
-                buf.push(*chars.offset(i) as char);
-            }
-        }
-        buf
-    } else {
-        let chars = unsafe {
-            JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s, &mut length)
-        };
-        assert!(!chars.is_null());
-        let potentially_ill_formed_utf16 = unsafe {
-            slice::from_raw_parts(chars as *const u16, length as usize)
-        };
-        let mut s = String::with_capacity(length as usize);
-        for item in char::decode_utf16(potentially_ill_formed_utf16.iter().cloned()) {
-            match item {
-                Ok(c) => s.push(c),
-                Err(_) => {
-                    // FIXME: Add more info like document URL in the message?
-                    macro_rules! message {
-                        () => {
-                            "Found an unpaired surrogate in a DOM string. \
-                             If you see this in real web content, \
-                             please comment on https://github.com/servo/servo/issues/6564"
-                        }
-                    }
-                    if ::util::opts::get().replace_surrogates {
-                        error!(message!());
-                        s.push('\u{FFFD}');
-                    } else {
-                        panic!(concat!(message!(), " Use `-Z replace-surrogates` \
-                            on the command line to make this non-fatal."));
-                    }
-                }
-            }
-        }
-        s
-    })
 }
 
 /// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
@@ -515,30 +140,9 @@ pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
     }
 }
 
-//http://heycam.github.io/webidl/#es-DOMString
-impl FromJSValConvertible for DOMString {
-    type Config = StringificationBehavior;
-    fn from_jsval(cx: *mut JSContext, value: HandleValue,
-                  null_behavior: StringificationBehavior)
-                  -> Result<DOMString, ()> {
-        if null_behavior == StringificationBehavior::Empty &&
-           value.get().is_null() {
-            Ok(DOMString::new())
-        } else {
-            let jsstr = unsafe { ToString(cx, value) };
-            if jsstr.is_null() {
-                debug!("ToString failed");
-                Err(())
-            } else {
-                Ok(jsstring_to_str(cx, jsstr))
-            }
-        }
-    }
-}
-
 //http://heycam.github.io/webidl/#es-USVString
 impl ToJSValConvertible for USVString {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.0.to_jsval(cx, rval);
     }
 }
@@ -546,89 +150,78 @@ impl ToJSValConvertible for USVString {
 //http://heycam.github.io/webidl/#es-USVString
 impl FromJSValConvertible for USVString {
     type Config = ();
-    fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
-                  -> Result<USVString, ()> {
-        let jsstr = unsafe { ToString(cx, value) };
+    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
+                         -> Result<USVString, ()> {
+        let jsstr = ToString(cx, value);
         if jsstr.is_null() {
             debug!("ToString failed");
             return Err(());
         }
-        let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
+        let latin1 = JS_StringHasLatin1Chars(jsstr);
         if latin1 {
             return Ok(USVString(jsstring_to_str(cx, jsstr).0));
         }
-        unsafe {
-            let mut length = 0;
-            let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
-            assert!(!chars.is_null());
-            let char_vec = slice::from_raw_parts(chars as *const u16, length as usize);
-            Ok(USVString(String::from_utf16_lossy(char_vec)))
-        }
+        let mut length = 0;
+        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
+        assert!(!chars.is_null());
+        let char_vec = slice::from_raw_parts(chars as *const u16, length as usize);
+        Ok(USVString(String::from_utf16_lossy(char_vec)))
     }
 }
 
 //http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        unsafe {
-            let jsstr = JS_NewStringCopyN(cx, self.as_ptr() as *const libc::c_char,
-                                          self.len() as libc::size_t);
-            if jsstr.is_null() {
-                panic!("JS_NewStringCopyN failed");
-            }
-            rval.set(StringValue(&*jsstr));
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let jsstr = JS_NewStringCopyN(cx, self.as_ptr() as *const libc::c_char,
+                                      self.len() as libc::size_t);
+        if jsstr.is_null() {
+            panic!("JS_NewStringCopyN failed");
         }
+        rval.set(StringValue(&*jsstr));
     }
 }
 
 //http://heycam.github.io/webidl/#es-ByteString
 impl FromJSValConvertible for ByteString {
     type Config = ();
-    fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ()) -> Result<ByteString, ()> {
-        let string = unsafe { ToString(cx, value) };
+    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ()) -> Result<ByteString, ()> {
+        let string = ToString(cx, value);
         if string.is_null() {
             debug!("ToString failed");
             return Err(());
         }
 
-        let latin1 = unsafe { JS_StringHasLatin1Chars(string) };
+        let latin1 = JS_StringHasLatin1Chars(string);
         if latin1 {
             let mut length = 0;
-            let chars = unsafe {
-                JS_GetLatin1StringCharsAndLength(cx, ptr::null(),
-                                                 string, &mut length)
-            };
+            let chars = JS_GetLatin1StringCharsAndLength(cx, ptr::null(),
+                                                         string, &mut length);
             assert!(!chars.is_null());
 
-            let char_slice = unsafe {
-                slice::from_raw_parts(chars as *mut u8, length as usize)
-            };
-
+            let char_slice = slice::from_raw_parts(chars as *mut u8, length as usize);
             return Ok(ByteString::new(char_slice.to_vec()));
         }
 
-        unsafe {
-            let mut length = 0;
-            let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), string, &mut length);
-            let char_vec = slice::from_raw_parts(chars, length as usize);
+        let mut length = 0;
+        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), string, &mut length);
+        let char_vec = slice::from_raw_parts(chars, length as usize);
 
-            if char_vec.iter().any(|&c| c > 0xFF) {
-                throw_type_error(cx, "Invalid ByteString");
-                Err(())
-            } else {
-                Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
-            }
+        if char_vec.iter().any(|&c| c > 0xFF) {
+            throw_type_error(cx, "Invalid ByteString");
+            Err(())
+        } else {
+            Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
         }
     }
 }
 
 
 impl ToJSValConvertible for Reflector {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
-        rval.set(ObjectValue(unsafe { &*obj }));
-        if unsafe { !JS_WrapValue(cx, rval) } {
+        rval.set(ObjectValue(&*obj));
+        if !JS_WrapValue(cx, rval) {
             panic!("JS_WrapValue failed.");
         }
     }
@@ -771,75 +364,7 @@ pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 }
 
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
-    }
-}
-
-impl<'a, T: Reflectable> ToJSValConvertible for &'a T {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.reflector().to_jsval(cx, rval);
-    }
-}
-
-impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        match self {
-            &Some(ref value) => value.to_jsval(cx, rval),
-            &None => rval.set(NullValue()),
-        }
-    }
-}
-
-impl<T: ToJSValConvertible> ToJSValConvertible for Option<Rc<T>> {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        match self {
-            &Some(ref value) => (**value).to_jsval(cx, rval),
-            &None => rval.set(NullValue()),
-        }
-    }
-}
-
-impl<T: FromJSValConvertible> FromJSValConvertible for Option<T> {
-    type Config = T::Config;
-    fn from_jsval(cx: *mut JSContext, value: HandleValue, option: T::Config) -> Result<Option<T>, ()> {
-        if value.get().is_null_or_undefined() {
-            Ok(None)
-        } else {
-            let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
-            result.map(Some)
-        }
-    }
-}
-
-impl<T: ToJSValConvertible> ToJSValConvertible for Vec<T> {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        let js_array = RootedObject::new(cx,
-                                         unsafe { JS_NewArrayObject1(cx, self.len() as libc::size_t) });
-        assert!(!js_array.handle().is_null());
-
-        for (index, obj) in self.iter().enumerate() {
-            let mut val = RootedValue::new(cx, UndefinedValue());
-            obj.to_jsval(cx, val.handle_mut());
-
-            unsafe {
-                assert!(JS_DefineElement(cx, js_array.handle(),
-                                         index as u32, val.handle(), js::JSPROP_ENUMERATE, None, None));
-            }
-        }
-
-        unsafe {
-            rval.set(ObjectValue(&*js_array.handle().get()));
-        }
-    }
-}
-
-//http://heycam.github.io/webidl/#es-object
-impl ToJSValConvertible for *mut JSObject {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        rval.set(ObjectOrNullValue(*self));
-        unsafe {
-            assert!(JS_WrapValue(cx, rval));
-        }
     }
 }

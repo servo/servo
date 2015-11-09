@@ -130,6 +130,7 @@ impl HTMLIFrameElement {
         self.navigate_child_browsing_context(url);
     }
 
+    #[allow(unsafe_code)]
     pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
@@ -138,16 +139,18 @@ impl HTMLIFrameElement {
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
-            let cx = window.get_cx();
-            let _ar = JSAutoRequest::new(cx);
-            let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
-            let mut detail = RootedValue::new(cx, UndefinedValue());
-            event.detail().to_jsval(cx, detail.handle_mut());
-            let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
-                                                DOMString(event.name().to_owned()),
-                                                true,
-                                                true,
-                                                detail.handle());
+            let custom_event = unsafe {
+                let cx = window.get_cx();
+                let _ar = JSAutoRequest::new(cx);
+                let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
+                let mut detail = RootedValue::new(cx, UndefinedValue());
+                event.detail().to_jsval(cx, detail.handle_mut());
+                CustomEvent::new(GlobalRef::Window(window.r()),
+                                 DOMString(event.name().to_owned()),
+                                 true,
+                                 true,
+                                 detail.handle())
+            };
             custom_event.upcast::<Event>().fire(self.upcast());
         }
     }
