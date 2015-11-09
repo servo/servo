@@ -40,7 +40,8 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     None
 }
 
-pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSResult {
+#[allow(unsafe_code)]
+pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSResult {
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
     } else if val.get().is_boolean() {
@@ -58,17 +59,20 @@ pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSRe
     }
 }
 
+#[allow(unsafe_code)]
 pub fn handle_execute_script(page: &Rc<Page>,
                              pipeline: PipelineId,
                              eval: String,
                              reply: IpcSender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
-    let cx = window.get_cx();
-    let mut rval = RootedValue::new(cx, UndefinedValue());
-    window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
-
-    reply.send(jsval_to_webdriver(cx, rval.handle())).unwrap();
+    let result = unsafe {
+        let cx = window.get_cx();
+        let mut rval = RootedValue::new(cx, UndefinedValue());
+        window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+        jsval_to_webdriver(cx, rval.handle())
+    };
+    reply.send(result).unwrap();
 }
 
 pub fn handle_execute_async_script(page: &Rc<Page>,

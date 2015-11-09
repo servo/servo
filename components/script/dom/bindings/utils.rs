@@ -8,7 +8,7 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::private_from_proto_check;
-use dom::bindings::conversions::{is_dom_class, jsstring_to_str, DOM_OBJECT_SLOT};
+use dom::bindings::conversions::{is_dom_class, DOM_OBJECT_SLOT};
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::js::Root;
@@ -52,6 +52,7 @@ use std::default::Default;
 use std::ffi::CString;
 use std::ptr;
 use util::mem::HeapSizeOf;
+use util::str::jsstring_to_str;
 
 /// Proxy handler for a WindowProxy.
 #[allow(raw_pointer_derive)]
@@ -443,11 +444,11 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
 /// Find the index of a string given by `v` in `values`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(None)` if there was no matching string.
-pub fn find_enum_string_index(cx: *mut JSContext,
-                              v: HandleValue,
-                              values: &[&'static str])
-                              -> Result<Option<usize>, ()> {
-    let jsstr = unsafe { ToString(cx, v) };
+pub unsafe fn find_enum_string_index(cx: *mut JSContext,
+                                     v: HandleValue,
+                                     values: &[&'static str])
+                                     -> Result<Option<usize>, ()> {
+    let jsstr = ToString(cx, v);
     if jsstr.is_null() {
         return Err(());
     }
