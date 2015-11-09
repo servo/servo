@@ -21,7 +21,7 @@ use std::mem;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use style::values::specified::Length;
-use util::str::{DOMString, parse_unsigned_integer, parse_legacy_color};
+use util::str::{DOMString, LengthOrPercentageOrAuto, parse_unsigned_integer, parse_legacy_color, parse_length};
 use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
@@ -32,6 +32,7 @@ pub enum AttrValue {
     Atom(Atom),
     Length(DOMString, Option<Length>),
     Color(DOMString, Option<RGBA>),
+    Dimension(DOMString, LengthOrPercentageOrAuto),
 }
 
 impl AttrValue {
@@ -83,6 +84,11 @@ impl AttrValue {
         AttrValue::Color(string, parsed)
     }
 
+    pub fn parse_dimension(string: DOMString) -> AttrValue {
+        let parsed = parse_length(&string);
+        AttrValue::Dimension(string, parsed)
+    }
+
     /// Assumes the `AttrValue` is a `TokenList` and returns its tokens
     ///
     /// ## Panics
@@ -131,6 +137,18 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `Dimension` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `Dimension`
+    pub fn as_dimension(&self) -> &LengthOrPercentageOrAuto {
+        match *self {
+            AttrValue::Dimension(_, ref l) => l,
+            _ => panic!("Dimension not found"),
+        }
+    }
+
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.
@@ -156,7 +174,8 @@ impl Deref for AttrValue {
                 AttrValue::TokenList(ref value, _) |
                 AttrValue::UInt(ref value, _) |
                 AttrValue::Length(ref value, _) |
-                AttrValue::Color(ref value, _) => &value,
+                AttrValue::Color(ref value, _) |
+                AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }
     }
