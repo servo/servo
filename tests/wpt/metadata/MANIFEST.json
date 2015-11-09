@@ -4496,6 +4496,16 @@
         "url": "/html/rendering/non-replaced-elements/the-hr-element-0/color.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/the-hr-element-0/width.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/the-hr-element-0/width-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/the-hr-element-0/width.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/the-page/body_text_00ffff.xhtml",
         "references": [
           [
