@@ -76,23 +76,24 @@ use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use std::borrow::ToOwned;
 use string_cache::{Atom, QualName};
+use util::str::DOMString;
 
 pub fn create_element(name: QualName, prefix: Option<Atom>,
                       document: &Document, creator: ElementCreator)
                       -> Root<Element> {
-    let prefix = prefix.map(|p| (*p).to_owned());
+    let prefix = prefix.map(|p| DOMString((*p).to_owned()));
 
     if name.ns != ns!(HTML) {
-        return Element::new((*name.local).to_owned(), name.ns, prefix, document);
+        return Element::new(DOMString((*name.local).to_owned()), name.ns, prefix, document);
     }
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new((*name.local).to_owned(), prefix, document);
+            let obj = $ctor::new(DOMString((*name.local).to_owned()), prefix, document);
             Root::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg),+);
+            let obj = $ctor::new(DOMString((*name.local).to_owned()), prefix, document, $($arg),+);
             Root::upcast(obj)
         })
     );
@@ -173,7 +174,7 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("label")      => make!(HTMLLabelElement),
         atom!("legend")     => make!(HTMLLegendElement),
         atom!("li")         => make!(HTMLLIElement),
-        atom!("link")       => make!(HTMLLinkElement),
+        atom!("link")       => make!(HTMLLinkElement, creator),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:listing
         atom!("listing")    => make!(HTMLPreElement),
         atom!("main")       => make!(HTMLElement),

@@ -8,12 +8,69 @@ use libc::c_char;
 use num_lib::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::convert::AsRef;
 use std::ffi::CStr;
+use std::fmt;
 use std::iter::{Filter, Peekable};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::str::{CharIndices, FromStr, Split, from_utf8};
 
-pub type DOMString = String;
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Deserialize, Serialize, Hash, Debug)]
+pub struct DOMString(pub String);
+
+impl DOMString {
+    pub fn new() -> DOMString {
+        DOMString(String::new())
+    }
+}
+
+impl Deref for DOMString {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl DerefMut for DOMString {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut str {
+        &mut self.0
+    }
+}
+
+impl AsRef<str> for DOMString {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for DOMString {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&**self, f)
+    }
+}
+
+impl PartialEq<str> for DOMString {
+    fn eq(&self, other: &str) -> bool {
+        &**self == other
+    }
+}
+
+impl<'a> PartialEq<&'a str> for DOMString {
+    fn eq(&self, other: &&'a str) -> bool {
+        &**self == *other
+    }
+}
+
+impl Into<Vec<u8>> for DOMString {
+    fn into(self) -> Vec<u8> {
+        self.0.into()
+    }
+}
+
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 

@@ -4,10 +4,9 @@
 
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -23,7 +22,6 @@ use util::str::{self, DOMString, parse_legacy_font_size};
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
     color: Cell<Option<RGBA>>,
-    face: DOMRefCell<Option<Atom>>,
 }
 
 
@@ -32,7 +30,6 @@ impl HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             color: Cell::new(None),
-            face: DOMRefCell::new(None),
         }
     }
 
@@ -65,7 +62,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
     fn SetSize(&self, value: DOMString) {
         let element = self.upcast::<Element>();
         let length = parse_length(&value);
-        element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
+        element.set_attribute(&atom!("size"), AttrValue::Length(value, length));
     }
 }
 
@@ -81,11 +78,6 @@ impl VirtualMethods for HTMLFontElement {
                 self.color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));
-            },
-            &atom!(face) => {
-                *self.face.borrow_mut() =
-                    mutation.new_value(attr)
-                            .map(|value| value.as_atom().clone())
             },
             _ => {},
         }
@@ -111,10 +103,11 @@ impl HTMLFontElement {
 
     #[allow(unsafe_code)]
     pub fn get_face(&self) -> Option<Atom> {
-        let face = unsafe { self.face.borrow_for_layout() };
-        match *face {
-            Some(ref s) => Some(s.clone()),
-            None => None,
+        unsafe {
+            self.upcast::<Element>()
+                .get_attr_for_layout(&ns!(""), &atom!("face"))
+                .map(AttrValue::as_atom)
+                .cloned()
         }
     }
 

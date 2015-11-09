@@ -33,7 +33,7 @@ use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineNamespaceId};
+use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -41,7 +41,6 @@ use net_traits::storage_task::StorageTask;
 use profile_traits::mem;
 use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
-use url::Url;
 use util::mem::HeapSizeOf;
 
 /// The address of a node. Layout sends these back. They must be validated via
@@ -55,7 +54,7 @@ unsafe impl Send for UntrustedNodeAddress {}
 #[derive(Deserialize, Serialize)]
 pub enum LayoutControlMsg {
     /// Requests that this layout task exit.
-    ExitNow(PipelineExitType),
+    ExitNow,
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
     /// Asks layout to run another step in its animation.
@@ -90,13 +89,6 @@ pub struct NewLayoutInfo {
     pub layout_shutdown_chan: Sender<()>,
 }
 
-/// `StylesheetLoadResponder` is used to notify a responder that a style sheet
-/// has loaded.
-pub trait StylesheetLoadResponder {
-    /// Respond to a loaded style sheet.
-    fn respond(self: Box<Self>);
-}
-
 /// Used to determine if a script has any pending asynchronous activity.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ScriptState {
@@ -115,7 +107,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipeline(PipelineId, PipelineExitType),
+    ExitPipeline(PipelineId),
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
@@ -141,8 +133,6 @@ pub enum ConstellationControlMsg {
     /// Notifies the script task that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
-    /// Notifies script that a stylesheet has finished loading.
-    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
     /// Get the current state of the script task for a given pipeline.
     GetCurrentState(Sender<ScriptState>, PipelineId),
 }
@@ -158,6 +148,25 @@ pub enum MouseButton {
     Right,
 }
 
+/// The type of input represented by a multi-touch event.
+#[derive(Clone, Copy, Debug)]
+pub enum TouchEventType {
+    /// A new touch point came in contact with the screen.
+    Down,
+    /// An existing touch point changed location.
+    Move,
+    /// A touch point was removed from the screen.
+    Up,
+    /// The system stopped tracking a touch point.
+    Cancel,
+}
+
+/// An opaque identifier for a touch point.
+///
+/// http://w3c.github.io/touch-events/#widl-Touch-identifier
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TouchId(pub i32);
+
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     /// The window was resized.
@@ -168,14 +177,10 @@ pub enum CompositorEvent {
     MouseDownEvent(MouseButton, Point2D<f32>),
     /// A mouse button was released on a point.
     MouseUpEvent(MouseButton, Point2D<f32>),
-    /// The mouse was moved over a point.
-    MouseMoveEvent(Point2D<f32>),
-    /// A touch began at a point.
-    TouchDownEvent(i32, Point2D<f32>),
-    /// A touch was moved over a point.
-    TouchMoveEvent(i32, Point2D<f32>),
-    /// A touch ended at a point.
-    TouchUpEvent(i32, Point2D<f32>),
+    /// The mouse was moved over a point (or was moved out of the recognizable region).
+    MouseMoveEvent(Option<Point2D<f32>>),
+    /// A touch event was generated with a touch ID and location.
+    TouchEvent(TouchEventType, TouchId, Point2D<f32>),
     /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
 }

@@ -21,7 +21,7 @@ class InvalidCertTest(base_test.WebDriverBaseTest):
             'navigation/res/empty.html').replace('http:', 'https:', 1)
 
         self.driver.get(expected)
-        self.assertEquals(expected, self.driver.get_current_url())
+        self.assertEquals(expected, self.driver.current_url)
 
 
 if __name__ == '__main__':

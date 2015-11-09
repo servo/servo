@@ -3,14 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use legacy::PresentationalHintSynthesis;
-use media_queries::Device;
+use media_queries::{Device, MediaType};
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use restyle_hints::{RestyleHint, StateDependencySet};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
 use selectors::parser::PseudoElement;
+use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
 use style_traits::viewport::ViewportConstraints;
@@ -24,39 +26,9 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
 
-pub struct Stylist {
-    // List of stylesheets (including all media rules)
-    stylesheets: Vec<Stylesheet>,
-
-    // Device that the stylist is currently evaluating against.
-    pub device: Device,
-
-    // If true, a stylesheet has been added or the device has
-    // changed, and the stylist needs to be updated.
-    is_dirty: bool,
-
-    // The current selector maps, after evaluating media
-    // rules against the current device.
-    element_map: PerPseudoElementSelectorMap,
-    before_map: PerPseudoElementSelectorMap,
-    after_map: PerPseudoElementSelectorMap,
-    rules_source_order: usize,
-}
-
-impl Stylist {
-    #[inline]
-    pub fn new(device: Device) -> Stylist {
-        let mut stylist = Stylist {
-            stylesheets: vec!(),
-            device: device,
-            is_dirty: true,
-
-            element_map: PerPseudoElementSelectorMap::new(),
-            before_map: PerPseudoElementSelectorMap::new(),
-            after_map: PerPseudoElementSelectorMap::new(),
-            rules_source_order: 0,
-        };
-        // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+lazy_static! {
+    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
+        let mut stylesheets = vec!();
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
         for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
@@ -68,129 +40,201 @@ impl Stylist {
                         None,
                         None,
                         Origin::UserAgent);
-                    stylist.add_stylesheet(ua_stylesheet);
+                    stylesheets.push(ua_stylesheet);
                 }
                 Err(..) => {
-                    error!("Stylist::new() failed at loading {}!", filename);
+                    error!("Failed to load UA stylesheet {}!", filename);
                     process::exit(1);
                 }
             }
         }
         for &(ref contents, ref url) in &opts::get().user_stylesheets {
-            stylist.add_stylesheet(Stylesheet::from_bytes(
+            stylesheets.push(Stylesheet::from_bytes(
                 &contents, url.clone(), None, None, Origin::User));
         }
+        stylesheets
+    };
+}
+
+lazy_static! {
+    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet = {
+        match read_resource_file(&["quirks-mode.css"]) {
+            Ok(res) => {
+                Stylesheet::from_bytes(
+                    &res,
+                    Url::parse("chrome:///quirks-mode.css").unwrap(),
+                    None,
+                    None,
+                    Origin::UserAgent)
+            },
+            Err(..) => {
+                error!("Stylist failed to load 'quirks-mode.css'!");
+                process::exit(1);
+            }
+        }
+    };
+}
+
+pub struct Stylist {
+    // Device that the stylist is currently evaluating against.
+    pub device: Device,
+
+    // Viewport constraints based on the current device.
+    viewport_constraints: Option<ViewportConstraints>,
+
+    // If true, the quirks-mode stylesheet is applied.
+    quirks_mode: bool,
+
+    // If true, the device has changed, and the stylist needs to be updated.
+    is_device_dirty: bool,
+
+    // The current selector maps, after evaluating media
+    // rules against the current device.
+    element_map: PerPseudoElementSelectorMap,
+    before_map: PerPseudoElementSelectorMap,
+    after_map: PerPseudoElementSelectorMap,
+    rules_source_order: usize,
+
+    // Selector state dependencies used to compute restyle hints.
+    state_deps: StateDependencySet,
+}
+
+impl Stylist {
+    #[inline]
+    pub fn new(device: Device) -> Stylist {
+        let stylist = Stylist {
+            viewport_constraints: None,
+            device: device,
+            is_device_dirty: true,
+            quirks_mode: false,
+
+            element_map: PerPseudoElementSelectorMap::new(),
+            before_map: PerPseudoElementSelectorMap::new(),
+            after_map: PerPseudoElementSelectorMap::new(),
+            rules_source_order: 0,
+            state_deps: StateDependencySet::new(),
+        };
+        // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         stylist
     }
 
-    #[inline]
-    pub fn stylesheets(&self) -> &[Stylesheet] {
-        &self.stylesheets
+    pub fn update(&mut self, doc_stylesheets: &[&Stylesheet],
+                      stylesheets_changed: bool) -> bool {
+        if !(self.is_device_dirty || stylesheets_changed) {
+            return false;
+        }
+        self.element_map = PerPseudoElementSelectorMap::new();
+        self.before_map = PerPseudoElementSelectorMap::new();
+        self.after_map = PerPseudoElementSelectorMap::new();
+        self.rules_source_order = 0;
+        self.state_deps.clear();
+
+        for ref stylesheet in USER_OR_USER_AGENT_STYLESHEETS.iter() {
+            self.add_stylesheet(&stylesheet);
+        }
+
+        if self.quirks_mode {
+            self.add_stylesheet(&QUIRKS_MODE_STYLESHEET);
+        }
+
+        for ref stylesheet in doc_stylesheets.iter() {
+            self.add_stylesheet(stylesheet);
+        }
+
+        self.is_device_dirty = false;
+        true
     }
 
-    pub fn constrain_viewport(&self) -> Option<ViewportConstraints> {
-        let cascaded_rule = self.stylesheets.iter()
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
+        let device = &self.device;
+        if !stylesheet.is_effective_for_device(device) {
+            return;
+        }
+        let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
+            Origin::UserAgent => (
+                &mut self.element_map.user_agent,
+                &mut self.before_map.user_agent,
+                &mut self.after_map.user_agent,
+            ),
+            Origin::Author => (
+                &mut self.element_map.author,
+                &mut self.before_map.author,
+                &mut self.after_map.author,
+            ),
+            Origin::User => (
+                &mut self.element_map.user,
+                &mut self.before_map.user,
+                &mut self.after_map.user,
+            ),
+        };
+        let mut rules_source_order = self.rules_source_order;
+
+        // Take apart the StyleRule into individual Rules and insert
+        // them into the SelectorMap of that priority.
+        macro_rules! append(
+            ($style_rule: ident, $priority: ident) => {
+                if $style_rule.declarations.$priority.len() > 0 {
+                    for selector in &$style_rule.selectors {
+                        let map = match selector.pseudo_element {
+                            None => &mut element_map,
+                            Some(PseudoElement::Before) => &mut before_map,
+                            Some(PseudoElement::After) => &mut after_map,
+                        };
+                        map.$priority.insert(Rule {
+                                selector: selector.compound_selectors.clone(),
+                                declarations: DeclarationBlock {
+                                    specificity: selector.specificity,
+                                    declarations: $style_rule.declarations.$priority.clone(),
+                                    source_order: rules_source_order,
+                                },
+                        });
+                    }
+                }
+            };
+        );
+
+        for style_rule in stylesheet.effective_rules(&self.device).style() {
+            append!(style_rule, normal);
+            append!(style_rule, important);
+            rules_source_order += 1;
+            for selector in &style_rule.selectors {
+                self.state_deps.note_selector(selector.compound_selectors.clone());
+            }
+        }
+        self.rules_source_order = rules_source_order;
+    }
+
+    pub fn restyle_hint_for_state_change<E>(&self, element: &E,
+                                            current_state: ElementState,
+                                            old_state: ElementState)
+                                            -> RestyleHint
+                                            where E: Element + Clone {
+        self.state_deps.compute_hint(element, current_state, old_state)
+    }
+
+    pub fn set_device(&mut self, mut device: Device, stylesheets: &[&Stylesheet]) {
+        let cascaded_rule = stylesheets.iter()
             .flat_map(|s| s.effective_rules(&self.device).viewport())
             .cascade();
 
-        ViewportConstraints::maybe_new(self.device.viewport_size, &cascaded_rule)
-    }
-
-    pub fn update(&mut self) -> bool {
-        if self.is_dirty {
-            self.element_map = PerPseudoElementSelectorMap::new();
-            self.before_map = PerPseudoElementSelectorMap::new();
-            self.after_map = PerPseudoElementSelectorMap::new();
-            self.rules_source_order = 0;
-
-            for stylesheet in &self.stylesheets {
-                let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
-                    Origin::UserAgent => (
-                        &mut self.element_map.user_agent,
-                        &mut self.before_map.user_agent,
-                        &mut self.after_map.user_agent,
-                    ),
-                    Origin::Author => (
-                        &mut self.element_map.author,
-                        &mut self.before_map.author,
-                        &mut self.after_map.author,
-                    ),
-                    Origin::User => (
-                        &mut self.element_map.user,
-                        &mut self.before_map.user,
-                        &mut self.after_map.user,
-                    ),
-                };
-                let mut rules_source_order = self.rules_source_order;
-
-                // Take apart the StyleRule into individual Rules and insert
-                // them into the SelectorMap of that priority.
-                macro_rules! append(
-                    ($style_rule: ident, $priority: ident) => {
-                        if $style_rule.declarations.$priority.len() > 0 {
-                            for selector in &$style_rule.selectors {
-                                let map = match selector.pseudo_element {
-                                    None => &mut element_map,
-                                    Some(PseudoElement::Before) => &mut before_map,
-                                    Some(PseudoElement::After) => &mut after_map,
-                                };
-                                map.$priority.insert(Rule {
-                                        selector: selector.compound_selectors.clone(),
-                                        declarations: DeclarationBlock {
-                                            specificity: selector.specificity,
-                                            declarations: $style_rule.declarations.$priority.clone(),
-                                            source_order: rules_source_order,
-                                        },
-                                });
-                            }
-                        }
-                    };
-                );
-
-                for style_rule in stylesheet.effective_rules(&self.device).style() {
-                    append!(style_rule, normal);
-                    append!(style_rule, important);
-                    rules_source_order += 1;
-                }
-                self.rules_source_order = rules_source_order;
-            }
-
-            self.is_dirty = false;
-            return true;
+        self.viewport_constraints = ViewportConstraints::maybe_new(self.device.viewport_size, &cascaded_rule);
+        if let Some(ref constraints) = self.viewport_constraints {
+            device = Device::new(MediaType::Screen, constraints.size);
         }
-
-        false
-    }
-
-    pub fn set_device(&mut self, device: Device) {
-        let is_dirty = self.is_dirty || self.stylesheets.iter()
+        let is_device_dirty = self.is_device_dirty || stylesheets.iter()
             .flat_map(|stylesheet| stylesheet.rules().media())
             .any(|media_rule| media_rule.evaluate(&self.device) != media_rule.evaluate(&device));
 
         self.device = device;
-        self.is_dirty |= is_dirty;
+        self.is_device_dirty |= is_device_dirty;
     }
 
-    pub fn add_quirks_mode_stylesheet(&mut self) {
-        match read_resource_file(&["quirks-mode.css"]) {
-            Ok(res) => {
-            self.add_stylesheet(Stylesheet::from_bytes(
-                &res,
-                Url::parse("chrome:///quirks-mode.css").unwrap(),
-                None,
-                None,
-                Origin::UserAgent));
-            }
-            Err(..) => {
-                error!("Stylist::add_quirks_mode_stylesheet() failed at loading 'quirks-mode.css'!");
-                process::exit(1);
-            }
-        }
+    pub fn viewport_constraints(&self) -> &Option<ViewportConstraints> {
+        &self.viewport_constraints
     }
 
-    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
-        self.stylesheets.push(stylesheet);
-        self.is_dirty = true;
+    pub fn set_quirks_mode(&mut self, enabled: bool) {
+        self.quirks_mode = enabled;
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -209,7 +253,7 @@ impl Stylist {
                                         -> bool
                                         where E: Element + TElementAttributes,
                                               V: VecLike<DeclarationBlock> {
-        assert!(!self.is_dirty);
+        assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
 
@@ -276,8 +320,8 @@ impl Stylist {
         shareable
     }
 
-    pub fn is_dirty(&self) -> bool {
-        self.is_dirty
+    pub fn is_device_dirty(&self) -> bool {
+        self.is_device_dirty
     }
 }
 

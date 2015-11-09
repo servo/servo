@@ -8,18 +8,19 @@ use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -37,7 +38,6 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::{cmp, fmt};
@@ -63,8 +63,8 @@ pub struct CanvasRenderingContext2D {
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
-    state: RefCell<CanvasContextState>,
-    saved_states: RefCell<Vec<CanvasContextState>>,
+    state: DOMRefCell<CanvasContextState>,
+    saved_states: DOMRefCell<Vec<CanvasContextState>>,
 }
 
 #[must_root]
@@ -126,8 +126,8 @@ impl CanvasRenderingContext2D {
             renderer_id: renderer_id,
             ipc_renderer: ipc_renderer,
             canvas: JS::from_ref(canvas),
-            state: RefCell::new(CanvasContextState::new()),
-            saved_states: RefCell::new(Vec::new()),
+            state: DOMRefCell::new(CanvasContextState::new()),
+            saved_states: DOMRefCell::new(Vec::new()),
         }
     }
 
@@ -148,7 +148,7 @@ impl CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_transform(&self) {
@@ -290,7 +290,7 @@ impl CanvasRenderingContext2D {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         // If the source and target canvas are the same
-        let msg = if self.canvas.root().r() == canvas {
+        let msg = if &*self.canvas == canvas {
             CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled))
         } else { // Source and target canvases are different
             let context = match canvas.get_or_init_2d_context() {
@@ -298,7 +298,7 @@ impl CanvasRenderingContext2D {
                 None => return Err(Error::InvalidState),
             };
 
-            let renderer = context.r().get_ipc_renderer();
+            let renderer = context.get_ipc_renderer();
             let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
             // Reads pixels from source image
             renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect.to_i32(),
@@ -367,8 +367,7 @@ impl CanvasRenderingContext2D {
 
     #[inline]
     fn request_image_from_cache(&self, url: Url) -> ImageResponse {
-        let canvas = self.canvas.root();
-        let window = window_from_node(canvas.r());
+        let window = window_from_node(&*self.canvas);
         canvas_utils::request_image_from_cache(window.r(), url)
     }
 
@@ -422,7 +421,7 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D
 impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-canvas
     fn Canvas(&self) -> Root<HTMLCanvasElement> {
-        self.canvas.root()
+        Root::from_ref(&*self.canvas)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
@@ -537,10 +536,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(&self) -> DOMString {
         let state = self.state.borrow();
-        match state.global_composition {
+        DOMString(match state.global_composition {
             CompositionOrBlending::Composition(op) => op.to_str().to_owned(),
             CompositionOrBlending::Blending(op) => op.to_str().to_owned(),
-        }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
@@ -761,10 +760,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(result)
+                StringOrCanvasGradientOrCanvasPattern::eString(DOMString(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient.root())
+                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
         }
     }
@@ -788,7 +787,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Gradient(
                                                            JS::from_ref(gradient.r()));
                 let msg = CanvasMsg::Canvas2d(
-                    Canvas2dMsg::SetStrokeStyle(gradient.r().to_fill_or_stroke_style()));
+                    Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
             _ => {}
@@ -801,10 +800,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(result)
+                StringOrCanvasGradientOrCanvasPattern::eString(DOMString(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient.root())
+                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
         }
     }
@@ -825,12 +824,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Gradient(
                                                         JS::from_rooted(&gradient));
                 let msg = CanvasMsg::Canvas2d(
-                    Canvas2dMsg::SetFillStyle(gradient.r().to_fill_or_stroke_style()));
+                    Canvas2dMsg::SetFillStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
                 self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
-                                                       pattern.r().to_fill_or_stroke_style()))).unwrap();
+                                                       pattern.to_fill_or_stroke_style()))).unwrap();
             }
         }
     }
@@ -881,7 +880,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
         let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
                                   Size2D::new(sw as i32, sh as i32));
-        let canvas_size = self.canvas.root().r().get_size();
+        let canvas_size = self.canvas.get_size();
         let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
@@ -945,17 +944,15 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     repetition: DOMString) -> Fallible<Root<CanvasPattern>> {
         let (image_data, image_size) = match image {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
-                let image_element = image.r();
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                match self.fetch_image_data(&image_element) {
+                match self.fetch_image_data(&image.r()) {
                     Some((data, size)) => (data, size),
                     None => return Err(Error::InvalidState),
                 }
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
-                let canvas = canvas.r();
                 let _ = canvas.get_or_init_2d_context();
 
                 match canvas.fetch_all_data() {
@@ -964,8 +961,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 }
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(context) => {
-                let canvas = context.r().Canvas();
-                let canvas = canvas.r();
+                let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 
                 match canvas.fetch_all_data() {
@@ -1005,11 +1001,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn LineCap(&self) -> DOMString {
         let state = self.state.borrow();
-        match state.line_cap {
+        DOMString(match state.line_cap {
             LineCapStyle::Butt => "butt".to_owned(),
             LineCapStyle::Round => "round".to_owned(),
             LineCapStyle::Square => "square".to_owned(),
-        }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
@@ -1023,11 +1019,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn LineJoin(&self) -> DOMString {
         let state = self.state.borrow();
-        match state.line_join {
+        DOMString(match state.line_join {
             LineJoinStyle::Round => "round".to_owned(),
             LineJoinStyle::Bevel => "bevel".to_owned(),
             LineJoinStyle::Miter => "miter".to_owned(),
-        }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
@@ -1102,7 +1098,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn ShadowColor(&self) -> DOMString {
         let mut result = String::new();
         serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
-        result
+        DOMString(result)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor

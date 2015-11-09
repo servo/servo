@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, namespace_from_domstring, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::window::Window;
 use string_cache::Atom;
@@ -42,7 +43,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
     fn Item(&self, index: u32) -> Option<Root<Attr>> {
-        self.owner.attrs().get(index as usize).map(JS::root)
+        self.owner.attrs().get(index as usize).map(|js| Root::from_ref(&**js))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
@@ -85,8 +86,10 @@ impl NamedNodeMapMethods for NamedNodeMap {
         item
     }
 
+    // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        self.owner.attrs().iter().map(|attr| {
+            DOMString((**attr.name()).to_owned())
+        }).collect()
     }
 }

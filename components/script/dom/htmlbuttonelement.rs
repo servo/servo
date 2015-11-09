@@ -6,10 +6,10 @@ use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -17,8 +17,10 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -81,15 +83,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    fn Type(&self) -> DOMString {
-        let mut ty = self.upcast::<Element>().get_string_attribute(&atom!("type"));
-        ty.make_ascii_lowercase();
-        // https://html.spec.whatwg.org/multipage/#attr-button-type
-        match &*ty {
-            "reset" | "button" | "menu" => ty,
-            _ => "submit".to_owned()
-        }
-    }
+    make_enumerated_getter!(Type, "submit", ("reset") | ("button") | ("menu"));
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
@@ -130,6 +124,11 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
     make_setter!(SetValue, "value");
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
+    }
 }
 
 impl VirtualMethods for HTMLButtonElement {
@@ -174,7 +173,7 @@ impl VirtualMethods for HTMLButtonElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -210,8 +209,8 @@ impl<'a> Activatable for &'a HTMLButtonElement {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::Submit => {
                 self.form_owner().map(|o| {
-                    o.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                 FormSubmitter::ButtonElement(self.clone()))
+                    o.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                             FormSubmitter::ButtonElement(self.clone()))
                 });
             },
             _ => ()
@@ -227,9 +226,9 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         if owner.is_none() || self.upcast::<Element>().click_in_progress() {
             return;
         }
-        node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
+        node.query_selector_iter(DOMString("button[type=submit]".to_owned())).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
-            .find(|r| r.r().form_owner() == owner)
+            .find(|r| r.form_owner() == owner)
             .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
     }
 }

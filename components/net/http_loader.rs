@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use brotli::Decompressor;
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -22,6 +23,7 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
+use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
@@ -154,10 +156,9 @@ pub trait HttpResponse: Read {
                         Some(Encoding::Gzip)
                     } else if encodings.contains(&Encoding::Deflate) {
                         Some(Encoding::Deflate)
-                    } else {
-                        // TODO: Is this the correct behaviour?
-                        None
-                    }
+                    } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+                        Some(Encoding::EncodingExt("br".to_owned()))
+                    } else { None }
                 }
             }
         })
@@ -302,7 +303,8 @@ fn set_default_accept_encoding(headers: &mut Headers) {
 
     headers.set(AcceptEncoding(vec![
         qitem(Encoding::Gzip),
-        qitem(Encoding::Deflate)
+        qitem(Encoding::Deflate),
+        qitem(Encoding::EncodingExt("br".to_owned()))
     ]));
 }
 
@@ -394,6 +396,7 @@ impl<R: HttpResponse> Read for StreamedResponse<R> {
         match self.decoder {
             Decoder::Gzip(ref mut d) => d.read(buf),
             Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Brotli(ref mut d) => d.read(buf),
             Decoder::Plain(ref mut d) => d.read(buf)
         }
     }
@@ -421,6 +424,10 @@ impl<R: HttpResponse> StreamedResponse<R> {
                 let response_decoding = DeflateDecoder::new(response);
                 Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
             }
+            Some(Encoding::EncodingExt(ref ext)) if ext == "br" => {
+                let response_decoding = Decompressor::new(response);
+                Ok(StreamedResponse::new(m, Decoder::Brotli(response_decoding)))
+            }
             _ => {
                 Ok(StreamedResponse::new(m, Decoder::Plain(response)))
             }
@@ -431,6 +438,7 @@ impl<R: HttpResponse> StreamedResponse<R> {
 enum Decoder<R: Read> {
     Gzip(GzDecoder<R>),
     Deflate(DeflateDecoder<R>),
+    Brotli(Decompressor<R>),
     Plain(R)
 }
 
@@ -439,10 +447,12 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             url: Url,
                             method: Method,
                             headers: Headers,
-                            body: Option<Vec<u8>>) {
+                            body: Option<Vec<u8>>,
+                            pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body };
+        let request = DevtoolsHttpRequest {
+            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id };
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
@@ -453,9 +463,10 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              request_id: String,
                              headers: Option<Headers>,
-                             status: Option<RawStatus>) {
+                             status: Option<RawStatus>,
+                             pipeline_id: PipelineId) {
     if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None };
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
         let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
@@ -468,6 +479,39 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool
         Some(domain) => hsts_list.read().unwrap().is_host_secure(domain),
         None => false
     }
+}
+
+pub fn modify_request_headers(headers: &mut Headers,
+                              doc_url: &Url,
+                              user_agent: &str,
+                              cookie_jar: &Arc<RwLock<CookieStorage>>) {
+    // Ensure that the host header is set from the original url
+    let host = Host {
+        hostname: doc_url.serialize_host().unwrap(),
+        port: doc_url.port_or_default()
+    };
+    headers.set(host);
+    headers.set(UserAgent(user_agent.to_owned()));
+
+    set_default_accept(headers);
+    set_default_accept_encoding(headers);
+    set_request_cookies(doc_url.clone(), headers, cookie_jar);
+}
+
+pub fn process_response_headers(response: &HttpResponse,
+                                url: &Url,
+                                doc_url: &Url,
+                                cookie_jar: &Arc<RwLock<CookieStorage>>,
+                                hsts_list: &Arc<RwLock<HSTSList>>) {
+    info!("got HTTP response {}, headers:", response.status());
+    if log_enabled!(log::LogLevel::Info) {
+        for header in response.headers().iter() {
+            info!(" - {}", header);
+        }
+    }
+
+    set_cookies_from_response(doc_url.clone(), response, cookie_jar);
+    update_sts_list_from_response(url, response, hsts_list);
 }
 
 pub fn load<A>(load_data: LoadData,
@@ -519,12 +563,6 @@ pub fn load<A>(load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        // Ensure that the host header is set from the original url
-        let host = Host {
-            hostname: doc_url.serialize_host().unwrap(),
-            port: doc_url.port_or_default()
-        };
-
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
         // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
@@ -537,13 +575,7 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        request_headers.set(host);
-
-        request_headers.set(UserAgent(user_agent.clone()));
-
-        set_default_accept(&mut request_headers);
-        set_default_accept_encoding(&mut request_headers);
-        set_request_cookies(doc_url.clone(), &mut request_headers, &cookie_jar);
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar);
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
@@ -572,34 +604,29 @@ pub fn load<A>(load_data: LoadData,
             //
             // https://tools.ietf.org/html/rfc7231#section-6.4
             let is_redirected_request = iters != 1;
+            let cloned_data;
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
-
-                    // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
-                    // in the message
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        load_data.data.clone()
-                    );
-
+                    cloned_data = load_data.data.clone();
                     req.send(&load_data.data)
                 }
                 _ => {
                     if load_data.method != Method::Get && load_data.method != Method::Head {
                         req.headers_mut().set(ContentLength(0))
                     }
-
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        None
-                    );
-
+                    cloned_data = None;
                     req.send(&None)
                 }
             };
+
+            if let Some(pipeline_id) = load_data.pipeline_id {
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), request_headers.clone(),
+                    cloned_data, pipeline_id
+                );
+}
 
             response = match maybe_response {
                 Ok(r) => r,
@@ -614,15 +641,7 @@ pub fn load<A>(load_data: LoadData,
             break;
         }
 
-        info!("got HTTP response {}, headers:", response.status());
-        if log_enabled!(log::LogLevel::Info) {
-            for header in response.headers().iter() {
-                info!(" - {}", header);
-            }
-        }
-
-        set_cookies_from_response(doc_url.clone(), &response, &cookie_jar);
-        update_sts_list_from_response(&url, &response, &hsts_list);
+        process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
@@ -684,13 +703,13 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        // TODO: Send this message only if load_data has a pipeline_id that is not None
         // TODO: Send this message even when the load fails?
-        send_response_to_devtools(
-            devtools_chan, request_id,
-            metadata.headers.clone(), metadata.status.clone()
-        );
-
+        if let Some(pipeline_id) = load_data.pipeline_id {
+                send_response_to_devtools(
+                    devtools_chan, request_id,
+                    metadata.headers.clone(), metadata.status.clone(),
+                    pipeline_id);
+         }
         return StreamedResponse::from_http_response(response, metadata)
     }
 }

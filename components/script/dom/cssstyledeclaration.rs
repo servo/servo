@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::{Element, StylePriority};
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::window::Window;
@@ -16,8 +16,8 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use string_cache::Atom;
-use style::properties::PropertyDeclaration;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
+use style::properties::{PropertyDeclaration, Shorthand};
+use style::properties::{is_supported_property, parse_one_declaration};
 use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -39,18 +39,36 @@ macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
         $(
             fn $getter(&self) -> DOMString {
-                self.GetPropertyValue($cssprop.to_owned())
+                self.GetPropertyValue(DOMString($cssprop.to_owned()))
             }
             fn $setter(&self, value: DOMString) -> ErrorResult {
-                self.SetPropertyValue($cssprop.to_owned(), value)
+                self.SetPropertyValue(DOMString($cssprop.to_owned()), value)
             }
         )*
     );
 );
 
-fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
-    let str_iter = list.iter().map(|d| d.value());
-    str_join(str_iter, " ")
+fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclaration>])
+                       -> String {
+    // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+    if let Some(css) = declarations[0].with_variables_from_shorthand(shorthand) {
+        if declarations[1..].iter()
+                            .all(|d| d.with_variables_from_shorthand(shorthand) == Some(css)) {
+            css.to_owned()
+        } else {
+            String::new()
+        }
+    } else {
+        if declarations.iter().any(|d| d.with_variables()) {
+            String::new()
+        } else {
+            let str_iter = declarations.iter().map(|d| d.value());
+            // FIXME: this needs property-specific code, which probably should be in style/
+            // "as appropriate according to the grammar of shorthand "
+            // https://drafts.csswg.org/cssom/#serialize-a-css-value
+            str_join(str_iter, " ")
+        }
+    }
 }
 
 impl CSSStyleDeclaration {
@@ -60,8 +78,8 @@ impl CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_ref(owner),
-            pseudo: pseudo,
             readonly: modification_access == CSSModificationAccess::Readonly,
+            pseudo: pseudo,
         }
     }
 
@@ -113,7 +131,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
         });
 
-        result.unwrap_or("".to_owned())
+        DOMString(result.unwrap_or(String::new()))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -126,35 +144,34 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return self.get_computed_style(&property).unwrap_or("".to_owned());
+            return self.get_computed_style(&property).unwrap_or(DOMString::new());
         }
 
         // Step 2
-        let longhand_properties = longhands_from_shorthand(&property);
-        if let Some(longhand_properties) = longhand_properties {
+        if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1
             let mut list = vec!();
 
             // Step 2.2
-            for longhand in &*longhand_properties {
+            for longhand in shorthand.longhands() {
                 // Step 2.2.1
                 let declaration = owner.get_inline_style_declaration(&Atom::from_slice(&longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
                     Some(declaration) => list.push(declaration),
-                    None => return "".to_owned(),
+                    None => return DOMString::new(),
                 }
             }
 
             // Step 2.3
-            return serialize_list(&list);
+            return DOMString(serialize_shorthand(shorthand, &list));
         }
 
         // Step 3 & 4
         let result = match owner.get_inline_style_declaration(&property) {
-            Some(declaration) => declaration.value(),
-            None => "".to_owned(),
+            Some(declaration) => DOMString(declaration.value()),
+            None => DOMString::new(),
         };
         result
     }
@@ -166,24 +183,23 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let property = Atom::from_slice(&property);
 
         // Step 2
-        let longhand_properties = longhands_from_shorthand(&property);
-        if let Some(longhand_properties) = longhand_properties {
+        if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1 & 2.2 & 2.3
-            if longhand_properties.iter()
-                                  .map(|&longhand| self.GetPropertyPriority(longhand.to_owned()))
-                                  .all(|priority| priority == "important") {
+            if shorthand.longhands().iter()
+                                    .map(|&longhand| self.GetPropertyPriority(DOMString(longhand.to_owned())))
+                                    .all(|priority| priority == "important") {
 
-                return "important".to_owned();
+                return DOMString("important".to_owned());
             }
         // Step 3
         } else {
             if self.owner.get_important_inline_style_declaration(&property).is_some() {
-                return "important".to_owned();
+                return DOMString("important".to_owned());
             }
         }
 
         // Step 4
-        "".to_owned()
+        DOMString::new()
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
@@ -216,7 +232,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 6
         let window = window_from_node(&*self.owner);
-        let declarations = parse_one_declaration(&property, &value, &window.r().get_url());
+        let declarations = parse_one_declaration(&property, &value, &window.get_url());
 
         // Step 7
         let declarations = if let Ok(declarations) = declarations {
@@ -235,7 +251,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         let document = document_from_node(element);
         let node = element.upcast();
-        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -261,20 +277,22 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let element = self.owner.upcast::<Element>();
 
         // Step 5 & 6
-        match longhands_from_shorthand(&property) {
-            Some(properties) => element.set_inline_style_property_priority(properties, priority),
+        match Shorthand::from_name(&property) {
+            Some(shorthand) => {
+                element.set_inline_style_property_priority(shorthand.longhands(), priority)
+            }
             None => element.set_inline_style_property_priority(&[&*property], priority)
         }
 
         let document = document_from_node(element);
         let node = element.upcast();
-        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(&self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, "".to_owned())
+        self.SetProperty(property, value, DOMString::new())
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -292,10 +310,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         let elem = self.owner.upcast::<Element>();
 
-        match longhands_from_shorthand(&property) {
+        match Shorthand::from_name(&property) {
             // Step 4
-            Some(longhands) => {
-                for longhand in &*longhands {
+            Some(shorthand) => {
+                for longhand in shorthand.longhands() {
                     elem.remove_inline_style_property(longhand)
                 }
             }
@@ -309,12 +327,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(&self) -> DOMString {
-        self.GetPropertyValue("float".to_owned())
+        self.GetPropertyValue(DOMString("float".to_owned()))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue("float".to_owned(), value)
+        self.SetPropertyValue(DOMString("float".to_owned()), value)
     }
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

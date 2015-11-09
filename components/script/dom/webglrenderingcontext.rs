@@ -9,10 +9,11 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::{Castable, ToJSValConvertible};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
@@ -117,10 +118,11 @@ impl WebGLRenderingContext {
                                                WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
-                let event = WebGLContextEvent::new(global, "webglcontextcreationerror".to_owned(),
+                let event = WebGLContextEvent::new(global,
+                                                   DOMString("webglcontextcreationerror".to_owned()),
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
-                                                   msg);
+                                                   DOMString(msg));
                 event.upcast::<Event>().fire(canvas.upcast());
                 None
             }
@@ -145,15 +147,15 @@ impl WebGLRenderingContext {
 
     pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
         match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get_rooted(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get_rooted(),
+            constants::TEXTURE_2D => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
 
             _ => unreachable!(),
         }
     }
 
     fn mark_as_dirty(&self) {
-        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -166,7 +168,7 @@ impl Drop for WebGLRenderingContext {
 impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn Canvas(&self) -> Root<HTMLCanvasElement> {
-        self.canvas.root()
+        Root::from_ref(&*self.canvas)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
@@ -621,7 +623,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
         if let Some(shader) = shader {
-            shader.info_log()
+            shader.info_log().map(DOMString)
         } else {
             None
         }
@@ -843,13 +845,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 (image_data.get_data_array(&global.r()), image_data.get_size())
             },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLImageElement(image) => {
-                let img_url = match image.r().get_url() {
+                let img_url = match image.get_url() {
                     Some(url) => url,
                     None => return,
                 };
 
-                let canvas = self.canvas.root();
-                let window = window_from_node(canvas.r());
+                let window = window_from_node(&*self.canvas);
 
                 let img = match canvas_utils::request_image_from_cache(window.r(), img_url) {
                     ImageResponse::Loaded(img) => img,
@@ -900,7 +901,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.r().tex_parameter(target, name, TexParameterValue::Float(value));
+                    let result = texture.tex_parameter(target, name, TexParameterValue::Float(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
                     return self.webgl_error(InvalidOperation);
@@ -917,7 +918,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.r().tex_parameter(target, name, TexParameterValue::Int(value));
+                    let result = texture.tex_parameter(target, name, TexParameterValue::Int(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
                     return self.webgl_error(InvalidOperation);

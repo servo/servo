@@ -11,11 +11,12 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
+use parse::xml::{self, parse_xml};
 use std::borrow::ToOwned;
 use util::str::DOMString;
 
@@ -50,7 +51,7 @@ impl DOMParserMethods for DOMParser {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Root<Document>> {
         let url = self.window.get_url();
-        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as usize].to_owned();
+        let content_type = DOMString(DOMParserBinding::SupportedTypeValues::strings[ty as usize].to_owned());
         let doc = self.window.Document();
         let doc = doc.r();
         let loader = DocumentLoader::new(&*doc.loader());
@@ -63,17 +64,19 @@ impl DOMParserMethods for DOMParser {
                                              DocumentSource::FromParser,
                                              loader);
                 parse_html(document.r(), s, url, ParseContext::Owner(None));
-                document.r().set_ready_state(DocumentReadyState::Complete);
+                document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                Ok(Document::new(&self.window, Some(url.clone()),
-                                 IsHTMLDocument::NonHTMLDocument,
-                                 Some(content_type),
-                                 None,
-                                 DocumentSource::NotFromParser,
-                                 loader))
+                let document = Document::new(&self.window, Some(url.clone()),
+                                             IsHTMLDocument::NonHTMLDocument,
+                                             Some(content_type),
+                                             None,
+                                             DocumentSource::NotFromParser,
+                                             loader);
+                parse_xml(document.r(), s, url, xml::ParseContext::Owner(None));
+                Ok(document)
             }
         }
     }

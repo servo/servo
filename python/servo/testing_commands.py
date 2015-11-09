@@ -30,7 +30,10 @@ from wptrunner import wptcommandline
 from update import updatecommandline
 import tidy
 
-here = os.path.split(__file__)[0]
+SCRIPT_PATH = os.path.split(__file__)[0]
+PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
+WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
+SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
 
 def create_parser_wpt():
@@ -486,42 +489,55 @@ def create_parser_create():
 @CommandProvider
 class WebPlatformTestsCreator(CommandBase):
     template_prefix = """<!doctype html>
-%(documentElement)s<meta charset=utf-8>
+%(documentElement)s<meta charset="utf-8">
 """
     template_long_timeout = "<meta name=timeout content=long>\n"
 
     template_body_th = """<title></title>
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script>
 
 </script>
 """
 
     template_body_reftest = """<title></title>
-<link rel=%(match)s href=%(ref)s>
+<link rel="%(match)s" href="%(ref)s">
 """
 
     template_body_reftest_wait = """<script src="/common/reftest-wait.js"></script>
 """
 
-    def rel_path(self, path):
-        if path is None:
-            return
+    def make_test_file_url(self, absolute_file_path):
+        # Make the path relative to the project top-level directory so that
+        # we can more easily find the right test directory.
+        file_path = os.path.relpath(absolute_file_path, PROJECT_TOPLEVEL_PATH)
 
-        abs_path = os.path.normpath(os.path.abspath(path))
-        return os.path.relpath(abs_path, os.path.abspath(os.path.join(here, "..", "..")))
-
-    def rel_url(self, rel_path):
-        upstream_path = os.path.join("tests", "wpt", "web-platform-tests")
-        local_path = os.path.join("tests", "wpt", "mozilla", "tests")
-
-        if rel_path.startswith(upstream_path):
-            return rel_path[len(upstream_path):].replace(os.path.sep, "/")
-        elif rel_path.startswith(local_path):
-            return "/_mozilla" + rel_path[len(local_path):].replace(os.path.sep, "/")
-        else:
+        if file_path.startswith(WEB_PLATFORM_TESTS_PATH):
+            url = file_path[len(WEB_PLATFORM_TESTS_PATH):]
+        elif file_path.startswith(SERVO_TESTS_PATH):
+            url = "/mozilla" + file_path[len(SERVO_TESTS_PATH):]
+        else:  # This test file isn't in any known test directory.
             return None
+
+        return url.replace(os.path.sep, "/")
+
+    def make_test_and_reference_urls(self, test_path, reference_path):
+        test_path = os.path.normpath(os.path.abspath(test_path))
+        test_url = self.make_test_file_url(test_path)
+        if test_url is None:
+            return (None, None)
+
+        if reference_path is None:
+            return (test_url, '')
+        reference_path = os.path.normpath(os.path.abspath(reference_path))
+
+        # If the reference is in the same directory, the URL can just be the
+        # name of the refernce file itself.
+        reference_path_parts = os.path.split(reference_path)
+        if reference_path_parts[0] == os.path.split(test_path)[0]:
+            return (test_url, reference_path_parts[1])
+        return (test_url, self.make_test_file_url(reference_path))
 
     @Command("create-wpt",
              category="testing",
@@ -529,25 +545,28 @@ class WebPlatformTestsCreator(CommandBase):
     def run_create(self, **kwargs):
         import subprocess
 
-        path = self.rel_path(kwargs["path"])
-        ref_path = self.rel_path(kwargs["ref"])
+        test_path = kwargs["path"]
+        reference_path = kwargs["ref"]
 
-        if kwargs["ref"]:
+        if reference_path:
             kwargs["reftest"] = True
 
-        if self.rel_url(path) is None:
+        (test_url, reference_url) = self.make_test_and_reference_urls(
+            test_path, reference_path)
+
+        if test_url is None:
             print("""Test path %s is not in wpt directories:
 tests/wpt/web-platform-tests for tests that may be shared
-tests/wpt/mozilla/tests for Servo-only tests""" % path)
+tests/wpt/mozilla/tests for Servo-only tests""" % test_path)
             return 1
 
-        if ref_path and self.rel_url(ref_path) is None:
+        if reference_url is None:
             print("""Reference path %s is not in wpt directories:
 testing/web-platform/tests for tests that may be shared
-testing/web-platform/mozilla/tests for Servo-only tests""" % ref_path)
+testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
             return 1
 
-        if os.path.exists(path) and not kwargs["overwrite"]:
+        if os.path.exists(test_path) and not kwargs["overwrite"]:
             print("Test path already exists, pass --overwrite to replace")
             return 1
 
@@ -559,20 +578,20 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % ref_path)
             print("--wait only makes sense for a reftest")
             return 1
 
-        args = {"documentElement": "<html class=reftest-wait>\n" if kwargs["wait"] else ""}
+        args = {"documentElement": "<html class=\"reftest-wait\">\n" if kwargs["wait"] else ""}
         template = self.template_prefix % args
         if kwargs["long_timeout"]:
             template += self.template_long_timeout
 
         if kwargs["reftest"]:
             args = {"match": "match" if not kwargs["mismatch"] else "mismatch",
-                    "ref": self.rel_url(ref_path) if kwargs["ref"] else '""'}
+                    "ref": reference_url}
             template += self.template_body_reftest % args
             if kwargs["wait"]:
                 template += self.template_body_reftest_wait
         else:
             template += self.template_body_th
-        with open(path, "w") as f:
+        with open(test_path, "w") as f:
             f.write(template)
 
         if kwargs["no_editor"]:
@@ -587,15 +606,16 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % ref_path)
             editor = None
 
         if editor:
-            proc = subprocess.Popen("%s %s" % (editor, path), shell=True)
+            proc = subprocess.Popen("%s %s" % (editor, test_path), shell=True)
 
         if not kwargs["no_run"]:
             p = create_parser_wpt()
             args = ["--manifest-update"]
             if kwargs["release"]:
                 args.append("--release")
-            args.append(path)
+            args.append(test_path)
             wpt_kwargs = vars(p.parse_args(args))
             self.context.commands.dispatch("test-wpt", self.context, **wpt_kwargs)
 
-        proc.wait()
+        if editor:
+            proc.wait()

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pub mod html;
+pub mod xml;
 
 pub trait Parser {
     fn parse_chunk(self, input: String);

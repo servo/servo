@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use util::str::DOMString;
 
 no_jsmanaged_fields!(Key);
@@ -26,8 +26,8 @@ no_jsmanaged_fields!(Key);
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,
-    key_string: RefCell<DOMString>,
-    code: RefCell<DOMString>,
+    key_string: DOMRefCell<DOMString>,
+    code: DOMRefCell<DOMString>,
     location: Cell<u32>,
     ctrl: Cell<bool>,
     alt: Cell<bool>,
@@ -44,8 +44,8 @@ impl KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
-            key_string: RefCell::new("".to_owned()),
-            code: RefCell::new("".to_owned()),
+            key_string: DOMRefCell::new(DOMString::new()),
+            code: DOMRefCell::new(DOMString::new()),
             location: Cell::new(0),
             ctrl: Cell::new(false),
             alt: Cell::new(false),
@@ -83,21 +83,17 @@ impl KeyboardEvent {
                char_code: Option<u32>,
                key_code: u32) -> Root<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
-        ev.r().InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
-                                 "".to_owned(), repeat, "".to_owned());
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        {
-            let ev = ev.r();
-            ev.key.set(key);
-            *ev.code.borrow_mut() = code;
-            ev.ctrl.set(ctrlKey);
-            ev.alt.set(altKey);
-            ev.shift.set(shiftKey);
-            ev.meta.set(metaKey);
-            ev.char_code.set(char_code);
-            ev.key_code.set(key_code);
-            ev.is_composing.set(isComposing);
-        }
+        ev.InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
+                             DOMString::new(), repeat, DOMString::new());
+        ev.key.set(key);
+        *ev.code.borrow_mut() = code;
+        ev.ctrl.set(ctrlKey);
+        ev.alt.set(altKey);
+        ev.shift.set(shiftKey);
+        ev.meta.set(metaKey);
+        ev.char_code.set(char_code);
+        ev.key_code.set(key_code);
+        ev.is_composing.set(isComposing);
         ev
     }
 

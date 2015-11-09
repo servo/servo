@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
@@ -74,11 +74,11 @@ impl MouseEvent {
                button: i16,
                relatedTarget: Option<&EventTarget>) -> Root<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
-        ev.r().InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable,
-                              view, detail,
-                              screenX, screenY, clientX, clientY,
-                              ctrlKey, altKey, shiftKey, metaKey,
-                              button, relatedTarget);
+        ev.InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable,
+                          view, detail,
+                          screenX, screenY, clientX, clientY,
+                          ctrlKey, altKey, shiftKey, metaKey,
+                          button, relatedTarget);
         ev
     }
 
@@ -156,7 +156,7 @@ impl MouseEventMethods for MouseEvent {
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget
     fn GetRelatedTarget(&self) -> Option<Root<EventTarget>> {
-        self.related_target.get_rooted()
+        self.related_target.get()
     }
 
     // See discussion at:

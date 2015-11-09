@@ -4,29 +4,34 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrValue;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::reflector::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{AttributeMutation, Element, EventState};
+use dom::element::{AttributeMutation, Element};
 use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllabelelement::HTMLLabelElement;
 use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
+use selectors::states::*;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::intrinsics;
@@ -50,10 +55,10 @@ impl PartialEq for HTMLElement {
 impl HTMLElement {
     pub fn new_inherited(tag_name: DOMString, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
-        HTMLElement::new_inherited_with_state(EventState::empty(), tag_name, prefix, document)
+        HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: EventState, tag_name: DOMString,
+    pub fn new_inherited_with_state(state: ElementState, tag_name: DOMString,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> HTMLElement {
         HTMLElement {
@@ -148,19 +153,16 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let win = window_from_node(self);
-            win.r().GetOnload()
+            window_from_node(self).GetOnload()
         } else {
-            let target = self.upcast::<EventTarget>();
-            target.get_event_handler_common("load")
+            self.upcast::<EventTarget>().get_event_handler_common("load")
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let win = window_from_node(self);
-            win.r().SetOnload(listener)
+            window_from_node(self).SetOnload(listener)
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("load", listener)
         }
@@ -219,9 +221,9 @@ impl HTMLElementMethods for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = document_from_node(self);
-        document.r().begin_focus_transaction();
+        document.begin_focus_transaction();
         // If `request_focus` is not called, focus will be set to None.
-        document.r().commit_focus_transaction(FocusType::Element);
+        document.commit_focus_transaction(FocusType::Element);
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
@@ -294,7 +296,46 @@ fn to_snake_case(name: DOMString) -> DOMString {
             attr_name.push(ch);
         }
     }
-    attr_name
+    DOMString(attr_name)
+}
+
+
+// https://html.spec.whatwg.org/multipage/#attr-data-*
+// if this attribute is in snake case with a data- prefix,
+// this function returns a name converted to camel case
+// without the data prefix.
+
+fn to_camel_case(name: &str) -> Option<DOMString> {
+    if !name.starts_with("data-") {
+        return None;
+    }
+    let name = &name[5..];
+    let has_uppercase = name.chars().any(|curr_char| {
+        curr_char.is_ascii() && curr_char.is_uppercase()
+    });
+    if has_uppercase {
+        return None;
+    }
+    let mut result = "".to_owned();
+    let mut name_chars = name.chars();
+    while let Some(curr_char) = name_chars.next() {
+        //check for hyphen followed by character
+        if curr_char == '\x2d' {
+            if let Some(next_char) = name_chars.next() {
+                if next_char.is_ascii() && next_char.is_lowercase() {
+                    result.push(next_char.to_ascii_uppercase());
+                } else {
+                    result.push(curr_char);
+                    result.push(next_char);
+                }
+            } else {
+                result.push(curr_char);
+            }
+        } else {
+            result.push(curr_char);
+        }
+    }
+    Some(DOMString(result))
 }
 
 impl HTMLElement {
@@ -310,7 +351,7 @@ impl HTMLElement {
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(""), &local_name).map(|attr| {
-            (**attr.r().value()).to_owned()
+            DOMString((**attr.value()).to_owned())
         })
     }
 
@@ -326,7 +367,7 @@ impl HTMLElement {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
                 match type_id {
                     HTMLElementTypeId::HTMLInputElement =>
-                        self.downcast::<HTMLInputElement>().unwrap().Type() != "hidden",
+                        self.downcast::<HTMLInputElement>().unwrap().type_() != atom!("hidden"),
                     HTMLElementTypeId::HTMLButtonElement |
                         HTMLElementTypeId::HTMLMeterElement |
                         HTMLElementTypeId::HTMLOutputElement |
@@ -337,6 +378,53 @@ impl HTMLElement {
                 },
             _ => false,
         }
+    }
+
+    pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
+        let element = self.upcast::<Element>();
+        element.attrs().iter().filter_map(|attr| {
+            let raw_name = attr.local_name();
+            to_camel_case(&raw_name)
+        }).collect()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    pub fn labels(&self) -> Root<NodeList> {
+        debug_assert!(self.is_labelable_element());
+
+        let element = self.upcast::<Element>();
+        let window = window_from_node(element);
+
+        // Traverse ancestors for implicitly associated <label> elements
+        // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
+        let ancestors =
+            self.upcast::<Node>()
+                .ancestors()
+                .filter_map(Root::downcast::<HTMLElement>)
+                // If we reach a labelable element, we have a guarantee no ancestors above it
+                // will be a label for this HTMLElement
+                .take_while(|elem| !elem.is_labelable_element())
+                .filter_map(Root::downcast::<HTMLLabelElement>)
+                .filter(|elem| !elem.upcast::<Element>().has_attribute(&atom!("for")))
+                .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
+                .map(Root::upcast::<Node>);
+
+        let id = element.Id();
+        let id = match &id as &str {
+            "" => return NodeList::new_simple_list(window.r(), ancestors),
+            id => id,
+        };
+
+        // Traverse entire tree for <label> elements with `for` attribute matching `id`
+        let root_element = element.get_root_element();
+        let root_node = root_element.upcast::<Node>();
+        let children = root_node.traverse_preorder()
+                                .filter_map(Root::downcast::<Element>)
+                                .filter(|elem| elem.is::<HTMLLabelElement>())
+                                .filter(|elem| elem.get_string_attribute(&atom!("for")) == id)
+                                .map(Root::upcast::<Node>);
+
+        NodeList::new_simple_list(window.r(), children.chain(ancestors))
     }
 }
 
@@ -350,13 +438,13 @@ impl VirtualMethods for HTMLElement {
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = window_from_node(self);
-                let (cx, url, reflector) = (window.r().get_cx(),
-                                            window.r().get_url(),
-                                            window.r().reflector().get_jsobject());
+                let (cx, url, reflector) = (window.get_cx(),
+                                            window.get_url(),
+                                            window.reflector().get_jsobject());
                 let evtarget = self.upcast::<EventTarget>();
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
-                                                      (**attr.value()).to_owned());
+                                                      DOMString((**attr.value()).to_owned()));
             },
             _ => {}
         }

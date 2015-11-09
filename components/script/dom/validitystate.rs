@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
 // https://html.spec.whatwg.org/multipage/#validitystate

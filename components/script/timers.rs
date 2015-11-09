@@ -6,7 +6,7 @@ use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::global_object_for_js_object;
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::window::ScriptHelpers;
 use euclid::length::Length;
 use js::jsapi::{HandleValue, Heap, RootedValue};
@@ -78,7 +78,7 @@ impl Ord for Timer {
     fn cmp(&self, other: &Timer) -> Ordering {
         match self.next_call.cmp(&other.next_call).reverse() {
             Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
-            res @ _ => res
+            res => res
         }
     }
 }
@@ -139,8 +139,6 @@ impl ActiveTimers {
                                is_interval: IsInterval,
                                source: TimerSource)
                                -> i32 {
-        assert!(self.suspended_since.get().is_none());
-
         // step 3
         let TimerHandle(new_handle) = self.next_timer_handle.get();
         self.next_timer_handle.set(TimerHandle(new_handle + 1));
@@ -283,7 +281,10 @@ impl ActiveTimers {
     }
 
     fn schedule_timer_call(&self) {
-        assert!(self.suspended_since.get().is_none());
+        if self.suspended_since.get().is_some() {
+            // The timer will be scheduled when the pipeline is thawed.
+            return;
+        }
 
         let timers = self.timers.borrow();
 
@@ -318,7 +319,12 @@ impl ActiveTimers {
     }
 
     fn base_time(&self) -> MsDuration {
-        precise_time_ms() - self.suspension_offset.get()
+        let offset = self.suspension_offset.get();
+
+        match self.suspended_since.get() {
+            Some(time) => time - offset,
+            None => precise_time_ms() - offset,
+        }
     }
 
     // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps

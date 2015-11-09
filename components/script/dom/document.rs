@@ -13,20 +13,20 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::XMLName::InvalidXMLName;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::bindings::utils::{validate_and_extract, xml_name_type};
+use dom::bindings::xmlname::XMLName::InvalidXMLName;
+use dom::bindings::xmlname::{validate_and_extract, xml_name_type};
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -48,7 +48,10 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::{self, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
@@ -84,19 +87,22 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable};
-use script_traits::{MouseButton, UntrustedNodeAddress};
+use script_traits::{MouseButton, TouchEventType, TouchId, UntrustedNodeAddress};
+use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::FromIterator;
 use std::ptr;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
+use style::stylesheets::Stylesheet;
 use time;
 use url::Url;
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -122,7 +128,7 @@ pub struct Document {
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
-    last_modified: Option<DOMString>,
+    last_modified: Option<String>,
     encoding_name: DOMRefCell<DOMString>,
     is_html_document: bool,
     url: Url,
@@ -134,6 +140,10 @@ pub struct Document {
     scripts: MutNullableHeap<JS<HTMLCollection>>,
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
+    /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
+    stylesheets: DOMRefCell<Option<Vec<Arc<Stylesheet>>>>,
+    /// Whether the list of stylesheets has changed since the last reflow was triggered.
+    stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
@@ -162,7 +172,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: RefCell<HashMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<HashMap<u32, Box<FnBox(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -174,6 +184,10 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
+    /// For each element that has had a state change since the last restyle, track the original state.
+    modified_elements: DOMRefCell<HashMap<JS<Element>, ElementState>>,
+    /// http://w3c.github.io/touch-events/#dfn-active-touch-point
+    active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
 }
 
 impl PartialEq for Document {
@@ -301,9 +315,14 @@ impl Document {
         }
     }
 
+    pub fn needs_reflow(&self) -> bool {
+        self.GetDocumentElement().is_some() &&
+        (self.upcast::<Node>().get_has_dirty_descendants() || !self.modified_elements.borrow().is_empty())
+    }
+
     /// Returns the first `base` element in the DOM that has an `href` attribute.
     pub fn base_element(&self) -> Option<Root<HTMLBaseElement>> {
-        self.base_element.get_rooted()
+        self.base_element.get()
     }
 
     /// Refresh the cached first base element in the DOM.
@@ -339,7 +358,6 @@ impl Document {
 
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
         node.force_dirty_ancestors(damage);
-        node.dirty(damage);
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
@@ -383,8 +401,7 @@ impl Document {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
-                                       .map(|elem| elem.root())
-                                       .position(|element| element.r() == to_unregister)
+                                       .position(|element| &**element == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 elements.is_empty()
@@ -420,7 +437,7 @@ impl Document {
                 let root = root.upcast::<Node>();
                 for node in root.traverse_preorder() {
                     if let Some(elem) = node.downcast() {
-                        if (*elements)[head].root().r() == elem {
+                        if &*(*elements)[head] == elem {
                             head += 1;
                         }
                         if new_node == node.r() || head == elements.len() {
@@ -441,7 +458,7 @@ impl Document {
             let check_anchor = |node: &HTMLAnchorElement| {
                 let elem = node.upcast::<Element>();
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                    &**attr.r().value() == fragid
+                    &**attr.value() == fragid
                 })
             };
             let doc_node = self.upcast::<Node>();
@@ -486,11 +503,12 @@ impl Document {
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         self.ready_state.set(state);
 
-        let event = Event::new(GlobalRef::Window(&self.window), "readystatechange".to_owned(),
+        let event = Event::new(GlobalRef::Window(&self.window),
+                               DOMString("readystatechange".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let target = self.upcast::<EventTarget>();
-        let _ = event.r().fire(target);
+        let _ = event.fire(target);
     }
 
     /// Return whether scripting is enabled or not
@@ -501,7 +519,7 @@ impl Document {
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
     pub fn get_focused_element(&self) -> Option<Root<Element>> {
-        self.focused.get_rooted()
+        self.focused.get()
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
@@ -522,13 +540,13 @@ impl Document {
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
-        if let Some(ref elem) = self.focused.get_rooted() {
+        if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(false);
         }
 
         self.focused.set(self.possibly_focused.get().r());
 
-        if let Some(ref elem) = self.focused.get_rooted() {
+        if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
 
             // Update the focus state for all elements in the focus chain.
@@ -544,7 +562,7 @@ impl Document {
     /// Handles any updates when the document's title has changed.
     pub fn title_changed(&self) {
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
-        self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(self.Title()));
+        self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(self.Title().0));
 
         self.send_title_to_compositor();
     }
@@ -553,13 +571,13 @@ impl Document {
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
         let compositor = window.compositor();
-        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title()))).unwrap();
+        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title().0))).unwrap();
     }
 
     pub fn dirty_all_nodes(&self) {
         let root = self.upcast::<Node>();
         for node in root.traverse_preorder() {
-            node.r().dirty(NodeDamage::OtherNodeDamage)
+            node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
 
@@ -583,7 +601,7 @@ impl Document {
         let el = match node.downcast::<Element>() {
             Some(el) => Root::from_ref(el),
             None => {
-                let parent = node.r().GetParentNode();
+                let parent = node.GetParentNode();
                 match parent.and_then(Root::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return,
@@ -607,7 +625,7 @@ impl Document {
         let y = point.y as i32;
         let clickCount = 1;
         let event = MouseEvent::new(&self.window,
-                                    mouse_event_type_string,
+                                    DOMString(mouse_event_type_string),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
@@ -645,7 +663,7 @@ impl Document {
         let y = point.y.to_i32().unwrap_or(0);
 
         let mouse_event = MouseEvent::new(&self.window,
-                                          event_name,
+                                          DOMString(event_name),
                                           EventBubbles::Bubbles,
                                           EventCancelable::Cancelable,
                                           Some(&self.window),
@@ -660,31 +678,35 @@ impl Document {
 
     pub fn handle_mouse_move_event(&self,
                                js_runtime: *mut JSRuntime,
-                               point: Point2D<f32>,
+                               point: Option<Point2D<f32>>,
                                prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mut mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
-        for node_address in &mouse_over_addresses {
-            let node = node::from_untrusted_node_address(js_runtime, *node_address);
-            mouse_over_targets.push(node.r().inclusive_ancestors()
-                                            .find(|node| node.is::<Element>())
-                                            .map(|node| JS::from_ref(node.downcast::<Element>().unwrap()))
-                                            .unwrap());
-        };
+        let mouse_over_addresses = point.as_ref()
+                                        .map(|point| self.get_nodes_under_mouse(point))
+                                        .unwrap_or(vec![]);
+        let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
+            node::from_untrusted_node_address(js_runtime, *node_address)
+                .inclusive_ancestors()
+                .filter_map(Root::downcast::<Element>)
+                .next()
+                .unwrap()
+        }).collect::<RootedVec<JS<Element>>>();
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                let target = target.root();
-                let target_ref = target.r();
+                let target_ref = &**target;
                 if target_ref.get_hover_state() {
                     target_ref.set_hover_state(false);
 
                     let target = target_ref.upcast();
 
-                    self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                    // FIXME: we should be dispatching this event but we lack an actual
+                    //        point to pass to it.
+                    if let Some(point) = point {
+                        self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                    }
                 }
             }
         }
@@ -698,8 +720,9 @@ impl Document {
 
                 let target = target.upcast();
 
-                self.fire_mouse_event(point, target, "mouseover".to_owned());
-
+                if let Some(point) = point {
+                    self.fire_mouse_event(point, target, "mouseover".to_owned());
+                }
             }
         }
 
@@ -709,7 +732,9 @@ impl Document {
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]);
 
             let target = top_most_node.upcast();
-            self.fire_mouse_event(point, target, "mousemove".to_owned());
+            if let Some(point) = point {
+                self.fire_mouse_event(point, target, "mousemove".to_owned());
+            }
         }
 
         // Store the current mouse over targets for next frame
@@ -723,9 +748,17 @@ impl Document {
 
     pub fn handle_touch_event(&self,
                               js_runtime: *mut JSRuntime,
-                              identifier: i32,
-                              point: Point2D<f32>,
-                              event_name: String) -> bool {
+                              event_type: TouchEventType,
+                              TouchId(identifier): TouchId,
+                              point: Point2D<f32>)
+                              -> bool {
+        let event_name = match event_type {
+            TouchEventType::Down => "touchstart",
+            TouchEventType::Move => "touchmove",
+            TouchEventType::Up => "touchend",
+            TouchEventType::Cancel => "touchcancel",
+        };
+
         let node = match self.hit_test(&point) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false
@@ -733,45 +766,77 @@ impl Document {
         let el = match node.downcast::<Element>() {
             Some(el) => Root::from_ref(el),
             None => {
-                let parent = node.r().GetParentNode();
+                let parent = node.GetParentNode();
                 match parent.and_then(Root::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return false
                 }
             },
         };
-        let target = el.upcast::<EventTarget>();
-        let window = self.window.root();
+        let target = Root::upcast::<EventTarget>(el);
+        let window = &*self.window;
 
         let client_x = Finite::wrap(point.x as f64);
         let client_y = Finite::wrap(point.y as f64);
         let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
         let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
 
-        let touch = Touch::new(window.r(), identifier, target,
+        let touch = Touch::new(window, identifier, target.r(),
                                client_x, client_y, // TODO: Get real screen coordinates?
                                client_x, client_y,
                                page_x, page_y);
 
-        let mut touches = RootedVec::new();
-        touches.push(JS::from_rooted(&touch));
-        let touches = TouchList::new(window.r(), touches.r());
+        match event_type {
+            TouchEventType::Down => {
+                // Add a new touch point
+                self.active_touch_points.borrow_mut().push(JS::from_rooted(&touch));
+            }
+            TouchEventType::Move => {
+                // Replace an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points.iter_mut().find(|t| t.Identifier() == identifier) {
+                    Some(t) => *t = JS::from_rooted(&touch),
+                    None => warn!("Got a touchmove event for a non-active touch point")
+                }
+            }
+            TouchEventType::Up |
+            TouchEventType::Cancel => {
+                // Remove an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points.iter().position(|t| t.Identifier() == identifier) {
+                    Some(i) => { active_touch_points.swap_remove(i); }
+                    None => warn!("Got a touchend event for a non-active touch point")
+                }
+            }
+        }
 
-        let event = TouchEvent::new(window.r(),
-                                    event_name,
+        let mut touches = RootedVec::new();
+        touches.extend(self.active_touch_points.borrow().iter().cloned());
+
+        let mut changed_touches = RootedVec::new();
+        changed_touches.push(JS::from_rooted(&touch));
+
+        let mut target_touches = RootedVec::new();
+        target_touches.extend(self.active_touch_points.borrow().iter().filter(
+                |t| t.Target() == target).cloned());
+
+        let event = TouchEvent::new(window,
+                                    DOMString(event_name.to_owned()),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
-                                    Some(window.r()),
+                                    Some(window),
                                     0i32,
-                                    &touches, &touches, &touches,
+                                    &TouchList::new(window, touches.r()),
+                                    &TouchList::new(window, changed_touches.r()),
+                                    &TouchList::new(window, target_touches.r()),
                                     // FIXME: modifier keys
                                     false, false, false, false);
         let event = event.upcast::<Event>();
-        let result = event.fire(target);
+        let result = event.fire(target.r());
 
-        window.r().reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::MouseEvent);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::MouseEvent);
         result
     }
 
@@ -797,16 +862,17 @@ impl Document {
 
         let is_composing = false;
         let is_repeating = state == KeyState::Repeated;
-        let ev_type = match state {
+        let ev_type = DOMString(match state {
             KeyState::Pressed | KeyState::Repeated => "keydown",
             KeyState::Released => "keyup",
-        }.to_owned();
+        }.to_owned());
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
         let keyevent = KeyboardEvent::new(&self.window, ev_type, true, true,
                                           Some(&self.window), 0, Some(key),
-                                          props.key_string.to_owned(), props.code.to_owned(),
+                                          DOMString(props.key_string.to_owned()),
+                                          DOMString(props.code.to_owned()),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code);
@@ -817,9 +883,10 @@ impl Document {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(&self.window, "keypress".to_owned(),
+            let event = KeyboardEvent::new(&self.window, DOMString("keypress".to_owned()),
                                            true, true, Some(&self.window), 0, Some(key),
-                                            props.key_string.to_owned(), props.code.to_owned(),
+                                           DOMString(props.key_string.to_owned()),
+                                           DOMString(props.code.to_owned()),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0);
@@ -863,27 +930,26 @@ impl Document {
                            ReflowReason::KeyEvent);
     }
 
-    pub fn node_from_nodes_and_strings(&self, nodes: Vec<NodeOrString>)
+    // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
+    pub fn node_from_nodes_and_strings(&self, mut nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>> {
         if nodes.len() == 1 {
-            match nodes.into_iter().next().unwrap() {
-                NodeOrString::eNode(node) => Ok(node),
-                NodeOrString::eString(string) => {
-                    Ok(Root::upcast(self.CreateTextNode(string)))
-                },
-            }
+            Ok(match nodes.pop().unwrap() {
+                NodeOrString::eNode(node) => node,
+                NodeOrString::eString(string) => Root::upcast(self.CreateTextNode(string)),
+            })
         } else {
             let fragment = Root::upcast::<Node>(self.CreateDocumentFragment());
             for node in nodes {
                 match node {
                     NodeOrString::eNode(node) => {
-                        try!(fragment.r().AppendChild(node.r()));
+                        try!(fragment.AppendChild(node.r()));
                     },
                     NodeOrString::eString(string) => {
                         let node = Root::upcast::<Node>(self.CreateTextNode(string));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.r().AppendChild(node.r()).unwrap();
+                        fragment.AppendChild(node.r()).unwrap();
                     }
                 }
             }
@@ -896,7 +962,7 @@ impl Document {
             Some(ref body) => {
                 body.upcast::<Element>().get_string_attribute(local_name)
             },
-            None => "".to_owned()
+            None => DOMString::new()
         }
     }
 
@@ -923,6 +989,21 @@ impl Document {
         let count_cell = &self.script_blocking_stylesheets_count;
         assert!(count_cell.get() > 0);
         count_cell.set(count_cell.get() - 1);
+    }
+
+    pub fn invalidate_stylesheets(&self) {
+        self.stylesheets_changed_since_reflow.set(true);
+        *self.stylesheets.borrow_mut() = None;
+        // Mark the document element dirty so a reflow will be performed.
+        self.get_html_element().map(|root| {
+            root.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+        });
+    }
+
+    pub fn get_and_reset_stylesheets_changed_since_reflow(&self) -> bool {
+        let changed = self.stylesheets_changed_since_reflow.get();
+        self.stylesheets_changed_since_reflow.set(false);
+        changed
     }
 
     pub fn set_pending_parsing_blocking_script(&self, script: Option<&HTMLScriptElement>) {
@@ -1038,9 +1119,16 @@ impl Document {
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
         // parser so its loop can find out.
-        if let Some(parser) = self.current_parser.get_rooted() {
+        if let Some(parser) = self.current_parser.get() {
             if parser.is_suspended() {
                 parser.resume();
+            }
+        } else if self.reflow_timeout.get().is_none() {
+            // If we don't have a parser, and the reflow timer has been reset, explicitly
+            // trigger a reflow.
+            if let LoadType::Stylesheet(_) = load {
+                self.window().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery,
+                                     ReflowReason::StylesheetLoaded);
             }
         }
 
@@ -1056,14 +1144,14 @@ impl Document {
     /// execute it.
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
     fn maybe_execute_parser_blocking_script(&self) -> ParserBlockedByScript {
-        let script = match self.pending_parsing_blocking_script.get_rooted() {
+        let script = match self.pending_parsing_blocking_script.get() {
             None => return ParserBlockedByScript::Unblocked,
             Some(script) => script,
         };
 
         if self.script_blocking_stylesheets_count.get() == 0 &&
-           script.r().is_ready_to_be_executed() {
-            script.r().execute();
+           script.is_ready_to_be_executed() {
+            script.execute();
             self.pending_parsing_blocking_script.set(None);
             return ParserBlockedByScript::Unblocked;
         }
@@ -1081,13 +1169,15 @@ impl Document {
         }
         let mut deferred_scripts = self.deferred_scripts.borrow_mut();
         while !deferred_scripts.is_empty() {
-            let script = deferred_scripts[0].root();
-            // Part of substep 1.
-            if !script.is_ready_to_be_executed() {
-                return;
+            {
+                let script = &*deferred_scripts[0];
+                // Part of substep 1.
+                if !script.is_ready_to_be_executed() {
+                    return;
+                }
+                // Substep 2.
+                script.execute();
             }
-            // Substep 2.
-            script.execute();
             // Substep 3.
             deferred_scripts.remove(0);
             // Substep 4 (implicit).
@@ -1102,23 +1192,23 @@ impl Document {
         // Execute the first in-order asap-executed script if it's ready, repeat as required.
         // Re-borrowing the list for each step because it can also be borrowed under execute.
         while self.asap_in_order_scripts_list.borrow().len() > 0 {
-            let script = self.asap_in_order_scripts_list.borrow()[0].root();
-            if !script.r().is_ready_to_be_executed() {
+            let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
+            if !script.is_ready_to_be_executed() {
                 break;
             }
-            script.r().execute();
+            script.execute();
             self.asap_in_order_scripts_list.borrow_mut().remove(0);
         }
 
         let mut idx = 0;
         // Re-borrowing the set for each step because it can also be borrowed under execute.
         while idx < self.asap_scripts_set.borrow().len() {
-            let script = self.asap_scripts_set.borrow()[idx].root();
-            if !script.r().is_ready_to_be_executed() {
+            let script = Root::from_ref(&*self.asap_scripts_set.borrow()[idx]);
+            if !script.is_ready_to_be_executed() {
                 idx += 1;
                 continue;
             }
-            script.r().execute();
+            script.execute();
             self.asap_scripts_set.borrow_mut().swap_remove(idx);
         }
     }
@@ -1128,7 +1218,8 @@ impl Document {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
-        let event = Event::new(GlobalRef::Window(self.window()), "DOMContentLoaded".to_owned(),
+        let event = Event::new(GlobalRef::Window(self.window()),
+                               DOMString("DOMContentLoaded".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let doctarget = self.upcast::<EventTarget>();
@@ -1149,7 +1240,7 @@ impl Document {
     }
 
     pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
-        self.current_parser.get_rooted()
+        self.current_parser.get()
     }
 
     /// Find an iframe element in the document.
@@ -1157,7 +1248,7 @@ impl Document {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.r().subpage_id() == Some(subpage_id))
+            .find(|node| node.subpage_id() == Some(subpage_id))
     }
 }
 
@@ -1175,17 +1266,26 @@ pub enum DocumentSource {
     NotFromParser,
 }
 
+#[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
-    #[allow(unsafe_code)]
     unsafe fn is_html_document_for_layout(&self) -> bool;
+    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementState)>;
 }
 
+#[allow(unsafe_code)]
 impl LayoutDocumentHelpers for LayoutJS<Document> {
-    #[allow(unrooted_must_root)]
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn is_html_document_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_html_document
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementState)> {
+        let mut elements = (*self.unsafe_get()).modified_elements.borrow_mut_for_layout();
+        let drain = elements.drain();
+        let layout_drain = drain.map(|(k, v)| (k.to_layout(), v));
+        Vec::from_iter(layout_drain)
     }
 }
 
@@ -1194,7 +1294,7 @@ impl Document {
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
-                     last_modified: Option<DOMString>,
+                     last_modified: Option<String>,
                      source: DocumentSource,
                      doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
@@ -1213,19 +1313,19 @@ impl Document {
             location: Default::default(),
             content_type: match content_type {
                 Some(string) => string,
-                None => match is_html_document {
+                None => DOMString(match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
                     IsHTMLDocument::HTMLDocument => "text/html".to_owned(),
                     // https://dom.spec.whatwg.org/#concept-document-content-type
                     IsHTMLDocument::NonHTMLDocument => "application/xml".to_owned()
-                }
+                })
             },
             last_modified: last_modified,
             url: url,
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: DOMRefCell::new("UTF-8".to_owned()),
+            encoding_name: DOMRefCell::new(DOMString("UTF-8".to_owned())),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),
@@ -1234,6 +1334,8 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            stylesheets: DOMRefCell::new(None),
+            stylesheets_changed_since_reflow: Cell::new(false),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             possibly_focused: Default::default(),
@@ -1246,12 +1348,14 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec!()),
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: RefCell::new(HashMap::new()),
+            animation_frame_list: DOMRefCell::new(HashMap::new()),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
+            modified_elements: DOMRefCell::new(HashMap::new()),
+            active_touch_points: DOMRefCell::new(Vec::new()),
         }
     }
 
@@ -1270,7 +1374,7 @@ impl Document {
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
-               last_modified: Option<DOMString>,
+               last_modified: Option<String>,
                source: DocumentSource,
                doc_loader: DocumentLoader) -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
@@ -1297,6 +1401,31 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
+    /// Returns the list of stylesheets associated with nodes in the document.
+    pub fn stylesheets(&self) -> Ref<Vec<Arc<Stylesheet>>> {
+        {
+            let mut stylesheets = self.stylesheets.borrow_mut();
+            if stylesheets.is_none() {
+                let new_stylesheets: Vec<Arc<Stylesheet>> = self.upcast::<Node>()
+                    .traverse_preorder()
+                    .filter_map(|node| {
+                        if let Some(node) = node.downcast::<HTMLStyleElement>() {
+                            node.get_stylesheet()
+                        } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
+                            node.get_stylesheet()
+                        } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
+                            node.get_stylesheet()
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                *stylesheets = Some(new_stylesheets);
+            };
+        }
+        Ref::map(self.stylesheets.borrow(), |t| t.as_ref().unwrap())
+    }
+
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     pub fn appropriate_template_contents_owner_document(&self) -> Root<Document> {
         self.appropriate_template_contents_owner_document.or_init(|| {
@@ -1314,7 +1443,12 @@ impl Document {
     }
 
     pub fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
-        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
+        self.idmap.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
+    }
+
+    pub fn element_state_will_change(&self, el: &Element) {
+        let mut map = self.modified_elements.borrow_mut();
+        map.entry(JS::from_ref(el)).or_insert(el.get_state());
     }
 }
 
@@ -1343,7 +1477,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-url
     fn URL(&self) -> DOMString {
-        self.url().serialize()
+        DOMString(self.url().serialize())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
@@ -1385,10 +1519,10 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
-        match self.quirks_mode.get() {
+        DOMString(match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_owned(),
             Quirks => "BackCompat".to_owned()
-        }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
@@ -1470,7 +1604,7 @@ impl DocumentMethods for Document {
         let name = Atom::from_slice(&local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from_slice(&local_name);
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(DOMString::new());
 
         Ok(Attr::new(&self.window, name, value, l_name, ns!(""), None, None))
     }
@@ -1480,7 +1614,7 @@ impl DocumentMethods for Document {
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(DOMString::new());
         let qualified_name = Atom::from_slice(&qualified_name);
         Ok(Attr::new(&self.window, local_name, value, qualified_name,
                      namespace, prefix, None))
@@ -1564,6 +1698,14 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "touchevent" =>
+                Ok(Root::upcast(
+                    TouchEvent::new_uninitialized(&self.window,
+                        &TouchList::new(&self.window, &[]),
+                        &TouchList::new(&self.window, &[]),
+                        &TouchList::new(&self.window, &[]),
+                    )
+                )),
             _ =>
                 Err(Error::NotSupported),
         }
@@ -1571,10 +1713,10 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
-        match self.last_modified {
+        DOMString(match self.last_modified {
             Some(ref t) => t.clone(),
             None => time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string(),
-        }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
@@ -1612,11 +1754,11 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
-            if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
+            if root.namespace() == &ns!(SVG) && root.local_name() == &atom!("svg") {
                 // Step 1.
                 root.upcast::<Node>().child_elements().find(|node| {
-                    node.r().namespace() == &ns!(SVG) &&
-                    node.r().local_name() == &atom!("title")
+                    node.namespace() == &ns!(SVG) &&
+                    node.local_name() == &atom!("title")
                 }).map(Root::upcast::<Node>)
             } else {
                 // Step 2.
@@ -1630,8 +1772,8 @@ impl DocumentMethods for Document {
             None => DOMString::new(),
             Some(ref title) => {
                 // Steps 3-4.
-                let value = Node::collect_text_contents(title.r().children());
-                str_join(split_html_space_chars(&value), " ")
+                let value = Node::collect_text_contents(title.children());
+                DOMString(str_join(split_html_space_chars(&value), " "))
             },
         }
     }
@@ -1643,11 +1785,11 @@ impl DocumentMethods for Document {
             None => return,
         };
 
-        let elem = if root.r().namespace() == &ns!(SVG) &&
-                       root.r().local_name() == &atom!("svg") {
+        let elem = if root.namespace() == &ns!(SVG) &&
+                       root.local_name() == &atom!("svg") {
             let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.r().namespace() == &ns!(SVG) &&
-                node.r().local_name() == &atom!("title")
+                node.namespace() == &ns!(SVG) &&
+                node.local_name() == &atom!("title")
             });
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
@@ -1655,15 +1797,17 @@ impl DocumentMethods for Document {
                     let name = QualName::new(ns!(SVG), atom!("title"));
                     let elem = Element::create(name, None, self,
                                                ElementCreator::ScriptCreated);
-                    root.upcast::<Node>()
-                        .AppendChild(elem.upcast())
+                    let parent = root.upcast::<Node>();
+                    let child = elem.upcast::<Node>();
+                    parent
+                        .InsertBefore(child, parent.GetFirstChild().r())
                         .unwrap()
                 }
             }
-        } else if root.r().namespace() == &ns!(HTML) {
+        } else if root.namespace() == &ns!(HTML) {
             let elem = root.upcast::<Node>()
                            .traverse_preorder()
-                           .find(|node| node.r().is::<HTMLTitleElement>());
+                           .find(|node| node.is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
                 None => {
@@ -1684,7 +1828,7 @@ impl DocumentMethods for Document {
             return
         };
 
-        elem.r().SetTextContent(Some(title));
+        elem.SetTextContent(Some(title));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head
@@ -1696,7 +1840,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
     fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
-        self.current_script.get_rooted()
+        self.current_script.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-body
@@ -1704,7 +1848,7 @@ impl DocumentMethods for Document {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children().find(|child| {
-                match child.r().type_id() {
+                match child.type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
                     _ => false
@@ -1764,7 +1908,7 @@ impl DocumentMethods for Document {
                 return false;
             }
             element.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                &**attr.r().value() == &*name
+                &**attr.value() == &*name
             })
         })
     }
@@ -1885,7 +2029,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
     fn DefaultView(&self) -> Root<Window> {
-        self.window.root()
+        Root::from_ref(&*self.window)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
@@ -1898,7 +2042,7 @@ impl DocumentMethods for Document {
         let (tx, rx) = ipc::channel().unwrap();
         let _ = self.window.resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
-        Ok(cookies.unwrap_or("".to_owned()))
+        Ok(DOMString(cookies.unwrap_or("".to_owned())))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
@@ -1908,7 +2052,7 @@ impl DocumentMethods for Document {
         if !is_scheme_host_port_tuple(url) {
             return Err(Error::Security);
         }
-        let _ = self.window.resource_task().send(SetCookiesForUrl((*url).clone(), cookie, NonHTTP));
+        let _ = self.window.resource_task().send(SetCookiesForUrl((*url).clone(), cookie.0, NonHTTP));
         Ok(())
     }
 
@@ -1947,10 +2091,10 @@ impl DocumentMethods for Document {
             match html_elem_type {
                 HTMLElementTypeId::HTMLAppletElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) if attr.r().value().as_atom() == name => true,
+                        Some(ref attr) if attr.value().as_atom() == name => true,
                         _ => {
                             match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                Some(ref attr) => attr.r().value().as_atom() == name,
+                                Some(ref attr) => attr.value().as_atom() == name,
                                 None => false,
                             }
                         },
@@ -1958,18 +2102,18 @@ impl DocumentMethods for Document {
                 },
                 HTMLElementTypeId::HTMLFormElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) => attr.r().value().as_atom() == name,
+                        Some(ref attr) => attr.value().as_atom() == name,
                         None => false,
                     }
                 },
                 HTMLElementTypeId::HTMLImageElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
                         Some(ref attr) => {
-                            if attr.r().value().as_atom() == name {
+                            if attr.value().as_atom() == name {
                                 true
                             } else {
                                 match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                    Some(ref attr) => attr.r().value().as_atom() == name,
+                                    Some(ref attr) => attr.value().as_atom() == name,
                                     None => false,
                                 }
                             }
@@ -1993,7 +2137,7 @@ impl DocumentMethods for Document {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.
-                    return first.r().reflector().get_jsobject().get()
+                    return first.reflector().get_jsobject().get()
                 }
             } else {
                 *found = false;
@@ -2004,7 +2148,7 @@ impl DocumentMethods for Document {
         *found = true;
         let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(self.window(), root, box filter);
-        collection.r().reflector().get_jsobject().get()
+        collection.reflector().get_jsobject().get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -2052,17 +2196,17 @@ impl DocumentProgressHandler {
 
     fn set_ready_state_complete(&self) {
         let document = self.addr.root();
-        document.r().set_ready_state(DocumentReadyState::Complete);
+        document.set_ready_state(DocumentReadyState::Complete);
     }
 
     fn dispatch_load(&self) {
         let document = self.addr.root();
-        let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window), "load".to_owned(),
+        let window = document.window();
+        let event = Event::new(GlobalRef::Window(window), DOMString("load".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let wintarget = window.upcast::<EventTarget>();
-        event.r().set_trusted(true);
+        event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         let browsing_context = window.browsing_context();
@@ -2070,16 +2214,16 @@ impl DocumentProgressHandler {
 
         if let Some(frame_element) = browsing_context.frame_element() {
             let frame_window = window_from_node(frame_element);
-            let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
+            let event = Event::new(GlobalRef::Window(frame_window.r()), DOMString("load".to_owned()),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable);
             event.fire(frame_element.upcast());
         };
 
-        document.r().notify_constellation_load();
+        document.notify_constellation_load();
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-        document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
+        document.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
@@ -2090,7 +2234,7 @@ impl DocumentProgressHandler {
 impl Runnable for DocumentProgressHandler {
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
-        let window = document.r().window();
+        let window = document.window();
         if window.is_alive() {
             self.set_ready_state_complete();
             self.dispatch_load();

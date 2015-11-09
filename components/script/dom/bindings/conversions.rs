@@ -34,10 +34,12 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::error::throw_type_error;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
+use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{ByteString, USVString};
-use dom::bindings::utils::{DOMClass, Reflectable, Reflector};
+use dom::bindings::utils::DOMClass;
 use js;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
@@ -54,8 +56,6 @@ use js::rust::{ToInt64, ToUint64};
 use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
-use std::borrow::ToOwned;
-use std::mem;
 use std::rc::Rc;
 use std::{char, ptr, slice};
 use util::str::DOMString;
@@ -105,32 +105,6 @@ impl_as!(u64, u64);
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(&'static DOMClass) -> bool;
-}
-
-/// A trait to hold the cast functions of IDL interfaces that either derive
-/// or are derived from other interfaces.
-pub trait Castable: IDLInterface + Reflectable + Sized {
-    /// Check whether a DOM object implements one of its deriving interfaces.
-    fn is<T>(&self) -> bool where T: DerivedFrom<Self> {
-        let class = unsafe {
-            get_dom_class(self.reflector().get_jsobject().get()).unwrap()
-        };
-        T::derives(class)
-    }
-
-    /// Cast a DOM object upwards to one of the interfaces it derives from.
-    fn upcast<T>(&self) -> &T where T: Castable, Self: DerivedFrom<T> {
-        unsafe { mem::transmute(self) }
-    }
-
-    /// Cast a DOM object downwards to one of the interfaces it might implement.
-    fn downcast<T>(&self) -> Option<&T> where T: DerivedFrom<Self> {
-        if self.is::<T>() {
-            Some(unsafe { mem::transmute(self) })
-        } else {
-            None
-        }
-    }
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
@@ -229,10 +203,10 @@ impl ToJSValConvertible for HandleValue {
 }
 
 #[inline]
-fn convert_int_from_jsval<T, M>(cx: *mut JSContext, value: HandleValue,
-                                option: ConversionBehavior,
-                                convert_fn: fn(*mut JSContext, HandleValue) -> Result<M, ()>)
-                                -> Result<T, ()>
+unsafe fn convert_int_from_jsval<T, M>(cx: *mut JSContext, value: HandleValue,
+                                       option: ConversionBehavior,
+                                       convert_fn: unsafe fn(*mut JSContext, HandleValue) -> Result<M, ()>)
+                                       -> Result<T, ()>
     where T: Bounded + Zero + As<f64>,
           M: Zero + As<T>,
           f64: As<T>
@@ -255,7 +229,7 @@ impl ToJSValConvertible for bool {
 impl FromJSValConvertible for bool {
     type Config = ();
     fn from_jsval(_cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<bool, ()> {
-        Ok(ToBoolean(val))
+        Ok(unsafe { ToBoolean(val) })
     }
 }
 
@@ -270,7 +244,7 @@ impl ToJSValConvertible for i8 {
 impl FromJSValConvertible for i8 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i8, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -285,7 +259,7 @@ impl ToJSValConvertible for u8 {
 impl FromJSValConvertible for u8 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u8, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -300,7 +274,7 @@ impl ToJSValConvertible for i16 {
 impl FromJSValConvertible for i16 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i16, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -315,7 +289,7 @@ impl ToJSValConvertible for u16 {
 impl FromJSValConvertible for u16 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u16, ()> {
-        convert_int_from_jsval(cx, val, option, ToUint16)
+        unsafe { convert_int_from_jsval(cx, val, option, ToUint16) }
     }
 }
 
@@ -330,7 +304,7 @@ impl ToJSValConvertible for i32 {
 impl FromJSValConvertible for i32 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i32, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -345,7 +319,7 @@ impl ToJSValConvertible for u32 {
 impl FromJSValConvertible for u32 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u32, ()> {
-        convert_int_from_jsval(cx, val, option, ToUint32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToUint32) }
     }
 }
 
@@ -362,7 +336,7 @@ impl ToJSValConvertible for i64 {
 impl FromJSValConvertible for i64 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i64, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt64)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt64) }
     }
 }
 
@@ -379,7 +353,7 @@ impl ToJSValConvertible for u64 {
 impl FromJSValConvertible for u64 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u64, ()> {
-        convert_int_from_jsval(cx, val, option, ToUint64)
+        unsafe { convert_int_from_jsval(cx, val, option, ToUint64) }
     }
 }
 
@@ -396,7 +370,7 @@ impl ToJSValConvertible for f32 {
 impl FromJSValConvertible for f32 {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f32, ()> {
-        let result = ToNumber(cx, val);
+        let result = unsafe { ToNumber(cx, val) };
         result.map(|f| f as f32)
     }
 }
@@ -414,7 +388,7 @@ impl ToJSValConvertible for f64 {
 impl FromJSValConvertible for f64 {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f64, ()> {
-        ToNumber(cx, val)
+        unsafe { ToNumber(cx, val) }
     }
 }
 
@@ -457,6 +431,13 @@ impl ToJSValConvertible for str {
 }
 
 //http://heycam.github.io/webidl/#es-DOMString
+impl ToJSValConvertible for String {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        (**self).to_jsval(cx, rval);
+    }
+}
+
+//http://heycam.github.io/webidl/#es-DOMString
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
@@ -477,7 +458,7 @@ pub enum StringificationBehavior {
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     let mut length = 0;
     let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
-    if latin1 {
+    DOMString(if latin1 {
         let chars = unsafe {
             JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
         };
@@ -522,7 +503,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
             }
         }
         s
-    }
+    })
 }
 
 /// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
@@ -542,9 +523,9 @@ impl FromJSValConvertible for DOMString {
                   -> Result<DOMString, ()> {
         if null_behavior == StringificationBehavior::Empty &&
            value.get().is_null() {
-            Ok("".to_owned())
+            Ok(DOMString::new())
         } else {
-            let jsstr = ToString(cx, value);
+            let jsstr = unsafe { ToString(cx, value) };
             if jsstr.is_null() {
                 debug!("ToString failed");
                 Err(())
@@ -567,14 +548,14 @@ impl FromJSValConvertible for USVString {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
                   -> Result<USVString, ()> {
-        let jsstr = ToString(cx, value);
+        let jsstr = unsafe { ToString(cx, value) };
         if jsstr.is_null() {
             debug!("ToString failed");
             return Err(());
         }
         let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
-            return Ok(USVString(jsstring_to_str(cx, jsstr)));
+            return Ok(USVString(jsstring_to_str(cx, jsstr).0));
         }
         unsafe {
             let mut length = 0;
@@ -604,7 +585,7 @@ impl ToJSValConvertible for ByteString {
 impl FromJSValConvertible for ByteString {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ()) -> Result<ByteString, ()> {
-        let string = ToString(cx, value);
+        let string = unsafe { ToString(cx, value) };
         if string.is_null() {
             debug!("ToString failed");
             return Err(());
@@ -785,7 +766,7 @@ pub fn native_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.r().reflector().to_jsval(cx, rval);
+        self.reflector().to_jsval(cx, rval);
     }
 }
 

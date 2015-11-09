@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
 use std::cell::Cell;
@@ -47,8 +47,8 @@ impl UIEvent {
                view: Option<&Window>,
                detail: i32) -> Root<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
-        ev.r().InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
-                           cancelable == EventCancelable::Cancelable, view, detail);
+        ev.InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
+                       cancelable == EventCancelable::Cancelable, view, detail);
         ev
     }
 
@@ -71,7 +71,7 @@ impl UIEvent {
 impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
     fn GetView(&self) -> Option<Root<Window>> {
-        self.view.get_rooted()
+        self.view.get()
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-detail

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Tests the relationship between float and position</title>
+<style>
+    div {
+        float: left;
+    }
+</style>
+<head>
+<body>
+<div></div>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+    test(function() {
+        var computed_style = getComputedStyle(document.querySelector("div"))["float"];
+        assert_equals(computed_style, "left");
+
+        document.querySelector("div").setAttribute("style", "position: fixed;");
+
+        computed_style = getComputedStyle(document.querySelector("div"))["float"];
+        assert_equals(computed_style, "none");
+
+        document.querySelector("div").setAttribute("style", "position: absolute;");
+
+        computed_style = getComputedStyle(document.querySelector("div"))["float"];
+        assert_equals(computed_style, "none");
+
+        document.querySelector("div").removeAttribute("style");
+
+        computed_style = getComputedStyle(document.querySelector("div"))["float"];
+        assert_equals(computed_style, "left");
+    });
+</script>
+
+</body>
+</html>

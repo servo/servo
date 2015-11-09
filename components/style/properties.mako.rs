@@ -8,14 +8,13 @@ use std::ascii::AsciiExt;
 use std::collections::HashSet;
 use std::default::Default;
 use std::fmt;
-use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
-use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
+use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use url::Url;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
@@ -211,13 +210,13 @@ pub mod longhands {
                             let var = input.seen_var_functions();
                             if specified.is_err() && var {
                                 input.reset(start);
-                                let (first_token_type, _) = try!(
-                                    ::custom_properties::parse_declaration_value(input, &mut None));
+                                let (first_token_type, css) = try!(
+                                    ::custom_properties::parse_non_custom_with_var(input));
                                 return Ok(DeclaredValue::WithVariables {
-                                    css: input.slice_from(start).to_owned(),
+                                    css: css.into_owned(),
                                     first_token_type: first_token_type,
                                     base_url: context.base_url.clone(),
-                                    from_shorthand: Shorthand::None,
+                                    from_shorthand: None,
                                 })
                             }
                             specified
@@ -334,7 +333,7 @@ pub mod longhands {
                                    -> Result<SpecifiedValue, ()> {
                 specified::parse_border_width(input).map(SpecifiedValue)
             }
-            #[derive(Clone, PartialEq)]
+            #[derive(Debug, Clone, PartialEq)]
             pub struct SpecifiedValue(pub specified::Length);
             pub mod computed_value {
                 use app_units::Au;
@@ -401,7 +400,7 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             specified::parse_border_width(input).map(SpecifiedValue)
         }
-        #[derive(Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct SpecifiedValue(pub specified::Length);
         pub mod computed_value {
             use app_units::Au;
@@ -546,7 +545,25 @@ pub mod longhands {
     </%self:longhand>
 
     ${single_keyword("position", "static absolute relative fixed")}
-    ${single_keyword("float", "none left right")}
+
+    <%self:single_keyword_computed name="float" values="none left right">
+        use values::computed::Context;
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                if context.positioned {
+                    SpecifiedValue::none
+                } else {
+                    *self
+                }
+            }
+        }
+
+    </%self:single_keyword_computed>
+
     ${single_keyword("clear", "none left right both")}
 
     <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display">
@@ -611,7 +628,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(computed_value::T::Auto)
             } else {
-                Ok(computed_value::T::Number(try!(input.expect_integer()) as i32))
+                specified::parse_integer(input).map(computed_value::T::Number)
             }
         }
     </%self:longhand>
@@ -655,21 +672,19 @@ pub mod longhands {
         use values::CSSFloat;
         use values::computed::Context;
 
-        #[derive(Clone, PartialEq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
-            Length(specified::Length),
             Number(CSSFloat),
-            Percentage(CSSFloat),
+            LengthOrPercentage(specified::LengthOrPercentage),
         }
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
                     SpecifiedValue::Normal => dest.write_str("normal"),
-                    SpecifiedValue::Length(length) => length.to_css(dest),
+                    SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
                     SpecifiedValue::Number(number) => write!(dest, "{}", number),
-                    SpecifiedValue::Percentage(number) => write!(dest, "{}%", number * 100.),
                 }
             }
         }
@@ -677,41 +692,29 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             use cssparser::Token;
             use std::ascii::AsciiExt;
-            match try!(input.next()) {
-                Token::Number(ref value) if value.value >= 0. => {
-                    Ok(SpecifiedValue::Number(value.value))
+            input.try(specified::LengthOrPercentage::parse_non_negative)
+            .map(SpecifiedValue::LengthOrPercentage)
+            .or_else(|()| {
+                match try!(input.next()) {
+                    Token::Number(ref value) if value.value >= 0. => {
+                        Ok(SpecifiedValue::Number(value.value))
+                    }
+                    Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                        Ok(SpecifiedValue::Normal)
+                    }
+                    _ => Err(()),
                 }
-                Token::Percentage(ref value) if value.unit_value >= 0. => {
-                    Ok(SpecifiedValue::Percentage(value.unit_value))
-                }
-                Token::Dimension(ref value, ref unit) if value.value >= 0. => {
-                    specified::Length::parse_dimension(value.value, unit)
-                    .map(SpecifiedValue::Length)
-                }
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                    Ok(SpecifiedValue::Normal)
-                }
-                _ => Err(()),
-            }
+            })
         }
         pub mod computed_value {
             use app_units::Au;
             use std::fmt;
             use values::CSSFloat;
-            #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
+            #[derive(PartialEq, Copy, Clone, HeapSizeOf, Debug)]
             pub enum T {
                 Normal,
                 Length(Au),
                 Number(CSSFloat),
-            }
-            impl fmt::Debug for T {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match *self {
-                        T::Normal => write!(f, "normal"),
-                        T::Length(length) => write!(f, "{:?}%", length),
-                        T::Number(number) => write!(f, "{}", number),
-                    }
-                }
             }
         }
         impl ToCss for computed_value::T {
@@ -733,13 +736,22 @@ pub mod longhands {
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
                     SpecifiedValue::Normal => computed_value::T::Normal,
-                    SpecifiedValue::Length(value) => {
-                        computed_value::T::Length(value.to_computed_value(context))
-                    }
                     SpecifiedValue::Number(value) => computed_value::T::Number(value),
-                    SpecifiedValue::Percentage(value) => {
-                        let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
-                        computed_value::T::Length(fr.to_computed_value(context))
+                    SpecifiedValue::LengthOrPercentage(value) => {
+                        match value {
+                            specified::LengthOrPercentage::Length(value) =>
+                                computed_value::T::Length(value.to_computed_value(context)),
+                            specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
+                                let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                                computed_value::T::Length(fr.to_computed_value(context))
+                            },
+                            specified::LengthOrPercentage::Calc(calc) => {
+                                let calc = calc.to_computed_value(context);
+                                let fr = specified::FontRelativeLength::Em(calc.percentage());
+                                let fr = specified::Length::FontRelative(fr);
+                                computed_value::T::Length(calc.length() + fr.to_computed_value(context))
+                            }
+                        }
                     }
                 }
             }
@@ -756,7 +768,7 @@ pub mod longhands {
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
-        #[derive(Clone, PartialEq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
@@ -799,26 +811,12 @@ pub mod longhands {
             use values::AuExtensionMethods;
             use values::{CSSFloat, computed};
             #[allow(non_camel_case_types)]
-            #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
+            #[derive(PartialEq, Copy, Clone, HeapSizeOf, Debug)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
                 % endfor
-                Length(Au),
-                Percentage(CSSFloat),
-                Calc(computed::Calc),
-            }
-            impl fmt::Debug for T {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match *self {
-                        % for keyword in vertical_align_keywords:
-                            T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
-                        % endfor
-                        T::Length(length) => write!(f, "{:?}", length),
-                        T::Percentage(number) => write!(f, "{}%", number),
-                        T::Calc(calc) => write!(f, "{:?}", calc)
-                    }
-                }
+                LengthOrPercentage(computed::LengthOrPercentage),
             }
             impl ::cssparser::ToCss for T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -826,9 +824,7 @@ pub mod longhands {
                         % for keyword in vertical_align_keywords:
                             T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                         % endfor
-                        T::Length(value) => value.to_css(dest),
-                        T::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
-                        T::Calc(calc) => calc.to_css(dest),
+                        T::LengthOrPercentage(value) => value.to_css(dest),
                     }
                 }
             }
@@ -847,16 +843,8 @@ pub mod longhands {
                             computed_value::T::${to_rust_ident(keyword)}
                         }
                     % endfor
-                    SpecifiedValue::LengthOrPercentage(value) => {
-                        match value.to_computed_value(context) {
-                            computed::LengthOrPercentage::Length(value) =>
-                                computed_value::T::Length(value),
-                            computed::LengthOrPercentage::Percentage(value) =>
-                                computed_value::T::Percentage(value),
-                            computed::LengthOrPercentage::Calc(value) =>
-                                computed_value::T::Calc(value),
-                        }
-                    }
+                    SpecifiedValue::LengthOrPercentage(value) =>
+                        computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
                 }
             }
         }
@@ -910,7 +898,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            #[derive(Clone, Copy, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
             pub struct T(pub super::super::overflow_x::computed_value::T);
         }
 
@@ -963,7 +951,7 @@ pub mod longhands {
             use cssparser::{self, ToCss};
             use std::fmt;
 
-            #[derive(PartialEq, Eq, Clone, HeapSizeOf)]
+            #[derive(Debug, PartialEq, Eq, Clone, HeapSizeOf)]
             pub enum ContentItem {
                 /// Literal string content.
                 String(String),
@@ -1012,7 +1000,7 @@ pub mod longhands {
             }
 
             #[allow(non_camel_case_types)]
-            #[derive(PartialEq, Eq, Clone, HeapSizeOf)]
+            #[derive(Debug, PartialEq, Eq, Clone, HeapSizeOf)]
             pub enum T {
                 normal,
                 none,
@@ -1130,8 +1118,9 @@ pub mod longhands {
         use std::fmt;
         use url::Url;
         use values::computed::Context;
+        use values::LocalToCss;
 
-        #[derive(Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub enum SpecifiedValue {
             None,
             Url(Url),
@@ -1141,9 +1130,7 @@ pub mod longhands {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
                     SpecifiedValue::None => dest.write_str("none"),
-                    SpecifiedValue::Url(ref url) => {
-                        Token::Url(url.to_string().into()).to_css(dest)
-                    }
+                    SpecifiedValue::Url(ref url) => url.to_css(dest),
                 }
             }
         }
@@ -1152,15 +1139,16 @@ pub mod longhands {
             use cssparser::{ToCss, Token};
             use std::fmt;
             use url::Url;
+            use values::LocalToCss;
 
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Url>);
 
             impl ToCss for T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                     match self.0 {
                         None => dest.write_str("none"),
-                        Some(ref url) => Token::Url(url.to_string().into()).to_css(dest)
+                        Some(ref url) => url.to_css(dest),
                     }
                 }
             }
@@ -1201,7 +1189,7 @@ pub mod longhands {
         pub use self::computed_value::T as SpecifiedValue;
 
         pub mod computed_value {
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<(String,String)>);
         }
 
@@ -1264,13 +1252,13 @@ pub mod longhands {
         use super::content;
         use values::computed::ComputedValueAsSpecified;
 
-        use cssparser::{ToCss, Token};
+        use cssparser::{ToCss, Token, serialize_identifier};
         use std::borrow::{Cow, ToOwned};
 
         pub use self::computed_value::T as SpecifiedValue;
 
         pub mod computed_value {
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<(String,i32)>);
         }
 
@@ -1289,7 +1277,7 @@ pub mod longhands {
                         try!(dest.write_str(" "));
                     }
                     first = false;
-                    try!(Token::QuotedString(Cow::from(&*pair.0)).to_css(dest));
+                    try!(serialize_identifier(&pair.0, dest));
                     try!(write!(dest, " {}", pair.1));
                 }
                 Ok(())
@@ -1297,6 +1285,10 @@ pub mod longhands {
         }
 
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            parse_common(1, input)
+        }
+
+        pub fn parse_common(default_value: i32, input: &mut Parser) -> Result<SpecifiedValue,()> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 return Ok(SpecifiedValue(Vec::new()))
             }
@@ -1311,7 +1303,8 @@ pub mod longhands {
                 if content::counter_name_is_illegal(&counter_name) {
                     return Err(())
                 }
-                let counter_delta = input.try(|input| input.expect_integer()).unwrap_or(1) as i32;
+                let counter_delta =
+                    input.try(|input| specified::parse_integer(input)).unwrap_or(default_value);
                 counters.push((counter_name, counter_delta))
             }
 
@@ -1325,7 +1318,11 @@ pub mod longhands {
 
     <%self:longhand name="counter-reset">
         pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
-        pub use super::counter_increment::{parse};
+        use super::counter_increment::{parse_common};
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            parse_common(0, input)
+        }
     </%self:longhand>
 
     // CSS 2.1, Section 13 - Paged media
@@ -1342,10 +1339,11 @@ pub mod longhands {
         use std::fmt;
         use values::computed::Context;
         use values::specified::Image;
+        use values::LocalToCss;
 
         pub mod computed_value {
             use values::computed;
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<computed::Image>);
         }
 
@@ -1353,15 +1351,14 @@ pub mod longhands {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match self.0 {
                     None => dest.write_str("none"),
-                    Some(computed::Image::Url(ref url)) =>
-                        ::cssparser::Token::Url(url.to_string().into()).to_css(dest),
+                    Some(computed::Image::Url(ref url)) => url.to_css(dest),
                     Some(computed::Image::LinearGradient(ref gradient)) =>
                         gradient.to_css(dest)
                 }
             }
         }
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct SpecifiedValue(pub Option<Image>);
 
         impl ToCss for SpecifiedValue {
@@ -1414,7 +1411,7 @@ pub mod longhands {
                 }
             }
 
-            #[derive(Clone, PartialEq, Copy)]
+            #[derive(Debug, Clone, PartialEq, Copy)]
             pub struct SpecifiedValue {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
@@ -1478,8 +1475,7 @@ pub mod longhands {
                         PositionCategory::VerticalKeyword,
                     specified::PositionComponent::Center =>
                         PositionCategory::OtherKeyword,
-                    specified::PositionComponent::Length(_) |
-                    specified::PositionComponent::Percentage(_) =>
+                    specified::PositionComponent::LengthOrPercentage(_) =>
                         PositionCategory::LengthOrPercentage,
                 }
             }
@@ -1711,7 +1707,7 @@ pub mod longhands {
             use std::fmt;
             use string_cache::Atom;
 
-            #[derive(PartialEq, Eq, Clone, Hash, HeapSizeOf)]
+            #[derive(Debug, PartialEq, Eq, Clone, Hash, HeapSizeOf)]
             pub enum FontFamily {
                 FamilyName(Atom),
                 // Generic
@@ -1747,7 +1743,7 @@ pub mod longhands {
                     Ok(())
                 }
             }
-            #[derive(Clone, PartialEq, Eq, Hash, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, Eq, Hash, HeapSizeOf)]
             pub struct T(pub Vec<FontFamily>);
         }
 
@@ -1792,7 +1788,7 @@ pub mod longhands {
         use std::fmt;
         use values::computed::Context;
 
-        #[derive(Clone, PartialEq, Eq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Eq, Copy)]
         pub enum SpecifiedValue {
             Bolder,
             Lighter,
@@ -1839,20 +1835,11 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[derive(PartialEq, Eq, Copy, Clone, Hash, Deserialize, Serialize, HeapSizeOf)]
+            #[derive(PartialEq, Eq, Copy, Clone, Hash, Deserialize, Serialize, HeapSizeOf, Debug)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight} = ${weight},
                 % endfor
-            }
-            impl fmt::Debug for T {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match *self {
-                        % for weight in range(100, 901, 100):
-                            T::Weight${weight} => write!(f, "{}", ${weight}),
-                        % endfor
-                    }
-                }
             }
             impl T {
                 #[inline]
@@ -1928,8 +1915,8 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::Length);  // Percentages are the same as em.
+        #[derive(Debug, Clone, PartialEq)]
+        pub struct SpecifiedValue(pub specified::LengthOrPercentage);
         pub mod computed_value {
             use app_units::Au;
             pub type T = Au;
@@ -1949,17 +1936,14 @@ pub mod longhands {
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            use values::specified::{Length, LengthOrPercentage};
+
             input.try(specified::LengthOrPercentage::parse_non_negative)
-            .and_then(|value| match value {
-                specified::LengthOrPercentage::Length(value) => Ok(value),
-                specified::LengthOrPercentage::Percentage(value) =>
-                    Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0))),
-                // FIXME(dzbarsky) handle calc for font-size
-                specified::LengthOrPercentage::Calc(_) => Err(())
-            })
             .or_else(|()| {
                 let ident = try!(input.expect_ident());
-                specified::Length::from_str(&ident as &str).ok_or(())
+                specified::Length::from_str(&ident as &str)
+                    .ok_or(())
+                    .map(specified::LengthOrPercentage::Length)
             })
             .map(SpecifiedValue)
         }
@@ -2031,7 +2015,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Normal,
             Specified(specified::Length),
@@ -2048,7 +2032,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use app_units::Au;
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2094,7 +2078,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Normal,
             Specified(specified::Length),  // FIXME(SimonSapin) support percentages
@@ -2111,7 +2095,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use app_units::Au;
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2536,7 +2520,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Auto,
             Specified(specified::Length),
@@ -2553,7 +2537,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use app_units::Au;
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2598,7 +2582,7 @@ pub mod longhands {
         use std::fmt;
         use values::computed::Context;
 
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Auto,
             Specified(u32),
@@ -2614,7 +2598,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<u32>);
         }
 
@@ -2649,7 +2633,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(SpecifiedValue::Auto)
             } else {
-                let count = try!(input.expect_integer());
+                let count = try!(specified::parse_integer(input));
                 // Zero is invalid
                 if count <= 0 {
                     return Err(())
@@ -2665,7 +2649,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Normal,
             Specified(specified::Length),
@@ -2682,7 +2666,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use app_units::Au;
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
 
@@ -2737,7 +2721,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct SpecifiedValue(pub CSSFloat);
         pub mod computed_value {
             use values::CSSFloat;
@@ -2763,7 +2747,7 @@ pub mod longhands {
             }
         }
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.expect_number().map(SpecifiedValue)
+            specified::parse_number(input).map(SpecifiedValue)
         }
     </%self:longhand>
 
@@ -2773,10 +2757,10 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct SpecifiedValue(Vec<SpecifiedBoxShadow>);
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct SpecifiedBoxShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
@@ -2829,10 +2813,10 @@ pub mod longhands {
             use std::fmt;
             use values::computed;
 
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Clone, PartialEq, HeapSizeOf, Debug)]
             pub struct T(pub Vec<BoxShadow>);
 
-            #[derive(Clone, PartialEq, Copy, HeapSizeOf)]
+            #[derive(Clone, PartialEq, Copy, HeapSizeOf, Debug)]
             pub struct BoxShadow {
                 pub offset_x: Au,
                 pub offset_y: Au,
@@ -2840,17 +2824,6 @@ pub mod longhands {
                 pub spread_radius: Au,
                 pub color: computed::CSSColor,
                 pub inset: bool,
-            }
-
-            impl fmt::Debug for BoxShadow {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    if self.inset {
-                        let _ = write!(f, "inset ");
-                    }
-                    let _ = write!(f, "{:?} {:?} {:?} {:?} {:?}", self.offset_x, self.offset_y,
-                                   self.blur_radius, self.spread_radius, self.color);
-                    Ok(())
-                }
             }
         }
 
@@ -3007,7 +2980,7 @@ pub mod longhands {
                 pub left: Au,
             }
 
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<ClipRect>);
         }
 
@@ -3148,29 +3121,15 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Clone, PartialEq, Debug)]
         pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Clone, PartialEq, Debug)]
         pub struct SpecifiedTextShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
             pub blur_radius: specified::Length,
             pub color: Option<specified::CSSColor>,
-        }
-
-        impl fmt::Debug for SpecifiedTextShadow {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                let _ = write!(f,
-                               "{:?} {:?} {:?}",
-                               self.offset_x,
-                               self.offset_y,
-                               self.blur_radius);
-                if let Some(ref color) = self.color {
-                    let _ = write!(f, "{:?}", color);
-                }
-                Ok(())
-            }
         }
 
         pub mod computed_value {
@@ -3343,7 +3302,7 @@ pub mod longhands {
         use values::CSSFloat;
         use values::specified::{Angle, Length};
 
-        #[derive(Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct SpecifiedValue(Vec<SpecifiedFilter>);
 
         // TODO(pcwalton): `drop-shadow`
@@ -3628,10 +3587,10 @@ pub mod longhands {
         }
 
         fn parse_two_floats(input: &mut Parser) -> Result<(CSSFloat,CSSFloat),()> {
-            let first = try!(input.expect_number());
+            let first = try!(specified::parse_number(input));
             let second = input.try(|input| {
                 try!(input.expect_comma());
-                input.expect_number()
+                specified::parse_number(input)
             }).unwrap_or(first);
             Ok((first, second))
         }
@@ -3771,7 +3730,7 @@ pub mod longhands {
                     "matrix" => {
                         try!(input.parse_nested_block(|input| {
                             let values = try!(input.parse_comma_separated(|input| {
-                                input.expect_number()
+                                specified::parse_number(input)
                             }));
                             if values.len() != 6 {
                                 return Err(())
@@ -3789,7 +3748,7 @@ pub mod longhands {
                     "matrix3d" => {
                         try!(input.parse_nested_block(|input| {
                             let values = try!(input.parse_comma_separated(|input| {
-                                input.expect_number()
+                                specified::parse_number(input)
                             }));
                             if values.len() != 16 {
                                 return Err(())
@@ -3872,32 +3831,32 @@ pub mod longhands {
                     },
                     "scalex" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(sx, 1.0, 1.0));
                             Ok(())
                         }))
                     },
                     "scaley" => {
                         try!(input.parse_nested_block(|input| {
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(1.0, sy, 1.0));
                             Ok(())
                         }))
                     },
                     "scalez" => {
                         try!(input.parse_nested_block(|input| {
-                            let sz = try!(input.expect_number());
+                            let sz = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(1.0, 1.0, sz));
                             Ok(())
                         }))
                     },
                     "scale3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let sz = try!(input.expect_number());
+                            let sz = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(sx, sy, sz));
                             Ok(())
                         }))
@@ -3932,11 +3891,11 @@ pub mod longhands {
                     },
                     "rotate3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let ax = try!(input.expect_number());
+                            let ax = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let ay = try!(input.expect_number());
+                            let ay = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let az = try!(input.expect_number());
+                            let az = try!(specified::parse_number(input));
                             try!(input.expect_comma());
                             let theta = try!(specified::Angle::parse(input));
                             // TODO(gw): Check the axis can be normalized!!
@@ -4341,7 +4300,7 @@ pub mod longhands {
 
             pub use values::computed::Time as SingleComputedValue;
 
-            #[derive(Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<SingleComputedValue>);
 
             impl ToComputedValue for T {
@@ -4539,13 +4498,13 @@ pub mod longhands {
                     "cubic-bezier" => {
                         let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
                         try!(input.parse_nested_block(|input| {
-                            p1x = try!(input.expect_number());
+                            p1x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p1y = try!(input.expect_number());
+                            p1y = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p2x = try!(input.expect_number());
+                            p2x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p2y = try!(input.expect_number());
+                            p2y = try!(specified::parse_number(input));
                             Ok(())
                         }));
                         let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
@@ -4554,7 +4513,7 @@ pub mod longhands {
                     "steps" => {
                         let (mut step_count, mut start_end) = (0, computed_value::StartEnd::Start);
                         try!(input.parse_nested_block(|input| {
-                            step_count = try!(input.expect_integer());
+                            step_count = try!(specified::parse_integer(input));
                             try!(input.expect_comma());
                             start_end = try!(match_ignore_ascii_case! {
                                 try!(input.expect_ident()),
@@ -4887,7 +4846,10 @@ pub mod shorthands {
                          -> Result<(), ()> {
                 input.look_for_var_functions();
                 let start = input.position();
-                let value = parse_value(context, input);
+                let value = input.parse_entirely(|input| parse_value(context, input));
+                if value.is_err() {
+                    while let Ok(_) = input.next() {}  // Look for var() after the error.
+                }
                 let var = input.seen_var_functions();
                 if let Ok(value) = value {
                     % for sub_property in shorthand.sub_properties:
@@ -4901,16 +4863,15 @@ pub mod shorthands {
                     Ok(())
                 } else if var {
                     input.reset(start);
-                    let (first_token_type, _) = try!(
-                        ::custom_properties::parse_declaration_value(input, &mut None));
-                    let css = input.slice_from(start);
+                    let (first_token_type, css) = try!(
+                        ::custom_properties::parse_non_custom_with_var(input));
                     % for sub_property in shorthand.sub_properties:
                         declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                             DeclaredValue::WithVariables {
-                                css: css.to_owned(),
+                                css: css.clone().into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
-                                from_shorthand: Shorthand::${shorthand.camel_case},
+                                from_shorthand: Some(Shorthand::${shorthand.camel_case}),
                             }
                         ));
                     % endfor
@@ -5632,12 +5593,12 @@ mod property_bit_field {
                             ::stylesheets::Origin::Author, base_url);
                         Parser::new(&css).parse_entirely(|input| {
                             match from_shorthand {
-                                Shorthand::None => {
+                                None => {
                                     longhands::${property.ident}::parse_specified(&context, input)
                                 }
                                 % for shorthand in SHORTHANDS:
                                     % if property in shorthand.sub_properties:
-                                        Shorthand::${shorthand.camel_case} => {
+                                        Some(Shorthand::${shorthand.camel_case}) => {
                                             shorthands::${shorthand.ident}::parse_value(&context, input)
                                             .map(|result| match result.${property.ident} {
                                                 Some(value) => DeclaredValue::Value(value),
@@ -5705,10 +5666,12 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 
     fn parse_value(&self, name: &str, input: &mut Parser) -> Result<(Vec<PropertyDeclaration>, bool), ()> {
         let mut results = vec![];
-        match PropertyDeclaration::parse(name, self.context, input, &mut results) {
-            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-            _ => return Err(())
-        }
+        try!(input.parse_until_before(Delimiter::Bang, |input| {
+            match PropertyDeclaration::parse(name, self.context, input, &mut results) {
+                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
+                _ => Err(())
+            }
+        }));
         let important = input.try(parse_important).is_ok();
         Ok((results, important))
     }
@@ -5801,12 +5764,39 @@ impl CSSWideKeyword {
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum Shorthand {
-    None,
     % for property in SHORTHANDS:
         ${property.camel_case},
     % endfor
 }
 
+impl Shorthand {
+    pub fn from_name(name: &str) -> Option<Shorthand> {
+        match_ignore_ascii_case! { name,
+            % for property in SHORTHANDS[:-1]:
+                "${property.name}" => Some(Shorthand::${property.camel_case}),
+            % endfor
+            % for property in SHORTHANDS[-1:]:
+                "${property.name}" => Some(Shorthand::${property.camel_case})
+            % endfor
+            _ => None
+        }
+    }
+
+    pub fn longhands(&self) -> &'static [&'static str] {
+        % for property in SHORTHANDS:
+            static ${property.ident.upper()}: &'static [&'static str] = &[
+                % for sub in property.sub_properties:
+                    "${sub.name}",
+                % endfor
+            ];
+        % endfor
+        match *self {
+            % for property in SHORTHANDS:
+                Shorthand::${property.camel_case} => ${property.ident.upper()},
+            % endfor
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DeclaredValue<T> {
@@ -5815,7 +5805,7 @@ pub enum DeclaredValue<T> {
         css: String,
         first_token_type: TokenSerializationType,
         base_url: Url,
-        from_shorthand: Shorthand
+        from_shorthand: Option<Shorthand>,
     },
     Initial,
     Inherit,
@@ -5828,7 +5818,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             DeclaredValue::Value(ref inner) => inner.to_css(dest),
-            DeclaredValue::WithVariables { ref css, from_shorthand: Shorthand::None, .. } => {
+            DeclaredValue::WithVariables { ref css, from_shorthand: None, .. } => {
                 dest.write_str(css)
             }
             // https://drafts.csswg.org/css-variables/#variables-in-shorthands
@@ -5839,7 +5829,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -5915,6 +5905,41 @@ impl PropertyDeclaration {
             % endfor
             PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
             ref decl => panic!("unsupported property declaration: {}", decl.name()),
+        }
+    }
+
+    /// If this is a pending-substitution value from the given shorthand, return that value
+    // Extra space here because < seems to be removed by Mako when immediately followed by &.
+    //                                                                          ↓
+    pub fn with_variables_from_shorthand(&self, shorthand: Shorthand) -> Option< &str> {
+        match *self {
+            % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
+                    DeclaredValue::WithVariables { ref css, from_shorthand: Some(s), .. }
+                    if s == shorthand => {
+                        Some(&**css)
+                    }
+                    _ => None
+                },
+            % endfor
+            PropertyDeclaration::Custom(..) => None,
+        }
+    }
+
+    /// Return whether this is a pending-substitution value.
+    /// https://drafts.csswg.org/css-variables/#variables-in-shorthands
+    pub fn with_variables(&self) -> bool {
+        match *self {
+            % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
+                    DeclaredValue::WithVariables { .. } => true,
+                    _ => false,
+                },
+            % endfor
+            PropertyDeclaration::Custom(_, ref value) => match *value {
+                DeclaredValue::WithVariables { .. } => true,
+                _ => false,
+            }
         }
     }
 
@@ -6019,13 +6044,6 @@ impl PropertyDeclaration {
         }
     }
 }
-
-impl Debug for PropertyDeclaration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.name(), self.value())
-    }
-}
-
 
 pub mod style_structs {
     use super::longhands;
@@ -6520,6 +6538,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // Initialize `context`
     // Declarations blocks are already stored in increasing precedence order.
     for sub_list in applicable_declarations {
+        use values::specified::{LengthOrPercentage, Percentage};
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
@@ -6528,14 +6547,23 @@ pub fn cascade(viewport_size: Size2D<Au>,
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 match specified_value.0 {
-                                    Length::FontRelative(value) => {
+                                    LengthOrPercentage::Length(Length::FontRelative(value)) => {
                                         value.to_computed_value(context.inherited_font_size,
                                                                 context.root_font_size)
                                     }
-                                    Length::ServoCharacterWidth(value) => {
+                                    LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
                                         value.to_computed_value(context.inherited_font_size)
                                     }
-                                    _ => specified_value.0.to_computed_value(&context)
+                                    LengthOrPercentage::Length(l) => {
+                                        l.to_computed_value(&context)
+                                    }
+                                    LengthOrPercentage::Percentage(Percentage(value)) => {
+                                        context.inherited_font_size.scale_by(value)
+                                    }
+                                    LengthOrPercentage::Calc(calc) => {
+                                        let calc = calc.to_computed_value(&context);
+                                        calc.length() + context.inherited_font_size.scale_by(calc.percentage())
+                                    }
                                 }
                             }
                             DeclaredValue::Initial => longhands::font_size::get_initial_value(),
@@ -6887,27 +6915,6 @@ macro_rules! longhand_properties_idents {
                 ${property.ident}
             % endfor
         }
-    }
-}
-
-// Extra space here because < seems to be removed by Mako when immediately followed by &.
-//                                                         ↓
-pub fn longhands_from_shorthand(shorthand: &str) -> Option< &'static [&'static str]> {
-    % for property in SHORTHANDS:
-        static ${property.ident.upper()}: &'static [&'static str] = &[
-            % for sub in property.sub_properties:
-                "${sub.name}",
-            % endfor
-        ];
-    % endfor
-    match_ignore_ascii_case!{ shorthand,
-        % for property in SHORTHANDS[:-1]:
-            "${property.name}" => Some(${property.ident.upper()}),
-        % endfor
-        % for property in SHORTHANDS[-1:]:
-            "${property.name}" => Some(${property.ident.upper()})
-        % endfor
-        _ => None
     }
 }
 

@@ -6,14 +6,14 @@ use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -85,7 +85,7 @@ impl Worker {
                 let pipeline_id = global.pipeline();
                 let title = format!("Worker for {}", worker_url);
                 let page_info = DevtoolsPageInfo {
-                    title: title,
+                    title: DOMString(title),
                     url: worker_url.clone(),
                 };
                 chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
@@ -129,7 +129,7 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let event = Event::new(global.r(),
-                               "error".to_owned(),
+                               DOMString("error".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(worker.upcast());
@@ -140,7 +140,7 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
-        let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
+        let errorevent = ErrorEvent::new(global.r(), DOMString("error".to_owned()),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());
         errorevent.upcast::<Event>().fire(worker.upcast());

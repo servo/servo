@@ -9,6 +9,7 @@ import platform
 import subprocess
 import sys
 from distutils.spawn import find_executable
+from pipes import quote
 
 SEARCH_PATHS = [
     os.path.join("python", "mach"),
@@ -91,7 +92,8 @@ def _activate_virtualenv(topdir):
     if python is None:
         sys.exit("Python is not installed. Please install it prior to running mach.")
 
-    if not os.path.exists(virtualenv_path):
+    activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
+    if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
         virtualenv = _get_exec(*VIRTUALENV_NAMES)
         if virtualenv is None:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
@@ -101,8 +103,7 @@ def _activate_virtualenv(topdir):
         except (subprocess.CalledProcessError, OSError):
             sys.exit("Python virtualenv failed to execute properly.")
 
-    activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
-    execfile(activate_path, dict(__file__=activate_path))
+    execfile(activate_path, dict(__file__=quote(activate_path)))
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
@@ -123,7 +124,7 @@ def _activate_virtualenv(topdir):
             if os.path.getmtime(req_path) + 10 < os.path.getmtime(marker_path):
                 continue
         except OSError:
-            open(marker_path, 'w').close()
+            pass
 
         pip = _get_exec(*PIP_NAMES)
         if pip is None:
@@ -134,7 +135,7 @@ def _activate_virtualenv(topdir):
         except (subprocess.CalledProcessError, OSError):
             sys.exit("Pip failed to execute properly.")
 
-        os.utime(marker_path, None)
+        open(marker_path, 'w').close()
 
 
 def bootstrap(topdir):

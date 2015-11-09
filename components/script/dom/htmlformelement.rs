@@ -9,11 +9,11 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::conversions::{Castable, DerivedFrom};
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{Root};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -155,15 +155,15 @@ impl HTMLFormElement {
         // Step 1
         let doc = document_from_node(self);
         let win = window_from_node(self);
-        let base = doc.r().url();
+        let base = doc.url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "submit".to_owned(),
+                               DOMString("submit".to_owned()),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
-        if event.r().DefaultPrevented() {
+        if event.DefaultPrevented() {
             return;
         }
         // Step 6
@@ -171,7 +171,7 @@ impl HTMLFormElement {
         // Step 7-8
         let mut action = submitter.action();
         if action.is_empty() {
-            action = base.serialize();
+            action = DOMString(base.serialize());
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
@@ -211,8 +211,8 @@ impl HTMLFormElement {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/#planned-navigation
-        win.r().main_thread_script_chan().send(MainThreadScriptMsg::Navigate(
-            win.r().pipeline(), load_data)).unwrap();
+        win.main_thread_script_chan().send(MainThreadScriptMsg::Navigate(
+            win.pipeline(), load_data)).unwrap();
     }
 
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
@@ -225,11 +225,11 @@ impl HTMLFormElement {
                 _ => return None,
             }
 
-            if child.r().ancestors()
-                        .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
+            if child.ancestors()
+                    .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
                 return None;
             }
-            match child.r().type_id() {
+            match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
                     match element {
                         HTMLElementTypeId::HTMLInputElement => {
@@ -283,7 +283,7 @@ impl HTMLFormElement {
             if prev == '\r' {
                 buf.push('\n');
             }
-            buf
+            DOMString(buf)
         }
 
         let mut ret = self.get_unclean_dataset(submitter);
@@ -311,18 +311,18 @@ impl HTMLFormElement {
 
         let win = window_from_node(self);
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "reset".to_owned(),
+                               DOMString("reset".to_owned()),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
-        if event.r().DefaultPrevented() {
+        if event.DefaultPrevented() {
             return;
         }
 
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         for child in self.upcast::<Node>().traverse_preorder() {
-            match child.r().type_id() {
+            match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     child.downcast::<HTMLInputElement>().unwrap().reset();
                 }
@@ -466,7 +466,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
             let doc = document_from_node(elem);
-            let owner = doc.r().GetElementById(owner);
+            let owner = doc.GetElementById(owner);
             match owner {
                 Some(ref o) => {
                     let maybe_form = o.downcast::<HTMLFormElement>();
@@ -491,7 +491,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".to_owned(), |t| owner(t.r()))
+            self.form_owner().map_or(DOMString::new(), |t| owner(t.r()))
         }
     }
 

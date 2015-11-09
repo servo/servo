@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `image-rendering: pixelated` causes nearest-neighbor interpolation to be used. -->
+<link rel=match href=image_rendering_pixelated_ref.html>
+<style>
+img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    image-rendering: -moz-crisp-edges;  /* for testing in Firefox */
+    image-rendering: pixelated;
+}
+</style>
+</head>
+<body>
+<img width=100 height=50 src=4x2.png>
+</body>
+</html>
+
+

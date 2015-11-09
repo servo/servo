@@ -12,18 +12,18 @@
 //!    phase. (This happens through `JSClass.trace` for non-proxy bindings, and
 //!    through `ProxyTraps.trace` otherwise.)
 //! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
-//!    This is typically derived via a `#[dom_struct]` (implies `#[derive(JSTraceable)]`) annotation.
+//!    This is typically derived via a `#[dom_struct]`
+//!    (implies `#[derive(JSTraceable)]`) annotation.
 //!    Non-JS-managed types have an empty inline `trace()` method,
 //!    achieved via `no_jsmanaged_fields!` or similar.
 //! 3. For all fields, `Foo::trace()`
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
-//! 4. `trace_reflector()` calls `trace_object()` with the `JSObject` for the
-//!    reflector.
-//! 5. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
-//!    add the object to the graph, and will trace that object as well.
-//! 6. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
+//! 4. `trace_reflector()` calls `JS_CallUnbarrieredObjectTracer()` with a
+//!    pointer to the `JSObject` for the reflector. This notifies the GC, which
+//!    will add the object to the graph, and will trace that object as well.
+//! 5. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
 //!    any reflectors that were not reachable.
 //!
 //! The `no_jsmanaged_fields!()` macro adds an empty implementation of `JSTraceable` to
@@ -35,7 +35,8 @@ use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, Repetiti
 use cssparser::RGBA;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
+use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::utils::WindowProxyHandler;
 use encoding::types::EncodingRef;
 use euclid::length::Length as EuclidLength;
 use euclid::matrix2d::Matrix2D;
@@ -44,6 +45,7 @@ use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
+use hyper::mime::Mime;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsapi::{GCTraceKindToAscii, Heap, JSGCTraceKind, JSObject, JSTracer, JS_CallObjectTracer, JS_CallValueTracer};
@@ -62,10 +64,11 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
 use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
+use selectors::states::*;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
-use std::cell::{Cell, RefCell, UnsafeCell};
+use std::cell::{Cell, UnsafeCell};
 use std::collections::hash_state::HashState;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
@@ -76,12 +79,13 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
 use style::values::specified::Length;
 use url::Url;
-use util::str::{LengthOrPercentageOrAuto};
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 
 /// A trait to allow tracing (only) DOM objects.
@@ -138,12 +142,6 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
     }
 }
 
-impl<T: JSTraceable> JSTraceable for RefCell<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        self.borrow().trace(trc)
-    }
-}
-
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
@@ -153,26 +151,6 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
 impl<T: JSTraceable> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for *const T {
-    fn trace(&self, trc: *mut JSTracer) {
-        if !self.is_null() {
-            unsafe {
-                (**self).trace(trc)
-            }
-        }
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for *mut T {
-    fn trace(&self, trc: *mut JSTracer) {
-        if !self.is_null() {
-            unsafe {
-                (**self).trace(trc)
-            }
-        }
     }
 }
 
@@ -269,7 +247,7 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 }
 
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
@@ -308,6 +286,9 @@ no_jsmanaged_fields!(TimeProfilerChan);
 no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
+no_jsmanaged_fields!(ElementState);
+no_jsmanaged_fields!(DOMString);
+no_jsmanaged_fields!(Mime);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
@@ -401,7 +382,7 @@ impl RootedTraceableSet {
         }
     }
 
-    fn remove<T: JSTraceable>(traceable: &T) {
+    unsafe fn remove<T: JSTraceable>(traceable: &T) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
             let idx =
@@ -414,7 +395,7 @@ impl RootedTraceableSet {
         });
     }
 
-    fn add<T: JSTraceable>(traceable: &T) {
+    unsafe fn add<T: JSTraceable>(traceable: &T) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             fn trace<T: JSTraceable>(obj: *const libc::c_void, tracer: *mut JSTracer) {
                 let obj: &T = unsafe { &*(obj as *const T) };
@@ -451,14 +432,18 @@ pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
 impl<'a, T: JSTraceable> RootedTraceable<'a, T> {
     /// Root a JSTraceable thing for the life of this RootedTraceable
     pub fn new(traceable: &'a T) -> RootedTraceable<'a, T> {
-        RootedTraceableSet::add(traceable);
+        unsafe {
+            RootedTraceableSet::add(traceable);
+        }
         RootedTraceable { ptr: traceable }
     }
 }
 
 impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
     fn drop(&mut self) {
-        RootedTraceableSet::remove(self.ptr);
+        unsafe {
+            RootedTraceableSet::remove(self.ptr);
+        }
     }
 }
 
@@ -480,15 +465,13 @@ impl<T: JSTraceable> RootedVec<T> {
             return_address() as *const libc::c_void
         };
 
-        RootedVec::new_with_destination_address(addr)
+        unsafe { RootedVec::new_with_destination_address(addr) }
     }
 
     /// Create a vector of items of type T. This constructor is specific
     /// for RootTraceableSet.
-    pub fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
-        unsafe {
-            RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
-        }
+    pub unsafe fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
+        RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
         RootedVec::<T> { v: vec!() }
     }
 }
@@ -496,13 +479,15 @@ impl<T: JSTraceable> RootedVec<T> {
 impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
     /// Obtain a safe slice of references that can't outlive that RootedVec.
     pub fn r(&self) -> &[&T] {
-        unsafe { mem::transmute(&*self.v) }
+        unsafe { mem::transmute(&self.v[..]) }
     }
 }
 
 impl<T: JSTraceable> Drop for RootedVec<T> {
     fn drop(&mut self) {
-        RootedTraceableSet::remove(self);
+        unsafe {
+            RootedTraceableSet::remove(self);
+        }
     }
 }
 
@@ -522,9 +507,9 @@ impl<T: JSTraceable> DerefMut for RootedVec<T> {
 impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
     #[allow(moved_no_move)]
     fn from_iter<T>(iterable: T) -> RootedVec<JS<A>> where T: IntoIterator<Item=Root<A>> {
-        let mut vec = RootedVec::new_with_destination_address(unsafe {
-            return_address() as *const libc::c_void
-        });
+        let mut vec = unsafe {
+            RootedVec::new_with_destination_address(return_address() as *const libc::c_void)
+        };
         vec.extend(iterable.into_iter().map(|item| JS::from_rooted(&item)));
         vec
     }

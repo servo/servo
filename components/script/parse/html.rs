@@ -8,10 +8,8 @@ use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
-use dom::bindings::conversions::Castable;
-use dom::bindings::js::{JS, Root};
-use dom::bindings::js::{RootedReference};
+use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
+use dom::bindings::js::{JS, RootedReference};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::Document;
@@ -45,11 +43,10 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;
 
     fn get_document(&mut self) -> JS<Node> {
-        JS::from_ref(self.document.root().upcast())
+        JS::from_ref(self.document.upcast())
     }
 
     fn get_template_contents(&self, target: JS<Node>) -> JS<Node> {
-        let target = target.root();
         let template = target.downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
         JS::from_ref(template.Content().upcast())
@@ -60,8 +57,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn elem_name(&self, target: JS<Node>) -> QualName {
-        let node: Root<Node> = target.root();
-        let elem = node.downcast::<Element>()
+        let elem = target.downcast::<Element>()
             .expect("tried to get name of non-Element in HTML parsing");
         QualName {
             ns: elem.namespace().clone(),
@@ -71,20 +67,18 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> JS<Node> {
-        let doc = self.document.root();
-        let elem = Element::create(name, None, doc.r(),
+        let elem = Element::create(name, None, &*self.document,
                                    ElementCreator::ParserCreated);
 
         for attr in attrs {
-            elem.r().set_attribute_from_parser(attr.name, attr.value.into(), None);
+            elem.set_attribute_from_parser(attr.name, DOMString(attr.value.into()), None);
         }
 
         JS::from_ref(elem.upcast())
     }
 
     fn create_comment(&mut self, text: StrTendril) -> JS<Node> {
-        let doc = self.document.root();
-        let comment = Comment::new(text.into(), doc.r());
+        let comment = Comment::new(DOMString(text.into()), &*self.document);
         JS::from_ref(comment.upcast())
     }
 
@@ -92,14 +86,13 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             sibling: JS<Node>,
             new_node: NodeOrText<JS<Node>>) -> Result<(), NodeOrText<JS<Node>>> {
         // If there is no parent, return the node to the parser.
-        let sibling: Root<Node> = sibling.root();
-        let parent = match sibling.r().GetParentNode() {
+        let parent = match sibling.GetParentNode() {
             Some(p) => p,
             None => return Err(new_node),
         };
 
         let child = self.get_or_create(new_node);
-        assert!(parent.r().InsertBefore(child.r(), Some(sibling.r())).is_ok());
+        assert!(parent.InsertBefore(child.r(), Some(&*sibling)).is_ok());
         Ok(())
     }
 
@@ -108,50 +101,45 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        let doc = self.document.root();
-        doc.r().set_quirks_mode(mode);
+        self.document.set_quirks_mode(mode);
     }
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
-        let parent: Root<Node> = parent.root();
         let child = self.get_or_create(child);
 
         // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
-        assert!(parent.r().AppendChild(child.r()).is_ok());
+        assert!(parent.AppendChild(child.r()).is_ok());
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
                                   system_id: StrTendril) {
-        let doc = self.document.root();
+        let doc = &*self.document;
         let doctype = DocumentType::new(
-            name.into(), Some(public_id.into()), Some(system_id.into()), doc.r());
+            DOMString(name.into()), Some(DOMString(public_id.into())),
+            Some(DOMString(system_id.into())), doc);
         doc.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
     }
 
     fn add_attrs_if_missing(&mut self, target: JS<Node>, attrs: Vec<Attribute>) {
-        let node: Root<Node> = target.root();
-        let elem = node.downcast::<Element>()
+        let elem = target.downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, attr.value.into(), None);
+            elem.set_attribute_from_parser(attr.name, DOMString(attr.value.into()), None);
         }
     }
 
     fn remove_from_parent(&mut self, target: JS<Node>) {
-        let node = target.root();
-        if let Some(ref parent) = node.r().GetParentNode() {
-            parent.r().RemoveChild(node.r()).unwrap();
+        if let Some(ref parent) = target.GetParentNode() {
+            parent.RemoveChild(&*target).unwrap();
         }
     }
 
     fn mark_script_already_started(&mut self, node: JS<Node>) {
-        let node: Root<Node> = node.root();
         let script = node.downcast::<HTMLScriptElement>();
         script.map(|script| script.mark_already_started());
     }
 
     fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
-        let node: Root<Node> = node.root();
         let script = node.downcast::<HTMLScriptElement>();
         if let Some(script) = script {
             return script.prepare();
@@ -160,11 +148,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
-        let new_parent = new_parent.root();
-        let new_parent = new_parent.r();
-        let old_parent = node.root();
-        let old_parent = old_parent.r();
-        while let Some(ref child) = old_parent.GetFirstChild() {
+        while let Some(ref child) = node.GetFirstChild() {
             new_parent.AppendChild(child.r()).unwrap();
         }
 
@@ -181,11 +165,10 @@ impl<'a> Serializable for &'a Node {
                 let name = QualName::new(elem.namespace().clone(),
                                          elem.local_name().clone());
                 if traversal_scope == IncludeNode {
-                    let attrs = elem.attrs().iter().map(|at| {
-                        let attr = at.root();
-                        let qname = QualName::new(attr.r().namespace().clone(),
-                                                  attr.r().local_name().clone());
-                        let value = attr.r().value().clone();
+                    let attrs = elem.attrs().iter().map(|attr| {
+                        let qname = QualName::new(attr.namespace().clone(),
+                                                  attr.local_name().clone());
+                        let value = attr.value().clone();
                         (qname, value)
                     }).collect::<Vec<_>>();
                     let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
@@ -255,7 +238,7 @@ pub enum ParseContext<'a> {
 }
 
 pub fn parse_html(document: &Document,
-                  input: String,
+                  input: DOMString,
                   url: Url,
                   context: ParseContext) {
     let parser = match context {
@@ -264,7 +247,7 @@ pub fn parse_html(document: &Document,
         ParseContext::Fragment(fc) =>
             ServoHTMLParser::new_for_fragment(Some(url), document, fc),
     };
-    parser.r().parse_chunk(input.into());
+    parser.parse_chunk(input.0.into());
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
@@ -285,11 +268,11 @@ pub fn parse_html_fragment(context_node: &Node,
                                  loader);
 
     // Step 2.
-    document.r().set_quirks_mode(context_document.quirks_mode());
+    document.set_quirks_mode(context_document.quirks_mode());
 
     // Step 11.
     let form = context_node.inclusive_ancestors()
-                           .find(|element| element.r().is::<HTMLFormElement>());
+                           .find(|element| element.is::<HTMLFormElement>());
     let fragment_context = FragmentContext {
         context_elem: context_node,
         form_elem: form.r(),
@@ -297,7 +280,7 @@ pub fn parse_html_fragment(context_node: &Node,
     parse_html(document.r(), input, url.clone(), ParseContext::Fragment(fragment_context));
 
     // Step 14.
-    let root_element = document.r().GetDocumentElement().expect("no document element");
+    let root_element = document.GetDocumentElement().expect("no document element");
     for child in root_element.upcast::<Node>().children() {
         output.AppendChild(child.r()).unwrap();
     }

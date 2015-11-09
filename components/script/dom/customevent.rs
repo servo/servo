@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::Event;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
@@ -42,7 +42,7 @@ impl CustomEvent {
                cancelable: bool,
                detail: HandleValue) -> Root<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global);
-        ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
+        ev.InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         ev
     }
     #[allow(unsafe_code)]

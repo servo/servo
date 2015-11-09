@@ -33,9 +33,15 @@ pub fn traverse_dom_preorder(root: LayoutNode,
         construct_flows.process(node);
     }
 
-    let layout_context  = LayoutContext::new(shared_layout_context);
-    let recalc_style    = RecalcStyleForNode { layout_context: &layout_context };
-    let construct_flows = ConstructFlows     { layout_context: &layout_context };
+    let layout_context = LayoutContext::new(shared_layout_context);
+    let recalc_style = RecalcStyleForNode {
+        layout_context: &layout_context,
+        root: root.opaque(),
+    };
+    let construct_flows = ConstructFlows {
+        layout_context: &layout_context,
+        root: root.opaque(),
+    };
 
     doit(root, recalc_style, construct_flows);
 }
@@ -92,8 +98,6 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     let assign_block_sizes  = AssignBSizesAndStoreOverflow { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
-
-    root.late_store_overflow(&layout_context);
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,

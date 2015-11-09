@@ -3,20 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
 use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::DOMString;
@@ -46,6 +50,64 @@ impl HTMLSelectElement {
         let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
     }
+
+    // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
+    pub fn ask_for_reset(&self) {
+        if self.Multiple() {
+            return;
+        }
+
+        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
+        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+
+        let node = self.upcast::<Node>();
+        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            if opt.Selected() {
+                opt.set_selectedness(false);
+                last_selected = Some(Root::from_ref(opt.r()));
+            }
+            let element = opt.upcast::<Element>();
+            if first_enabled.is_none() && !element.get_disabled_state() {
+                first_enabled = Some(Root::from_ref(opt.r()));
+            }
+        }
+
+        if let Some(last_selected) = last_selected {
+            last_selected.set_selectedness(true);
+        } else {
+            if self.display_size() == 1 {
+                if let Some(first_enabled) = first_enabled {
+                    first_enabled.set_selectedness(true);
+                }
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-select-pick
+    pub fn pick_option(&self, picked: &HTMLOptionElement) {
+        if !self.Multiple() {
+            let node = self.upcast::<Node>();
+            let picked = picked.upcast();
+            for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+                if opt.upcast::<HTMLElement>() != picked {
+                    opt.set_selectedness(false);
+                }
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-select-size
+    fn display_size(&self) -> u32 {
+         if self.Size() == 0 {
+             if self.Multiple() {
+                 4
+             } else {
+                 1
+             }
+         } else {
+             self.Size()
+         }
+     }
 }
 
 impl HTMLSelectElementMethods for HTMLSelectElement {
@@ -91,11 +153,16 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
     fn Type(&self) -> DOMString {
-        if self.Multiple() {
-            "select-multiple".to_owned()
+        DOMString(if self.Multiple() {
+            "select-multiple"
         } else {
-            "select-one".to_owned()
-        }
+            "select-one"
+        }.to_owned())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
     }
 }
 
@@ -137,7 +204,7 @@ impl VirtualMethods for HTMLSelectElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -145,8 +212,8 @@ impl VirtualMethods for HTMLSelectElement {
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
+        match *local_name {
+            atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

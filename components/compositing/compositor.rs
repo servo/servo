@@ -35,8 +35,9 @@ use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::CompositorEvent::{TouchDownEvent, TouchMoveEvent, TouchUpEvent};
+use script_traits::CompositorEvent::{MouseMoveEvent, TouchEvent};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, MouseButton};
+use script_traits::{TouchEventType, TouchId};
 use scrolling::ScrollingTimerProxy;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -54,6 +55,24 @@ use util::opts;
 use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
+#[derive(Debug)]
+enum UnableToComposite {
+    NoContext,
+    WindowUnprepared,
+    NotReadyToPaintImage(NotReadyToPaint),
+}
+
+#[derive(Debug)]
+enum NotReadyToPaint {
+    LayerHasOutstandingPaintMessages,
+    MissingRoot,
+    PendingSubpages(usize),
+    AnimationsRunning,
+    AnimationCallbacksRunning,
+    JustNotifiedConstellation,
+    WaitingOnConstellation,
+}
+
 const BUFFER_MAP_SIZE: usize = 10000000;
 
 // Default viewport constraints
@@ -70,23 +89,6 @@ enum ReadyState {
     Unknown,
     WaitingForConstellationReply,
     ReadyToSaveImage,
-}
-
-/// The states of the touch input state machine.
-///
-/// TODO: Currently Add support for "flinging" (scrolling inertia), pinch zooming, better
-/// support for multiple touch points.
-enum TouchState {
-    /// Not tracking any touch point
-    Nothing,
-    /// A touchstart event was dispatched to the page, but the response wasn't received yet.
-    WaitingForScript,
-    /// Script is consuming the current touch point; don't perform default actions.
-    DefaultPrevented,
-    /// A single touch point is active and may perform click or pan default actions.
-    Touching,
-    /// A single touch point is active and has started panning.
-    Panning,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -180,12 +182,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Touch input state machine
     touch_gesture_state: TouchState,
 
-    /// When tracking a touch for gesture detection, the point where it started
-    first_touch_point: Option<TypedPoint2D<DevicePixel, f32>>,
-
-    /// When tracking a touch for gesture detection, its most recent point
-    last_touch_point: Option<TypedPoint2D<DevicePixel, f32>>,
-
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
 
@@ -199,14 +195,39 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Pipeline IDs of subpages that the compositor has seen in a layer tree but which have not
     /// yet been painted.
     pending_subpages: HashSet<PipelineId>,
+
+    /// The id of the pipeline that was last sent a mouse move event, if any.
+    last_mouse_move_recipient: Option<PipelineId>,
 }
+
+/// The states of the touch input state machine.
+///
+/// TODO: Currently Add support for "flinging" (scrolling inertia), pinch zooming.
+enum TouchState {
+    /// Not tracking any touch point
+    Nothing,
+    /// A touchstart event was dispatched to the page, but the response wasn't received yet.
+    /// Contains the number of active touch points and the initial touch location.
+    WaitingForScript(u32, TypedPoint2D<DevicePixel, f32>),
+    /// Script is consuming the current touch sequence; don't perform default actions.
+    /// Contains the number of active touch points.
+    DefaultPrevented(u32),
+    /// A single touch point is active and may perform click or pan default actions.
+    /// Contains the initial touch location.
+    Touching(TypedPoint2D<DevicePixel, f32>),
+    /// A single touch point is active and has started panning. Contains the latest touch location.
+    Panning(TypedPoint2D<DevicePixel, f32>),
+    /// A multi-touch gesture is in progress. Contains the number of active touch points.
+    MultiTouch(u32),
+}
+
 
 pub struct ScrollEvent {
     delta: TypedPoint2D<DevicePixel, f32>,
     cursor: TypedPoint2D<DevicePixel, i32>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum CompositionRequest {
     NoCompositingNecessary,
     CompositeOnScrollTimeout(u64),
@@ -326,8 +347,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scrolling_timer: ScrollingTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_gesture_state: TouchState::Nothing,
-            first_touch_point: None,
-            last_touch_point: None,
             pending_scroll_events: Vec::new(),
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
@@ -347,6 +366,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             ready_to_save_state: ReadyState::Unknown,
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
             pending_subpages: HashSet::new(),
+            last_mouse_move_recipient: None,
         }
     }
 
@@ -537,10 +557,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 match self.touch_gesture_state {
-                    TouchState::WaitingForScript => {
+                    TouchState::WaitingForScript(n, p) => {
                         self.touch_gesture_state = match result {
-                            EventResult::DefaultAllowed => TouchState::Touching,
-                            EventResult::DefaultPrevented => TouchState::DefaultPrevented,
+                            EventResult::DefaultPrevented => TouchState::DefaultPrevented(n),
+                            EventResult::DefaultAllowed => if n > 1 {
+                                TouchState::MultiTouch(n)
+                            } else {
+                                TouchState::Touching(p)
+                            }
                         };
                     }
                     _ => {}
@@ -570,8 +594,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 assert!(self.ready_to_save_state == ReadyState::WaitingForConstellationReply);
                 if is_ready {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
+                    if opts::get().is_running_problem_test {
+                        println!("ready to save image!");
+                    }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
+                    if opts::get().is_running_problem_test {
+                        println!("resetting ready_to_save_state!");
+                    }
                 }
                 self.composite_if_necessary(CompositingReason::Headless);
             }
@@ -782,8 +812,20 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties)
+    fn update_layer_if_exists(&mut self,
+                              pipeline_id: PipelineId,
+                              properties: LayerProperties)
                               -> bool {
+        if let Some(subpage_id) = properties.subpage_pipeline_id {
+            match self.find_layer_with_pipeline_and_layer_id(subpage_id, LayerId::null()) {
+                Some(layer) => {
+                    *layer.bounds.borrow_mut() = Rect::from_untyped(
+                        &Rect::new(Point2D::zero(), properties.rect.size));
+                }
+                None => warn!("Tried to update non-existent subpage root layer: {:?}", subpage_id),
+            }
+        }
+
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, properties.id) {
             Some(existing_layer) => {
                 existing_layer.update_layer(properties);
@@ -1056,6 +1098,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_mouse_window_move_event_class(cursor);
             }
 
+            WindowEvent::Touch(event_type, identifier, location) => {
+                match event_type {
+                    TouchEventType::Down => self.on_touch_down(identifier, location),
+                    TouchEventType::Move => self.on_touch_move(identifier, location),
+                    TouchEventType::Up => self.on_touch_up(identifier, location),
+                    TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
+                }
+            }
+
             WindowEvent::Scroll(delta, cursor) => {
                 self.on_scroll_window_event(delta, cursor);
             }
@@ -1127,8 +1178,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if opts::get().convert_mouse_to_touch {
             match mouse_window_event {
                 MouseWindowEvent::Click(_, _) => {}
-                MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(0, p),
-                MouseWindowEvent::MouseUp(_, p) => self.on_touch_up(0, p),
+                MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(TouchId(0), p),
+                MouseWindowEvent::MouseUp(_, p) => self.on_touch_up(TouchId(0), p),
             }
             return
         }
@@ -1146,103 +1197,142 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<DevicePixel, f32>) {
         if opts::get().convert_mouse_to_touch {
-            self.on_touch_move(0, cursor);
+            self.on_touch_move(TouchId(0), cursor);
             return
         }
 
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
-            Some(result) => result.layer.send_mouse_move_event(self, result.point),
-            None => {},
+            Some(result) => {
+                // In the case that the mouse was previously over a different layer,
+                // that layer must update its state.
+                if let Some(last_pipeline_id) = self.last_mouse_move_recipient {
+                    if last_pipeline_id != result.layer.pipeline_id() {
+                        if let Some(pipeline) = self.pipeline(last_pipeline_id) {
+                            let _ = pipeline.script_chan
+                                            .send(ConstellationControlMsg::SendEvent(
+                                                last_pipeline_id.clone(),
+                                                MouseMoveEvent(None)));
+                        }
+                    }
+                }
+
+                self.last_mouse_move_recipient = Some(result.layer.pipeline_id());
+                result.layer.send_mouse_move_event(self, result.point);
+            }
+            None => {}
         }
     }
 
-    fn on_touch_down(&mut self, identifier: i32, point: TypedPoint2D<DevicePixel, f32>) {
-        match self.touch_gesture_state {
+    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+        self.touch_gesture_state = match self.touch_gesture_state {
             TouchState::Nothing => {
-                // TODO: Don't wait for script if we know the page has no touch event listeners.
-                self.first_touch_point = Some(point);
-                self.last_touch_point = Some(point);
-                self.touch_gesture_state = TouchState::WaitingForScript;
+                TouchState::WaitingForScript(1, point)
             }
-            TouchState::WaitingForScript => {
-                // TODO: Queue events while waiting for script?
+            TouchState::Touching(_) |
+            TouchState::Panning(_) => {
+                // Was a single-touch sequence; now a multi-touch sequence:
+                TouchState::MultiTouch(2)
             }
-            TouchState::DefaultPrevented => {}
-            TouchState::Touching => {}
-            TouchState::Panning => {}
-        }
+            TouchState::WaitingForScript(n, p) => {
+                TouchState::WaitingForScript(n + 1, p)
+            }
+            TouchState::DefaultPrevented(n) => {
+                TouchState::DefaultPrevented(n + 1)
+            }
+            TouchState::MultiTouch(n) => {
+                TouchState::MultiTouch(n + 1)
+            }
+        };
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchDownEvent(identifier, result.point.to_untyped()));
+            result.layer.send_event(self, TouchEvent(TouchEventType::Down, identifier,
+                                                     result.point.to_untyped()));
         }
     }
 
-    fn on_touch_move(&mut self, identifier: i32, point: TypedPoint2D<DevicePixel, f32>) {
+    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
         match self.touch_gesture_state {
             TouchState::Nothing => warn!("Got unexpected touch move event"),
 
-            TouchState::WaitingForScript => {
+            TouchState::WaitingForScript(..) => {
                 // TODO: Queue events while waiting for script?
             }
-            TouchState::Touching => {
-                match self.first_touch_point {
-                    Some(p0) => {
-                        let delta = point - p0;
-                        let px: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
-                        let px = px.to_untyped();
+            TouchState::Touching(p0) => {
+                let delta = point - p0;
+                let px: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
+                let px = px.to_untyped();
 
-                        if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                           px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
-                        {
-                            self.touch_gesture_state = TouchState::Panning;
-                            self.on_scroll_window_event(delta, point.cast().unwrap());
-                        }
-                    }
-                    None => warn!("first_touch_point not set")
+                if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                   px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                {
+                    self.touch_gesture_state = TouchState::Panning(point);
+                    self.on_scroll_window_event(delta, point.cast().unwrap());
                 }
             }
-            TouchState::Panning => {
-                match self.last_touch_point {
-                    Some(p0) => {
-                        let delta = point - p0;
-                        self.on_scroll_window_event(delta, point.cast().unwrap());
-                    }
-                    None => warn!("last_touch_point not set")
-                }
+            TouchState::Panning(p0) => {
+                let delta = point - p0;
+                self.on_scroll_window_event(delta, point.cast().unwrap());
+                self.touch_gesture_state = TouchState::Panning(point);
             }
-            TouchState::DefaultPrevented => {
+            TouchState::DefaultPrevented(_) => {
                 // Send the event to script.
                 if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-                    result.layer.send_event(self,
-                                            TouchMoveEvent(identifier, result.point.to_untyped()));
+                    result.layer.send_event(self, TouchEvent(TouchEventType::Move, identifier,
+                                                             result.point.to_untyped()));
                 }
             }
+            TouchState::MultiTouch(_) => {
+                // TODO: Pinch zooming.
+            }
         }
-        self.last_touch_point = Some(point);
     }
 
-    fn on_touch_up(&mut self, identifier: i32, point: TypedPoint2D<DevicePixel, f32>) {
-        // TODO: Track the number of active touch points, and don't reset stuff until it is zero.
-        self.first_touch_point = None;
-        self.last_touch_point = None;
-
+    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
         // Send the event to script.
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchUpEvent(identifier, result.point.to_untyped()));
+            result.layer.send_event(self, TouchEvent(TouchEventType::Up, identifier,
+                                                     result.point.to_untyped()));
         }
 
-        match self.touch_gesture_state {
-            TouchState::Nothing => warn!("Got unexpected touch up event"),
-
-            TouchState::WaitingForScript => {}
-            TouchState::Touching => {
+        self.touch_gesture_state = match self.touch_gesture_state {
+            TouchState::Touching(_) => {
                 // TODO: If the duration exceeds some threshold, send a contextmenu event instead.
                 // TODO: Don't send a click if preventDefault is called on the touchend event.
                 self.simulate_mouse_click(point);
+                TouchState::Nothing
             }
-            TouchState::Panning => {}
-            TouchState::DefaultPrevented => {}
+            TouchState::Nothing |
+            TouchState::Panning(_) |
+            TouchState::WaitingForScript(1, _) |
+            TouchState::DefaultPrevented(1) |
+            TouchState::MultiTouch(1) => {
+                TouchState::Nothing
+            }
+            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
+            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
+            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
+        };
+    }
+
+    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+        // Send the event to script.
+        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
+            result.layer.send_event(self, TouchEvent(TouchEventType::Cancel, identifier,
+                                                     result.point.to_untyped()));
         }
-        self.touch_gesture_state = TouchState::Nothing;
+
+        self.touch_gesture_state = match self.touch_gesture_state {
+            TouchState::Nothing |
+            TouchState::Touching(_) |
+            TouchState::Panning(_) |
+            TouchState::WaitingForScript(1, _) |
+            TouchState::DefaultPrevented(1) |
+            TouchState::MultiTouch(1) => {
+                TouchState::Nothing
+            }
+            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
+            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
+            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
+        };
     }
 
     /// http://w3c.github.io/touch-events/#mouse-events
@@ -1612,7 +1702,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// Query the constellation to see if the current compositor
     /// output matches the current frame tree output, and if the
     /// associated script tasks are idle.
-    fn is_ready_to_paint_image_output(&mut self) -> bool {
+    fn is_ready_to_paint_image_output(&mut self) -> Result<(), NotReadyToPaint> {
         match self.ready_to_save_state {
             ReadyState::Unknown => {
                 // Unsure if the output image is stable.
@@ -1623,17 +1713,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.scene.root {
                     Some(ref root_layer) => {
                         if self.does_layer_have_outstanding_paint_messages(root_layer) {
-                            return false;
+                            return Err(NotReadyToPaint::LayerHasOutstandingPaintMessages);
                         }
                     }
                     None => {
-                        return false;
+                        return Err(NotReadyToPaint::MissingRoot);
                     }
                 }
 
                 // Check if there are any pending frames. If so, the image is not stable yet.
                 if self.pending_subpages.len() > 0 {
-                    return false
+                    return Err(NotReadyToPaint::PendingSubpages(self.pending_subpages.len()));
                 }
 
                 // Collect the currently painted epoch of each pipeline that is
@@ -1644,8 +1734,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 for (id, details) in &self.pipeline_details {
                     // If animations are currently running, then don't bother checking
                     // with the constellation if the output image is stable.
-                    if details.animations_running || details.animation_callbacks_running {
-                        return false;
+                    if details.animations_running {
+                        return Err(NotReadyToPaint::AnimationsRunning);
+                    }
+                    if details.animation_callbacks_running {
+                        return Err(NotReadyToPaint::AnimationCallbacksRunning);
                     }
 
                     pipeline_epochs.insert(*id, details.current_epoch);
@@ -1656,12 +1749,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let ConstellationChan(ref chan) = self.constellation_chan;
                 chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
-                false
+                Err(NotReadyToPaint::JustNotifiedConstellation)
             }
             ReadyState::WaitingForConstellationReply => {
                 // If waiting on a reply from the constellation to the last
                 // query if the image is stable, then assume not ready yet.
-                false
+                Err(NotReadyToPaint::WaitingOnConstellation)
             }
             ReadyState::ReadyToSaveImage => {
                 // Constellation has replied at some point in the past
@@ -1669,8 +1762,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
+                println!("was ready to save, resetting ready_to_save_state");
                 self.ready_to_save_state = ReadyState::Unknown;
-                true
+                Ok(())
             }
         }
     }
@@ -1680,8 +1774,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let composited = self.composite_specific_target(target);
         if composited.is_ok() &&
             (opts::get().output_file.is_some() || opts::get().exit_after_load) {
-            debug!("Shutting down the Constellation after generating an output file or exit flag specified");
+            println!("Shutting down the Constellation after generating an output file or exit flag specified");
             self.start_shutting_down();
+        } else if composited.is_err() && opts::get().is_running_problem_test {
+            println!("not ready to composite: {:?}", composited.err().unwrap());
         }
     }
 
@@ -1690,26 +1786,28 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// for some reason. If CompositeTarget is Window or Png no image data is returned;
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, ()> {
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
 
         if !self.context.is_some() {
-            return Err(())
+            return Err(UnableToComposite::NoContext)
         }
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
-            return Err(())
+            return Err(UnableToComposite::WindowUnprepared)
         }
 
         match target {
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                if !self.is_ready_to_paint_image_output() {
-                    return Err(())
+                if let Err(result) = self.is_ready_to_paint_image_output() {
+                    return Err(UnableToComposite::NotReadyToPaintImage(result))
                 }
             }
             CompositeTarget::Window => {
-                if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
-                    return Err(())
+                if opts::get().exit_after_load {
+                    if let Err(result) = self.is_ready_to_paint_image_output() {
+                        return Err(UnableToComposite::NotReadyToPaintImage(result))
+                    }
                 }
             }
         }
@@ -1826,7 +1924,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
         if self.composition_request == CompositionRequest::NoCompositingNecessary {
+            if opts::get().is_running_problem_test {
+                println!("updating composition_request ({:?})", reason);
+            }
             self.composition_request = CompositionRequest::CompositeNow(reason)
+        } else if opts::get().is_running_problem_test {
+            println!("composition_request is already {:?}", self.composition_request);
         }
     }
 
@@ -1908,13 +2011,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn cache_unused_buffers(&mut self, buffers: Vec<Box<LayerBuffer>>) {
-        if !buffers.is_empty() {
-            let surfaces = buffers.into_iter().map(|buffer| {
-                buffer.native_surface
-            }).collect();
-            self.surface_map.insert_surfaces(&self.native_display, surfaces);
-        }
+    pub fn cache_unused_buffers<B>(&mut self, buffers: B)
+        where B: IntoIterator<Item=Box<LayerBuffer>>
+    {
+        let surfaces = buffers.into_iter().map(|buffer| buffer.native_surface);
+        self.surface_map.insert_surfaces(&self.native_display, surfaces);
     }
 
     #[allow(dead_code)]
@@ -2004,14 +2105,9 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
     fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other tasks in the system.
-        loop {
-            match self.port.try_recv_compositor_msg() {
-                None => break,
-                Some(msg) => {
-                    if !self.handle_browser_message(msg) {
-                        break
-                    }
-                }
+        while let Some(msg) = self.port.try_recv_compositor_msg() {
+            if !self.handle_browser_message(msg) {
+                break
             }
         }
 
@@ -2079,7 +2175,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
 }
 
 /// Why we performed a composite. This is used for debugging.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum CompositingReason {
     /// We hit the scroll timeout and are therefore drawing unrendered content.
     HitScrollTimeout,

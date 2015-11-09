@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
@@ -186,10 +186,10 @@ impl MainThreadRunnable for StorageEventRunnable {
 
         let storage_event = StorageEvent::new(
             global_ref,
-            "storage".to_owned(),
+            DOMString("storage".to_owned()),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key, this.old_value, this.new_value,
-            ev_url.to_string(),
+            DOMString(ev_url.to_string()),
             Some(storage)
         );
 

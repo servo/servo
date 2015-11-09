@@ -12,14 +12,15 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
-use dom::bindings::conversions::{Castable, ToJSValConvertible};
+use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::ByteString;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -120,6 +121,9 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableHeap<JS<Document>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
+    override_mime_type: DOMRefCell<Option<Mime>>,
+    #[ignore_heap_size_of = "Defined in rust-encoding"]
+    override_charset: DOMRefCell<Option<EncodingRef>>,
 
     // Associated concepts
     request_method: DOMRefCell<Method>,
@@ -150,23 +154,24 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
-            response_url: "".to_owned(),
+            response_url: DOMString::new(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(_empty),
             response_xml: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
+            override_mime_type: DOMRefCell::new(None),
+            override_charset: DOMRefCell::new(None),
 
             request_method: DOMRefCell::new(Method::Get),
             request_url: DOMRefCell::new(None),
             request_headers: DOMRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
-            send_flag: Cell::new(false),
-
             upload_complete: Cell::new(false),
             upload_events: Cell::new(false),
+            send_flag: Cell::new(false),
 
             global: GlobalField::from_rooted(&global),
             timeout_cancel: DOMRefCell::new(None),
@@ -205,7 +210,7 @@ impl XMLHttpRequest {
                 if response.network_error {
                     let mut context = self.xhr.lock().unwrap();
                     let xhr = context.xhr.root();
-                    xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Error::Network));
+                    xhr.process_partial_response(XHRProgress::Errored(context.gen_id, Error::Network));
                     *context.sync_status.borrow_mut() = Some(Err(Error::Network));
                     return;
                 }
@@ -239,9 +244,9 @@ impl XMLHttpRequest {
         impl AsyncResponseListener for XHRContext {
             fn headers_available(&mut self, metadata: Metadata) {
                 let xhr = self.xhr.root();
-                let rv = xhr.r().process_headers_available(self.cors_request.clone(),
-                                                           self.gen_id,
-                                                           metadata);
+                let rv = xhr.process_headers_available(self.cors_request.clone(),
+                                                       self.gen_id,
+                                                       metadata);
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
@@ -249,21 +254,18 @@ impl XMLHttpRequest {
 
             fn data_available(&mut self, payload: Vec<u8>) {
                 self.buf.borrow_mut().push_all(&payload);
-                let xhr = self.xhr.root();
-                xhr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
+                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
             fn response_complete(&mut self, status: Result<(), String>) {
-                let xhr = self.xhr.root();
-                let rv = xhr.r().process_response_complete(self.gen_id, status);
+                let rv = self.xhr.root().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
         }
 
         impl PreInvoke for XHRContext {
             fn should_invoke(&self) -> bool {
-                let xhr = self.xhr.root();
-                xhr.r().generation_id.get() == self.gen_id
+                self.xhr.root().generation_id.get() == self.gen_id
             }
         }
 
@@ -466,7 +468,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
     fn Upload(&self) -> Root<XMLHttpRequestUpload> {
-        self.upload.root()
+        Root::from_ref(&*self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -647,6 +649,21 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         ByteString::new(self.filter_response_headers().to_string().into_bytes())
     }
 
+    // https://xhr.spec.whatwg.org/#the-overridemimetype()-method
+    fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
+        match self.ready_state.get() {
+            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => return Err(Error::InvalidState),
+            _ => {},
+        }
+        let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
+        *self.override_mime_type.borrow_mut() = Some(override_mime.clone());
+        let value = override_mime.get_param(mime::Attr::Charset);
+        *self.override_charset.borrow_mut() = value.and_then(|value| {
+                encoding_from_whatwg_label(value)
+        });
+        Ok(())
+    }
+
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type.get()
@@ -710,10 +727,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseText(&self) -> Fallible<DOMString> {
         match self.response_type.get() {
             _empty | Text => {
-                match self.ready_state.get() {
-                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Ok(self.text_response()),
-                    _ => Ok("".to_owned())
-                }
+                Ok(DOMString(match self.ready_state.get() {
+                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
+                    _ => "".to_owned()
+                }))
             },
             _ => Err(Error::InvalidState)
         }
@@ -721,7 +738,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Option<Root<Document>> {
-        self.response_xml.get_rooted()
+        self.response_xml.get()
     }
 }
 
@@ -734,7 +751,7 @@ impl XMLHttpRequest {
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
-                               "readystatechange".to_owned(),
+                               DOMString("readystatechange".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -881,7 +898,7 @@ impl XMLHttpRequest {
                     _ => "error",
                 };
 
-                let upload_complete: &Cell<bool> = &self.upload_complete;
+                let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
                     self.dispatch_upload_progress_event("progress".to_owned(), None);
@@ -913,10 +930,12 @@ impl XMLHttpRequest {
         self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
     }
 
-    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, upload: bool, type_: String, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-                                               type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+                                               DOMString(type_),
+                                               EventBubbles::DoesNotBubble,
+                                               EventCancelable::NotCancelable,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {
@@ -927,14 +946,14 @@ impl XMLHttpRequest {
         progressevent.upcast::<Event>().fire(target);
     }
 
-    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
+    fn dispatch_upload_progress_event(&self, type_: String, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
         let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
-    fn dispatch_response_progress_event(&self, type_: DOMString) {
+    fn dispatch_response_progress_event(&self, type_: String) {
         let len = self.response.borrow().len() as u64;
         let total = self.response_headers.borrow().get::<ContentLength>().map(|x| { **x as u64 });
         self.dispatch_progress_event(false, type_, len, total);
@@ -949,8 +968,8 @@ impl XMLHttpRequest {
             fn handler(self: Box<XHRTimeout>) {
                 let this = *self;
                 let xhr = this.xhr.root();
-                if xhr.r().ready_state.get() != XMLHttpRequestState::Done {
-                    xhr.r().process_partial_response(XHRProgress::Errored(this.gen_id, Error::Timeout));
+                if xhr.ready_state.get() != XMLHttpRequestState::Done {
+                    xhr.process_partial_response(XHRProgress::Errored(this.gen_id, Error::Timeout));
                 }
             }
         }
@@ -988,7 +1007,8 @@ impl XMLHttpRequest {
         }
     }
 
-    fn text_response(&self) -> DOMString {
+    //FIXME: add support for override_mime_type and override_charset
+    fn text_response(&self) -> String {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
@@ -1110,7 +1130,7 @@ impl Extractable for SendParam {
             },
             eURLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
-                usp.r().serialize(None).as_bytes().to_owned()
+                usp.serialize(None).into_bytes()
             },
         }
     }

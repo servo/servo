@@ -8,13 +8,13 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::AttributeMutation;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
@@ -79,13 +79,13 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Fire image.onload
         let window = window_from_node(document.r());
         let event = Event::new(GlobalRef::Window(window.r()),
-                               "load".to_owned(),
+                               DOMString("load".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(element.upcast());
 
         // Trigger reflow
-        window.r().add_pending_reflow();
+        window.add_pending_reflow();
     }
 }
 
@@ -94,7 +94,7 @@ impl HTMLImageElement {
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
         let document = document_from_node(self);
-        let window = document.r().window();
+        let window = document.window();
         let image_cache = window.image_cache_task();
         match value {
             None => {
@@ -110,13 +110,16 @@ impl HTMLImageElement {
                 let trusted_node = Trusted::new(window.get_cx(), self, window.script_chan());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
                 let script_chan = window.script_chan();
+                let wrapper = window.get_runnable_wrapper();
                 ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                     // Return the image via a message to the script task, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
-                    script_chan.send(CommonScriptMsg::RunnableMsg(UpdateReplacedElement,
-                        box ImageResponseHandlerRunnable::new(
-                            trusted_node.clone(), image_response))).unwrap();
+                    let runnable = ImageResponseHandlerRunnable::new(
+                        trusted_node.clone(), image_response);
+                    let runnable = wrapper.wrap_runnable(runnable);
+                    script_chan.send(CommonScriptMsg::RunnableMsg(
+                        UpdateReplacedElement, runnable)).unwrap();
                 });
 
                 image_cache.request_image(img_url,
@@ -146,7 +149,7 @@ impl HTMLImageElement {
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let image = HTMLImageElement::new("img".to_owned(), None, document.r());
+        let image = HTMLImageElement::new(DOMString("img".to_owned()), None, document.r());
         if let Some(w) = width {
             image.SetWidth(w);
         }
@@ -196,11 +199,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap);
-
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
-    fn SetIsMap(&self, is_map: bool) {
-        self.upcast::<Element>().set_string_attribute(&atom!("ismap"), is_map.to_string())
-    }
+    make_bool_setter!(SetIsMap, "ismap");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
@@ -210,9 +210,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn SetWidth(&self, width: u32) {
-        self.upcast::<Element>().set_uint_attribute(&atom!("width"), width)
-    }
+    make_uint_setter!(SetWidth, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
@@ -222,9 +220,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn SetHeight(&self, height: u32) {
-        self.upcast::<Element>().set_uint_attribute(&atom!("height"), height)
-    }
+    make_uint_setter!(SetHeight, "height");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
@@ -299,7 +295,7 @@ impl VirtualMethods for HTMLImageElement {
         match attr.local_name() {
             &atom!(src) => {
                 self.update_image(mutation.new_value(attr).map(|value| {
-                    ((**value).to_owned(), window_from_node(self).get_url())
+                    (DOMString((**value).to_owned()), window_from_node(self).get_url())
                 }));
             },
             _ => {},

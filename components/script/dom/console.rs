@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
@@ -74,20 +74,17 @@ impl ConsoleMethods for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(&self, condition: bool, message: Option<DOMString>) {
         if !condition {
-            let message = match message {
-                Some(ref message) => &**message,
-                None => "no message",
-            };
+            let message = message.unwrap_or_else(|| DOMString("no message".to_owned()));
             println!("Assertion failed: {}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Error, message.to_owned()));
+            propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
         }
     }
 }
 
-fn prepare_message(logLevel: LogLevel, message: String) -> ConsoleMessage {
+fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
     //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
-        message: message,
+        message: message.0,
         logLevel: logLevel,
         filename: "test".to_owned(),
         lineNumber: 1,

@@ -12,12 +12,10 @@ use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, heap_size_of_local_context};
+use context::{SharedLayoutContext, StylistWrapper, heap_size_of_local_context};
 use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
-use encoding::EncodingRef;
-use encoding::all::UTF_8;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -40,9 +38,8 @@ use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
-use net_traits::{PendingAsyncLoad, load_bytes_iter};
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -51,13 +48,11 @@ use profile_traits::time::{self, ProfilerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
 use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
-use script::dom::bindings::js::LayoutJS;
-use script::dom::node::{LayoutData, Node};
+use script::dom::node::LayoutData;
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
 use sequential;
@@ -67,19 +62,18 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Drop};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
-use style::media_queries::{Device, MediaQueryList, MediaType};
+use style::media_queries::{Device, MediaType};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
-use style::selector_matching::Stylist;
-use style::stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
+use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
+use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
 use style::values::AuExtensionMethods;
-use style::viewport::ViewportRule;
 use url::Url;
 use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
@@ -89,8 +83,7 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::LayoutNode;
-use wrapper::ThreadSafeLayoutNode;
+use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -111,8 +104,9 @@ pub struct LayoutTaskData {
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
-    /// The size of the viewport.
-    pub screen_size: Size2D<Au>,
+    /// The size of the viewport. This may be different from the size of the screen due to viewport
+    /// constraints.
+    pub viewport_size: Size2D<Au>,
 
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
@@ -324,10 +318,18 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
-            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-            font_cache_task.add_web_font(font_face.family.clone(),
-                                         (*source).clone(),
-                                         (*font_cache_sender).clone());
+            if opts::get().load_webfonts_synchronously {
+                let (sender, receiver) = channel();
+                font_cache_task.add_web_font(font_face.family.clone(),
+                                             (*source).clone(),
+                                             sender);
+                receiver.recv().unwrap();
+            } else {
+                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+                font_cache_task.add_web_font(font_face.family.clone(),
+                                             (*source).clone(),
+                                             (*font_cache_sender).clone());
+            }
         }
     }
 }
@@ -348,7 +350,6 @@ impl LayoutTask {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> LayoutTask {
-        let screen_size = Size2D::new(Au(0), Au(0));
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
@@ -375,8 +376,8 @@ impl LayoutTask {
 
         let stylist = box Stylist::new(device);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
-        for user_or_user_agent_stylesheet in stylist.stylesheets() {
-            add_font_face_rules(user_or_user_agent_stylesheet,
+        for stylesheet in &*USER_OR_USER_AGENT_STYLESHEETS {
+            add_font_face_rules(stylesheet,
                                 &stylist.device,
                                 &font_cache_task,
                                 &font_cache_sender,
@@ -409,7 +410,7 @@ impl LayoutTask {
                     root_flow: None,
                     image_cache_task: image_cache_task,
                     constellation_chan: constellation_chan,
-                    screen_size: screen_size,
+                    viewport_size: Size2D::new(Au(0), Au(0)),
                     stacking_context: None,
                     stylist: stylist,
                     parallel_traversal: parallel_traversal,
@@ -441,25 +442,21 @@ impl LayoutTask {
     fn build_shared_layout_context(&self,
                                    rw_data: &LayoutTaskData,
                                    screen_size_changed: bool,
-                                   reflow_root: Option<&LayoutNode>,
                                    url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
-            image_cache_sender: self.image_cache_sender.clone(),
-            screen_size: rw_data.screen_size.clone(),
+            image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
+            viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
-            constellation_chan: rw_data.constellation_chan.clone(),
-            layout_chan: self.chan.clone(),
-            font_cache_task: self.font_cache_task.clone(),
-            canvas_layers_sender: self.canvas_layers_sender.clone(),
-            stylist: &*rw_data.stylist,
+            font_cache_task: Mutex::new(self.font_cache_task.clone()),
+            canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
+            stylist: StylistWrapper(&*rw_data.stylist),
             url: (*url).clone(),
-            reflow_root: reflow_root.map(|node| node.opaque()),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
-            new_animations_sender: rw_data.new_animations_sender.clone(),
+            new_animations_sender: Mutex::new(rw_data.new_animations_sender.clone()),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
         }
@@ -491,8 +488,8 @@ impl LayoutTask {
                         self.handle_request_helper(Msg::GetWebFontLoadState(sender),
                                                    possibly_locked_rw_data)
                     }
-                    LayoutControlMsg::ExitNow(exit_type) => {
-                        self.handle_request_helper(Msg::ExitNow(exit_type),
+                    LayoutControlMsg::ExitNow => {
+                        self.handle_request_helper(Msg::ExitNow,
                                                    possibly_locked_rw_data)
                     }
                 }
@@ -557,7 +554,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -576,20 +572,10 @@ impl LayoutTask {
                                                                                  LayoutTaskData>>)
                                  -> bool {
         match request {
-            Msg::AddStylesheet(sheet, mq) => {
-                self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
-            }
-            Msg::LoadStylesheet(url, mq, pending, link_element) => {
-                self.handle_load_stylesheet(url,
-                                            mq,
-                                            pending,
-                                            link_element,
-                                            possibly_locked_rw_data)
+            Msg::AddStylesheet(style_info) => {
+                self.handle_add_stylesheet(style_info, possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
-            Msg::AddMetaViewport(translated_rule) => {
-                self.handle_add_meta_viewport(translated_rule, possibly_locked_rw_data)
-            }
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -598,7 +584,7 @@ impl LayoutTask {
                 profile(time::ProfilerCategory::LayoutPerform,
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
-                        || self.handle_reflow(&*data, possibly_locked_rw_data));
+                        || self.handle_reflow(&data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
             Msg::ReflowWithNewlyLoadedWebFont => {
@@ -631,9 +617,9 @@ impl LayoutTask {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
-            Msg::ExitNow(exit_type) => {
+            Msg::ExitNow => {
                 debug!("layout: ExitNow received");
-                self.exit_now(possibly_locked_rw_data, exit_type);
+                self.exit_now(possibly_locked_rw_data);
                 return false
             }
         }
@@ -711,9 +697,9 @@ impl LayoutTask {
                         self.handle_reap_layout_data(dead_layout_data)
                     }
                 }
-                Msg::ExitNow(exit_type) => {
+                Msg::ExitNow => {
                     debug!("layout task is exiting...");
-                    self.exit_now(possibly_locked_rw_data, exit_type);
+                    self.exit_now(possibly_locked_rw_data);
                     break
                 }
                 Msg::CollectReports(_) => {
@@ -729,10 +715,7 @@ impl LayoutTask {
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now<'a>(&'a self,
-                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
-                    exit_type: PipelineExitType) {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-
+                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
             if let Some(ref mut traversal) = (&mut *rw_data).parallel_traversal {
@@ -741,79 +724,36 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(LayoutToPaintMsg::Exit(Some(response_chan), exit_type)).unwrap();
+        let (response_chan, response_port) = ipc::channel().unwrap();
+        self.paint_chan.send(LayoutToPaintMsg::Exit(response_chan)).unwrap();
         response_port.recv().unwrap()
     }
 
-    fn handle_load_stylesheet<'a>(&'a self,
-                                  url: Url,
-                                  mq: MediaQueryList,
-                                  pending: PendingAsyncLoad,
-                                  responder: Box<StylesheetLoadResponder + Send>,
-                                  possibly_locked_rw_data:
-                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-        let environment_encoding = UTF_8 as EncodingRef;
-
-        // TODO we don't really even need to load this if mq does not match
-        let (metadata, iter) = load_bytes_iter(pending);
-        let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
-        let final_url = metadata.final_url;
-
-        let sheet = Stylesheet::from_bytes_iter(iter,
-                                                final_url,
-                                                protocol_encoding_label,
-                                                Some(environment_encoding),
-                                                Origin::Author);
-
-        //TODO: mark critical subresources as blocking load as well (#5974)
-        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
-                                                                              url,
-                                                                              responder)).unwrap();
-
-        self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
-    }
-
     fn handle_add_stylesheet<'a>(&'a self,
-                                 sheet: Stylesheet,
-                                 mq: MediaQueryList,
+                                 stylesheet: Arc<Stylesheet>,
                                  possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
-        // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
+        // GWTODO: Need to handle unloading web fonts.
 
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        if mq.evaluate(&rw_data.stylist.device) {
-            add_font_face_rules(&sheet,
+        let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        if stylesheet.is_effective_for_device(&rw_data.stylist.device) {
+            add_font_face_rules(&*stylesheet,
                                 &rw_data.stylist.device,
                                 &self.font_cache_task,
                                 &self.font_cache_sender,
                                 &rw_data.outstanding_web_fonts);
-            rw_data.stylist.add_stylesheet(sheet);
         }
 
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
-    fn handle_add_meta_viewport<'a>(&'a self,
-                                    translated_rule: ViewportRule,
-                                    possibly_locked_rw_data:
-                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
-    {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_stylesheet(Stylesheet {
-            rules: vec![CSSRule::Viewport(translated_rule)],
-            origin: Origin::Author
-        });
-        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
-    }
-
-    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be loaded.
+    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn handle_set_quirks_mode<'a>(&'a self,
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_quirks_mode_stylesheet();
+        rw_data.stylist.set_quirks_mode(true);
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -895,17 +835,9 @@ impl LayoutTask {
                                       property: &Atom,
                                       layout_root: &mut FlowRef)
                                       -> Option<String> {
-        // FIXME: Isolate this transmutation into a "bridge" module.
-        // FIXME(rust#16366): The following line had to be moved because of a
-        // rustc bug. It should be in the next unsafe block.
-        let node: LayoutJS<Node> = unsafe {
-            LayoutJS::from_trusted_node_address(requested_node)
-        };
-        let node: &LayoutNode = unsafe {
-            transmute(&node)
-        };
+        let node = unsafe { LayoutNode::new(&requested_node) };
 
-        let layout_node = ThreadSafeLayoutNode::new(node);
+        let layout_node = ThreadSafeLayoutNode::new(&node);
         let layout_node = match pseudo {
             &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
             &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
@@ -938,6 +870,40 @@ impl LayoutTask {
         // (Chrome seems to think they never apply and always returns resolved values).
         // There are probably other quirks.
         let applies = true;
+
+        fn used_value_for_position_property(layout_node: ThreadSafeLayoutNode,
+                                            layout_root: &mut FlowRef,
+                                            requested_node: TrustedNodeAddress,
+                                            property: &Atom) -> Option<String> {
+            let layout_data = layout_node.borrow_layout_data();
+            let position = layout_data.as_ref().map(|layout_data| {
+                match layout_data.data.flow_construction_result {
+                    ConstructionResult::Flow(ref flow_ref, _) =>
+                        flow::base(flow_ref.deref()).stacking_relative_position,
+                    // TODO(dzbarsky) search parents until we find node with a flow ref.
+                    // https://github.com/servo/servo/issues/8307
+                    _ => ZERO_POINT
+                }
+            }).unwrap_or(ZERO_POINT);
+            let property = match *property {
+                atom!("bottom") => PositionProperty::Bottom,
+                atom!("top") => PositionProperty::Top,
+                atom!("left") => PositionProperty::Left,
+                atom!("right") => PositionProperty::Right,
+                atom!("width") => PositionProperty::Width,
+                atom!("height") => PositionProperty::Height,
+                _ => unreachable!()
+            };
+            let requested_node: OpaqueNode =
+                OpaqueNodeMethods::from_script_node(requested_node);
+            let mut iterator =
+                PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
+                                                                 property,
+                                                                 position);
+            sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
+                                                                        &mut iterator);
+            iterator.result.map(|r| r.to_css_string())
+        }
 
         // TODO: we will return neither the computed nor used value for margin and padding.
         // Firefox returns blank strings for the computed value of shorthands,
@@ -972,37 +938,16 @@ impl LayoutTask {
             },
 
             atom!("bottom") | atom!("top") | atom!("right") |
-            atom!("left") | atom!("width") | atom!("height")
+            atom!("left")
             if applies && positioned && style.get_box().display !=
                     display::computed_value::T::none => {
-                let layout_data = layout_node.borrow_layout_data();
-                let position = layout_data.as_ref().map(|layout_data| {
-                    match layout_data.data.flow_construction_result {
-                        ConstructionResult::Flow(ref flow_ref, _) =>
-                            flow::base(flow_ref.deref()).stacking_relative_position,
-                        // TODO search parents until we find node with a flow ref.
-                        _ => ZERO_POINT
-                    }
-                }).unwrap_or(ZERO_POINT);
-                let property = match *property {
-                    atom!("bottom") => PositionProperty::Bottom,
-                    atom!("top") => PositionProperty::Top,
-                    atom!("left") => PositionProperty::Left,
-                    atom!("right") => PositionProperty::Right,
-                    atom!("width") => PositionProperty::Width,
-                    atom!("height") => PositionProperty::Height,
-                    _ => unreachable!()
-                };
-                let requested_node: OpaqueNode =
-                    OpaqueNodeMethods::from_script_node(requested_node);
-                let mut iterator =
-                    PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
-                                                                     property,
-                                                                     position);
-                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
-                                                                            &mut iterator);
-                iterator.result.map(|r| r.to_css_string())
-            },
+                used_value_for_position_property(layout_node, layout_root, requested_node, property)
+            }
+            atom!("width") | atom!("height")
+            if applies && style.get_box().display !=
+                    display::computed_value::T::none => {
+                used_value_for_position_property(layout_node, layout_root, requested_node, property)
+            }
             // FIXME: implement used value computation for line-height
             ref property => {
                 style.computed_value_to_string(property.as_slice()).ok()
@@ -1046,7 +991,7 @@ impl LayoutTask {
                 || {
             flow::mut_base(flow_ref::deref_mut(layout_root)).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             rw_data.screen_size);
+                                                             rw_data.viewport_size);
 
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
@@ -1072,16 +1017,15 @@ impl LayoutTask {
                     flow_ref::deref_mut(layout_root));
                 let root_size = {
                     let root_flow = flow::base(&**layout_root);
-                    if rw_data.stylist.constrain_viewport().is_some() {
+                    if rw_data.stylist.viewport_constraints().is_some() {
                         root_flow.position.size.to_physical(root_flow.writing_mode)
                     } else {
                         root_flow.overflow.size
                     }
                 };
                 let mut display_list = box DisplayList::new();
-                flow::mut_base(flow_ref::deref_mut(layout_root))
-                    .display_list_building_result
-                    .add_to(&mut *display_list);
+                display_list.append_from(&mut flow::mut_base(flow_ref::deref_mut(layout_root))
+                                         .display_list_building_result);
 
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                 let stacking_context = Arc::new(StackingContext::new(display_list,
@@ -1125,14 +1069,22 @@ impl LayoutTask {
     fn handle_reflow<'a>(&'a self,
                          data: &ScriptReflow,
                          possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        // FIXME: Isolate this transmutation into a "bridge" module.
-        // FIXME(rust#16366): The following line had to be moved because of a
-        // rustc bug. It should be in the next unsafe block.
-        let mut node: LayoutJS<Node> = unsafe {
-            LayoutJS::from_trusted_node_address(data.document_root)
+
+        // Make sure that every return path from this method joins the script task,
+        // otherwise the script task will panic.
+        struct AutoJoinScriptTask<'a> { data: &'a ScriptReflow };
+        impl<'a> Drop for AutoJoinScriptTask<'a> {
+            fn drop(&mut self) {
+                self.data.script_join_chan.send(()).unwrap();
+            }
         };
-        let node: &mut LayoutNode = unsafe {
-            transmute(&mut node)
+        let _ajst = AutoJoinScriptTask { data: data };
+
+        let document = unsafe { LayoutNode::new(&data.document) };
+        let document = document.as_document().unwrap();
+        let node: LayoutNode = match document.root_node() {
+            None => return,
+            Some(x) => x,
         };
 
         debug!("layout: received layout request for: {}", self.url.serialize());
@@ -1141,29 +1093,35 @@ impl LayoutTask {
         }
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let stylesheets: Vec<&Stylesheet> = data.document_stylesheets.iter().map(|entry| &**entry)
+                                                                            .collect();
+        let stylesheets_changed = data.stylesheets_changed;
 
         let initial_viewport = data.window_size.initial_viewport;
-        let old_screen_size = rw_data.screen_size;
+        let old_viewport_size = rw_data.viewport_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
                                               Au::from_f32_px(initial_viewport.height.get()));
-        rw_data.screen_size = current_screen_size;
 
-        // Handle conditions where the entire flow tree is invalid.
-        let screen_size_changed = current_screen_size != old_screen_size;
-        if screen_size_changed {
-            // Calculate the actual viewport as per DEVICE-ADAPT § 6
-            let device = Device::new(MediaType::Screen, initial_viewport);
-            rw_data.stylist.set_device(device);
+        // Calculate the actual viewport as per DEVICE-ADAPT § 6
+        let device = Device::new(MediaType::Screen, initial_viewport);
+        rw_data.stylist.set_device(device, &stylesheets);
 
-            if let Some(constraints) = rw_data.stylist.constrain_viewport() {
+        let constraints = rw_data.stylist.viewport_constraints().clone();
+        rw_data.viewport_size = match constraints {
+            Some(ref constraints) => {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
-                rw_data.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
-                                                  Au::from_f32_px(constraints.size.height.get()));
-                let device = Device::new(MediaType::Screen, constraints.size);
-                rw_data.stylist.set_device(device);
+                Size2D::new(Au::from_f32_px(constraints.size.width.get()),
+                            Au::from_f32_px(constraints.size.height.get()))
+            }
+            None => current_screen_size,
+        };
 
+        // Handle conditions where the entire flow tree is invalid.
+        let viewport_size_changed = rw_data.viewport_size != old_viewport_size;
+        if viewport_size_changed {
+            if let Some(constraints) = constraints {
                 // let the constellation know about the viewport constraints
                 let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
                 constellation_chan.send(ConstellationMsg::ViewportConstrained(
@@ -1172,27 +1130,36 @@ impl LayoutTask {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = rw_data.stylist.update();
-        let needs_reflow = screen_size_changed && !needs_dirtying;
+        let needs_dirtying = rw_data.stylist.update(&stylesheets, stylesheets_changed);
+        let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
                 LayoutTask::dirty_all_nodes(node);
             }
         }
         if needs_reflow {
-            if let Some(mut flow) = self.try_get_layout_root(*node) {
+            if let Some(mut flow) = self.try_get_layout_root(node) {
                 LayoutTask::reflow_all_nodes(flow_ref::deref_mut(&mut flow));
+            }
+        }
+
+        let modified_elements = document.drain_modified_elements();
+        if !needs_dirtying {
+            for &(el, old_state) in modified_elements.iter() {
+                let hint = rw_data.stylist.restyle_hint_for_state_change(&el,
+                                                                         el.get_state(),
+                                                                         old_state);
+                el.note_restyle_hint(hint);
             }
         }
 
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                         screen_size_changed,
-                                                                         Some(&node),
+                                                                         viewport_size_changed,
                                                                          &self.url,
                                                                          data.reflow_info.goal);
 
-        if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
+        if node.is_dirty() || node.has_dirty_descendants() {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
@@ -1202,16 +1169,16 @@ impl LayoutTask {
                 let rw_data = &mut *rw_data;
                 match rw_data.parallel_traversal {
                     None => {
-                        sequential::traverse_dom_preorder(*node, &shared_layout_context);
+                        sequential::traverse_dom_preorder(node, &shared_layout_context);
                     }
                     Some(ref mut traversal) => {
-                        parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal);
+                        parallel::traverse_dom_preorder(node, &shared_layout_context, traversal);
                     }
                 }
             });
 
             // Retrieve the (possibly rebuilt) root flow.
-            rw_data.root_flow = self.try_get_layout_root((*node).clone());
+            rw_data.root_flow = self.try_get_layout_root(node);
         }
 
         // Send new canvas renderers to the paint task
@@ -1245,9 +1212,6 @@ impl LayoutTask {
                 ReflowQueryType::NoQuery => {}
             }
         }
-
-        // Tell script that we're done.
-        data.script_join_chan.send(()).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,
@@ -1262,8 +1226,8 @@ impl LayoutTask {
         let mut must_regenerate_display_lists = false;
         let mut old_visible_rects = HashMap::with_hash_state(Default::default());
         let inflation_amount =
-            Size2D::new(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
-                        rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+            Size2D::new(rw_data.viewport_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                        rw_data.viewport_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             match rw_data.visible_rects.get(layer_id) {
                 None => {
@@ -1300,7 +1264,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -1323,7 +1286,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -1357,7 +1319,6 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
@@ -1447,7 +1408,7 @@ impl LayoutTask {
         }
     }
 
-    unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
+    unsafe fn dirty_all_nodes(node: LayoutNode) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
             // "changed":

@@ -829,7 +829,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            default = '"%s".to_owned()' % defaultValue.value
+            default = 'DOMString("%s".to_owned())' % defaultValue.value
             if type.nullable():
                 default = "Some(%s)" % default
 
@@ -2000,6 +2000,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
+        'dom::bindings::str::USVString',
         'dom::types::*',
         'js::jsapi::JSContext',
         'js::jsapi::{HandleValue, MutableHandleValue}',
@@ -2161,27 +2162,27 @@ let obj = {
 assert!(!obj.is_null());
 let obj = RootedObject::new(cx, obj);\
 """ % (descriptor.name, parent)
+    elif descriptor.isGlobal():
+        create += ("let obj = RootedObject::new(\n"
+                   "    cx,\n"
+                   "    create_dom_global(\n"
+                   "        cx,\n"
+                   "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
+                   "        raw as *const libc::c_void,\n"
+                   "        Some(%s))\n"
+                   ");\n"
+                   "assert!(!obj.ptr.is_null());" % TRACE_HOOK_NAME)
     else:
-        if descriptor.isGlobal():
-            create += ("let obj = RootedObject::new(\n"
-                       "    cx,\n"
-                       "    create_dom_global(\n"
-                       "        cx,\n"
-                       "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
-                       "        Some(%s))\n"
-                       ");\n" % TRACE_HOOK_NAME)
-        else:
-            create += ("let obj = {\n"
-                       "    let _ac = JSAutoCompartment::new(cx, proto.ptr);\n"
-                       "    JS_NewObjectWithGivenProto(\n"
-                       "        cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle())\n"
-                       "};\n"
-                       "let obj = RootedObject::new(cx, obj);\n")
-        create += """\
-assert!(!obj.ptr.is_null());
-
-JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,
-                   PrivateValue(raw as *const libc::c_void));"""
+        create += ("let obj = {\n"
+                   "    let _ac = JSAutoCompartment::new(cx, proto.ptr);\n"
+                   "    JS_NewObjectWithGivenProto(\n"
+                   "        cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle())\n"
+                   "};\n"
+                   "let obj = RootedObject::new(cx, obj);\n"
+                   "assert!(!obj.ptr.is_null());\n"
+                   "\n"
+                   "JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,\n"
+                   "                   PrivateValue(raw as *const libc::c_void));")
     return create
 
 
@@ -3492,6 +3493,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isDOMString():
         name = type.name
         typeName = "DOMString"
+    elif type.isUSVString():
+        name = type.name
+        typeName = "USVString"
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]
@@ -4923,7 +4927,6 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
-                "#[no_move]\n" +
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
@@ -5197,6 +5200,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::global::global_object_for_js_object',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
+            'dom::bindings::reflector::{Reflectable}',
             'dom::bindings::utils::{create_dom_global, do_create_interface_objects}',
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
@@ -5206,7 +5210,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{finalize_global, trace_global}',
             'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
-            'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::throwing_constructor',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::set_dictionary_property',
@@ -5915,10 +5918,11 @@ class GlobalGenRoots():
 
         descriptors = config.getDescriptors(register=True, isCallback=False)
         imports = [CGGeneric("use dom::types::*;\n"),
-                   CGGeneric("use dom::bindings::conversions::{Castable, DerivedFrom, get_dom_class};\n"),
+                   CGGeneric("use dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
+                   CGGeneric("use dom::bindings::inheritance::Castable;\n"),
                    CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
                    CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
-                   CGGeneric("use dom::bindings::utils::Reflectable;\n"),
+                   CGGeneric("use dom::bindings::reflector::Reflectable;\n"),
                    CGGeneric("use js::jsapi::JSTracer;\n\n"),
                    CGGeneric("use std::mem;\n\n")]
         allprotos = []
@@ -5955,8 +5959,8 @@ class GlobalGenRoots():
             ("ID used by interfaces that are not castable.", "Alone"),
         ]
         topTypeVariants += [
-            ("ID used by interfaces that derive from %s." % name, "%s(%sTypeId)" % (name, name))
-            for name in topTypes
+            ("ID used by interfaces that derive from %s." % typeName, "%s(%sTypeId)" % (typeName, typeName))
+            for typeName in topTypes
         ]
         topTypeVariantsAsStrings = [CGGeneric("/// %s\n%s," % variant) for variant in topTypeVariants]
         typeIdCode.append(CGWrapper(CGIndenter(CGList(topTypeVariantsAsStrings, "\n"), 4),
@@ -5973,7 +5977,7 @@ class GlobalGenRoots():
             variants = []
             if not config.getInterface(base).getExtendedAttribute("Abstract"):
                 variants.append(CGGeneric(base))
-            variants += [CGGeneric(type_id_variant(name)) for name in derived]
+            variants += [CGGeneric(type_id_variant(derivedName)) for derivedName in derived]
             derives = "Clone, Copy, Debug"
             if base != 'EventTarget' and base != 'HTMLElement':
                 derives += ", PartialEq"

@@ -7,11 +7,11 @@ use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
@@ -90,7 +90,7 @@ impl FormDataMethods for FormData {
                  .get(&name)
                  .map(|entry| match entry[0] {
                      FormDatum::StringData(ref s) => eString(s.clone()),
-                     FormDatum::FileData(ref f) => eFile(f.root()),
+                     FormDatum::FileData(ref f) => eFile(Root::from_ref(&*f)),
                  })
     }
 
@@ -117,7 +117,7 @@ impl FormData {
     fn get_file_from_blob(&self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
         let f = value.downcast::<File>();
-        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));
+        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or(DOMString("blob".to_owned())));
         File::new(global.r(), value, name)
     }
 }

@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use url::{Url, UrlParser};
@@ -135,7 +135,7 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn Stringifier(&self) -> DOMString {
-        self.Href().0
+        DOMString(self.Href().0)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search

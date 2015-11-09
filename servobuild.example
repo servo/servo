@@ -36,6 +36,8 @@ rustc-with-gold = true
 android = false
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false
+# Set to the path to your ccache binary to enable caching of compiler outputs
+#ccache = "/usr/local/bin/ccache"
 
 # Android information
 [android]

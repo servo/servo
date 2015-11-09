@@ -19,7 +19,7 @@ features = [ "serde_serialization" ]
 
 [dependencies.energymon]
 git = "https://github.com/energymon/energymon-rust.git"
-rev = "67f74732ac"
+rev = "eba1d8a"
 optional = true
 
 [dependencies.energy-monitor]
@@ -31,5 +31,5 @@ path = "../plugins"
 
 [dependencies]
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 time = "0.1.12"

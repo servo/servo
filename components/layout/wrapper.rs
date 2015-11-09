@@ -30,7 +30,6 @@
 
 #![allow(unsafe_code)]
 
-use context::SharedLayoutContext;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
@@ -38,12 +37,11 @@ use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId};
-use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
-use script::dom::bindings::conversions::Castable;
+use script::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
+use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
-use script::dom::element;
+use script::dom::document::{Document, LayoutDocumentHelpers};
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use script::dom::htmliframeelement::HTMLIFrameElement;
@@ -53,11 +51,14 @@ use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaEl
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
+use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
+use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
@@ -68,6 +69,7 @@ use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -79,7 +81,7 @@ pub struct LayoutNode<'a> {
     node: LayoutJS<Node>,
 
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
-    pub chain: PhantomData<&'a ()>,
+    chain: PhantomData<&'a ()>,
 }
 
 impl<'a> PartialEq for LayoutNode<'a> {
@@ -90,6 +92,14 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
+    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
+        let node = LayoutJS::from_trusted_node_address(*address);
+        LayoutNode {
+            node: node,
+            chain: PhantomData,
+        }
+    }
+
     /// Creates a new layout node with the same lifetime as this layout node.
     pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
@@ -102,6 +112,12 @@ impl<'ln> LayoutNode<'ln> {
     pub fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
+        }
+    }
+
+    pub fn is_element(&self) -> bool {
+        unsafe {
+            self.node.is_element_for_layout()
         }
     }
 
@@ -183,16 +199,11 @@ impl<'ln> LayoutNode<'ln> {
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
-    pub fn layout_parent_node(self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
-        match shared.reflow_root {
-            None => panic!("layout_parent_node(): This layout has no access to the DOM!"),
-            Some(reflow_root) => {
-                if self.opaque() == reflow_root {
-                    None
-                } else {
-                    self.parent_node()
-                }
-            }
+    pub fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<LayoutNode<'ln>> {
+        if self.opaque() == reflow_root {
+            None
+        } else {
+            self.parent_node()
         }
     }
 
@@ -202,6 +213,15 @@ impl<'ln> LayoutNode<'ln> {
 
     pub fn as_element(&self) -> Option<LayoutElement<'ln>> {
         as_element(self.node)
+    }
+
+    pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
+        self.node.downcast().map(|document| {
+            LayoutDocument {
+                document: document,
+                chain: PhantomData,
+            }
+        })
     }
 
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
@@ -336,6 +356,37 @@ impl<'a> Iterator for LayoutTreeIterator<'a> {
     }
 }
 
+// A wrapper around documents that ensures ayout can only ever access safe properties.
+#[derive(Copy, Clone)]
+pub struct LayoutDocument<'le> {
+    document: LayoutJS<Document>,
+    chain: PhantomData<&'le ()>,
+}
+
+impl<'le> LayoutDocument<'le> {
+    pub fn as_node(&self) -> LayoutNode<'le> {
+        LayoutNode {
+            node: self.document.upcast(),
+            chain: PhantomData,
+        }
+    }
+
+    pub fn root_node(&self) -> Option<LayoutNode<'le>> {
+        self.as_node().children().find(LayoutNode::is_element)
+    }
+
+    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementState)> {
+        unsafe {
+            let elements = self.document.drain_modified_elements();
+            Vec::from_iter(elements.iter().map(|&(el, state)|
+                (LayoutElement {
+                    element: el,
+                    chain: PhantomData,
+                }, state)))
+        }
+    }
+}
+
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 #[derive(Copy, Clone)]
 pub struct LayoutElement<'le> {
@@ -356,6 +407,60 @@ impl<'le> LayoutElement<'le> {
             chain: PhantomData,
         }
     }
+
+    pub fn get_state(&self) -> ElementState {
+        self.element.get_state_for_layout()
+    }
+
+    /// Properly marks nodes as dirty in response to restyle hints.
+    pub fn note_restyle_hint(&self, hint: RestyleHint) {
+        // Bail early if there's no restyling to do.
+        if hint.is_empty() {
+            return;
+        }
+
+        // If the restyle hint is non-empty, we need to restyle either this element
+        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
+        let node = self.as_node();
+        let mut curr = node;
+        while let Some(parent) = curr.parent_node() {
+            if parent.has_dirty_descendants() { break }
+            unsafe { parent.set_dirty_descendants(true); }
+            curr = parent;
+        }
+
+        // Set up our helpers.
+        fn dirty_node(node: &LayoutNode) {
+            unsafe {
+                node.set_dirty(true);
+                node.set_dirty_descendants(true);
+            }
+        }
+        fn dirty_descendants(node: &LayoutNode) {
+            for ref child in node.children() {
+                dirty_node(child);
+                dirty_descendants(child);
+            }
+        }
+
+        // Process hints.
+        if hint.contains(RESTYLE_SELF) {
+            dirty_node(&node);
+        }
+        if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
+            dirty_descendants(&node);
+        }
+        if hint.contains(RESTYLE_LATER_SIBLINGS) {
+            let mut next = ::selectors::Element::next_sibling_element(self);
+            while let Some(sib) = next {
+                let sib_node = sib.as_node();
+                dirty_node(&sib_node);
+                dirty_descendants(&sib_node);
+                next = ::selectors::Element::next_sibling_element(&sib);
+            }
+        }
+    }
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
@@ -367,6 +472,15 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
     })
 }
 
+macro_rules! state_getter {
+    ($(
+        $(#[$Flag_attr: meta])*
+        state $css: expr => $variant: ident / $method: ident /
+        $flag: ident = $value: expr,
+    )+) => {
+        $( fn $method(&self) -> bool { self.element.get_state_for_layout().contains($flag) } )+
+    }
+}
 
 impl<'le> ::selectors::Element for LayoutElement<'le> {
     fn parent_element(&self) -> Option<LayoutElement<'le>> {
@@ -458,46 +572,13 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         false
     }
 
-    #[inline]
-    fn get_hover_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_HOVER_STATE)
-    }
-
-    #[inline]
-    fn get_focus_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
-    }
-
-    #[inline]
-    fn get_active_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
-    }
+    state_pseudo_classes!(state_getter);
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
         unsafe {
             (*self.element.id_attribute()).clone()
         }
-    }
-
-    #[inline]
-    fn get_disabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_DISABLED_STATE)
-    }
-
-    #[inline]
-    fn get_enabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ENABLED_STATE)
-    }
-
-    #[inline]
-    fn get_checked_state(&self) -> bool {
-        self.element.get_checked_state_for_layout()
-    }
-
-    #[inline]
-    fn get_indeterminate_state(&self) -> bool {
-        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]
@@ -901,7 +982,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
             let data = unsafe { input.get_value_for_layout() };
-            return TextContent::Text(data);
+            return TextContent::Text(data.0);
         }
         if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
             let data = unsafe { area.get_value_for_layout() };
@@ -923,10 +1004,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             return Some(CharIndex(search_index(insertion_point, text.char_indices())));
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
-            let insertion_point = unsafe { input.get_insertion_point_for_layout() };
-            if let Some(insertion_point) = insertion_point {
-                let text = unsafe { input.get_value_for_layout() };
-                return Some(CharIndex(search_index(insertion_point.index, text.char_indices())));
+            let insertion_point_index = unsafe { input.get_insertion_point_index_for_layout() };
+            if let Some(insertion_point_index) = insertion_point_index {
+                return Some(CharIndex(insertion_point_index));
             }
         }
         None

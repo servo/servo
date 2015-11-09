@@ -10,12 +10,12 @@ use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
@@ -23,6 +23,7 @@ use dom::node::Node;
 use dom::text::Text;
 use std::cell::Cell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct Range {
@@ -524,7 +525,7 @@ impl RangeMethods for Range {
                 // Step 4.4.
                 try!(end_data.ReplaceData(start_offset,
                                           end_offset - start_offset,
-                                          "".to_owned()));
+                                          DOMString::new()));
                 // Step 4.5.
                 return Ok(fragment);
             }
@@ -560,7 +561,7 @@ impl RangeMethods for Range {
                 // Step 15.4.
                 try!(start_data.ReplaceData(start_offset,
                                             start_node.len() - start_offset,
-                                            "".to_owned()));
+                                            DOMString::new()));
             } else {
                 // Step 16.1.
                 let clone = child.CloneNode(false);
@@ -595,7 +596,7 @@ impl RangeMethods for Range {
                 // Step 18.3.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 18.4.
-                try!(end_data.ReplaceData(0, end_offset, "".to_owned()));
+                try!(end_data.ReplaceData(0, end_offset, DOMString::new()));
             } else {
                 // Step 19.1.
                 let clone = child.CloneNode(false);
@@ -809,11 +810,11 @@ fn bp_position(a_node: &Node, a_offset: u32,
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
         // Step 3-1, 3-2.
         let mut b_ancestors = b_node.inclusive_ancestors();
-        let ref child = b_ancestors.find(|child| {
-            child.r().GetParentNode().unwrap().r() == a_node
+        let child = b_ancestors.find(|child| {
+            child.GetParentNode().unwrap().r() == a_node
         }).unwrap();
         // Step 3-3.
-        if child.r().index() < a_offset {
+        if child.index() < a_offset {
             Some(Ordering::Greater)
         } else {
             // Step 4.

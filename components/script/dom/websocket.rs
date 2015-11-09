@@ -3,17 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::conversions::{Castable, ToJSValConvertible};
+use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -28,7 +30,7 @@ use net_traits::hosts::replace_hosts;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::{ptr, slice};
 use util::str::DOMString;
@@ -133,12 +135,12 @@ pub struct WebSocket {
     buffered_amount: Cell<u32>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
-    sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
+    sender: DOMRefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
     full: Cell<bool>, //Flag to tell if websocket queue is full
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
     code: Cell<u16>, //Closing code
-    reason: DOMRefCell<DOMString>, //Closing reason
+    reason: DOMRefCell<String>, //Closing reason
     binary_type: Cell<BinaryType>,
 }
 
@@ -175,7 +177,7 @@ impl WebSocket {
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
             failed: Cell::new(false),
-            sender: RefCell::new(None),
+            sender: DOMRefCell::new(None),
             full: Cell::new(false),
             clean_close: Cell::new(true),
             code: Cell::new(0),
@@ -291,6 +293,49 @@ impl WebSocket {
         // Step 7.
         Ok(ws)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn send_impl(&self, data_byte_len: u64) -> Fallible<bool> {
+        let return_after_buffer = match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => false,
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
+        };
+
+        let global = self.global.root();
+        let chan = global.r().script_chan();
+        let address = Trusted::new(global.r().get_cx(), self, chan.clone());
+
+        let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
+        if new_buffer_amount > (u32::max_value() as u64) {
+            self.buffered_amount.set(u32::max_value());
+            self.full.set(true);
+
+            let _ = self.Close(None, None);
+            return Ok(false);
+
+        }
+
+        self.buffered_amount.set(new_buffer_amount as u32);
+
+        if return_after_buffer {
+            return Ok(false);
+        }
+
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let task = box BufferedAmountTask {
+                addr: address,
+            };
+
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        }
+
+        Ok(true)
+    }
 }
 
 impl WebSocketMethods for WebSocket {
@@ -308,7 +353,7 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(&self) -> DOMString {
-        self.url.serialize()
+        DOMString(self.url.serialize())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
@@ -333,40 +378,33 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> Fallible<()> {
-        match self.ready_state.get() {
-            WebSocketRequestState::Connecting => {
-                return Err(Error::InvalidState);
-            },
-            WebSocketRequestState::Open => (),
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
-                // TODO: Update bufferedAmount.
-                return Ok(());
-            }
+
+        let data_byte_len = data.0.as_bytes().len() as u64;
+        let send_data = try!(self.send_impl(data_byte_len));
+
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
         }
 
-        /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
-                "If argument is a string"
-          TODO: Need to buffer data
-          TODO: The send function needs to flag when full by using the following
-          self.full.set(true). This needs to be done when the buffer is full
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn Send_(&self, data: &Blob) -> Fallible<()> {
+
+        /* As per https://html.spec.whatwg.org/multipage/#websocket
+           the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
+           If the buffer limit is reached in the first place, there are likely other major problems
         */
-        let mut other_sender = self.sender.borrow_mut();
-        let my_sender = other_sender.as_mut().unwrap();
+        let data_byte_len = data.Size();
+        let send_data = try!(self.send_impl(data_byte_len));
 
-        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
-
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
-
-        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
-            self.clearing_buffer.set(true);
-
-            let global = self.global.root();
-            let task = box BufferedAmountTask {
-                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
-            };
-            let chan = global.r().script_chan();
-
-            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.lock().unwrap().send_message(Message::Binary(data.clone_bytes()));
         }
 
         Ok(())
@@ -438,7 +476,7 @@ impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
 
-        *ws.r().sender.borrow_mut() = Some(self.sender);
+        *ws.sender.borrow_mut() = Some(self.sender);
 
         // Step 1: Protocols.
 
@@ -451,7 +489,7 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(), "open".to_owned(),
+        let event = Event::new(global.r(), DOMString("open".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(ws.upcast());
@@ -493,23 +531,22 @@ impl Runnable for CloseTask {
             //A Bad close
             ws.clean_close.set(false);
             let event = Event::new(global.r(),
-                                   "error".to_owned(),
+                                   DOMString("error".to_owned()),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
             event.fire(ws.upcast());
         }
-        let rsn = ws.reason.borrow();
-        let rsn_clone = rsn.clone();
+        let reason = ws.reason.borrow().clone();
         /*In addition, we also have to fire a close even if error event fired
          https://html.spec.whatwg.org/multipage/#closeWebSocket
         */
         let close_event = CloseEvent::new(global.r(),
-                                          "close".to_owned(),
+                                          DOMString("close".to_owned()),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
                                           ws.clean_close.get(),
                                           ws.code.get(),
-                                          rsn_clone);
+                                          DOMString(reason));
         close_event.upcast::<Event>().fire(ws.upcast());
     }
 }

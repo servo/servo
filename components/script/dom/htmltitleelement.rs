@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -45,7 +45,7 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
                 content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
-        content
+        DOMString(content)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
@@ -72,8 +72,7 @@ impl VirtualMethods for HTMLTitleElement {
     fn bind_to_tree(&self, is_in_doc: bool) {
         let node = self.upcast::<Node>();
         if is_in_doc {
-            let document = node.owner_doc();
-            document.r().title_changed();
+            node.owner_doc().title_changed();
         }
     }
 }

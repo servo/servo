@@ -5,11 +5,10 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -17,6 +16,7 @@ use dom::htmllegendelement::HTMLLegendElement;
 use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
 use util::str::{DOMString, StaticStringVec};
 
 #[dom_struct]
@@ -113,7 +113,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 let fields = children.flat_map(|child| {
                     child.traverse_preorder().filter(|descendant| {
-                        match descendant.r().type_id() {
+                        match descendant.type_id() {
                             NodeTypeId::Element(
                                     ElementTypeId::HTMLElement(
                                         HTMLElementTypeId::HTMLButtonElement)) |

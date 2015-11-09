@@ -11,15 +11,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== box_shadow_inset_a.html box_shadow_inset_ref.html
-== box_shadow_inset_parsing_a.html box_shadow_inset_parsing_ref.html
-== box_shadow_spread_a.html box_shadow_spread_ref.html
-== canvas_radial_gradient_a.html canvas_radial_gradient_ref.html
-== fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
-prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_direction.html flex_column_direction_ref.html
-prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html
-== floated_negative_margins_a.html floated_negative_margins_ref.html
-== font_size.html font_size_ref.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
 == iframe/bg_color.html iframe/bg_color_ref.html
@@ -43,11 +34,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == iframe/stacking_context.html iframe/stacking_context_ref.html
 == iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 
-!= image_rendering_auto_a.html image_rendering_pixelated_a.html
-== image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
-== img_block_maxwidth_a.html img_block_maxwidth_ref.html
-== img_block_maxwidth_b.html img_block_maxwidth_ref.html
-!= img_simple.html img_simple_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_margin_auto_a.html inline_block_margin_auto_ref.html
 == inline_block_parent_width.html inline_block_parent_width_ref.html
@@ -106,14 +92,6 @@ resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmi
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 # resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
-
-# https://github.com/servo/servo/issues/7931
-# == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
-# == webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
-# == webgl-context/tex_image_2d_canvas.html webgl-context/tex_image_2d_canvas_ref.html
-# == webgl-context/tex_image_2d_canvas2d.html webgl-context/tex_image_2d_canvas_ref.html
-# == webgl-context/tex_image_2d_canvas_no_context.html webgl-context/tex_image_2d_canvas_no_context_ref.html
-# == webgl-context/tex_image_2d_simple.html webgl-context/tex_image_2d_simple_ref.html
 
 flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
 

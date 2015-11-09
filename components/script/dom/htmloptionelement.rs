@@ -7,16 +7,18 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
 use std::cell::Cell;
 use util::str::{DOMString, split_html_space_chars, str_join};
 
@@ -51,6 +53,21 @@ impl HTMLOptionElement {
         let element = HTMLOptionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
     }
+
+    pub fn set_selectedness(&self, selected: bool) {
+        self.selectedness.set(selected);
+    }
+
+    fn pick_if_selected_and_reset(&self) {
+        if let Some(select) = self.upcast::<Node>().ancestors()
+                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .next() {
+            if self.Selected() {
+                select.pick_option(self);
+            }
+            select.ask_for_reset();
+        }
+    }
 }
 
 fn collect_text(element: &Element, value: &mut DOMString) {
@@ -63,7 +80,7 @@ fn collect_text(element: &Element, value: &mut DOMString) {
     for child in element.upcast::<Node>().children() {
         if child.is::<Text>() {
             let characterdata = child.downcast::<CharacterData>().unwrap();
-            value.push_str(&characterdata.Data());
+            value.0.push_str(&characterdata.Data());
         } else if let Some(element_child) = child.downcast() {
             collect_text(element_child, value);
         }
@@ -75,15 +92,13 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     make_bool_getter!(Disabled);
 
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
-    fn SetDisabled(&self, disabled: bool) {
-        self.upcast::<Element>().set_bool_attribute(&atom!("disabled"), disabled)
-    }
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
-        let mut content = String::new();
+        let mut content = DOMString::new();
         collect_text(self.upcast(), &mut content);
-        str_join(split_html_space_chars(&content), " ")
+        DOMString(str_join(split_html_space_chars(&content), " "))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
@@ -134,8 +149,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
-        // FIXME: as per the spec, implement 'ask for a reset'
-        // https://github.com/servo/servo/issues/7774
+        self.pick_if_selected_and_reset();
     }
 }
 
@@ -187,6 +201,8 @@ impl VirtualMethods for HTMLOptionElement {
         }
 
         self.upcast::<Element>().check_parent_disabled_state_for_option();
+
+        self.pick_if_selected_and_reset();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {

@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
 use std::borrow::ToOwned;
+use util::str::DOMString;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
@@ -46,7 +47,7 @@ pub trait Activatable {
         // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
         let win = window_from_node(element);
         let target = element.upcast();
-        let mouse = MouseEvent::new(win.r(), "click".to_owned(),
+        let mouse = MouseEvent::new(win.r(), DOMString("click".to_owned()),
                                     EventBubbles::DoesNotBubble, EventCancelable::NotCancelable, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
                                     0, None);

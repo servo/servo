@@ -6,11 +6,11 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use util::str::DOMString;
 
@@ -58,7 +58,7 @@ impl WebGLContextEvent {
                        init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_owned(),
+            None => DOMString::new(),
         };
 
         let bubbles = if init.parent.bubbles {

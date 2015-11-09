@@ -28,18 +28,16 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildingResult;
 use euclid::{Point2D, Rect, Size2D};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::ClippingRegion;
+use gfx::display_list::{ClippingRegion, DisplayList};
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use msg::compositor_msg::{LayerId, LayerType};
-use msg::constellation_msg::ConstellationChan;
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use rustc_serialize::{Encodable, Encoder};
@@ -220,11 +218,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         if impacted {
             mut_base(self).thread_id = parent_thread_id;
             self.assign_block_size(layout_context);
-            // FIXME(pcwalton): Should use `early_store_overflow()` here but that fails due to a
-            // compiler bug (`Self` does not have a constant size).
-            if !self.contains_relatively_positioned_fragments() {
-                self.store_overflow(layout_context)
-            }
             mut_base(self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
         impacted
@@ -252,9 +245,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
                 for kid in mut_base(self).children.iter_mut() {
-                    if base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                        continue
-                    }
                     let kid_overflow = base(kid).overflow;
                     let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
                                                                       container_size);
@@ -372,9 +362,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
-
-    /// Remove any compositor layers associated with this flow
-    fn remove_compositor_layers(&self, _: ConstellationChan) {}
 }
 
 // Base access
@@ -461,11 +448,6 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is an inline flow.
     fn is_inline_flow(self) -> bool;
 
-    /// Returns true if this flow can have its overflow area calculated early (during its
-    /// block-size assignment) or false if it must have its overflow area calculated late (during
-    /// its parent's block-size assignment).
-    fn can_calculate_overflow_area_early(self) -> bool;
-
     /// Dumps the flow tree for debugging.
     fn dump(self);
 
@@ -502,12 +484,6 @@ pub trait MutableFlowUtils {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ComputedValues>);
-
-    /// Calls `store_overflow()` if the overflow can be calculated early.
-    fn early_store_overflow(self, layout_context: &LayoutContext);
-
-    /// Calls `store_overflow()` if the overflow cannot be calculated early.
-    fn late_store_overflow(self, layout_context: &LayoutContext);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -599,9 +575,6 @@ bitflags! {
         const IMPACTED_BY_RIGHT_FLOATS = 0b0000_0000_0000_0000_1000,
 
         // text align flags
-        #[doc = "Whether this flow contains a flow that has its own layer within the same absolute"]
-        #[doc = "containing block."]
-        const LAYERS_NEEDED_FOR_DESCENDANTS = 0b0000_0000_0000_0001_0000,
         #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
         #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
         #[doc = "layer."]
@@ -829,18 +802,12 @@ pub struct LateAbsolutePositionInfo {
     /// context. If the absolute containing block establishes the stacking context for this flow,
     /// and this flow is not itself absolutely-positioned, then this is (0, 0).
     pub stacking_relative_position_of_absolute_containing_block: Point2D<Au>,
-
-    /// Whether the absolute containing block forces positioned descendants to be layerized.
-    ///
-    /// FIXME(pcwalton): Move into `FlowFlags`.
-    pub layers_needed_for_positioned_flows: bool,
 }
 
 impl LateAbsolutePositionInfo {
     pub fn new() -> LateAbsolutePositionInfo {
         LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
-            layers_needed_for_positioned_flows: false,
         }
     }
 }
@@ -925,7 +892,7 @@ pub struct BaseFlow {
     pub stacking_relative_position_of_display_port: Rect<Au>,
 
     /// The results of display list building for this flow.
-    pub display_list_building_result: DisplayListBuildingResult,
+    pub display_list_building_result: Option<Box<DisplayList>>,
 
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
@@ -940,11 +907,12 @@ pub struct BaseFlow {
 impl fmt::Debug for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "@ {:?}, CC {}, ADC {}, Ovr {:?}",
+               "@ {:?}, CC {}, ADC {}, Ovr {:?}, Dmg {:?}",
                self.position,
                self.parallel.children_count.load(Ordering::SeqCst),
                self.abs_descendants.len(),
-               self.overflow)
+               self.overflow,
+               self.restyle_damage)
     }
 }
 
@@ -1070,7 +1038,7 @@ impl BaseFlow {
             block_container_writing_mode: writing_mode,
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
-            display_list_building_result: DisplayListBuildingResult::None,
+            display_list_building_result: None,
             early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
             late_absolute_position_info: LateAbsolutePositionInfo::new(),
             clip: ClippingRegion::max(),
@@ -1101,21 +1069,20 @@ impl BaseFlow {
         let bounds = Rect::new(self.stacking_relative_position, position_with_overflow.size);
 
         let all_items = match self.display_list_building_result {
-            DisplayListBuildingResult::None => Vec::new(),
-            DisplayListBuildingResult::StackingContext(ref stacking_context) => {
-                stacking_context.display_list.all_display_items()
-            }
-            DisplayListBuildingResult::Normal(ref display_list) => display_list.all_display_items(),
+            Some(ref display_list) => display_list.flatten(),
+            None => Vec::new(),
         };
 
         for item in &all_items {
-            let paint_bounds = item.base().clip.clone().intersect_rect(&item.base().bounds);
-            if !paint_bounds.might_be_nonempty() {
-                continue;
-            }
+            if let Some(base_item) = item.base() {
+                let paint_bounds = base_item.clip.clone().intersect_rect(&base_item.bounds);
+                if !paint_bounds.might_be_nonempty() {
+                    continue;
+                }
 
-            if bounds.union(&paint_bounds.bounding_rect()) != bounds {
-                error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
+                if bounds.union(&paint_bounds.bounding_rect()) != bounds {
+                    error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
+                }
             }
         }
     }
@@ -1310,13 +1277,6 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         }
     }
 
-    /// Returns true if this flow can have its overflow area calculated early (during its
-    /// block-size assignment) or false if it must have its overflow area calculated late (during
-    /// its parent's block-size assignment).
-    fn can_calculate_overflow_area_early(self) -> bool {
-        !self.contains_relatively_positioned_fragments()
-    }
-
     /// Dumps the flow tree for debugging.
     fn dump(self) {
         self.dump_with_level(0)
@@ -1394,20 +1354,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         }
 
         traversal.process(*self)
-    }
-
-    /// Calls `store_overflow()` if the overflow can be calculated early.
-    fn early_store_overflow(self, layout_context: &LayoutContext) {
-        if self.can_calculate_overflow_area_early() {
-            self.store_overflow(layout_context)
-        }
-    }
-
-    /// Calls `store_overflow()` if the overflow cannot be calculated early.
-    fn late_store_overflow(self, layout_context: &LayoutContext) {
-        if !self.can_calculate_overflow_area_early() {
-            self.store_overflow(layout_context)
-        }
     }
 }
 

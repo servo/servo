@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -23,7 +24,7 @@ use hyper::mime::{Attr, Mime};
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_task::ScriptTaskEventCategory::FileRead;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use util::str::DOMString;
@@ -72,7 +73,7 @@ pub struct FileReader {
     global: GlobalField,
     ready_state: Cell<FileReaderReadyState>,
     error: MutNullableHeap<JS<DOMException>>,
-    result: RefCell<Option<DOMString>>,
+    result: DOMRefCell<Option<DOMString>>,
     generation_id: Cell<GenerationId>,
 }
 
@@ -83,7 +84,7 @@ impl FileReader {
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableHeap::new(None),
-            result: RefCell::new(None),
+            result: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }
     }
@@ -227,7 +228,7 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        output
+        DOMString(output)
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
@@ -247,7 +248,7 @@ impl FileReader {
             format!("data:{};base64,{}", data.blobtype, base64)
         };
 
-        output
+        DOMString(output)
     }
 }
 
@@ -302,7 +303,7 @@ impl FileReaderMethods for FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-error
     fn GetError(&self) -> Option<Root<DOMException>> {
-        self.error.get_rooted()
+        self.error.get()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-result
@@ -318,11 +319,11 @@ impl FileReaderMethods for FileReader {
 
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, type_: String, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            DOMString(type_), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
     }

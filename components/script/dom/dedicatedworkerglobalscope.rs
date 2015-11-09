@@ -8,13 +8,13 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::utils::Reflectable;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -35,6 +35,7 @@ use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use url::Url;
+use util::str::DOMString;
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{IN_WORKER, SCRIPT};
@@ -230,7 +231,7 @@ impl DedicatedWorkerGlobalScope {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (url, source) = match load_whole_resource(&init.resource_task, worker_url) {
+            let (url, source) = match load_whole_resource(&init.resource_task, worker_url, None) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
@@ -263,7 +264,7 @@ impl DedicatedWorkerGlobalScope {
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
-                scope.execute_script(source);
+                scope.execute_script(DOMString(source));
             }
 
             let reporter_name = format!("worker-reporter-{}", random::<u64>());

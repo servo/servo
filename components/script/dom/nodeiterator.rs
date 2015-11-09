@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::Node;
 use std::cell::Cell;
@@ -67,7 +67,7 @@ impl NodeIterator {
 impl NodeIteratorMethods for NodeIterator {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
     fn Root(&self) -> Root<Node> {
-        self.root_node.root()
+        Root::from_ref(&*self.root_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-whattoshow
@@ -121,7 +121,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for following_node in node.r().following_nodes(&self.root_node) {
+        for following_node in node.following_nodes(&self.root_node) {
             // Step 3-2.
             let result = try!(self.accept_node(following_node.r()));
 
@@ -165,7 +165,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for preceding_node in node.r().preceding_nodes(&self.root_node) {
+        for preceding_node in node.preceding_nodes(&self.root_node) {
 
             // Step 3-2.
             let result = try!(self.accept_node(preceding_node.r()));

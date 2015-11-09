@@ -23,7 +23,10 @@ reftest_filetype = ".list"
 ignored_files = [
     # Upstream
     os.path.join(".", "support", "*"),
-    os.path.join(".", "tests", "wpt", "*"),
+    os.path.join(".", "tests", "wpt", "css-tests", "*"),
+    os.path.join(".", "tests", "wpt", "harness", "*"),
+    os.path.join(".", "tests", "wpt", "update", "*"),
+    os.path.join(".", "tests", "wpt", "web-platform-tests", "*"),
     os.path.join(".", "python", "mach", "*"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser", "*"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply", "*"),

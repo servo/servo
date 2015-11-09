@@ -6,11 +6,11 @@ use cssparser::RGBA;
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
-use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::{AttributeMutation, Element};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::vtable_for;
@@ -21,7 +21,8 @@ use std::mem;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use style::values::specified::Length;
-use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
+use util::str::{DOMString, parse_unsigned_integer, parse_legacy_color};
+use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
 pub enum AttrValue {
@@ -46,7 +47,7 @@ impl AttrValue {
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = str_join(&atoms, "\x20");
+        let tokens = DOMString(str_join(&atoms, "\x20"));
         AttrValue::TokenList(tokens, atoms)
     }
 
@@ -75,6 +76,11 @@ impl AttrValue {
     pub fn from_atomic(string: DOMString) -> AttrValue {
         let value = Atom::from_slice(&string);
         AttrValue::Atom(value)
+    }
+
+    pub fn from_legacy_color(string: DOMString) -> AttrValue {
+        let parsed = parse_legacy_color(&string).ok();
+        AttrValue::Color(string, parsed)
     }
 
     /// Assumes the `AttrValue` is a `TokenList` and returns its tokens
@@ -212,12 +218,12 @@ impl Attr {
 impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(&self) -> DOMString {
-        (**self.local_name()).to_owned()
+        DOMString((**self.local_name()).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(&self) -> DOMString {
-        (**self.value()).to_owned()
+        DOMString((**self.value()).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -225,7 +231,7 @@ impl AttrMethods for Attr {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
-                let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
+                let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
                 self.set_value(value, owner.r());
             }
         }
@@ -253,7 +259,7 @@ impl AttrMethods for Attr {
 
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(&self) -> DOMString {
-        (*self.name).to_owned()
+        DOMString((*self.name).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
@@ -261,13 +267,13 @@ impl AttrMethods for Attr {
         let Namespace(ref atom) = self.namespace;
         match &**atom {
             "" => None,
-            url => Some(url.to_owned()),
+            url => Some(DOMString(url.to_owned())),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix().as_ref().map(|p| (**p).to_owned())
+        self.prefix().as_ref().map(|p| DOMString((**p).to_owned()))
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
@@ -319,15 +325,15 @@ impl Attr {
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {
-        self.owner.get_rooted()
+        self.owner.get()
     }
 
     pub fn summarize(&self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
             namespace: (**ns).to_owned(),
-            name: self.Name(),
-            value: self.Value(),
+            name: self.Name().0,
+            value: self.Value().0,
         }
     }
 }

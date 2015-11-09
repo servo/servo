@@ -16,12 +16,18 @@ path = "../util"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.brotli]
+git = "https://github.com/ende76/brotli-rs"
+
 [dependencies.plugins]
 path = "../plugins"
 
 [dependencies.hyper]
 version = "0.6"
 features = [ "serde-serialization" ]
+
+[dependencies.msg]
+path = "../msg"
 
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
@@ -40,4 +46,4 @@ regex = "0.1.14"
 regex_macros = "0.1.8"
 flate2 = "0.2.0"
 uuid = "0.1.16"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}

@@ -8,9 +8,9 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
@@ -70,31 +70,27 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     fn SetText(&self, value: DOMString) {
         let element = self.upcast::<Element>();
         let color = str::parse_legacy_color(&value).ok();
-        element.set_attribute(&Atom::from_slice("text"), AttrValue::Color(value, color));
+        element.set_attribute(&atom!("text"), AttrValue::Color(value, color));
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
-        let win = window_from_node(self);
-        win.r().GetOnunload()
+        window_from_node(self).GetOnunload()
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn SetOnunload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let win = window_from_node(self);
-        win.r().SetOnunload(listener)
+        window_from_node(self).SetOnunload(listener)
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
-        let win = window_from_node(self);
-        win.r().GetOnstorage()
+        window_from_node(self).GetOnstorage()
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let win = window_from_node(self);
-        win.r().SetOnstorage(listener)
+        window_from_node(self).SetOnstorage(listener)
     }
 }
 
@@ -137,19 +133,16 @@ impl VirtualMethods for HTMLBodyElement {
         }
 
         let window = window_from_node(self);
-        let document = window.r().Document();
-        document.r().set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
-        let ConstellationChan(ref chan) = window.r().constellation_chan();
+        let document = window.Document();
+        document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
+        let ConstellationChan(ref chan) = window.constellation_chan();
         let event = ConstellationMsg::HeadParsed;
         chan.send(event).unwrap();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("text") => {
-                let parsed = str::parse_legacy_color(&value).ok();
-                AttrValue::Color(value, parsed)
-            },
+            &atom!("text") => AttrValue::from_legacy_color(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -185,7 +178,7 @@ impl VirtualMethods for HTMLBodyElement {
                 };
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
-                                                      (**attr.value()).to_owned());
+                                                      DOMString((**attr.value()).to_owned()));
             },
             _ => {}
         }

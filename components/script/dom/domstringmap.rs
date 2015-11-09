@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
 use util::str::DOMString;
@@ -54,14 +54,13 @@ impl DOMStringMapMethods for DOMStringMap {
             },
             None => {
                 *found = false;
-                String::new()
+                DOMString::new()
             }
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        self.element.supported_prop_names_custom_attr().iter().cloned().collect()
     }
 }

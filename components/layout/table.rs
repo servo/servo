@@ -7,12 +7,12 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
+use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
-use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use euclid::{Point2D, Rect};
-use flow::{IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, MutableFlowUtils, OpaqueFlow};
+use flow::{IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, OpaqueFlow};
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::DisplayList;
@@ -494,10 +494,10 @@ impl Flow for TableFlow {
         })
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical;
-        self.block_flow.assign_block_size_for_table_like_flow(layout_context, vertical_spacing)
+        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing)
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
@@ -755,15 +755,11 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
 /// rowgroups.
 pub trait TableLikeFlow {
     /// Lays out the rows of a table.
-    fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 layout_context: &'a LayoutContext<'a>,
-                                                 block_direction_spacing: Au);
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au);
 }
 
 impl TableLikeFlow for BlockFlow {
-    fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 layout_context: &'a LayoutContext<'a>,
-                                                 block_direction_spacing: Au) {
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au) {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::separate || block_direction_spacing == Au(0));
 
@@ -775,11 +771,7 @@ impl TableLikeFlow for BlockFlow {
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            let mut layers_needed_for_descendants = false;
             for kid in self.base.child_iter() {
-                // Mark flows for layerization if necessary to handle painting order correctly.
-                block::propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
-
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
                     has_rows = true;
@@ -842,7 +834,6 @@ impl TableLikeFlow for BlockFlow {
                     relative_containing_block_size: self.fragment.content_box().size,
                     relative_containing_block_mode: self.fragment.style().writing_mode,
                 };
-                kid.late_store_overflow(layout_context)
             }
         }
 

@@ -11,7 +11,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
@@ -230,8 +230,8 @@ impl GlobalField {
     /// Create a stack-bounded root for this reference.
     pub fn root(&self) -> GlobalRoot {
         match *self {
-            GlobalField::Window(ref window) => GlobalRoot::Window(window.root()),
-            GlobalField::Worker(ref worker) => GlobalRoot::Worker(worker.root()),
+            GlobalField::Window(ref window) => GlobalRoot::Window(Root::from_ref(window)),
+            GlobalField::Worker(ref worker) => GlobalRoot::Worker(Root::from_ref(worker)),
         }
     }
 }

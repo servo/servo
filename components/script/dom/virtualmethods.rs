@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
-use dom::bindings::codegen::InheritTypes::ElementTypeId;
-use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
-use dom::bindings::codegen::InheritTypes::NodeTypeId;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::inheritance::ElementTypeId;
+use dom::bindings::inheritance::HTMLElementTypeId;
+use dom::bindings::inheritance::NodeTypeId;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
@@ -22,6 +22,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -155,6 +156,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
             node.downcast::<HTMLHeadElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)) => {
+            node.downcast::<HTMLHRElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
             node.downcast::<HTMLImageElement>().unwrap() as &VirtualMethods

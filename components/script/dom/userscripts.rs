@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{RootedReference};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::Node;
@@ -13,6 +13,7 @@ use std::fs::read_dir;
 use std::path::PathBuf;
 use util::opts;
 use util::resource_files::resources_dir_path;
+use util::str::DOMString;
 
 
 pub fn load_script(head: &HTMLHeadElement) {
@@ -41,9 +42,9 @@ pub fn load_script(head: &HTMLHeadElement) {
                 Ok(ref s) if s.ends_with(".js") => "file://".to_owned() + &s[..],
                 _ => continue
             };
-            let new_script = doc.CreateElement("script".to_owned()).unwrap();
+            let new_script = doc.CreateElement(DOMString("script".to_owned())).unwrap();
             let new_script = new_script.r();
-            new_script.set_string_attribute(&atom!("src"), name);
+            new_script.set_string_attribute(&atom!("src"), DOMString(name));
             node.InsertBefore(new_script.upcast(), first_child.r()).unwrap();
         }
     }

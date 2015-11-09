@@ -23,6 +23,8 @@ use url::{self, Url};
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone)]
 pub struct Opts {
+    pub is_running_problem_test: bool,
+
     /// The initial URL to load.
     pub url: Option<Url>,
 
@@ -72,6 +74,9 @@ pub struct Opts {
     /// Log GC passes and their durations.
     pub gc_profile: bool,
 
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    pub load_webfonts_synchronously: bool,
+
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -120,6 +125,9 @@ pub struct Opts {
 
     /// Periodically print out on which events script tasks spend their processing time.
     pub profile_script_events: bool,
+
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
 
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
@@ -223,6 +231,9 @@ pub struct DebugOptions {
     /// Profile which events script tasks spend their time on.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// Paint borders along layer and tile boundaries.
     pub show_compositor_borders: bool,
 
@@ -259,18 +270,15 @@ pub struct DebugOptions {
 
     /// Log GC passes and their durations.
     pub gc_profile: bool,
+
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    pub load_webfonts_synchronously: bool,
 }
 
 
 impl DebugOptions {
     pub fn new(debug_string: &str) -> Result<DebugOptions, &str> {
         let mut debug_options = DebugOptions::default();
-
-        // FIXME: Glutin currently converts touch input to mouse events on Android.
-        // Convert it back to touch events.
-        if cfg!(target_os = "android") {
-            debug_options.convert_mouse_to_touch = true;
-        }
 
         for option in debug_string.split(',') {
             match option {
@@ -286,6 +294,7 @@ impl DebugOptions {
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
+                "profile-heartbeats" => debug_options.profile_heartbeats = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
                 "show-fragment-borders" => debug_options.show_fragment_borders = true,
                 "show-parallel-paint" => debug_options.show_parallel_paint = true,
@@ -298,6 +307,7 @@ impl DebugOptions {
                 "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
+                "load-webfonts-synchronously" => debug_options.load_webfonts_synchronously = true,
                 "" => {},
                 _ => return Err(option)
             };
@@ -325,6 +335,8 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
+    print_option("profile-script-events", "Enable profiling of script-related events.");
+    print_option("profile-heartbeats", "Enable heartbeats for all task categories.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
     print_option("show-parallel-paint", "Overlay tiles with colors showing which thread painted them.");
@@ -336,10 +348,12 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
     print_option("parallel-display-list-building", "Build display lists in parallel.");
+    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
     print_option("gc-profile", "Log GC passes and their durations.");
-    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
+    print_option("load-webfonts-synchronously",
+                 "Load web fonts synchronously to avoid non-deterministic network-driven reflows");
 
     println!("");
 
@@ -368,9 +382,29 @@ enum UserAgent {
 }
 
 fn default_user_agent_string(agent: UserAgent) -> String {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Servo/1.0 Firefox/37.0";
+    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux i686; rv:37.0) Servo/1.0 Firefox/37.0";
+
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:37.0) Servo/1.0 Firefox/37.0";
+    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 6.1; rv:37.0) Servo/1.0 Firefox/37.0";
+
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0";
+
+
     match agent {
         UserAgent::Desktop => {
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0"
+            DESKTOP_UA_STRING
         }
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
@@ -394,6 +428,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
     Opts {
+        is_running_problem_test: false,
         url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
         gpu_painting: false,
@@ -408,6 +443,7 @@ pub fn default_opts() -> Opts {
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
+        load_webfonts_synchronously: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -433,6 +469,7 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         profile_script_events: false,
+        profile_heartbeats: false,
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
@@ -514,6 +551,15 @@ pub fn from_cmdline_args(args: &[String]) {
     } else {
         homepage_pref.as_string()
     };
+    let is_running_problem_test =
+        url_opt
+        .as_ref()
+        .map(|url|
+             url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
+             url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
+             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"))
+        .unwrap_or(false);
+
     let url = match url_opt {
         Some(url_string) => {
             parse_url_or_filename(&cwd, url_string)
@@ -601,6 +647,7 @@ pub fn from_cmdline_args(args: &[String]) {
     }).collect();
 
     let opts = Opts {
+        is_running_problem_test: is_running_problem_test,
         url: Some(url),
         paint_threads: paint_threads,
         gpu_painting: gpu_painting,
@@ -615,11 +662,13 @@ pub fn from_cmdline_args(args: &[String]) {
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.replace_surrogates,
         gc_profile: debug_options.gc_profile,
+        load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_tasks: debug_options.profile_tasks,
         profile_script_events: debug_options.profile_script_events,
+        profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,

@@ -104,11 +104,6 @@ function test_specified_value_serialization(value, expected) {
   div1.style.removeProperty("margin");
 }
 
-/*
-function test(f) { f() }
-function assert_equals(a, b, m) { if (a == b) { console.log("`"+a+"`", "`"+b+"`", m) } }
-*/
-
 values_with_unchanged_specified_value_serialization.forEach(function(value) {
   test(function() { test_specified_value_serialization(value, value) },
        "`" + value + "` is unchanged by specified value serialization");

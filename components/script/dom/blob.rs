@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -21,12 +21,12 @@ use util::str::DOMString;
 pub struct Blob {
     reflector_: Reflector,
     bytes: Option<Vec<u8>>,
-    typeString: DOMString,
+    typeString: String,
     global: GlobalField,
     isClosed_: Cell<bool>
 }
 
-fn is_ascii_printable(string: &DOMString) -> bool {
+fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
     string.chars().all(|c| { c >= '\x20' && c <= '\x7E' })
@@ -60,7 +60,7 @@ impl Blob {
     pub fn Constructor_(global: GlobalRef, blobParts: DOMString,
                         blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Root<Blob>> {
         //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
-        let bytes: Option<Vec<u8>> = Some(blobParts.into_bytes());
+        let bytes: Option<Vec<u8>> = Some(blobParts.0.into_bytes());
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
@@ -71,6 +71,11 @@ impl Blob {
 
     pub fn read_out_buffer(&self, send: Sender<Vec<u8>>) {
         send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
+    }
+
+    // simpler to use version of read_out_buffer
+    pub fn clone_bytes(&self) -> Vec<u8> {
+        self.bytes.clone().unwrap_or(vec![])
     }
 }
 
@@ -85,7 +90,7 @@ impl BlobMethods for Blob {
 
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-type
     fn Type(&self) -> DOMString {
-        self.typeString.clone()
+        DOMString(self.typeString.clone())
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
@@ -113,13 +118,13 @@ impl BlobMethods for Blob {
             }
         };
         let relativeContentType = match contentType {
-            None => "".to_owned(),
+            None => DOMString::new(),
             Some(mut str) => {
                 if is_ascii_printable(&str) {
                     str.make_ascii_lowercase();
                     str
                 } else {
-                    "".to_owned()
+                    DOMString::new()
                 }
             }
         };

@@ -194,10 +194,9 @@ impl Flow for TableRowGroupFlow {
         });
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
-        self.block_flow.assign_block_size_for_table_like_flow(layout_context,
-                                                              self.spacing.vertical)
+        self.block_flow.assign_block_size_for_table_like_flow(self.spacing.vertical)
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {

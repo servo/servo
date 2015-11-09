@@ -274,16 +274,6 @@ impl PendingAsyncLoad {
         }
     }
 
-    /// Initiate the network request associated with this pending load.
-    pub fn load(mut self) -> IpcReceiver<LoadResponse> {
-        self.guard.neuter();
-        let load_data = LoadData::new(self.url, self.pipeline);
-        let (sender, receiver) = ipc::channel().unwrap();
-        let consumer = LoadConsumer::Channel(sender);
-        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
-        receiver
-    }
-
     /// Initiate the network request associated with this pending load, using the provided target.
     pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
@@ -383,10 +373,10 @@ pub enum ProgressMsg {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
+pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: Option<PipelineId>)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None),
+    resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
                        LoadConsumer::Channel(start_chan))).unwrap();
     let response = start_port.recv().unwrap();
 
@@ -396,36 +386,6 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
             ProgressMsg::Payload(data) => buf.push_all(&data),
             ProgressMsg::Done(Ok(())) => return Ok((response.metadata, buf)),
             ProgressMsg::Done(Err(e)) => return Err(e)
-        }
-    }
-}
-
-/// Load a URL asynchronously and iterate over chunks of bytes from the response.
-pub fn load_bytes_iter(pending: PendingAsyncLoad) -> (Metadata, ProgressMsgPortIterator) {
-    let input_port = pending.load();
-    let response = input_port.recv().unwrap();
-    let iter = ProgressMsgPortIterator {
-        progress_port: response.progress_port
-    };
-    (response.metadata, iter)
-}
-
-/// Iterator that reads chunks of bytes from a ProgressMsg port
-pub struct ProgressMsgPortIterator {
-    progress_port: IpcReceiver<ProgressMsg>,
-}
-
-impl Iterator for ProgressMsgPortIterator {
-    type Item = Vec<u8>;
-
-    fn next(&mut self) -> Option<Vec<u8>> {
-        match self.progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => Some(data),
-            ProgressMsg::Done(Ok(()))  => None,
-            ProgressMsg::Done(Err(e))  => {
-                error!("error receiving bytes: {}", e);
-                None
-            }
         }
     }
 }

@@ -3,6 +3,7 @@
 name = "servo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+build = "build.rs"
 
 [lib]
 name = "servo"
@@ -111,21 +112,29 @@ path = "../../ports/glutin"
 optional = true
 
 [dependencies.android_glue]
-path = "../../support/android-rs-glue/glue"
 optional = true
+
+[dependencies.log]
+version = "0.3"
+features = ["release_max_level_info"]
 
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies.euclid]
-version = "0.2"
+version = "0.3"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.gleam]
 version = "0.1"
+
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [dependencies]
 env_logger = "0.3"

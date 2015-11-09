@@ -107,6 +107,7 @@ class CommandBase(object):
         self.config["build"].setdefault("android", False)
         self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-mozjs", False)
+        self.config["build"].setdefault("ccache", "")
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -134,6 +135,9 @@ class CommandBase(object):
             with open(filename) as f:
                 self._cargo_build_id = f.read().strip()
         return self._cargo_build_id
+
+    def get_top_dir(self):
+        return self.context.topdir
 
     def get_target_dir(self):
         if "CARGO_TARGET_DIR" in os.environ:

@@ -4,15 +4,13 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use dom::bindings::codegen::InheritTypes::TopTypeId;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::private_from_proto_check;
-use dom::bindings::conversions::{is_dom_class, jsstring_to_str};
-use dom::bindings::error::throw_type_error;
-use dom::bindings::error::{Error, ErrorResult, Fallible, throw_invalid_this};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::conversions::{is_dom_class, jsstring_to_str, DOM_OBJECT_SLOT};
+use dom::bindings::error::{throw_invalid_this, throw_type_error};
+use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
@@ -49,14 +47,10 @@ use js::rust::{GCMethods, ToString, define_methods, define_properties};
 use js::{JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE, JS_CALLEE};
 use js::{JSPROP_PERMANENT, JSPROP_READONLY};
 use libc::{self, c_uint};
-use std::cell::UnsafeCell;
-use std::cmp::PartialEq;
 use std::default::Default;
 use std::ffi::CString;
 use std::ptr;
-use string_cache::{Atom, Namespace};
 use util::mem::HeapSizeOf;
-use util::str::DOMString;
 
 /// Proxy handler for a WindowProxy.
 #[allow(raw_pointer_derive)]
@@ -391,74 +385,6 @@ pub fn initialize_global(global: *mut JSObject) {
     }
 }
 
-/// A trait to provide access to the `Reflector` for a DOM object.
-pub trait Reflectable {
-    /// Returns the receiver's reflector.
-    fn reflector(&self) -> &Reflector;
-    /// Initializes the Reflector
-    fn init_reflector(&mut self, obj: *mut JSObject);
-}
-
-/// Create the reflector for a new DOM object and yield ownership to the
-/// reflector.
-pub fn reflect_dom_object<T: Reflectable>
-        (obj:     Box<T>,
-         global:  GlobalRef,
-         wrap_fn: extern "Rust" fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
-         -> Root<T> {
-    wrap_fn(global.get_cx(), global, obj)
-}
-
-/// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_derive, unrooted_must_root)]
-#[must_root]
-#[servo_lang = "reflector"]
-#[derive(HeapSizeOf)]
-// If you're renaming or moving this field, update the path in plugins::reflector as well
-pub struct Reflector {
-    #[ignore_heap_size_of = "defined and measured in rust-mozjs"]
-    object: UnsafeCell<*mut JSObject>,
-}
-
-#[allow(unrooted_must_root)]
-impl PartialEq for Reflector {
-    fn eq(&self, other: &Reflector) -> bool {
-        unsafe { *self.object.get() == *other.object.get() }
-    }
-}
-
-impl Reflector {
-    /// Get the reflector.
-    #[inline]
-    pub fn get_jsobject(&self) -> HandleObject {
-        unsafe { HandleObject::from_marked_location(self.object.get()) }
-    }
-
-    /// Initialize the reflector. (May be called only once.)
-    pub fn set_jsobject(&mut self, object: *mut JSObject) {
-        unsafe {
-            let obj = self.object.get();
-            assert!((*obj).is_null());
-            assert!(!object.is_null());
-            *obj = object;
-        }
-    }
-
-    /// Return a pointer to the memory location at which the JS reflector
-    /// object is stored. Used to root the reflector, as
-    /// required by the JSAPI rooting APIs.
-    pub fn rootable(&self) -> *mut *mut JSObject {
-        self.object.get()
-    }
-
-    /// Create an uninitialized `Reflector`.
-    pub fn new() -> Reflector {
-        Reflector {
-            object: UnsafeCell::new(ptr::null_mut())
-        }
-    }
-}
-
 /// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
@@ -520,13 +446,13 @@ pub fn find_enum_string_index(cx: *mut JSContext,
                               v: HandleValue,
                               values: &[&'static str])
                               -> Result<Option<usize>, ()> {
-    let jsstr = ToString(cx, v);
+    let jsstr = unsafe { ToString(cx, v) };
     if jsstr.is_null() {
         return Err(());
     }
 
     let search = jsstring_to_str(cx, jsstr);
-    Ok(values.iter().position(|value| value == &search))
+    Ok(values.iter().position(|value| search == *value))
 }
 
 /// Returns wether `obj` is a platform object
@@ -625,6 +551,7 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: HandleObject,
 
 /// Create a DOM global object with the given class.
 pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass,
+                         private: *const libc::c_void,
                          trace: JSTraceOp)
                          -> *mut JSObject {
     unsafe {
@@ -640,6 +567,7 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass,
             return ptr::null_mut();
         }
         let _ac = JSAutoCompartment::new(cx, obj.ptr);
+        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT, PrivateValue(private));
         JS_InitStandardClasses(cx, obj.handle());
         initialize_global(obj.ptr);
         JS_FireOnNewGlobalObject(cx, obj.handle());
@@ -798,21 +726,6 @@ pub unsafe extern fn generic_lenient_setter(cx: *mut JSContext,
     generic_call(cx, argc, vp, true, call_setter)
 }
 
-/// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
-pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
-    match xml_name_type(qualified_name) {
-        XMLName::InvalidXMLName => {
-            // Step 1.
-            Err(Error::InvalidCharacter)
-        },
-        XMLName::Name => {
-            // Step 2.
-            Err(Error::Namespace)
-        },
-        XMLName::QName => Ok(())
-    }
-}
-
 unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::Class,
                                                        proto_id: u32,
                                                        depth: u32) -> bool {
@@ -825,155 +738,3 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
-
-/// Validate a namespace and qualified name and extract their parts.
-/// See https://dom.spec.whatwg.org/#validate-and-extract for details.
-pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
-                            -> Fallible<(Namespace, Option<Atom>, Atom)> {
-    // Step 1.
-    let namespace = namespace_from_domstring(namespace);
-
-    // Step 2.
-    try!(validate_qualified_name(qualified_name));
-
-    let colon = ':';
-
-    // Step 5.
-    let mut parts = qualified_name.splitn(2, colon);
-
-    let (maybe_prefix, local_name) = {
-        let maybe_prefix = parts.next();
-        let maybe_local_name = parts.next();
-
-        debug_assert!(parts.next().is_none());
-
-        if let Some(local_name) = maybe_local_name {
-            debug_assert!(!maybe_prefix.unwrap().is_empty());
-
-            (maybe_prefix, local_name)
-        } else {
-            (None, maybe_prefix.unwrap())
-        }
-    };
-
-    debug_assert!(!local_name.contains(colon));
-
-    match (namespace, maybe_prefix) {
-        (ns!(""), Some(_)) => {
-            // Step 6.
-            Err(Error::Namespace)
-        },
-        (ref ns, Some("xml")) if ns != &ns!(XML) => {
-            // Step 7.
-            Err(Error::Namespace)
-        },
-        (ref ns, p) if ns != &ns!(XMLNS) &&
-                      (qualified_name == "xmlns" || p == Some("xmlns")) => {
-            // Step 8.
-            Err(Error::Namespace)
-        },
-        (ns!(XMLNS), p) if qualified_name != "xmlns" && p != Some("xmlns") => {
-            // Step 9.
-            Err(Error::Namespace)
-        },
-        (ns, p) => {
-            // Step 10.
-            Ok((ns, p.map(Atom::from_slice), Atom::from_slice(local_name)))
-        }
-    }
-}
-
-/// Results of `xml_name_type`.
-#[derive(PartialEq)]
-#[allow(missing_docs)]
-pub enum XMLName {
-    QName,
-    Name,
-    InvalidXMLName
-}
-
-/// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
-/// for details.
-pub fn xml_name_type(name: &str) -> XMLName {
-    fn is_valid_start(c: char) -> bool {
-        match c {
-            ':' |
-            'A' ... 'Z' |
-            '_' |
-            'a' ... 'z' |
-            '\u{C0}' ... '\u{D6}' |
-            '\u{D8}' ... '\u{F6}' |
-            '\u{F8}' ... '\u{2FF}' |
-            '\u{370}' ... '\u{37D}' |
-            '\u{37F}' ... '\u{1FFF}' |
-            '\u{200C}' ... '\u{200D}' |
-            '\u{2070}' ... '\u{218F}' |
-            '\u{2C00}' ... '\u{2FEF}' |
-            '\u{3001}' ... '\u{D7FF}' |
-            '\u{F900}' ... '\u{FDCF}' |
-            '\u{FDF0}' ... '\u{FFFD}' |
-            '\u{10000}' ... '\u{EFFFF}' => true,
-            _ => false,
-        }
-    }
-
-    fn is_valid_continuation(c: char) -> bool {
-        is_valid_start(c) || match c {
-            '-' |
-            '.' |
-            '0' ... '9' |
-            '\u{B7}' |
-            '\u{300}' ... '\u{36F}' |
-            '\u{203F}' ... '\u{2040}' => true,
-            _ => false,
-        }
-    }
-
-    let mut iter = name.chars();
-    let mut non_qname_colons = false;
-    let mut seen_colon = false;
-    let mut last = match iter.next() {
-        None => return XMLName::InvalidXMLName,
-        Some(c) => {
-            if !is_valid_start(c) {
-                return XMLName::InvalidXMLName;
-            }
-            if c == ':' {
-                non_qname_colons = true;
-            }
-            c
-        }
-    };
-
-    for c in iter {
-        if !is_valid_continuation(c) {
-            return XMLName::InvalidXMLName;
-        }
-        if c == ':' {
-            match seen_colon {
-                true => non_qname_colons = true,
-                false => seen_colon = true
-            }
-        }
-        last = c
-    }
-
-    if last == ':' {
-        non_qname_colons = true
-    }
-
-    match non_qname_colons {
-        false => XMLName::QName,
-        true => XMLName::Name
-    }
-}
-
-/// Convert a possibly-null URL to a namespace.
-///
-/// If the URL is None, returns the empty namespace.
-pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
-    match url {
-        None => ns!(""),
-        Some(ref s) => Namespace(Atom::from_slice(s)),
-    }
-}

@@ -8,12 +8,12 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, IN_ENABLED_STATE, Element};
+use dom::element::{AttributeMutation, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -22,10 +22,12 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{CommonScriptMsg, Runnable};
+use selectors::states::*;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -61,7 +63,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
-        (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
+        (*self.unsafe_get()).textinput.borrow_for_layout().get_content().0
     }
 
     #[allow(unrooted_must_root)]
@@ -97,7 +99,7 @@ impl HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, DOMString::new(), chan)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
@@ -172,7 +174,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-type
     fn Type(&self) -> DOMString {
-        "textarea".to_owned()
+        DOMString("textarea".to_owned())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
@@ -204,6 +206,11 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         self.force_relayout();
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
+    }
 }
 
 
@@ -231,7 +238,7 @@ impl HTMLTextAreaElement {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               "input".to_owned(),
+                               DOMString("input".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
 
@@ -246,8 +253,8 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(disabled) => {
+        match *attr.local_name() {
+            atom!(disabled) => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -261,13 +268,13 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                 }
             },
-            &atom!(cols) => {
+            atom!(cols) => {
                 let cols = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
                 self.cols.set(cols.unwrap_or(DEFAULT_COLS));
             },
-            &atom!(rows) => {
+            atom!(rows) => {
                 let rows = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
@@ -286,9 +293,9 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
-        match name {
-            &atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
-            &atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
+        match *name {
+            atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
+            atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -322,11 +329,11 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.handle_event(event);
         }
 
-        if &*event.Type() == "click" && !event.DefaultPrevented() {
+        if event.type_() == atom!("click") && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
             document_from_node(self).request_focus(self.upcast());
-        } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
+        } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),
@@ -345,9 +352,11 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
 
                         self.force_relayout();
+                        event.PreventDefault();
                     }
                     KeyReaction::RedrawSelection => {
                         self.force_relayout();
+                        event.PreventDefault();
                     }
                     KeyReaction::Nothing => (),
                 }
@@ -365,6 +374,6 @@ pub struct ChangeEventRunnable {
 impl Runnable for ChangeEventRunnable {
     fn handler(self: Box<ChangeEventRunnable>) {
         let target = self.element.root();
-        target.r().dispatch_change_event();
+        target.dispatch_change_event();
     }
 }

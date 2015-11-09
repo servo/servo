@@ -33,8 +33,8 @@ use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::MulticolFlow;
 use parallel;
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId};
-use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use script::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
+use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use script::dom::htmlobjectelement::is_image_data;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -1470,7 +1470,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // flow here - instead, let it match the inline case
             // below.
             (display::T::block, _, position::T::absolute) |
-            (_, _, position::T::fixed) => {
+            (display::T::block, _, position::T::fixed) => {
                 let construction_result = self.build_flow_for_block(node, None);
                 self.set_flow_construction_result(node, construction_result)
             }
