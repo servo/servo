@@ -1763,6 +1763,18 @@
             "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
           }
         ],
+        "css/inline_background_a.html": [
+          {
+            "path": "css/inline_background_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_background_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_background_a.html"
+          }
+        ],
         "css/inline_block_baseline_a.html": [
           {
             "path": "css/inline_block_baseline_a.html",
@@ -1835,6 +1847,18 @@
             "url": "/_mozilla/css/inline_block_margin_a.html"
           }
         ],
+        "css/inline_block_margin_auto_a.html": [
+          {
+            "path": "css/inline_block_margin_auto_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_margin_auto_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_margin_auto_a.html"
+          }
+        ],
         "css/inline_block_margin_auto_zero_a.html": [
           {
             "path": "css/inline_block_margin_auto_zero_a.html",
@@ -1893,6 +1917,30 @@
               ]
             ],
             "url": "/_mozilla/css/inline_block_parent_padding_a.html"
+          }
+        ],
+        "css/inline_block_parent_width.html": [
+          {
+            "path": "css/inline_block_parent_width.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_parent_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_parent_width.html"
+          }
+        ],
+        "css/inline_block_parent_width_percentage.html": [
+          {
+            "path": "css/inline_block_parent_width_percentage.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_parent_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_parent_width_percentage.html"
           }
         ],
         "css/inline_block_percentage_height_a.html": [
@@ -2027,6 +2075,30 @@
             "url": "/_mozilla/css/inline_text_align_a.html"
           }
         ],
+        "css/inline_whitespace_a.html": [
+          {
+            "path": "css/inline_whitespace_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_whitespace_a.html"
+          }
+        ],
+        "css/inline_whitespace_b.html": [
+          {
+            "path": "css/inline_whitespace_b.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_whitespace_b.html"
+          }
+        ],
         "css/input_button_margins_a.html": [
           {
             "path": "css/input_button_margins_a.html",
@@ -2051,6 +2123,18 @@
             "url": "/_mozilla/css/input_button_size_a.html"
           }
         ],
+        "css/input_height_a.html": [
+          {
+            "path": "css/input_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_height_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/input_height_a.html"
+          }
+        ],
         "css/inset.html": [
           {
             "path": "css/inset.html",
@@ -2063,6 +2147,18 @@
             "url": "/_mozilla/css/inset.html"
           }
         ],
+        "css/inset_blackborder.html": [
+          {
+            "path": "css/inset_blackborder.html",
+            "references": [
+              [
+                "/_mozilla/css/blackborder_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/inset_blackborder.html"
+          }
+        ],
         "css/issue-1324.html": [
           {
             "path": "css/issue-1324.html",
@@ -2073,6 +2169,30 @@
               ]
             ],
             "url": "/_mozilla/css/issue-1324.html"
+          }
+        ],
+        "css/jpeg_normal.html": [
+          {
+            "path": "css/jpeg_normal.html",
+            "references": [
+              [
+                "/_mozilla/css/jpeg_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/jpeg_normal.html"
+          }
+        ],
+        "css/jpeg_progressive.html": [
+          {
+            "path": "css/jpeg_progressive.html",
+            "references": [
+              [
+                "/_mozilla/css/jpeg_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/jpeg_progressive.html"
           }
         ],
         "css/jumpiness_a.html": [
@@ -2673,6 +2793,18 @@
               ]
             ],
             "url": "/_mozilla/css/outset.html"
+          }
+        ],
+        "css/outset_blackborder.html": [
+          {
+            "path": "css/outset_blackborder.html",
+            "references": [
+              [
+                "/_mozilla/css/blackborder_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/outset_blackborder.html"
           }
         ],
         "css/overflow_auto_stacking_order_a.html": [
@@ -6696,6 +6828,18 @@
           "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
         }
       ],
+      "css/inline_background_a.html": [
+        {
+          "path": "css/inline_background_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_background_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_background_a.html"
+        }
+      ],
       "css/inline_block_baseline_a.html": [
         {
           "path": "css/inline_block_baseline_a.html",
@@ -6768,6 +6912,18 @@
           "url": "/_mozilla/css/inline_block_margin_a.html"
         }
       ],
+      "css/inline_block_margin_auto_a.html": [
+        {
+          "path": "css/inline_block_margin_auto_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_margin_auto_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_margin_auto_a.html"
+        }
+      ],
       "css/inline_block_margin_auto_zero_a.html": [
         {
           "path": "css/inline_block_margin_auto_zero_a.html",
@@ -6826,6 +6982,30 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_parent_padding_a.html"
+        }
+      ],
+      "css/inline_block_parent_width.html": [
+        {
+          "path": "css/inline_block_parent_width.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_parent_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_parent_width.html"
+        }
+      ],
+      "css/inline_block_parent_width_percentage.html": [
+        {
+          "path": "css/inline_block_parent_width_percentage.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_parent_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_parent_width_percentage.html"
         }
       ],
       "css/inline_block_percentage_height_a.html": [
@@ -6960,6 +7140,30 @@
           "url": "/_mozilla/css/inline_text_align_a.html"
         }
       ],
+      "css/inline_whitespace_a.html": [
+        {
+          "path": "css/inline_whitespace_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_whitespace_a.html"
+        }
+      ],
+      "css/inline_whitespace_b.html": [
+        {
+          "path": "css/inline_whitespace_b.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_whitespace_b.html"
+        }
+      ],
       "css/input_button_margins_a.html": [
         {
           "path": "css/input_button_margins_a.html",
@@ -6984,6 +7188,18 @@
           "url": "/_mozilla/css/input_button_size_a.html"
         }
       ],
+      "css/input_height_a.html": [
+        {
+          "path": "css/input_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_height_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/input_height_a.html"
+        }
+      ],
       "css/inset.html": [
         {
           "path": "css/inset.html",
@@ -6996,6 +7212,18 @@
           "url": "/_mozilla/css/inset.html"
         }
       ],
+      "css/inset_blackborder.html": [
+        {
+          "path": "css/inset_blackborder.html",
+          "references": [
+            [
+              "/_mozilla/css/blackborder_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/inset_blackborder.html"
+        }
+      ],
       "css/issue-1324.html": [
         {
           "path": "css/issue-1324.html",
@@ -7006,6 +7234,30 @@
             ]
           ],
           "url": "/_mozilla/css/issue-1324.html"
+        }
+      ],
+      "css/jpeg_normal.html": [
+        {
+          "path": "css/jpeg_normal.html",
+          "references": [
+            [
+              "/_mozilla/css/jpeg_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/jpeg_normal.html"
+        }
+      ],
+      "css/jpeg_progressive.html": [
+        {
+          "path": "css/jpeg_progressive.html",
+          "references": [
+            [
+              "/_mozilla/css/jpeg_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/jpeg_progressive.html"
         }
       ],
       "css/jumpiness_a.html": [
@@ -7606,6 +7858,18 @@
             ]
           ],
           "url": "/_mozilla/css/outset.html"
+        }
+      ],
+      "css/outset_blackborder.html": [
+        {
+          "path": "css/outset_blackborder.html",
+          "references": [
+            [
+              "/_mozilla/css/blackborder_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/outset_blackborder.html"
         }
       ],
       "css/overflow_auto_stacking_order_a.html": [
