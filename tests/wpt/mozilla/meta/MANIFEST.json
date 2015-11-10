@@ -2123,6 +2123,18 @@
             "url": "/_mozilla/css/input_button_size_a.html"
           }
         ],
+        "css/input_height_a.html": [
+          {
+            "path": "css/input_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_height_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/input_height_a.html"
+          }
+        ],
         "css/inset.html": [
           {
             "path": "css/inset.html",
@@ -7126,6 +7138,18 @@
             ]
           ],
           "url": "/_mozilla/css/input_button_size_a.html"
+        }
+      ],
+      "css/input_height_a.html": [
+        {
+          "path": "css/input_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_height_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/input_height_a.html"
         }
       ],
       "css/inset.html": [
