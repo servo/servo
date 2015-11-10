@@ -88,7 +88,6 @@ use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable};
 use script_traits::{MouseButton, TouchEventType, TouchId, UntrustedNodeAddress};
-use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -102,6 +101,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
+use style::restyle_hints::ElementSnapshot;
 use style::stylesheets::Stylesheet;
 use time;
 use url::Url;
@@ -188,8 +188,9 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
-    /// For each element that has had a state change since the last restyle, track the original state.
-    modified_elements: DOMRefCell<HashMap<JS<Element>, ElementState>>,
+    /// For each element that has had a state or attribute change since the last restyle,
+    /// track the original condition of the element.
+    modified_elements: DOMRefCell<HashMap<JS<Element>, ElementSnapshot>>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
 }
@@ -1275,7 +1276,7 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementState)>;
+    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementSnapshot)>;
 }
 
 #[allow(unsafe_code)]
@@ -1287,7 +1288,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementState)> {
+    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementSnapshot)> {
         let mut elements = (*self.unsafe_get()).modified_elements.borrow_mut_for_layout();
         let drain = elements.drain();
         let layout_drain = drain.map(|(k, v)| (k.to_layout(), v));
@@ -1457,7 +1458,21 @@ impl Document {
 
     pub fn element_state_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        map.entry(JS::from_ref(el)).or_insert(el.get_state());
+        let snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        if snapshot.state.is_none() {
+            snapshot.state = Some(el.get_state());
+        }
+    }
+
+    pub fn element_attr_will_change(&self, el: &Element) {
+        let mut map = self.modified_elements.borrow_mut();
+        let mut snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        if snapshot.attrs.is_none() {
+            let attrs = el.attrs().iter()
+                          .map(|attr| (attr.identifier().clone(), attr.value().clone()))
+                          .collect();
+            snapshot.attrs = Some(attrs);
+        }
     }
 }
 

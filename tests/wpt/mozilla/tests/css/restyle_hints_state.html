@@ -30,8 +30,9 @@
      * implement attribute-based restyle hints, we can stop dirtying the subtree
      * on attribute modifications, and these tests will start to be more useful.
      */
+    window.dummy = 0;
     var $ = document.getElementById.bind(document);
-    function syncRestyle() { window.dummy != $("fs2").offsetTop; }
+    function syncRestyle() { window.dummy += $("fs2").offsetTop; }
     syncRestyle();
     $('fs1').disabled = true;
     syncRestyle();

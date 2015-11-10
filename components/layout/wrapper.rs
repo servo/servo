@@ -58,7 +58,6 @@ use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
-use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
@@ -69,7 +68,7 @@ use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use style::restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use style::restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -92,12 +91,15 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
-    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
-        let node = LayoutJS::from_trusted_node_address(*address);
+    pub fn from_layout_js(n: LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
-            node: node,
+            node: n,
             chain: PhantomData,
         }
+    }
+
+    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
+        LayoutNode::from_layout_js(LayoutJS::from_trusted_node_address(*address))
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
@@ -216,12 +218,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
-        self.node.downcast().map(|document| {
-            LayoutDocument {
-                document: document,
-                chain: PhantomData,
-            }
-        })
+        self.node.downcast().map(|document| LayoutDocument::from_layout_js(document))
     }
 
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
@@ -364,26 +361,24 @@ pub struct LayoutDocument<'le> {
 }
 
 impl<'le> LayoutDocument<'le> {
-    pub fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode {
-            node: self.document.upcast(),
+    pub fn from_layout_js(doc: LayoutJS<Document>) -> LayoutDocument<'le> {
+        LayoutDocument {
+            document: doc,
             chain: PhantomData,
         }
+    }
+
+    pub fn as_node(&self) -> LayoutNode<'le> {
+        LayoutNode::from_layout_js(self.document.upcast())
     }
 
     pub fn root_node(&self) -> Option<LayoutNode<'le>> {
         self.as_node().children().find(LayoutNode::is_element)
     }
 
-    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementState)> {
-        unsafe {
-            let elements = self.document.drain_modified_elements();
-            Vec::from_iter(elements.iter().map(|&(el, state)|
-                (LayoutElement {
-                    element: el,
-                    chain: PhantomData,
-                }, state)))
-        }
+    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementSnapshot)> {
+        let elements =  unsafe { self.document.drain_modified_elements() };
+        elements.into_iter().map(|(el, snapshot)| (LayoutElement::from_layout_js(el), snapshot)).collect()
     }
 }
 
@@ -395,6 +390,13 @@ pub struct LayoutElement<'le> {
 }
 
 impl<'le> LayoutElement<'le> {
+    pub fn from_layout_js(el: LayoutJS<Element>) -> LayoutElement<'le> {
+        LayoutElement {
+            element: el,
+            chain: PhantomData,
+        }
+    }
+
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         unsafe {
             &*self.element.style_attribute()
@@ -402,10 +404,7 @@ impl<'le> LayoutElement<'le> {
     }
 
     pub fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode {
-            node: self.element.upcast(),
-            chain: PhantomData,
-        }
+        LayoutNode::from_layout_js(self.element.upcast())
     }
 
     pub fn get_state(&self) -> ElementState {
@@ -413,7 +412,7 @@ impl<'le> LayoutElement<'le> {
     }
 
     /// Properly marks nodes as dirty in response to restyle hints.
-    pub fn note_restyle_hint(&self, hint: RestyleHint) {
+    pub fn note_restyle_hint(&self, mut hint: RestyleHint) {
         // Bail early if there's no restyling to do.
         if hint.is_empty() {
             return;
@@ -446,6 +445,11 @@ impl<'le> LayoutElement<'le> {
         // Process hints.
         if hint.contains(RESTYLE_SELF) {
             dirty_node(&node);
+
+            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
+            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
+            // properly. See the explanation in the github issue.
+            hint.insert(RESTYLE_DESCENDANTS);
         }
         if hint.contains(RESTYLE_DESCENDANTS) {
             unsafe { node.set_dirty_descendants(true); }
@@ -464,12 +468,7 @@ impl<'le> LayoutElement<'le> {
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
-    node.downcast().map(|element| {
-        LayoutElement {
-            element: element,
-            chain: PhantomData,
-        }
-    })
+    node.downcast().map(|element| LayoutElement::from_layout_js(element))
 }
 
 macro_rules! state_getter {
