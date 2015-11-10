@@ -26,6 +26,8 @@ use std::str::{CharIndices, FromStr, Split, from_utf8};
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Deserialize, Serialize, Hash, Debug)]
 pub struct DOMString(pub String);
 
+impl !Send for DOMString {}
+
 impl DOMString {
     pub fn new() -> DOMString {
         DOMString(String::new())
