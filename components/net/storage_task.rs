@@ -9,7 +9,6 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
-use util::str::DOMString;
 use util::task::spawn_named;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
@@ -31,8 +30,8 @@ impl StorageTaskFactory for StorageTask {
 
 struct StorageManager {
     port: IpcReceiver<StorageTaskMsg>,
-    session_data: HashMap<String, (usize, BTreeMap<DOMString, DOMString>)>,
-    local_data: HashMap<String, (usize, BTreeMap<DOMString, DOMString>)>,
+    session_data: HashMap<String, (usize, BTreeMap<String, String>)>,
+    local_data: HashMap<String, (usize, BTreeMap<String, String>)>,
 }
 
 impl StorageManager {
@@ -78,7 +77,7 @@ impl StorageManager {
     }
 
     fn select_data(&self, storage_type: StorageType)
-                   -> &HashMap<String, (usize, BTreeMap<DOMString, DOMString>)> {
+                   -> &HashMap<String, (usize, BTreeMap<String, String>)> {
         match storage_type {
             StorageType::Session => &self.session_data,
             StorageType::Local => &self.local_data
@@ -86,7 +85,7 @@ impl StorageManager {
     }
 
     fn select_data_mut(&mut self, storage_type: StorageType)
-                       -> &mut HashMap<String, (usize, BTreeMap<DOMString, DOMString>)> {
+                       -> &mut HashMap<String, (usize, BTreeMap<String, String>)> {
         match storage_type {
             StorageType::Session => &mut self.session_data,
             StorageType::Local => &mut self.local_data
@@ -100,7 +99,7 @@ impl StorageManager {
     }
 
     fn key(&self,
-           sender: IpcSender<Option<DOMString>>,
+           sender: IpcSender<Option<String>>,
            url: Url,
            storage_type: StorageType,
            index: u32) {
@@ -113,7 +112,7 @@ impl StorageManager {
     }
 
     fn keys(&self,
-            sender: IpcSender<Vec<DOMString>>,
+            sender: IpcSender<Vec<String>>,
             url: Url,
             storage_type: StorageType) {
         let origin = self.origin_as_string(url);
@@ -129,11 +128,11 @@ impl StorageManager {
     /// otherwise sends Err(()) to indicate that the operation would result in
     /// exceeding the quota limit
     fn set_item(&mut self,
-                sender: IpcSender<Result<(bool, Option<DOMString>), ()>>,
+                sender: IpcSender<Result<(bool, Option<String>), ()>>,
                 url: Url,
                 storage_type: StorageType,
-                name: DOMString,
-                value: DOMString) {
+                name: String,
+                value: String) {
         let origin = self.origin_as_string(url);
 
         let current_total_size = {
@@ -175,23 +174,23 @@ impl StorageManager {
     }
 
     fn request_item(&self,
-                sender: IpcSender<Option<DOMString>>,
+                sender: IpcSender<Option<String>>,
                 url: Url,
                 storage_type: StorageType,
-                name: DOMString) {
+                name: String) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
                     .and_then(|&(_, ref entry)| entry.get(&name))
-                    .map(|value| DOMString(value.to_string()))).unwrap();
+                    .map(String::clone)).unwrap();
     }
 
     /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None
     fn remove_item(&mut self,
-                   sender: IpcSender<Option<DOMString>>,
+                   sender: IpcSender<Option<String>>,
                    url: Url,
                    storage_type: StorageType,
-                   name: DOMString) {
+                   name: String) {
         let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         let old_value = data.get_mut(&origin).and_then(|&mut (ref mut total, ref mut entry)| {
