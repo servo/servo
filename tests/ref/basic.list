@@ -35,8 +35,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 
 # inline_border_a.html inline_border_b.html
-== jpeg_normal.html jpeg_ref.html
-== jpeg_progressive.html jpeg_ref.html
 == legacy_cellspacing_attribute_a.html border_spacing_ref.html
 == legacy_td_width_attribute_a.html legacy_td_width_attribute_ref.html
 == legacy_th_width_attribute_a.html legacy_td_width_attribute_ref.html

@@ -2171,6 +2171,30 @@
             "url": "/_mozilla/css/issue-1324.html"
           }
         ],
+        "css/jpeg_normal.html": [
+          {
+            "path": "css/jpeg_normal.html",
+            "references": [
+              [
+                "/_mozilla/css/jpeg_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/jpeg_normal.html"
+          }
+        ],
+        "css/jpeg_progressive.html": [
+          {
+            "path": "css/jpeg_progressive.html",
+            "references": [
+              [
+                "/_mozilla/css/jpeg_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/jpeg_progressive.html"
+          }
+        ],
         "css/jumpiness_a.html": [
           {
             "path": "css/jumpiness_a.html",
@@ -7210,6 +7234,30 @@
             ]
           ],
           "url": "/_mozilla/css/issue-1324.html"
+        }
+      ],
+      "css/jpeg_normal.html": [
+        {
+          "path": "css/jpeg_normal.html",
+          "references": [
+            [
+              "/_mozilla/css/jpeg_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/jpeg_normal.html"
+        }
+      ],
+      "css/jpeg_progressive.html": [
+        {
+          "path": "css/jpeg_progressive.html",
+          "references": [
+            [
+              "/_mozilla/css/jpeg_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/jpeg_progressive.html"
         }
       ],
       "css/jumpiness_a.html": [
