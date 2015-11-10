@@ -958,8 +958,7 @@ impl XMLHttpRequest {
         struct ScheduledXHRTimeout {
             #[ignore_heap_size_of = "Cannot calculate Heap size"]
             target: Box<ScriptChan + Send>,
-            // FIXME this should be doable without Trusted now
-            #[ignore_heap_size_of = "FIXME (see above)"]
+            #[ignore_heap_size_of = "Because it is non-owning"]
             xhr: Trusted<XMLHttpRequest>,
             generation_id: GenerationId,
         }
