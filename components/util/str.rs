@@ -173,7 +173,7 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     })
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f32),
