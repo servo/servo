@@ -1763,6 +1763,18 @@
             "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
           }
         ],
+        "css/inline_background_a.html": [
+          {
+            "path": "css/inline_background_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_background_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_background_a.html"
+          }
+        ],
         "css/inline_block_baseline_a.html": [
           {
             "path": "css/inline_block_baseline_a.html",
@@ -6694,6 +6706,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
+        }
+      ],
+      "css/inline_background_a.html": [
+        {
+          "path": "css/inline_background_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_background_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_background_a.html"
         }
       ],
       "css/inline_block_baseline_a.html": [
