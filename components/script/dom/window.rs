@@ -969,7 +969,8 @@ impl Window {
             return
         }
 
-        self.force_reflow(goal, query_type, reason)
+        self.force_reflow(goal, query_type, reason);
+        assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
     }
 
     pub fn layout(&self) -> &LayoutRPC {
