@@ -54,7 +54,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
 use std::net::{Shutdown, TcpListener, TcpStream};
-use std::sync::mpsc::{Receiver, RecvError, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 use util::task::spawn_named;
