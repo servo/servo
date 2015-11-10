@@ -3119,6 +3119,18 @@
             "url": "/_mozilla/css/quotes_simple_a.html"
           }
         ],
+        "css/restyle_hints_attr.html": [
+          {
+            "path": "css/restyle_hints_attr.html",
+            "references": [
+              [
+                "/_mozilla/css/restyle_hints_attr_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/restyle_hints_attr.html"
+          }
+        ],
         "css/restyle_hints_state.html": [
           {
             "path": "css/restyle_hints_state.html",
@@ -8050,6 +8062,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/restyle_hints_attr.html": [
+        {
+          "path": "css/restyle_hints_attr.html",
+          "references": [
+            [
+              "/_mozilla/css/restyle_hints_attr_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/restyle_hints_attr.html"
         }
       ],
       "css/restyle_hints_state.html": [
