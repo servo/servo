@@ -71,6 +71,7 @@ pub mod sandboxing;
 mod scrolling;
 mod surface_map;
 mod timer_scheduler;
+mod touch;
 pub mod windowing;
 
 /// Messages from the compositor to the constellation.
