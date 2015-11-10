@@ -41,10 +41,7 @@ impl HTMLHRElementMethods for HTMLHRElement {
     make_getter!(Color);
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
-    fn SetColor(&self, value: DOMString) {
-        self.upcast::<Element>()
-            .set_attribute(&atom!("color"), AttrValue::from_legacy_color(value));
-    }
+    make_legacy_color_setter!(SetColor, "color");
 }
 
 pub trait HTMLHRLayoutHelpers {
