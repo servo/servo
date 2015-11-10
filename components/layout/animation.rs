@@ -9,12 +9,12 @@ use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
 use layout_task::{LayoutTask, LayoutTaskData};
-use msg::constellation_msg::{AnimationState, Msg, PipelineId};
+use msg::constellation_msg::{AnimationState, ConstellationChan, Msg, PipelineId};
 use script::layout_interface::Animation;
 use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use style::animation::{GetMod, PropertyAnimation};
 use style::properties::ComputedValues;
@@ -50,13 +50,16 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Mutex<Sender<Anim
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed.
-pub fn update_animation_state(rw_data: &mut LayoutTaskData, pipeline_id: PipelineId) {
+pub fn update_animation_state(constellation_chan: &ConstellationChan,
+                              running_animations: &mut Arc<HashMap<OpaqueNode, Vec<Animation>>>,
+                              new_animations_receiver: &Receiver<Animation>,
+                              pipeline_id: PipelineId) {
     let mut new_running_animations = Vec::new();
-    while let Ok(animation) = rw_data.new_animations_receiver.try_recv() {
+    while let Ok(animation) = new_animations_receiver.try_recv() {
         new_running_animations.push(animation)
     }
 
-    let mut running_animations_hash = (*rw_data.running_animations).clone();
+    let mut running_animations_hash = (**running_animations).clone();
 
     if running_animations_hash.is_empty() && new_running_animations.is_empty() {
         // Nothing to do. Return early so we don't flood the compositor with
@@ -89,20 +92,18 @@ pub fn update_animation_state(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
         }
     }
 
-    rw_data.running_animations = Arc::new(running_animations_hash);
+    *running_animations = Arc::new(running_animations_hash);
 
     let animation_state;
-    if rw_data.running_animations.is_empty() {
+    if running_animations.is_empty() {
         animation_state = AnimationState::NoAnimationsPresent;
     } else {
         animation_state = AnimationState::AnimationsPresent;
     }
 
-    rw_data.constellation_chan
-           .0
-           .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
-           .unwrap();
-
+    constellation_chan.0
+                      .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
+                      .unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
@@ -139,7 +140,7 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
 }
 
 /// Handles animation updates.
-pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskData) {
+pub fn tick_all_animations(layout_task: &mut LayoutTask, rw_data: &mut LayoutTaskData) {
     layout_task.tick_animations(rw_data);
 
     layout_task.script_chan

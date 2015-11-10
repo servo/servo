@@ -13,10 +13,6 @@ energy-profiling = ["energymon", "energy-monitor"]
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies.energymon]
 git = "https://github.com/energymon/energymon-rust.git"
 rev = "eba1d8a"
