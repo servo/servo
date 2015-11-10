@@ -806,17 +806,17 @@ impl Node {
     pub fn summarize(&self) -> NodeInfo {
         NodeInfo {
             uniqueId: self.get_unique_id(),
-            baseURI: self.BaseURI(),
+            baseURI: String::from(self.BaseURI()),
             parent: self.GetParentNode().map(|node| node.get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType(),
-            namespaceURI: DOMString::new(), //FIXME
-            nodeName: self.NodeName(),
+            namespaceURI: String::new(), //FIXME
+            nodeName: String::from(self.NodeName()),
             numChildren: self.ChildNodes().Length() as usize,
 
             //FIXME doctype nodes only
-            name: DOMString::new(),
-            publicId: DOMString::new(),
-            systemId: DOMString::new(),
+            name: String::new(),
+            publicId: String::new(),
+            systemId: String::new(),
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
 
             isDocumentElement:
@@ -825,7 +825,7 @@ impl Node {
                     .map(|elem| elem.upcast::<Node>() == self)
                     .unwrap_or(false),
 
-            shortValue: self.GetNodeValue().unwrap_or(DOMString::new()), //FIXME: truncate
+            shortValue: self.GetNodeValue().map(String::from).unwrap_or(String::new()), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
     }

@@ -85,7 +85,7 @@ impl Worker {
                 let pipeline_id = global.pipeline();
                 let title = format!("Worker for {}", worker_url);
                 let page_info = DevtoolsPageInfo {
-                    title: DOMString(title),
+                    title: title,
                     url: worker_url.clone(),
                 };
                 chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
