@@ -48,8 +48,8 @@ use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
-use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
+use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
@@ -217,8 +217,6 @@ impl RawLayoutElementHelpers for Element {
 
 pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
-    #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
     #[allow(unsafe_code)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
@@ -231,8 +229,6 @@ pub trait LayoutElementHelpers {
                                                         -> Option<u32>;
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
     fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
     fn local_name(&self) -> &Atom;
@@ -244,15 +240,6 @@ pub trait LayoutElementHelpers {
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
-    #[allow(unsafe_code)]
-    #[inline]
-    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
-                                      -> Option<Atom> {
-        get_attr_for_layout(&*self.unsafe_get(), namespace, name).and_then(|attr| {
-            attr.value_atom_forever()
-        })
-    }
-
     #[allow(unsafe_code)]
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
@@ -280,9 +267,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
-            (*this.unsafe_get()).get_background_color()
+            this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
-            (*this.unsafe_get()).get_background_color()
+            this.get_background_color()
         } else {
             None
         };
@@ -536,11 +523,6 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             return false
         }
         self.upcast::<Node>().owner_doc_for_layout().is_html_document_for_layout()
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
-        get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
     }
 
     #[allow(unsafe_code)]
