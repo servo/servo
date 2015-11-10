@@ -35,13 +35,12 @@ use rustc_serialize::{Decodable, Decoder};
 use std::net::TcpStream;
 use time::Duration;
 use url::Url;
-use util::str::DOMString;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
 #[derive(Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
-    pub title: DOMString,
+    pub title: String,
     pub url: Url
 }
 
@@ -102,22 +101,22 @@ pub struct AttrInfo {
 #[derive(Deserialize, Serialize)]
 pub struct NodeInfo {
     pub uniqueId: String,
-    pub baseURI: DOMString,
+    pub baseURI: String,
     pub parent: String,
     pub nodeType: u16,
-    pub namespaceURI: DOMString,
-    pub nodeName: DOMString,
+    pub namespaceURI: String,
+    pub nodeName: String,
     pub numChildren: usize,
 
-    pub name: DOMString,
-    pub publicId: DOMString,
-    pub systemId: DOMString,
+    pub name: String,
+    pub publicId: String,
+    pub systemId: String,
 
     pub attrs: Vec<AttrInfo>,
 
     pub isDocumentElement: bool,
 
-    pub shortValue: DOMString,
+    pub shortValue: String,
     pub incompleteValue: bool,
 }
 
