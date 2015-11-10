@@ -304,28 +304,4 @@ impl<T: Int, I: RangeIndex<Index=T>> Range<I> {
     pub fn each_index(&self) -> EachIndex<T, I> {
         each_index(self.begin(), self.end())
     }
-
-    #[inline]
-    pub fn is_valid_for_string(&self, s: &str) -> bool {
-        let s_len = s.len();
-        match Int::from_usize(s_len) {
-            Some(len) => {
-                let len = RangeIndex::new(len);
-                self.begin() < len
-                && self.end() <= len
-                && self.length() <= len
-            },
-            None => {
-                debug!("Range<T>::is_valid_for_string: string length \
-                        (len={:?}) is longer than the max value for the range \
-                        index (max={:?})", s_len,
-                        {
-                            let max: T = Int::max_value();
-                            let val: I = RangeIndex::new(max);
-                            val
-                        });
-                false
-            },
-        }
-    }
 }
