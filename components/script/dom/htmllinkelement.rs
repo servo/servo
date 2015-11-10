@@ -17,6 +17,7 @@ use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::htmlelement::HTMLElement;
+use dom::htmliframeelement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
@@ -24,8 +25,8 @@ use encoding::all::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
-use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, MozBrowserEvent};
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
@@ -102,7 +103,7 @@ fn is_favicon(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
             value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("icon"))
+                .any(|s| s.eq_ignore_ascii_case("icon") || s.eq_ignore_ascii_case("apple-touch-icon"))
         },
         None => false,
     }
@@ -124,9 +125,24 @@ impl VirtualMethods for HTMLLinkElement {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
-                    self.handle_favicon_url(&attr.value());
+                    let sizes = get_attr(self.upcast(), &atom!("sizes"));
+                    let href = get_attr(self.upcast(), &atom!("href"));
+                    self.handle_favicon_url(rel.as_ref().unwrap(), href.as_ref().unwrap(), &sizes);
                 }
             },
+            &atom!(size) => {
+                if is_favicon(&rel) {
+                    let href = get_attr(self.upcast(), &atom!("href"));
+                    match href {
+                        Some(ref href) => {
+                            let sizes = get_attr(self.upcast(), &atom!("sizes"));
+                            // FIXME: can't use attr?
+                            self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
+                        },
+                        _ => {}
+                    }
+                }
+            }
             &atom!(media) => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
@@ -153,13 +169,14 @@ impl VirtualMethods for HTMLLinkElement {
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
+            let sizes = get_attr(element, &atom!("sizes"));
 
-            match (rel, href) {
-                (ref rel, Some(ref href)) if string_is_stylesheet(rel) => {
+            match href {
+                Some(ref href) if string_is_stylesheet(&rel) => {
                     self.handle_stylesheet_url(href);
                 }
-                (ref rel, Some(ref href)) if is_favicon(rel) => {
-                    self.handle_favicon_url(href);
+                Some(ref href) if is_favicon(&rel) => {
+                    self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
                 }
                 _ => {}
             }
@@ -219,7 +236,7 @@ impl HTMLLinkElement {
         }
     }
 
-    fn handle_favicon_url(&self, href: &str) {
+    fn handle_favicon_url(&self, rel: &String, href: &String, sizes: &Option<String>) {
         let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
@@ -227,6 +244,20 @@ impl HTMLLinkElement {
                 let ConstellationChan(ref chan) = window.constellation_chan();
                 let event = ConstellationMsg::NewFavicon(url.clone());
                 chan.send(event).unwrap();
+
+                if htmliframeelement::mozbrowser_enabled() {
+                    if let Some((containing_pipeline_id, subpage_id)) = window.parent_info() {
+                        let event = match *sizes {
+                            Some(ref sizes) => MozBrowserEvent::IconChange(rel.clone(), url.to_string(), sizes.clone()),
+                            None => MozBrowserEvent::IconChange(rel.clone(), url.to_string(), "".to_owned())
+                        };
+                        let event_msg = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
+                                                                          subpage_id,
+                                                                          event);
+                        chan.send(event_msg).unwrap();
+                    }
+                }
+
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

@@ -24,6 +24,12 @@ callback BrowserElementNextPaintEventCallback = void ();
 interface BrowserElement {
 };
 
+dictionary BrowserElementIconChangeEventDetail {
+  DOMString rel;
+  DOMString href;
+  DOMString sizes;
+};
+
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 
