@@ -1634,7 +1634,7 @@ impl ScriptTask {
 
         let content_type = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                Some(DOMString("text/plain".to_owned()))
+                Some(DOMString::from("text/plain"))
             }
             _ => None
         };
@@ -1702,7 +1702,7 @@ impl ScriptTask {
         document.get_current_parser().unwrap()
     }
 
-    fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
+    fn notify_devtools(&self, title: String, url: Url, ids: (PipelineId, Option<WorkerId>)) {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
                 title: title,
@@ -1924,7 +1924,7 @@ impl ScriptTask {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
         let uievent = UIEvent::new(window.r(),
-                                   DOMString("resize".to_owned()), EventBubbles::DoesNotBubble,
+                                   DOMString::from("resize"), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32);
         uievent.upcast::<Event>().fire(window.upcast());
@@ -2004,7 +2004,7 @@ impl ScriptTask {
         // Notify devtools that a new script global exists.
         //TODO: should this happen as soon as the global is created, or at least once the first
         // script runs?
-        self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
+        self.notify_devtools(String::from(document.Title()), (*final_url).clone(), (id, None));
     }
 }
 
