@@ -91,12 +91,15 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
-    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
-        let node = LayoutJS::from_trusted_node_address(*address);
+    pub fn from_layout_js(n: LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
-            node: node,
+            node: n,
             chain: PhantomData,
         }
+    }
+
+    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
+        LayoutNode::from_layout_js(LayoutJS::from_trusted_node_address(*address))
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
@@ -215,12 +218,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
-        self.node.downcast().map(|document| {
-            LayoutDocument {
-                document: document,
-                chain: PhantomData,
-            }
-        })
+        self.node.downcast().map(|document| LayoutDocument::from_layout_js(document))
     }
 
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
@@ -363,11 +361,15 @@ pub struct LayoutDocument<'le> {
 }
 
 impl<'le> LayoutDocument<'le> {
-    pub fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode {
-            node: self.document.upcast(),
+    pub fn from_layout_js(doc: LayoutJS<Document>) -> LayoutDocument<'le> {
+        LayoutDocument {
+            document: doc,
             chain: PhantomData,
         }
+    }
+
+    pub fn as_node(&self) -> LayoutNode<'le> {
+        LayoutNode::from_layout_js(self.document.upcast())
     }
 
     pub fn root_node(&self) -> Option<LayoutNode<'le>> {
@@ -376,11 +378,7 @@ impl<'le> LayoutDocument<'le> {
 
     pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementSnapshot)> {
         let elements =  unsafe { self.document.drain_modified_elements() };
-        elements.into_iter().map(|(el, snapshot)|
-            (LayoutElement {
-                element: el,
-                chain: PhantomData,
-            }, snapshot)).collect()
+        elements.into_iter().map(|(el, snapshot)| (LayoutElement::from_layout_js(el), snapshot)).collect()
     }
 }
 
@@ -392,6 +390,13 @@ pub struct LayoutElement<'le> {
 }
 
 impl<'le> LayoutElement<'le> {
+    pub fn from_layout_js(el: LayoutJS<Element>) -> LayoutElement<'le> {
+        LayoutElement {
+            element: el,
+            chain: PhantomData,
+        }
+    }
+
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         unsafe {
             &*self.element.style_attribute()
@@ -399,10 +404,7 @@ impl<'le> LayoutElement<'le> {
     }
 
     pub fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode {
-            node: self.element.upcast(),
-            chain: PhantomData,
-        }
+        LayoutNode::from_layout_js(self.element.upcast())
     }
 
     pub fn get_state(&self) -> ElementState {
@@ -466,12 +468,7 @@ impl<'le> LayoutElement<'le> {
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
-    node.downcast().map(|element| {
-        LayoutElement {
-            element: element,
-            chain: PhantomData,
-        }
-    })
+    node.downcast().map(|element| LayoutElement::from_layout_js(element))
 }
 
 macro_rules! state_getter {
