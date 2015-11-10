@@ -65,6 +65,24 @@ impl<'a> PartialEq<&'a str> for DOMString {
     }
 }
 
+impl From<String> for DOMString {
+    fn from(contents: String) -> DOMString {
+        DOMString(contents)
+    }
+}
+
+impl<'a> From<&'a str> for DOMString {
+    fn from(contents: &str) -> DOMString {
+        DOMString::from(String::from(contents))
+    }
+}
+
+impl From<DOMString> for String {
+    fn from(contents: DOMString) -> String {
+        contents.0
+    }
+}
+
 impl Into<Vec<u8>> for DOMString {
     fn into(self) -> Vec<u8> {
         self.0.into()
