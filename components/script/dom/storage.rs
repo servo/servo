@@ -17,7 +17,6 @@ use ipc_channel::ipc;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use page::IterablePage;
 use script_task::{MainThreadRunnable, MainThreadScriptMsg, ScriptTask};
-use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
 use util::str::DOMString;
@@ -70,21 +69,24 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().map(DOMString::from)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
     fn GetItem(&self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) = ipc::channel().unwrap();
+        let name = String::from(name);
 
         let msg = StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name);
         self.get_storage_task().send(msg).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().map(DOMString::from)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
     fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
+        let name = String::from(name);
+        let value = String::from(value);
 
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -102,6 +104,7 @@ impl StorageMethods for Storage {
     // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
     fn RemoveItem(&self, name: DOMString) {
         let (sender, receiver) = ipc::channel().unwrap();
+        let name = String::from(name);
 
         let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -125,7 +128,7 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().iter().cloned().map(DOMString::from).collect() // FIXME: inefficient?
     }
 
     // check-tidy: no specs after this line
@@ -147,8 +150,8 @@ impl StorageMethods for Storage {
 
 impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    fn broadcast_change_notification(&self, key: Option<DOMString>, old_value: Option<DOMString>,
-                                     new_value: Option<DOMString>) {
+    fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
+                                     new_value: Option<String>) {
         let global_root = self.global.root();
         let global_ref = global_root.r();
         let main_script_chan = global_ref.as_window().main_thread_script_chan();
@@ -162,14 +165,14 @@ impl Storage {
 
 pub struct StorageEventRunnable {
     element: Trusted<Storage>,
-    key: Option<DOMString>,
-    old_value: Option<DOMString>,
-    new_value: Option<DOMString>
+    key: Option<String>,
+    old_value: Option<String>,
+    new_value: Option<String>
 }
 
 impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, key: Option<DOMString>, old_value: Option<DOMString>,
-           new_value: Option<DOMString>) -> StorageEventRunnable {
+    fn new(storage: Trusted<Storage>, key: Option<String>, old_value: Option<String>,
+           new_value: Option<String>) -> StorageEventRunnable {
         StorageEventRunnable { element: storage, key: key, old_value: old_value, new_value: new_value }
     }
 }
@@ -186,10 +189,10 @@ impl MainThreadRunnable for StorageEventRunnable {
 
         let storage_event = StorageEvent::new(
             global_ref,
-            DOMString("storage".to_owned()),
+            DOMString::from("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-            this.key, this.old_value, this.new_value,
-            DOMString(ev_url.to_string()),
+            this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
+            DOMString::from(ev_url.to_string()),
             Some(storage)
         );
 
