@@ -32,7 +32,6 @@
 //! | sequences               | `Vec<T>`                         |
 //! | union types             | `T`                              |
 
-use core::nonzero::NonZero;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -657,7 +656,7 @@ pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
 pub const DOM_OBJECT_SLOT: u32 = 0;
 
 /// Get the private pointer of a DOM object from a given reflector.
-unsafe fn private_from_reflector(obj: *mut JSObject) -> *const libc::c_void {
+pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
     let clasp = JS_GetClass(obj);
     let value = if is_dom_class(clasp) {
         JS_GetReservedSlot(obj, DOM_OBJECT_SLOT)
@@ -670,11 +669,6 @@ unsafe fn private_from_reflector(obj: *mut JSObject) -> *const libc::c_void {
     } else {
         value.to_private()
     }
-}
-
-/// Get the DOM object from the given reflector.
-pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
-    private_from_reflector(obj) as *const T
 }
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
@@ -727,10 +721,18 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject, proto_check: F
 
     if proto_check(dom_class) {
         debug!("good prototype");
-        Ok(private_from_reflector(obj))
+        Ok(private_from_object(obj))
     } else {
         debug!("bad prototype");
         Err(())
+    }
+}
+
+fn native_from_object<T>(obj: *mut JSObject) -> Result<*const T, ()>
+    where T: Reflectable + IDLInterface
+{
+    unsafe {
+        private_from_proto_check(obj, T::derives).map(|ptr| ptr as *const T)
     }
 }
 
@@ -740,28 +742,31 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject, proto_check: F
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn native_from_reflector_jsmanaged<T>(obj: *mut JSObject) -> Result<Root<T>, ()>
+pub fn root_from_object<T>(obj: *mut JSObject) -> Result<Root<T>, ()>
     where T: Reflectable + IDLInterface
 {
-    unsafe {
-        private_from_proto_check(obj, T::derives).map(|obj| {
-            Root::new(NonZero::new(obj as *const T))
-        })
-    }
+    native_from_object(obj).map(|ptr| unsafe { Root::from_ref(&*ptr) })
 }
 
-/// Get a Rooted<T> for a DOM object accessible from a HandleValue
-pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<Root<T>, ()>
+/// Get a `*const T` for a DOM object accessible from a `HandleValue`.
+pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<*const T, ()>
     where T: Reflectable + IDLInterface
 {
-    native_from_reflector_jsmanaged(v.get().to_object())
+    native_from_object(v.get().to_object())
 }
 
-/// Get a Rooted<T> for a DOM object accessible from a HandleObject
-pub fn native_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
+/// Get a `Root<T>` for a DOM object accessible from a `HandleValue`.
+pub fn root_from_handlevalue<T>(v: HandleValue) -> Result<Root<T>, ()>
     where T: Reflectable + IDLInterface
 {
-    native_from_reflector_jsmanaged(obj.get())
+    root_from_object(v.get().to_object())
+}
+
+/// Get a `Root<T>` for a DOM object accessible from a `HandleObject`.
+pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
+    where T: Reflectable + IDLInterface
+{
+    root_from_object(obj.get())
 }
 
 impl<T: Reflectable> ToJSValConvertible for Root<T> {

@@ -102,29 +102,26 @@ numericTags = [
 ]
 
 
-class CastableObjectUnwrapper():
+def unwrapCastableObject(descriptor, source, codeOnFailure, conversionFunction):
     """
-    A class for unwrapping an object named by the "source" argument
-    based on the passed-in descriptor. Stringifies to a Rust expression of
+    A function for unwrapping an object named by the "source" argument
+    based on the passed-in descriptor. Returns the string of the Rust expression of
     the appropriate type.
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, codeOnFailure, handletype):
-        self.substitution = {
-            "source": source,
-            "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 8).define(),
-            "handletype": handletype,
-        }
-
-    def __str__(self):
-        return string.Template("""\
-match native_from_handle${handletype}(${source}) {
+    args = {
+        "failureCode": CGIndenter(CGGeneric(codeOnFailure), 8).define(),
+        "function": conversionFunction,
+        "source": source,
+    }
+    return """\
+match %(function)s(%(source)s) {
     Ok(val) => val,
     Err(()) => {
-${codeOnFailure}
+%(failureCode)s
     }
-}""").substitute(self.substitution)
+}""" % args
 
 
 # We'll want to insert the indent at the beginnings of lines, but we
@@ -436,14 +433,12 @@ class CGMethodCall(CGThing):
                         type, descriptor, failureCode="break;", isDefinitelyObject=True)
                     template = info.template
                     declType = info.declType
-                    needsRooting = info.needsRooting
 
                     testCode = instantiateJSToNativeConversionTemplate(
                         template,
                         {"val": distinguishingArg},
                         declType,
-                        "arg%d" % distinguishingIndex,
-                        needsRooting)
+                        "arg%d" % distinguishingIndex)
 
                     # Indent by 4, since we need to indent further than our "do" statement
                     caseBody.append(CGIndenter(testCode, 4))
@@ -759,12 +754,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
             return handleOptional(template, declType, handleDefaultNull("None"))
 
-        if isMember:
-            descriptorType = descriptor.memberType
+        conversionFunction = "root_from_handlevalue"
+        descriptorType = descriptor.returnType
+        if isMember == "Variadic":
+            conversionFunction = "native_from_handlevalue"
+            descriptorType = descriptor.nativeType
         elif isArgument:
             descriptorType = descriptor.argumentType
-        else:
-            descriptorType = descriptor.nativeType
 
         templateBody = ""
         if descriptor.interface.isConsequential():
@@ -784,8 +780,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             unwrapFailureCode = failureCode
 
-        templateBody = str(
-            CastableObjectUnwrapper(descriptor, "${val}", unwrapFailureCode, "value"))
+        templateBody = unwrapCastableObject(
+            descriptor, "${val}", unwrapFailureCode, conversionFunction)
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
@@ -1079,7 +1075,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
 
 def instantiateJSToNativeConversionTemplate(templateBody, replacements,
-                                            declType, declName, needsRooting):
+                                            declType, declName):
     """
     Take the templateBody and declType as returned by
     getJSToNativeConversionInfo, a set of replacements as required by the
@@ -1165,7 +1161,6 @@ class CGArgumentConverter(CGThing):
         template = info.template
         default = info.default
         declType = info.declType
-        needsRooting = info.needsRooting
 
         if not argument.variadic:
             if argument.optional:
@@ -1184,40 +1179,32 @@ class CGArgumentConverter(CGThing):
                 assert not default
 
             self.converter = instantiateJSToNativeConversionTemplate(
-                template, replacementVariables, declType, "arg%d" % index,
-                needsRooting)
+                template, replacementVariables, declType, "arg%d" % index)
         else:
             assert argument.optional
             variadicConversion = {
                 "val": string.Template("${args}.get(variadicArg)").substitute(replacer),
             }
-            innerConverter = instantiateJSToNativeConversionTemplate(
-                template, variadicConversion, declType, "slot",
-                needsRooting)
+            innerConverter = [instantiateJSToNativeConversionTemplate(
+                template, variadicConversion, declType, "slot")]
 
-            seqType = CGTemplatedType("Vec", declType)
+            arg = "arg%d" % index
+            vec = "Vec::with_capacity((%(argc)s - %(index)s) as usize)" % {'argc': argc, 'index': index}
 
-            variadicConversion = string.Template(
-                "let mut vector: ${seqType} = Vec::with_capacity((${argc} - ${index}) as usize);\n"
-                "for variadicArg in ${index}..${argc} {\n"
-                "${inner}\n"
-                "    vector.push(slot);\n"
-                "}\n"
-                "vector"
-            ).substitute({
-                "index": index,
-                "argc": argc,
-                "seqType": seqType.define(),
-                "inner": CGIndenter(innerConverter, 4).define(),
-            })
+            if argument.type.isGeckoInterface():
+                code = "let mut %s = RootedVec::new();\n*%s = %s;\n" % (arg, arg, vec)
+                innerConverter.append(CGGeneric("%s.push(JS::from_ref(&*slot));" % arg))
+            else:
+                code = "let mut %s = %s;\n" % (arg, vec)
+                innerConverter.append(CGGeneric("%s.push(slot);" % arg))
+            inner = CGIndenter(CGList(innerConverter, "\n"), 4).define()
 
-            variadicConversion = CGIfElseWrapper(condition,
-                                                 CGGeneric(variadicConversion),
-                                                 CGGeneric("Vec::new()")).define()
+            code += """\
+for variadicArg in %(index)s..%(argc)s {
+%(inner)s
+}""" % {'argc': argc, 'index': index, 'inner': inner}
 
-            self.converter = instantiateJSToNativeConversionTemplate(
-                variadicConversion, replacementVariables, seqType, "arg%d" % index,
-                False)
+            self.converter = CGGeneric(code)
 
     def define(self):
         return self.converter.define()
@@ -1699,7 +1686,7 @@ class CGImports(CGWrapper):
 
 
 class CGIfWrapper(CGWrapper):
-    def __init__(self, child, condition):
+    def __init__(self, condition, child):
         pre = CGWrapper(CGGeneric(condition), pre="if ", post=" {\n",
                         reindent=True)
         CGWrapper.__init__(self, CGIndenter(child), pre=pre.define(),
@@ -1929,7 +1916,7 @@ class CGList(CGThing):
 
 class CGIfElseWrapper(CGList):
     def __init__(self, condition, ifTrue, ifFalse):
-        kids = [CGIfWrapper(ifTrue, condition),
+        kids = [CGIfWrapper(condition, ifTrue),
                 CGWrapper(CGIndenter(ifFalse), pre=" else {\n", post="\n}")]
         CGList.__init__(self, kids)
 
@@ -1996,7 +1983,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::ConversionBehavior',
-        'dom::bindings::conversions::native_from_handlevalue',
+        'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
@@ -2638,7 +2625,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = ""
             else:
-                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject().get());\n"
+                glob = "        let global = global_root_from_reflector(this);\n"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -2845,7 +2832,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 """)
         return CGList([preamble, self.generate_code()])
 
@@ -3482,7 +3469,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
 
     if type.isGeckoInterface():
         name = type.inner.identifier.name
-        typeName = descriptorProvider.getDescriptor(name).nativeType
+        typeName = descriptorProvider.getDescriptor(name).returnType
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
@@ -3635,7 +3622,7 @@ class CGUnionConversionStruct(CGThing):
         if hasObjectTypes:
             assert interfaceObject
             templateBody = CGList([interfaceObject], "\n")
-            conversions.append(CGIfWrapper(templateBody, "value.get().is_object()"))
+            conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
 
         otherMemberTypes = [
             t for t in memberTypes if t.isPrimitive() or t.isString() or t.isEnum()
@@ -4060,14 +4047,12 @@ class CGProxySpecialOperation(CGPerSignatureCall):
                 exceptionCode="return false;")
             template = info.template
             declType = info.declType
-            needsRooting = info.needsRooting
 
             templateValues = {
                 "val": "value.handle()",
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
-                template, templateValues, declType, argument.identifier.name,
-                needsRooting))
+                template, templateValues, declType, argument.identifier.name))
             self.cgRoot.prepend(CGGeneric("let value = RootedValue::new(cx, desc.get().value);"))
         elif operation.isGetter():
             self.cgRoot.prepend(CGGeneric("let mut found = false;"))
@@ -4090,7 +4075,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             return ""
 
         wrap = CGGeneric(wrapForType(**self.templateValues))
-        wrap = CGIfWrapper(wrap, "found")
+        wrap = CGIfWrapper("found", wrap)
         return "\n" + wrap.define()
 
 
@@ -4532,8 +4517,8 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return CGGeneric("""\
-let this: *const %s = native_from_reflector::<%s>(obj);
-""" % (self.descriptor.concreteType, self.descriptor.concreteType))
+let this = private_from_object(obj) as *const %s;
+""" % self.descriptor.concreteType)
 
     def definition_body(self):
         return CGList([
@@ -4593,7 +4578,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
         name = self._ctor.identifier.name
@@ -4617,7 +4602,7 @@ class CGClassNameConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
         name = self._ctor.identifier.name
@@ -5196,8 +5181,7 @@ class CGBindingRoot(CGThing):
             'js::glue::AppendToAutoIdVector',
             'js::rust::GCMethods',
             'dom::bindings',
-            'dom::bindings::global::GlobalRef',
-            'dom::bindings::global::global_object_for_js_object',
+            'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
@@ -5223,12 +5207,11 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
-            'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBehavior}',
-            'dom::bindings::conversions::{native_from_reflector, native_from_handlevalue, native_from_handleobject}',
-            'dom::bindings::conversions::DOM_OBJECT_SLOT',
-            'dom::bindings::conversions::IDLInterface',
-            'dom::bindings::conversions::jsid_to_str',
-            'dom::bindings::conversions::StringificationBehavior',
+            'dom::bindings::conversions::{ConversionBehavior, DOM_OBJECT_SLOT, IDLInterface}',
+            'dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior}',
+            'dom::bindings::conversions::{ToJSValConvertible, jsid_to_str, native_from_handlevalue}',
+            'dom::bindings::conversions::{private_from_object, root_from_object}',
+            'dom::bindings::conversions::{root_from_handleobject, root_from_handlevalue}',
             'dom::bindings::codegen::{PrototypeList, RegisterBindings, UnionTypes}',
             'dom::bindings::codegen::Bindings::*',
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
@@ -5241,6 +5224,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::num::Finite',
             'dom::bindings::str::ByteString',
             'dom::bindings::str::USVString',
+            'dom::bindings::trace::RootedVec',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::str::DOMString',
@@ -5272,7 +5256,10 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     declType = info.declType
 
     if variadic:
-        declType = CGWrapper(declType, pre="Vec<", post=">")
+        if ty.isGeckoInterface():
+            declType = CGWrapper(declType, pre="&[", post="]")
+        else:
+            declType = CGWrapper(declType, pre="Vec<", post=">")
     elif optional and not defaultValue:
         declType = CGWrapper(declType, pre="Option<", post=">")
 
@@ -5595,10 +5582,9 @@ class CallbackMember(CGNativeMember):
             sourceDescription="return value")
         template = info.template
         declType = info.declType
-        needsRooting = info.needsRooting
 
         convertType = instantiateJSToNativeConversionTemplate(
-            template, replacements, declType, "rvalDecl", needsRooting)
+            template, replacements, declType, "rvalDecl")
 
         if self.retvalType is None or self.retvalType.isVoid():
             retval = "()"
@@ -5647,8 +5633,8 @@ class CallbackMember(CGNativeMember):
             ).substitute({"arg": arg.identifier.name})
         elif arg.optional and not arg.defaultValue:
             conversion = (
-                CGIfWrapper(CGGeneric(conversion),
-                            "%s.is_some()" % arg.identifier.name).define() +
+                CGIfWrapper("%s.is_some()" % arg.identifier.name,
+                            CGGeneric(conversion)).define() +
                 " else if argc == %d {\n"
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"

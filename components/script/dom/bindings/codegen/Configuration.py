@@ -157,14 +157,12 @@ class Descriptor(DescriptorProvider):
             ty = "%sBinding::%s" % (ifaceName, ifaceName)
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
-            self.memberType = "???"
             self.nativeType = ty
         else:
             self.needsRooting = True
             self.returnType = "Root<%s>" % ifaceName
             self.argumentType = "&%s" % ifaceName
-            self.memberType = "Root<%s>" % ifaceName
-            self.nativeType = "Root<%s>" % ifaceName
+            self.nativeType = "*const %s" % ifaceName
 
         self.concreteType = ifaceName
         self.register = desc.get('register', True)

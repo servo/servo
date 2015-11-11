@@ -6,12 +6,10 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::native_from_handleobject;
-use dom::bindings::conversions::private_from_proto_check;
-use dom::bindings::conversions::{is_dom_class, jsstring_to_str, DOM_OBJECT_SLOT};
+use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class, jsstring_to_str};
+use dom::bindings::conversions::{private_from_proto_check, root_from_handleobject};
 use dom::bindings::error::{throw_invalid_this, throw_type_error};
 use dom::bindings::inheritance::TopTypeId;
-use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::window;
@@ -625,9 +623,7 @@ pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
 /// Callback to outerize windows.
 pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> *mut JSObject {
     debug!("outerizing");
-    let win: Root<window::Window> = native_from_handleobject(obj).unwrap();
-    // FIXME(https://github.com/rust-lang/rust/issues/23338)
-    let win = win.r();
+    let win = root_from_handleobject::<window::Window>(obj).unwrap();
     let context = win.browsing_context();
     context.as_ref().unwrap().window_proxy()
 }
