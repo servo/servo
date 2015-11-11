@@ -103,7 +103,7 @@ impl HeapSizeOf for String {
 
 impl HeapSizeOf for DOMString {
     fn heap_size_of_children(&self) -> usize {
-        self.0.heap_size_of_children()
+        heap_size_of(self.as_ptr() as *const c_void)
     }
 }
 
