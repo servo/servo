@@ -24,6 +24,13 @@ impl DOMString {
     pub fn new() -> DOMString {
         DOMString(String::new())
     }
+    // FIXME(ajeffrey): implement more of the String methods on DOMString?
+    pub fn push_str(&mut self, string: &str) {
+        self.0.push_str(string)
+    }
+    pub fn clear(&mut self) {
+        self.0.clear()
+    }
 }
 
 impl Deref for DOMString {
@@ -88,6 +95,12 @@ impl From<DOMString> for String {
 impl Into<Vec<u8>> for DOMString {
     fn into(self) -> Vec<u8> {
         self.0.into()
+    }
+}
+
+impl Extend<char> for DOMString {
+    fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
+        self.0.extend(iterable)
     }
 }
 

@@ -186,6 +186,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     vec!(insert)
                 };
 
+                // FIXME(ajeffrey): effecient append for DOMStrings
                 let mut new_line = prefix.to_owned();
                 new_line.push_str(&insert_lines[0]);
                 insert_lines[0] = DOMString::from(new_line);
@@ -194,7 +195,8 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.edit_point.index = insert_lines[last_insert_lines_index].len();
                 self.edit_point.line = begin.line + last_insert_lines_index;
 
-                insert_lines[last_insert_lines_index].0.push_str(suffix);
+                // FIXME(ajeffrey): effecient append for DOMStrings
+                insert_lines[last_insert_lines_index].push_str(suffix);
 
                 let mut new_lines = vec!();
                 new_lines.push_all(lines_prefix);
