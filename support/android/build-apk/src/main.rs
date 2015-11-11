@@ -194,22 +194,7 @@ fn main() {
             process::exit(1);
         }
                  
-        let aligncmd = Command::new(sdk_path.join("tools").join("zipalign"))
-                                  .arg("-f")
-                                  .arg("-v")
-                                  .arg("4")
-                                  .arg(&directory.join("bin").join("Servo-release-unsigned.apk"))
-                                  .arg(&directory.join("bin").join("Servo-release.apk"))
-                                  .stdout(Stdio::inherit())
-                                  .stderr(Stdio::inherit())
-                                  .current_dir(directory.clone())
-                                  .status();
-        if aligncmd.is_err() || aligncmd.unwrap().code().unwrap() != 0 {
-            println!("Error while using `zipalign` to sign the APK.");
-            process::exit(1);
-        }
-        
-        fs::copy(&directory.join("bin").join("Servo-release.apk"),
+        fs::copy(&directory.join("bin").join("Servo-release-unsigned.apk"),
                  &args.output).unwrap();
     }
 
