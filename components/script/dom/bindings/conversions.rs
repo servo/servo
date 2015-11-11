@@ -38,16 +38,15 @@ use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{ByteString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::DOMClass;
 use js;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JS_GetClass};
+use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
-use js::jsapi::{JS_NewArrayObject, HandleValueArray, RootedValue};
+use js::jsapi::{JS_NewArrayObject1, JS_DefineElement, RootedValue, RootedObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_StringHasLatin1Chars, JS_WrapValue};
 use js::jsval::{BooleanValue, Int32Value, NullValue, UInt32Value, UndefinedValue};
 use js::jsval::{JSVal, ObjectOrNullValue, ObjectValue, StringValue};
@@ -58,7 +57,7 @@ use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
 use std::rc::Rc;
-use std::{char, mem, ptr, slice};
+use std::{char, ptr, slice};
 use util::str::DOMString;
 
 trait As<O>: Copy {
@@ -815,30 +814,24 @@ impl<T: FromJSValConvertible> FromJSValConvertible for Option<T> {
 
 impl<T: ToJSValConvertible> ToJSValConvertible for Vec<T> {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        let mut js_objects = RootedVec::new();
+        let js_array = RootedObject::new(cx,
+                                         unsafe { JS_NewArrayObject1(cx, self.len() as libc::size_t) });
+        assert!(!js_array.handle().get().is_null());
 
-        for obj in self.iter() {
-            let mut heap = Heap::default();
+        for index in 0..self.len() {
+            let ref obj = self[index];
+
             let mut val = RootedValue::new(cx, UndefinedValue());
             obj.to_jsval(cx, val.handle_mut());
-            heap.set(val.handle().get());
-            js_objects.push(heap);
+
+            unsafe {
+                assert!(JS_DefineElement(cx, js_array.handle(),
+                                         index as u32, val.handle(), js::JSPROP_ENUMERATE, None, None));
+            }
         }
 
-        let values: Vec<JSVal> = js_objects.iter()
-                                           .map(|heap| heap.handle().get())
-                                           .collect();
-
-        let handle = HandleValueArray {
-            length_: values.len() as u64,
-            elements_: values.as_ptr(),
-        };
-
         unsafe {
-            let js_array = JS_NewArrayObject(cx, &handle);
-            assert!(!js_array.is_null());
-
-            rval.set(ObjectValue(mem::transmute(js_array)));
+            rval.set(ObjectValue(&*js_array.handle().get()));
         }
     }
 }
