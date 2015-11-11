@@ -102,7 +102,6 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
             ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
             ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
-            ProfilerCategory::ScriptXhrEvent => "Script Xhr Event",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)
