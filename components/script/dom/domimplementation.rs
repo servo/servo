@@ -22,7 +22,6 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#domimplementation
@@ -109,7 +108,7 @@ impl DOMImplementationMethods for DOMImplementation {
         {
             // Step 3.
             let doc_node = doc.upcast::<Node>();
-            let doc_type = DocumentType::new(DOMString("html".to_owned()), None, None, doc.r());
+            let doc_type = DocumentType::new(DOMString::from("html"), None, None, doc.r());
             doc_node.AppendChild(doc_type.upcast()).unwrap();
         }
 
@@ -117,13 +116,13 @@ impl DOMImplementationMethods for DOMImplementation {
             // Step 4.
             let doc_node = doc.upcast::<Node>();
             let doc_html = Root::upcast::<Node>(
-                HTMLHtmlElement::new(DOMString("html".to_owned()), None, doc.r()));
+                HTMLHtmlElement::new(DOMString::from("html"), None, doc.r()));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
                 let doc_head = Root::upcast::<Node>(
-                    HTMLHeadElement::new(DOMString("head".to_owned()), None, doc.r()));
+                    HTMLHeadElement::new(DOMString::from("head"), None, doc.r()));
                 doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
@@ -132,7 +131,7 @@ impl DOMImplementationMethods for DOMImplementation {
                     Some(title_str) => {
                         // Step 6.1.
                         let doc_title = Root::upcast::<Node>(
-                            HTMLTitleElement::new(DOMString("title".to_owned()), None, doc.r()));
+                            HTMLTitleElement::new(DOMString::from("title"), None, doc.r()));
                         doc_head.AppendChild(&doc_title).unwrap();
 
                         // Step 6.2.
@@ -143,7 +142,7 @@ impl DOMImplementationMethods for DOMImplementation {
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(DOMString("body".to_owned()), None, doc.r());
+            let doc_body = HTMLBodyElement::new(DOMString::from("body"), None, doc.r());
             doc_html.AppendChild(doc_body.upcast()).unwrap();
         }
 

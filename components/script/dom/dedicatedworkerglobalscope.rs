@@ -264,7 +264,7 @@ impl DedicatedWorkerGlobalScope {
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
-                scope.execute_script(DOMString(source));
+                scope.execute_script(DOMString::from(source));
             }
 
             let reporter_name = format!("worker-reporter-{}", random::<u64>());

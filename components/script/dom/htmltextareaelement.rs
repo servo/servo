@@ -28,7 +28,6 @@ use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use selectors::states::*;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
 use textinput::{KeyReaction, Lines, TextInput};
@@ -63,7 +62,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
-        (*self.unsafe_get()).textinput.borrow_for_layout().get_content().0
+        String::from((*self.unsafe_get()).textinput.borrow_for_layout().get_content())
     }
 
     #[allow(unrooted_must_root)]
@@ -174,7 +173,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-type
     fn Type(&self) -> DOMString {
-        DOMString("textarea".to_owned())
+        DOMString::from("textarea")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
@@ -238,7 +237,7 @@ impl HTMLTextAreaElement {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               DOMString("input".to_owned()),
+                               DOMString::from("input"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
 

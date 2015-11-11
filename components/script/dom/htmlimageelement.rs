@@ -25,7 +25,6 @@ use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponder, ImageResponse};
 use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan};
-use std::borrow::ToOwned;
 use std::sync::Arc;
 use string_cache::Atom;
 use url::{Url, UrlParser};
@@ -79,7 +78,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Fire image.onload
         let window = window_from_node(document.r());
         let event = Event::new(GlobalRef::Window(window.r()),
-                               DOMString("load".to_owned()),
+                               DOMString::from("load"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(element.upcast());
@@ -149,7 +148,7 @@ impl HTMLImageElement {
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let image = HTMLImageElement::new(DOMString("img".to_owned()), None, document.r());
+        let image = HTMLImageElement::new(DOMString::from("img"), None, document.r());
         if let Some(w) = width {
             image.SetWidth(w);
         }
@@ -295,7 +294,8 @@ impl VirtualMethods for HTMLImageElement {
         match attr.local_name() {
             &atom!(src) => {
                 self.update_image(mutation.new_value(attr).map(|value| {
-                    (DOMString((**value).to_owned()), window_from_node(self).get_url())
+                    // FIXME(ajeffrey): convert directly from AttrValue to DOMString
+                    (DOMString::from(&**value), window_from_node(self).get_url())
                 }));
             },
             _ => {},

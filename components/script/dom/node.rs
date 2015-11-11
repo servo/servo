@@ -1710,13 +1710,14 @@ impl Node {
                 None => (),
             }
         }
-        DOMString(content)
+        DOMString::from(content)
     }
 
     pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!("") => None,
-            Namespace(ref ns) => Some(DOMString((**ns).to_owned()))
+            // FIXME(ajeffrey): convert directly from &Atom to DOMString
+            Namespace(ref ns) => Some(DOMString::from(&**ns))
         }
     }
 
@@ -1812,16 +1813,16 @@ impl NodeMethods for Node {
             NodeTypeId::Element(..) => {
                 self.downcast::<Element>().unwrap().TagName()
             }
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => DOMString("#text".to_owned()),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => DOMString::from("#text"),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 self.downcast::<ProcessingInstruction>().unwrap().Target()
             }
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => DOMString("#comment".to_owned()),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => DOMString::from("#comment"),
             NodeTypeId::DocumentType => {
                 self.downcast::<DocumentType>().unwrap().name().clone()
             },
-            NodeTypeId::DocumentFragment => DOMString("#document-fragment".to_owned()),
-            NodeTypeId::Document => DOMString("#document".to_owned())
+            NodeTypeId::DocumentFragment => DOMString::from("#document-fragment"),
+            NodeTypeId::Document => DOMString::from("#document")
         }
     }
 

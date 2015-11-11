@@ -83,11 +83,11 @@ impl TextMethods for Text {
                                          .last().unwrap();
         let nodes = first.inclusively_following_siblings()
                          .take_while(|node| node.is::<Text>());
-        let mut text = DOMString::new();
+        let mut text = String::new();
         for ref node in nodes {
             let cdata = node.downcast::<CharacterData>().unwrap();
-            text.0.push_str(&cdata.data());
+            text.push_str(&cdata.data());
         }
-        text
+        DOMString::from(text)
     }
 }

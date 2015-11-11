@@ -37,7 +37,6 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};
-use std::borrow::ToOwned;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::{cmp, fmt};
@@ -536,10 +535,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(&self) -> DOMString {
         let state = self.state.borrow();
-        DOMString(match state.global_composition {
-            CompositionOrBlending::Composition(op) => op.to_str().to_owned(),
-            CompositionOrBlending::Blending(op) => op.to_str().to_owned(),
-        })
+        match state.global_composition {
+            CompositionOrBlending::Composition(op) => DOMString::from(op.to_str()),
+            CompositionOrBlending::Blending(op) => DOMString::from(op.to_str()),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
@@ -760,7 +759,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(DOMString(result))
+                StringOrCanvasGradientOrCanvasPattern::eString(DOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
@@ -800,7 +799,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(DOMString(result))
+                StringOrCanvasGradientOrCanvasPattern::eString(DOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
@@ -1001,11 +1000,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn LineCap(&self) -> DOMString {
         let state = self.state.borrow();
-        DOMString(match state.line_cap {
-            LineCapStyle::Butt => "butt".to_owned(),
-            LineCapStyle::Round => "round".to_owned(),
-            LineCapStyle::Square => "square".to_owned(),
-        })
+        match state.line_cap {
+            LineCapStyle::Butt => DOMString::from("butt"),
+            LineCapStyle::Round => DOMString::from("round"),
+            LineCapStyle::Square => DOMString::from("square"),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
@@ -1019,11 +1018,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn LineJoin(&self) -> DOMString {
         let state = self.state.borrow();
-        DOMString(match state.line_join {
-            LineJoinStyle::Round => "round".to_owned(),
-            LineJoinStyle::Bevel => "bevel".to_owned(),
-            LineJoinStyle::Miter => "miter".to_owned(),
-        })
+        match state.line_join {
+            LineJoinStyle::Round => DOMString::from("round"),
+            LineJoinStyle::Bevel => DOMString::from("bevel"),
+            LineJoinStyle::Miter => DOMString::from("miter"),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
@@ -1098,7 +1097,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn ShadowColor(&self) -> DOMString {
         let mut result = String::new();
         serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
-        DOMString(result)
+        DOMString::from(result)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor

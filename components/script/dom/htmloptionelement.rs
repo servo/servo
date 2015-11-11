@@ -70,7 +70,8 @@ impl HTMLOptionElement {
     }
 }
 
-fn collect_text(element: &Element, value: &mut DOMString) {
+// FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
+fn collect_text(element: &Element, value: &mut String) {
     let svg_script = *element.namespace() == ns!(SVG) && element.local_name() == &atom!("script");
     let html_script = element.is::<HTMLScriptElement>();
     if svg_script || html_script {
@@ -80,7 +81,7 @@ fn collect_text(element: &Element, value: &mut DOMString) {
     for child in element.upcast::<Node>().children() {
         if child.is::<Text>() {
             let characterdata = child.downcast::<CharacterData>().unwrap();
-            value.0.push_str(&characterdata.Data());
+            value.push_str(&characterdata.Data());
         } else if let Some(element_child) = child.downcast() {
             collect_text(element_child, value);
         }
@@ -96,9 +97,9 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
-        let mut content = DOMString::new();
+        let mut content = String::new();
         collect_text(self.upcast(), &mut content);
-        DOMString(str_join(split_html_space_chars(&content), " "))
+        DOMString::from(str_join(split_html_space_chars(&content), " "))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text

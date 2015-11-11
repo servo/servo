@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
 use util::opts;
 use util::str::DOMString;
 
 pub fn Product() -> DOMString {
-    DOMString("Gecko".to_owned())
+    DOMString::from("Gecko")
 }
 
 pub fn TaintEnabled() -> bool {
@@ -15,32 +14,32 @@ pub fn TaintEnabled() -> bool {
 }
 
 pub fn AppName() -> DOMString {
-    DOMString("Netscape".to_owned()) // Like Gecko/Webkit
+    DOMString::from("Netscape") // Like Gecko/Webkit
 }
 
 pub fn AppCodeName() -> DOMString {
-    DOMString("Mozilla".to_owned())
+    DOMString::from("Mozilla")
 }
 
 #[cfg(target_os = "windows")]
 pub fn Platform() -> DOMString {
-    DOMString("Win32".to_owned())
+    DOMString::from("Win32")
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub fn Platform() -> DOMString {
-    DOMString("Linux".to_owned())
+    DOMString::from("Linux")
 }
 
 #[cfg(target_os = "macos")]
 pub fn Platform() -> DOMString {
-    DOMString("Mac".to_owned())
+    DOMString::from("Mac")
 }
 
 pub fn UserAgent() -> DOMString {
-    DOMString(opts::get().user_agent.clone())
+    DOMString::from(&*opts::get().user_agent)
 }
 
 pub fn AppVersion() -> DOMString {
-    DOMString("4.0".to_owned())
+    DOMString::from("4.0")
 }

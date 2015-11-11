@@ -21,7 +21,6 @@ use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
-use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -153,11 +152,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
     fn Type(&self) -> DOMString {
-        DOMString(if self.Multiple() {
+        DOMString::from(if self.Multiple() {
             "select-multiple"
         } else {
             "select-one"
-        }.to_owned())
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
