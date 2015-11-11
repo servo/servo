@@ -1295,7 +1295,12 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("*mut JSObject")
     if returnType.isSequence():
-        raise TypeError("We don't support sequence return values")
+        inner = returnType.unroll()
+        result = getRetvalDeclarationForType(inner, descriptorProvider)
+        result = CGWrapper(result, pre="Vec<", post=">")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isDictionary():
         nullable = returnType.nullable()
         dictName = returnType.inner.name if nullable else returnType.name

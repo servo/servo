@@ -46,6 +46,7 @@ use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
+use js::jsapi::{JS_NewArrayObject1, JS_DefineElement, RootedValue, RootedObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_StringHasLatin1Chars, JS_WrapValue};
 use js::jsval::{BooleanValue, Int32Value, NullValue, UInt32Value, UndefinedValue};
 use js::jsval::{JSVal, ObjectOrNullValue, ObjectValue, StringValue};
@@ -807,6 +808,28 @@ impl<T: FromJSValConvertible> FromJSValConvertible for Option<T> {
         } else {
             let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
             result.map(Some)
+        }
+    }
+}
+
+impl<T: ToJSValConvertible> ToJSValConvertible for Vec<T> {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let js_array = RootedObject::new(cx,
+                                         unsafe { JS_NewArrayObject1(cx, self.len() as libc::size_t) });
+        assert!(!js_array.handle().is_null());
+
+        for (index, obj) in self.iter().enumerate() {
+            let mut val = RootedValue::new(cx, UndefinedValue());
+            obj.to_jsval(cx, val.handle_mut());
+
+            unsafe {
+                assert!(JS_DefineElement(cx, js_array.handle(),
+                                         index as u32, val.handle(), js::JSPROP_ENUMERATE, None, None));
+            }
+        }
+
+        unsafe {
+            rval.set(ObjectValue(&*js_array.handle().get()));
         }
     }
 }
