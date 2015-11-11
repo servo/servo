@@ -576,10 +576,11 @@ impl VirtualMethods for HTMLInputElement {
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
             &atom!(placeholder) => {
+                // FIXME(ajeffrey): Should we do in-place mutation of the placeholder?
                 let mut placeholder = self.placeholder.borrow_mut();
-                placeholder.0.clear();
+                placeholder.clear();
                 if let AttributeMutation::Set(_) = mutation {
-                    placeholder.0.extend(
+                    placeholder.extend(
                         attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                 }
             },
