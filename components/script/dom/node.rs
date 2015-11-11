@@ -1887,24 +1887,13 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(&self) -> Option<DOMString> {
-        match self.type_id() {
-            NodeTypeId::CharacterData(..) => {
-                let chardata = self.downcast::<CharacterData>().unwrap();
-                Some(chardata.Data())
-            }
-            _ => {
-                None
-            }
-        }
+        self.downcast::<CharacterData>().map(CharacterData::Data)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(&self, val: Option<DOMString>) {
-        match self.type_id() {
-            NodeTypeId::CharacterData(..) => {
-                self.SetTextContent(val)
-            }
-            _ => {}
+        if let NodeTypeId::CharacterData(..) = self.type_id() {
+            self.SetTextContent(val)
         }
     }
 
