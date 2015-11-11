@@ -401,7 +401,7 @@ impl HTMLScriptElement {
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
 
-                (DOMString(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
+                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
                  true,
                  metadata.final_url)
             },
@@ -549,7 +549,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               DOMString(type_),
+                               DOMString::from(type_),
                                bubbles,
                                cancelable);
         event.fire(self.upcast())

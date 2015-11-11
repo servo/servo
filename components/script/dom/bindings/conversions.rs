@@ -458,7 +458,7 @@ pub enum StringificationBehavior {
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     let mut length = 0;
     let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
-    DOMString(if latin1 {
+    DOMString::from(if latin1 {
         let chars = unsafe {
             JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
         };
@@ -555,7 +555,8 @@ impl FromJSValConvertible for USVString {
         }
         let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
-            return Ok(USVString(jsstring_to_str(cx, jsstr).0));
+            // FIXME(ajeffrey): Convert directly from DOMString to USVString
+            return Ok(USVString(String::from(jsstring_to_str(cx, jsstr))));
         }
         unsafe {
             let mut length = 0;

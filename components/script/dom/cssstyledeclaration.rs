@@ -39,10 +39,10 @@ macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
         $(
             fn $getter(&self) -> DOMString {
-                self.GetPropertyValue(DOMString($cssprop.to_owned()))
+                self.GetPropertyValue(DOMString::from($cssprop))
             }
             fn $setter(&self, value: DOMString) -> ErrorResult {
-                self.SetPropertyValue(DOMString($cssprop.to_owned()), value)
+                self.SetPropertyValue(DOMString::from($cssprop), value)
             }
         )*
     );
@@ -131,7 +131,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
         });
 
-        DOMString(result.unwrap_or(String::new()))
+        result.map(DOMString::from).unwrap_or(DOMString::new())
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -165,12 +165,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
 
             // Step 2.3
-            return DOMString(serialize_shorthand(shorthand, &list));
+            return DOMString::from(serialize_shorthand(shorthand, &list));
         }
 
         // Step 3 & 4
         let result = match owner.get_inline_style_declaration(&property) {
-            Some(declaration) => DOMString(declaration.value()),
+            Some(declaration) => DOMString::from(declaration.value()),
             None => DOMString::new(),
         };
         result
@@ -186,15 +186,15 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1 & 2.2 & 2.3
             if shorthand.longhands().iter()
-                                    .map(|&longhand| self.GetPropertyPriority(DOMString(longhand.to_owned())))
+                                    .map(|&longhand| self.GetPropertyPriority(DOMString::from(longhand)))
                                     .all(|priority| priority == "important") {
 
-                return DOMString("important".to_owned());
+                return DOMString::from("important");
             }
         // Step 3
         } else {
             if self.owner.get_important_inline_style_declaration(&property).is_some() {
-                return DOMString("important".to_owned());
+                return DOMString::from("important");
             }
         }
 
@@ -327,12 +327,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(&self) -> DOMString {
-        self.GetPropertyValue(DOMString("float".to_owned()))
+        self.GetPropertyValue(DOMString::from("float"))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue(DOMString("float".to_owned()), value)
+        self.SetPropertyValue(DOMString::from("float"), value)
     }
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

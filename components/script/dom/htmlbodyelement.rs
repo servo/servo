@@ -19,7 +19,6 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use std::borrow::ToOwned;
 use std::rc::Rc;
 use string_cache::Atom;
 use time;
@@ -178,7 +177,8 @@ impl VirtualMethods for HTMLBodyElement {
                 };
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
-                                                      DOMString((**attr.value()).to_owned()));
+                                                      // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
+                                                      DOMString::from(&**attr.value()));
             },
             _ => {}
         }
