@@ -106,7 +106,9 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, name.0, sender))).unwrap();
+        self.renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, String::from(name), sender)))
+            .unwrap();
         Ok(receiver.recv().unwrap())
     }
 
@@ -122,7 +124,9 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, name.0, sender))).unwrap();
+        self.renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, String::from(name), sender)))
+            .unwrap();
         Ok(receiver.recv().unwrap())
     }
 }

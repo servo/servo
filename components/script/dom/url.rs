@@ -188,7 +188,7 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-href
     fn Stringifier(&self) -> DOMString {
-        DOMString(self.Href().0)
+        DOMString::from(self.Href().0)
     }
 
     // https://url.spec.whatwg.org/#dom-url-username

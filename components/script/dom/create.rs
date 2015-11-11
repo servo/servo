@@ -74,26 +74,27 @@ use dom::htmltrackelement::HTMLTrackElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
-use std::borrow::ToOwned;
 use string_cache::{Atom, QualName};
 use util::str::DOMString;
 
 pub fn create_element(name: QualName, prefix: Option<Atom>,
                       document: &Document, creator: ElementCreator)
                       -> Root<Element> {
-    let prefix = prefix.map(|p| DOMString((*p).to_owned()));
+    // FIXME(ajeffrey): Convert directly from Atom to DOMString.
+
+    let prefix = prefix.map(|p| DOMString::from(&*p));
 
     if name.ns != ns!(HTML) {
-        return Element::new(DOMString((*name.local).to_owned()), name.ns, prefix, document);
+        return Element::new(DOMString::from(&*name.local), name.ns, prefix, document);
     }
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(DOMString((*name.local).to_owned()), prefix, document);
+            let obj = $ctor::new(DOMString::from(&*name.local), prefix, document);
             Root::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(DOMString((*name.local).to_owned()), prefix, document, $($arg),+);
+            let obj = $ctor::new(DOMString::from(&*name.local), prefix, document, $($arg),+);
             Root::upcast(obj)
         })
     );

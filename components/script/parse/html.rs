@@ -71,14 +71,14 @@ impl<'a> TreeSink for servohtmlparser::Sink {
                                    ElementCreator::ParserCreated);
 
         for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, DOMString(attr.value.into()), None);
+            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
         }
 
         JS::from_ref(elem.upcast())
     }
 
     fn create_comment(&mut self, text: StrTendril) -> JS<Node> {
-        let comment = Comment::new(DOMString(text.into()), &*self.document);
+        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document);
         JS::from_ref(comment.upcast())
     }
 
@@ -115,8 +115,8 @@ impl<'a> TreeSink for servohtmlparser::Sink {
                                   system_id: StrTendril) {
         let doc = &*self.document;
         let doctype = DocumentType::new(
-            DOMString(name.into()), Some(DOMString(public_id.into())),
-            Some(DOMString(system_id.into())), doc);
+            DOMString::from(String::from(name)), Some(DOMString::from(String::from(public_id))),
+            Some(DOMString::from(String::from(system_id))), doc);
         doc.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
     }
 
@@ -124,7 +124,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         let elem = target.downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, DOMString(attr.value.into()), None);
+            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
         }
     }
 
@@ -247,7 +247,7 @@ pub fn parse_html(document: &Document,
         ParseContext::Fragment(fc) =>
             ServoHTMLParser::new_for_fragment(Some(url), document, fc),
     };
-    parser.parse_chunk(input.0.into());
+    parser.parse_chunk(String::from(input));
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments

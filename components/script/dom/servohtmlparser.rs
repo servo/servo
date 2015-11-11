@@ -48,7 +48,9 @@ impl Sink {
         match child {
             NodeOrText::AppendNode(n) => Root::from_ref(&*n),
             NodeOrText::AppendText(t) => {
-                let text = Text::new(DOMString(t.into()), &self.document);
+                // FIXME(ajeffrey): convert directly from tendrils to DOMStrings
+                let s: String = t.into();
+                let text = Text::new(DOMString::from(s), &self.document);
                 Root::upcast(text)
             }
         }

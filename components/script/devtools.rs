@@ -42,7 +42,7 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
             EvaluateJSReply::NumberValue(
                 FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
         } else if rval.ptr.is_string() {
-            EvaluateJSReply::StringValue(jsstring_to_str(cx, rval.ptr.to_string()).0)
+            EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.ptr.to_string())))
         } else if rval.ptr.is_null() {
             EvaluateJSReply::NullValue
         } else {
@@ -164,9 +164,9 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
     for modification in modifications {
         match modification.newValue {
             Some(string) => {
-                let _ = elem.SetAttribute(DOMString(modification.attributeName), DOMString(string));
+                let _ = elem.SetAttribute(DOMString::from(modification.attributeName), DOMString::from(string));
             },
-            None => elem.RemoveAttribute(DOMString(modification.attributeName)),
+            None => elem.RemoveAttribute(DOMString::from(modification.attributeName)),
         }
     }
 }

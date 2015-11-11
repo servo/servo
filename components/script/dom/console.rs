@@ -74,7 +74,7 @@ impl ConsoleMethods for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(&self, condition: bool, message: Option<DOMString>) {
         if !condition {
-            let message = message.unwrap_or_else(|| DOMString("no message".to_owned()));
+            let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
         }
@@ -84,7 +84,7 @@ impl ConsoleMethods for Console {
 fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
     //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
-        message: message.0,
+        message: String::from(message),
         logLevel: logLevel,
         filename: "test".to_owned(),
         lineNumber: 1,

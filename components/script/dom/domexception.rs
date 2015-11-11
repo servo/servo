@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 #[repr(u16)]
@@ -70,7 +69,7 @@ impl DOMExceptionMethods for DOMException {
 
     // https://heycam.github.io/webidl/#idl-DOMException-error-names
     fn Name(&self) -> DOMString {
-        DOMString(format!("{:?}", self.code))
+        DOMString::from(format!("{:?}", self.code))
     }
 
     // https://heycam.github.io/webidl/#error-names
@@ -102,11 +101,11 @@ impl DOMExceptionMethods for DOMException {
             DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
-        DOMString(message.to_owned())
+        DOMString::from(message)
     }
 
     // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.tostring
     fn Stringifier(&self) -> DOMString {
-        DOMString(format!("{}: {}", self.Name(), self.Message()))
+        DOMString::from(format!("{}: {}", self.Name(), self.Message()))
     }
 }

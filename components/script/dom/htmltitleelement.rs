@@ -45,7 +45,7 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
                 content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
-        DOMString(content)
+        DOMString::from(content)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text

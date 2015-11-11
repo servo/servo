@@ -14,7 +14,6 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use js::jsapi::{RootedValue, HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
-use std::borrow::ToOwned;
 use std::default::Default;
 use util::str::DOMString;
 
@@ -79,7 +78,7 @@ impl MessageEvent {
                           scope: GlobalRef,
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
-            scope, DOMString("message".to_owned()), false, false, message,
+            scope, DOMString::from("message"), false, false, message,
             DOMString::new(), DOMString::new());
         messageevent.upcast::<Event>().fire(target);
     }

@@ -69,7 +69,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_s
 use selectors::states::*;
 use smallvec::VecLike;
 use std::ascii::AsciiExt;
-use std::borrow::{Cow, ToOwned};
+use std::borrow::Cow;
 use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::mem;
@@ -757,7 +757,8 @@ impl Element {
                             traversal_scope: traversal_scope,
                             .. Default::default()
                         }) {
-            Ok(()) => Ok(DOMString(String::from_utf8(writer).unwrap())),
+            // FIXME(ajeffrey): Directly convert UTF8 to DOMString
+            Ok(()) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
             Err(_) => panic!("Cannot serialize element"),
         }
     }
@@ -1012,10 +1013,10 @@ impl Element {
         let base = doc.url();
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        DOMString(match UrlParser::new().base_url(&base).parse(&url) {
-            Ok(parsed) => parsed.serialize(),
-            Err(_) => "".to_owned()
-        })
+        match UrlParser::new().base_url(&base).parse(&url) {
+            Ok(parsed) => DOMString::from(parsed.serialize()),
+            Err(_) => DOMString::from("")
+        }
     }
     pub fn set_url_attribute(&self, local_name: &Atom, value: DOMString) {
         self.set_string_attribute(local_name, value);
@@ -1069,7 +1070,8 @@ impl Element {
     }
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::UInt(DOMString(value.to_string()), value));
+        // FIXME(ajeffrey): Directly convert u32 to DOMString
+        self.set_attribute(local_name, AttrValue::UInt(DOMString::from(value.to_string()), value));
     }
 
     pub fn will_mutate_attr(&self) {
@@ -1086,7 +1088,8 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-localname
     fn LocalName(&self) -> DOMString {
-        DOMString((*self.local_name).to_owned())
+        // FIXME(ajeffrey): Convert directly from Atom to DOMString
+        DOMString::from(&*self.local_name)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
@@ -1102,7 +1105,7 @@ impl ElementMethods for Element {
             },
             None => Cow::Borrowed(&*self.local_name)
         };
-        DOMString(if self.html_element_in_html_document() {
+        DOMString::from(if self.html_element_in_html_document() {
             qualified_name.to_ascii_uppercase()
         } else {
             qualified_name.into_owned()
