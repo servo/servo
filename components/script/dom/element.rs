@@ -17,7 +17,6 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -627,13 +626,9 @@ impl Element {
     }
 
     pub fn summarize(&self) -> Vec<AttrInfo> {
-        let attrs = self.Attributes();
-        let mut summarized = vec!();
-        for i in 0..attrs.Length() {
-            let attr = attrs.Item(i).unwrap();
-            summarized.push(attr.summarize());
-        }
-        summarized
+        self.attrs.borrow().iter()
+                           .map(|attr| attr.summarize())
+                           .collect()
     }
 
     pub fn is_void(&self) -> bool {
@@ -786,9 +781,7 @@ impl Element {
                     }
 
                     // Step 2.
-                    let attrs = element.Attributes();
-                    for i in 0..attrs.Length() {
-                        let attr = attrs.Item(i).unwrap();
+                    for attr in element.attrs.borrow().iter() {
                         if *attr.prefix() == Some(atom!("xmlns")) &&
                            **attr.value() == *namespace.0 {
                             return Some(attr.LocalName());
