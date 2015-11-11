@@ -308,6 +308,12 @@ impl ImageCache {
             ImageCacheCommand::Exit(sender) => {
                 return Some(sender);
             }
+            ImageCacheCommand::StoreNetworkRequest(url, bytes) => {
+                let bytes_array = mem::replace(&mut bytes, vec!());
+                let image = load_from_memory(&bytes_array);
+                let completed_load = CompletedLoad::new(ImageResponse::Loaded(image));
+                self.completed_loads.insert(url, completed_load);
+            }
             ImageCacheCommand::RequestImage(url, result_chan, responder) => {
                 self.request_image(url, result_chan, responder);
             }
