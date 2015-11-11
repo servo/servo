@@ -89,6 +89,12 @@ pub enum ImageCacheCommand {
     /// layout / paint thread.
     GetImageIfAvailable(Url, UsePlaceholder, IpcSender<Result<Arc<Image>, ImageState>>),
 
+    /// command for the image cache task that accepts a URL and a vector of
+    /// bytes. This command should instruct the cache to store this data as a
+    /// newly-complete network request and continue decoding the result into
+    /// pixel data.
+    StoreNetworkRequest(Url, Vec<u8>),
+
     /// Synchronously check the state of an image in the cache. If the image is in a loading
     /// state and but its metadata has been made available, it will be sent as a response.
     GetImageOrMetadataIfAvailable(Url, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
@@ -146,6 +152,14 @@ impl ImageCacheThread {
         let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);
         self.chan.send(msg).unwrap();
         receiver.recv().unwrap()
+    }
+
+    /// instruct the cache to store this data as a newly-complete network
+    /// request and continue decoding the result into pixel data.
+    /// See ImageCacheCommand::StoreNetworkRequest.
+    pub fn store_request(&self, url: Url, bytes: Vec<u8>) {
+        let msg = ImageCacheCommand::StoreNetworkRequest(url, bytes);
+        self.chan.send(msg).unwrap();
     }
 
     /// Get the current state of an image, returning its metadata if available.
