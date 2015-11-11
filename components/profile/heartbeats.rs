@@ -52,7 +52,6 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptSetViewport);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWebSocketEvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWorkerEvent);
-    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptXhrEvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
     unsafe {
         HBS = Some(mem::transmute(Box::new(hbs)));

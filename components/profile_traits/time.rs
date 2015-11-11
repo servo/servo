@@ -71,7 +71,6 @@ pub enum ProfilerCategory {
     ScriptTimerEvent,
     ScriptWebSocketEvent,
     ScriptWorkerEvent,
-    ScriptXhrEvent,
     ApplicationHeartbeat,
 }
 

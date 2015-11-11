@@ -45,8 +45,7 @@ use net_traits::ControlMsg::Load;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use net_traits::{LoadConsumer, LoadData, ResourceCORSData, ResourceTask};
 use network_listener::{NetworkListener, PreInvoke};
-use script_task::ScriptTaskEventCategory::XhrEvent;
-use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
+use script_task::{ScriptChan, ScriptPort};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -139,8 +138,6 @@ pub struct XMLHttpRequest {
     global: GlobalField,
     timeout_cancel: DOMRefCell<Option<TimerHandle>>,
     fetch_time: Cell<i64>,
-    #[ignore_heap_size_of = "Cannot calculate Heap size"]
-    timeout_target: DOMRefCell<Option<Box<ScriptChan + Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
 }
@@ -175,7 +172,6 @@ impl XMLHttpRequest {
             global: GlobalField::from_rooted(&global),
             timeout_cancel: DOMRefCell::new(None),
             fetch_time: Cell::new(0),
-            timeout_target: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
         }
@@ -919,7 +915,6 @@ impl XMLHttpRequest {
     fn terminate_ongoing_fetch(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
-        *self.timeout_target.borrow_mut() = None;
         self.response_status.set(Ok(()));
     }
 
@@ -958,25 +953,8 @@ impl XMLHttpRequest {
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(&self, duration_ms: u32) {
-        struct XHRTimeout {
-            xhr: TrustedXHRAddress,
-            gen_id: GenerationId,
-        }
-
-        impl Runnable for XHRTimeout {
-            fn handler(self: Box<XHRTimeout>) {
-                let this = *self;
-                let xhr = this.xhr.root();
-                if xhr.ready_state.get() != XMLHttpRequestState::Done {
-                    xhr.process_partial_response(XHRProgress::Errored(this.gen_id, Error::Timeout));
-                }
-            }
-        }
-
         #[derive(JSTraceable, HeapSizeOf)]
         struct ScheduledXHRTimeout {
-            #[ignore_heap_size_of = "Cannot calculate Heap size"]
-            target: Box<ScriptChan + Send>,
             #[ignore_heap_size_of = "Because it is non-owning"]
             xhr: Trusted<XMLHttpRequest>,
             generation_id: GenerationId,
@@ -984,16 +962,15 @@ impl XMLHttpRequest {
 
         impl ScheduledCallback for ScheduledXHRTimeout {
             fn invoke(self: Box<Self>) {
-                let s = *self;
-                s.target.send(CommonScriptMsg::RunnableMsg(XhrEvent, box XHRTimeout {
-                    xhr: s.xhr,
-                    gen_id: s.generation_id,
-                })).unwrap();
+                let this = *self;
+                let xhr = this.xhr.root();
+                if xhr.ready_state.get() != XMLHttpRequestState::Done {
+                    xhr.process_partial_response(XHRProgress::Errored(this.generation_id, Error::Timeout));
+                }
             }
 
             fn box_clone(&self) -> Box<ScheduledCallback> {
                 box ScheduledXHRTimeout {
-                    target: self.target.clone(),
                     xhr: self.xhr.clone(),
                     generation_id: self.generation_id,
                 }
@@ -1004,7 +981,6 @@ impl XMLHttpRequest {
         // This will cancel all previous timeouts
         let global = self.global.root();
         let callback = ScheduledXHRTimeout {
-            target: (*self.timeout_target.borrow().as_ref().unwrap()).clone(),
             xhr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
             generation_id: self.generation_id.get(),
         };
@@ -1104,7 +1080,6 @@ impl XMLHttpRequest {
         } else {
             (global.script_chan(), None)
         };
-        *self.timeout_target.borrow_mut() = Some(script_chan.clone());
 
         let resource_task = global.resource_task();
         if let Some(req) = cors_request {

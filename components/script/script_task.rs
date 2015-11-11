@@ -236,7 +236,6 @@ pub enum ScriptTaskEventCategory {
     SetViewport,
     WebSocketEvent,
     WorkerEvent,
-    XhrEvent,
 }
 
 /// Messages used to control the script event loop
@@ -954,7 +953,6 @@ impl ScriptTask {
                 ScriptTaskEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptTaskEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
                 ScriptTaskEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
-                ScriptTaskEventCategory::XhrEvent => ProfilerCategory::ScriptXhrEvent,
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
