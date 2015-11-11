@@ -640,12 +640,12 @@ impl Element {
         if self.namespace != ns!(HTML) {
             return false
         }
-        match &*self.local_name {
+        match self.local_name {
             /* List of void elements from
             https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm */
-            "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
-            "frame" | "hr" | "img" | "input" | "keygen" | "link" | "menuitem" |
-            "meta" | "param" | "source" | "track" | "wbr" => true,
+            atom!(area) | atom!(base) | atom!(basefont) | atom!(bgsound) | atom!(br) | atom!(col) | atom!(embed) |
+            atom!(frame) | atom!(hr) | atom!(img) | atom!(input) | atom!(keygen) | atom!(link) | atom!(menuitem) |
+            atom!(meta) | atom!(param) | atom!(source) | atom!(track) | atom!(wbr) => true,
             _ => false
         }
     }
