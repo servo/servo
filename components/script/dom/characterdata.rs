@@ -69,6 +69,7 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(&self, data: DOMString) {
+        // FIXME(ajeffrey): Efficient append on DOMStrings?
         self.append_data(&*data);
     }
 
@@ -149,7 +150,8 @@ impl CharacterData {
     }
     #[inline]
     pub fn append_data(&self, data: &str) {
-        self.data.borrow_mut().0.push_str(data);
+        // FIXME(ajeffrey): Efficient append on DOMStrings?
+        self.data.borrow_mut().push_str(data);
         self.content_changed();
     }
 

@@ -182,7 +182,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 6.
     // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
     if let Some(suffix) = hyperlink_suffix {
-        href.0.push_str(&suffix);
+        href.push_str(&suffix);
     }
 
     // Step 4-5.

@@ -32,6 +32,13 @@ impl DOMString {
     pub fn new() -> DOMString {
         DOMString(String::new())
     }
+    // FIXME(ajeffrey): implement more of the String methods on DOMString?
+    pub fn push_str(&mut self, string: &str) {
+        self.0.push_str(string)
+    }
+    pub fn clear(&mut self) {
+        self.0.clear()
+    }
 }
 
 impl Default for DOMString {
@@ -178,6 +185,12 @@ impl FromJSValConvertible for DOMString {
                 Ok(jsstring_to_str(cx, jsstr))
             }
         }
+    }
+}
+
+impl Extend<char> for DOMString {
+    fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
+        self.0.extend(iterable)
     }
 }
 
