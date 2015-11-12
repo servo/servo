@@ -24,11 +24,11 @@ use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::{ResourceTask, load_whole_resource};
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_traits::{MsDuration, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::{Url, UrlParser};
 use util::str::DOMString;
@@ -44,7 +44,7 @@ pub struct WorkerGlobalScopeInit {
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: ConstellationChan,
-    pub scheduler_chan: Sender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerEventRequest>,
     pub worker_id: WorkerId,
 }
 
@@ -87,7 +87,7 @@ pub struct WorkerGlobalScope {
     constellation_chan: ConstellationChan,
 
     #[ignore_heap_size_of = "Defined in std"]
-    scheduler_chan: Sender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerEventRequest>,
 }
 
 impl WorkerGlobalScope {
@@ -95,7 +95,7 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Rc<Runtime>,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                         timer_event_chan: Box<TimerEventChan + Send>)
+                         timer_event_chan: IpcSender<TimerEvent>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -139,7 +139,7 @@ impl WorkerGlobalScope {
         self.constellation_chan.clone()
     }
 
-    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
         self.scheduler_chan.clone()
     }
 

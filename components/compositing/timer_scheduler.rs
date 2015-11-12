@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::length::Length;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use num::traits::Saturating;
 use script_traits::{MsDuration, NsDuration, precise_time_ms, precise_time_ns};
 use script_traits::{TimerEvent, TimerEventRequest};
@@ -11,7 +13,7 @@ use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
-use std::sync::mpsc::{channel, Receiver, Select, Sender};
+use std::sync::mpsc::{channel, Receiver, Select};
 use std::thread::{self, spawn, Thread};
 use util::task::spawn_named;
 
@@ -107,11 +109,11 @@ enum Task {
 }
 
 impl TimerScheduler {
-    pub fn start() -> Sender<TimerEventRequest> {
-        let (chan, port) = channel();
+    pub fn start() -> IpcSender<TimerEventRequest> {
+        let (chan, port) = ipc::channel().unwrap();
 
         let timer_scheduler = TimerScheduler {
-            port: port,
+            port: ROUTER.route_ipc_receiver_to_new_mpsc_receiver(port),
 
             scheduled_events: RefCell::new(BinaryHeap::new()),
 

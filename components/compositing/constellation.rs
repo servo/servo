@@ -148,7 +148,7 @@ pub struct Constellation<LTF, STF> {
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
 
-    scheduler_chan: Sender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerEventRequest>,
 }
 
 /// State needed to construct a constellation.

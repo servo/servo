@@ -62,7 +62,7 @@ use net_traits::storage_task::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
-use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
+use script_traits::{TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use selectors::states::*;
 use serde::{Deserialize, Serialize};
@@ -296,13 +296,6 @@ no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
 
 impl JSTraceable for Box<ScriptChan + Send> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl JSTraceable for Box<TimerEventChan + Send> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

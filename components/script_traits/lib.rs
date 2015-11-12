@@ -190,23 +190,20 @@ pub enum CompositorEvent {
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
 
 /// Requests a TimerEvent-Message be sent after the given duration.
-pub struct TimerEventRequest(pub Box<TimerEventChan + Send>, pub TimerSource, pub TimerEventId, pub MsDuration);
+#[derive(Deserialize, Serialize)]
+pub struct TimerEventRequest(pub IpcSender<TimerEvent>,
+                             pub TimerSource,
+                             pub TimerEventId,
+                             pub MsDuration);
 
 /// Notifies the script task to fire due timers.
 /// TimerSource must be FromWindow when dispatched to ScriptTask and
 /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
+#[derive(Deserialize, Serialize)]
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
-/// A cloneable interface for sending timer events.
-pub trait TimerEventChan {
-    /// Send a timer event to the associated event loop.
-    fn send(&self, msg: TimerEvent) -> Result<(), ()>;
-    /// Clone this handle.
-    fn clone(&self) -> Box<TimerEventChan + Send>;
-}
-
 /// Describes the task that requested the TimerEvent.
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
 pub enum TimerSource {
     /// The event was requested from a window (ScriptTask).
     FromWindow(PipelineId),
@@ -215,7 +212,7 @@ pub enum TimerSource {
 }
 
 /// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.
-#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct TimerEventId(pub u32);
 
 /// Unit of measurement.
@@ -240,6 +237,9 @@ pub fn precise_time_ns() -> NsDuration {
 }
 
 /// Data needed to construct a script thread.
+///
+/// NB: *DO NOT* add any Senders or Receivers here! pcwalton will have to rewrite your code if you
+/// do! Use IPC senders and receivers instead.
 pub struct InitialScriptState {
     /// The ID of the pipeline with which this script thread is associated.
     pub id: PipelineId,
@@ -255,7 +255,7 @@ pub struct InitialScriptState {
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: ConstellationChan,
     /// A channel to schedule timer events.
-    pub scheduler_chan: Sender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// Information that script sends out when it panics.
     pub failure_info: Failure,
     /// A channel to the resource manager task.
