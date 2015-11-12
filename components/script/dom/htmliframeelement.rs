@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -21,8 +22,8 @@ use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
-use js::jsval::UndefinedValue;
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue, JSContext, MutableHandleValue};
+use js::jsval::{UndefinedValue, NullValue};
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent};
@@ -142,9 +143,10 @@ impl HTMLIFrameElement {
             let _ar = JSAutoRequest::new(cx);
             let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
             let mut detail = RootedValue::new(cx, UndefinedValue());
-            event.detail().to_jsval(cx, detail.handle_mut());
+            let event_name = DOMString(event.name().to_owned());
+            self.build_mozbrowser_event_detail(event, cx, detail.handle_mut());
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
-                                                DOMString(event.name().to_owned()),
+                                                event_name,
                                                 true,
                                                 true,
                                                 detail.handle());
@@ -220,6 +222,34 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
                 .map(|attribute| str::parse_length(&attribute))
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
+    }
+}
+
+pub trait MozBrowserEventDetailBuilder {
+    fn build_mozbrowser_event_detail(&self, event: MozBrowserEvent, cx: *mut JSContext, rval: MutableHandleValue);
+}
+
+impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
+    fn build_mozbrowser_event_detail(&self, event: MozBrowserEvent, cx: *mut JSContext, rval: MutableHandleValue) {
+        match event {
+            MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
+            MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
+            MozBrowserEvent::OpenWindow | MozBrowserEvent::SecurityChange | MozBrowserEvent::OpenSearch  |
+            MozBrowserEvent::ShowModalPrompt | MozBrowserEvent::UsernameAndPasswordRequired => {
+                rval.set(NullValue());
+            }
+            MozBrowserEvent::LocationChange(ref string) | MozBrowserEvent::TitleChange(ref string) => {
+                string.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::IconChange(rel, href, sizes) => {
+                BrowserElementIconChangeEventDetail {
+                    rel: Some(DOMString(rel)),
+                    href: Some(DOMString(href)),
+                    sizes: Some(DOMString(sizes)),
+                }.to_jsval(cx, rval);
+            }
+        }
+
     }
 }
 

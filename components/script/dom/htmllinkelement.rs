@@ -24,8 +24,8 @@ use encoding::all::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
-use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, MozBrowserEvent};
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
@@ -102,7 +102,7 @@ fn is_favicon(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
             value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("icon"))
+                .any(|s| s.eq_ignore_ascii_case("icon") || s.eq_ignore_ascii_case("apple-touch-icon"))
         },
         None => false,
     }
@@ -118,13 +118,23 @@ impl VirtualMethods for HTMLLinkElement {
         if !self.upcast::<Node>().is_in_doc() || mutation == AttributeMutation::Removed {
             return;
         }
+
+        let sizes_atom = &Atom::from_slice("sizes");
         let rel = get_attr(self.upcast(), &atom!(rel));
         match attr.local_name() {
             &atom!(href) => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
-                    self.handle_favicon_url(&attr.value());
+                    let sizes = get_attr(self.upcast(), sizes_atom);
+                    self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
+                }
+            },
+            atom if atom == sizes_atom => {
+                if is_favicon(&rel) {
+                    if let Some(ref href) = get_attr(self.upcast(), &atom!("href")) {
+                        self.handle_favicon_url(rel.as_ref().unwrap(), href, &Some(attr.value().to_string()));
+                    }
                 }
             },
             &atom!(media) => {
@@ -153,13 +163,14 @@ impl VirtualMethods for HTMLLinkElement {
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
+            let sizes = get_attr(self.upcast(), &Atom::from_slice("sizes"));
 
-            match (rel, href) {
-                (ref rel, Some(ref href)) if string_is_stylesheet(rel) => {
+            match href {
+                Some(ref href) if string_is_stylesheet(&rel) => {
                     self.handle_stylesheet_url(href);
                 }
-                (ref rel, Some(ref href)) if is_favicon(rel) => {
-                    self.handle_favicon_url(href);
+                Some(ref href) if is_favicon(&rel) => {
+                    self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
                 }
                 _ => {}
             }
@@ -219,7 +230,7 @@ impl HTMLLinkElement {
         }
     }
 
-    fn handle_favicon_url(&self, href: &str) {
+    fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
         let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
@@ -227,6 +238,12 @@ impl HTMLLinkElement {
                 let ConstellationChan(ref chan) = window.constellation_chan();
                 let event = ConstellationMsg::NewFavicon(url.clone());
                 chan.send(event).unwrap();
+
+                let mozbrowser_event = match *sizes {
+                    Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),
+                    None => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), "".to_owned())
+                };
+                window.Document().trigger_mozbrowser_event(mozbrowser_event);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
