@@ -6,6 +6,7 @@
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
+#![feature(decode_utf16)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]

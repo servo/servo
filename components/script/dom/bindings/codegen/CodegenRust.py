@@ -888,21 +888,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             handleInvalidEnumValueCode = "return true;"
 
-        transmute = "mem::transmute(index)"
-        if isMember == 'Dictionary':
-            transmute = 'unsafe { ' + transmute + ' }'
-
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok(Some(index)) => {\n"
             "        //XXXjdm need some range checks up in here.\n"
-            "        %(transmute)s\n"
+            "        mem::transmute(index)\n"
             "    },\n"
             "}" % {"values": enum + "Values::strings",
                    "exceptionCode": exceptionCode,
-                   "transmute": transmute,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
@@ -3418,7 +3413,7 @@ pub const strings: &'static [&'static str] = &[
 ];
 
 impl ToJSValConvertible for super::%s {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         strings[*self as usize].to_jsval(cx, rval);
     }
 }
@@ -3539,7 +3534,7 @@ pub enum %s {
 }
 
 impl ToJSValConvertible for %s {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         match *self {
 %s
         }
@@ -3653,8 +3648,8 @@ class CGUnionConversionStruct(CGThing):
             "Err(())" % ", ".join(names)))
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="fn from_jsval(cx: *mut JSContext,\n"
-                "              value: HandleValue, _option: ()) -> Result<%s, ()> {\n" % self.type,
+            pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
+                "                     value: HandleValue, _option: ()) -> Result<%s, ()> {\n" % self.type,
             post="\n}")
         return CGWrapper(
             CGIndenter(CGList([
@@ -3671,7 +3666,7 @@ class CGUnionConversionStruct(CGThing):
 
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            pre="fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n" % (t.name, returnType),
+            pre="unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n" % (t.name, returnType),
             post="\n}")
 
     def define(self):
@@ -4952,10 +4947,10 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl ${selfName} {\n"
-            "    pub fn empty(cx: *mut JSContext) -> ${selfName} {\n"
+            "    pub unsafe fn empty(cx: *mut JSContext) -> ${selfName} {\n"
             "        ${selfName}::new(cx, HandleValue::null()).unwrap()\n"
             "    }\n"
-            "    pub fn new(cx: *mut JSContext, val: HandleValue) -> Result<${selfName}, ()> {\n"
+            "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) -> Result<${selfName}, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
             "            RootedObject::new(cx, ptr::null_mut())\n"
             "        } else if val.get().is_object() {\n"
@@ -4972,8 +4967,8 @@ class CGDictionary(CGThing):
             "}\n"
             "\n"
             "impl ToJSValConvertible for ${selfName} {\n"
-            "    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {\n"
-            "        let obj = unsafe { RootedObject::new(cx, JS_NewObject(cx, ptr::null())) };\n"
+            "    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {\n"
+            "        let obj = RootedObject::new(cx, JS_NewObject(cx, ptr::null()));\n"
             "${insertMembers}"
             "        rval.set(ObjectOrNullValue(obj.ptr))\n"
             "    }\n"
@@ -5159,6 +5154,7 @@ class CGBindingRoot(CGThing):
             'js::{JSCLASS_RESERVED_SLOTS_MASK}',
             'js::{JSPROP_ENUMERATE, JSPROP_SHARED}',
             'js::{JSITER_OWNONLY, JSITER_HIDDEN, JSITER_SYMBOLS}',
+            'js::error::throw_type_error',
             'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
             'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
             'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
@@ -5222,7 +5218,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
             'dom::bindings::error::Error::JSFailed',
             'dom::bindings::error::throw_dom_exception',
-            'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
@@ -5464,7 +5459,7 @@ impl CallbackContainer for ${type} {
 }
 
 impl ToJSValConvertible for ${type} {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.callback().to_jsval(cx, rval);
     }
 }\
@@ -5568,10 +5563,10 @@ class CallbackMember(CGNativeMember):
             "${convertArgs}"
             "${doCall}"
             "${returnResult}").substitute(replacements)
-        return CGList([
+        return CGWrapper(CGIndenter(CGList([
             CGGeneric(pre),
             CGGeneric(body),
-        ], "\n").define()
+        ], "\n"), 4), pre="unsafe {\n", post="\n}").define()
 
     def getResultConversion(self):
         replacements = {
@@ -5714,15 +5709,13 @@ class CallbackMethod(CallbackMember):
             replacements["argc"] = "0"
         return string.Template(
             "${getCallable}"
-            "let ok = unsafe {\n"
-            "    let rootedThis = RootedObject::new(cx, ${thisObj});\n"
-            "    JS_CallFunctionValue(\n"
-            "        cx, rootedThis.handle(), callable.handle(),\n"
-            "        &HandleValueArray {\n"
-            "            length_: ${argc} as ::libc::size_t,\n"
-            "            elements_: ${argv}\n"
-            "        }, rval.handle_mut())\n"
-            "};\n"
+            "let rootedThis = RootedObject::new(cx, ${thisObj});\n"
+            "let ok = JS_CallFunctionValue(\n"
+            "    cx, rootedThis.handle(), callable.handle(),\n"
+            "    &HandleValueArray {\n"
+            "        length_: ${argc} as ::libc::size_t,\n"
+            "        elements_: ${argv}\n"
+            "    }, rval.handle_mut());\n"
             "if !ok {\n"
             "    return Err(JSFailed);\n"
             "}\n").substitute(replacements)
@@ -5737,7 +5730,7 @@ class CallCallback(CallbackMethod):
         return "aThisObj.get()"
 
     def getCallableDecl(self):
-        return "let callable = RootedValue::new(cx, ObjectValue(unsafe {&*self.parent.callback()}));\n"
+        return "let callable = RootedValue::new(cx, ObjectValue(&*self.parent.callback()));\n"
 
 
 class CallbackOperationBase(CallbackMethod):
@@ -5767,11 +5760,11 @@ class CallbackOperationBase(CallbackMethod):
         if not self.singleOperation:
             return 'JS::Rooted<JS::Value> callable(cx);\n' + getCallableFromProp
         return (
-            'let isCallable = unsafe { IsCallable(self.parent.callback()) };\n'
+            'let isCallable = IsCallable(self.parent.callback());\n'
             'let callable =\n' +
             CGIndenter(
                 CGIfElseWrapper('isCallable',
-                                CGGeneric('unsafe { RootedValue::new(cx, ObjectValue(&*self.parent.callback())) }'),
+                                CGGeneric('RootedValue::new(cx, ObjectValue(&*self.parent.callback()))'),
                                 CGGeneric(getCallableFromProp))).define() + ';\n')
 
 

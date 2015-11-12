@@ -684,23 +684,23 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
     fn Response(&self, cx: *mut JSContext) -> JSVal {
-         let mut rval = RootedValue::new(cx, UndefinedValue());
-         match self.response_type.get() {
-            _empty | Text => {
-                let ready_state = self.ready_state.get();
-                if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
-                    self.text_response().to_jsval(cx, rval.handle_mut());
-                } else {
-                    "".to_jsval(cx, rval.handle_mut());
-                }
-            },
-            _ if self.ready_state.get() != XMLHttpRequestState::Done => {
-                return NullValue()
-            },
-            Json => {
-                let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
-                let decoded: Vec<u16> = decoded.utf16_units().collect();
-                unsafe {
+        unsafe {
+            let mut rval = RootedValue::new(cx, UndefinedValue());
+            match self.response_type.get() {
+                _empty | Text => {
+                    let ready_state = self.ready_state.get();
+                    if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
+                        self.text_response().to_jsval(cx, rval.handle_mut());
+                    } else {
+                        "".to_jsval(cx, rval.handle_mut());
+                    }
+                },
+                _ if self.ready_state.get() != XMLHttpRequestState::Done => {
+                    return NullValue()
+                },
+                Json => {
+                    let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+                    let decoded: Vec<u16> = decoded.utf16_units().collect();
                     if !JS_ParseJSON(cx,
                                      decoded.as_ptr(),
                                      decoded.len() as u32,
@@ -709,13 +709,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         return NullValue();
                     }
                 }
+                _ => {
+                    // XXXManishearth handle other response types
+                    self.response.borrow().to_jsval(cx, rval.handle_mut());
+                }
             }
-            _ => {
-                // XXXManishearth handle other response types
-                self.response.borrow().to_jsval(cx, rval.handle_mut());
-            }
+            rval.ptr
         }
-        rval.ptr
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute

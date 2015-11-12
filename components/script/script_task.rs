@@ -1683,11 +1683,13 @@ impl ScriptTask {
             let script_source = String::from_utf8_lossy(&script_source_bytes);
 
             // Script source is ready to be evaluated (11.)
-            let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
-            window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
-            let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
-                                               StringificationBehavior::Empty);
-            strval.unwrap_or(DOMString::new())
+            unsafe {
+                let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
+                window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
+                let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
+                                                   StringificationBehavior::Empty);
+                strval.unwrap_or(DOMString::new())
+            }
         } else {
             DOMString::new()
         };
