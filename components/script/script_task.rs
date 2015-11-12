@@ -1963,7 +1963,7 @@ impl ScriptTask {
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),
-        }, LoadConsumer::Listener(response_target))).unwrap();
+        }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }

@@ -429,7 +429,8 @@ impl ImageCache {
                             sender: action_sender,
                         };
                         let msg = ControlMsg::Load(load_data,
-                                                   LoadConsumer::Listener(response_target));
+                                                   LoadConsumer::Listener(response_target),
+                                                   None);
                         let progress_sender = self.progress_sender.clone();
                         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
                             let action: ResponseAction = message.to().unwrap();
