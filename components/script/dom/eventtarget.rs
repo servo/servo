@@ -147,7 +147,7 @@ impl EventListenerType {
             },
         }
 
-        // TODO: step 4 (cancel event based on return value)
+        // TODO(#8490): step 4 (cancel event based on return value)
     }
 }
 
@@ -263,11 +263,11 @@ impl EventTarget {
                                                           b"error\0" as *const u8 as *const c_char];
         // step 10
         let is_error = ty == "error" && self.is::<Window>();
-        let (args, nargs) = unsafe {
+        let args = unsafe {
             if is_error {
-                (ERROR_ARG_NAMES.as_ptr(), ERROR_ARG_NAMES.len() as u32)
+                &ERROR_ARG_NAMES[..]
             } else {
-                (ARG_NAMES.as_ptr(), ARG_NAMES.len() as u32)
+                &ARG_NAMES[..]
             }
         };
 
@@ -283,8 +283,8 @@ impl EventTarget {
                             scopechain.ptr,
                             options.ptr,
                             name.as_ptr(),
-                            nargs,
-                            args,
+                            args.len() as u32,
+                            args.as_ptr(),
                             source.as_ptr(),
                             source.len() as size_t,
                             handler.handle_mut())
