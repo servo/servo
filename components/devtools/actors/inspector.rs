@@ -206,16 +206,16 @@ impl NodeInfoToProtocol for NodeInfo {
 
         NodeActorMsg {
             actor: actor_name,
-            baseURI: String::from(self.baseURI),
+            baseURI: self.baseURI,
             parent: actors.script_to_actor(self.parent.clone()),
             nodeType: self.nodeType,
-            namespaceURI: String::from(self.namespaceURI),
-            nodeName: String::from(self.nodeName),
+            namespaceURI: self.namespaceURI,
+            nodeName: self.nodeName,
             numChildren: self.numChildren,
 
-            name: String::from(self.name),
-            publicId: String::from(self.publicId),
-            systemId: String::from(self.systemId),
+            name: self.name,
+            publicId: self.publicId,
+            systemId: self.systemId,
 
             attrs: self.attrs.into_iter().map(|attr| {
                 AttrMsg {
@@ -233,7 +233,7 @@ impl NodeInfoToProtocol for NodeInfo {
 
             isDocumentElement: self.isDocumentElement,
 
-            shortValue: String::from(self.shortValue),
+            shortValue: self.shortValue,
             incompleteValue: self.incompleteValue,
         }
     }
