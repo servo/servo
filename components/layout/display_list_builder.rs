@@ -1738,51 +1738,89 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 }
 
 pub trait InlineFlowDisplayListBuilding {
+    fn build_display_list_for_inline_fragment_at_index(&mut self,
+                                                       index: usize,
+                                                       display_list: &mut DisplayList,
+                                                       layout_context: &LayoutContext);
     fn build_display_list_for_inline(&mut self, layout_context: &LayoutContext);
 }
 
 impl InlineFlowDisplayListBuilding for InlineFlow {
+    fn build_display_list_for_inline_fragment_at_index(&mut self,
+                                                       index: usize,
+                                                       display_list: &mut DisplayList,
+                                                       layout_context: &LayoutContext) {
+        let fragment = self.fragments.fragments.get_mut(index).unwrap();
+        fragment.build_display_list(display_list,
+                                    layout_context,
+                                    &self.base.stacking_relative_position,
+                                    &self.base
+                                         .early_absolute_position_info
+                                         .relative_containing_block_size,
+                                    self.base
+                                        .early_absolute_position_info
+                                        .relative_containing_block_mode,
+                                    BorderPaintingMode::Separate,
+                                    BackgroundAndBorderLevel::Content,
+                                    &self.base.clip,
+                                    &self.base.stacking_relative_position_of_display_port);
+
+        match fragment.specific {
+            SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
+                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
+                display_list.append_from(
+                    &mut flow::mut_base(block_flow).display_list_building_result)
+            }
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
+                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
+                display_list.append_from(
+                    &mut flow::mut_base(block_flow).display_list_building_result)
+            }
+            SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
+                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
+                display_list.append_from(
+                    &mut flow::mut_base(block_flow).display_list_building_result)
+            }
+            _ => {}
+        }
+    }
+
     fn build_display_list_for_inline(&mut self, layout_context: &LayoutContext) {
         // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("Flow: building display list for {} inline fragments", self.fragments.len());
 
         let mut display_list = box DisplayList::new();
-        let mut has_stacking_context = false;
-        for fragment in &mut self.fragments.fragments {
-            fragment.build_display_list(&mut *display_list,
-                                        layout_context,
-                                        &self.base.stacking_relative_position,
-                                        &self.base
-                                             .early_absolute_position_info
-                                             .relative_containing_block_size,
-                                        self.base
-                                            .early_absolute_position_info
-                                            .relative_containing_block_mode,
-                                        BorderPaintingMode::Separate,
-                                        BackgroundAndBorderLevel::Content,
-                                        &self.base.clip,
-                                        &self.base.stacking_relative_position_of_display_port);
 
-            has_stacking_context = fragment.establishes_stacking_context();
+        // We iterate using an index here, because we want to avoid doing a doing
+        // a double-borrow of self (one mutable for the method call and one immutable
+        // for the self.fragments.fragment iterator itself).
+        for index in (0..self.fragments.fragments.len()) {
+            let establishes_stacking_context = {
+                let fragment = self.fragments.fragments.get(index).unwrap();
+                match fragment.specific {
+                    SpecificFragmentInfo::InlineBlock(_) |
+                        SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => false,
+                    _ => fragment.establishes_stacking_context(),
+                }
+            };
 
-            match fragment.specific {
-                SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    display_list.append_from(
-                        &mut flow::mut_base(block_flow).display_list_building_result)
-                }
-                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    display_list.append_from(
-                        &mut flow::mut_base(block_flow).display_list_building_result)
-                }
-                SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    display_list.append_from(
-                        &mut flow::mut_base(block_flow).display_list_building_result)
-                }
-                _ => {}
+            if establishes_stacking_context {
+                let mut fragment_display_list = box DisplayList::new();
+                self.build_display_list_for_inline_fragment_at_index(index,
+                                                                     &mut *fragment_display_list,
+                                                                     layout_context);
+                let fragment = self.fragments.fragments.get(index).unwrap();
+                display_list.positioned_content.push_back(DisplayItem::StackingContextClass(
+                    fragment.create_stacking_context(
+                        &self.base,
+                        fragment_display_list,
+                        ScrollPolicy::Scrollable,
+                        StackingContextCreationMode::Normal)));
+            } else {
+                self.build_display_list_for_inline_fragment_at_index(index,
+                                                                     &mut *display_list,
+                                                                     layout_context);
             }
         }
 
@@ -1791,30 +1829,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                                              self.fragments.fragments[0].node);
         }
 
-        // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
-        // and remove the check for filter presence. Further details on #5812.
-        //
-        // FIXME(#7424, pcwalton): This is terribly bogus! What is even going on here?
-        if has_stacking_context {
-            match self.fragments.fragments[0].specific {
-                SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => {}
-                _ => {
-                    has_stacking_context =
-                        !self.fragments.fragments[0].style().get_effects().filter.is_empty()
-                }
-            }
-        }
-
-        self.base.display_list_building_result = if has_stacking_context {
-            Some(DisplayList::new_with_stacking_context(
-                self.fragments.fragments[0].create_stacking_context(
-                    &self.base,
-                    display_list,
-                    ScrollPolicy::Scrollable,
-                    StackingContextCreationMode::Normal)))
-        } else {
-            Some(display_list)
-        };
+        self.base.display_list_building_result = Some(display_list);
 
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();
