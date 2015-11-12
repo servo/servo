@@ -737,27 +737,17 @@ impl ScriptTask {
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
         // Handle pending resize events.
-        // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = vec!();
-
-        {
-            let page = self.page.borrow();
-            if let Some(page) = page.as_ref() {
-                for page in page.iter() {
-                    // Only process a resize if layout is idle.
-                    let window = page.window();
-                    let resize_event = window.steal_resize_event();
-                    match resize_event {
-                        Some(size) => resizes.push((window.pipeline(), size)),
-                        None => ()
-                    }
-                }
+        let page = self.page.borrow();
+        if let Some(page) = page.as_ref() {
+            // Only process a resize if layout is idle.
+            let resizes = page.iter()
+                              .map(|p| p.window())
+                              .filter_map(|window| window.steal_resize_event().map(|size| (window, size)));
+            for (window, size) in resizes {
+                self.handle_event(window.pipeline(), ResizeEvent(size));
             }
         }
 
-        for (id, size) in resizes {
-            self.handle_event(id, ResizeEvent(size));
-        }
 
         // Store new resizes, and gather all other events.
         let mut sequential = vec!();
