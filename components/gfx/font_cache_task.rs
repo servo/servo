@@ -156,10 +156,10 @@ impl FontCache {
                                 match response {
                                     ResponseAction::HeadersAvailable(metadata) => {
                                         let is_response_valid =
-                                            metadata.content_type.as_ref().map(|content_type| {
+                                            metadata.content_type.as_ref().map_or(false, |content_type| {
                                                 let mime = &content_type.0;
                                                 is_supported_font_type(&mime.0, &mime.1)
-                                            }).unwrap_or(false);
+                                            });
                                         info!("{} font with MIME type {:?}",
                                               if is_response_valid { "Loading" } else { "Ignoring" },
                                               metadata.content_type);

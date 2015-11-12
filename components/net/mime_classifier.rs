@@ -41,47 +41,52 @@ impl MIMEClassifier {
                     no_sniff_flag: NoSniffFlag,
                     apache_bug_flag: ApacheBugFlag,
                     supplied_type: &Option<(String, String)>,
-                    data: &[u8]) -> Option<(String, String)> {
+                    data: &[u8]) -> (String, String) {
+        let supplied_or_octet_stream =
+            supplied_type.iter()
+                         .cloned()
+                         .next()
+                         .unwrap_or(("application".to_owned(),
+                                     "octet-stream".to_owned()));
         match context {
             LoadContext::Browsing => match *supplied_type {
-                None => Some(self.sniff_unknown_type(no_sniff_flag, data)),
+                None => self.sniff_unknown_type(no_sniff_flag, data),
                 Some(ref supplied_type) => {
                     let &(ref media_type, ref media_subtype) = supplied_type;
-                    let result = if MIMEClassifier::is_explicit_unknown(media_type, media_subtype) {
-                        self.sniff_unknown_type(no_sniff_flag, data)
-                    } else {
-                        match no_sniff_flag {
-                            NoSniffFlag::ON => supplied_type.clone(),
-                            NoSniffFlag::OFF => match apache_bug_flag {
-                                ApacheBugFlag::ON => self.sniff_text_or_data(data),
-                                ApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
-                                                                                           media_subtype) {
-                                    Some(MediaType::Xml) => None,
-                                    Some(MediaType::Html) => self.feeds_classifier.classify(data),
-                                    Some(MediaType::Image) => self.image_classifier.classify(data),
-                                    Some(MediaType::AudioVideo) => self.audio_video_classifier.classify(data),
-                                    None => None
-                                }.unwrap_or(supplied_type.clone())
-                            }
+                    if MIMEClassifier::is_explicit_unknown(media_type, media_subtype) {
+                        return self.sniff_unknown_type(no_sniff_flag, data);
+                    }
+
+                    match no_sniff_flag {
+                        NoSniffFlag::ON => supplied_or_octet_stream,
+                        NoSniffFlag::OFF => match apache_bug_flag {
+                            ApacheBugFlag::ON => self.sniff_text_or_data(data),
+                            ApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
+                                                                                       media_subtype) {
+                                Some(MediaType::Xml) => None,
+                                Some(MediaType::Html) => self.feeds_classifier.classify(data),
+                                Some(MediaType::Image) => self.image_classifier.classify(data),
+                                Some(MediaType::AudioVideo) => self.audio_video_classifier.classify(data),
+                                None => None
+                            }.unwrap_or(supplied_or_octet_stream)
                         }
-                    };
-                    Some(result)
+                    }
                 }
             },
             LoadContext::Image => {
                 // Section 8.2 Sniffing an image context
                 match MIMEClassifier::maybe_get_media_type(supplied_type) {
-                    Some(MediaType::Xml) => supplied_type.clone(),
+                    Some((MediaType::Xml, supplied_type)) => supplied_type,
                     _ => self.image_classifier.classify(data)
-                        .or(supplied_type.clone())
+                             .unwrap_or(supplied_or_octet_stream)
                 }
             },
             LoadContext::AudioVideo => {
                 // Section 8.3 Sniffing an image context
                 match MIMEClassifier::maybe_get_media_type(supplied_type) {
-                    Some(MediaType::Xml) => supplied_type.clone(),
+                    Some((MediaType::Xml, supplied_type)) => supplied_type,
                     _ => self.audio_video_classifier.classify(data)
-                        .or(supplied_type.clone())
+                             .unwrap_or(supplied_or_octet_stream)
                 }
             },
             LoadContext::Plugin => {
@@ -90,8 +95,8 @@ impl MIMEClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => Some(("application".to_owned(), "octet-stream".to_owned())),
-                    _ => supplied_type.clone()
+                    None => ("application".to_owned(), "octet-stream".to_owned()),
+                    Some(ref supplied) => supplied.clone(),
                 }
             },
             LoadContext::Style => {
@@ -100,8 +105,8 @@ impl MIMEClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => Some(("text".to_owned(), "css".to_owned())),
-                    _ => supplied_type.clone()
+                    None => ("text".to_owned(), "css".to_owned()),
+                    Some(ref supplied) => supplied.clone(),
                 }
             },
             LoadContext::Script => {
@@ -110,16 +115,16 @@ impl MIMEClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => Some(("text".to_owned(), "javascript".to_owned())),
-                    _ => supplied_type.clone()
+                    None => ("text".to_owned(), "javascript".to_owned()),
+                    Some(ref supplied) => supplied.clone()
                 }
             },
             LoadContext::Font => {
                 // 8.7 Sniffing in a font context
                 match MIMEClassifier::maybe_get_media_type(supplied_type) {
-                    Some(MediaType::Xml) => supplied_type.clone(),
+                    Some((MediaType::Xml, supplied)) => supplied,
                     _ => self.font_classifier.classify(data)
-                        .or(supplied_type.clone())
+                             .unwrap_or(supplied_or_octet_stream)
                 }
             },
             LoadContext::TextTrack => {
@@ -127,14 +132,14 @@ impl MIMEClassifier {
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                Some(("text".to_owned(), "vtt".to_owned()))
+                ("text".to_owned(), "vtt".to_owned())
             },
             LoadContext::CacheManifest => {
                 // 8.9 Sniffing in a cache manifest context
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                Some(("text".to_owned(), "cache-manifest".to_owned()))
+                ("text".to_owned(), "cache-manifest".to_owned())
             },
         }
     }
@@ -219,9 +224,13 @@ impl MIMEClassifier {
         }
     }
 
-    fn maybe_get_media_type(supplied_type: &Option<(String, String)>) -> Option<MediaType> {
+    fn maybe_get_media_type(supplied_type: &Option<(String, String)>)
+                            -> Option<(MediaType, (String, String))> {
         match *supplied_type {
-            Some((ref media_type, ref media_subtype)) => MIMEClassifier::get_media_type(media_type, media_subtype),
+            Some((ref media_type, ref media_subtype)) =>
+                MIMEClassifier::get_media_type(media_type, media_subtype).map(|media| {
+                    (media, (media_type.to_owned(), media_subtype.to_owned()))
+                }),
             None => None
 
         }
