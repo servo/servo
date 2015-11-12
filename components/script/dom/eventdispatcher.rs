@@ -10,7 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
-use dom::eventtarget::{EventListenerType, EventTarget, ListenerPhase};
+use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
@@ -35,7 +35,7 @@ impl Drop for AutoDOMEventMarker {
     }
 }
 
-fn handle_event(window: Option<&Window>, listener: &EventListenerType,
+fn handle_event(window: Option<&Window>, listener: &CompiledEventListener,
                 current_target: &EventTarget, event: &Event) {
     let _marker;
     if let Some(window) = window {

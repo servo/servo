@@ -416,11 +416,10 @@ impl VirtualMethods for HTMLElement {
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = window_from_node(self);
-                let (cx, url, reflector) = (window.get_cx(),
-                                            window.get_url(),
-                                            window.reflector().get_jsobject());
                 let evtarget = self.upcast::<EventTarget>();
-                evtarget.set_event_handler_uncompiled(cx, url, reflector,
+                let source_line = 1; //TODO get current JS execution line
+                evtarget.set_event_handler_uncompiled(window_from_node(self).get_url(),
+                                                      source_line,
                                                       &name[2..],
                                                       DOMString((**attr.value()).to_owned()));
             },
