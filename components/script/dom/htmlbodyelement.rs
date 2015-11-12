@@ -163,9 +163,6 @@ impl VirtualMethods for HTMLBodyElement {
             },
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = window_from_node(self);
-                let (cx, url, reflector) = (window.get_cx(),
-                                            window.get_url(),
-                                            window.reflector().get_jsobject());
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
                 match name {
@@ -176,7 +173,9 @@ impl VirtualMethods for HTMLBodyElement {
                     &atom!("onresize") | &atom!("onunload") | &atom!("onerror")
                       => {
                           let evtarget = window.upcast::<EventTarget>(); // forwarded event
-                          evtarget.set_event_handler_uncompiled(cx, url, reflector,
+                          let source_line = 1; //TODO obtain current JS execution line
+                          evtarget.set_event_handler_uncompiled(window.get_url(),
+                                                                source_line,
                                                                 &name[2..],
                                                                 DOMString::from((**attr.value()).to_owned()));
                           false
