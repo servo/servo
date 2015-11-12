@@ -50,6 +50,12 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_setter!(SetColSpan, "colspan", DEFAULT_COLSPAN);
 
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-bgcolor
+    make_getter!(BgColor);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-bgcolor
+    make_legacy_color_setter!(SetBgColor, "bgcolor");
+
     // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
     fn CellIndex(&self) -> i32 {
         let self_node = self.upcast::<Node>();
