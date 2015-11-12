@@ -221,7 +221,7 @@ impl Stylist {
             .flat_map(|s| s.effective_rules(&self.device).viewport())
             .cascade();
 
-        self.viewport_constraints = ViewportConstraints::maybe_new(self.device.viewport_size, &cascaded_rule);
+        self.viewport_constraints = ViewportConstraints::maybe_new(device.viewport_size, &cascaded_rule);
         if let Some(ref constraints) = self.viewport_constraints {
             device = Device::new(MediaType::Screen, constraints.size);
         }
