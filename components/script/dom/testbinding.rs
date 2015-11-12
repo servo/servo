@@ -362,6 +362,7 @@ impl TestBindingMethods for TestBinding {
     // fn PassOptionalNullableEnumWithNonNullDefault(self, _: Option<TestEnum>) {}
 
     fn PassVariadicBoolean(&self, _: Vec<bool>) {}
+    fn PassVariadicBooleanAndDefault(&self, _: bool, _: Vec<bool>) {}
     fn PassVariadicByte(&self, _: Vec<i8>) {}
     fn PassVariadicOctet(&self, _: Vec<u8>) {}
     fn PassVariadicShort(&self, _: Vec<i16>) {}
