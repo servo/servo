@@ -50,7 +50,7 @@ use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionPr
 use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
 use script::dom::node::LayoutData;
 use script::layout_interface::Animation;
-use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
@@ -241,7 +241,6 @@ impl LayoutTaskFactory for LayoutTask {
                                          move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
-                let layout_chan = LayoutChan(sender);
                 let layout = LayoutTask::new(id,
                                              url,
                                              is_iframe,
@@ -258,7 +257,7 @@ impl LayoutTaskFactory for LayoutTask {
                 let reporter_name = format!("layout-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
                     layout.start();
-                }, reporter_name, layout_chan.0, Msg::CollectReports);
+                }, reporter_name, sender, Msg::CollectReports);
             }
             shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), con_chan);
