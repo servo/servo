@@ -55,7 +55,8 @@ pub enum ResponseType {
     CORS,
     Default,
     Error,
-    Opaque
+    Opaque,
+    OpaqueRedirect
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
@@ -87,6 +88,7 @@ pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
+    pub url_list: Vec<Url>,
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
     pub headers: Headers,
@@ -102,6 +104,7 @@ impl Response {
             response_type: ResponseType::Error,
             termination_reason: None,
             url: None,
+            url_list: Vec::new(),
             status: None,
             headers: Headers::new(),
             body: ResponseBody::Empty,

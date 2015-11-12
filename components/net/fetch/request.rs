@@ -14,7 +14,7 @@ use hyper::status::StatusCode;
 use net_traits::{AsyncFetchListener, Response, ResponseType, Metadata};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
-use url::Url;
+use url::{Url, UrlParser};
 use util::task::spawn_named;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
@@ -90,7 +90,8 @@ pub enum ResponseTainting {
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 pub struct Request {
     pub method: Method,
-    pub url: Url,
+    // Use the last method on Vec to act as spec url field
+    pub url_list: Vec<Url>,
     pub headers: Headers,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
@@ -101,7 +102,7 @@ pub struct Request {
     pub skip_service_worker: bool,
     pub context: Context,
     pub context_frame_type: ContextFrameType,
-    pub origin: Option<Url>,
+    pub origin: Option<Url>, // FIXME: Use Url::Origin
     pub force_origin_header: bool,
     pub same_origin_data: bool,
     pub referer: Referer,
@@ -121,7 +122,7 @@ impl Request {
     pub fn new(url: Url, context: Context, is_service_worker_global_scope: bool) -> Request {
          Request {
             method: Method::Get,
-            url: url,
+            url_list: vec![url],
             headers: Headers::new(),
             unsafe_request: false,
             body: None,
@@ -150,7 +151,7 @@ impl Request {
     pub fn fetch_async(mut self,
                        cors_flag: bool,
                        listener: Box<AsyncFetchListener + Send>) {
-        spawn_named(format!("fetch for {:?}", self.url.serialize()), move || {
+        spawn_named(format!("fetch for {:?}", self.url_list.last().unwrap().serialize()), move || {
             let res = self.fetch(cors_flag);
             listener.response_available(res);
         });
@@ -211,8 +212,10 @@ impl Request {
 
     /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
     pub fn basic_fetch(&mut self) -> Response {
-        match &*self.url.scheme {
-            "about" => match self.url.non_relative_scheme_data() {
+        let url_list = self.url_list.clone();
+        let url = url_list.last().unwrap();
+        match &*url.scheme {
+            "about" => match url.non_relative_scheme_data() {
                 Some(s) if &*s == "blank" => {
                     let mut response = Response::new();
                     response.headers.set(ContentType(Mime(
@@ -234,23 +237,52 @@ impl Request {
         }
     }
 
+    pub fn http_fetch_async(mut self, cors_flag: bool,
+                            cors_preflight_flag: bool,
+                            authentication_fetch_flag: bool,
+                            listener: Box<AsyncFetchListener + Send>) {
+        spawn_named(format!("http_fetch for {:?}", self.url_list.last().unwrap().serialize()), move || {
+            let res = self.http_fetch(cors_flag, cors_preflight_flag,
+                                      authentication_fetch_flag);
+            listener.response_available(res);
+        });
+    }
+
     /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
     pub fn http_fetch(&mut self, cors_flag: bool, cors_preflight_flag: bool,
                       authentication_fetch_flag: bool) -> Response {
         // Step 1
         let mut response: Option<Response> = None;
         // Step 2
+        let mut actual_response: Option<Response> = None;
+        // Step 3
         if !self.skip_service_worker && !self.is_service_worker_global_scope {
             // TODO: Substep 1 (handle fetch unimplemented)
-            // Substep 2
             if let Some(ref res) = response {
-                if (res.response_type == ResponseType::Opaque && self.mode != RequestMode::NoCORS) ||
+                // Substep 2
+                actual_response = match res.internal_response {
+                    Some(ref internal_res) => Some(*internal_res.clone()),
+                    None => Some(res.clone())
+                };
+                // Substep 3
+                if (res.response_type == ResponseType::Opaque &&
+                    self.mode != RequestMode::NoCORS) ||
+                   (res.response_type == ResponseType::OpaqueRedirect &&
+                    self.redirect_mode != RedirectMode::Manual) ||
                    res.response_type == ResponseType::Error {
                     return Response::network_error();
                 }
+                // Substep 4
+                if let Some(ref mut res) = actual_response {
+                    if res.url_list.is_empty() {
+                        res.url_list = self.url_list.clone();
+                    }
+                }
+                // Substep 5
+                // TODO: set response's CSP list on actual_response
             }
         }
-        // Step 3
+        // Step 4
         if response.is_none() {
             // Substep 1
             if cors_preflight_flag {
@@ -258,7 +290,7 @@ impl Request {
                 let mut header_mismatch = false;
                 if let Some(ref mut cache) = self.cache {
                     let origin = self.origin.clone().unwrap_or(Url::parse("").unwrap());
-                    let url = self.url.clone();
+                    let url = self.url_list.last().unwrap().clone();
                     let credentials = self.credentials_mode == CredentialsMode::Include;
                     let method_cache_match = cache.match_method(CacheRequestDetails {
                         origin: origin.clone(),
@@ -288,24 +320,24 @@ impl Request {
             // Substep 3
             let credentials = match self.credentials_mode {
                 CredentialsMode::Include => true,
-                CredentialsMode::CredentialsSameOrigin if !cors_flag => true,
+                CredentialsMode::CredentialsSameOrigin if (!cors_flag ||
+                    self.response_tainting == ResponseTainting::Opaque)
+                    => true,
                 _ => false
             };
             // Substep 4
-            if self.cache_mode == CacheMode::Default && is_no_store_cache(&self.headers) {
-                self.cache_mode = CacheMode::NoStore;
-            }
-            // Substep 5
             let fetch_result = self.http_network_or_cache_fetch(credentials, authentication_fetch_flag);
-            // Substep 6
+            actual_response = Some(fetch_result.clone());
+            // Substep 5
             if cors_flag && self.cors_check(&fetch_result).is_err() {
                 return Response::network_error();
             }
             response = Some(fetch_result);
         }
-        // Step 4
+        // Step 5
+        let mut actual_response = actual_response.unwrap();
         let mut response = response.unwrap();
-        match response.status.unwrap() {
+        match actual_response.status.unwrap() {
             // Code 304
             StatusCode::NotModified => match self.cache_mode {
                 CacheMode::Default | CacheMode::NoCache => {
@@ -321,20 +353,20 @@ impl Request {
                     return Response::network_error();
                 }
                 // Step 2-4
-                if !response.headers.has::<Location>() {
-                    return response;
+                if !actual_response.headers.has::<Location>() {
+                    return actual_response;
                 }
-                let location = match response.headers.get::<Location>() {
-                    None => return Response::network_error(),
+                let location = match actual_response.headers.get::<Location>() {
                     Some(location) => location,
+                    None => return Response::network_error(),
                 };
                 // Step 5
-                let location_url = Url::parse(location);
+                let location_url = UrlParser::new().base_url(self.url_list.last().unwrap()).parse(location);
                 // Step 6
-                let location_url = match location_url {
-                    Ok(url) => url,
-                    Err(_) => return Response::network_error()
-                };
+                let location_url = if let Ok(url) = location_url {
+                    if url.scheme != "data" { url }
+                    else { return Response::network_error(); }
+                } else { return Response::network_error(); };
                 // Step 7
                 if self.redirect_count == 20 {
                     return Response::network_error();
@@ -342,61 +374,74 @@ impl Request {
                 // Step 8
                 self.redirect_count += 1;
                 // Step 9
-                self.same_origin_data = false;
+                if self.redirect_mode == RedirectMode::Manual {
+                    response = actual_response.clone().to_filtered(ResponseType::Opaque);
+                }
                 // Step 10
                 if self.redirect_mode == RedirectMode::Follow {
-                    // FIXME: Origin method of the Url crate hasn't been implemented
-                    // https://github.com/servo/rust-url/issues/54
-
                     // Substep 1
-                    // if cors_flag && location_url.origin() != self.url.origin() { self.origin = None; }
+                    // FIXME: Use Url::origin
+                    // if (self.mode == RequestMode::CORSMode || self.mode == RequestMode::ForcedPreflightMode) &&
+                    //     location_url.origin() != self.url.origin() &&
+                    //     has_credentials(&location_url) {
+                    //     return Response::network_error();
+                    // }
                     // Substep 2
-                    if cors_flag && (!location_url.username().unwrap_or("").is_empty() ||
-                                      location_url.password().is_some()) {
+                    if cors_flag && (has_credentials(&location_url)) {
                         return Response::network_error();
                     }
                     // Substep 3
-                    if response.status.unwrap() == StatusCode::MovedPermanently ||
-                       response.status.unwrap() == StatusCode::SeeOther ||
-                       (response.status.unwrap() == StatusCode::Found && self.method == Method::Post) {
+                    // FIXME: Use Url::origin
+                    // if cors_flag && location_url.origin() != self.url.origin() {
+                    //     self.origin = Origin::UID(OpaqueOrigin);
+                    // }
+                    // Substep 4
+                    if actual_response.status.unwrap() == StatusCode::SeeOther ||
+                       ((actual_response.status.unwrap() == StatusCode::MovedPermanently ||
+                         actual_response.status.unwrap() == StatusCode::Found) &&
+                        self.method == Method::Post) {
                         self.method = Method::Get;
                     }
-                    // Substep 4
-                    self.url = location_url;
                     // Substep 5
-                    return self.fetch(cors_flag);
+                    self.url_list.push(location_url);
+                    // Substep 6
+                    return self.main_fetch(cors_flag);
                 }
             }
             // Code 401
             StatusCode::Unauthorized => {
                 // Step 1
-                if !self.authentication || cors_flag {
+                // FIXME: Figure out what to do with request window objects
+                if cors_flag {
                     return response;
                 }
                 // Step 2
-                // TODO: Spec says requires testing
+                // TODO: Spec says requires testing on multiple WWW-Authenticate headers
                 // Step 3
                 if !self.use_url_credentials || authentication_fetch_flag {
-                    // TODO: Prompt the user for username and password
+                    // TODO: Prompt the user for username and password from the window
                 }
+                // Step 4
                 return self.http_fetch(cors_flag, cors_preflight_flag, true);
             }
             // Code 407
             StatusCode::ProxyAuthenticationRequired => {
                 // Step 1
-                // TODO: Spec says requires testing
+                // TODO: Figure out what to do with request window objects
                 // Step 2
-                // TODO: Prompt the user for proxy authentication credentials
+                // TODO: Spec says requires testing on Proxy-Authenticate headers
                 // Step 3
+                // TODO: Prompt the user for proxy authentication credentials
+                // Step 4
                 return self.http_fetch(cors_flag, cors_preflight_flag, authentication_fetch_flag);
             }
             _ => { }
         }
-        // Step 5
+        // Step 6
         if authentication_fetch_flag {
             // TODO: Create authentication entry for this request
         }
-        // Step 6
+        // Step 7
         response
     }
 
@@ -419,6 +464,10 @@ impl Request {
         // TODO: Implement CORS check spec
         Err(())
     }
+}
+
+fn has_credentials(url: &Url) -> bool {
+    !url.username().unwrap_or("").is_empty() || url.password().is_some()
 }
 
 fn is_no_store_cache(headers: &Headers) -> bool {

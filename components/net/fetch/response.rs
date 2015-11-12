@@ -20,6 +20,7 @@ impl ResponseMethods for Response {
             response_type: ResponseType::Default,
             termination_reason: None,
             url: None,
+            url_list: Vec::new(),
             status: Some(StatusCode::Ok),
             headers: Headers::new(),
             body: ResponseBody::Empty,
@@ -62,7 +63,8 @@ impl ResponseMethods for Response {
                 response.headers = headers;
                 response.response_type = filter_type;
             },
-            ResponseType::Opaque => {
+            ResponseType::Opaque |
+            ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
                 response.body = ResponseBody::Empty;
