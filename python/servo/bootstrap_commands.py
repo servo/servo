@@ -134,7 +134,7 @@ class MachCommands(CommandBase):
         # rustc-nightly-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
         # giving a directory name that will be the same as the tarball name (rustc is
         # in that directory).
-        snapshot_url = ("https://static.rust-lang.org/dist/%s.tar.gz"
+        snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
                         % self.rust_snapshot_path())
         tgz_file = rust_dir + '-rustc.tar.gz'
 
@@ -151,7 +151,7 @@ class MachCommands(CommandBase):
         # list.
         stdlibs = [host_triple(), "arm-linux-androideabi"]
         for target in stdlibs:
-            snapshot_url = ("https://static.rust-lang.org/dist/%s/rust-std-nightly-%s.tar.gz"
+            snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
                             % (date, target))
             tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target)
 
@@ -185,7 +185,7 @@ class MachCommands(CommandBase):
         if path.isdir(docs_dir):
             shutil.rmtree(docs_dir)
         docs_name = self.rust_snapshot_path().replace("rustc-", "rust-docs-")
-        snapshot_url = ("https://static.rust-lang.org/dist/rust-docs-nightly-%s.tar.gz"
+        snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
                         % host_triple())
         tgz_file = path.join(hash_dir, 'doc.tar.gz')
 
