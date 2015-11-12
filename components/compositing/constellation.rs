@@ -74,11 +74,17 @@ enum ReadyToSave {
 /// `LayoutTask` in the `layout` crate, and `ScriptTask` in
 /// the `script` crate).
 pub struct Constellation<LTF, STF> {
-    /// A channel through which messages can be sent to this object.
-    pub chan: ConstellationChan,
+    /// A channel through which script messages can be sent to this object.
+    pub script_chan: ConstellationChan,
 
-    /// Receives messages.
-    pub request_port: Receiver<ConstellationMsg>,
+    /// A channel through which compositor messages can be sent to this object.
+    pub compositor_chan: ConstellationChan,
+
+    /// Receives messages from scripts.
+    pub script_request_port: Receiver<ConstellationMsg>,
+
+    /// Receives messages from the compositor
+    pub compositor_request_port: Receiver<ConstellationMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
@@ -254,12 +260,16 @@ enum ExitPipelineMode {
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     pub fn start(state: InitialConstellationState) -> ConstellationChan {
-        let (constellation_port, constellation_chan) = ConstellationChan::new();
-        let constellation_chan_clone = constellation_chan.clone();
+        let (script_port, script_chan) = ConstellationChan::new();
+        let (compositor_port, compositor_chan) = ConstellationChan::new();
+        let script_chan_clone = script_chan.clone();
+        let compositor_chan_clone = compositor_chan.clone();
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
-                chan: constellation_chan_clone,
-                request_port: constellation_port,
+                script_chan: script_chan_clone,
+                compositor_chan: compositor_chan_clone,
+                script_request_port: script_port,
+                compositor_request_port: compositor_port,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
                 resource_task: state.resource_task,
@@ -300,12 +310,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             PipelineNamespace::install(namespace_id);
             constellation.run();
         });
-        constellation_chan
+        compositor_chan
     }
 
     fn run(&mut self) {
         loop {
-            let request = self.request_port.recv().unwrap();
+            let request = {
+                let port_from_script = &self.script_request_port;
+                let port_from_compositor = &self.compositor_request_port;
+                select! {
+                    msg = port_from_script.recv() => msg.unwrap(),
+                    msg = port_from_compositor.recv() => msg.unwrap()
+                }
+            };
             if !self.handle_request(request) {
                 break;
             }
@@ -331,7 +348,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Pipeline::create::<LTF, STF>(InitialPipelineState {
                 id: pipeline_id,
                 parent_info: parent_info,
-                constellation_chan: self.chan.clone(),
+                constellation_chan: self.script_chan.clone(),
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
@@ -1395,7 +1412,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let (chan, port) = channel();
             self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree,
                                                                    chan,
-                                                                   self.chan.clone()));
+                                                                   self.compositor_chan.clone()));
             if port.recv().is_err() {
                 debug!("Compositor has discarded SetFrameTree");
                 return; // Our message has been discarded, probably shutting down.
