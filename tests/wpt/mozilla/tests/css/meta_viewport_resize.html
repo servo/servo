@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Resizing the initial containing block dynamically with &lt;meta name="viewport">
+       https://github.com/servo/servo/issues/8443</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function run() {
+    async_test(function(t) {
+        var iframe = document.getElementsByTagName("iframe")[0];
+
+        window.requestAnimationFrame(function() {
+            t.step(function() {
+                var body_style = iframe.contentWindow.getComputedStyle(iframe.contentDocument.body);
+                assert_equals(body_style.width, "400px");
+                iframe.width = 500;
+                window.requestAnimationFrame(function() {
+                    t.step(function() {
+                        var body_style = iframe.contentWindow.getComputedStyle(iframe.contentDocument.body);
+                        assert_equals(body_style.width, "500px");
+                    });
+                    t.done();
+                });
+            });
+        });
+    }, "<body> inside <iframe> has the <iframe>’s width");
+}
+</script>
+<iframe src="meta_viewport_resize_iframe.html" onload="run()" width=400></iframe>
