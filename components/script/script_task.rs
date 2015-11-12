@@ -1702,10 +1702,10 @@ impl ScriptTask {
         document.get_current_parser().unwrap()
     }
 
-    fn notify_devtools(&self, title: String, url: Url, ids: (PipelineId, Option<WorkerId>)) {
+    fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
-                title: title,
+                title: String::from(title),
                 url: url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
@@ -2004,7 +2004,7 @@ impl ScriptTask {
         // Notify devtools that a new script global exists.
         //TODO: should this happen as soon as the global is created, or at least once the first
         // script runs?
-        self.notify_devtools(String::from(document.Title()), (*final_url).clone(), (id, None));
+        self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
     }
 }
 
