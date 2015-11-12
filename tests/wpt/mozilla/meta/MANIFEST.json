@@ -4507,6 +4507,12 @@
             "url": "/_mozilla/css/float_relative_to_position.html"
           }
         ],
+        "css/meta_viewport_resize.html": [ 
+          {
+            "path": "css/meta_viewport_resize.html",
+            "url": "/_mozilla/css/meta_viewport_resize.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
