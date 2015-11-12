@@ -35,7 +35,9 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
 use serde::{Deserializer, Serializer};
+use std::cell::RefCell;
 use std::thread;
+use std::rc::Rc;
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -55,7 +57,8 @@ pub enum ResponseType {
     CORS,
     Default,
     Error,
-    Opaque
+    Opaque,
+    OpaqueRedirect
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
@@ -87,13 +90,14 @@ pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
+    pub url_list: Vec<Url>,
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
     pub headers: Headers,
     pub body: ResponseBody,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
-    pub internal_response: Option<Box<Response>>,
+    pub internal_response: Option<Rc<RefCell<Response>>>,
 }
 
 impl Response {
@@ -102,6 +106,7 @@ impl Response {
             response_type: ResponseType::Error,
             termination_reason: None,
             url: None,
+            url_list: vec![],
             status: None,
             headers: Headers::new(),
             body: ResponseBody::Empty,
