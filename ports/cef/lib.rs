@@ -45,7 +45,6 @@ extern crate libc;
 extern crate url as std_url;
 
 #[cfg(target_os="macos")]
-#[link_args="-Xlinker -undefined -Xlinker dynamic_lookup"]
 extern { }
 
 #[cfg(target_os="macos")]
