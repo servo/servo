@@ -33719,6 +33719,18 @@
     "deleted": [],
     "items": {
       "testharness": {
+        "html/webappapis/scripting/events/inline-event-handler-ordering.html": [
+          {
+            "path": "html/webappapis/scripting/events/inline-event-handler-ordering.html",
+            "url": "/html/webappapis/scripting/events/inline-event-handler-ordering.html"
+          }
+        ],
+        "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html": [
+          {
+            "path": "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html",
+            "url": "/html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html"
+          }
+        ],
         "websockets/Send-data.worker.js": [
           {
             "path": "websockets/Send-data.worker.js",

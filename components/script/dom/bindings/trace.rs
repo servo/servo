@@ -255,6 +255,15 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
     }
 }
 
+impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        let (ref a, ref b, ref c) = *self;
+        a.trace(trc);
+        b.trace(trc);
+        c.trace(trc);
+    }
+}
 
 no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, Uuid);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
