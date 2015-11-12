@@ -8,10 +8,8 @@ use clock_ticks;
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
-use layout_task::{LayoutTask, LayoutTaskData};
 use msg::constellation_msg::{AnimationState, ConstellationChan, Msg, PipelineId};
 use script::layout_interface::Animation;
-use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::{Sender, Receiver};
@@ -137,13 +135,4 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
     for kid in base.children.iter_mut() {
         recalc_style_for_animations(kid, animations)
     }
-}
-
-/// Handles animation updates.
-pub fn tick_all_animations(layout_task: &mut LayoutTask, rw_data: &mut LayoutTaskData) {
-    layout_task.tick_animations(rw_data);
-
-    layout_task.script_chan
-               .send(ConstellationControlMsg::TickAllAnimations(layout_task.id))
-               .unwrap();
 }

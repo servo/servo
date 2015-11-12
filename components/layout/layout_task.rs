@@ -122,19 +122,19 @@ pub struct LayoutTaskData {
 /// Information needed by the layout task.
 pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
-    pub id: PipelineId,
+    id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    pub url: Url,
+    url: Url,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
-    pub is_iframe: bool,
+    is_iframe: bool,
 
     /// The port on which we receive messages from the script task.
-    pub port: Receiver<Msg>,
+    port: Receiver<Msg>,
 
     /// The port on which we receive messages from the constellation.
-    pub pipeline_port: Receiver<LayoutControlMsg>,
+    pipeline_port: Receiver<LayoutControlMsg>,
 
     /// The port on which we receive messages from the image cache
     image_cache_receiver: Receiver<ImageCacheResult>,
@@ -149,36 +149,36 @@ pub struct LayoutTask {
     font_cache_sender: Sender<()>,
 
     /// The channel on which we or others can send messages to ourselves.
-    pub chan: LayoutChan,
+    chan: LayoutChan,
 
     /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
-    pub script_chan: Sender<ConstellationControlMsg>,
+    script_chan: Sender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the painting task.
-    pub paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+    paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
-    pub time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// The channel on which messages can be sent to the memory profiler.
-    pub mem_profiler_chan: mem::ProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// The channel on which messages can be sent to the image cache.
-    pub image_cache_task: ImageCacheTask,
+    image_cache_task: ImageCacheTask,
 
     /// Public interface to the font cache task.
-    pub font_cache_task: FontCacheTask,
+    font_cache_task: FontCacheTask,
 
     /// Is this the first reflow in this LayoutTask?
-    pub first_reflow: bool,
+    first_reflow: bool,
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
     /// to the paint chan
-    pub canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
-    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
+    canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
+    canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// The workers that we use for parallel operation.
     parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
@@ -218,7 +218,7 @@ pub struct LayoutTask {
     /// structures, while still letting the LayoutTask modify them.
     ///
     /// All the other elements of this struct are read-only.
-    pub rw_data: Arc<Mutex<LayoutTaskData>>,
+    rw_data: Arc<Mutex<LayoutTaskData>>,
 }
 
 impl LayoutTaskFactory for LayoutTask {
@@ -1294,7 +1294,11 @@ impl LayoutTask {
 
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        animation::tick_all_animations(self, &mut rw_data)
+        self.tick_animations(&mut rw_data);
+
+        self.script_chan
+          .send(ConstellationControlMsg::TickAllAnimations(self.id))
+          .unwrap();
     }
 
     pub fn tick_animations(&mut self, rw_data: &mut LayoutTaskData) {
