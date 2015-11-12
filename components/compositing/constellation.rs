@@ -313,6 +313,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         compositor_chan
     }
 
+#[allow(unsafe_code)]
     fn run(&mut self) {
         loop {
             let request = {
