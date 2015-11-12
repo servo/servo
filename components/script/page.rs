@@ -79,8 +79,8 @@ impl Page {
     pub fn remove(&self, id: PipelineId) -> Option<Rc<Page>> {
         let remove_idx = {
             self.children
-                .borrow_mut()
-                .iter_mut()
+                .borrow()
+                .iter()
                 .position(|page_tree| page_tree.id == id)
         };
         match remove_idx {
