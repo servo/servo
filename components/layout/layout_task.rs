@@ -148,9 +148,6 @@ pub struct LayoutTask {
     /// The channel on which the font cache can send messages to us.
     font_cache_sender: Sender<()>,
 
-    /// The channel on which we or others can send messages to ourselves.
-    chan: LayoutChan,
-
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
 
@@ -249,7 +246,6 @@ impl LayoutTaskFactory for LayoutTask {
                                              url,
                                              is_iframe,
                                              chan.receiver(),
-                                             layout_chan.clone(),
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,
@@ -358,7 +354,6 @@ impl LayoutTask {
            url: Url,
            is_iframe: bool,
            port: Receiver<Msg>,
-           chan: LayoutChan,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
            script_chan: Sender<ConstellationControlMsg>,
@@ -408,7 +403,6 @@ impl LayoutTask {
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
-            chan: chan,
             script_chan: script_chan,
             constellation_chan: constellation_chan.clone(),
             paint_chan: paint_chan,
