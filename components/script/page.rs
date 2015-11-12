@@ -100,15 +100,11 @@ impl Iterator for PageIterator {
     type Item = Rc<Page>;
 
     fn next(&mut self) -> Option<Rc<Page>> {
-        match self.stack.pop() {
-            Some(next) => {
-                for child in &*next.children.borrow() {
-                    self.stack.push(child.clone());
-                }
-                Some(next)
-            },
-            None => None,
+        let popped = self.stack.pop();
+        if let Some(ref page) = popped {
+            self.stack.extend(page.children.borrow().iter().cloned());
         }
+        popped
     }
 }
 
