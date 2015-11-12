@@ -96,7 +96,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::FromIterator;
-use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -516,16 +515,19 @@ impl Document {
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         match state {
             DocumentReadyState::Loading => {
-                let dom_loading = *self.window.Performance().r().Now().deref();
-                self.dom_loading.set(dom_loading as u64);
+                if self.dom_loading.get() == Default::default() {
+                    self.dom_loading.set((time::get_time().sec * 1000) as u64);
+                }
             },
             DocumentReadyState::Interactive => {
-                let dom_interactive = *self.window.Performance().r().Now().deref();
-                self.dom_interactive.set(dom_interactive as u64);
+                if self.dom_interactive.get() == Default::default() {
+                    self.dom_interactive.set((time::get_time().sec * 1000) as u64);
+                }
             },
             DocumentReadyState::Complete => {
-                let dom_complete = *self.window.Performance().r().Now().deref();
-                self.dom_complete.set(dom_complete as u64);
+                if self.dom_complete.get() == Default::default() {
+                    self.dom_complete.set((time::get_time().sec * 1000) as u64);
+                }
             },
         };
 
@@ -1249,9 +1251,9 @@ impl Document {
         }
         self.domcontentloaded_dispatched.set(true);
 
-        let dom_content_loaded_event_start = self.window().Performance().r().Now();
-        self.dom_content_loaded_event_start.set(*dom_content_loaded_event_start.deref() as u64);
-
+        if self.dom_content_loaded_event_start.get() == Default::default() {
+            self.dom_content_loaded_event_start.set((time::get_time().sec * 1000) as u64);
+        }
 
         let event = Event::new(GlobalRef::Window(self.window()),
                                DOMString("DOMContentLoaded".to_owned()),
@@ -1261,8 +1263,9 @@ impl Document {
         let _ = doctarget.DispatchEvent(event.r());
         self.window().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
 
-        let dom_content_loaded_event_end = self.window().Performance().r().Now();
-        self.dom_content_loaded_event_end.set(*dom_content_loaded_event_end.deref() as u64);
+        if self.dom_content_loaded_event_end.get() != Default::default() {
+            self.dom_content_loaded_event_end.set((time::get_time().sec * 1000) as u64);
+        }
     }
 
     pub fn notify_constellation_load(&self) {
@@ -1417,11 +1420,11 @@ impl Document {
             appropriate_template_contents_owner_document: Default::default(),
             modified_elements: DOMRefCell::new(HashMap::new()),
             active_touch_points: DOMRefCell::new(Vec::new()),
-            dom_loading: Cell::new(0),
-            dom_interactive: Cell::new(0),
-            dom_content_loaded_event_start: Cell::new(0),
-            dom_content_loaded_event_end: Cell::new(0),
-            dom_complete: Cell::new(0),
+            dom_loading: Cell::new(Default::default()),
+            dom_interactive: Cell::new(Default::default()),
+            dom_content_loaded_event_start: Cell::new(Default::default()),
+            dom_content_loaded_event_end: Cell::new(Default::default()),
+            dom_complete: Cell::new(Default::default()),
         }
     }
 
