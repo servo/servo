@@ -43,12 +43,14 @@ impl IterablePage for Rc<Page> {
         }
     }
     fn find(&self, id: PipelineId) -> Option<Rc<Page>> {
-        if self.id == id { return Some(self.clone()); }
-        for page in &*self.children.borrow() {
-            let found = page.find(id);
-            if found.is_some() { return found; }
+        if self.id == id {
+            return Some(self.clone());
         }
-        None
+
+        self.children.borrow()
+                     .iter()
+                     .filter_map(|p| p.find(id))
+                     .next()
     }
 
 }
