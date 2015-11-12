@@ -31,8 +31,8 @@ impl DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
             name: name,
-            public_id: public_id.unwrap_or(DOMString::new()),
-            system_id: system_id.unwrap_or(DOMString::new())
+            public_id: public_id.unwrap_or_default(),
+            system_id: system_id.unwrap_or_default(),
         }
     }
     #[allow(unrooted_must_root)]

@@ -825,7 +825,7 @@ impl Node {
                     .map(|elem| elem.upcast::<Node>() == self)
                     .unwrap_or(false),
 
-            shortValue: self.GetNodeValue().unwrap_or(DOMString::new()), //FIXME: truncate
+            shortValue: self.GetNodeValue().unwrap_or_default(), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
     }
@@ -1893,7 +1893,7 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(&self, val: Option<DOMString>) {
         if let Some(character_data) = self.downcast::<CharacterData>() {
-            character_data.SetData(val.unwrap_or(DOMString::new()));
+            character_data.SetData(val.unwrap_or_default());
         }
     }
 
@@ -1918,7 +1918,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(&self, value: Option<DOMString>) {
-        let value = value.unwrap_or(DOMString::new());
+        let value = value.unwrap_or_default();
         match self.type_id() {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {

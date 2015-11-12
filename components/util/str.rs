@@ -32,6 +32,12 @@ impl DOMString {
     }
 }
 
+impl Default for DOMString {
+    fn default() -> Self {
+        DOMString(String::new())
+    }
+}
+
 impl Deref for DOMString {
     type Target = str;
 
