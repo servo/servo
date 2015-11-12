@@ -195,8 +195,7 @@ pub struct Document {
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
     /// DOM-Related Navigation Timing properties:
-    /// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    /// NavigationTiming/Overview.html#dom-performancetiming-domloading
+    /// http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domLoading
     dom_loading: Cell<u64>,
     dom_interactive: Cell<u64>,
     dom_content_loaded_event_start: Cell<u64>,

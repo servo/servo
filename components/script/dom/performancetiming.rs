@@ -47,38 +47,32 @@ impl PerformanceTiming {
 }
 
 impl PerformanceTimingMethods for PerformanceTiming {
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#dom-performancetiming-navigationstart
+    // http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-navigationStart
     fn NavigationStart(&self) -> u64 {
         self.navigationStart
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#dom-performancetiming-domloading
+    // http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domLoading
     fn DomLoading(&self) -> u64 {
         self.document.get_dom_loading()
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#dom-performancetiming-dominteractive
+    // http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domInteractive
     fn DomInteractive(&self) -> u64 {
         self.document.get_dom_interactive()
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#dom-performancetiming-domcontenteventstart
+    // http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domContentLoadedEventStart
     fn DomContentLoadedEventStart(&self) -> u64 {
         self.document.get_dom_content_loaded_event_start()
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#dom-performancetiming-domcontenteventend
+    // http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domContentLoadedEventEnd
     fn DomContentLoadedEventEnd(&self) -> u64 {
         self.document.get_dom_content_loaded_event_end()
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
-    // NavigationTiming/Overview.html#dom-performancetiming-domcomplete
+    // http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domComplete
     fn DomComplete(&self) -> u64 {
         self.document.get_dom_complete()
     }
