@@ -325,6 +325,7 @@ interface TestBinding {
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
 
   void passVariadicBoolean(boolean... args);
+  void passVariadicBooleanAndDefault(optional boolean arg = true, boolean... args);
   void passVariadicByte(byte... args);
   void passVariadicOctet(octet... args);
   void passVariadicShort(short... args);

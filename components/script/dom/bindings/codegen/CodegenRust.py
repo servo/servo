@@ -1184,22 +1184,23 @@ class CGArgumentConverter(CGThing):
                 template, variadicConversion, declType, "slot")]
 
             arg = "arg%d" % index
-            vec = "Vec::with_capacity((%(argc)s - %(index)s) as usize)" % {'argc': argc, 'index': index}
 
             if argument.type.isGeckoInterface():
-                code = "let mut %s = RootedVec::new();\n*%s = %s;\n" % (arg, arg, vec)
+                vec = "RootedVec::new()"
                 innerConverter.append(CGGeneric("%s.push(JS::from_ref(&*slot));" % arg))
             else:
-                code = "let mut %s = %s;\n" % (arg, vec)
+                vec = "vec![]"
                 innerConverter.append(CGGeneric("%s.push(slot);" % arg))
-            inner = CGIndenter(CGList(innerConverter, "\n"), 4).define()
+            inner = CGIndenter(CGList(innerConverter, "\n"), 8).define()
 
-            code += """\
-for variadicArg in %(index)s..%(argc)s {
+            self.converter = CGGeneric("""\
+let mut %(arg)s = %(vec)s;
+if %(argc)s > %(index)s {
+    %(arg)s.reserve(%(argc)s as usize - %(index)s);
+    for variadicArg in %(index)s..%(argc)s {
 %(inner)s
-}""" % {'argc': argc, 'index': index, 'inner': inner}
-
-            self.converter = CGGeneric(code)
+    }
+}""" % {'arg': arg, 'argc': argc, 'index': index, 'inner': inner, 'vec': vec})
 
     def define(self):
         return self.converter.define()
