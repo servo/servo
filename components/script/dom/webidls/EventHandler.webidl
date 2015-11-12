@@ -24,6 +24,7 @@ typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 [NoInterfaceObject]
 interface GlobalEventHandlers {
            attribute EventHandler onclick;
+           attribute OnErrorEventHandler onerror;
            attribute EventHandler onload;
            attribute EventHandler oninput;
            attribute EventHandler onkeydown;
@@ -37,19 +38,4 @@ interface GlobalEventHandlers {
 interface WindowEventHandlers {
            attribute EventHandler onunload;
            attribute EventHandler onstorage;
-};
-
-// The spec has |attribute OnErrorEventHandler onerror;| on
-// GlobalEventHandlers, and calls the handler differently depending on
-// whether an ErrorEvent was fired. We don't do that, and until we do we'll
-// need to distinguish between onerror on Window or on nodes.
-
-/*[NoInterfaceObject]
-interface OnErrorEventHandlerForNodes {
-           attribute EventHandler onerror;
-};*/
-
-[NoInterfaceObject]
-interface OnErrorEventHandlerForWindow {
-           attribute OnErrorEventHandler onerror;
 };
