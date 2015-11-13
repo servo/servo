@@ -460,7 +460,7 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
 
         // Preload the placeholder image, used when images fail to load.
         let mut placeholder_path = resources_dir_path();
-        placeholder_path.push("rippy.jpg");
+        placeholder_path.push("rippy.png");
 
         let mut image_data = vec![];
         let result = File::open(&placeholder_path).and_then(|mut file| {
