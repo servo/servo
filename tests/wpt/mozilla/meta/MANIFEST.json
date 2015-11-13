@@ -2319,6 +2319,30 @@
             "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
           }
         ],
+        "css/legacy_td_width_attribute_a.html": [
+          {
+            "path": "css/legacy_td_width_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/legacy_td_width_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_td_width_attribute_a.html"
+          }
+        ],
+        "css/legacy_th_width_attribute_a.html": [
+          {
+            "path": "css/legacy_th_width_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/legacy_td_width_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_th_width_attribute_a.html"
+          }
+        ],
         "css/letter_spacing_a.html": [
           {
             "path": "css/letter_spacing_a.html",
@@ -7430,6 +7454,30 @@
             ]
           ],
           "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
+        }
+      ],
+      "css/legacy_td_width_attribute_a.html": [
+        {
+          "path": "css/legacy_td_width_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/legacy_td_width_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_td_width_attribute_a.html"
+        }
+      ],
+      "css/legacy_th_width_attribute_a.html": [
+        {
+          "path": "css/legacy_th_width_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/legacy_td_width_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_th_width_attribute_a.html"
         }
       ],
       "css/letter_spacing_a.html": [
