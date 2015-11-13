@@ -17,14 +17,14 @@ use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
 use net_traits::response::{CacheState, HttpsState, Response, ResponseType, TerminationReason};
 use net_traits::{AsyncFetchListener, Metadata};
-use resource_task::CancellationListener;
+use resource_thread::CancellationListener;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
 use url::{Origin, Url, UrlParser};
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]

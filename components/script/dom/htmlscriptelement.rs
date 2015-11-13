@@ -34,8 +34,8 @@ use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
-use script_task::ScriptTaskEventCategory::ScriptEvent;
-use script_task::{CommonScriptMsg, Runnable, ScriptChan};
+use script_thread::ScriptThreadEventCategory::ScriptEvent;
+use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::mem;
@@ -272,7 +272,7 @@ impl HTMLScriptElement {
                     Ok(url) => {
                         // Step 14.5-7.
                         // TODO(#9186): use the fetch infrastructure.
-                        let script_chan = window.networking_task_source();
+                        let script_chan = window.networking_thread_source();
                         let elem = Trusted::new(self, script_chan.clone());
 
                         let context = Arc::new(Mutex::new(ScriptContext {
@@ -432,7 +432,7 @@ impl HTMLScriptElement {
         if external {
             self.dispatch_load_event();
         } else {
-            let chan = window.dom_manipulation_task_source();
+            let chan = window.dom_manipulation_thread_source();
             let handler = Trusted::new(self, chan.clone());
             let dispatcher = box EventDispatcher {
                 element: handler,
@@ -445,7 +445,7 @@ impl HTMLScriptElement {
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
         let window = window.r();
-        let chan = window.dom_manipulation_task_source();
+        let chan = window.dom_manipulation_thread_source();
         let handler = Trusted::new(self, chan.clone());
         let dispatcher = box EventDispatcher {
             element: handler,

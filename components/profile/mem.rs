@@ -12,7 +12,7 @@ use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use util::time::duration_from_seconds;
 
 pub struct Profiler {

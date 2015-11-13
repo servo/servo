@@ -49,4 +49,3 @@ mod test {
         assert!(resident_size().unwrap() > 0);
     }
 }
-

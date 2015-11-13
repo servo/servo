@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
-//! and layout tasks. It's in charge of processing events for all same-origin pages in a frame
+//! The script thread is the thread that owns the DOM in memory, runs JavaScript, and spawns parsing
+//! and layout threads. It's in charge of processing events for all same-origin pages in a frame
 //! tree, and manages the entire lifetime of pages in the frame tree from initial request to
 //! teardown.
 //!
 //! Page loads follow a two-step process. When a request for a new page load is received, the
 //! network request is initiated and the relevant data pertaining to the new page is stashed.
-//! While the non-blocking request is ongoing, the script task is free to process further events,
+//! While the non-blocking request is ongoing, the script thread is free to process further events,
 //! noting when they pertain to ongoing loads (such as resizes/viewport adjustments). When the
 //! initial response is received for an ongoing load, the second phase starts - the frame tree
 //! entry is created, along with the Window and Document objects, and the appropriate parser
 //! takes over the response body. Once parsing is complete, the document lifecycle for loading
-//! a page runs its course and the script task returns to processing events in the main event
+//! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
 use devtools;
@@ -59,7 +59,7 @@ use js::jsapi::{JSObject, SetPreserveWrapperCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
-use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLayoutChan};
+use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ReflowGoal, ScriptLayoutChan};
 use libc;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{ConstellationChan, LoadData};
@@ -68,9 +68,9 @@ use msg::constellation_msg::{PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
-use net_traits::storage_task::StorageTask;
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceTask};
+use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::storage_thread::StorageThread;
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
@@ -81,7 +81,7 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::CompositorEvent::{TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult, InitialScriptState, NewLayoutInfo};
 use script_traits::{LayoutMsg, OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg};
-use script_traits::{ScriptTaskFactory, ScriptToCompositorMsg, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{ScriptThreadFactory, ScriptToCompositorMsg, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
 use std::any::Any;
 use std::borrow::ToOwned;
@@ -101,17 +101,17 @@ use time::{Tm, now};
 use url::Url;
 use util::opts;
 use util::str::DOMString;
-use util::task;
-use util::task_state;
+use util::thread;
+use util::thread_state;
 use webdriver_handlers;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
-thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptTask>> = RefCell::new(None));
+thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptThread>> = RefCell::new(None));
 
 unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
     SCRIPT_TASK_ROOT.with(|root| {
-        if let Some(script_task) = *root.borrow() {
-            (*script_task).trace(tr);
+        if let Some(script_thread) = *root.borrow() {
+            (*script_thread).trace(tr);
         }
     });
 
@@ -131,7 +131,7 @@ struct InProgressLoad {
     parent_info: Option<(PipelineId, SubpageId)>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
-    /// Channel to the layout task associated with this pipeline.
+    /// Channel to the layout thread associated with this pipeline.
     layout_chan: LayoutChan,
     /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
@@ -196,7 +196,7 @@ pub trait Runnable {
 }
 
 pub trait MainThreadRunnable {
-    fn handler(self: Box<Self>, script_task: &ScriptTask);
+    fn handler(self: Box<Self>, script_thread: &ScriptThread);
 }
 
 enum MixedMessage {
@@ -209,17 +209,17 @@ enum MixedMessage {
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
-    /// Requests that the script task measure its memory usage. The results are sent back via the
+    /// Requests that the script thread measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
-    /// A DOM object's last pinned reference was removed (dispatched to all tasks).
+    /// A DOM object's last pinned reference was removed (dispatched to all threads).
     RefcountCleanup(TrustedReference),
     /// Generic message that encapsulates event handling.
-    RunnableMsg(ScriptTaskEventCategory, Box<Runnable + Send>),
+    RunnableMsg(ScriptThreadEventCategory, Box<Runnable + Send>),
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub enum ScriptTaskEventCategory {
+pub enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
     DevtoolsMsg,
@@ -246,12 +246,12 @@ pub enum MainThreadScriptMsg {
     /// Notify a document that all pending loads are complete.
     DocumentLoadsComplete(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline
-    /// should be closed (only dispatched to ScriptTask).
+    /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
-    /// Generic message for running tasks in the ScriptTask
+    /// Generic message for running threads in the ScriptThread
     MainThreadRunnableMsg(Box<MainThreadRunnable + Send>),
     /// Begins a content-initiated load on the specified pipeline (only
-    /// dispatched to ScriptTask).
+    /// dispatched to ScriptThread).
     Navigate(PipelineId, LoadData),
 }
 
@@ -306,7 +306,7 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
     }
 }
 
-/// Encapsulates internal communication of shared messages within the script task.
+/// Encapsulates internal communication of shared messages within the script thread.
 #[derive(JSTraceable)]
 pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
 
@@ -330,7 +330,7 @@ impl SendableMainThreadScriptChan {
     }
 }
 
-/// Encapsulates internal communication of main thread messages within the script task.
+/// Encapsulates internal communication of main thread messages within the script thread.
 #[derive(JSTraceable)]
 pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
 
@@ -354,99 +354,99 @@ impl MainThreadScriptChan {
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+// FIXME: Use a thread source specific message instead of MainThreadScriptMsg
 #[derive(JSTraceable)]
-pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct DOMManipulationThreadSource(pub Sender<MainThreadScriptMsg>);
 
-impl ScriptChan for DOMManipulationTaskSource {
+impl ScriptChan for DOMManipulationThreadSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let DOMManipulationTaskSource(ref chan) = *self;
+        let DOMManipulationThreadSource(ref chan) = *self;
         chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let DOMManipulationTaskSource(ref chan) = *self;
-        box DOMManipulationTaskSource((*chan).clone())
+        let DOMManipulationThreadSource(ref chan) = *self;
+        box DOMManipulationThreadSource((*chan).clone())
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+// FIXME: Use a thread source specific message instead of MainThreadScriptMsg
 #[derive(JSTraceable)]
-pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct UserInteractionThreadSource(pub Sender<MainThreadScriptMsg>);
 
-impl ScriptChan for UserInteractionTaskSource {
+impl ScriptChan for UserInteractionThreadSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let UserInteractionTaskSource(ref chan) = *self;
+        let UserInteractionThreadSource(ref chan) = *self;
         chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let UserInteractionTaskSource(ref chan) = *self;
-        box UserInteractionTaskSource((*chan).clone())
+        let UserInteractionThreadSource(ref chan) = *self;
+        box UserInteractionThreadSource((*chan).clone())
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+// FIXME: Use a thread source specific message instead of MainThreadScriptMsg
 #[derive(JSTraceable)]
-pub struct NetworkingTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct NetworkingThreadSource(pub Sender<MainThreadScriptMsg>);
 
-impl ScriptChan for NetworkingTaskSource {
+impl ScriptChan for NetworkingThreadSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let NetworkingTaskSource(ref chan) = *self;
+        let NetworkingThreadSource(ref chan) = *self;
         chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let NetworkingTaskSource(ref chan) = *self;
-        box NetworkingTaskSource((*chan).clone())
+        let NetworkingThreadSource(ref chan) = *self;
+        box NetworkingThreadSource((*chan).clone())
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+// FIXME: Use a thread source specific message instead of MainThreadScriptMsg
 #[derive(JSTraceable)]
-pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct HistoryTraversalThreadSource(pub Sender<MainThreadScriptMsg>);
 
-impl ScriptChan for HistoryTraversalTaskSource {
+impl ScriptChan for HistoryTraversalThreadSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let HistoryTraversalTaskSource(ref chan) = *self;
+        let HistoryTraversalThreadSource(ref chan) = *self;
         chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let HistoryTraversalTaskSource(ref chan) = *self;
-        box HistoryTraversalTaskSource((*chan).clone())
+        let HistoryTraversalThreadSource(ref chan) = *self;
+        box HistoryTraversalThreadSource((*chan).clone())
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+// FIXME: Use a thread source specific message instead of MainThreadScriptMsg
 #[derive(JSTraceable)]
-pub struct FileReadingTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct FileReadingThreadSource(pub Sender<MainThreadScriptMsg>);
 
-impl ScriptChan for FileReadingTaskSource {
+impl ScriptChan for FileReadingThreadSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let FileReadingTaskSource(ref chan) = *self;
+        let FileReadingThreadSource(ref chan) = *self;
         chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let FileReadingTaskSource(ref chan) = *self;
-        box FileReadingTaskSource((*chan).clone())
+        let FileReadingThreadSource(ref chan) = *self;
+        box FileReadingThreadSource((*chan).clone())
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+// FIXME: Use a thread source specific message instead of MainThreadScriptMsg
 #[derive(JSTraceable)]
-pub struct ProfilerTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct ProfilerThreadSource(pub Sender<MainThreadScriptMsg>);
 
-impl ScriptChan for ProfilerTaskSource {
+impl ScriptChan for ProfilerThreadSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let ProfilerTaskSource(ref chan) = *self;
+        let ProfilerThreadSource(ref chan) = *self;
         chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ProfilerTaskSource(ref chan) = *self;
-        box ProfilerTaskSource((*chan).clone())
+        let ProfilerThreadSource(ref chan) = *self;
+        box ProfilerThreadSource((*chan).clone())
     }
 }
 
@@ -471,41 +471,41 @@ impl<'a> Drop for StackRootTLS<'a> {
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 #[derive(JSTraceable)]
-// ScriptTask instances are rooted on creation, so this is okay
+// ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
-pub struct ScriptTask {
+pub struct ScriptThread {
     /// A handle to the information pertaining to page layout
     page: DOMRefCell<Option<Rc<Page>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
-    /// A handle to the image cache task.
-    image_cache_task: ImageCacheTask,
-    /// A handle to the resource task. This is an `Arc` to avoid running out of file descriptors if
+    /// A handle to the image cache thread.
+    image_cache_thread: ImageCacheThread,
+    /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
-    resource_task: Arc<ResourceTask>,
-    /// A handle to the storage task.
-    storage_task: StorageTask,
+    resource_thread: Arc<ResourceThread>,
+    /// A handle to the storage thread.
+    storage_thread: StorageThread,
 
-    /// The port on which the script task receives messages (load URL, exit, etc.)
+    /// The port on which the script thread receives messages (load URL, exit, etc.)
     port: Receiver<MainThreadScriptMsg>,
-    /// A channel to hand out to script task-based entities that need to be able to enqueue
+    /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
-    dom_manipulation_task_source: DOMManipulationTaskSource,
+    dom_manipulation_thread_source: DOMManipulationThreadSource,
 
-    user_interaction_task_source: UserInteractionTaskSource,
+    user_interaction_thread_source: UserInteractionThreadSource,
 
-    networking_task_source: NetworkingTaskSource,
+    networking_thread_source: NetworkingThreadSource,
 
-    history_traversal_task_source: HistoryTraversalTaskSource,
+    history_traversal_thread_source: HistoryTraversalThreadSource,
 
-    file_reading_task_source: FileReadingTaskSource,
+    file_reading_thread_source: FileReadingThreadSource,
 
-    /// A channel to hand out to tasks that need to respond to a message from the script task.
+    /// A channel to hand out to threads that need to respond to a message from the script thread.
     control_chan: IpcSender<ConstellationControlMsg>,
 
-    /// The port on which the constellation and layout tasks can communicate with the
-    /// script task.
+    /// The port on which the constellation and layout threads can communicate with the
+    /// script thread.
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
@@ -541,7 +541,7 @@ pub struct ScriptTask {
 
     mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
 
-    /// List of pipelines that have been owned and closed by this script task.
+    /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
 
     scheduler_chan: IpcSender<TimerEventRequest>,
@@ -551,12 +551,12 @@ pub struct ScriptTask {
     content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// In the event of task failure, all data on the stack runs its destructor. However, there
+/// In the event of thread failure, all data on the stack runs its destructor. However, there
 /// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
-/// when the script task fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
-/// to forcibly tear down the JS compartments for pages associated with the failing ScriptTask.
+/// when the script thread fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
+/// to forcibly tear down the JS compartments for pages associated with the failing ScriptThread.
 struct ScriptMemoryFailsafe<'a> {
-    owner: Option<&'a ScriptTask>,
+    owner: Option<&'a ScriptThread>,
 }
 
 impl<'a> ScriptMemoryFailsafe<'a> {
@@ -564,7 +564,7 @@ impl<'a> ScriptMemoryFailsafe<'a> {
         self.owner = None;
     }
 
-    fn new(owner: &'a ScriptTask) -> ScriptMemoryFailsafe<'a> {
+    fn new(owner: &'a ScriptThread) -> ScriptMemoryFailsafe<'a> {
         ScriptMemoryFailsafe {
             owner: Some(owner),
         }
@@ -589,18 +589,18 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     }
 }
 
-impl ScriptTaskFactory for ScriptTask {
-    fn create_layout_channel(_phantom: Option<&mut ScriptTask>) -> OpaqueScriptLayoutChannel {
+impl ScriptThreadFactory for ScriptThread {
+    fn create_layout_channel(_phantom: Option<&mut ScriptThread>) -> OpaqueScriptLayoutChannel {
         let (chan, port) = channel();
         ScriptLayoutChan::new(chan, port)
     }
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel)
+    fn clone_layout_channel(_phantom: Option<&mut ScriptThread>, pair: &OpaqueScriptLayoutChannel)
                             -> Box<Any + Send> {
         box pair.sender() as Box<Any + Send>
     }
 
-    fn create(_phantom: Option<&mut ScriptTask>,
+    fn create(_phantom: Option<&mut ScriptThread>,
               state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
               load_data: LoadData) {
@@ -608,8 +608,8 @@ impl ScriptTaskFactory for ScriptTask {
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         let failure_info = state.failure_info;
-        task::spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id),
-                                               task_state::SCRIPT,
+        thread::spawn_named_with_send_on_failure(format!("ScriptThread {:?}", state.id),
+                                               thread_state::SCRIPT,
                                                move || {
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
@@ -620,27 +620,27 @@ impl ScriptTaskFactory for ScriptTask {
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
-            let script_task = ScriptTask::new(state,
+            let script_thread = ScriptThread::new(state,
                                               script_port,
                                               script_chan);
 
             SCRIPT_TASK_ROOT.with(|root| {
-                *root.borrow_mut() = Some(&script_task as *const _);
+                *root.borrow_mut() = Some(&script_thread as *const _);
             });
 
-            let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
+            let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
             let new_load = InProgressLoad::new(id, parent_info, layout_chan, window_size,
                                                load_data.url.clone());
-            script_task.start_page_load(new_load, load_data);
+            script_thread.start_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
-                script_task.start();
-                let _ = script_task.content_process_shutdown_chan.send(());
+                script_thread.start();
+                let _ = script_thread.content_process_shutdown_chan.send(());
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
 
-            // This must always be the very last operation performed before the task completes
+            // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
         }, ConstellationMsg::Failure(failure_info), const_chan);
     }
@@ -691,8 +691,8 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
 
 unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
     match status {
-        JSGCStatus::JSGC_BEGIN => task_state::enter(task_state::IN_GC),
-        JSGCStatus::JSGC_END   => task_state::exit(task_state::IN_GC),
+        JSGCStatus::JSGC_BEGIN => thread_state::enter(thread_state::IN_GC),
+        JSGCStatus::JSGC_END   => thread_state::exit(thread_state::IN_GC),
     }
 }
 
@@ -710,37 +710,37 @@ pub struct CSSError {
     msg: String
 }
 
-impl ScriptTask {
+impl ScriptThread {
     pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
                                -> Option<ParserRoot> {
         SCRIPT_TASK_ROOT.with(|root| {
-            let script_task = unsafe { &*root.borrow().unwrap() };
-            script_task.handle_page_fetch_complete(id, subpage, metadata)
+            let script_thread = unsafe { &*root.borrow().unwrap() };
+            script_thread.handle_page_fetch_complete(id, subpage, metadata)
         })
     }
 
     pub fn parsing_complete(id: PipelineId) {
         SCRIPT_TASK_ROOT.with(|root| {
-            let script_task = unsafe { &*root.borrow().unwrap() };
-            script_task.handle_parsing_complete(id);
+            let script_thread = unsafe { &*root.borrow().unwrap() };
+            script_thread.handle_parsing_complete(id);
         });
     }
 
     pub fn process_event(msg: CommonScriptMsg) {
         SCRIPT_TASK_ROOT.with(|root| {
-            if let Some(script_task) = *root.borrow() {
-                let script_task = unsafe { &*script_task };
-                script_task.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
+            if let Some(script_thread) = *root.borrow() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
             }
         });
     }
 
-    /// Creates a new script task.
+    /// Creates a new script thread.
     pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
-               -> ScriptTask {
-        let runtime = ScriptTask::new_rt_and_cx();
+               -> ScriptThread {
+        let runtime = ScriptThread::new_rt_and_cx();
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
@@ -751,7 +751,7 @@ impl ScriptTask {
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
         let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
-        // Ask the router to proxy IPC messages from the image cache task to us.
+        // Ask the router to proxy IPC messages from the image cache thread to us.
         let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
         let image_cache_port =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
@@ -761,24 +761,24 @@ impl ScriptTask {
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
 
-        ScriptTask {
+        ScriptThread {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
-            image_cache_task: state.image_cache_task,
+            image_cache_thread: state.image_cache_thread,
             image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
             image_cache_port: image_cache_port,
 
-            resource_task: Arc::new(state.resource_task),
-            storage_task: state.storage_task,
+            resource_thread: Arc::new(state.resource_thread),
+            storage_thread: state.storage_thread,
 
             port: port,
             chan: MainThreadScriptChan(chan.clone()),
-            dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
-            user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
-            networking_task_source: NetworkingTaskSource(chan.clone()),
-            history_traversal_task_source: HistoryTraversalTaskSource(chan.clone()),
-            file_reading_task_source: FileReadingTaskSource(chan),
+            dom_manipulation_thread_source: DOMManipulationThreadSource(chan.clone()),
+            user_interaction_thread_source: UserInteractionThreadSource(chan.clone()),
+            networking_thread_source: NetworkingThreadSource(chan.clone()),
+            history_traversal_thread_source: HistoryTraversalThreadSource(chan.clone()),
+            file_reading_thread_source: FileReadingThreadSource(chan),
 
             control_chan: state.control_chan,
             control_port: control_port,
@@ -851,7 +851,7 @@ impl ScriptTask {
         self.js_runtime.cx()
     }
 
-    /// Starts the script task. After calling this method, the script task will loop receiving
+    /// Starts the script thread. After calling this method, the script thread will loop receiving
     /// messages on its port.
     pub fn start(&self) {
         while self.handle_msgs() {
@@ -932,17 +932,17 @@ impl ScriptTask {
                 // child list yet, causing the find() to fail.
                 FromConstellation(ConstellationControlMsg::AttachLayout(
                         new_layout_info)) => {
-                    self.profile_event(ScriptTaskEventCategory::AttachLayout, || {
+                    self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
                         self.handle_new_layout(new_layout_info);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
-                    self.profile_event(ScriptTaskEventCategory::Resize, || {
+                    self.profile_event(ScriptThreadEventCategory::Resize, || {
                         self.handle_resize(id, size);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
-                    self.profile_event(ScriptTaskEventCategory::SetViewport, || {
+                    self.profile_event(ScriptThreadEventCategory::SetViewport, || {
                         self.handle_viewport(id, rect);
                     })
                 }
@@ -1037,52 +1037,52 @@ impl ScriptTask {
         true
     }
 
-    fn categorize_msg(&self, msg: &MixedMessage) -> ScriptTaskEventCategory {
+    fn categorize_msg(&self, msg: &MixedMessage) -> ScriptThreadEventCategory {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => {
                 match *inner_msg {
                     ConstellationControlMsg::SendEvent(_, _) =>
-                        ScriptTaskEventCategory::DomEvent,
-                    _ => ScriptTaskEventCategory::ConstellationMsg
+                        ScriptThreadEventCategory::DomEvent,
+                    _ => ScriptThreadEventCategory::ConstellationMsg
                 }
             },
-            MixedMessage::FromDevtools(_) => ScriptTaskEventCategory::DevtoolsMsg,
-            MixedMessage::FromImageCache(_) => ScriptTaskEventCategory::ImageCacheMsg,
+            MixedMessage::FromDevtools(_) => ScriptThreadEventCategory::DevtoolsMsg,
+            MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
                     MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(ref category, _)) =>
                         *category,
-                    _ => ScriptTaskEventCategory::ScriptEvent
+                    _ => ScriptThreadEventCategory::ScriptEvent
                 }
             },
-            MixedMessage::FromScheduler(_) => ScriptTaskEventCategory::TimerEvent,
+            MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
         }
     }
 
-    fn profile_event<F, R>(&self, category: ScriptTaskEventCategory, f: F) -> R
+    fn profile_event<F, R>(&self, category: ScriptThreadEventCategory, f: F) -> R
         where F: FnOnce() -> R {
 
         if opts::get().profile_script_events {
             let profiler_cat = match category {
-                ScriptTaskEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
-                ScriptTaskEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
-                ScriptTaskEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
-                ScriptTaskEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
-                ScriptTaskEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
-                ScriptTaskEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
-                ScriptTaskEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
-                ScriptTaskEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
-                ScriptTaskEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
-                ScriptTaskEventCategory::Resize => ProfilerCategory::ScriptResize,
-                ScriptTaskEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
-                ScriptTaskEventCategory::UpdateReplacedElement => {
+                ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
+                ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
+                ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
+                ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
+                ScriptThreadEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
+                ScriptThreadEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
+                ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
+                ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
+                ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+                ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
+                ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
+                ScriptThreadEventCategory::UpdateReplacedElement => {
                     ProfilerCategory::ScriptUpdateReplacedElement
                 }
-                ScriptTaskEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
-                ScriptTaskEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
-                ScriptTaskEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
-                ScriptTaskEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
-                ScriptTaskEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
+                ScriptThreadEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
+                ScriptThreadEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
+                ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
+                ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
+                ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
@@ -1167,12 +1167,12 @@ impl ScriptTask {
 
         let pipeline_id = match source {
             TimerSource::FromWindow(pipeline_id) => pipeline_id,
-            TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script task"),
+            TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script thread"),
         };
 
         let page = self.root_page();
-        let page = page.find(pipeline_id).expect("ScriptTask: received fire timer msg for a
-            pipeline ID not associated with this script task. This is a bug.");
+        let page = page.find(pipeline_id).expect("ScriptThread: received fire timer msg for a
+            pipeline ID not associated with this script thread. This is a bug.");
         let window = page.window();
 
         window.handle_fire_timer(id);
@@ -1301,12 +1301,12 @@ impl ScriptTask {
             content_process_shutdown_chan,
         } = new_layout_info;
 
-        let layout_pair = ScriptTask::create_layout_channel(None::<&mut ScriptTask>);
-        let layout_chan = LayoutChan(*ScriptTask::clone_layout_channel(
-            None::<&mut ScriptTask>,
+        let layout_pair = ScriptThread::create_layout_channel(None::<&mut ScriptThread>);
+        let layout_chan = LayoutChan(*ScriptThread::clone_layout_channel(
+            None::<&mut ScriptThread>,
             &layout_pair).downcast::<Sender<layout_interface::Msg>>().unwrap());
 
-        let layout_creation_info = NewLayoutTaskInfo {
+        let layout_creation_info = NewLayoutThreadInfo {
             id: new_pipeline_id,
             url: load_data.url.clone(),
             is_parent: false,
@@ -1316,21 +1316,21 @@ impl ScriptTask {
             failure: failure,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
-            image_cache_task: self.image_cache_task.clone(),
+            image_cache_thread: self.image_cache_thread.clone(),
             layout_shutdown_chan: layout_shutdown_chan,
             content_process_shutdown_chan: content_process_shutdown_chan,
         };
 
         let page = self.root_page();
-        let parent_page = page.find(containing_pipeline_id).expect("ScriptTask: received a layout
+        let parent_page = page.find(containing_pipeline_id).expect("ScriptThread: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
-            task's page tree. This is a bug.");
+            thread's page tree. This is a bug.");
         let parent_window = parent_page.window();
 
-        // Tell layout to actually spawn the task.
+        // Tell layout to actually spawn the thread.
         parent_window.layout_chan()
                      .0
-                     .send(layout_interface::Msg::CreateLayoutTask(layout_creation_info))
+                     .send(layout_interface::Msg::CreateLayoutThread(layout_creation_info))
                      .unwrap();
 
         // Kick off the fetch for the new resource.
@@ -1353,7 +1353,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
         let handler = box DocumentProgressHandler::new(addr.clone());
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
+        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DocumentEvent, handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
@@ -1433,7 +1433,7 @@ impl ScriptTask {
             }
         }
         let path_seg = format!("url({})", urls.join(", "));
-        reports.extend(ScriptTask::get_reports(self.get_cx(), path_seg));
+        reports.extend(ScriptThread::get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
 
@@ -1532,12 +1532,12 @@ impl ScriptTask {
     }
 
     /// We have gotten a window.close from script, which we pass on to the compositor.
-    /// We do not shut down the script task now, because the compositor will ask the
+    /// We do not shut down the script thread now, because the compositor will ask the
     /// constellation to shut down the pipeline, which will clean everything up
     /// normally. If we do exit, we will tear down the DOM nodes, possibly at a point
     /// where layout is still accessing them.
     fn handle_exit_window_msg(&self, _: PipelineId) {
-        debug!("script task handling exit window msg");
+        debug!("script thread handling exit window msg");
 
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
@@ -1573,8 +1573,8 @@ impl ScriptTask {
         document.send_title_to_compositor();
     }
 
-    /// Handles a request to exit the script task and shut down layout.
-    /// Returns true if the script task should shut down and false otherwise.
+    /// Handles a request to exit the script thread and shut down layout.
+    /// Returns true if the script thread should shut down and false otherwise.
     fn handle_exit_pipeline_msg(&self, id: PipelineId) -> bool {
         self.closed_pipelines.borrow_mut().insert(id);
 
@@ -1586,7 +1586,7 @@ impl ScriptTask {
         if let Some(idx) = idx {
             let load = self.incomplete_loads.borrow_mut().remove(idx);
 
-            // Tell the layout task to begin shutting down, and wait until it
+            // Tell the layout thread to begin shutting down, and wait until it
             // processed this message.
             let (response_chan, response_port) = channel();
             let LayoutChan(chan) = load.layout_chan;
@@ -1619,7 +1619,7 @@ impl ScriptTask {
         false
     }
 
-    /// Handles when layout task finishes all animation in one tick
+    /// Handles when layout thread finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let page = get_page(&self.root_page(), id);
         let document = page.document();
@@ -1647,7 +1647,7 @@ impl ScriptTask {
     fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> ParserRoot {
         let final_url = metadata.final_url.clone();
         {
-            // send the final url to the layout task.
+            // send the final url to the layout thread.
             let LayoutChan(ref chan) = incomplete.layout_chan;
             chan.send(layout_interface::Msg::SetFinalUrl(final_url.clone())).unwrap();
 
@@ -1655,7 +1655,7 @@ impl ScriptTask {
             let ConstellationChan(ref chan) = self.constellation_chan;
             chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
         }
-        debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
+        debug!("ScriptThread: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
         // existing one.
@@ -1663,12 +1663,12 @@ impl ScriptTask {
 
         let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
             // The root page may not exist yet, if the parent of this frame
-            // exists in a different script task.
+            // exists in a different script thread.
             let borrowed_page = self.page.borrow();
 
             // In the case a parent id exists but the matching page
             // cannot be found, this means the page exists in a different
-            // script task (due to origin) so it shouldn't be returned.
+            // script thread (due to origin) so it shouldn't be returned.
             // TODO: window.parent will continue to return self in that
             // case, which is wrong. We should be returning an object that
             // denies access to most properties (per
@@ -1689,7 +1689,7 @@ impl ScriptTask {
         } else if let Some((parent, _)) = incomplete.parent_info {
             // We have a new child frame.
             let parent_page = self.root_page();
-            // TODO(gw): This find will fail when we are sharing script tasks
+            // TODO(gw): This find will fail when we are sharing script threads
             // between cross origin iframes in the same TLD.
             let parent_page = parent_page.find(parent)
                                          .expect("received load for subpage with missing parent");
@@ -1702,14 +1702,14 @@ impl ScriptTask {
         }
         struct AutoPageRemover<'a> {
             page: PageToRemove,
-            script_task: &'a ScriptTask,
+            script_thread: &'a ScriptThread,
             neutered: bool,
         }
         impl<'a> AutoPageRemover<'a> {
-            fn new(script_task: &'a ScriptTask, page: PageToRemove) -> AutoPageRemover<'a> {
+            fn new(script_thread: &'a ScriptThread, page: PageToRemove) -> AutoPageRemover<'a> {
                 AutoPageRemover {
                     page: page,
-                    script_task: script_task,
+                    script_thread: script_thread,
                     neutered: false,
                 }
             }
@@ -1722,9 +1722,9 @@ impl ScriptTask {
             fn drop(&mut self) {
                 if !self.neutered {
                     match self.page {
-                        PageToRemove::Root => *self.script_task.page.borrow_mut() = None,
+                        PageToRemove::Root => *self.script_thread.page.borrow_mut() = None,
                         PageToRemove::Child(id) => {
-                            self.script_task.root_page().remove(id).unwrap();
+                            self.script_thread.root_page().remove(id).unwrap();
                         }
                     }
                 }
@@ -1738,11 +1738,11 @@ impl ScriptTask {
         };
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
         let MainThreadScriptChan(ref sender) = self.chan;
-        let DOMManipulationTaskSource(ref dom_sender) = self.dom_manipulation_task_source;
-        let UserInteractionTaskSource(ref user_sender) = self.user_interaction_task_source;
-        let NetworkingTaskSource(ref network_sender) = self.networking_task_source;
-        let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
-        let FileReadingTaskSource(ref file_sender) = self.file_reading_task_source;
+        let DOMManipulationThreadSource(ref dom_sender) = self.dom_manipulation_thread_source;
+        let UserInteractionThreadSource(ref user_sender) = self.user_interaction_thread_source;
+        let NetworkingThreadSource(ref network_sender) = self.networking_thread_source;
+        let HistoryTraversalThreadSource(ref history_sender) = self.history_traversal_thread_source;
+        let FileReadingThreadSource(ref file_sender) = self.file_reading_thread_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
@@ -1752,16 +1752,16 @@ impl ScriptTask {
         let window = Window::new(self.js_runtime.clone(),
                                  page.clone(),
                                  MainThreadScriptChan(sender.clone()),
-                                 DOMManipulationTaskSource(dom_sender.clone()),
-                                 UserInteractionTaskSource(user_sender.clone()),
-                                 NetworkingTaskSource(network_sender.clone()),
-                                 HistoryTraversalTaskSource(history_sender.clone()),
-                                 FileReadingTaskSource(file_sender.clone()),
+                                 DOMManipulationThreadSource(dom_sender.clone()),
+                                 UserInteractionThreadSource(user_sender.clone()),
+                                 NetworkingThreadSource(network_sender.clone()),
+                                 HistoryTraversalThreadSource(history_sender.clone()),
+                                 FileReadingThreadSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.compositor.borrow_mut().clone(),
-                                 self.image_cache_task.clone(),
-                                 self.resource_task.clone(),
-                                 self.storage_task.clone(),
+                                 self.image_cache_thread.clone(),
+                                 self.resource_thread.clone(),
+                                 self.storage_thread.clone(),
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
@@ -1788,7 +1788,7 @@ impl ScriptTask {
             _ => None
         };
 
-        let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
+        let loader = DocumentLoader::new_with_thread(self.resource_thread.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
 
@@ -1903,7 +1903,7 @@ impl ScriptTask {
         let rect = element.upcast::<Node>().get_bounding_content_box();
 
         // In order to align with element edges, we snap to unscaled pixel boundaries, since the
-        // paint task currently does the same for drawing elements. This is important for pages
+        // paint thread currently does the same for drawing elements. This is important for pages
         // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
         // don't have the device pixel ratio here, this might not be accurate, but should work as
         // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
@@ -2107,7 +2107,7 @@ impl ScriptTask {
         let subpage = incomplete.parent_info.clone().map(|p| p.1);
 
         let script_chan = self.chan.clone();
-        let resource_task = self.resource_task.clone();
+        let resource_thread = self.resource_thread.clone();
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
@@ -2127,7 +2127,7 @@ impl ScriptTask {
             load_data.url = url!("about:blank");
         }
 
-        resource_task.send(ControlMsg::Load(NetLoadData {
+        resource_thread.send(ControlMsg::Load(NetLoadData {
             context: LoadContext::Browsing,
             url: load_data.url,
             method: load_data.method,
@@ -2198,7 +2198,7 @@ impl ScriptTask {
     }
 }
 
-impl Drop for ScriptTask {
+impl Drop for ScriptThread {
     fn drop(&mut self) {
         SCRIPT_TASK_ROOT.with(|root| {
             *root.borrow_mut() = None;
@@ -2211,7 +2211,7 @@ fn shut_down_layout(page_tree: &Rc<Page>) {
     let mut channels = vec!();
 
     for page in page_tree.iter() {
-        // Tell the layout task to begin shutting down, and wait until it
+        // Tell the layout thread to begin shutting down, and wait until it
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = page.window();
@@ -2230,15 +2230,15 @@ fn shut_down_layout(page_tree: &Rc<Page>) {
         page.set_frame(None);
     }
 
-    // Destroy the layout task. If there were node leaks, layout will now crash safely.
+    // Destroy the layout thread. If there were node leaks, layout will now crash safely.
     for chan in channels {
         chan.send(layout_interface::Msg::ExitNow).ok();
     }
 }
 
 pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
-    page.find(pipeline_id).expect("ScriptTask: received an event \
-        message for a layout channel that is not associated with this script task.\
+    page.find(pipeline_id).expect("ScriptThread: received an event \
+        message for a layout channel that is not associated with this script thread.\
          This is a bug.")
 }
 

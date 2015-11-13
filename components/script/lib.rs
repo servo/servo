@@ -92,7 +92,7 @@ pub mod page;
 pub mod parse;
 pub mod reporter;
 #[allow(unsafe_code)]
-pub mod script_task;
+pub mod script_thread;
 pub mod textinput;
 mod timers;
 mod unpremultiplytable;
@@ -147,7 +147,7 @@ fn perform_platform_specific_initialization() {}
 pub fn init() {
     unsafe {
         assert_eq!(js::jsapi::JS_Init(), true);
-        SetDOMProxyInformation(ptr::null(), 0, Some(script_task::shadow_check_callback));
+        SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
     }
 
     // Create the global vtables used by the (generated) DOM

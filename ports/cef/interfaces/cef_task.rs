@@ -169,7 +169,7 @@ impl CefTask {
           self.c_object))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_task_t> for CefTask {
   fn to_c(rust_object: CefTask) -> *mut cef_task_t {
@@ -449,7 +449,7 @@ impl CefTaskRunner {
           CefWrap::to_c(threadId)))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_task_runner_t> for CefTaskRunner {
   fn to_c(rust_object: CefTaskRunner) -> *mut cef_task_runner_t {
@@ -475,4 +475,3 @@ impl CefWrap<*mut cef_task_runner_t> for Option<CefTaskRunner> {
     }
   }
 }
-

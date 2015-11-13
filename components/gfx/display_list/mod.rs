@@ -25,7 +25,7 @@ use gfx_traits::{color, LayerId, LayerKind, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
-use paint_task::{PaintLayerContents, PaintLayer};
+use paint_thread::{PaintLayerContents, PaintLayer};
 use self::DisplayItem::*;
 use self::DisplayItemIterator::*;
 use smallvec::SmallVec;
@@ -1140,7 +1140,7 @@ impl ClippingRegion {
 }
 
 
-/// Metadata attached to each display item. This is useful for performing auxiliary tasks with
+/// Metadata attached to each display item. This is useful for performing auxiliary threads with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
 #[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]

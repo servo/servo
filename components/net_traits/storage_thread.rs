@@ -13,7 +13,7 @@ pub enum StorageType {
 
 /// Request operations on the storage data associated with a particular url
 #[derive(Deserialize, Serialize)]
-pub enum StorageTaskMsg {
+pub enum StorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
     Length(IpcSender<usize>, Url, StorageType),
 
@@ -35,11 +35,11 @@ pub enum StorageTaskMsg {
     /// clears the associated storage data by removing all the key/value pairs
     Clear(IpcSender<bool>, Url, StorageType),
 
-    /// shut down this task
+    /// shut down this thread
     Exit
 }
 
-/// Handle to a storage task
-pub type StorageTask = IpcSender<StorageTaskMsg>;
+/// Handle to a storage thread
+pub type StorageThread = IpcSender<StorageThreadMsg>;
 
 

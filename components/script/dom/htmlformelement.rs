@@ -32,7 +32,7 @@ use hyper::header::ContentType;
 use hyper::method::Method;
 use hyper::mime;
 use msg::constellation_msg::LoadData;
-use script_task::{MainThreadScriptMsg, ScriptChan};
+use script_thread::{MainThreadScriptMsg, ScriptChan};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;

@@ -35,7 +35,7 @@
 //!   [`MutNullableJS`](bindings/js/struct.MutNullableJS.html) and
 //!   [`MutHeap`](bindings/js/struct.MutHeap.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
-//! * rooting pointers from across task boundaries or in channels: the
+//! * rooting pointers from across thread boundaries or in channels: the
 //!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;
 //! * extracting pointers to DOM objects from their reflectors: the
 //!   [`Unrooted`](bindings/js/struct.Unrooted.html) smart pointer.
@@ -196,7 +196,7 @@
 //! Layout code can access the DOM through the
 //! [`LayoutJS`](bindings/js/struct.LayoutJS.html) smart pointer. This does not
 //! keep the DOM object alive; we ensure that no DOM code (Garbage Collection
-//! in particular) runs while the layout task is accessing the DOM.
+//! in particular) runs while the layout thread is accessing the DOM.
 //!
 //! Methods accessible to layout are implemented on `LayoutJS<Foo>` using
 //! `LayoutFooHelpers` traits.

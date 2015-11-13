@@ -47,17 +47,17 @@ use msg::ParseErrorReporter;
 use msg::constellation_msg::{ConstellationChan, DocumentState, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceTask;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
-use net_traits::storage_task::{StorageTask, StorageType};
+use net_traits::ResourceThread;
+use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::storage_thread::{StorageThread, StorageType};
 use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{DOMManipulationTaskSource, UserInteractionTaskSource, NetworkingTaskSource};
-use script_task::{HistoryTraversalTaskSource, FileReadingTaskSource, SendableMainThreadScriptChan};
-use script_task::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
+use script_thread::{DOMManipulationThreadSource, UserInteractionThreadSource, NetworkingThreadSource};
+use script_thread::{HistoryTraversalThreadSource, FileReadingThreadSource, SendableMainThreadScriptChan};
+use script_thread::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
@@ -116,21 +116,21 @@ pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "task sources are hard"]
-    dom_manipulation_task_source: DOMManipulationTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
-    user_interaction_task_source: UserInteractionTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
-    networking_task_source: NetworkingTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
-    history_traversal_task_source: HistoryTraversalTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
-    file_reading_task_source: FileReadingTaskSource,
+    #[ignore_heap_size_of = "thread sources are hard"]
+    dom_manipulation_thread_source: DOMManipulationThreadSource,
+    #[ignore_heap_size_of = "thread sources are hard"]
+    user_interaction_thread_source: UserInteractionThreadSource,
+    #[ignore_heap_size_of = "thread sources are hard"]
+    networking_thread_source: NetworkingThreadSource,
+    #[ignore_heap_size_of = "thread sources are hard"]
+    history_traversal_thread_source: HistoryTraversalThreadSource,
+    #[ignore_heap_size_of = "thread sources are hard"]
+    file_reading_thread_source: FileReadingThreadSource,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     #[ignore_heap_size_of = "channels are hard"]
-    image_cache_task: ImageCacheTask,
+    image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
@@ -185,7 +185,7 @@ pub struct Window {
     #[ignore_heap_size_of = "Rc<T> is hard"]
     js_runtime: DOMRefCell<Option<Rc<Runtime>>>,
 
-    /// A handle for communicating messages to the layout task.
+    /// A handle for communicating messages to the layout thread.
     #[ignore_heap_size_of = "channels are hard"]
     layout_chan: LayoutChan,
 
@@ -196,15 +196,15 @@ pub struct Window {
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
-    /// Associated resource task for use by DOM objects like XMLHttpRequest
+    /// Associated resource thread for use by DOM objects like XMLHttpRequest
     #[ignore_heap_size_of = "channels are hard"]
-    resource_task: Arc<ResourceTask>,
+    resource_thread: Arc<ResourceThread>,
 
-    /// A handle for communicating messages to the storage task.
+    /// A handle for communicating messages to the storage thread.
     #[ignore_heap_size_of = "channels are hard"]
-    storage_task: StorageTask,
+    storage_thread: StorageThread,
 
-    /// A handle for communicating messages to the constellation task.
+    /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: ConstellationChan<ConstellationMsg>,
 
@@ -249,24 +249,24 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
-        self.dom_manipulation_task_source.clone()
+    pub fn dom_manipulation_thread_source(&self) -> Box<ScriptChan + Send> {
+        self.dom_manipulation_thread_source.clone()
     }
 
-    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
-        self.user_interaction_task_source.clone()
+    pub fn user_interaction_thread_source(&self) -> Box<ScriptChan + Send> {
+        self.user_interaction_thread_source.clone()
     }
 
-    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
-        self.networking_task_source.clone()
+    pub fn networking_thread_source(&self) -> Box<ScriptChan + Send> {
+        self.networking_thread_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
-        self.history_traversal_task_source.clone()
+    pub fn history_traversal_thread_source(&self) -> Box<ScriptChan + Send> {
+        self.history_traversal_thread_source.clone()
     }
 
-    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
-        self.file_reading_task_source.clone()
+    pub fn file_reading_thread_source(&self) -> Box<ScriptChan + Send> {
+        self.file_reading_thread_source.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -302,8 +302,8 @@ impl Window {
         (box SendableMainThreadScriptChan(tx), box rx)
     }
 
-    pub fn image_cache_task(&self) -> &ImageCacheTask {
-        &self.image_cache_task
+    pub fn image_cache_thread(&self) -> &ImageCacheThread {
+        &self.image_cache_thread
     }
 
     pub fn compositor(&self) -> &IpcSender<ScriptToCompositorMsg> {
@@ -318,8 +318,8 @@ impl Window {
         &*self.page
     }
 
-    pub fn storage_task(&self) -> StorageTask {
-        self.storage_task.clone()
+    pub fn storage_thread(&self) -> StorageThread {
+        self.storage_thread.clone()
     }
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
@@ -837,10 +837,10 @@ impl Window {
         // (e.g. DOM objects removed from the tree that haven't
         // been collected yet). Forcing a GC here means that
         // those DOM objects will be able to call dispose()
-        // to free their layout data before the layout task
+        // to free their layout data before the layout thread
         // exits. Without this, those remaining objects try to
         // send a message to free their layout data to the
-        // layout task when the script task is dropped,
+        // layout thread when the script thread is dropped,
         // which causes a panic!
         self.Gc();
 
@@ -981,7 +981,7 @@ impl Window {
             }
             Ok(_) => {}
             Err(Disconnected) => {
-                panic!("Layout task failed while script was waiting for a result.");
+                panic!("Layout thread failed while script was waiting for a result.");
             }
         }
 
@@ -1018,7 +1018,7 @@ impl Window {
         // 2) The html element doesn't contain the 'reftest-wait' class
         // 3) The load event has fired.
         // When all these conditions are met, notify the constellation
-        // that this pipeline is ready to write the image (from the script task
+        // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
         if opts::get().output_file.is_some() && for_display {
             let document = self.Document();
@@ -1126,8 +1126,8 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_task(&self) -> ResourceTask {
-        (*self.resource_task).clone()
+    pub fn resource_thread(&self) -> ResourceThread {
+        (*self.resource_thread).clone()
     }
 
     pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
@@ -1288,16 +1288,16 @@ impl Window {
     pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
-               dom_task_source: DOMManipulationTaskSource,
-               user_task_source: UserInteractionTaskSource,
-               network_task_source: NetworkingTaskSource,
-               history_task_source: HistoryTraversalTaskSource,
-               file_task_source: FileReadingTaskSource,
+               dom_thread_source: DOMManipulationThreadSource,
+               user_thread_source: UserInteractionThreadSource,
+               network_thread_source: NetworkingThreadSource,
+               history_thread_source: HistoryTraversalThreadSource,
+               file_thread_source: FileReadingThreadSource,
                image_cache_chan: ImageCacheChan,
                compositor: IpcSender<ScriptToCompositorMsg>,
-               image_cache_task: ImageCacheTask,
-               resource_task: Arc<ResourceTask>,
-               storage_task: StorageTask,
+               image_cache_thread: ImageCacheThread,
+               resource_thread: Arc<ResourceThread>,
+               storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan<ConstellationMsg>,
@@ -1318,18 +1318,18 @@ impl Window {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
-            dom_manipulation_task_source: dom_task_source,
-            user_interaction_task_source: user_task_source,
-            networking_task_source: network_task_source,
-            history_traversal_task_source: history_task_source,
-            file_reading_task_source: file_task_source,
+            dom_manipulation_thread_source: dom_thread_source,
+            user_interaction_thread_source: user_thread_source,
+            networking_thread_source: network_thread_source,
+            history_traversal_thread_source: history_thread_source,
+            file_reading_thread_source: file_thread_source,
             image_cache_chan: image_cache_chan,
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,
             page: page,
             navigator: Default::default(),
-            image_cache_task: image_cache_task,
+            image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
@@ -1346,8 +1346,8 @@ impl Window {
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_task: resource_task,
-            storage_task: storage_task,
+            resource_thread: resource_thread,
+            storage_thread: storage_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),

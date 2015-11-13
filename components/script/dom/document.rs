@@ -88,8 +88,8 @@ use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
-use script_task::CSSError;
-use script_task::{MainThreadScriptMsg, Runnable};
+use script_thread::CSSError;
+use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
@@ -2318,7 +2318,7 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = self.window.resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+        let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -2331,7 +2331,7 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
         let _ = self.window
-                    .resource_task()
+                    .resource_thread()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
     }

@@ -7,8 +7,8 @@ use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{CancellationListener, ProgressSender};
-use resource_task::{send_error, start_sending_sniffed, start_sending_sniffed_opt};
+use resource_thread::{CancellationListener, ProgressSender};
+use resource_thread::{send_error, start_sending_sniffed, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;
@@ -16,7 +16,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 use url::Url;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 static READ_SIZE: usize = 8192;
 

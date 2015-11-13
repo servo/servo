@@ -18,7 +18,7 @@ use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 use wrappers::CefWrap;
 
-use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::point::Point2D;
 use euclid::scale_factor::ScaleFactor;
@@ -509,11 +509,11 @@ impl WindowMethods for Window {
 }
 
 struct CefCompositorProxy {
-    sender: Sender<compositor_task::Msg>,
+    sender: Sender<compositor_thread::Msg>,
 }
 
 impl CompositorProxy for CefCompositorProxy {
-    fn send(&self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_thread::Msg) {
         self.sender.send(msg).unwrap();
         app_wakeup();
     }

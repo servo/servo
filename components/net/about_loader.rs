@@ -9,7 +9,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
+use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::sync::Arc;
 use url::Url;
 use util::resource_files::resources_dir_path;
