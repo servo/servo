@@ -343,7 +343,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> Root<NodeList> {
-        if &*self.type_() == "hidden" {
+        if self.type_() == atom!("hidden") {
             let window = window_from_node(self);
             NodeList::empty(&window)
         } else {
@@ -418,14 +418,14 @@ impl HTMLInputElement {
             _ => false
         };
 
-        match &*ty {
-            "submit" | "button" | "reset" if !is_submitter => return None,
-            "radio" | "checkbox" => {
+        match ty {
+            atom!("submit") | atom!("button") | atom!("reset") if !is_submitter => return None,
+            atom!("radio") | atom!("checkbox") => {
                 if !self.Checked() || name.is_empty() {
                     return None;
                 }
             },
-            "image" | "file" => return None, // Unimplemented
+            atom!("image") | atom!("file") => return None, // Unimplemented
             _ => {
                 if name.is_empty() {
                     return None;
@@ -434,7 +434,7 @@ impl HTMLInputElement {
         }
 
         let mut value = self.Value();
-        if &*ty == "radio" || &*ty == "checkbox" {
+        if ty == atom!("radio") || ty == atom!("checkbox") {
             if value.is_empty() {
                 value = DOMString::from("on");
             }
