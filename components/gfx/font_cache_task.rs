@@ -225,12 +225,8 @@ impl FontCache {
 
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
             // if such family exists, try to match style to a font
-            let result = s.find_font_for_style(desc, &self.font_context);
-            if result.is_some() {
-                return result;
-            }
 
-            None
+            s.find_font_for_style(desc, &self.font_context)
         } else {
             debug!("FontList: Couldn't find font family with name={}", &**family_name);
             None
@@ -251,11 +247,8 @@ impl FontCache {
     fn find_font_template(&mut self, family: &LowercaseString, desc: &FontTemplateDescriptor)
                             -> Option<Arc<FontTemplateData>> {
         let transformed_family_name = self.transform_family(family);
-        let mut maybe_template = self.find_font_in_web_family(&transformed_family_name, desc);
-        if maybe_template.is_none() {
-            maybe_template = self.find_font_in_local_family(&transformed_family_name, desc);
-        }
-        maybe_template
+        self.find_font_in_web_family(&transformed_family_name, desc)
+            .or_else(|| self.find_font_in_local_family(&transformed_family_name, desc))
     }
 
     fn last_resort_font_template(&mut self, desc: &FontTemplateDescriptor)
@@ -265,8 +258,8 @@ impl FontCache {
         for family in &last_resort {
             let family = LowercaseString::new(family);
             let maybe_font_in_family = self.find_font_in_local_family(&family, desc);
-            if maybe_font_in_family.is_some() {
-                return maybe_font_in_family.unwrap();
+            if let Some(family) = maybe_font_in_family {
+                return family;
             }
         }
 
