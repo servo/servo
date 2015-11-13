@@ -208,6 +208,16 @@ pub struct CancellableResource {
     resource_task: ResourceTask,
 }
 
+impl CancellableResource {
+    pub fn new(receiver: Receiver<()>, res_id: ResourceId, res_task: ResourceTask) -> CancellableResource {
+        CancellableResource {
+            cancel_receiver: receiver,
+            resource_id: res_id,
+            resource_task: res_task,
+        }
+    }
+}
+
 /// A listener which is basically a wrapped optional receiver which looks
 /// for the load cancellation message. Some of the loading processes always keep
 /// an eye out for this message and stop loading stuff once they receive it.
@@ -313,11 +323,7 @@ impl ResourceManager {
             let (cancel_sender, cancel_receiver) = channel();
             self.cancel_load_map.insert(current_res_id, cancel_sender);
             self.next_resource_id.0 += 1;
-            CancellableResource {
-                cancel_receiver: cancel_receiver,
-                resource_id: current_res_id,
-                resource_task: resource_task,
-            }
+            CancellableResource::new(cancel_receiver, current_res_id, resource_task)
         });
 
         let cancel_listener = CancellationListener::new(cancel_resource);
