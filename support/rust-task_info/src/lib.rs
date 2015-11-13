@@ -14,5 +14,5 @@
 
 extern crate libc;
 
-pub mod task_basic_info;
+pub mod thread_basic_info;
 

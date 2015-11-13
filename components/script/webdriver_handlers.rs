@@ -29,7 +29,7 @@ use js::jsval::UndefinedValue;
 use msg::constellation_msg::{PipelineId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use page::Page;
-use script_task::get_page;
+use script_thread::get_page;
 use std::rc::Rc;
 use url::Url;
 use util::str::DOMString;

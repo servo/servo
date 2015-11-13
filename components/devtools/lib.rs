@@ -58,7 +58,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
@@ -506,7 +506,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     let sender_clone = sender.clone();
     spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
-        // accept connections and process them, spawning a new task for each one
+        // accept connections and process them, spawning a new thread for each one
         for stream in listener.incoming() {
             // connection succeeded
             sender_clone.send(DevtoolsControlMsg::FromChrome(

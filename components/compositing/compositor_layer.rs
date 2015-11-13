@@ -97,17 +97,17 @@ pub trait CompositorLayer {
 
     /// Removes the root layer (and any children) for a given pipeline from the
     /// compositor. Buffers that the compositor is holding are returned to the
-    /// owning paint task.
+    /// owning paint thread.
     fn remove_root_layer_with_pipeline_id<Window>(&self,
                                                   compositor: &mut IOCompositor<Window>,
                                                   pipeline_id: PipelineId)
                                                   where Window: WindowMethods;
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
-    /// painter. You must call this only when the paint task is destined to be going down;
+    /// painter. You must call this only when the paint thread is destined to be going down;
     /// otherwise, you will leak tiles.
     ///
-    /// This is used during shutdown, when we know the paint task is going away.
+    /// This is used during shutdown, when we know the paint thread is going away.
     fn forget_all_tiles(&self);
 
     /// Move the layer's descendants that don't want scroll events and scroll by a relative
@@ -280,7 +280,7 @@ impl CompositorLayer for Layer<CompositorData> {
 
         match index {
             Some(index) => {
-                // Remove the root layer, and return buffers to the paint task
+                // Remove the root layer, and return buffers to the paint thread
                 let child = self.children().remove(index);
                 child.clear_all_tiles(compositor);
             }
@@ -294,10 +294,10 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
-    /// painter. You must call this only when the paint task is destined to be going down;
+    /// painter. You must call this only when the paint thread is destined to be going down;
     /// otherwise, you will leak tiles.
     ///
-    /// This is used during shutdown, when we know the paint task is going away.
+    /// This is used during shutdown, when we know the paint thread is going away.
     fn forget_all_tiles(&self) {
         let tiles = self.collect_buffers();
         for tile in tiles {

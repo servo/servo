@@ -10,7 +10,7 @@ static NEXT_TID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 thread_local!(static TASK_LOCAL_TID: Rc<RefCell<Option<usize>>> = Rc::new(RefCell::new(None)));
 
-/// Every task gets one, that's unique.
+/// Every thread gets one, that's unique.
 pub fn tid() -> usize {
     TASK_LOCAL_TID.with(|ref k| {
         let ret =

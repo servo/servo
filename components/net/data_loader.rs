@@ -6,7 +6,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
+use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
 use url::SchemeData;
@@ -16,10 +16,10 @@ pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
-    // NB: we don't spawn a new task.
+    // NB: we don't spawn a new thread.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
-    // Left in separate function to allow easy moving to a task, if desired.
+    // Left in separate function to allow easy moving to a thread, if desired.
     load(load_data, senders, classifier, cancel_listener)
 }
 

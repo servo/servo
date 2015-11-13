@@ -21,7 +21,7 @@ use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList};
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
-use net::resource_task::CancellationListener;
+use net::resource_thread::CancellationListener;
 use net_traits::{LoadData, CookieSource, LoadContext};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
@@ -1197,7 +1197,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
 #[test]
 fn test_load_errors_when_cancelled() {
     use ipc_channel::ipc;
-    use net::resource_task::CancellableResource;
+    use net::resource_thread::CancellableResource;
     use net_traits::ResourceId;
 
     struct Factory;

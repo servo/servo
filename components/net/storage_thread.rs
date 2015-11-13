@@ -3,23 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
+use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
-pub trait StorageTaskFactory {
+pub trait StorageThreadFactory {
     fn new() -> Self;
 }
 
-impl StorageTaskFactory for StorageTask {
-    /// Create a StorageTask
-    fn new() -> StorageTask {
+impl StorageThreadFactory for StorageThread {
+    /// Create a StorageThread
+    fn new() -> StorageThread {
         let (chan, port) = ipc::channel().unwrap();
         spawn_named("StorageManager".to_owned(), move || {
             StorageManager::new(port).start();
@@ -29,13 +29,13 @@ impl StorageTaskFactory for StorageTask {
 }
 
 struct StorageManager {
-    port: IpcReceiver<StorageTaskMsg>,
+    port: IpcReceiver<StorageThreadMsg>,
     session_data: HashMap<String, (usize, BTreeMap<String, String>)>,
     local_data: HashMap<String, (usize, BTreeMap<String, String>)>,
 }
 
 impl StorageManager {
-    fn new(port: IpcReceiver<StorageTaskMsg>) -> StorageManager {
+    fn new(port: IpcReceiver<StorageThreadMsg>) -> StorageManager {
         StorageManager {
             port: port,
             session_data: HashMap::new(),
@@ -48,28 +48,28 @@ impl StorageManager {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                StorageTaskMsg::Length(sender, url, storage_type) => {
+                StorageThreadMsg::Length(sender, url, storage_type) => {
                     self.length(sender, url, storage_type)
                 }
-                StorageTaskMsg::Key(sender, url, storage_type, index) => {
+                StorageThreadMsg::Key(sender, url, storage_type, index) => {
                     self.key(sender, url, storage_type, index)
                 }
-                StorageTaskMsg::Keys(sender, url, storage_type) => {
+                StorageThreadMsg::Keys(sender, url, storage_type) => {
                     self.keys(sender, url, storage_type)
                 }
-                StorageTaskMsg::SetItem(sender, url, storage_type, name, value) => {
+                StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
                     self.set_item(sender, url, storage_type, name, value)
                 }
-                StorageTaskMsg::GetItem(sender, url, storage_type, name) => {
+                StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
                     self.request_item(sender, url, storage_type, name)
                 }
-                StorageTaskMsg::RemoveItem(sender, url, storage_type, name) => {
+                StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
                     self.remove_item(sender, url, storage_type, name)
                 }
-                StorageTaskMsg::Clear(sender, url, storage_type) => {
+                StorageThreadMsg::Clear(sender, url, storage_type) => {
                     self.clear(sender, url, storage_type)
                 }
-                StorageTaskMsg::Exit => {
+                StorageThreadMsg::Exit => {
                     break
                 }
             }

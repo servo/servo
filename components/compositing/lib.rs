@@ -50,7 +50,7 @@ extern crate url;
 #[macro_use]
 extern crate util;
 
-pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
+pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
 pub use constellation::Constellation;
 use euclid::size::{Size2D};
 use ipc_channel::ipc::{IpcSender};
@@ -63,7 +63,7 @@ use url::Url;
 
 mod compositor;
 mod compositor_layer;
-pub mod compositor_task;
+pub mod compositor_thread;
 pub mod constellation;
 mod headless;
 pub mod pipeline;

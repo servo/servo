@@ -19,7 +19,7 @@ extern crate profile_traits;
 #[cfg(target_os = "linux")]
 extern crate regex;
 #[cfg(target_os = "macos")]
-extern crate task_info;
+extern crate thread_info;
 extern crate time as std_time;
 extern crate util;
 

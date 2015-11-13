@@ -42,7 +42,7 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
-// We pass this info to various tasks, so it lives in a separate, cloneable struct.
+// We pass this info to various threads, so it lives in a separate, cloneable struct.
 #[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
@@ -339,7 +339,7 @@ pub struct Image {
     pub bytes: IpcSharedMemory,
 }
 
-/// Similar to net::resource_task::LoadData
+/// Similar to net::resource_thread::LoadData
 /// can be passed to LoadUrl to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Deserialize, Serialize)]

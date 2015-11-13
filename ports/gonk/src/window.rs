@@ -4,7 +4,7 @@
 
 //! A windowing implementation using gonk interfaces.
 
-use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use egl::egl;
 use egl::egl::EGLConfig;
@@ -866,12 +866,12 @@ impl WindowMethods for Window {
 }
 
 struct GonkCompositorProxy {
-    sender: Sender<compositor_task::Msg>,
+    sender: Sender<compositor_thread::Msg>,
     event_sender: Sender<WindowEvent>,
 }
 
 impl CompositorProxy for GonkCompositorProxy {
-    fn send(&self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_thread::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg).ok().unwrap();
         self.event_sender.send(WindowEvent::Idle).ok().unwrap();

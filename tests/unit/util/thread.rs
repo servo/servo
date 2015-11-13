@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 #[test]
 fn spawn_named_test() {

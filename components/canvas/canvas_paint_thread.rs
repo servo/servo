@@ -22,10 +22,10 @@ use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::{Sender, channel};
 use util::opts;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use util::vec::byte_swap;
 
-impl<'a> CanvasPaintTask<'a> {
+impl<'a> CanvasPaintThread<'a> {
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
@@ -57,7 +57,7 @@ impl<'a> CanvasPaintTask<'a> {
     }
 }
 
-pub struct CanvasPaintTask<'a> {
+pub struct CanvasPaintThread<'a> {
     drawtarget: DrawTarget,
     /// TODO(pcwalton): Support multiple paths.
     path_builder: PathBuilder,
@@ -101,11 +101,11 @@ impl<'a> CanvasPaintState<'a> {
     }
 }
 
-impl<'a> CanvasPaintTask<'a> {
-    fn new(size: Size2D<i32>) -> CanvasPaintTask<'a> {
-        let draw_target = CanvasPaintTask::create(size);
+impl<'a> CanvasPaintThread<'a> {
+    fn new(size: Size2D<i32>) -> CanvasPaintThread<'a> {
+        let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
-        CanvasPaintTask {
+        CanvasPaintThread {
             drawtarget: draw_target,
             path_builder: path_builder,
             state: CanvasPaintState::new(),
@@ -113,7 +113,7 @@ impl<'a> CanvasPaintTask<'a> {
         }
     }
 
-    /// Creates a new `CanvasPaintTask` and returns the out-of-process sender and the in-process
+    /// Creates a new `CanvasPaintThread` and returns the out-of-process sender and the in-process
     /// sender for it.
     pub fn start(size: Size2D<i32>) -> (IpcSender<CanvasMsg>, Sender<CanvasMsg>) {
         // TODO(pcwalton): Ask the pipeline to create this for us instead of spawning it directly.
@@ -121,8 +121,8 @@ impl<'a> CanvasPaintTask<'a> {
         let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
         ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
-        spawn_named("CanvasTask".to_owned(), move || {
-            let mut painter = CanvasPaintTask::new(size);
+        spawn_named("CanvasThread".to_owned(), move || {
+            let mut painter = CanvasPaintThread::new(size);
             loop {
                 let msg = in_process_port.recv();
                 match msg.unwrap() {
@@ -202,7 +202,7 @@ impl<'a> CanvasPaintTask<'a> {
                             }
                         }
                     }
-                    CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D task"),
+                    CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D thread"),
                 }
             }
         });
@@ -516,7 +516,7 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
-        self.drawtarget = CanvasPaintTask::create(size);
+        self.drawtarget = CanvasPaintThread::create(size);
     }
 
     fn send_pixel_contents(&mut self, chan: IpcSender<IpcSharedMemory>) {

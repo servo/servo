@@ -21,9 +21,9 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoRequest, JSContext};
 use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId};
-use net_traits::{LoadContext, ResourceTask, load_whole_resource};
+use net_traits::{LoadContext, ResourceThread, load_whole_resource};
 use profile_traits::mem;
-use script_task::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_thread::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
@@ -40,7 +40,7 @@ pub enum WorkerGlobalScopeTypeId {
 }
 
 pub struct WorkerGlobalScopeInit {
-    pub resource_task: ResourceTask,
+    pub resource_thread: ResourceThread,
     pub mem_profiler_chan: mem::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
@@ -59,7 +59,7 @@ pub struct WorkerGlobalScope {
     runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
-    resource_task: ResourceTask,
+    resource_thread: ResourceThread,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
@@ -104,7 +104,7 @@ impl WorkerGlobalScope {
             worker_id: init.worker_id,
             worker_url: worker_url,
             runtime: runtime,
-            resource_task: init.resource_task,
+            resource_thread: init.resource_thread,
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
@@ -158,8 +158,8 @@ impl WorkerGlobalScope {
         self.runtime.cx()
     }
 
-    pub fn resource_task(&self) -> &ResourceTask {
-        &self.resource_task
+    pub fn resource_thread(&self) -> &ResourceThread {
+        &self.resource_thread
     }
 
     pub fn get_url(&self) -> &Url {
@@ -203,7 +203,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         }
 
         for url in urls {
-            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_task, url, None) {
+            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_thread, url, None) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())

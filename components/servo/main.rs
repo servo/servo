@@ -246,7 +246,7 @@ mod android {
         use self::libc::fdopen;
         use self::libc::fgets;
         use self::libc::{pipe, dup2};
-        use servo::util::task::spawn_named;
+        use servo::util::thread::spawn_named;
         use std::ffi::CStr;
         use std::ffi::CString;
         use std::str::from_utf8;

@@ -29,7 +29,7 @@ use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LayeredItem, LayerInfo};
 use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
-use gfx::paint_task::THREAD_TINT_COLORS;
+use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
 use gfx_traits::{color, ScrollPolicy};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
@@ -37,7 +37,7 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::{Image, PixelFormat};
-use net_traits::image_cache_task::UsePlaceholder;
+use net_traits::image_cache_thread::UsePlaceholder;
 use std::default::Default;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
@@ -1141,7 +1141,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 FromLayoutMsg::SendPixelContents(sender))).unwrap();
                             let data = receiver.recv().unwrap();
 
-                            // Propagate the layer and the renderer to the paint task.
+                            // Propagate the layer and the renderer to the paint thread.
                             layout_context.shared.canvas_layers_sender.lock().unwrap().send(
                                 (layer_id, (*ipc_renderer).clone())).unwrap();
 

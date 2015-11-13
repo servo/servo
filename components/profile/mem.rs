@@ -12,7 +12,7 @@ use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use util::time::duration_from_seconds;
 
 pub struct Profiler {
@@ -364,7 +364,7 @@ mod system_reporter {
     use std::ptr::null_mut;
     use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "macos")]
-    use task_info::task_basic_info::{virtual_size, resident_size};
+    use thread_info::thread_basic_info::{virtual_size, resident_size};
 
     /// Collects global measurements from the OS and heap allocators.
     pub fn collect_reports(request: ReporterRequest) {

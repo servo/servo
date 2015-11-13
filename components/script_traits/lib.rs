@@ -44,9 +44,9 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
 use msg::constellation_msg::{MouseButton, MouseEventType};
 use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId};
 use msg::webdriver_msg::WebDriverScriptCommand;
-use net_traits::ResourceTask;
-use net_traits::image_cache_task::ImageCacheTask;
-use net_traits::storage_task::StorageTask;
+use net_traits::ResourceThread;
+use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::storage_thread::StorageThread;
 use profile_traits::mem;
 use std::any::Any;
 use util::ipc::OptionalOpaqueIpcSender;
@@ -60,10 +60,10 @@ pub use script_msg::{LayoutMsg, ScriptMsg};
 pub struct UntrustedNodeAddress(pub *const c_void);
 unsafe impl Send for UntrustedNodeAddress {}
 
-/// Messages sent to the layout task from the constellation and/or compositor.
+/// Messages sent to the layout thread from the constellation and/or compositor.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutControlMsg {
-    /// Requests that this layout task exit.
+    /// Requests that this layout thread exit.
     ExitNow,
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
@@ -85,12 +85,12 @@ pub struct NewLayoutInfo {
     pub new_pipeline_id: PipelineId,
     /// Id of the new frame associated with this pipeline.
     pub subpage_id: SubpageId,
-    /// Network request data which will be initiated by the script task.
+    /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// The paint channel, cast to `OptionalOpaqueIpcSender`. This is really an
     /// `Sender<LayoutToPaintMsg>`.
     pub paint_chan: OptionalOpaqueIpcSender,
-    /// Information on what to do on task failure.
+    /// Information on what to do on thread failure.
     pub failure: Failure,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
@@ -100,10 +100,10 @@ pub struct NewLayoutInfo {
     pub content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// Messages sent from the constellation or layout to the script task.
+/// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
-    /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
+    /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
     Resize(PipelineId, WindowSizeData),
@@ -115,25 +115,25 @@ pub enum ConstellationControlMsg {
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
-    /// Requests that the script task immediately send the constellation the title of a pipeline.
+    /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
-    /// Notifies script task to suspend all its timers
+    /// Notifies script thread to suspend all its timers
     Freeze(PipelineId),
-    /// Notifies script task to resume all its timers
+    /// Notifies script thread to resume all its timers
     Thaw(PipelineId),
-    /// Notifies script task that a url should be loaded in this iframe.
+    /// Notifies script thread that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
-    /// Requests the script task forward a mozbrowser event to an iframe it owns
+    /// Requests the script thread forward a mozbrowser event to an iframe it owns
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
     /// Updates the current subpage id of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrame(PipelineId, SubpageId),
-    /// Passes a webdriver command to the script task for execution
+    /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
-    /// Notifies script task that all animations are done
+    /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId),
-    /// Notifies the script task that a new Web font has been loaded, and thus the page should be
+    /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
     /// Cause a `load` event to be dispatched at the appropriate frame element.
@@ -166,7 +166,7 @@ pub enum TouchEventType {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct TouchId(pub i32);
 
-/// Events from the compositor that the script task needs to know about
+/// Events from the compositor that the script thread needs to know about
 #[derive(Deserialize, Serialize)]
 pub enum CompositorEvent {
     /// The window was resized.
@@ -192,16 +192,16 @@ pub struct TimerEventRequest(pub IpcSender<TimerEvent>,
                              pub TimerEventId,
                              pub MsDuration);
 
-/// Notifies the script task to fire due timers.
-/// TimerSource must be FromWindow when dispatched to ScriptTask and
+/// Notifies the script thread to fire due timers.
+/// TimerSource must be FromWindow when dispatched to ScriptThread and
 /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
 #[derive(Deserialize, Serialize)]
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
-/// Describes the task that requested the TimerEvent.
+/// Describes the thread that requested the TimerEvent.
 #[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
 pub enum TimerSource {
-    /// The event was requested from a window (ScriptTask).
+    /// The event was requested from a window (ScriptThread).
     FromWindow(PipelineId),
     /// The event was requested from a worker (DedicatedGlobalWorkerScope).
     FromWorker
@@ -244,24 +244,24 @@ pub struct InitialScriptState {
     pub parent_info: Option<(PipelineId, SubpageId)>,
     /// The compositor.
     pub compositor: IpcSender<ScriptToCompositorMsg>,
-    /// A channel with which messages can be sent to us (the script task).
+    /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: ConstellationChan<ScriptMsg>,
-    /// A channel for the layout task to send messages to the constellation.
+    /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// Information that script sends out when it panics.
     pub failure_info: Failure,
-    /// A channel to the resource manager task.
-    pub resource_task: ResourceTask,
-    /// A channel to the storage task.
-    pub storage_task: StorageTask,
-    /// A channel to the image cache task.
-    pub image_cache_task: ImageCacheTask,
+    /// A channel to the resource manager thread.
+    pub resource_thread: ResourceThread,
+    /// A channel to the storage thread.
+    pub storage_thread: StorageThread,
+    /// A channel to the image cache thread.
+    pub image_cache_thread: ImageCacheThread,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -276,14 +276,14 @@ pub struct InitialScriptState {
     pub content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// Encapsulates external communication with the script task.
+/// Encapsulates external communication with the script thread.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ScriptControlChan(pub IpcSender<ConstellationControlMsg>);
 
-/// This trait allows creating a `ScriptTask` without depending on the `script`
+/// This trait allows creating a `ScriptThread` without depending on the `script`
 /// crate.
-pub trait ScriptTaskFactory {
-    /// Create a `ScriptTask`.
+pub trait ScriptThreadFactory {
+    /// Create a `ScriptThread`.
     fn create(_phantom: Option<&mut Self>,
               state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,

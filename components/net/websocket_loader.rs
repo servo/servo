@@ -10,7 +10,7 @@ use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction,
 use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;

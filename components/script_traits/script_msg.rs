@@ -20,7 +20,7 @@ use util::cursor::Cursor;
 pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Layout task failure.
+    /// Layout thread failure.
     Failure(Failure),
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
@@ -35,17 +35,17 @@ pub enum ScriptMsg {
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintTask(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
+    CreateCanvasPaintThread(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
     /// Requests that a new WebGL thread be created. (This is done in the constellation because
     /// WebGL uses the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateWebGLPaintTask(Size2D<i32>,
+    CreateWebGLPaintThread(Size2D<i32>,
                          GLContextAttributes,
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
     /// Dispatched after the DOM load event has fired on a document
     /// Causes a `load` event to be dispatched to any enclosing frame context element
     /// for the given pipeline.
     DOMLoad(PipelineId),
-    /// Script task failure.
+    /// Script thread failure.
     Failure(Failure),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),

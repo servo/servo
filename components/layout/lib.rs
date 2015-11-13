@@ -78,7 +78,7 @@ mod fragment;
 mod generated_content;
 mod incremental;
 mod inline;
-pub mod layout_task;
+pub mod layout_thread;
 mod list_item;
 mod model;
 mod multicol;

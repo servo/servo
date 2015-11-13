@@ -18,7 +18,7 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use util::task;
+use util::thread::spawn_named;
 
 pub struct TimelineActor {
     name: String,
@@ -147,7 +147,7 @@ impl TimelineActor {
             return;
         }
 
-        task::spawn_named("PullTimelineMarkers".to_owned(), move || {
+        spawn_named("PullTimelineMarkers".to_owned(), move || {
             loop {
                 if !*is_recording.lock().unwrap() {
                     break;

@@ -5,7 +5,7 @@
 //! A windowing implementation using glutin.
 
 use NestedEventLoopListener;
-use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 #[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
@@ -309,10 +309,10 @@ impl Window {
         // broken way we currently call X11 from multiple threads.
         //
         // On some (most?) X11 implementations, blocking here
-        // with XPeekEvent results in the paint task getting stuck
+        // with XPeekEvent results in the paint thread getting stuck
         // in XGetGeometry randomly. When this happens the result
         // is that until you trigger the XPeekEvent to return
-        // (by moving the mouse over the window) the paint task
+        // (by moving the mouse over the window) the paint thread
         // never completes and you don't see the most recent
         // results.
         //
@@ -848,7 +848,7 @@ impl WindowMethods for Window {
 }
 
 struct GlutinCompositorProxy {
-    sender: Sender<compositor_task::Msg>,
+    sender: Sender<compositor_thread::Msg>,
     window_proxy: Option<glutin::WindowProxy>,
 }
 
@@ -856,7 +856,7 @@ struct GlutinCompositorProxy {
 unsafe impl Send for GlutinCompositorProxy {}
 
 impl CompositorProxy for GlutinCompositorProxy {
-    fn send(&self, msg: compositor_task::Msg) {
+    fn send(&self, msg: compositor_thread::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg).unwrap();
         if let Some(ref window_proxy) = self.window_proxy {

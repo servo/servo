@@ -15,7 +15,7 @@ use dom::window::Window;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use parse::Parser;
-use script_task::ScriptTask;
+use script_thread::ScriptThread;
 use std::cell::Cell;
 use url::Url;
 use xml5ever::tokenizer;
@@ -68,7 +68,7 @@ impl<'a> Parser for &'a ServoXMLParser {
         self.document.set_current_parser(None);
 
         if let Some(pipeline) = self.pipeline {
-            ScriptTask::parsing_complete(pipeline);
+            ScriptThread::parsing_complete(pipeline);
         }
     }
 }
