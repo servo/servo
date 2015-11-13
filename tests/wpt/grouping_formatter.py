@@ -7,6 +7,9 @@ import collections
 import os
 import sys
 
+DEFAULT_MOVE_UP_CODE = u"\x1b[A"
+DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
+
 
 class GroupingFormatter(base.BaseFormatter):
     """Formatter designed to produce unexpected test results grouped
@@ -17,16 +20,15 @@ class GroupingFormatter(base.BaseFormatter):
         self.need_to_erase_last_line = False
         self.current_display = ""
         self.running_tests = {}
-        self.last_test_finished = "Running tests..."
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
         self.test_failure_text = ""
         self.tests_with_failing_subtests = []
         self.interactive = os.isatty(sys.stdout.fileno())
 
-        # iTerm2 doesn't support the terminal codes used to erase previous lines,
-        # so only print one line and rely only on backspace characters.
-        self.one_line = os.environ.get("TERM_PROGRAM", "") == "iTerm.app"
+        # TODO(mrobinson, 8313): We need to add support for Windows terminals here.
+        if self.interactive:
+            self.move_up, self.clear_eol = self.get_move_up_and_clear_eol_codes()
 
         self.expected = {
             'OK': 0,
@@ -47,16 +49,25 @@ class GroupingFormatter(base.BaseFormatter):
             'CRASH': [],
         }
 
+    def get_move_up_and_clear_eol_codes(self):
+        try:
+            import blessings
+        except ImportError:
+            return DEFAULT_MOVE_UP_CODE, DEFAULT_CLEAR_EOL_CODE
+
+        try:
+            self.terminal = blessings.Terminal()
+            return self.terminal.clear_eol, self.terminal.move_up
+        except Exception as exception:
+            sys.stderr.write("GroupingFormatter: Could not get terminal "
+                             "control characters: %s\n" % exception)
+            return DEFAULT_MOVE_UP_CODE, DEFAULT_CLEAR_EOL_CODE
+
     def text_to_erase_display(self):
         if not self.interactive or not self.current_display:
             return ""
-
-        # TODO(mrobinson, 8313): We need to add support for Windows terminals here.
-        erase_length = len(self.current_display)
-        if self.one_line:
-            return "\b \b" * erase_length
-        else:
-            return ("\033[F" + "\033[K") * len(self.current_display.splitlines())
+        return ((self.move_up + self.clear_eol) *
+                len(self.current_display.splitlines()))
 
     def generate_output(self, text=None, new_display=None):
         if not self.interactive:
@@ -74,9 +85,6 @@ class GroupingFormatter(base.BaseFormatter):
             new_display = "  [%i] " % self.completed_tests
         else:
             new_display = "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
-
-        if self.one_line:
-            return new_display + self.last_test_finished
 
         if self.running_tests:
             indent = " " * len(new_display)
@@ -175,7 +183,6 @@ class GroupingFormatter(base.BaseFormatter):
         subtest_failures = self.subtest_failures.pop(test_name, [])
 
         del self.running_tests[data['thread']]
-        self.last_test_finished = test_name
         new_display = self.build_status_line()
 
         if not had_unexpected_test_result and not subtest_failures:
