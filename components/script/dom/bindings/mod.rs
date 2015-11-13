@@ -147,6 +147,7 @@ pub mod str;
 pub mod structuredclone;
 pub mod trace;
 pub mod utils;
+pub mod weakref;
 pub mod xmlname;
 
 /// Generated JS-Rust bindings.
