@@ -27,6 +27,7 @@ use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
+use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -210,29 +211,21 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
     fn create(&self, url: Url, method: Method) -> Result<WrappedHttpRequest, LoadError> {
         let connection = Request::with_connector(method, url.clone(), &*self.connector);
 
-        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
-    function: \"SSL3_GET_SERVER_CERTIFICATE\", \
-    reason: \"certificate verify failed\" }]))";
+        if let Err(HttpError::Ssl(ref error)) = connection {
+            let error: &(Error + Send + 'static) = &**error;
+            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
+                if errors.iter().any(is_cert_verify_error) {
+                    return Err(
+                        LoadError::Ssl(url, format!("ssl error: {:?} {:?}",
+                                                    error.description(),
+                                                    error.cause())));
+                }
+            }
+        }
 
         let request = match connection {
             Ok(req) => req,
 
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                return Err(
-                    LoadError::Ssl(
-                        url,
-                        format!("ssl error {:?}: {:?} {:?}",
-                                io_error.kind(),
-                                io_error.description(),
-                                io_error.cause())
-                    )
-                )
-            },
             Err(e) => {
                  return Err(LoadError::Connection(url, e.description().to_owned()))
             }
@@ -755,4 +748,15 @@ fn send_data<R: Read>(reader: &mut R,
     }
 
     let _ = progress_chan.send(Done(Ok(())));
+}
+
+// FIXME: This incredibly hacky. Make it more robust, and at least test it.
+fn is_cert_verify_error(error: &OpensslError) -> bool {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            library == "SSL routines" &&
+            function == "SSL3_GET_SERVER_CERTIFICATE" &&
+            reason == "certificate verify failed"
+        }
+    }
 }
