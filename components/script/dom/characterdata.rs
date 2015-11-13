@@ -6,13 +6,18 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::comment::Comment;
 use dom::document::Document;
 use dom::element::Element;
 use dom::node::{Node, NodeDamage};
+use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
 use std::cell::Ref;
 use util::str::DOMString;
 
@@ -28,6 +33,22 @@ impl CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
             data: DOMRefCell::new(data),
+        }
+    }
+
+    pub fn clone_with_data(&self, data: DOMString, document: &Document) -> Root<Node> {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                Root::upcast(Comment::new(data, &document))
+            }
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                let pi = self.downcast::<ProcessingInstruction>().unwrap();
+                Root::upcast(ProcessingInstruction::new(pi.Target(), data, &document))
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                Root::upcast(Text::new(data, &document))
+            },
+            _ => unreachable!(),
         }
     }
 

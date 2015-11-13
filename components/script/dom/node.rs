@@ -33,7 +33,6 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::CharacterData;
-use dom::comment::Comment;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -1617,10 +1616,9 @@ impl Node {
                 let doc_fragment = DocumentFragment::new(document.r());
                 Root::upcast::<Node>(doc_fragment)
             },
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+            NodeTypeId::CharacterData(_) => {
                 let cdata = node.downcast::<CharacterData>().unwrap();
-                let comment = Comment::new(cdata.Data(), document.r());
-                Root::upcast::<Node>(comment)
+                cdata.clone_with_data(cdata.Data(), &document)
             },
             NodeTypeId::Document => {
                 let document = node.downcast::<Document>().unwrap();
@@ -1645,17 +1643,6 @@ impl Node {
                     element.prefix().as_ref().map(|p| Atom::from_slice(&p)),
                     document.r(), ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
-            },
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
-                let cdata = node.downcast::<CharacterData>().unwrap();
-                let text = Text::new(cdata.Data(), document.r());
-                Root::upcast::<Node>(text)
-            },
-            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
-                let pi = node.downcast::<ProcessingInstruction>().unwrap();
-                let pi = ProcessingInstruction::new(pi.Target(),
-                                                    pi.upcast::<CharacterData>().Data(), document.r());
-                Root::upcast::<Node>(pi)
             },
         };
 
