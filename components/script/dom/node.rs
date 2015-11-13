@@ -66,7 +66,7 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
 use style::properties::ComputedValues;
 use util::str::DOMString;
-use util::task_state;
+use util::thread_state;
 use uuid;
 
 //
@@ -109,9 +109,9 @@ pub struct Node {
     /// The maximum version of any inclusive descendant of this node.
     inclusive_descendants_version: Cell<u64>,
 
-    /// Layout information. Only the layout task may touch this data.
+    /// Layout information. Only the layout thread may touch this data.
     ///
-    /// Must be sent back to the layout task to be destroyed when this
+    /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
     layout_data: LayoutDataRef,
 
@@ -171,7 +171,7 @@ enum SuppressObserver {
     Unsuppressed
 }
 
-/// Layout data that is shared between the script and layout tasks.
+/// Layout data that is shared between the script and layout threads.
 #[derive(HeapSizeOf)]
 pub struct SharedLayoutData {
     /// The results of CSS styling for this node.
@@ -204,9 +204,9 @@ impl LayoutDataRef {
         }
     }
 
-    /// Sends layout data, if any, back to the layout task to be destroyed.
+    /// Sends layout data, if any, back to the layout thread to be destroyed.
     pub fn dispose(&self, node: &Node) {
-        debug_assert!(task_state::get().is_script());
+        debug_assert!(thread_state::get().is_script());
         if let Some(layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
             let win = window_from_node(node);
             let LayoutChan(chan) = win.layout_chan();
@@ -220,14 +220,14 @@ impl LayoutDataRef {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
-        debug_assert!(task_state::get().is_layout());
+        debug_assert!(thread_state::get().is_layout());
         self.data_cell.as_unsafe_cell().get() as *const _
     }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
     pub fn borrow(&self) -> Ref<Option<LayoutData>> {
-        debug_assert!(task_state::get().is_layout());
+        debug_assert!(thread_state::get().is_layout());
         self.data_cell.borrow()
     }
 
@@ -238,7 +238,7 @@ impl LayoutDataRef {
     /// on it. This has already resulted in one bug!
     #[inline]
     pub fn borrow_mut(&self) -> RefMut<Option<LayoutData>> {
-        debug_assert!(task_state::get().is_layout());
+        debug_assert!(thread_state::get().is_layout());
         self.data_cell.borrow_mut()
     }
 }

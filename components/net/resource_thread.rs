@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A task that takes a URL and streams back the binary data.
+//! A thread that takes a URL and streams back the binary data.
 
 use about_loader;
 use cookie;
@@ -18,7 +18,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
-use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
+use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -28,7 +28,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
 use util::opts;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
@@ -139,9 +139,9 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
     }
 }
 
-/// Create a ResourceTask
-pub fn new_resource_task(user_agent: String,
-                         devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
+/// Create a ResourceThread
+pub fn new_resource_thread(user_agent: String,
+                         devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
     let hsts_preload = match preload_hsts_domains() {
         Some(list) => list,
         None => HSTSList::new()
@@ -169,7 +169,7 @@ struct ResourceChannelManager {
 }
 
 impl ResourceChannelManager {
-    fn start(&mut self, control_sender: ResourceTask) {
+    fn start(&mut self, control_sender: ResourceThread) {
         loop {
             match self.from_client.recv().unwrap() {
                 ControlMsg::Load(load_data, consumer, id_sender) =>
@@ -205,7 +205,7 @@ pub struct CancellableResource {
     /// If we haven't initiated any cancel requests, then the loaders ask
     /// the listener to remove the `ResourceId` in the `HashMap` of
     /// `ResourceManager` once they finish loading
-    resource_task: ResourceTask,
+    resource_thread: ResourceThread,
 }
 
 /// A listener which is basically a wrapped optional receiver which looks
@@ -246,7 +246,7 @@ impl Drop for CancellationListener {
     fn drop(&mut self) {
         if let Some(ref resource) = self.cancel_resource {
             // Ensure that the resource manager stops tracking this request now that it's terminated.
-            let _ = resource.resource_task.send(ControlMsg::Cancel(resource.resource_id));
+            let _ = resource.resource_thread.send(ControlMsg::Cancel(resource.resource_id));
         }
     }
 }
@@ -295,7 +295,7 @@ impl ResourceManager {
             load_data: LoadData,
             consumer: LoadConsumer,
             id_sender: Option<IpcSender<ResourceId>>,
-            resource_task: ResourceTask) {
+            resource_thread: ResourceThread) {
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
                         -> Box<FnBox(LoadData,
@@ -316,7 +316,7 @@ impl ResourceManager {
             CancellableResource {
                 cancel_receiver: cancel_receiver,
                 resource_id: current_res_id,
-                resource_task: resource_task,
+                resource_thread: resource_thread,
             }
         });
 
@@ -332,12 +332,12 @@ impl ResourceManager {
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
-                debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
+                debug!("resource_thread: no loader for scheme {}", load_data.url.scheme);
                 send_error(load_data.url, "no loader for scheme".to_owned(), consumer);
                 return
             }
         };
-        debug!("resource_task: loading url: {}", load_data.url.serialize());
+        debug!("resource_thread: loading url: {}", load_data.url.serialize());
 
         loader.call_box((load_data,
                          consumer,

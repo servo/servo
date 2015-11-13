@@ -3,21 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A generic, safe mechanism by which DOM objects can be pinned and transferred
-//! between tasks (or intra-task for asynchronous events). Akin to Gecko's
+//! between threads (or intra-thread for asynchronous events). Akin to Gecko's
 //! nsMainThreadPtrHandle, this uses thread-safe reference counting and ensures
-//! that the actual SpiderMonkey GC integration occurs on the script task via
+//! that the actual SpiderMonkey GC integration occurs on the script thread via
 //! message passing. Ownership of a `Trusted<T>` object means the DOM object of
 //! type T to which it points remains alive. Any other behaviour is undefined.
 //! To guarantee the lifetime of a DOM object when performing asynchronous operations,
 //! obtain a `Trusted<T>` from that object and pass it along with each operation.
-//! A usable pointer to the original DOM object can be obtained on the script task
+//! A usable pointer to the original DOM object can be obtained on the script thread
 //! from a `Trusted<T>` via the `to_temporary` method.
 //!
 //! The implementation of Trusted<T> is as follows:
-//! A hashtable resides in the script task, keyed on the pointer to the Rust DOM object.
+//! A hashtable resides in the script thread, keyed on the pointer to the Rust DOM object.
 //! The values in this hashtable are atomic reference counts. When a Trusted<T> object is
 //! created or cloned, this count is increased. When a Trusted<T> is dropped, the count
-//! decreases. If the count hits zero, a message is dispatched to the script task to remove
+//! decreases. If the count hits zero, a message is dispatched to the script thread to remove
 //! the entry from the hashmap if the count is still zero. The JS reflector for the DOM object
 //! is rooted when a hashmap entry is first created, and unrooted when the hashmap entry
 //! is removed.
@@ -28,7 +28,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::trace_reflector;
 use js::jsapi::{JSContext, JSTracer};
 use libc;
-use script_task::{CommonScriptMsg, ScriptChan};
+use script_thread::{CommonScriptMsg, ScriptChan};
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
@@ -52,13 +52,13 @@ pub struct TrustedReference(*const libc::c_void);
 unsafe impl Send for TrustedReference {}
 
 /// A safe wrapper around a raw pointer to a DOM object that can be
-/// shared among tasks for use in asynchronous operations. The underlying
+/// shared among threads for use in asynchronous operations. The underlying
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
 #[allow_unrooted_interior]
 pub struct Trusted<T: Reflectable> {
     /// A pointer to the Rust DOM object of type T, but void to allow
-    /// sending `Trusted<T>` between tasks, regardless of T's sendability.
+    /// sending `Trusted<T>` between threads, regardless of T's sendability.
     ptr: *const libc::c_void,
     refcount: Arc<Mutex<usize>>,
     script_chan: Box<ScriptChan + Send>,
@@ -125,7 +125,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
         assert!(*refcount > 0);
         *refcount -= 1;
         if *refcount == 0 {
-            // It's possible this send will fail if the script task
+            // It's possible this send will fail if the script thread
             // has already exited. There's not much we can do at this
             // point though.
             let msg = CommonScriptMsg::RefcountCleanup(TrustedReference(self.ptr));
@@ -142,7 +142,7 @@ pub struct LiveDOMReferences {
 }
 
 impl LiveDOMReferences {
-    /// Set up the task-local data required for storing the outstanding DOM references.
+    /// Set up the thread-local data required for storing the outstanding DOM references.
     pub fn initialize() {
         LIVE_REFERENCES.with(|ref r| {
             *r.borrow_mut() = Some(LiveDOMReferences {

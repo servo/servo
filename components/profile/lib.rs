@@ -22,7 +22,7 @@ extern crate libc;
 extern crate regex;
 extern crate time as std_time;
 #[cfg(target_os = "macos")]
-extern crate task_info;
+extern crate thread_info;
 extern crate util;
 
 mod heartbeats;

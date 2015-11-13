@@ -14,9 +14,9 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
-use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
+use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use page::IterablePage;
-use script_task::{MainThreadRunnable, MainThreadScriptMsg, ScriptTask};
+use script_thread::{MainThreadRunnable, MainThreadScriptMsg, ScriptThread};
 use std::sync::mpsc::channel;
 use url::Url;
 use util::str::DOMString;
@@ -47,10 +47,10 @@ impl Storage {
         global_ref.get_url()
     }
 
-    fn get_storage_task(&self) -> StorageTask {
+    fn get_storage_thread(&self) -> StorageThread {
         let global_root = self.global.root();
         let global_ref = global_root.r();
-        global_ref.as_window().storage_task()
+        global_ref.as_window().storage_thread()
     }
 
 }
@@ -60,7 +60,7 @@ impl StorageMethods for Storage {
     fn Length(&self) -> u32 {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
+        self.get_storage_thread().send(StorageThreadMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv().unwrap() as u32
     }
 
@@ -68,7 +68,7 @@ impl StorageMethods for Storage {
     fn Key(&self, index: u32) -> Option<DOMString> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
+        self.get_storage_thread().send(StorageThreadMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
 
@@ -77,8 +77,8 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
         let name = String::from(name);
 
-        let msg = StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name);
-        self.get_storage_task().send(msg).unwrap();
+        let msg = StorageThreadMsg::GetItem(sender, self.get_url(), self.storage_type, name);
+        self.get_storage_thread().send(msg).unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
 
@@ -88,8 +88,8 @@ impl StorageMethods for Storage {
         let name = String::from(name);
         let value = String::from(value);
 
-        let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
-        self.get_storage_task().send(msg).unwrap();
+        let msg = StorageThreadMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
+        self.get_storage_thread().send(msg).unwrap();
         match receiver.recv().unwrap() {
             Err(_) => Err(Error::QuotaExceeded),
             Ok((changed, old_value)) => {
@@ -106,8 +106,8 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
         let name = String::from(name);
 
-        let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
-        self.get_storage_task().send(msg).unwrap();
+        let msg = StorageThreadMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
+        self.get_storage_thread().send(msg).unwrap();
         if let Some(old_value) = receiver.recv().unwrap() {
             self.broadcast_change_notification(Some(name), Some(old_value), None);
         }
@@ -117,7 +117,7 @@ impl StorageMethods for Storage {
     fn Clear(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
+        self.get_storage_thread().send(StorageThreadMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
         if receiver.recv().unwrap() {
             self.broadcast_change_notification(None, None, None);
         }
@@ -127,7 +127,7 @@ impl StorageMethods for Storage {
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.get_storage_task().send(StorageTaskMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
+        self.get_storage_thread().send(StorageThreadMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv().unwrap().iter().cloned().map(DOMString::from).collect() // FIXME: inefficient?
     }
 
@@ -178,7 +178,7 @@ impl StorageEventRunnable {
 }
 
 impl MainThreadRunnable for StorageEventRunnable {
-    fn handler(self: Box<StorageEventRunnable>, script_task: &ScriptTask) {
+    fn handler(self: Box<StorageEventRunnable>, script_thread: &ScriptThread) {
         let this = *self;
         let storage_root = this.element.root();
         let storage = storage_root.r();
@@ -196,7 +196,7 @@ impl MainThreadRunnable for StorageEventRunnable {
             Some(storage)
         );
 
-        let root_page = script_task.root_page();
+        let root_page = script_thread.root_page();
         for it_page in root_page.iter() {
             let it_window_root = it_page.window();
             let it_window = it_window_root.r();

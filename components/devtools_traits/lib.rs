@@ -47,9 +47,9 @@ pub struct DevtoolsPageInfo {
 /// Messages to instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
-    /// Messages from tasks in the chrome process (resource/constellation/devtools)
+    /// Messages from threads in the chrome process (resource/constellation/devtools)
     FromChrome(ChromeToDevtoolsControlMsg),
-    /// Messages from script tasks
+    /// Messages from script threads
     FromScript(ScriptToDevtoolsControlMsg),
 }
 
@@ -74,7 +74,7 @@ pub enum ScriptToDevtoolsControlMsg {
               DevtoolsPageInfo),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
-    /// An animation frame with the given timestamp was processed in a script task.
+    /// An animation frame with the given timestamp was processed in a script thread.
     /// The actor with the provided name should be notified.
     FramerateTick(String, f64),
 }
@@ -148,7 +148,7 @@ pub struct ComputedNodeLayout {
     pub height: f32,
 }
 
-/// Messages to process in a particular script task, as instructed by a devtools client.
+/// Messages to process in a particular script thread, as instructed by a devtools client.
 #[derive(Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
     /// Evaluate a JS snippet in the context of the global for the given pipeline.

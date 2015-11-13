@@ -41,7 +41,7 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
-// We pass this info to various tasks, so it lives in a separate, cloneable struct.
+// We pass this info to various threads, so it lives in a separate, cloneable struct.
 #[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
@@ -282,10 +282,10 @@ pub enum Msg {
     HeadParsed,
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintTask(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
+    CreateCanvasPaintThread(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
     /// Requests that a new WebGL thread be created. (This is done in the constellation because
     /// WebGL uses the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateWebGLPaintTask(Size2D<i32>,
+    CreateWebGLPaintThread(Size2D<i32>,
                          GLContextAttributes,
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
@@ -391,7 +391,7 @@ pub struct Image {
     pub bytes: IpcSharedMemory,
 }
 
-/// Similar to net::resource_task::LoadData
+/// Similar to net::resource_thread::LoadData
 /// can be passed to LoadUrl to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Deserialize, Serialize)]

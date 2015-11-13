@@ -33,7 +33,7 @@ use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_task::ImageResponse;
+use net_traits::image_cache_thread::ImageResponse;
 use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
 use std::sync::mpsc::channel;
@@ -91,7 +91,7 @@ impl WebGLRenderingContext {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
         constellation_chan.0
-                          .send(ConstellationMsg::CreateWebGLPaintTask(size, attrs, sender))
+                          .send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
                           .unwrap();
         let result = receiver.recv().unwrap();
 
@@ -515,7 +515,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // TODO(ecoal95): Probably in the future we should keep track of the
-    // generated objects, either here or in the webgl task
+    // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
         WebGLBuffer::maybe_new(self.global.root().r(), self.ipc_renderer.clone())

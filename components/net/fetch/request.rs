@@ -15,7 +15,7 @@ use net_traits::{AsyncFetchListener, Response, ResponseType, Metadata};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use url::Url;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]

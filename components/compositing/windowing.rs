@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_task::{CompositorProxy, CompositorReceiver};
+use compositor_thread::{CompositorProxy, CompositorReceiver};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
@@ -42,7 +42,7 @@ pub enum WindowEvent {
     ///
     /// FIXME(pcwalton): This is kind of ugly and may not work well with multiprocess Servo.
     /// It's possible that this should be something like
-    /// `CompositorMessageWindowEvent(compositor_task::Msg)` instead.
+    /// `CompositorMessageWindowEvent(compositor_thread::Msg)` instead.
     Idle,
     /// Sent when part of the window is marked dirty and needs to be redrawn. Before sending this
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.

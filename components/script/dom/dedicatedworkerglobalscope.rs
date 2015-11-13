@@ -28,17 +28,17 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::load_whole_resource;
 use rand::random;
-use script_task::ScriptTaskEventCategory::WorkerEvent;
-use script_task::{ScriptTask, ScriptChan, ScriptPort, StackRootTLS, CommonScriptMsg};
+use script_thread::ScriptThreadEventCategory::WorkerEvent;
+use script_thread::{ScriptThread, ScriptChan, ScriptPort, StackRootTLS, CommonScriptMsg};
 use script_traits::{TimerEvent, TimerSource};
 use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use url::Url;
 use util::str::DOMString;
-use util::task::spawn_named;
-use util::task_state;
-use util::task_state::{IN_WORKER, SCRIPT};
+use util::thread::spawn_named;
+use util::thread_state;
+use util::thread_state::{IN_WORKER, SCRIPT};
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {
@@ -203,12 +203,12 @@ impl DedicatedWorkerGlobalScope {
                             receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
         let serialized_worker_url = worker_url.serialize();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
-            task_state::initialize(SCRIPT | IN_WORKER);
+            thread_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (url, source) = match load_whole_resource(&init.resource_task, worker_url, None) {
+            let (url, source) = match load_whole_resource(&init.resource_thread, worker_url, None) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
@@ -220,7 +220,7 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = Rc::new(ScriptTask::new_rt_and_cx());
+            let runtime = Rc::new(ScriptThread::new_rt_and_cx());
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
@@ -330,7 +330,7 @@ impl DedicatedWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
-                let reports = ScriptTask::get_reports(cx, path_seg);
+                let reports = ScriptThread::get_reports(cx, path_seg);
                 reports_chan.send(reports);
             },
         }

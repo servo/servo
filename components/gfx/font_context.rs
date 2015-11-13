@@ -11,7 +11,7 @@ use fnv::FnvHasher;
 use font::FontHandleMethods;
 use font::SpecifiedFontStyle;
 use font::{Font, FontGroup};
-use font_cache_task::FontCacheTask;
+use font_cache_thread::FontCacheThread;
 use font_template::FontTemplateDescriptor;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
@@ -54,7 +54,7 @@ struct FallbackFontCacheEntry {
     font: Rc<RefCell<Font>>,
 }
 
-/// A cached azure font (per paint task) that
+/// A cached azure font (per paint thread) that
 /// can be shared by multiple text runs.
 struct PaintFontCacheEntry {
     pt_size: Au,
@@ -66,13 +66,13 @@ struct PaintFontCacheEntry {
 /// this one.
 static FONT_CACHE_EPOCH: AtomicUsize = ATOMIC_USIZE_INIT;
 
-/// The FontContext represents the per-thread/task state necessary for
+/// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
-/// paint code. It talks directly to the font cache task where
+/// paint code. It talks directly to the font cache thread where
 /// required.
 pub struct FontContext {
     platform_handle: FontContextHandle,
-    font_cache_task: FontCacheTask,
+    font_cache_thread: FontCacheThread,
 
     /// TODO: See bug https://github.com/servo/servo/issues/3300.
     layout_font_cache: Vec<LayoutFontCacheEntry>,
@@ -89,11 +89,11 @@ pub struct FontContext {
 }
 
 impl FontContext {
-    pub fn new(font_cache_task: FontCacheTask) -> FontContext {
+    pub fn new(font_cache_thread: FontCacheThread) -> FontContext {
         let handle = FontContextHandle::new();
         FontContext {
             platform_handle: handle,
-            font_cache_task: font_cache_task,
+            font_cache_thread: font_cache_thread,
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
             paint_font_cache: vec!(),
@@ -205,7 +205,7 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.find_font_template(family.name()
+                let font_template = self.font_cache_thread.find_font_template(family.name()
                                                                             .to_owned(),
                                                                             desc.clone());
                 match font_template {
@@ -255,7 +255,7 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.last_resort_font_template(desc.clone());
+                let font_template = self.font_cache_thread.last_resort_font_template(desc.clone());
                 let layout_font = self.create_layout_font(font_template,
                                                           desc.clone(),
                                                           style.font_size,
@@ -300,9 +300,9 @@ impl FontContext {
         paint_font
     }
 
-    /// Returns a reference to the font cache task.
-    pub fn font_cache_task(&self) -> FontCacheTask {
-        self.font_cache_task.clone()
+    /// Returns a reference to the font cache thread.
+    pub fn font_cache_thread(&self) -> FontCacheThread {
+        self.font_cache_thread.clone()
     }
 }
 

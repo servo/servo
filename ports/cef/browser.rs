@@ -10,7 +10,7 @@ use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
 use interfaces::{cef_request_context_t};
 use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t, cef_window_handle_t};
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use window;
 use wrappers::CefWrap;
 

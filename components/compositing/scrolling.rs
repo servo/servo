@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A timer thread that gives the painting task a little time to catch up when the user scrolls.
+//! A timer thread that gives the painting thread a little time to catch up when the user scrolls.
 
-use compositor_task::{CompositorProxy, Msg};
+use compositor_thread::{CompositorProxy, Msg};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::{Builder, sleep_ms};
 use time;

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use net::resource_task::new_resource_task;
+use net::resource_thread::new_resource_thread;
 use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::{ControlMsg, LoadData, LoadConsumer, ProgressMsg};
 use std::borrow::ToOwned;
@@ -13,22 +13,22 @@ use url::Url;
 
 #[test]
 fn test_exit() {
-    let resource_task = new_resource_task("".to_owned(), None);
-    resource_task.send(ControlMsg::Exit).unwrap();
+    let resource_thread = new_resource_thread("".to_owned(), None);
+    resource_thread.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
 fn test_bad_scheme() {
-    let resource_task = new_resource_task("".to_owned(), None);
+    let resource_thread = new_resource_thread("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan), None)).unwrap();
+    resource_thread.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
       _ => panic!("bleh")
     }
-    resource_task.send(ControlMsg::Exit).unwrap();
+    resource_thread.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -199,20 +199,20 @@ fn test_cancelled_listener() {
         }
     });
 
-    let resource_task = new_resource_task("".to_owned(), None);
+    let resource_thread = new_resource_thread("".to_owned(), None);
     let (sender, receiver) = ipc::channel().unwrap();
     let (id_sender, id_receiver) = ipc::channel().unwrap();
     let (sync_sender, sync_receiver) = ipc::channel().unwrap();
     let url = Url::parse(&format!("http://127.0.0.1:{}", port)).unwrap();
 
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None),
+    resource_thread.send(ControlMsg::Load(LoadData::new(url, None),
                                         LoadConsumer::Channel(sender),
                                         Some(id_sender))).unwrap();
     // get the `ResourceId` and send a cancel message, which should stop the loading loop
     let res_id = id_receiver.recv().unwrap();
-    resource_task.send(ControlMsg::Cancel(res_id)).unwrap();
-    // synchronize with the resource_task loop, so that we don't simply send everything at once!
-    resource_task.send(ControlMsg::Synchronize(sync_sender)).unwrap();
+    resource_thread.send(ControlMsg::Cancel(res_id)).unwrap();
+    // synchronize with the resource_thread loop, so that we don't simply send everything at once!
+    resource_thread.send(ControlMsg::Synchronize(sync_sender)).unwrap();
     let _ = sync_receiver.recv();
     // now, let's send the body, because the connection is still active and data would be loaded
     // (but, the loading has been cancelled)
@@ -222,5 +222,5 @@ fn test_cancelled_listener() {
         ProgressMsg::Done(result) => assert_eq!(result.unwrap_err(), "load cancelled".to_owned()),
         _ => panic!("baaaah!"),
     }
-    resource_task.send(ControlMsg::Exit).unwrap();
+    resource_thread.send(ControlMsg::Exit).unwrap();
 }

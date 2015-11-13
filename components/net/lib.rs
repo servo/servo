@@ -36,11 +36,11 @@ pub mod data_loader;
 pub mod file_loader;
 pub mod hsts;
 pub mod http_loader;
-pub mod image_cache_task;
+pub mod image_cache_thread;
 pub mod mime_classifier;
 pub mod pub_domains;
-pub mod resource_task;
-pub mod storage_task;
+pub mod resource_thread;
+pub mod storage_thread;
 
 /// An implementation of the [Fetch spec](https://fetch.spec.whatwg.org/)
 pub mod fetch {

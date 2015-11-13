@@ -19,7 +19,7 @@ use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use page::{IterablePage, Page};
-use script_task::get_page;
+use script_thread::get_page;
 use std::ffi::CStr;
 use std::rc::Rc;
 use std::str;

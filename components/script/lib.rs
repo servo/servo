@@ -92,7 +92,7 @@ mod network_listener;
 pub mod page;
 pub mod parse;
 #[allow(unsafe_code)]
-pub mod script_task;
+pub mod script_thread;
 pub mod textinput;
 mod timers;
 mod unpremultiplytable;

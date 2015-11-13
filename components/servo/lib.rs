@@ -11,8 +11,8 @@
 //
 // The `Browser` type is responsible for configuring a
 // `Constellation`, which does the heavy lifting of coordinating all
-// of Servo's internal subsystems, including the `ScriptTask` and the
-// `LayoutTask`, as well maintains the navigation context.
+// of Servo's internal subsystems, including the `ScriptThread` and the
+// `LayoutThread`, as well maintains the navigation context.
 //
 // The `Browser` is fed events from a generic type that implements the
 // `WindowMethods` trait.
@@ -56,18 +56,18 @@ fn webdriver(port: u16, constellation: msg::constellation_msg::ConstellationChan
 fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationChan) { }
 
 use compositing::CompositorEventListener;
-use compositing::compositor_task::InitialCompositorState;
+use compositing::compositor_thread::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, CompositorTask, Constellation};
-use gfx::font_cache_task::FontCacheTask;
+use compositing::{CompositorProxy, CompositorThread, Constellation};
+use gfx::font_cache_thread::FontCacheThread;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net::image_cache_task::new_image_cache_task;
-use net::resource_task::new_resource_task;
-use net::storage_task::StorageTaskFactory;
-use net_traits::storage_task::StorageTask;
+use net::image_cache_thread::new_image_cache_thread;
+use net::resource_thread::new_resource_thread;
+use net::storage_thread::StorageThreadFactory;
+use net_traits::storage_thread::StorageThread;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
@@ -158,7 +158,7 @@ impl Browser {
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        let compositor = CompositorTask::create(window, InitialCompositorState {
+        let compositor = CompositorThread::create(window, InitialCompositorState {
             sender: compositor_proxy,
             receiver: compositor_receiver,
             constellation_chan: constellation_chan,
@@ -194,26 +194,26 @@ fn create_constellation(opts: opts::Opts,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool) -> ConstellationChan {
-    let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
+    let resource_thread = new_resource_thread(opts.user_agent.clone(), devtools_chan.clone());
 
-    let image_cache_task = new_image_cache_task(resource_task.clone());
-    let font_cache_task = FontCacheTask::new(resource_task.clone());
-    let storage_task: StorageTask = StorageTaskFactory::new();
+    let image_cache_thread = new_image_cache_thread(resource_thread.clone());
+    let font_cache_thread = FontCacheThread::new(resource_thread.clone());
+    let storage_thread: StorageThread = StorageThreadFactory::new();
 
     let initial_state = InitialConstellationState {
         compositor_proxy: compositor_proxy,
         devtools_chan: devtools_chan,
-        image_cache_task: image_cache_task,
-        font_cache_task: font_cache_task,
-        resource_task: resource_task,
-        storage_task: storage_task,
+        image_cache_thread: image_cache_thread,
+        font_cache_thread: font_cache_thread,
+        resource_thread: resource_thread,
+        storage_thread: storage_thread,
         time_profiler_chan: time_profiler_chan,
         mem_profiler_chan: mem_profiler_chan,
         supports_clipboard: supports_clipboard,
     };
     let constellation_chan =
-        Constellation::<layout::layout_task::LayoutTask,
-                        script::script_task::ScriptTask>::start(initial_state);
+        Constellation::<layout::layout_thread::LayoutThread,
+                        script::script_thread::ScriptThread>::start(initial_state);
 
     // Send the URL command to the constellation.
     match opts.url {

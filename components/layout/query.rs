@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Utilities for querying the layout, as needed by the layout task.
+//! Utilities for querying the layout, as needed by the layout thread.
 
 use app_units::Au;
 use euclid::point::Point2D;
@@ -10,7 +10,7 @@ use euclid::rect::Rect;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
-use layout_task::LayoutTaskData;
+use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
@@ -22,7 +22,7 @@ use std::sync::{Arc, Mutex};
 use util::cursor::Cursor;
 use util::logical_geometry::WritingMode;
 
-pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
+pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
 
 impl LayoutRPC for LayoutRPCImpl {
 

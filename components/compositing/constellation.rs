@@ -6,21 +6,21 @@
 //!
 //! The primary duty of a `Constellation` is to mediate between the
 //! graphics compositor and the many `Pipeline`s in the browser's
-//! navigation context, each `Pipeline` encompassing a `ScriptTask`,
-//! `LayoutTask`, and `PaintTask`.
+//! navigation context, each `Pipeline` encompassing a `ScriptThread`,
+//! `LayoutThread`, and `PaintThread`.
 
-use canvas::canvas_paint_task::CanvasPaintTask;
-use canvas::webgl_paint_task::WebGLPaintTask;
+use canvas::canvas_paint_thread::CanvasPaintThread;
+use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use clipboard::ClipboardContext;
-use compositor_task::CompositorProxy;
-use compositor_task::Msg as CompositorMsg;
+use compositor_thread::CompositorProxy;
+use compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
-use gfx::font_cache_task::FontCacheTask;
+use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
-use layout_traits::{LayoutControlChan, LayoutTaskFactory};
+use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -32,15 +32,15 @@ use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::webdriver_msg;
-use net_traits::image_cache_task::ImageCacheTask;
-use net_traits::storage_task::{StorageTask, StorageTaskMsg};
-use net_traits::{self, ResourceTask};
+use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
+use net_traits::{self, ResourceThread};
 use offscreen_gl_context::GLContextAttributes;
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{ScriptState, ScriptTaskFactory};
+use script_traits::{ScriptState, ScriptThreadFactory};
 use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -54,7 +54,7 @@ use timer_scheduler::TimerScheduler;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use util::{opts, prefs};
 
 #[derive(Debug, PartialEq)]
@@ -69,9 +69,9 @@ enum ReadyToSave {
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 ///
-/// It is parameterized over a `LayoutTaskFactory` and a
-/// `ScriptTaskFactory` (which in practice are implemented by
-/// `LayoutTask` in the `layout` crate, and `ScriptTask` in
+/// It is parameterized over a `LayoutThreadFactory` and a
+/// `ScriptThreadFactory` (which in practice are implemented by
+/// `LayoutThread` in the `layout` crate, and `ScriptThread` in
 /// the `script` crate).
 pub struct Constellation<LTF, STF> {
     /// A channel through which script messages can be sent to this object.
@@ -90,17 +90,17 @@ pub struct Constellation<LTF, STF> {
     /// to the compositor.
     pub compositor_proxy: Box<CompositorProxy>,
 
-    /// A channel through which messages can be sent to the resource task.
-    pub resource_task: ResourceTask,
+    /// A channel through which messages can be sent to the resource thread.
+    pub resource_thread: ResourceThread,
 
-    /// A channel through which messages can be sent to the image cache task.
-    pub image_cache_task: ImageCacheTask,
+    /// A channel through which messages can be sent to the image cache thread.
+    pub image_cache_thread: ImageCacheThread,
 
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
-    /// A channel through which messages can be sent to the storage task.
-    storage_task: StorageTask,
+    /// A channel through which messages can be sent to the storage thread.
+    storage_thread: StorageThread,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -115,7 +115,7 @@ pub struct Constellation<LTF, STF> {
     subpage_map: HashMap<(PipelineId, SubpageId), PipelineId>,
 
     /// A channel through which messages can be sent to the font cache.
-    font_cache_task: FontCacheTask,
+    font_cache_thread: FontCacheThread,
 
     /// ID of the root frame.
     root_frame_id: Option<FrameId>,
@@ -148,11 +148,11 @@ pub struct Constellation<LTF, STF> {
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
-    /// A list of in-process senders to `CanvasPaintTask`s.
-    canvas_paint_tasks: Vec<Sender<CanvasMsg>>,
+    /// A list of in-process senders to `CanvasPaintThread`s.
+    canvas_paint_threads: Vec<Sender<CanvasMsg>>,
 
-    /// A list of in-process senders to `WebGLPaintTask`s.
-    webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
+    /// A list of in-process senders to `WebGLPaintThread`s.
+    webgl_paint_threads: Vec<Sender<CanvasMsg>>,
 
     scheduler_chan: IpcSender<TimerEventRequest>,
 }
@@ -163,14 +163,14 @@ pub struct InitialConstellationState {
     pub compositor_proxy: Box<CompositorProxy + Send>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    /// A channel to the image cache task.
-    pub image_cache_task: ImageCacheTask,
-    /// A channel to the font cache task.
-    pub font_cache_task: FontCacheTask,
-    /// A channel to the resource task.
-    pub resource_task: ResourceTask,
-    /// A channel to the storage task.
-    pub storage_task: StorageTask,
+    /// A channel to the image cache thread.
+    pub image_cache_thread: ImageCacheThread,
+    /// A channel to the font cache thread.
+    pub font_cache_thread: FontCacheThread,
+    /// A channel to the resource thread.
+    pub resource_thread: ResourceThread,
+    /// A channel to the storage thread.
+    pub storage_thread: StorageThread,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -258,7 +258,7 @@ enum ExitPipelineMode {
     Force,
 }
 
-impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
+impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF> {
     pub fn start(state: InitialConstellationState) -> ConstellationChan {
         let (script_receiver, script_sender) = ConstellationChan::new();
         let (compositor_receiver, compositor_sender) = ConstellationChan::new();
@@ -272,10 +272,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 compositor_receiver: compositor_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
-                resource_task: state.resource_task,
-                image_cache_task: state.image_cache_task,
-                font_cache_task: state.font_cache_task,
-                storage_task: state.storage_task,
+                resource_thread: state.resource_thread,
+                image_cache_thread: state.image_cache_thread,
+                font_cache_thread: state.font_cache_thread,
+                storage_thread: state.storage_thread,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pipeline_to_frame_map: HashMap::new(),
@@ -302,8 +302,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     None
                 },
                 webdriver: WebDriverData::new(),
-                canvas_paint_tasks: Vec::new(),
-                webgl_paint_tasks: Vec::new(),
+                canvas_paint_threads: Vec::new(),
+                webgl_paint_threads: Vec::new(),
                 scheduler_chan: TimerScheduler::start(),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
@@ -353,10 +353,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
-                image_cache_task: self.image_cache_task.clone(),
-                font_cache_task: self.font_cache_task.clone(),
-                resource_task: self.resource_task.clone(),
-                storage_task: self.storage_task.clone(),
+                image_cache_thread: self.image_cache_thread.clone(),
+                font_cache_thread: self.font_cache_thread.clone(),
+                resource_thread: self.resource_thread.clone(),
+                storage_thread: self.storage_thread.clone(),
                 time_profiler_chan: self.time_profiler_chan.clone(),
                 mem_profiler_chan: self.mem_profiler_chan.clone(),
                 window_size: initial_window_size,
@@ -369,7 +369,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
         // the content process and call this over there.
         if spawning_paint_only {
-            pipeline_content.start_paint_task();
+            pipeline_content.start_paint_thread();
         } else {
             pipeline_content.start_all::<LTF, STF>();
         }
@@ -565,13 +565,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got head parsed message");
                 self.compositor_proxy.send(CompositorMsg::HeadParsed);
             }
-            ConstellationMsg::CreateCanvasPaintTask(size, sender) => {
-                debug!("constellation got create-canvas-paint-task message");
-                self.handle_create_canvas_paint_task_msg(&size, sender)
+            ConstellationMsg::CreateCanvasPaintThread(size, sender) => {
+                debug!("constellation got create-canvas-paint-thread message");
+                self.handle_create_canvas_paint_thread_msg(&size, sender)
             }
-            ConstellationMsg::CreateWebGLPaintTask(size, attributes, sender) => {
-                debug!("constellation got create-WebGL-paint-task message");
-                self.handle_create_webgl_paint_task_msg(&size, attributes, sender)
+            ConstellationMsg::CreateWebGLPaintThread(size, attributes, sender) => {
+                debug!("constellation got create-WebGL-paint-thread message");
+                self.handle_create_webgl_paint_thread_msg(&size, attributes, sender)
             }
             ConstellationMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
@@ -585,14 +585,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         for (_id, ref pipeline) in &self.pipelines {
             pipeline.exit();
         }
-        self.image_cache_task.exit();
-        self.resource_task.send(net_traits::ControlMsg::Exit).unwrap();
+        self.image_cache_thread.exit();
+        self.resource_thread.send(net_traits::ControlMsg::Exit).unwrap();
         self.devtools_chan.as_ref().map(|chan| {
             chan.send(DevtoolsControlMsg::FromChrome(
                     ChromeToDevtoolsControlMsg::ServerExitMsg)).unwrap();
         });
-        self.storage_task.send(StorageTaskMsg::Exit).unwrap();
-        self.font_cache_task.exit();
+        self.storage_thread.send(StorageThreadMsg::Exit).unwrap();
+        self.font_cache_thread.exit();
         self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
     }
 
@@ -602,7 +602,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, parent_info);
 
         if opts::get().hard_fail {
-            // It's quite difficult to make Servo exit cleanly if some tasks have failed.
+            // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
             let mut stderr = io::stderr();
             stderr.write_all("Pipeline failed in hard-fail mode.  Crashing!\n".as_bytes()).unwrap();
@@ -670,13 +670,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         })).unwrap();
     }
 
-    // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
+    // The script thread associated with pipeline_id has loaded a URL in an iframe via script. This
     // will result in a new pipeline being spawned and a frame tree being added to
     // containing_page_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IframeLoadInfo) {
         // Compare the pipeline's url to the new url. If the origin is the same,
-        // then reuse the script task in creating the new pipeline
+        // then reuse the script thread in creating the new pipeline
         let script_chan = {
             let source_pipeline = self.pipeline(load_info.containing_pipeline_id);
 
@@ -687,7 +687,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
             // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
-            // Reuse the script task if the URL is same-origin
+            // Reuse the script thread if the URL is same-origin
             if same_script {
                 debug!("Constellation: loading same-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, load_info.url);
@@ -743,13 +743,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn load_url(&mut self, source_id: PipelineId, load_data: LoadData) -> Option<PipelineId> {
         // If this load targets an iframe, its framing element may exist
-        // in a separate script task than the framed document that initiated
+        // in a separate script thread than the framed document that initiated
         // the new load. The framing element must be notified about the
         // requested change so it can update its internal state.
         match self.pipeline(source_id).parent_info {
             Some((parent_pipeline_id, subpage_id)) => {
                 self.handle_load_start_msg(&source_id);
-                // Message the constellation to find the script task for this iframe
+                // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
                 let parent_pipeline = self.pipeline(parent_pipeline_id);
                 let script_channel = &parent_pipeline.script_chan;
@@ -777,7 +777,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.new_pipeline(new_pipeline_id, None, window_size, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
-                // Send message to ScriptTask that will suspend all timers
+                // Send message to ScriptThread that will suspend all timers
                 let old_pipeline = self.pipelines.get(&source_id).unwrap();
                 old_pipeline.freeze();
                 Some(new_pipeline_id)
@@ -942,7 +942,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         assert!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false));
 
         // Find the script channel for the given parent pipeline,
-        // and pass the event to that script task.
+        // and pass the event to that script thread.
         let pipeline = self.pipeline(containing_pipeline_id);
         pipeline.trigger_mozbrowser_event(subpage_id, event);
     }
@@ -1002,25 +1002,25 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn handle_create_canvas_paint_task_msg(
+    fn handle_create_canvas_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
             response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
-        let id = self.canvas_paint_tasks.len();
-        let (out_of_process_sender, in_process_sender) = CanvasPaintTask::start(*size);
-        self.canvas_paint_tasks.push(in_process_sender);
+        let id = self.canvas_paint_threads.len();
+        let (out_of_process_sender, in_process_sender) = CanvasPaintThread::start(*size);
+        self.canvas_paint_threads.push(in_process_sender);
         response_sender.send((out_of_process_sender, id)).unwrap()
     }
 
-    fn handle_create_webgl_paint_task_msg(
+    fn handle_create_webgl_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
             attributes: GLContextAttributes,
             response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>) {
-        let response = match WebGLPaintTask::start(*size, attributes) {
+        let response = match WebGLPaintThread::start(*size, attributes) {
             Ok((out_of_process_sender, in_process_sender)) => {
-                let id = self.webgl_paint_tasks.len();
-                self.webgl_paint_tasks.push(in_process_sender);
+                let id = self.webgl_paint_threads.len();
+                self.webgl_paint_threads.push(in_process_sender);
                 Ok((out_of_process_sender, id))
             },
             Err(msg) => Err(msg.to_owned()),
@@ -1031,7 +1031,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
         // Find the script channel for the given parent pipeline,
-        // and pass the event to that script task.
+        // and pass the event to that script thread.
         match msg {
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
@@ -1231,7 +1231,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
 
         // Step through the current frame tree, checking that the script
-        // task is idle, and that the current epoch of the layout task
+        // thread is idle, and that the current epoch of the layout thread
         // matches what the compositor has painted. If all these conditions
         // are met, then the output image should not change and a reftest
         // screenshot can safely be written.
@@ -1253,7 +1253,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 return ReadyToSave::WebFontNotLoaded;
             }
 
-            // Synchronously query the script task for this pipeline
+            // Synchronously query the script thread for this pipeline
             // to see if it is idle.
             let (sender, receiver) = channel();
             let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
@@ -1270,7 +1270,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             if let Some(size) = pipeline.size {
                 // If the rectangle for this pipeline is zero sized, it will
                 // never be painted. In this case, don't query the layout
-                // task as it won't contribute to the final output image.
+                // thread as it won't contribute to the final output image.
                 if size == Size2D::zero() {
                     continue;
                 }
@@ -1279,15 +1279,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 let compositor_epoch = pipeline_states.get(&frame.current);
                 match compositor_epoch {
                     Some(compositor_epoch) => {
-                        // Synchronously query the layout task to see if the current
+                        // Synchronously query the layout thread to see if the current
                         // epoch matches what the compositor has drawn. If they match
                         // (and script is idle) then this pipeline won't change again
                         // and can be considered stable.
                         let (sender, receiver) = ipc::channel().unwrap();
                         let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
                         layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)).unwrap();
-                        let layout_task_epoch = receiver.recv().unwrap();
-                        if layout_task_epoch != *compositor_epoch {
+                        let layout_thread_epoch = receiver.recv().unwrap();
+                        if layout_thread_epoch != *compositor_epoch {
                             return ReadyToSave::EpochMismatch;
                         }
                     }
@@ -1300,7 +1300,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
         }
 
-        // All script tasks are idle and layout epochs match compositor, so output image!
+        // All script threads are idle and layout epochs match compositor, so output image!
         ReadyToSave::Ready
     }
 

@@ -22,13 +22,13 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use hyper::mime::{Attr, Mime};
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
-use script_task::ScriptTaskEventCategory::FileRead;
-use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
+use script_thread::ScriptThreadEventCategory::FileRead;
+use script_thread::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
 use std::cell::Cell;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use util::str::DOMString;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 #[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
 pub enum FileReaderFunction {
@@ -404,27 +404,27 @@ impl Runnable for FileReaderEvent {
     }
 }
 
-// https://w3c.github.io/FileAPI/#task-read-operation
+// https://w3c.github.io/FileAPI/#thread-read-operation
 fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, blob_contents: Receiver<Vec<u8>>,
     filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
     let chan = &script_chan;
     // Step 4
-    let task = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
-    chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
+    let thread = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
+    chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
 
-    let task = box FileReaderEvent::ProcessReadData(filereader.clone(), gen_id);
-    chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
+    let thread = box FileReaderEvent::ProcessReadData(filereader.clone(), gen_id);
+    chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
 
     let bytes = match blob_contents.recv() {
         Ok(bytes) => bytes,
         Err(_) => {
-            let task = box FileReaderEvent::ProcessReadError(filereader,
+            let thread = box FileReaderEvent::ProcessReadError(filereader,
                 gen_id, DOMErrorName::NotFoundError);
-            chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
             return;
         }
     };
 
-    let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, bytes);
-    chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
+    let thread = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, bytes);
+    chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
 }

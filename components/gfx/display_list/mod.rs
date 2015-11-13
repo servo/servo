@@ -27,7 +27,7 @@ use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
-use paint_task::{PaintLayerContents, PaintLayer};
+use paint_thread::{PaintLayerContents, PaintLayer};
 use self::DisplayItem::*;
 use self::DisplayItemIterator::*;
 use smallvec::SmallVec;
@@ -63,7 +63,7 @@ pub static BLUR_INFLATION_FACTOR: i32 = 3;
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
 ///
-/// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
+/// Because the script thread's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
 #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf, Hash, Eq, Deserialize, Serialize)]
@@ -1139,7 +1139,7 @@ impl ClippingRegion {
 }
 
 
-/// Metadata attached to each display item. This is useful for performing auxiliary tasks with
+/// Metadata attached to each display item. This is useful for performing auxiliary threads with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
 #[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]

@@ -22,9 +22,9 @@ use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::Image;
-use net_traits::image_cache_task::{ImageResponder, ImageResponse};
-use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
-use script_task::{CommonScriptMsg, Runnable, ScriptChan};
+use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
+use script_thread::ScriptThreadEventCategory::UpdateReplacedElement;
+use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
 use std::sync::Arc;
 use string_cache::Atom;
 use url::{Url, UrlParser};
@@ -94,7 +94,7 @@ impl HTMLImageElement {
     fn update_image(&self, value: Option<(DOMString, Url)>) {
         let document = document_from_node(self);
         let window = document.window();
-        let image_cache = window.image_cache_task();
+        let image_cache = window.image_cache_thread();
         match value {
             None => {
                 *self.url.borrow_mut() = None;
@@ -111,7 +111,7 @@ impl HTMLImageElement {
                 let script_chan = window.script_chan();
                 let wrapper = window.get_runnable_wrapper();
                 ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
-                    // Return the image via a message to the script task, which marks the element
+                    // Return the image via a message to the script thread, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
                     let runnable = ImageResponseHandlerRunnable::new(

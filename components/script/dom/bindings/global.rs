@@ -19,9 +19,9 @@ use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-use net_traits::ResourceTask;
+use net_traits::ResourceThread;
 use profile_traits::mem;
-use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
+use script_thread::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThread};
 use script_traits::{MsDuration, TimerEventRequest};
 use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
@@ -65,7 +65,7 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Extract a `Window`, causing task failure if the global object is not
+    /// Extract a `Window`, causing thread failure if the global object is not
     /// a `Window`.
     pub fn as_window(&self) -> &window::Window {
         match *self {
@@ -82,7 +82,7 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get a `mem::ProfilerChan` to send messages to the memory profiler task.
+    /// Get a `mem::ProfilerChan` to send messages to the memory profiler thread.
     pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
         match *self {
             GlobalRef::Window(window) => window.mem_profiler_chan(),
@@ -107,7 +107,7 @@ impl<'a> GlobalRef<'a> {
     }
 
     /// Get an `IpcSender<ScriptToDevtoolsControlMsg>` to send messages to Devtools
-    /// task when available.
+    /// thread when available.
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         match *self {
             GlobalRef::Window(window) => window.devtools_chan(),
@@ -115,16 +115,16 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get the `ResourceTask` for this global scope.
-    pub fn resource_task(&self) -> ResourceTask {
+    /// Get the `ResourceThread` for this global scope.
+    pub fn resource_thread(&self) -> ResourceThread {
         match *self {
             GlobalRef::Window(ref window) => {
                 let doc = window.Document();
                 let doc = doc.r();
                 let loader = doc.loader();
-                (*loader.resource_task).clone()
+                (*loader.resource_thread).clone()
             }
-            GlobalRef::Worker(ref worker) => worker.resource_task().clone(),
+            GlobalRef::Worker(ref worker) => worker.resource_thread().clone(),
         }
     }
 
@@ -171,11 +171,11 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Process a single event as if it were the next event in the task queue for
+    /// Process a single event as if it were the next event in the thread queue for
     /// this global.
     pub fn process_event(&self, msg: CommonScriptMsg) {
         match *self {
-            GlobalRef::Window(_) => ScriptTask::process_event(msg),
+            GlobalRef::Window(_) => ScriptThread::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),
         }
     }

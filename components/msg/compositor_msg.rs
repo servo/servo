@@ -99,7 +99,7 @@ pub enum ScrollPolicy {
     FixedPosition,
 }
 
-/// All layer-specific information that the painting task sends to the compositor other than the
+/// All layer-specific information that the painting thread sends to the compositor other than the
 /// buffer contents of the layer itself.
 #[derive(Copy, Clone)]
 pub struct LayerProperties {
@@ -148,8 +148,8 @@ pub trait PaintListener {
     /// Inform the compositor that these buffer requests will be ignored.
     fn ignore_buffer_requests(&mut self, buffer_requests: Vec<BufferRequest>);
 
-    // Notification that the paint task wants to exit.
-    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId);
+    // Notification that the paint thread wants to exit.
+    fn notify_paint_thread_exiting(&mut self, pipeline_id: PipelineId);
 }
 
 #[derive(Deserialize, Serialize)]

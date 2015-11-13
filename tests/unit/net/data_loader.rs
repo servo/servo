@@ -18,7 +18,7 @@ fn assert_parse(url:          &'static str,
                 data:         Option<Vec<u8>>) {
     use net::data_loader::load;
     use net::mime_classifier::MIMEClassifier;
-    use net::resource_task::CancellationListener;
+    use net::resource_thread::CancellationListener;
     use std::sync::Arc;
     use std::sync::mpsc::channel;
     use url::Url;

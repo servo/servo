@@ -1401,7 +1401,7 @@ dependencies = [
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
- "task_info 0.0.1",
+ "thread_info 0.0.1",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1774,13 +1774,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "task_info"
-version = "0.0.1"
-dependencies = [
- "gcc 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "tempdir"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1812,6 +1805,13 @@ dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "futf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "thread_info"
+version = "0.0.1"
+dependencies = [
+ "gcc 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

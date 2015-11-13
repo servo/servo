@@ -29,7 +29,7 @@ use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
+use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -39,7 +39,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use url::{Url, UrlParser};
 use util::resource_files::resources_dir_path;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use uuid;
 
 pub type Connector = HttpsConnector<Openssl>;

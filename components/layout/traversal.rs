@@ -29,7 +29,7 @@ type Generation = u32;
 /// matches. Thanks to the bloom filter, we can avoid walking up the tree
 /// looking for ancestors that aren't there in the majority of cases.
 ///
-/// As we walk down the DOM tree a task-local bloom filter is built of all the
+/// As we walk down the DOM tree a thread-local bloom filter is built of all the
 /// CSS `SimpleSelector`s which are part of a `Descendant` compound selector
 /// (i.e. paired with a `Descendant` combinator, in the `next` field of a
 /// `CompoundSelector`.
@@ -43,15 +43,15 @@ type Generation = u32;
 ///
 /// Since a work-stealing queue is used for styling, sometimes, the bloom filter
 /// will no longer be the for the parent of the node we're currently on. When
-/// this happens, the task local bloom filter will be thrown away and rebuilt.
+/// this happens, the thread local bloom filter will be thrown away and rebuilt.
 thread_local!(
     static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeLayoutNode, Generation)>> = RefCell::new(None));
 
-/// Returns the task local bloom filter.
+/// Returns the thread local bloom filter.
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>,
+fn take_thread_local_bloom_filter(parent_node: Option<LayoutNode>,
                                 root: OpaqueNode,
                                 layout_context: &LayoutContext)
                                 -> Box<BloomFilter> {
@@ -86,12 +86,12 @@ fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>,
     })
 }
 
-fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
+fn put_thread_local_bloom_filter(bf: Box<BloomFilter>,
                                unsafe_node: &UnsafeLayoutNode,
                                layout_context: &LayoutContext) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
-                "Putting into a never-taken task-local bloom filter");
+                "Putting into a never-taken thread-local bloom filter");
         *style_bloom.borrow_mut() = Some((bf, *unsafe_node, layout_context.shared.generation));
     })
 }
@@ -155,7 +155,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         let parent_opt = node.layout_parent_node(self.root);
 
         // Get the style bloom filter.
-        let mut bf = take_task_local_bloom_filter(parent_opt, self.root, self.layout_context);
+        let mut bf = take_thread_local_bloom_filter(parent_opt, self.root, self.layout_context);
 
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.is_dirty() {
@@ -235,7 +235,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         node.insert_into_bloom_filter(&mut *bf);
 
         // NB: flow construction updates the bloom filter on the way up.
-        put_task_local_bloom_filter(bf, &unsafe_layout_node, self.layout_context);
+        put_thread_local_bloom_filter(bf, &unsafe_layout_node, self.layout_context);
     }
 }
 
@@ -291,13 +291,13 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
         match node.layout_parent_node(self.root) {
             None => {
                 debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
-                // If this is the reflow root, eat the task-local bloom filter.
+                // If this is the reflow root, eat the thread-local bloom filter.
             }
             Some(parent) => {
                 // Otherwise, put it back, but remove this node.
                 node.remove_from_bloom_filter(&mut *bf);
                 let unsafe_parent = layout_node_to_unsafe_layout_node(&parent);
-                put_task_local_bloom_filter(bf, &unsafe_parent, self.layout_context);
+                put_thread_local_bloom_filter(bf, &unsafe_parent, self.layout_context);
             },
         };
     }

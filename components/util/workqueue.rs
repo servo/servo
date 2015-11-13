@@ -12,8 +12,8 @@ use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use task::spawn_named;
-use task_state;
+use thread::spawn_named;
+use thread_state;
 
 /// A unit of work.
 ///
@@ -234,8 +234,8 @@ pub struct WorkQueue<QueueData: 'static, WorkData: 'static> {
 impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Creates a new work queue and spawns all the threads associated with
     /// it.
-    pub fn new(task_name: &'static str,
-               state: task_state::TaskState,
+    pub fn new(thread_name: &'static str,
+               state: thread_state::ThreadState,
                thread_count: usize) -> WorkQueue<QueueData, WorkData> {
         // Set up data structures.
         let (supervisor_chan, supervisor_port) = channel();
@@ -272,9 +272,9 @@ impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
         for (i, thread) in threads.into_iter().enumerate() {
 
             spawn_named(
-                format!("{} worker {}/{}", task_name, i + 1, thread_count),
+                format!("{} worker {}/{}", thread_name, i + 1, thread_count),
                 move || {
-                    task_state::initialize(state | task_state::IN_WORKER);
+                    thread_state::initialize(state | thread_state::IN_WORKER);
                     let mut thread = thread;
                     thread.start()
                 })
@@ -300,7 +300,7 @@ impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
         self.work_count += 1
     }
 
-    /// Synchronously runs all the enqueued tasks and waits for them to complete.
+    /// Synchronously runs all the enqueued threads and waits for them to complete.
     pub fn run(&mut self, data: &QueueData) {
         // Tell the workers to start.
         let mut work_count = AtomicUsize::new(self.work_count);

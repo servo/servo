@@ -49,7 +49,7 @@ pub use interfaces::cef_scheme::{CefSchemeRegistrar,CefSchemeHandlerFactory,cef_
 pub use interfaces::cef_ssl_info::{CefSSLCertPrincipal,CefSSLInfo,cef_sslcert_principal_t,cef_sslinfo_t,};
 pub use interfaces::cef_stream::{CefReadHandler,CefStreamReader,CefWriteHandler,CefStreamWriter,cef_read_handler_t,cef_stream_reader_t,cef_write_handler_t,cef_stream_writer_t,};
 pub use interfaces::cef_string_visitor::{CefStringVisitor,cef_string_visitor_t,};
-pub use interfaces::cef_task::{CefTask,CefTaskRunner,cef_task_t,cef_task_runner_t,};
+pub use interfaces::cef_thread::{CefThread,CefThreadRunner,cef_thread_t,cef_thread_runner_t,};
 pub use interfaces::cef_trace::{CefEndTracingCallback,cef_end_tracing_callback_t,};
 pub use interfaces::cef_urlrequest::{CefURLRequest,CefURLRequestClient,cef_urlrequest_t,cef_urlrequest_client_t,};
 pub use interfaces::cef_v8::{CefV8Context,CefV8Handler,CefV8Accessor,CefV8Exception,CefV8Value,CefV8StackTrace,CefV8StackFrame,cef_v8context_t,cef_v8handler_t,cef_v8accessor_t,cef_v8exception_t,cef_v8value_t,cef_v8stack_trace_t,cef_v8stack_frame_t,};
@@ -108,7 +108,7 @@ pub mod cef_scheme;
 pub mod cef_ssl_info;
 pub mod cef_stream;
 pub mod cef_string_visitor;
-pub mod cef_task;
+pub mod cef_thread;
 pub mod cef_trace;
 pub mod cef_urlrequest;
 pub mod cef_v8;

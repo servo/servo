@@ -45,15 +45,15 @@ use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceTask;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
-use net_traits::storage_task::{StorageTask, StorageType};
+use net_traits::ResourceThread;
+use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::storage_thread::{StorageThread, StorageType};
 use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_thread::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
+use script_thread::{SendableMainThreadScriptChan, MainThreadScriptChan};
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
@@ -115,7 +115,7 @@ pub struct Window {
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     #[ignore_heap_size_of = "channels are hard"]
-    image_cache_task: ImageCacheTask,
+    image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
@@ -170,7 +170,7 @@ pub struct Window {
     #[ignore_heap_size_of = "Rc<T> is hard"]
     js_runtime: DOMRefCell<Option<Rc<Runtime>>>,
 
-    /// A handle for communicating messages to the layout task.
+    /// A handle for communicating messages to the layout thread.
     #[ignore_heap_size_of = "channels are hard"]
     layout_chan: LayoutChan,
 
@@ -181,15 +181,15 @@ pub struct Window {
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
-    /// Associated resource task for use by DOM objects like XMLHttpRequest
+    /// Associated resource thread for use by DOM objects like XMLHttpRequest
     #[ignore_heap_size_of = "channels are hard"]
-    resource_task: Arc<ResourceTask>,
+    resource_thread: Arc<ResourceThread>,
 
-    /// A handle for communicating messages to the storage task.
+    /// A handle for communicating messages to the storage thread.
     #[ignore_heap_size_of = "channels are hard"]
-    storage_task: StorageTask,
+    storage_thread: StorageThread,
 
-    /// A handle for communicating messages to the constellation task.
+    /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: ConstellationChan,
 
@@ -269,8 +269,8 @@ impl Window {
         (box SendableMainThreadScriptChan(tx), box rx)
     }
 
-    pub fn image_cache_task(&self) -> &ImageCacheTask {
-        &self.image_cache_task
+    pub fn image_cache_thread(&self) -> &ImageCacheThread {
+        &self.image_cache_thread
     }
 
     pub fn compositor(&self) -> &IpcSender<ScriptToCompositorMsg> {
@@ -285,8 +285,8 @@ impl Window {
         &*self.page
     }
 
-    pub fn storage_task(&self) -> StorageTask {
-        self.storage_task.clone()
+    pub fn storage_thread(&self) -> StorageThread {
+        self.storage_thread.clone()
     }
 }
 
@@ -797,10 +797,10 @@ impl Window {
         // (e.g. DOM objects removed from the tree that haven't
         // been collected yet). Forcing a GC here means that
         // those DOM objects will be able to call dispose()
-        // to free their layout data before the layout task
+        // to free their layout data before the layout thread
         // exits. Without this, those remaining objects try to
         // send a message to free their layout data to the
-        // layout task when the script task is dropped,
+        // layout thread when the script thread is dropped,
         // which causes a panic!
         self.Gc();
 
@@ -941,7 +941,7 @@ impl Window {
             }
             Ok(_) => {}
             Err(Disconnected) => {
-                panic!("Layout task failed while script was waiting for a result.");
+                panic!("Layout thread failed while script was waiting for a result.");
             }
         }
 
@@ -1055,8 +1055,8 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_task(&self) -> ResourceTask {
-        (*self.resource_task).clone()
+    pub fn resource_thread(&self) -> ResourceThread {
+        (*self.resource_thread).clone()
     }
 
     pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
@@ -1219,9 +1219,9 @@ impl Window {
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
                compositor: IpcSender<ScriptToCompositorMsg>,
-               image_cache_task: ImageCacheTask,
-               resource_task: Arc<ResourceTask>,
-               storage_task: StorageTask,
+               image_cache_thread: ImageCacheThread,
+               resource_thread: Arc<ResourceThread>,
+               storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan,
@@ -1248,7 +1248,7 @@ impl Window {
             compositor: compositor,
             page: page,
             navigator: Default::default(),
-            image_cache_task: image_cache_task,
+            image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
@@ -1265,8 +1265,8 @@ impl Window {
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_task: resource_task,
-            storage_task: storage_task,
+            resource_thread: resource_thread,
+            storage_thread: storage_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),

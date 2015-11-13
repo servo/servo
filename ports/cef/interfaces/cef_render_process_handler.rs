@@ -113,9 +113,9 @@ pub struct _cef_render_process_handler_t {
   // Called immediately after the V8 context for a frame has been created. To
   // retrieve the JavaScript 'window' object use the
   // cef_v8context_t::get_global() function. V8 handles can only be accessed
-  // from the thread on which they are created. A task runner for posting tasks
+  // from the thread on which they are created. A thread runner for posting threads
   // on the associated thread can be retrieved via the
-  // cef_v8context_t::get_task_runner() function.
+  // cef_v8context_t::get_thread_runner() function.
   //
   pub on_context_created: Option<extern "C" fn(
       this: *mut cef_render_process_handler_t,
@@ -370,9 +370,9 @@ impl CefRenderProcessHandler {
   // Called immediately after the V8 context for a frame has been created. To
   // retrieve the JavaScript 'window' object use the
   // cef_v8context_t::get_global() function. V8 handles can only be accessed
-  // from the thread on which they are created. A task runner for posting tasks
+  // from the thread on which they are created. A thread runner for posting threads
   // on the associated thread can be retrieved via the
-  // cef_v8context_t::get_task_runner() function.
+  // cef_v8context_t::get_thread_runner() function.
   //
   pub fn on_context_created(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, context: interfaces::CefV8Context) -> () {

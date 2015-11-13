@@ -50,8 +50,8 @@ use std::ptr;
 // Structure representing a V8 context handle. V8 handles can only be accessed
 // from the thread on which they are created. Valid threads for creating a V8
 // handle include the render process main thread (TID_RENDERER) and WebWorker
-// threads. A task runner for posting tasks on the associated thread can be
-// retrieved via the cef_v8context_t::get_task_runner() function.
+// threads. A thread runner for posting threads on the associated thread can be
+// retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 #[repr(C)]
 pub struct _cef_v8context_t {
@@ -61,12 +61,12 @@ pub struct _cef_v8context_t {
   pub base: types::cef_base_t,
 
   //
-  // Returns the task runner associated with this context. V8 handles can only
+  // Returns the thread runner associated with this context. V8 handles can only
   // be accessed from the thread on which they are created. This function can be
   // called on any render process thread.
   //
-  pub get_task_runner: Option<extern "C" fn(
-      this: *mut cef_v8context_t) -> *mut interfaces::cef_task_runner_t>,
+  pub get_thread_runner: Option<extern "C" fn(
+      this: *mut cef_v8context_t) -> *mut interfaces::cef_thread_runner_t>,
 
   //
   // Returns true (1) if the underlying handle is valid and it can be accessed
@@ -147,8 +147,8 @@ pub type cef_v8context_t = _cef_v8context_t;
 // Structure representing a V8 context handle. V8 handles can only be accessed
 // from the thread on which they are created. Valid threads for creating a V8
 // handle include the render process main thread (TID_RENDERER) and WebWorker
-// threads. A task runner for posting tasks on the associated thread can be
-// retrieved via the cef_v8context_t::get_task_runner() function.
+// threads. A thread runner for posting threads on the associated thread can be
+// retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 pub struct CefV8Context {
   c_object: *mut cef_v8context_t,
@@ -218,18 +218,18 @@ impl CefV8Context {
   }
 
   //
-  // Returns the task runner associated with this context. V8 handles can only
+  // Returns the thread runner associated with this context. V8 handles can only
   // be accessed from the thread on which they are created. This function can be
   // called on any render process thread.
   //
-  pub fn get_task_runner(&self) -> interfaces::CefTaskRunner {
+  pub fn get_thread_runner(&self) -> interfaces::CefThreadRunner {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
-        ((*self.c_object).get_task_runner.unwrap())(
+        ((*self.c_object).get_thread_runner.unwrap())(
           self.c_object))
     }
   }
@@ -1114,8 +1114,8 @@ impl CefWrap<*mut cef_v8exception_t> for Option<CefV8Exception> {
 // Structure representing a V8 value handle. V8 handles can only be accessed
 // from the thread on which they are created. Valid threads for creating a V8
 // handle include the render process main thread (TID_RENDERER) and WebWorker
-// threads. A task runner for posting tasks on the associated thread can be
-// retrieved via the cef_v8context_t::get_task_runner() function.
+// threads. A thread runner for posting threads on the associated thread can be
+// retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 #[repr(C)]
 pub struct _cef_v8value_t {
@@ -1472,8 +1472,8 @@ pub type cef_v8value_t = _cef_v8value_t;
 // Structure representing a V8 value handle. V8 handles can only be accessed
 // from the thread on which they are created. Valid threads for creating a V8
 // handle include the render process main thread (TID_RENDERER) and WebWorker
-// threads. A task runner for posting tasks on the associated thread can be
-// retrieved via the cef_v8context_t::get_task_runner() function.
+// threads. A thread runner for posting threads on the associated thread can be
+// retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 pub struct CefV8Value {
   c_object: *mut cef_v8value_t,
@@ -2480,8 +2480,8 @@ impl CefWrap<*mut cef_v8value_t> for Option<CefV8Value> {
 // Structure representing a V8 stack trace handle. V8 handles can only be
 // accessed from the thread on which they are created. Valid threads for
 // creating a V8 handle include the render process main thread (TID_RENDERER)
-// and WebWorker threads. A task runner for posting tasks on the associated
-// thread can be retrieved via the cef_v8context_t::get_task_runner() function.
+// and WebWorker threads. A thread runner for posting threads on the associated
+// thread can be retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 #[repr(C)]
 pub struct _cef_v8stack_trace_t {
@@ -2528,8 +2528,8 @@ pub type cef_v8stack_trace_t = _cef_v8stack_trace_t;
 // Structure representing a V8 stack trace handle. V8 handles can only be
 // accessed from the thread on which they are created. Valid threads for
 // creating a V8 handle include the render process main thread (TID_RENDERER)
-// and WebWorker threads. A task runner for posting tasks on the associated
-// thread can be retrieved via the cef_v8context_t::get_task_runner() function.
+// and WebWorker threads. A thread runner for posting threads on the associated
+// thread can be retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 pub struct CefV8StackTrace {
   c_object: *mut cef_v8stack_trace_t,
@@ -2689,8 +2689,8 @@ impl CefWrap<*mut cef_v8stack_trace_t> for Option<CefV8StackTrace> {
 // Structure representing a V8 stack frame handle. V8 handles can only be
 // accessed from the thread on which they are created. Valid threads for
 // creating a V8 handle include the render process main thread (TID_RENDERER)
-// and WebWorker threads. A task runner for posting tasks on the associated
-// thread can be retrieved via the cef_v8context_t::get_task_runner() function.
+// and WebWorker threads. A thread runner for posting threads on the associated
+// thread can be retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 #[repr(C)]
 pub struct _cef_v8stack_frame_t {
@@ -2773,8 +2773,8 @@ pub type cef_v8stack_frame_t = _cef_v8stack_frame_t;
 // Structure representing a V8 stack frame handle. V8 handles can only be
 // accessed from the thread on which they are created. Valid threads for
 // creating a V8 handle include the render process main thread (TID_RENDERER)
-// and WebWorker threads. A task runner for posting tasks on the associated
-// thread can be retrieved via the cef_v8context_t::get_task_runner() function.
+// and WebWorker threads. A thread runner for posting threads on the associated
+// thread can be retrieved via the cef_v8context_t::get_thread_runner() function.
 //
 pub struct CefV8StackFrame {
   c_object: *mut cef_v8stack_frame_t,

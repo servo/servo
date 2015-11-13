@@ -7,12 +7,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![crate_name = "task_info"]
+#![crate_name = "thread_info"]
 #![crate_type = "rlib"]
 
 #![feature(libc)]
 
 extern crate libc;
 
-pub mod task_basic_info;
+pub mod thread_basic_info;
 

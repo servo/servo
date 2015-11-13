@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc::{channel, Receiver, Select};
 use std::thread::{self, spawn, Thread};
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 /// A quick hack to work around the removal of [`std::old_io::timer::Timer`](
 /// http://doc.rust-lang.org/1.0.0-beta/std/old_io/timer/struct.Timer.html )
@@ -128,8 +128,8 @@ impl TimerScheduler {
     }
 
     fn run_event_loop(&self) {
-        while let Some(task) = self.receive_next_task() {
-            match task {
+        while let Some(thread) = self.receive_next_task() {
+            match thread {
                 Task::HandleRequest(request) => self.handle_request(request),
                 Task::DispatchDueEvents => self.dispatch_due_events(),
             }

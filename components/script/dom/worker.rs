@@ -24,7 +24,7 @@ use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, RootedValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
-use script_task::{Runnable, ScriptChan};
+use script_thread::{Runnable, ScriptChan};
 use std::sync::mpsc::{Sender, channel};
 use url::UrlParser;
 use util::str::DOMString;
@@ -69,7 +69,7 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let resource_task = global.resource_task();
+        let resource_thread = global.resource_thread();
         let constellation_chan = global.constellation_chan();
         let scheduler_chan = global.scheduler_chan();
 
@@ -96,7 +96,7 @@ impl Worker {
         };
 
         let init = WorkerGlobalScopeInit {
-            resource_task: resource_task,
+            resource_thread: resource_thread,
             mem_profiler_chan: global.mem_profiler_chan(),
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,

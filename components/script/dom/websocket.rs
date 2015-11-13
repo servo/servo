@@ -27,14 +27,14 @@ use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
 use net_traits::hosts::replace_hosts;
-use script_task::ScriptTaskEventCategory::WebSocketEvent;
-use script_task::{CommonScriptMsg, Runnable};
+use script_thread::ScriptThreadEventCategory::WebSocketEvent;
+use script_thread::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::{ptr, slice};
 use util::str::DOMString;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
@@ -133,7 +133,7 @@ pub struct WebSocket {
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u32>,
-    clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
+    clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
     sender: DOMRefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
@@ -248,20 +248,20 @@ impl WebSocket {
                 Ok(channel) => channel,
                 Err(e) => {
                     debug!("Failed to establish a WebSocket connection: {:?}", e);
-                    let task = box CloseTask {
+                    let thread = box CloseThread {
                         addr: address,
                     };
-                    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+                    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, thread)).unwrap();
                     return;
                 }
             };
             let ws_sender = Arc::new(Mutex::new(ws_sender));
 
-            let open_task = box ConnectionEstablishedTask {
+            let open_thread = box ConnectionEstablishedThread {
                 addr: address.clone(),
                 sender: ws_sender.clone(),
             };
-            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
+            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_thread)).unwrap();
 
             for message in receiver.incoming_messages() {
                 let message = match message {
@@ -274,19 +274,19 @@ impl WebSocket {
                     Ok(Message::Pong(_)) => continue,
                     Ok(Message::Close(data)) => {
                         ws_sender.lock().unwrap().send_message(Message::Close(data)).unwrap();
-                        let task = box CloseTask {
+                        let thread = box CloseThread {
                             addr: address,
                         };
-                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, thread)).unwrap();
                         break;
                     },
                     Err(_) => break,
                 };
-                let message_task = box MessageReceivedTask {
+                let message_thread = box MessageReceivedThread {
                     address: address.clone(),
                     message: message,
                 };
-                sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_task)).unwrap();
+                sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_thread)).unwrap();
             }
         });
 
@@ -327,11 +327,11 @@ impl WebSocket {
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let task = box BufferedAmountTask {
+            let thread = box BufferedAmountThread {
                 addr: address,
             };
 
-            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, thread)).unwrap();
         }
 
         Ok(true)
@@ -466,13 +466,13 @@ impl WebSocketMethods for WebSocket {
 }
 
 
-/// Task queued when *the WebSocket connection is established*.
-struct ConnectionEstablishedTask {
+/// Thread queued when *the WebSocket connection is established*.
+struct ConnectionEstablishedThread {
     addr: Trusted<WebSocket>,
     sender: Arc<Mutex<Sender<WebSocketStream>>>,
 }
 
-impl Runnable for ConnectionEstablishedTask {
+impl Runnable for ConnectionEstablishedThread {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
 
@@ -496,11 +496,11 @@ impl Runnable for ConnectionEstablishedTask {
     }
 }
 
-struct BufferedAmountTask {
+struct BufferedAmountThread {
     addr: Trusted<WebSocket>,
 }
 
-impl Runnable for BufferedAmountTask {
+impl Runnable for BufferedAmountThread {
     // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
     //
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
@@ -514,11 +514,11 @@ impl Runnable for BufferedAmountTask {
     }
 }
 
-struct CloseTask {
+struct CloseThread {
     addr: Trusted<WebSocket>,
 }
 
-impl Runnable for CloseTask {
+impl Runnable for CloseThread {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
         let ws = ws.r();
@@ -551,16 +551,16 @@ impl Runnable for CloseTask {
     }
 }
 
-struct MessageReceivedTask {
+struct MessageReceivedThread {
     address: Trusted<WebSocket>,
     message: MessageData,
 }
 
-impl Runnable for MessageReceivedTask {
+impl Runnable for MessageReceivedThread {
     #[allow(unsafe_code)]
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
-        debug!("MessageReceivedTask::handler({:p}): readyState={:?}", &*ws,
+        debug!("MessageReceivedThread::handler({:p}): readyState={:?}", &*ws,
                ws.ready_state.get());
 
         // Step 1.

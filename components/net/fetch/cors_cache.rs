@@ -191,8 +191,8 @@ impl CORSCache for BasicCORSCache {
     }
 }
 
-/// Various messages that can be sent to a CORSCacheTask
-pub enum CORSCacheTaskMsg {
+/// Various messages that can be sent to a CORSCacheThread
+pub enum CORSCacheThreadMsg {
     Clear(CacheRequestDetails, Sender<()>),
     Cleanup(Sender<()>),
     MatchHeader(CacheRequestDetails, String, Sender<bool>),
@@ -203,119 +203,119 @@ pub enum CORSCacheTaskMsg {
     ExitMsg
 }
 
-/// A Sender to a CORSCacheTask
+/// A Sender to a CORSCacheThread
 ///
 /// This can be used as a CORS Cache.
 /// The methods on this type block until they can run, and it behaves similar to a mutex
-pub type CORSCacheSender = Sender<CORSCacheTaskMsg>;
+pub type CORSCacheSender = Sender<CORSCacheThreadMsg>;
 
 impl CORSCache for CORSCacheSender {
     fn clear (&mut self, request: CacheRequestDetails) {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::Clear(request, tx));
+        self.send(CORSCacheThreadMsg::Clear(request, tx));
         let _ = rx.recv();
     }
 
     fn cleanup(&mut self) {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::Cleanup(tx));
+        self.send(CORSCacheThreadMsg::Cleanup(tx));
         let _ = rx.recv();
     }
 
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_owned(), tx));
+        self.send(CORSCacheThreadMsg::MatchHeader(request, header_name.to_owned(), tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_owned(), new_max_age, tx));
+        self.send(CORSCacheThreadMsg::MatchHeaderUpdate(request, header_name.to_owned(), new_max_age, tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchMethod(request, method, tx));
+        self.send(CORSCacheThreadMsg::MatchMethod(request, method, tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx));
+        self.send(CORSCacheThreadMsg::MatchMethodUpdate(request, method, new_max_age, tx));
         rx.recv().unwrap_or(false)
     }
 
     fn insert(&mut self, entry: CORSCacheEntry) {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::Insert(entry, tx));
+        self.send(CORSCacheThreadMsg::Insert(entry, tx));
         let _ = rx.recv();
     }
 }
 
-/// A simple task-based CORS Cache that can be sent messages
+/// A simple thread-based CORS Cache that can be sent messages
 ///
 /// #Example
 /// ```ignore
-/// let task = CORSCacheTask::new();
-/// let builder = TaskBuilder::new().named("XHRTask");
-/// let mut sender = task.sender();
-/// builder.spawn(move || { task.run() });
+/// let thread = CORSCacheThread::new();
+/// let builder = ThreadBuilder::new().named("XHRThread");
+/// let mut sender = thread.sender();
+/// builder.spawn(move || { thread.run() });
 /// sender.insert(CORSCacheEntry::new(/* parameters here */));
 /// ```
-pub struct CORSCacheTask {
-    receiver: Receiver<CORSCacheTaskMsg>,
+pub struct CORSCacheThread {
+    receiver: Receiver<CORSCacheThreadMsg>,
     cache: BasicCORSCache,
     sender: CORSCacheSender
 }
 
-impl CORSCacheTask {
-    pub fn new() -> CORSCacheTask {
+impl CORSCacheThread {
+    pub fn new() -> CORSCacheThread {
         let (tx, rx) = channel();
-        CORSCacheTask {
+        CORSCacheThread {
             receiver: rx,
             cache: BasicCORSCache(vec![]),
             sender: tx
         }
     }
 
-    /// Provides a sender to the cache task
+    /// Provides a sender to the cache thread
     pub fn sender(&self) -> CORSCacheSender {
         self.sender.clone()
     }
 
-    /// Runs the cache task
-    /// This blocks the current task, so it is advised
-    /// to spawn a new task for this
+    /// Runs the cache thread
+    /// This blocks the current thread, so it is advised
+    /// to spawn a new thread for this
     /// Send ExitMsg to the associated Sender to exit
     pub fn run(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                CORSCacheTaskMsg::Clear(request, tx) => {
+                CORSCacheThreadMsg::Clear(request, tx) => {
                     self.cache.clear(request);
                     tx.send(());
                 },
-                CORSCacheTaskMsg::Cleanup(tx) => {
+                CORSCacheThreadMsg::Cleanup(tx) => {
                     self.cache.cleanup();
                     tx.send(());
                 },
-                CORSCacheTaskMsg::MatchHeader(request, header, tx) => {
+                CORSCacheThreadMsg::MatchHeader(request, header, tx) => {
                     tx.send(self.cache.match_header(request, &header));
                 },
-                CORSCacheTaskMsg::MatchHeaderUpdate(request, header, new_max_age, tx) => {
+                CORSCacheThreadMsg::MatchHeaderUpdate(request, header, new_max_age, tx) => {
                     tx.send(self.cache.match_header_and_update(request, &header, new_max_age));
                 },
-                CORSCacheTaskMsg::MatchMethod(request, method, tx) => {
+                CORSCacheThreadMsg::MatchMethod(request, method, tx) => {
                     tx.send(self.cache.match_method(request, method));
                 },
-                CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx) => {
+                CORSCacheThreadMsg::MatchMethodUpdate(request, method, new_max_age, tx) => {
                     tx.send(self.cache.match_method_and_update(request, method, new_max_age));
                 },
-                CORSCacheTaskMsg::Insert(entry, tx) => {
+                CORSCacheThreadMsg::Insert(entry, tx) => {
                     self.cache.insert(entry);
                     tx.send(());
                 },
-                CORSCacheTaskMsg::ExitMsg => break
+                CORSCacheThreadMsg::ExitMsg => break
             }
         }
     }

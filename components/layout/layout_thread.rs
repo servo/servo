@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The layout task. Performs layout on the DOM, builds display lists and sends them to be
+//! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
 #![allow(unsafe_code)]
@@ -26,20 +26,20 @@ use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, StackingContext};
-use gfx::font_cache_task::FontCacheTask;
+use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
+use gfx::paint_thread::{LayoutToPaintMsg, PaintLayer};
 use gfx_traits::color;
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
-use layout_traits::LayoutTaskFactory;
+use layout_traits::LayoutThreadFactory;
 use log;
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
+use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -51,7 +51,7 @@ use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
 use script::dom::node::LayoutData;
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse};
-use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
@@ -79,8 +79,8 @@ use util::ipc::OptionalIpcSender;
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::task::spawn_named_with_send_on_failure;
-use util::task_state;
+use util::thread::spawn_named_with_send_on_failure;
+use util::thread_state;
 use util::workqueue::WorkQueue;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
@@ -90,10 +90,10 @@ pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
 /// The number of screens we have to traverse before we decide to generate new display lists.
 const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 
-/// Mutable data belonging to the LayoutTask.
+/// Mutable data belonging to the LayoutThread.
 ///
 /// This needs to be protected by a mutex so we can do fast RPCs.
-pub struct LayoutTaskData {
+pub struct LayoutThreadData {
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
@@ -119,8 +119,8 @@ pub struct LayoutTaskData {
     pub offset_parent_response: OffsetParentResponse,
 }
 
-/// Information needed by the layout task.
-pub struct LayoutTask {
+/// Information needed by the layout thread.
+pub struct LayoutThread {
     /// The ID of the pipeline that we belong to.
     id: PipelineId,
 
@@ -130,7 +130,7 @@ pub struct LayoutTask {
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
 
-    /// The port on which we receive messages from the script task.
+    /// The port on which we receive messages from the script thread.
     port: Receiver<Msg>,
 
     /// The port on which we receive messages from the constellation.
@@ -142,7 +142,7 @@ pub struct LayoutTask {
     /// The channel on which the image cache can send messages to ourself.
     image_cache_sender: ImageCacheChan,
 
-    /// The port on which we receive messages from the font cache task.
+    /// The port on which we receive messages from the font cache thread.
     font_cache_receiver: Receiver<()>,
 
     /// The channel on which the font cache can send messages to us.
@@ -151,10 +151,10 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
 
-    /// The channel on which messages can be sent to the script task.
+    /// The channel on which messages can be sent to the script thread.
     script_chan: Sender<ConstellationControlMsg>,
 
-    /// The channel on which messages can be sent to the painting task.
+    /// The channel on which messages can be sent to the painting thread.
     paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
@@ -164,12 +164,12 @@ pub struct LayoutTask {
     mem_profiler_chan: mem::ProfilerChan,
 
     /// The channel on which messages can be sent to the image cache.
-    image_cache_task: ImageCacheTask,
+    image_cache_thread: ImageCacheThread,
 
-    /// Public interface to the font cache task.
-    font_cache_task: FontCacheTask,
+    /// Public interface to the font cache thread.
+    font_cache_thread: FontCacheThread,
 
-    /// Is this the first reflow in this LayoutTask?
+    /// Is this the first reflow in this LayoutThread?
     first_reflow: bool,
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
@@ -212,15 +212,15 @@ pub struct LayoutTask {
     viewport_size: Size2D<Au>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
-    /// structures, while still letting the LayoutTask modify them.
+    /// structures, while still letting the LayoutThread modify them.
     ///
     /// All the other elements of this struct are read-only.
-    rw_data: Arc<Mutex<LayoutTaskData>>,
+    rw_data: Arc<Mutex<LayoutThreadData>>,
 }
 
-impl LayoutTaskFactory for LayoutTask {
-    /// Spawns a new layout task.
-    fn create(_phantom: Option<&mut LayoutTask>,
+impl LayoutThreadFactory for LayoutThread {
+    /// Spawns a new layout thread.
+    fn create(_phantom: Option<&mut LayoutThread>,
               id: PipelineId,
               url: Url,
               is_iframe: bool,
@@ -230,18 +230,18 @@ impl LayoutTaskFactory for LayoutTask {
               failure_msg: Failure,
               script_chan: Sender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
-              image_cache_task: ImageCacheTask,
-              font_cache_task: FontCacheTask,
+              image_cache_thread: ImageCacheThread,
+              font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id),
-                                         task_state::LAYOUT,
+        spawn_named_with_send_on_failure(format!("LayoutThread {:?}", id),
+                                         thread_state::LAYOUT,
                                          move || {
-            { // Ensures layout task is destroyed before we send shutdown message
+            { // Ensures layout thread is destroyed before we send shutdown message
                 let sender = chan.sender();
-                let layout = LayoutTask::new(id,
+                let layout = LayoutThread::new(id,
                                              url,
                                              is_iframe,
                                              chan.receiver(),
@@ -249,8 +249,8 @@ impl LayoutTaskFactory for LayoutTask {
                                              constellation_chan,
                                              script_chan,
                                              paint_chan,
-                                             image_cache_task,
-                                             font_cache_task,
+                                             image_cache_thread,
+                                             font_cache_thread,
                                              time_profiler_chan,
                                              mem_profiler_chan.clone());
 
@@ -264,20 +264,20 @@ impl LayoutTaskFactory for LayoutTask {
     }
 }
 
-/// The `LayoutTask` `rw_data` lock must remain locked until the first reflow,
+/// The `LayoutThread` `rw_data` lock must remain locked until the first reflow,
 /// as RPC calls don't make sense until then. Use this in combination with
-/// `LayoutTask::lock_rw_data` and `LayoutTask::return_rw_data`.
+/// `LayoutThread::lock_rw_data` and `LayoutThread::return_rw_data`.
 pub enum RWGuard<'a> {
-    /// If the lock was previously held, from when the task started.
-    Held(MutexGuard<'a, LayoutTaskData>),
+    /// If the lock was previously held, from when the thread started.
+    Held(MutexGuard<'a, LayoutThreadData>),
     /// If the lock was just used, and has been returned since there has been
     /// a reflow already.
-    Used(MutexGuard<'a, LayoutTaskData>),
+    Used(MutexGuard<'a, LayoutThreadData>),
 }
 
 impl<'a> Deref for RWGuard<'a> {
-    type Target = LayoutTaskData;
-    fn deref(&self) -> &LayoutTaskData {
+    type Target = LayoutThreadData;
+    fn deref(&self) -> &LayoutThreadData {
         match *self {
             RWGuard::Held(ref x) => &**x,
             RWGuard::Used(ref x) => &**x,
@@ -286,7 +286,7 @@ impl<'a> Deref for RWGuard<'a> {
 }
 
 impl<'a> DerefMut for RWGuard<'a> {
-    fn deref_mut(&mut self) -> &mut LayoutTaskData {
+    fn deref_mut(&mut self) -> &mut LayoutThreadData {
         match *self {
             RWGuard::Held(ref mut x) => &mut **x,
             RWGuard::Used(ref mut x) => &mut **x,
@@ -295,8 +295,8 @@ impl<'a> DerefMut for RWGuard<'a> {
 }
 
 struct RwData<'a, 'b: 'a> {
-    rw_data: &'b Arc<Mutex<LayoutTaskData>>,
-    possibly_locked_rw_data: &'a mut Option<MutexGuard<'b, LayoutTaskData>>,
+    rw_data: &'b Arc<Mutex<LayoutThreadData>>,
+    possibly_locked_rw_data: &'a mut Option<MutexGuard<'b, LayoutThreadData>>,
 }
 
 impl<'a, 'b: 'a> RwData<'a, 'b> {
@@ -326,20 +326,20 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
 
 fn add_font_face_rules(stylesheet: &Stylesheet,
                        device: &Device,
-                       font_cache_task: &FontCacheTask,
+                       font_cache_thread: &FontCacheThread,
                        font_cache_sender: &Sender<()>,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
             if opts::get().load_webfonts_synchronously {
                 let (sender, receiver) = channel();
-                font_cache_task.add_web_font(font_face.family.clone(),
+                font_cache_thread.add_web_font(font_face.family.clone(),
                                              (*source).clone(),
                                              sender);
                 receiver.recv().unwrap();
             } else {
                 outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-                font_cache_task.add_web_font(font_face.family.clone(),
+                font_cache_thread.add_web_font(font_face.family.clone(),
                                              (*source).clone(),
                                              (*font_cache_sender).clone());
             }
@@ -347,8 +347,8 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
     }
 }
 
-impl LayoutTask {
-    /// Creates a new `LayoutTask` structure.
+impl LayoutThread {
+    /// Creates a new `LayoutThread` structure.
     fn new(id: PipelineId,
            url: Url,
            is_iframe: bool,
@@ -357,16 +357,16 @@ impl LayoutTask {
            constellation_chan: ConstellationChan,
            script_chan: Sender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
-           image_cache_task: ImageCacheTask,
-           font_cache_task: FontCacheTask,
+           image_cache_thread: ImageCacheThread,
+           font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
-           -> LayoutTask {
+           -> LayoutThread {
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
+            Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT,
                                 opts::get().layout_threads))
         } else {
             None
@@ -379,7 +379,7 @@ impl LayoutTask {
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
 
-        // Ask the router to proxy IPC messages from the image cache task to the layout thread.
+        // Ask the router to proxy IPC messages from the image cache thread to the layout thread.
         let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
@@ -391,12 +391,12 @@ impl LayoutTask {
         for stylesheet in &*USER_OR_USER_AGENT_STYLESHEETS {
             add_font_face_rules(stylesheet,
                                 &stylist.device,
-                                &font_cache_task,
+                                &font_cache_thread,
                                 &font_cache_sender,
                                 &outstanding_web_fonts_counter);
         }
 
-        LayoutTask {
+        LayoutThread {
             id: id,
             url: url,
             is_iframe: is_iframe,
@@ -407,8 +407,8 @@ impl LayoutTask {
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            image_cache_task: image_cache_task,
-            font_cache_task: font_cache_task,
+            image_cache_thread: image_cache_thread,
+            font_cache_thread: font_cache_thread,
             first_reflow: true,
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
@@ -427,7 +427,7 @@ impl LayoutTask {
             epoch: Epoch(0),
             viewport_size: Size2D::new(Au(0), Au(0)),
             rw_data: Arc::new(Mutex::new(
-                LayoutTaskData {
+                LayoutThreadData {
                     constellation_chan: constellation_chan,
                     stacking_context: None,
                     stylist: stylist,
@@ -455,17 +455,17 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_shared_layout_context(&self,
-                                   rw_data: &LayoutTaskData,
+                                   rw_data: &LayoutThreadData,
                                    screen_size_changed: bool,
                                    url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
-            image_cache_task: self.image_cache_task.clone(),
+            image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             viewport_size: self.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
-            font_cache_task: Mutex::new(self.font_cache_task.clone()),
+            font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
             stylist: StylistWrapper(&*rw_data.stylist),
             url: (*url).clone(),
@@ -477,7 +477,7 @@ impl LayoutTask {
         }
     }
 
-    /// Receives and dispatches messages from the script and constellation tasks
+    /// Receives and dispatches messages from the script and constellation threads
     fn handle_request<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
         enum Request {
             FromPipeline(LayoutControlMsg),
@@ -569,7 +569,7 @@ impl LayoutTask {
         true
     }
 
-    /// Receives and dispatches messages from other tasks.
+    /// Receives and dispatches messages from other threads.
     fn handle_request_helper<'a, 'b>(&mut self,
                                      request: Msg,
                                      possibly_locked_rw_data: &mut RwData<'a, 'b>)
@@ -613,8 +613,8 @@ impl LayoutTask {
                 let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
                 sender.send(outstanding_web_fonts != 0).unwrap();
             },
-            Msg::CreateLayoutTask(info) => {
-                self.create_layout_task(info)
+            Msg::CreateLayoutThread(info) => {
+                self.create_layout_thread(info)
             }
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -639,14 +639,14 @@ impl LayoutTask {
         let rw_data = possibly_locked_rw_data.lock();
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
-            path: path![format!("url({})", self.url), "layout-task", "display-list"],
+            path: path![format!("url({})", self.url), "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
-        // The LayoutTask has a context in TLS...
+        // The LayoutThread has a context in TLS...
         reports.push(Report {
-            path: path![format!("url({})", self.url), "layout-task", "local-context"],
+            path: path![format!("url({})", self.url), "layout-thread", "local-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: heap_size_of_local_context(),
         });
@@ -667,8 +667,8 @@ impl LayoutTask {
         reports_chan.send(reports);
     }
 
-    fn create_layout_task(&self, info: NewLayoutTaskInfo) {
-        LayoutTaskFactory::create(None::<&mut LayoutTask>,
+    fn create_layout_thread(&self, info: NewLayoutThreadInfo) {
+        LayoutThreadFactory::create(None::<&mut LayoutThread>,
                                   info.id,
                                   info.url.clone(),
                                   info.is_parent,
@@ -680,8 +680,8 @@ impl LayoutTask {
                                   *info.paint_chan
                                        .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
                                        .unwrap(),
-                                  self.image_cache_task.clone(),
-                                  self.font_cache_task.clone(),
+                                  self.image_cache_thread.clone(),
+                                  self.font_cache_thread.clone(),
                                   self.time_profiler_chan.clone(),
                                   self.mem_profiler_chan.clone(),
                                   info.layout_shutdown_chan);
@@ -699,7 +699,7 @@ impl LayoutTask {
                     }
                 }
                 Msg::ExitNow => {
-                    debug!("layout task is exiting...");
+                    debug!("layout thread is exiting...");
                     self.exit_now();
                     break
                 }
@@ -713,7 +713,7 @@ impl LayoutTask {
         }
     }
 
-    /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
+    /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now<'a, 'b>(&mut self) {
         if let Some(ref mut traversal) = self.parallel_traversal {
@@ -735,7 +735,7 @@ impl LayoutTask {
         if stylesheet.is_effective_for_device(&rw_data.stylist.device) {
             add_font_face_rules(&*stylesheet,
                                 &rw_data.stylist.device,
-                                &self.font_cache_task,
+                                &self.font_cache_thread,
                                 &self.font_cache_sender,
                                 &self.outstanding_web_fonts);
         }
@@ -976,7 +976,7 @@ impl LayoutTask {
                                                   data: &Reflow,
                                                   layout_root: &mut FlowRef,
                                                   shared_layout_context: &mut SharedLayoutContext,
-                                                  rw_data: &mut LayoutTaskData) {
+                                                  rw_data: &mut LayoutThreadData) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
         profile(time::ProfilerCategory::LayoutDispListBuild,
@@ -1059,19 +1059,19 @@ impl LayoutTask {
         });
     }
 
-    /// The high-level routine that performs layout tasks.
+    /// The high-level routine that performs layout threads.
     fn handle_reflow<'a, 'b>(&mut self,
                              data: &ScriptReflow,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        // Make sure that every return path from this method joins the script task,
-        // otherwise the script task will panic.
-        struct AutoJoinScriptTask<'a> { data: &'a ScriptReflow };
-        impl<'a> Drop for AutoJoinScriptTask<'a> {
+        // Make sure that every return path from this method joins the script thread,
+        // otherwise the script thread will panic.
+        struct AutoJoinScriptThread<'a> { data: &'a ScriptReflow };
+        impl<'a> Drop for AutoJoinScriptThread<'a> {
             fn drop(&mut self) {
                 self.data.script_join_chan.send(()).unwrap();
             }
         };
-        let _ajst = AutoJoinScriptTask { data: data };
+        let _ajst = AutoJoinScriptThread { data: data };
 
         let document = unsafe { LayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
@@ -1151,12 +1151,12 @@ impl LayoutTask {
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
-                LayoutTask::dirty_all_nodes(node);
+                LayoutThread::dirty_all_nodes(node);
             }
         }
         if needs_reflow {
             if let Some(mut flow) = self.try_get_layout_root(node) {
-                LayoutTask::reflow_all_nodes(flow_ref::deref_mut(&mut flow));
+                LayoutThread::reflow_all_nodes(flow_ref::deref_mut(&mut flow));
             }
         }
 
@@ -1195,7 +1195,7 @@ impl LayoutTask {
             self.root_flow = self.try_get_layout_root(node);
         }
 
-        // Send new canvas renderers to the paint task
+        // Send new canvas renderers to the paint thread
         while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
             // Just send if there's an actual renderer
             self.paint_chan.send(LayoutToPaintMsg::CanvasLayer(layer_id, renderer)).unwrap();
@@ -1294,7 +1294,7 @@ impl LayoutTask {
           .unwrap();
     }
 
-    pub fn tick_animations(&mut self, rw_data: &mut LayoutTaskData) {
+    pub fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
@@ -1347,7 +1347,7 @@ impl LayoutTask {
 
     fn perform_post_style_recalc_layout_passes<'a>(&'a mut self,
                                                    data: &Reflow,
-                                                   rw_data: &mut LayoutTaskData,
+                                                   rw_data: &mut LayoutThreadData,
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
@@ -1387,11 +1387,11 @@ impl LayoutTask {
                 match self.parallel_traversal {
                     None => {
                         // Sequential mode.
-                        LayoutTask::solve_constraints(&mut root_flow, &layout_context)
+                        LayoutThread::solve_constraints(&mut root_flow, &layout_context)
                     }
                     Some(ref mut parallel) => {
                         // Parallel mode.
-                        LayoutTask::solve_constraints_parallel(parallel,
+                        LayoutThread::solve_constraints_parallel(parallel,
                                                                &mut root_flow,
                                                                profiler_metadata,
                                                                self.time_profiler_chan.clone(),
@@ -1406,7 +1406,7 @@ impl LayoutTask {
 
     fn perform_post_main_layout_passes<'a>(&'a mut self,
                                            data: &Reflow,
-                                           rw_data: &mut LayoutTaskData,
+                                           rw_data: &mut LayoutThreadData,
                                            layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
         if let Some(mut root_flow) = self.root_flow.clone() {
@@ -1443,11 +1443,11 @@ impl LayoutTask {
         flow::mut_base(flow).restyle_damage.insert(REFLOW | REPAINT);
 
         for child in flow::child_iter(flow) {
-            LayoutTask::reflow_all_nodes(child);
+            LayoutThread::reflow_all_nodes(child);
         }
     }
 
-    /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
+    /// Handles a message to destroy layout data. Layout data must be destroyed on *this* thread
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
         let _: LayoutDataWrapper = transmute(layout_data);

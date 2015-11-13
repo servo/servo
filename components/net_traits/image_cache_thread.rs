@@ -71,10 +71,10 @@ pub enum ImageCacheCommand {
     /// Synchronously check the state of an image in the cache.
     /// TODO(gw): Profile this on some real world sites and see
     /// if it's worth caching the results of this locally in each
-    /// layout / paint task.
+    /// layout / paint thread.
     GetImageIfAvailable(Url, UsePlaceholder, IpcSender<Result<Arc<Image>, ImageState>>),
 
-    /// Clients must wait for a response before shutting down the ResourceTask
+    /// Clients must wait for a response before shutting down the ResourceThread
     Exit(IpcSender<()>),
 }
 
@@ -84,19 +84,19 @@ pub enum UsePlaceholder {
     Yes,
 }
 
-/// The client side of the image cache task. This can be safely cloned
-/// and passed to different tasks.
+/// The client side of the image cache thread. This can be safely cloned
+/// and passed to different threads.
 #[derive(Clone, Deserialize, Serialize)]
-pub struct ImageCacheTask {
+pub struct ImageCacheThread {
     chan: IpcSender<ImageCacheCommand>,
 }
 
-/// The public API for the image cache task.
-impl ImageCacheTask {
+/// The public API for the image cache thread.
+impl ImageCacheThread {
 
     /// Construct a new image cache
-    pub fn new(chan: IpcSender<ImageCacheCommand>) -> ImageCacheTask {
-        ImageCacheTask {
+    pub fn new(chan: IpcSender<ImageCacheCommand>) -> ImageCacheThread {
+        ImageCacheThread {
             chan: chan,
         }
     }
@@ -119,7 +119,7 @@ impl ImageCacheTask {
         receiver.recv().unwrap()
     }
 
-    /// Shutdown the image cache task.
+    /// Shutdown the image cache thread.
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(ImageCacheCommand::Exit(response_chan)).unwrap();

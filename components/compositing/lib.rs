@@ -47,7 +47,7 @@ extern crate style_traits;
 extern crate time;
 extern crate url;
 
-pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
+pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
 pub use constellation::Constellation;
 
 mod compositor;
@@ -56,7 +56,7 @@ mod headless;
 mod scrolling;
 mod surface_map;
 mod timer_scheduler;
-pub mod compositor_task;
+pub mod compositor_thread;
 pub mod constellation;
 pub mod pipeline;
 pub mod windowing;

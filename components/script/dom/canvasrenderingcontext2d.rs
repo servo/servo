@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas::canvas_paint_task::RectToi32;
+use canvas::canvas_paint_thread::RectToi32;
 use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
@@ -35,7 +35,7 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_task::ImageResponse;
+use net_traits::image_cache_thread::ImageResponse;
 use num::{Float, ToPrimitive};
 use std::str::FromStr;
 use std::sync::mpsc::channel;
@@ -117,7 +117,7 @@ impl CanvasRenderingContext2D {
                      -> CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
-        constellation_chan.0.send(ConstellationMsg::CreateCanvasPaintTask(size, sender)).unwrap();
+        constellation_chan.0.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
         let (ipc_renderer, renderer_id) = receiver.recv().unwrap();
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),

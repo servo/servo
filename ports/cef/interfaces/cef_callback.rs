@@ -218,7 +218,7 @@ pub struct _cef_completion_callback_t {
   pub base: types::cef_base_t,
 
   //
-  // Method that will be called once the task is complete.
+  // Method that will be called once the thread is complete.
   //
   pub on_complete: Option<extern "C" fn(
       this: *mut cef_completion_callback_t) -> ()>,
@@ -308,7 +308,7 @@ impl CefCompletionCallback {
   }
 
   //
-  // Method that will be called once the task is complete.
+  // Method that will be called once the thread is complete.
   //
   pub fn on_complete(&self) -> () {
     if self.c_object.is_null() ||

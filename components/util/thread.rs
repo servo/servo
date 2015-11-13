@@ -6,7 +6,7 @@ use std::borrow::ToOwned;
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::Builder;
-use task_state;
+use thread_state;
 
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
@@ -15,9 +15,9 @@ pub fn spawn_named<F>(name: String, f: F)
     builder.spawn(f).unwrap();
 }
 
-/// Arrange to send a particular message to a channel if the task fails.
+/// Arrange to send a particular message to a channel if the thread fails.
 pub fn spawn_named_with_send_on_failure<F, T>(name: String,
-                                              state: task_state::TaskState,
+                                              state: thread_state::ThreadState,
                                               f: F,
                                               msg: T,
                                               dest: Sender<T>)
@@ -25,7 +25,7 @@ pub fn spawn_named_with_send_on_failure<F, T>(name: String,
           T: Send + 'static
 {
     let future_handle = thread::Builder::new().name(name.to_owned()).spawn(move || {
-        task_state::initialize(state);
+        thread_state::initialize(state);
         f()
     }).unwrap();
 

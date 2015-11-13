@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{CompositorEventListener, CompositorReceiver};
-use compositor_task::{InitialCompositorState, Msg};
+use compositor_thread::{CompositorEventListener, CompositorReceiver};
+use compositor_thread::{InitialCompositorState, Msg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::{Point2D, Size2D};
 use msg::constellation_msg::AnimationState;
@@ -71,7 +71,7 @@ impl CompositorEventListener for NullCompositor {
                 debug!("constellation completed shutdown");
 
                 // Drain compositor port, sometimes messages contain channels that are blocking
-                // another task from finishing (i.e. SetIds)
+                // another thread from finishing (i.e. SetIds)
                 while self.port.try_recv_compositor_msg().is_some() {}
 
                 self.time_profiler_chan.send(time::ProfilerMsg::Exit);
@@ -124,7 +124,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::SetCursor(..) |
             Msg::ViewportConstrained(..) => {}
             Msg::CreatePng(..) |
-            Msg::PaintTaskExited(..) |
+            Msg::PaintThreadExited(..) |
             Msg::MoveTo(..) |
             Msg::ResizeTo(..) |
             Msg::IsReadyToSaveImageReply(..) => {}

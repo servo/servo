@@ -3,27 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
-use compositor_task;
-use compositor_task::Msg as CompositorMsg;
+use compositor_thread;
+use compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
+use gfx::font_cache_thread::FontCacheThread;
+use gfx::paint_thread::{ChromeToPaintMsg, LayoutToPaintMsg, PaintThread};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use layout_traits::{LayoutControlChan, LayoutTaskFactory};
+use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, MozBrowserEvent, WindowSizeData};
 use msg::constellation_msg::{PipelineNamespaceId};
-use net_traits::ResourceTask;
-use net_traits::image_cache_task::ImageCacheTask;
-use net_traits::storage_task::StorageTask;
+use net_traits::ResourceThread;
+use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::storage_thread::StorageThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState};
-use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptTaskFactory};
+use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptThreadFactory};
 use script_traits::{TimerEventRequest};
 use std::any::Any;
 use std::mem;
@@ -35,7 +35,7 @@ use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::prefs;
 
-/// A uniquely-identifiable pipeline of script task, layout task, and paint task.
+/// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
     pub id: PipelineId,
     pub parent_info: Option<(PipelineId, SubpageId)>,
@@ -85,14 +85,14 @@ pub struct InitialPipelineState {
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    /// A channel to the image cache task.
-    pub image_cache_task: ImageCacheTask,
-    /// A channel to the font cache task.
-    pub font_cache_task: FontCacheTask,
-    /// A channel to the resource task.
-    pub resource_task: ResourceTask,
-    /// A channel to the storage task.
-    pub storage_task: StorageTask,
+    /// A channel to the image cache thread.
+    pub image_cache_thread: ImageCacheThread,
+    /// A channel to the font cache thread.
+    pub font_cache_thread: FontCacheThread,
+    /// A channel to the resource thread.
+    pub resource_thread: ResourceThread,
+    /// A channel to the storage thread.
+    pub storage_thread: StorageThread,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -111,11 +111,11 @@ pub struct InitialPipelineState {
 }
 
 impl Pipeline {
-    /// Starts a paint task, layout task, and possibly a script task.
+    /// Starts a paint thread, layout thread, and possibly a script thread.
     /// Returns the channels wrapped in a struct.
     pub fn create<LTF, STF>(state: InitialPipelineState)
                             -> (Pipeline, PipelineContent)
-                            where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
+                            where LTF: LayoutThreadFactory, STF: ScriptThreadFactory {
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
@@ -190,10 +190,10 @@ impl Pipeline {
             scheduler_chan: state.scheduler_chan,
             compositor_proxy: state.compositor_proxy,
             devtools_chan: script_to_devtools_chan,
-            image_cache_task: state.image_cache_task,
-            font_cache_task: state.font_cache_task,
-            resource_task: state.resource_task,
-            storage_task: state.storage_task,
+            image_cache_thread: state.image_cache_thread,
+            font_cache_thread: state.font_cache_thread,
+            resource_thread: state.resource_thread,
+            storage_thread: state.storage_thread,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
             window_size: window_size,
@@ -254,13 +254,13 @@ impl Pipeline {
     pub fn exit(&self) {
         debug!("pipeline {:?} exiting", self.id);
 
-        // Script task handles shutting down layout, and layout handles shutting down the painter.
-        // For now, if the script task has failed, we give up on clean shutdown.
+        // Script thread handles shutting down layout, and layout handles shutting down the painter.
+        // For now, if the script thread has failed, we give up on clean shutdown.
         if self.script_chan
                .send(ConstellationControlMsg::ExitPipeline(self.id))
                .is_ok() {
-            // Wait until all slave tasks have terminated and run destructors
-            // NOTE: We don't wait for script task as we don't always own it
+            // Wait until all slave threads have terminated and run destructors
+            // NOTE: We don't wait for script thread as we don't always own it
             let _ = self.paint_shutdown_port.recv();
             let _ = self.layout_shutdown_port.recv();
         }
@@ -321,10 +321,10 @@ pub struct PipelineContent {
     scheduler_chan: IpcSender<TimerEventRequest>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    image_cache_task: ImageCacheTask,
-    font_cache_task: FontCacheTask,
-    resource_task: ResourceTask,
-    storage_task: StorageTask,
+    image_cache_thread: ImageCacheThread,
+    font_cache_thread: FontCacheThread,
+    resource_thread: ResourceThread,
+    storage_thread: StorageThread,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     window_size: Option<WindowSizeData>,
@@ -343,21 +343,21 @@ pub struct PipelineContent {
 }
 
 impl PipelineContent {
-    pub fn start_all<LTF, STF>(mut self) where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
-        let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
+    pub fn start_all<LTF, STF>(mut self) where LTF: LayoutThreadFactory, STF: ScriptThreadFactory {
+        let layout_pair = ScriptThreadFactory::create_layout_channel(None::<&mut STF>);
         let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel().unwrap();
 
-        self.start_paint_task();
+        self.start_paint_thread();
 
         let compositor_proxy_for_script_listener_thread =
             self.compositor_proxy.clone_compositor_proxy();
         thread::spawn(move || {
-            compositor_task::run_script_listener_thread(
+            compositor_thread::run_script_listener_thread(
                 compositor_proxy_for_script_listener_thread,
                 script_to_compositor_port)
         });
 
-        ScriptTaskFactory::create(None::<&mut STF>, InitialScriptState {
+        ScriptThreadFactory::create(None::<&mut STF>, InitialScriptState {
             id: self.id,
             parent_info: self.parent_info,
             compositor: script_to_compositor_chan,
@@ -366,9 +366,9 @@ impl PipelineContent {
             constellation_chan: self.constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             failure_info: self.failure.clone(),
-            resource_task: self.resource_task,
-            storage_task: self.storage_task.clone(),
-            image_cache_task: self.image_cache_task.clone(),
+            resource_thread: self.resource_thread,
+            storage_thread: self.storage_thread.clone(),
+            image_cache_thread: self.image_cache_thread.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             devtools_chan: self.devtools_chan,
@@ -376,7 +376,7 @@ impl PipelineContent {
             pipeline_namespace_id: self.pipeline_namespace_id,
         }, &layout_pair, self.load_data.clone());
 
-        LayoutTaskFactory::create(None::<&mut LTF>,
+        LayoutThreadFactory::create(None::<&mut LTF>,
                                   self.id,
                                   self.load_data.url.clone(),
                                   self.parent_info.is_some(),
@@ -386,22 +386,22 @@ impl PipelineContent {
                                   self.failure,
                                   self.script_chan.clone(),
                                   self.layout_to_paint_chan.clone(),
-                                  self.image_cache_task,
-                                  self.font_cache_task,
+                                  self.image_cache_thread,
+                                  self.font_cache_thread,
                                   self.time_profiler_chan,
                                   self.mem_profiler_chan,
                                   self.layout_shutdown_chan);
     }
 
-    pub fn start_paint_task(&mut self) {
-        PaintTask::create(self.id,
+    pub fn start_paint_thread(&mut self) {
+        PaintThread::create(self.id,
                           self.load_data.url.clone(),
                           self.chrome_to_paint_chan.clone(),
                           mem::replace(&mut self.layout_to_paint_port, None).unwrap(),
                           mem::replace(&mut self.chrome_to_paint_port, None).unwrap(),
                           self.compositor_proxy.clone_compositor_proxy(),
                           self.constellation_chan.clone(),
-                          self.font_cache_task.clone(),
+                          self.font_cache_thread.clone(),
                           self.failure.clone(),
                           self.time_profiler_chan.clone(),
                           self.mem_profiler_chan.clone(),

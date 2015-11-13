@@ -7,7 +7,7 @@
 
 use msg::constellation_msg::{PipelineId};
 use net_traits::AsyncResponseTarget;
-use net_traits::{PendingAsyncLoad, ResourceTask};
+use net_traits::{PendingAsyncLoad, ResourceThread};
 use std::sync::Arc;
 use url::Url;
 
@@ -34,10 +34,10 @@ impl LoadType {
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct DocumentLoader {
-    /// We use an `Arc<ResourceTask>` here in order to avoid file descriptor exhaustion when there
+    /// We use an `Arc<ResourceThread>` here in order to avoid file descriptor exhaustion when there
     /// are lots of iframes.
     #[ignore_heap_size_of = "channels are hard"]
-    pub resource_task: Arc<ResourceTask>,
+    pub resource_thread: Arc<ResourceThread>,
     pipeline: Option<PipelineId>,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
@@ -45,19 +45,19 @@ pub struct DocumentLoader {
 
 impl DocumentLoader {
     pub fn new(existing: &DocumentLoader) -> DocumentLoader {
-        DocumentLoader::new_with_task(existing.resource_task.clone(), None, None)
+        DocumentLoader::new_with_thread(existing.resource_thread.clone(), None, None)
     }
 
-    /// We use an `Arc<ResourceTask>` here in order to avoid file descriptor exhaustion when there
+    /// We use an `Arc<ResourceThread>` here in order to avoid file descriptor exhaustion when there
     /// are lots of iframes.
-    pub fn new_with_task(resource_task: Arc<ResourceTask>,
+    pub fn new_with_thread(resource_thread: Arc<ResourceThread>,
                          pipeline: Option<PipelineId>,
                          initial_load: Option<Url>)
                          -> DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
-            resource_task: resource_task,
+            resource_thread: resource_thread,
             pipeline: pipeline,
             blocking_loads: initial_loads,
             events_inhibited: false,
@@ -69,7 +69,7 @@ impl DocumentLoader {
     pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
         let url = load.url().clone();
         self.blocking_loads.push(load);
-        PendingAsyncLoad::new((*self.resource_task).clone(), url, self.pipeline)
+        PendingAsyncLoad::new((*self.resource_thread).clone(), url, self.pipeline)
     }
 
     /// Create and initiate a new network request.

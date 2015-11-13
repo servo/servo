@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::f64;
 use std::thread::sleep_ms;
 use std_time::precise_time_ns;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 pub trait Formattable {
     fn format(&self) -> String;

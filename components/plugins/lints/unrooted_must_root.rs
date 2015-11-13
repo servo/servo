@@ -27,7 +27,7 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a
 /// GC pass.
 ///
-/// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptTask`)
+/// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptThread`)
 /// can be marked as `#[allow(unrooted_must_root)]`. Smart pointers which root their interior type
 /// can be marked as `#[allow_unrooted_interior]`
 pub struct UnrootedPass;

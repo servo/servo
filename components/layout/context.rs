@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Data needed by the layout task.
+//! Data needed by the layout thread.
 
 #![deny(unsafe_code)]
 
@@ -12,13 +12,13 @@ use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use euclid::{Rect, Size2D};
 use fnv::FnvHasher;
 use gfx::display_list::OpaqueNode;
-use gfx::font_cache_task::FontCacheTask;
+use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use msg::compositor_msg::LayerId;
 use net_traits::image::base::Image;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
-use net_traits::image_cache_task::{UsePlaceholder};
+use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
+use net_traits::image_cache_thread::{UsePlaceholder};
 use script::layout_interface::{Animation, ReflowGoal};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -62,9 +62,9 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
             }
             context
         } else {
-            let font_cache_task = shared_layout_context.font_cache_task.lock().unwrap().clone();
+            let font_cache_thread = shared_layout_context.font_cache_thread.lock().unwrap().clone();
             let context = Rc::new(LocalLayoutContext {
-                font_context: RefCell::new(FontContext::new(font_cache_task)),
+                font_context: RefCell::new(FontContext::new(font_cache_thread)),
                 applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
                 style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             });
@@ -82,8 +82,8 @@ unsafe impl Sync for StylistWrapper {}
 
 /// Layout information shared among all workers. This must be thread-safe.
 pub struct SharedLayoutContext {
-    /// The shared image cache task.
-    pub image_cache_task: ImageCacheTask,
+    /// The shared image cache thread.
+    pub image_cache_thread: ImageCacheThread,
 
     /// A channel for the image cache to send responses to.
     pub image_cache_sender: Mutex<ImageCacheChan>,
@@ -94,8 +94,8 @@ pub struct SharedLayoutContext {
     /// Screen sized changed?
     pub screen_size_changed: bool,
 
-    /// Interface to the font cache task.
-    pub font_cache_task: Mutex<FontCacheTask>,
+    /// Interface to the font cache thread.
+    pub font_cache_thread: Mutex<FontCacheThread>,
 
     /// The CSS selector stylist.
     ///
@@ -113,7 +113,7 @@ pub struct SharedLayoutContext {
     /// sent.
     pub new_animations_sender: Mutex<Sender<Animation>>,
 
-    /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
+    /// A channel to send canvas renderers to paint thread, in order to correctly paint the layers
     pub canvas_layers_sender: Mutex<Sender<(LayerId, IpcSender<CanvasMsg>)>>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
@@ -160,7 +160,7 @@ impl<'a> LayoutContext<'a> {
     pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<Arc<Image>> {
         // See if the image is already available
-        let result = self.shared.image_cache_task.find_image(url.clone(),
+        let result = self.shared.image_cache_thread.find_image(url.clone(),
                                                              use_placeholder);
 
         match result {
@@ -177,7 +177,7 @@ impl<'a> LayoutContext<'a> {
                     // Not loaded, test mode - load the image synchronously
                     (_, true) => {
                         let (sync_tx, sync_rx) = ipc::channel().unwrap();
-                        self.shared.image_cache_task.request_image(url,
+                        self.shared.image_cache_thread.request_image(url,
                                                                    ImageCacheChan(sync_tx),
                                                                    None);
                         match sync_rx.recv().unwrap().image_response {
@@ -189,7 +189,7 @@ impl<'a> LayoutContext<'a> {
                     // Not yet requested, async mode - request image from the cache
                     (ImageState::NotRequested, false) => {
                         let sender = self.shared.image_cache_sender.lock().unwrap().clone();
-                        self.shared.image_cache_task.request_image(url, sender, None);
+                        self.shared.image_cache_thread.request_image(url, sender, None);
                         None
                     }
                     // Image has been requested, is still pending. Return no image

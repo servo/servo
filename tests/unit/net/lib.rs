@@ -17,6 +17,6 @@ extern crate util;
 #[cfg(test)] mod cookie;
 #[cfg(test)] mod data_loader;
 #[cfg(test)] mod mime_classifier;
-#[cfg(test)] mod resource_task;
+#[cfg(test)] mod resource_thread;
 #[cfg(test)] mod hsts;
 #[cfg(test)] mod http_loader;

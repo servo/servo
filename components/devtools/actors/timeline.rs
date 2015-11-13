@@ -17,7 +17,7 @@ use std::net::TcpStream;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep_ms;
-use util::task;
+use util::thread;
 
 pub struct TimelineActor {
     name: String,
@@ -146,7 +146,7 @@ impl TimelineActor {
             return;
         }
 
-        task::spawn_named("PullTimelineMarkers".to_owned(), move || {
+        thread::spawn_named("PullTimelineMarkers".to_owned(), move || {
             loop {
                 if !*is_recording.lock().unwrap() {
                     break;

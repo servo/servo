@@ -15,21 +15,21 @@ use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes};
 use std::borrow::ToOwned;
 use std::slice::bytes::copy_memory;
 use std::sync::mpsc::{Sender, channel};
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use util::vec::byte_swap;
 
-pub struct WebGLPaintTask {
+pub struct WebGLPaintThread {
     size: Size2D<i32>,
     original_context_size: Size2D<i32>,
     gl_context: GLContext,
 }
 
-// This allows trying to create the PaintTask
+// This allows trying to create the PaintThread
 // before creating the thread
-unsafe impl Send for WebGLPaintTask {}
+unsafe impl Send for WebGLPaintThread {}
 
-impl WebGLPaintTask {
-    fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintTask, &'static str> {
+impl WebGLPaintThread {
+    fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintThread, &'static str> {
         let context = try!(
             GLContext::create_offscreen_with_color_attachment(
                 size, attrs, ColorAttachmentType::TextureWithSurface));
@@ -39,7 +39,7 @@ impl WebGLPaintTask {
         // the requested size, tries with the nearest powers of two, for example.
         let real_size = context.borrow_draw_buffer().unwrap().size();
 
-        Ok(WebGLPaintTask {
+        Ok(WebGLPaintThread {
             size: real_size,
             original_context_size: real_size,
             gl_context: context
@@ -171,15 +171,15 @@ impl WebGLPaintTask {
         }
     }
 
-    /// Creates a new `WebGLPaintTask` and returns the out-of-process sender and the in-process
+    /// Creates a new `WebGLPaintThread` and returns the out-of-process sender and the in-process
     /// sender for it.
     pub fn start(size: Size2D<i32>, attrs: GLContextAttributes)
                  -> Result<(IpcSender<CanvasMsg>, Sender<CanvasMsg>), &'static str> {
         let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
         ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
-        let mut painter = try!(WebGLPaintTask::new(size, attrs));
-        spawn_named("WebGLTask".to_owned(), move || {
+        let mut painter = try!(WebGLPaintThread::new(size, attrs));
+        spawn_named("WebGLThread".to_owned(), move || {
             painter.init();
             loop {
                 match in_process_port.recv().unwrap() {
@@ -203,7 +203,7 @@ impl WebGLPaintTask {
                                 painter.send_native_surface(chan),
                         }
                     }
-                    CanvasMsg::Canvas2d(_) => panic!("Wrong message sent to WebGLTask"),
+                    CanvasMsg::Canvas2d(_) => panic!("Wrong message sent to WebGLThread"),
                 }
             }
         });

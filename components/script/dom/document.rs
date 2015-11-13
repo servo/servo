@@ -87,7 +87,7 @@ use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
-use script_task::{MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{MouseButton, TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -2094,7 +2094,7 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = self.window.resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+        let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map(DOMString::from).unwrap_or(DOMString::from("")))
     }
@@ -2106,7 +2106,7 @@ impl DocumentMethods for Document {
         if !is_scheme_host_port_tuple(url) {
             return Err(Error::Security);
         }
-        let _ = self.window.resource_task().send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
+        let _ = self.window.resource_thread().send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
     }
 

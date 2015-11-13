@@ -5,7 +5,7 @@
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ResourceTask, ResponseAction};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ResourceThread, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
 use platform::font_list::for_each_variation;
@@ -21,7 +21,7 @@ use string_cache::Atom;
 use style::font_face::Source;
 use url::Url;
 use util::str::LowercaseString;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {
@@ -76,7 +76,7 @@ impl FontFamily {
     }
 }
 
-/// Commands that the FontContext sends to the font cache task.
+/// Commands that the FontContext sends to the font cache thread.
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
@@ -85,12 +85,12 @@ pub enum Command {
     Exit(Sender<()>),
 }
 
-/// Reply messages sent from the font cache task to the FontContext caller.
+/// Reply messages sent from the font cache thread to the FontContext caller.
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
 
-/// The font cache task itself. It maintains a list of reference counted
+/// The font cache thread itself. It maintains a list of reference counted
 /// font templates that are currently in use.
 struct FontCache {
     port: Receiver<Command>,
@@ -99,7 +99,7 @@ struct FontCache {
     local_families: HashMap<LowercaseString, FontFamily>,
     web_families: HashMap<LowercaseString, FontFamily>,
     font_context: FontContextHandle,
-    resource_task: ResourceTask,
+    resource_thread: ResourceThread,
 }
 
 fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString>,
@@ -137,7 +137,7 @@ impl FontCache {
                     match src {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
-                            let load = PendingAsyncLoad::new(self.resource_task.clone(),
+                            let load = PendingAsyncLoad::new(self.resource_thread.clone(),
                                                              url.clone(),
                                                              None);
                             let (data_sender, data_receiver) = ipc::channel().unwrap();
@@ -267,19 +267,19 @@ impl FontCache {
     }
 }
 
-/// The public interface to the font cache task, used exclusively by
-/// the per-thread/task FontContext structures.
+/// The public interface to the font cache thread, used exclusively by
+/// the per-thread/thread FontContext structures.
 #[derive(Clone)]
-pub struct FontCacheTask {
+pub struct FontCacheThread {
     chan: Sender<Command>,
 }
 
-impl FontCacheTask {
-    pub fn new(resource_task: ResourceTask) -> FontCacheTask {
+impl FontCacheThread {
+    pub fn new(resource_thread: ResourceThread) -> FontCacheThread {
         let (chan, port) = channel();
 
         let channel_to_self = chan.clone();
-        spawn_named("FontCacheTask".to_owned(), move || {
+        spawn_named("FontCacheThread".to_owned(), move || {
             // TODO: Allow users to specify these.
             let mut generic_fonts = HashMap::with_capacity(5);
             add_generic_font(&mut generic_fonts, "serif", "Times New Roman");
@@ -295,14 +295,14 @@ impl FontCacheTask {
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
                 font_context: FontContextHandle::new(),
-                resource_task: resource_task,
+                resource_thread: resource_thread,
             };
 
             cache.refresh_local_families();
             cache.run();
         });
 
-        FontCacheTask {
+        FontCacheThread {
             chan: chan,
         }
     }

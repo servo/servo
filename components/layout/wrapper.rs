@@ -16,7 +16,7 @@
 //!    onto these objects and cause use-after-free.
 //!
 //! When implementing wrapper functions, be careful that you do not touch the borrow flags, or you
-//! will race and cause spurious task failure. (Note that I do not believe these races are
+//! will race and cause spurious thread failure. (Note that I do not believe these races are
 //! exploitable, but they'll result in brokenness nonetheless.)
 //!
 //! Rules of the road for this file:
