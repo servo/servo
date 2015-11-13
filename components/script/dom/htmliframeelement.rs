@@ -29,7 +29,6 @@ use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent}
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use page::IterablePage;
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
 use url::{Url, UrlParser};
@@ -146,7 +145,7 @@ impl HTMLIFrameElement {
                 let mut detail = RootedValue::new(cx, UndefinedValue());
                 event.detail().to_jsval(cx, detail.handle_mut());
                 CustomEvent::new(GlobalRef::Window(window.r()),
-                                 DOMString(event.name().to_owned()),
+                                 DOMString::from(event.name()),
                                  true,
                                  true,
                                  detail.handle())

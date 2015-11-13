@@ -17,7 +17,6 @@ use dom::document::{Document, IsHTMLDocument};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -51,7 +50,7 @@ impl DOMParserMethods for DOMParser {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Root<Document>> {
         let url = self.window.get_url();
-        let content_type = DOMString(DOMParserBinding::SupportedTypeValues::strings[ty as usize].to_owned());
+        let content_type = DOMString::from(DOMParserBinding::SupportedTypeValues::strings[ty as usize]);
         let doc = self.window.Document();
         let doc = doc.r();
         let loader = DocumentLoader::new(&*doc.loader());

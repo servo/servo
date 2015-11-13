@@ -11,7 +11,6 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::window_from_node;
-use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
 
@@ -64,7 +63,8 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
-            attr.value().as_tokens().get(index as usize).map(|token| DOMString((**token).to_owned()))
+            // FIXME(ajeffrey): Convert directly from Atom to DOMString
+            attr.value().as_tokens().get(index as usize).map(|token| DOMString::from(&**token))
         })
     }
 
@@ -134,7 +134,7 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
         let tokenlist = self.element.get_tokenlist_attribute(&self.local_name);
-        DOMString(str_join(&tokenlist, "\x20"))
+        DOMString::from(str_join(&tokenlist, "\x20"))
     }
 
     // check-tidy: no specs after this line

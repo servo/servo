@@ -15,7 +15,6 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
-use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use util::str::DOMString;
@@ -117,7 +116,7 @@ impl FormData {
     fn get_file_from_blob(&self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
         let f = value.downcast::<File>();
-        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or(DOMString("blob".to_owned())));
+        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or(DOMString::from("blob")));
         File::new(global.r(), value, name)
     }
 }

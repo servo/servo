@@ -722,7 +722,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseText(&self) -> Fallible<DOMString> {
         match self.response_type.get() {
             _empty | Text => {
-                Ok(DOMString(match self.ready_state.get() {
+                Ok(DOMString::from(match self.ready_state.get() {
                     XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
                     _ => "".to_owned()
                 }))
@@ -746,7 +746,7 @@ impl XMLHttpRequest {
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
-                               DOMString("readystatechange".to_owned()),
+                               DOMString::from("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -927,7 +927,7 @@ impl XMLHttpRequest {
     fn dispatch_progress_event(&self, upload: bool, type_: String, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-                                               DOMString(type_),
+                                               DOMString::from(type_),
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
                                                total.is_some(), loaded,

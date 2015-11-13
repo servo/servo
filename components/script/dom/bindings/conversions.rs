@@ -159,7 +159,8 @@ impl FromJSValConvertible for USVString {
         }
         let latin1 = JS_StringHasLatin1Chars(jsstr);
         if latin1 {
-            return Ok(USVString(jsstring_to_str(cx, jsstr).0));
+            // FIXME(ajeffrey): Convert directly from DOMString to USVString
+            return Ok(USVString(String::from(jsstring_to_str(cx, jsstr))));
         }
         let mut length = 0;
         let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);

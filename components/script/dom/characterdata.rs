@@ -13,7 +13,6 @@ use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
 use dom::node::{Node, NodeDamage};
-use std::borrow::ToOwned;
 use std::cell::Ref;
 use util::str::DOMString;
 
@@ -65,11 +64,12 @@ impl CharacterDataMethods for CharacterData {
             // Steps 4.
             Some(count_bytes) => &data_from_offset[..count_bytes],
         };
-        Ok(DOMString(substring.to_owned()))
+        Ok(DOMString::from(substring))
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(&self, data: DOMString) {
+        // FIXME(ajeffrey): Efficient append on DOMStrings?
         self.append_data(&*data);
     }
 
@@ -103,9 +103,9 @@ impl CharacterDataMethods for CharacterData {
             new_data.push_str(prefix);
             new_data.push_str(&arg);
             new_data.push_str(suffix);
-            DOMString(new_data)
+            new_data
         };
-        *self.data.borrow_mut() = new_data;
+        *self.data.borrow_mut() = DOMString::from(new_data);
         self.content_changed();
         // FIXME: Once we have `Range`, we should implement step 8 to step 11
         Ok(())
@@ -150,7 +150,8 @@ impl CharacterData {
     }
     #[inline]
     pub fn append_data(&self, data: &str) {
-        self.data.borrow_mut().0.push_str(data);
+        // FIXME(ajeffrey): Efficient append on DOMStrings?
+        self.data.borrow_mut().push_str(data);
         self.content_changed();
     }
 

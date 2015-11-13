@@ -353,7 +353,7 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(&self) -> DOMString {
-        DOMString(self.url.serialize())
+        DOMString::from(self.url.serialize())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
@@ -489,7 +489,7 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(), DOMString("open".to_owned()),
+        let event = Event::new(global.r(), DOMString::from("open"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(ws.upcast());
@@ -531,7 +531,7 @@ impl Runnable for CloseTask {
             //A Bad close
             ws.clean_close.set(false);
             let event = Event::new(global.r(),
-                                   DOMString("error".to_owned()),
+                                   DOMString::from("error"),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
             event.fire(ws.upcast());
@@ -541,12 +541,12 @@ impl Runnable for CloseTask {
          https://html.spec.whatwg.org/multipage/#closeWebSocket
         */
         let close_event = CloseEvent::new(global.r(),
-                                          DOMString("close".to_owned()),
+                                          DOMString::from("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
                                           ws.clean_close.get(),
                                           ws.code.get(),
-                                          DOMString(reason));
+                                          DOMString::from(reason));
         close_event.upcast::<Event>().fire(ws.upcast());
     }
 }

@@ -60,7 +60,8 @@ impl Blob {
     pub fn Constructor_(global: GlobalRef, blobParts: DOMString,
                         blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Root<Blob>> {
         //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
-        let bytes: Option<Vec<u8>> = Some(blobParts.0.into_bytes());
+        // FIXME(ajeffrey): convert directly from a DOMString to a Vec<u8>
+        let bytes: Option<Vec<u8>> = Some(String::from(blobParts).into_bytes());
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
@@ -90,7 +91,7 @@ impl BlobMethods for Blob {
 
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-type
     fn Type(&self) -> DOMString {
-        DOMString(self.typeString.clone())
+        DOMString::from(self.typeString.clone())
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo

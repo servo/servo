@@ -10,7 +10,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
 use string_cache::Atom;
@@ -169,7 +168,7 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(&self) -> DOMString {
-        DOMString((*self.type_()).to_owned())
+        DOMString::from(&*self.type_()) // FIXME(ajeffrey): Directly convert from Atom to DOMString
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target

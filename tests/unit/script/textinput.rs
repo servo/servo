@@ -14,11 +14,10 @@ use msg::constellation_msg::SUPER;
 use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::textinput::{TextInput, Selection, Lines, Direction};
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
-    TextInput::new(lines, DOMString(s.to_owned()), DummyClipboardContext::new(""))
+    TextInput::new(lines, DOMString::from(s), DummyClipboardContext::new(""))
 }
 
 #[test]
@@ -86,7 +85,7 @@ fn test_textinput_replace_selection() {
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
 
-    textinput.replace_selection(DOMString("xyz".to_owned()));
+    textinput.replace_selection(DOMString::from("xyz"));
     assert_eq!(textinput.get_content(), "abxyzefg");
 }
 
@@ -177,7 +176,7 @@ fn test_textinput_set_content() {
     let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.get_content(), "abc\nde\nf");
 
-    textinput.set_content(DOMString("abc\nf".to_owned()));
+    textinput.set_content(DOMString::from("abc\nf"));
     assert_eq!(textinput.get_content(), "abc\nf");
 
     assert_eq!(textinput.edit_point.line, 0);
@@ -185,7 +184,7 @@ fn test_textinput_set_content() {
     textinput.adjust_horizontal(3, Selection::Selected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
-    textinput.set_content(DOMString("de".to_owned()));
+    textinput.set_content(DOMString::from("de"));
     assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
@@ -199,7 +198,7 @@ fn test_clipboard_paste() {
     const MODIFIERS: KeyModifiers = CONTROL;
 
     let mut textinput = TextInput::new(Lines::Single,
-                                       DOMString("defg".to_owned()),
+                                       DOMString::from("defg"),
                                        DummyClipboardContext::new("abc"));
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point.index, 0);

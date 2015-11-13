@@ -25,7 +25,6 @@ use js::jsapi::{HandleValue, JSContext, RootedValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
 use script_task::{Runnable, ScriptChan};
-use std::borrow::ToOwned;
 use std::sync::mpsc::{Sender, channel};
 use url::UrlParser;
 use util::str::DOMString;
@@ -85,7 +84,7 @@ impl Worker {
                 let pipeline_id = global.pipeline();
                 let title = format!("Worker for {}", worker_url);
                 let page_info = DevtoolsPageInfo {
-                    title: DOMString(title),
+                    title: title,
                     url: worker_url.clone(),
                 };
                 chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
@@ -129,7 +128,7 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let event = Event::new(global.r(),
-                               DOMString("error".to_owned()),
+                               DOMString::from("error"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(worker.upcast());
@@ -140,7 +139,7 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
-        let errorevent = ErrorEvent::new(global.r(), DOMString("error".to_owned()),
+        let errorevent = ErrorEvent::new(global.r(), DOMString::from("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());
         errorevent.upcast::<Event>().fire(worker.upcast());

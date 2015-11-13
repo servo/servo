@@ -1622,7 +1622,7 @@ impl ScriptTask {
 
         let content_type = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                Some(DOMString("text/plain".to_owned()))
+                Some(DOMString::from("text/plain"))
             }
             _ => None
         };
@@ -1695,7 +1695,7 @@ impl ScriptTask {
     fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
-                title: title,
+                title: String::from(title),
                 url: url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
@@ -1914,7 +1914,7 @@ impl ScriptTask {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
         let uievent = UIEvent::new(window.r(),
-                                   DOMString("resize".to_owned()), EventBubbles::DoesNotBubble,
+                                   DOMString::from("resize"), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32);
         uievent.upcast::<Event>().fire(window.upcast());

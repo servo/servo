@@ -78,6 +78,6 @@ impl WorkerLocationMethods for WorkerLocation {
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
     fn Stringifier(&self) -> DOMString {
-        DOMString(self.Href().0)
+        DOMString::from(self.Href().0)
     }
 }

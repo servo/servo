@@ -84,7 +84,7 @@ macro_rules! make_url_or_base_getter(
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
             if url.is_empty() {
                 let window = window_from_node(self);
-                DOMString(window.get_url().serialize())
+                DOMString::from(window.get_url().serialize())
             } else {
                 url
             }
@@ -102,7 +102,6 @@ macro_rules! make_enumerated_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use std::ascii::AsciiExt;
-            use std::borrow::ToOwned;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             let mut val = element.get_string_attribute(&Atom::from_slice($htmlname));
@@ -110,7 +109,7 @@ macro_rules! make_enumerated_getter(
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
                 $($choices)|+ => val,
-                _ => DOMString($default.to_owned())
+                _ => DOMString::from($default)
             }
         }
     );

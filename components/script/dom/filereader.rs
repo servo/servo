@@ -40,14 +40,14 @@ pub type TrustedFileReader = Trusted<FileReader>;
 
 #[derive(Clone, HeapSizeOf)]
 pub struct ReadMetaData {
-    pub blobtype: DOMString,
-    pub label: Option<DOMString>,
+    pub blobtype: String,
+    pub label: Option<String>,
     pub function: FileReaderFunction
 }
 
 impl ReadMetaData {
-    pub fn new(blobtype: DOMString,
-               label: Option<DOMString>, function: FileReaderFunction) -> ReadMetaData {
+    pub fn new(blobtype: String,
+               label: Option<String>, function: FileReaderFunction) -> ReadMetaData {
         ReadMetaData {
             blobtype: blobtype,
             label: label,
@@ -228,7 +228,7 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        DOMString(output)
+        DOMString::from(output)
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
@@ -248,7 +248,7 @@ impl FileReader {
             format!("data:{};base64,{}", data.blobtype, base64)
         };
 
-        DOMString(output)
+        DOMString::from(output)
     }
 }
 
@@ -323,7 +323,7 @@ impl FileReader {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-            DOMString(type_), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            DOMString::from(type_), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
     }
@@ -358,7 +358,7 @@ impl FileReader {
         blob.read_out_buffer(send);
         let type_ = blob.Type();
 
-        let load_data = ReadMetaData::new(type_, label, function);
+        let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
 
         let fr = Trusted::new(global.get_cx(), self, global.script_chan());
         let gen_id = self.generation_id.get();
@@ -379,7 +379,7 @@ impl FileReader {
 #[derive(Clone)]
 pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId, DOMString),
+    ProcessReadData(TrustedFileReader, GenerationId),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>)
 }
@@ -391,7 +391,7 @@ impl Runnable for FileReaderEvent {
             FileReaderEvent::ProcessRead(filereader, gen_id) => {
                 FileReader::process_read(filereader, gen_id);
             },
-            FileReaderEvent::ProcessReadData(filereader, gen_id, _) => {
+            FileReaderEvent::ProcessReadData(filereader, gen_id) => {
                 FileReader::process_read_data(filereader, gen_id);
             },
             FileReaderEvent::ProcessReadError(filereader, gen_id, error) => {
@@ -412,8 +412,7 @@ fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, bl
     let task = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
     chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 
-    let task = box FileReaderEvent::ProcessReadData(filereader.clone(),
-        gen_id, DOMString::new());
+    let task = box FileReaderEvent::ProcessReadData(filereader.clone(), gen_id);
     chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 
     let bytes = match blob_contents.recv() {

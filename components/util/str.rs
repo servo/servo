@@ -24,11 +24,20 @@ use std::slice;
 use std::str::{CharIndices, FromStr, Split, from_utf8};
 
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Deserialize, Serialize, Hash, Debug)]
-pub struct DOMString(pub String);
+pub struct DOMString(String);
+
+impl !Send for DOMString {}
 
 impl DOMString {
     pub fn new() -> DOMString {
         DOMString(String::new())
+    }
+    // FIXME(ajeffrey): implement more of the String methods on DOMString?
+    pub fn push_str(&mut self, string: &str) {
+        self.0.push_str(string)
+    }
+    pub fn clear(&mut self) {
+        self.0.clear()
     }
 }
 
@@ -76,6 +85,24 @@ impl PartialEq<str> for DOMString {
 impl<'a> PartialEq<&'a str> for DOMString {
     fn eq(&self, other: &&'a str) -> bool {
         &**self == *other
+    }
+}
+
+impl From<String> for DOMString {
+    fn from(contents: String) -> DOMString {
+        DOMString(contents)
+    }
+}
+
+impl<'a> From<&'a str> for DOMString {
+    fn from(contents: &str) -> DOMString {
+        DOMString::from(String::from(contents))
+    }
+}
+
+impl From<DOMString> for String {
+    fn from(contents: DOMString) -> String {
+        contents.0
     }
 }
 
@@ -158,6 +185,12 @@ impl FromJSValConvertible for DOMString {
                 Ok(jsstring_to_str(cx, jsstr))
             }
         }
+    }
+}
+
+impl Extend<char> for DOMString {
+    fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
+        self.0.extend(iterable)
     }
 }
 

@@ -137,7 +137,7 @@ impl HTMLInputElement {
 
 pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> DOMString;
+    unsafe fn get_value_for_layout(self) -> String;
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
@@ -160,28 +160,28 @@ unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> DOMStrin
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> DOMString {
+    unsafe fn get_value_for_layout(self) -> String {
         #[allow(unsafe_code)]
-        unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> DOMString {
+        unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
                 .get_attr_val_for_layout(&ns!(""), &atom!("value"))
                 .unwrap_or(default);
-            DOMString(value.to_owned())
+            String::from(value)
         }
 
         match (*self.unsafe_get()).input_type.get() {
-            InputType::InputCheckbox | InputType::InputRadio => DOMString::new(),
-            InputType::InputFile | InputType::InputImage => DOMString::new(),
+            InputType::InputCheckbox | InputType::InputRadio => String::new(),
+            InputType::InputFile | InputType::InputImage => String::new(),
             InputType::InputButton => get_raw_attr_value(self, ""),
             InputType::InputSubmit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::InputReset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
             InputType::InputPassword => {
                 let raw = get_raw_textinput_value(self);
                 // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
-                DOMString(raw.chars().map(|_| '●').collect())
+                raw.chars().map(|_| '●').collect()
             }
-            _ => get_raw_textinput_value(self),
+            _ => String::from(get_raw_textinput_value(self)),
         }
     }
 
@@ -371,7 +371,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     // This function is a workaround for lifetime constraint difficulties.
     fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
                         owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
-        let iter = doc_node.query_selector_iter(DOMString("input[type=radio]".to_owned())).unwrap()
+        let iter = doc_node.query_selector_iter(DOMString::from("input[type=radio]")).unwrap()
                 .filter_map(Root::downcast::<HTMLInputElement>)
                 .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r());
         for ref r in iter {
@@ -436,11 +436,11 @@ impl HTMLInputElement {
         let mut value = self.Value();
         if &*ty == "radio" || &*ty == "checkbox" {
             if value.is_empty() {
-                value = DOMString("on".to_owned());
+                value = DOMString::from("on");
             }
         }
         Some(FormDatum {
-            ty: DOMString(ty.to_string()),
+            ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
             value: value
         })
@@ -568,18 +568,19 @@ impl VirtualMethods for HTMLInputElement {
             },
             &atom!(value) if !self.value_changed.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
-                self.textinput.borrow_mut().set_content(DOMString(
-                    value.unwrap_or_else(|| "".to_owned())));
+                self.textinput.borrow_mut().set_content(
+                    value.map(DOMString::from).unwrap_or(DOMString::from("")));
             },
             &atom!(name) if self.input_type.get() == InputType::InputRadio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
             &atom!(placeholder) => {
+                // FIXME(ajeffrey): Should we do in-place mutation of the placeholder?
                 let mut placeholder = self.placeholder.borrow_mut();
-                placeholder.0.clear();
+                placeholder.clear();
                 if let AttributeMutation::Set(_) = mutation {
-                    placeholder.0.extend(
+                    placeholder.extend(
                         attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                 }
             },
@@ -718,7 +719,7 @@ impl Activatable for HTMLInputElement {
                     let group = self.get_radio_group_name();;
 
                     // Safe since we only manipulate the DOM tree after finding an element
-                    let checked_member = doc_node.query_selector_iter(DOMString("input[type=radio]".to_owned()))
+                    let checked_member = doc_node.query_selector_iter(DOMString::from("input[type=radio]"))
                             .unwrap()
                             .filter_map(Root::downcast::<HTMLInputElement>)
                             .find(|r| {
@@ -820,13 +821,13 @@ impl Activatable for HTMLInputElement {
                     let target = self.upcast();
 
                     let event = Event::new(GlobalRef::Window(win.r()),
-                                           DOMString("input".to_owned()),
+                                           DOMString::from("input"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
                     event.fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
-                                           DOMString("change".to_owned()),
+                                           DOMString::from("change"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
                     event.fire(target);
@@ -851,7 +852,7 @@ impl Activatable for HTMLInputElement {
             return;
         }
         let submit_button;
-        submit_button = node.query_selector_iter(DOMString("input[type=submit]".to_owned())).unwrap()
+        submit_button = node.query_selector_iter(DOMString::from("input[type=submit]")).unwrap()
             .filter_map(Root::downcast::<HTMLInputElement>)
             .find(|r| r.form_owner() == owner);
         match submit_button {
@@ -861,7 +862,7 @@ impl Activatable for HTMLInputElement {
                 }
             }
             None => {
-                let inputs = node.query_selector_iter(DOMString("input".to_owned())).unwrap()
+                let inputs = node.query_selector_iter(DOMString::from("input")).unwrap()
                     .filter_map(Root::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner && match input.type_() {

@@ -19,8 +19,8 @@ impl CSS {
         if ident.bytes().any(|b| b == b'\0') {
             return Err(Error::InvalidCharacter);
         }
-        let mut escaped = DOMString::new();
-        serialize_identifier(&ident, &mut escaped.0).unwrap();
-        Ok(escaped)
+        let mut escaped = String::new();
+        serialize_identifier(&ident, &mut escaped).unwrap();
+        Ok(DOMString::from(escaped))
     }
 }
