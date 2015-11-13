@@ -2271,6 +2271,18 @@
             "url": "/_mozilla/css/layerization_z_order_a.html"
           }
         ],
+        "css/legacy_cellspacing_attribute_a.html": [
+          {
+            "path": "css/legacy_cellspacing_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_cellspacing_attribute_a.html"
+          }
+        ],
         "css/legacy_input_size_attribute_override_a.html": [
           {
             "path": "css/legacy_input_size_attribute_override_a.html",
@@ -2305,6 +2317,30 @@
               ]
             ],
             "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
+          }
+        ],
+        "css/legacy_td_width_attribute_a.html": [
+          {
+            "path": "css/legacy_td_width_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/legacy_td_width_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_td_width_attribute_a.html"
+          }
+        ],
+        "css/legacy_th_width_attribute_a.html": [
+          {
+            "path": "css/legacy_th_width_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/legacy_td_width_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_th_width_attribute_a.html"
           }
         ],
         "css/letter_spacing_a.html": [
@@ -2343,6 +2379,18 @@
             "url": "/_mozilla/css/line_breaking_whitespace_collapse_a.html"
           }
         ],
+        "css/line_height_a.html": [
+          {
+            "path": "css/line_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/line_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/line_height_a.html"
+          }
+        ],
         "css/line_height_float_placement_a.html": [
           {
             "path": "css/line_height_float_placement_a.html",
@@ -2353,6 +2401,18 @@
               ]
             ],
             "url": "/_mozilla/css/line_height_float_placement_a.html"
+          }
+        ],
+        "css/linear_gradients_corners_a.html": [
+          {
+            "path": "css/linear_gradients_corners_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linear_gradients_corners_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/linear_gradients_corners_a.html"
           }
         ],
         "css/linear_gradients_lengths_a.html": [
@@ -2389,6 +2449,18 @@
               ]
             ],
             "url": "/_mozilla/css/linear_gradients_reverse_a.html"
+          }
+        ],
+        "css/linear_gradients_smoke_a.html": [
+          {
+            "path": "css/linear_gradients_smoke_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linear_gradients_smoke_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/linear_gradients_smoke_a.html"
           }
         ],
         "css/linebreak_inline_span_a.html": [
@@ -7378,6 +7450,18 @@
           "url": "/_mozilla/css/layerization_z_order_a.html"
         }
       ],
+      "css/legacy_cellspacing_attribute_a.html": [
+        {
+          "path": "css/legacy_cellspacing_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_cellspacing_attribute_a.html"
+        }
+      ],
       "css/legacy_input_size_attribute_override_a.html": [
         {
           "path": "css/legacy_input_size_attribute_override_a.html",
@@ -7412,6 +7496,30 @@
             ]
           ],
           "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
+        }
+      ],
+      "css/legacy_td_width_attribute_a.html": [
+        {
+          "path": "css/legacy_td_width_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/legacy_td_width_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_td_width_attribute_a.html"
+        }
+      ],
+      "css/legacy_th_width_attribute_a.html": [
+        {
+          "path": "css/legacy_th_width_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/legacy_td_width_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_th_width_attribute_a.html"
         }
       ],
       "css/letter_spacing_a.html": [
@@ -7450,6 +7558,18 @@
           "url": "/_mozilla/css/line_breaking_whitespace_collapse_a.html"
         }
       ],
+      "css/line_height_a.html": [
+        {
+          "path": "css/line_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/line_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/line_height_a.html"
+        }
+      ],
       "css/line_height_float_placement_a.html": [
         {
           "path": "css/line_height_float_placement_a.html",
@@ -7460,6 +7580,18 @@
             ]
           ],
           "url": "/_mozilla/css/line_height_float_placement_a.html"
+        }
+      ],
+      "css/linear_gradients_corners_a.html": [
+        {
+          "path": "css/linear_gradients_corners_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linear_gradients_corners_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/linear_gradients_corners_a.html"
         }
       ],
       "css/linear_gradients_lengths_a.html": [
@@ -7496,6 +7628,18 @@
             ]
           ],
           "url": "/_mozilla/css/linear_gradients_reverse_a.html"
+        }
+      ],
+      "css/linear_gradients_smoke_a.html": [
+        {
+          "path": "css/linear_gradients_smoke_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linear_gradients_smoke_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/linear_gradients_smoke_a.html"
         }
       ],
       "css/linebreak_inline_span_a.html": [
