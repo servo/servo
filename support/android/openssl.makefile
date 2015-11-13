@@ -1,5 +1,6 @@
 .PHONY: all
 all: openssl
+	@:  # No-op to silence the "make: Nothing to be done for 'all'." message.
 
 # From http://wiki.openssl.org/index.php/Android
 .PHONY: openssl
