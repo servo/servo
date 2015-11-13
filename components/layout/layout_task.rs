@@ -449,7 +449,7 @@ impl LayoutTask {
                                    screen_size_changed: bool,
                                    reflow_root: Option<&LayoutNode>,
                                    url: &Url,
-                                   goal: ReflowGoal, error_reporter: Box<ParseErrorReporter + Send>)
+                                   goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
@@ -468,7 +468,7 @@ impl LayoutTask {
             new_animations_sender: rw_data.new_animations_sender.clone(),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
-            error_reporter: error_reporter,
+            error_reporter: self.error_reporter.clone(),
         }
     }
 
@@ -561,12 +561,11 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-        let error_reporter = CSSErrorReporter;
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
                                                                   &self.url,
-                                                                  reflow_info.goal, box error_reporter);
+                                                                  reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      &mut *rw_data,
@@ -1213,13 +1212,12 @@ impl LayoutTask {
                 el.note_event_state_change();
             }
         }
-        let error_reporter = CSSErrorReporter;
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,
                                                                          Some(&node),
                                                                          &self.url,
-                                                                         data.reflow_info.goal, box error_reporter);
+                                                                         data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
             // Recalculate CSS styles and rebuild flows and fragments.
@@ -1323,12 +1321,11 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-        let error_reporter = CSSErrorReporter;
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
                                                                   &self.url,
-                                                                  reflow_info.goal, box error_reporter);
+                                                                  reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
         true
@@ -1346,12 +1343,11 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-        let error_reporter = CSSErrorReporter;
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
                                                                   &self.url,
-                                                                  reflow_info.goal, box error_reporter);
+                                                                  reflow_info.goal);
 
         if let Some(mut root_flow) = rw_data.layout_root() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1380,12 +1376,11 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-        let error_reporter = CSSErrorReporter;
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
                                                                   &self.url,
-                                                                  reflow_info.goal, box error_reporter);
+                                                                  reflow_info.goal);
 
         // No need to do a style recalc here.
         if rw_data.root_flow.as_ref().is_none() {

@@ -14,17 +14,6 @@ use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};
 use style_traits::ParseErrorReporter;
 use url::Url;
 
-struct CSSErrorReporterTest;
-
-impl ParseErrorReporter for CSSErrorReporterTest {
-     fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
-     }
-     fn clone(&self) -> Box<ParseErrorReporter + Send> {
-         let error_reporter = Box::new(CSSErrorReporterTest);
-         return error_reporter;
-     }
-}
-
 #[test]
 fn test_parse_stylesheet() {
     let css = r"
