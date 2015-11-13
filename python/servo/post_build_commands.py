@@ -182,6 +182,9 @@ class PostBuildCommands(CommandBase):
         target_dir = path.join(self.get_target_dir(), "arm-linux-androideabi")
         dev_flag = ""
 
+        # Set the Android SDK version target
+        env['ANDROID_TARGET'] = 'android-18'
+
         if dev:
             env["NDK_DEBUG"] = "1"
             env["ANT_FLAVOR"] = "debug"

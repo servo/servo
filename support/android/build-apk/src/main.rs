@@ -89,6 +89,10 @@ fn main() {
         process::exit(1);
     }
 
+    // Retrieve the Android SDK version target env variable
+    let default_target = "android-18".to_owned();
+    let android_target = env::var("ANDROID_TARGET").unwrap_or(default_target);
+
     // Update the project
     let androidcmd = Command::new(sdk_path.join("tools").join("android"))
                                   .arg("update")
@@ -96,7 +100,7 @@ fn main() {
                                   .arg("--name")
                                   .arg("Servo")
                                   .arg("--target")
-                                  .arg("android-18")
+                                  .arg(&android_target)
                                   .arg("--path")
                                   .arg(".")
                                   .stdout(Stdio::inherit())
