@@ -410,12 +410,10 @@ impl RangeMethods for Range {
         }
 
         if end_node == start_node {
-            if let Some(text) = start_node.downcast::<CharacterData>() {
-                // Step 4.1.
-                let clone = start_node.CloneNode(true);
-                // Step 4.2.
-                let text = text.SubstringData(start_offset, end_offset - start_offset);
-                clone.downcast::<CharacterData>().unwrap().SetData(text.unwrap());
+            if let Some(cdata) = start_node.downcast::<CharacterData>() {
+                // Steps 4.1-2.
+                let data = cdata.SubstringData(start_offset, end_offset - start_offset).unwrap();
+                let clone = cdata.clone_with_data(data, &start_node.owner_doc());
                 // Step 4.3.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 4.4
@@ -429,13 +427,11 @@ impl RangeMethods for Range {
 
         if let Some(child) = first_contained_child {
             // Step 13.
-            if let Some(text) = child.downcast::<CharacterData>() {
+            if let Some(cdata) = child.downcast::<CharacterData>() {
                 assert!(child == start_node);
-                // Step 13.1.
-                let clone = start_node.CloneNode(true); // CharacterData has no children.
-                // Step 13.2
-                let text = text.SubstringData(start_offset, start_node.len() - start_offset);
-                clone.downcast::<CharacterData>().unwrap().SetData(text.unwrap());
+                // Steps 13.1-2.
+                let data = cdata.SubstringData(start_offset, start_node.len() - start_offset).unwrap();
+                let clone = cdata.clone_with_data(data, &start_node.owner_doc());
                 // Step 13.3.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
             } else {
@@ -466,13 +462,11 @@ impl RangeMethods for Range {
 
         if let Some(child) = last_contained_child {
             // Step 16.
-            if let Some(text) = child.downcast::<CharacterData>() {
+            if let Some(cdata) = child.downcast::<CharacterData>() {
                 assert!(child == end_node);
-                // Step 16.1.
-                let clone = end_node.CloneNode(true); // CharacterData has no children.
-                // Step 16.2.
-                let text = text.SubstringData(0, end_offset);
-                clone.downcast::<CharacterData>().unwrap().SetData(text.unwrap());
+                // Steps 16.1-2.
+                let data = cdata.SubstringData(0, end_offset).unwrap();
+                let clone = cdata.clone_with_data(data, &start_node.owner_doc());
                 // Step 16.3.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
             } else {
