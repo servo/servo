@@ -47,8 +47,6 @@ impl HTMLStyleElement {
         let win = window_from_node(node);
         let win = win.r();
         let url = win.get_url();
-        let error_reporter = win.css_error_reporter();
-
         let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
         let mq_str = match mq_attribute {
             Some(a) => String::from(&**a.r().value()),
@@ -58,7 +56,7 @@ impl HTMLStyleElement {
         let media = parse_media_query_list(&mut css_parser);
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let sheet = Stylesheet::from_str(&data, url, Origin::Author, error_reporter);
+        let sheet = Stylesheet::from_str(&data, url, Origin::Author, win.css_error_reporter());
         let LayoutChan(ref layout_chan) = win.layout_chan();
         layout_chan.send(Msg::AddStylesheet(sheet, media)).unwrap();
     }

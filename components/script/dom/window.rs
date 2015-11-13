@@ -215,7 +215,8 @@ pub struct Window {
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
-    current_viewport: Cell<Rect<Au>>
+    current_viewport: Cell<Rect<Au>>,
+    error_reporter: CSSErrorReporter,
 }
 
 impl Window {
@@ -287,6 +288,10 @@ impl Window {
 
     pub fn storage_task(&self) -> StorageTask {
         self.storage_task.clone()
+    }
+
+    pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
+        return self.error_reporter.clone();
     }
 }
 
@@ -1235,7 +1240,7 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-
+        let error_reporter = CSSErrorReporter;
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
@@ -1282,13 +1287,10 @@ impl Window {
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: RefCell::new(None),
+            error_reporter: error_reporter
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
-    }
-    pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
-        let error_reporter = Box::new(CSSErrorReporter);
-        return error_reporter;
     }
 }
 

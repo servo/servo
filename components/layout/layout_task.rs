@@ -239,6 +239,8 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
+
+    /// The CSS error reporter for all CSS loaded in this layout thread
     pub error_reporter: CSSErrorReporter,
 }
 
@@ -449,6 +451,7 @@ impl LayoutTask {
                                    url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
+        let error_reporter = CSSErrorReporter;
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
             image_cache_sender: self.image_cache_sender.clone(),
@@ -466,6 +469,7 @@ impl LayoutTask {
             new_animations_sender: rw_data.new_animations_sender.clone(),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
+            error_reporter: error_reporter.clone(),
         }
     }
 
@@ -764,12 +768,11 @@ impl LayoutTask {
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
         let final_url = metadata.final_url;
 
-        let error_reporter = CSSErrorReporter;
         let sheet = Stylesheet::from_bytes_iter(iter,
                                                 final_url,
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
-                                                Origin::Author, error_reporter.clone());
+                                                Origin::Author, self.error_reporter.clone());
 
         //TODO: mark critical subresources as blocking load as well (#5974)
         self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
@@ -818,8 +821,7 @@ impl LayoutTask {
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        let error_reporter = CSSErrorReporter;
-        rw_data.stylist.add_quirks_mode_stylesheet(error_reporter.clone());
+        rw_data.stylist.add_quirks_mode_stylesheet(self.error_reporter.clone());
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 

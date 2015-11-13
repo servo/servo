@@ -3,14 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser;
+use cssparser::{Parser, SourcePosition};
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};
+use style_traits::ParseErrorReporter;
 use url::Url;
 
+struct CSSErrorReporterTest;
+
+#[allow(unused_variables)]
+impl ParseErrorReporter for CSSErrorReporterTest {
+     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
+     }
+     fn clone(&self) -> Box<ParseErrorReporter + Send> {
+         let error_reporter = Box::new(CSSErrorReporterTest);
+         return error_reporter;
+     }
+}
 
 #[test]
 fn test_parse_stylesheet() {
@@ -22,7 +35,8 @@ fn test_parse_stylesheet() {
         #d1 > .ok { background: blue; }
     ";
     let url = Url::parse("about::test").unwrap();
-    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent);
+    let error_reporter = CSSErrorReporterTest;
+    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent, error_reporter.clone());
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         rules: vec![

@@ -217,8 +217,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 6
         let window = window_from_node(&*self.owner);
-        let error_reporter = window.css_error_reporter();
-        let declarations = parse_one_declaration(&property, &value, &window.r().get_url(), error_reporter);
+        let declarations = parse_one_declaration(&property, &value, &window.r().get_url(), window.css_error_reporter());
 
         // Step 7
         let declarations = if let Ok(declarations) = declarations {
