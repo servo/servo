@@ -41,6 +41,8 @@ class PostBuildCommands(CommandBase):
                      help='Run the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Run the dev build')
+    @CommandArgument('--android', action='store_true',
+                     help='Run on an Android device through `adb shell`')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
                           '--debugger option will result in the default '
@@ -51,11 +53,29 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, debug=False, debugger=None):
+    def run(self, params, release=False, dev=False, android=False, debug=False, debugger=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
+        if android:
+            if debug:
+                print("Android on-device debugging is not supported by mach yet. See")
+                print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
+                return
+            if params:
+                url = params[0]
+            else:
+                url = 'http://mozilla.org/'
+            subprocess.Popen(["adb", "shell"], stdin=subprocess.PIPE).communicate('''
+                am force-stop com.mozilla.servo
+                export SERVO_URL='%s'
+                am start com.mozilla.servo/com.mozilla.servo.MainActivity
+                exit
+            ''' % url.replace('\'', '\\\''))
+            return
+
         args = [self.get_binary_path(release, dev)]
+
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
         if debug:
