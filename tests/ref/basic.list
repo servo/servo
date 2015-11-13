@@ -35,7 +35,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 
 # inline_border_a.html inline_border_b.html
-!= linear_gradients_smoke_a.html linear_gradients_smoke_ref.html
 flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Fails intermittently (#3636)
 # == link_style_dynamic_addition.html link_style_dynamic_addition_ref.html
