@@ -5,6 +5,7 @@
 use cssparser::{Parser, SourcePosition};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
+use media_queries::CSSErrorReporterTest;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
@@ -16,22 +17,11 @@ use style_traits::ParseErrorReporter;
 use style_traits::viewport::*;
 use url::Url;
 
-struct CSSErrorReporterTest;
-
-#[allow(unused_variables)]
-impl ParseErrorReporter for CSSErrorReporterTest {
-     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
-         }
-     fn clone(&self) -> Box<ParseErrorReporter + Send> {
-         let error_reporter = Box::new(CSSErrorReporterTest);
-         return error_reporter;
-         }
-}
 macro_rules! stylesheet {
         ($css:expr, $origin:ident, $error_reporter:expr) => {
         Stylesheet::from_str($css,
                              Url::parse("http://localhost").unwrap(),
-                             Origin::$origin, $error_reporter.clone());
+                             Origin::$origin, $error_reporter);
     }
 }
 

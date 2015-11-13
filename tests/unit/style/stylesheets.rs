@@ -4,6 +4,7 @@
 
 use cssparser;
 use cssparser::{Parser, SourcePosition};
+use media_queries::CSSErrorReporterTest
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
@@ -15,9 +16,8 @@ use url::Url;
 
 struct CSSErrorReporterTest;
 
-#[allow(unused_variables)]
 impl ParseErrorReporter for CSSErrorReporterTest {
-     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
+     fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
      }
      fn clone(&self) -> Box<ParseErrorReporter + Send> {
          let error_reporter = Box::new(CSSErrorReporterTest);

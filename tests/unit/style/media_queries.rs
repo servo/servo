@@ -12,22 +12,21 @@ use style::values::specified;
 use style_traits::ParseErrorReporter;
 use url::Url;
 
-struct CSSErrorReporterTest;
+pub struct CSSErrorReporterTest;
 
-#[allow(unused_variables)]
 impl ParseErrorReporter for CSSErrorReporterTest {
-     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
-         }
+     fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
+     }
      fn clone(&self) -> Box<ParseErrorReporter + Send> {
          let error_reporter = Box::new(CSSErrorReporterTest);
          return error_reporter;
-         }
+     }
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
     let url = Url::parse("http://localhost").unwrap();
     let error_reporter = CSSErrorReporterTest;
-    let stylesheet = Stylesheet::from_str(css, url, Origin::Author, error_reporter.clone());
+    let stylesheet = Stylesheet::from_str(css, url, Origin::Author, box error_reporter);
     let mut rule_count = 0;
     for rule in stylesheet.rules().media() {
         rule_count += 1;
@@ -39,7 +38,7 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str)
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = Url::parse("http://localhost").unwrap();
     let error_reporter = CSSErrorReporterTest;
-    let ss = Stylesheet::from_str(css, url, Origin::Author, error_reporter.clone());
+    let ss = Stylesheet::from_str(css, url, Origin::Author, box error_reporter);
     let rule_count = ss.effective_rules(device).style().count();
     assert!(rule_count == expected_rule_count, css.to_owned());
 }
