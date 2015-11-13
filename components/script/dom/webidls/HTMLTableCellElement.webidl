@@ -26,5 +26,5 @@ partial interface HTMLTableCellElement {
   //         attribute boolean noWrap;
   //         attribute DOMString vAlign;
 
-  //[TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [TreatNullAs=EmptyString] attribute DOMString bgColor;
 };
