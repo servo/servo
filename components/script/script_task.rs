@@ -708,6 +708,12 @@ impl ScriptTask {
         self.page.borrow().as_ref().unwrap().clone()
     }
 
+    /// Find a child page of the root page by pipeline id. Returns `None` if the root page does
+    /// not exist or the subpage cannot be found.
+    fn find_subpage(&self, pipeline_id: PipelineId) -> Option<Rc<Page>> {
+        self.page.borrow().as_ref().and_then(|page| page.find(pipeline_id))
+    }
+
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_runtime.cx()
     }
@@ -1098,13 +1104,10 @@ impl ScriptTask {
     }
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
-        let page = self.page.borrow();
-        if let Some(ref page) = page.as_ref() {
-            if let Some(ref page) = page.find(id) {
-                let window = page.window();
-                window.set_resize_event(size);
-                return;
-            }
+        if let Some(ref page) = self.find_subpage(id) {
+            let window = page.window();
+            window.set_resize_event(size);
+            return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
@@ -1499,10 +1502,8 @@ impl ScriptTask {
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
-        if let Some(page) = self.page.borrow().as_ref() {
-            if let Some(page) = page.find(pipeline_id) {
-                self.rebuild_and_force_reflow(&*page, ReflowReason::WebFontLoaded);
-            }
+        if let Some(ref page) = self.find_subpage(pipeline_id)  {
+            self.rebuild_and_force_reflow(page, ReflowReason::WebFontLoaded);
         }
     }
 
