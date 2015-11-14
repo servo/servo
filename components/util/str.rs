@@ -367,7 +367,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 
     match FromStr::from_str(value) {
-        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_px(number)),
+        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_f64_px(number)),
         Err(_) => LengthOrPercentageOrAuto::Auto,
     }
 }
