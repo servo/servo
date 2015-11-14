@@ -1303,7 +1303,7 @@ pub enum cef_termination_status_t {
   TS_ABNORMAL_TERMINATION,
 
   //
-  // SIGKILL or thread manager kill.
+  // SIGKILL or task manager kill.
   //
   TS_PROCESS_WAS_KILLED,
 
@@ -1646,7 +1646,7 @@ pub struct _cef_screen_info {
   //   display monitor that can be used by applications, expressed in
   //   virtual-screen coordinates. Windows uses this rectangle to
   //   maximize an application on the monitor. The rest of the area in
-  //   rcMonitor contains system windows such as the thread bar and side
+  //   rcMonitor contains system windows such as the task bar and side
   //   bars. Note that if the monitor is not the primary display monitor,
   //   some of the rectangle's coordinates may be negative values".
   //

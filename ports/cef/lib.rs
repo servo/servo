@@ -88,7 +88,7 @@ pub mod string_map;
 pub mod string_multimap;
 pub mod stubs;
 pub mod switches;
-pub mod thread;
+pub mod task;
 pub mod types;
 pub mod urlrequest;
 pub mod v8;
