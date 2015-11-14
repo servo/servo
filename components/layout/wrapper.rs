@@ -1039,6 +1039,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             iframe_element.pipeline_id().unwrap()
         }
     }
+
+    pub fn get_colspan(&self) -> u32 {
+        unsafe {
+            self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
+        }
+    }
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {

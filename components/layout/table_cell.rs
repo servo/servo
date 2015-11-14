@@ -20,7 +20,6 @@ use model::MaybeAuto;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style};
-use style::legacy::UnsignedIntegerAttribute;
 use style::properties::ComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
@@ -52,8 +51,7 @@ impl TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment, None),
             collapsed_borders: CollapsedBordersForCell::new(),
-            column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpan)
-                             .unwrap_or(1),
+            column_span: node.get_colspan(),
             visible: visible,
         }
     }

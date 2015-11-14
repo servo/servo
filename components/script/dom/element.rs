@@ -225,6 +225,8 @@ pub trait LayoutElementHelpers {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     #[allow(unsafe_code)]
+    unsafe fn get_colspan(self) -> u32;
+    #[allow(unsafe_code)]
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
     #[allow(unsafe_code)]
@@ -496,6 +498,17 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             hints.push(from_declaration(
                 PropertyDeclaration::BorderRightWidth(DeclaredValue::Value(
                     longhands::border_right_width::SpecifiedValue(width_value)))));
+        }
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn get_colspan(self) -> u32 {
+        if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_colspan().unwrap_or(1)
+        } else {
+            // Don't panic since `display` can cause this to be called on arbitrary
+            // elements.
+            1
         }
     }
 
