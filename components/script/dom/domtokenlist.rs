@@ -131,6 +131,18 @@ impl DOMTokenListMethods for DOMTokenList {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-replace
+    fn Replace(&self, token: DOMString, newToken: DOMString) -> ErrorResult {
+        let token = try!(self.check_token_exceptions(&token));
+        let newToken = try!(self.check_token_exceptions(&newToken));
+        let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
+        atoms.iter().position(|atom| *atom == token).map(|index| {
+            atoms[index] = newToken;
+        });
+        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        Ok(())
+    }
+
     // https://dom.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
         let tokenlist = self.element.get_tokenlist_attribute(&self.local_name);
