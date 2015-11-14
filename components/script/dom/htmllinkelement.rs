@@ -119,7 +119,7 @@ impl VirtualMethods for HTMLLinkElement {
             return;
         }
 
-        let sizes_atom = &Atom::from_slice("sizes");
+        let sizes_atom = &atom!("sizes");
         let rel = get_attr(self.upcast(), &atom!(rel));
         match attr.local_name() {
             &atom!(href) => {
@@ -163,7 +163,7 @@ impl VirtualMethods for HTMLLinkElement {
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
-            let sizes = get_attr(self.upcast(), &Atom::from_slice("sizes"));
+            let sizes = get_attr(self.upcast(), &atom!("sizes"));
 
             match href {
                 Some(ref href) if string_is_stylesheet(&rel) => {
