@@ -1642,6 +1642,8 @@ impl ScriptTask {
         let frame_element = frame_element.r().map(Castable::upcast);
         window.init_browsing_context(document.r(), frame_element);
 
+        document.set_ready_state(DocumentReadyState::Loading);
+
         // Create the root frame
         page.set_frame(Some(Frame {
             document: JS::from_rooted(&document),
