@@ -474,15 +474,38 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                                perspective,
                                                                parent_id));
 
-            if let PaintLayerContents::StackingContext(ref context) = paint_layer.contents {
-                // When there is a new layer, the transforms and origin are handled by the compositor,
-                // so the new transform and perspective matrices are just the identity.
-                continue_walking_stacking_context(properties,
-                                                  &context,
-                                                  &paint_layer.origin_for_child_layers(),
-                                                  &Matrix4::identity(),
-                                                  &Matrix4::identity(),
-                                                  Some(paint_layer.id));
+            match paint_layer.contents {
+                PaintLayerContents::StackingContext(ref context) => {
+                    // When there is a new layer, the transforms and origin are handled by the compositor,
+                    // so the new transform and perspective matrices are just the identity.
+                    continue_walking_stacking_context(properties,
+                                                      &context,
+                                                      &paint_layer.origin_for_child_layers(),
+                                                      &Matrix4::identity(),
+                                                      &Matrix4::identity(),
+                                                      Some(paint_layer.id));
+                },
+                PaintLayerContents::DisplayList(ref display_list) => {
+                    for kid in display_list.positioned_content.iter() {
+                        if let &DisplayItem::StackingContextClass(ref stacking_context) = kid {
+                            build_from_stacking_context(properties,
+                                                        &stacking_context,
+                                                        &parent_origin,
+                                                        &transform,
+                                                        &perspective,
+                                                        parent_id)
+
+                        }
+                    }
+                    for kid in display_list.layered_children.iter() {
+                        build_from_paint_layer(properties,
+                                               &kid,
+                                               &parent_origin,
+                                               &transform,
+                                               &perspective,
+                                               parent_id)
+                    }
+                },
             }
         }
 

@@ -4023,6 +4023,18 @@
             "url": "/_mozilla/css/transform_optimization.html"
           }
         ],
+        "css/transform_scroll_layer.html": [
+          {
+            "path": "css/transform_scroll_layer.html",
+            "references": [
+              [
+                "/_mozilla/css/transform_scroll_layer_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transform_scroll_layer.html"
+          }
+        ],
         "css/transform_simple_a.html": [
           {
             "path": "css/transform_simple_a.html",
@@ -9200,6 +9212,18 @@
             ]
           ],
           "url": "/_mozilla/css/transform_optimization.html"
+        }
+      ],
+      "css/transform_scroll_layer.html": [
+        {
+          "path": "css/transform_scroll_layer.html",
+          "references": [
+            [
+              "/_mozilla/css/transform_scroll_layer_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transform_scroll_layer.html"
         }
       ],
       "css/transform_simple_a.html": [
