@@ -115,7 +115,10 @@ fn load_for_consumer(load_data: LoadData,
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
-    match load::<WrappedHttpRequest>(load_data, hsts_list, cookie_jar, devtools_chan, &factory, user_agent) {
+    match load::<WrappedHttpRequest>(load_data, hsts_list,
+                                     cookie_jar, devtools_chan,
+                                     &factory, user_agent,
+                                     &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -127,6 +130,7 @@ fn load_for_consumer(load_data: LoadData,
             send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
+        Err(LoadError::Cancelled(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
         Err(LoadError::Decoding(url, msg)) => {
             send_error(url, msg, start_chan)
@@ -143,7 +147,7 @@ fn load_for_consumer(load_data: LoadData,
         Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
-            send_data(&mut load_response, start_chan, metadata, classifier, cancel_listener)
+            send_data(&mut load_response, start_chan, metadata, classifier, &cancel_listener)
         }
     }
 }
@@ -291,6 +295,7 @@ pub enum LoadError {
     Decoding(Url, String),
     MaxRedirects(Url),
     ConnectionAborted(String),
+    Cancelled(Url, String),
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -516,7 +521,8 @@ pub fn load<A>(load_data: LoadData,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                request_factory: &HttpRequestFactory<R=A>,
-               user_agent: String)
+               user_agent: String,
+               cancel_listener: &CancellationListener)
                -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
@@ -530,6 +536,10 @@ pub fn load<A>(load_data: LoadData,
     let mut url = replace_hosts(&load_data.url);
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+
+    if cancel_listener.is_cancelled() {
+        return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+    }
 
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
@@ -556,6 +566,10 @@ pub fn load<A>(load_data: LoadData,
 
         if &*url.scheme != "http" && &*url.scheme != "https" {
             return Err(LoadError::UnsupportedScheme(url));
+        }
+
+        if cancel_listener.is_cancelled() {
+            return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
         }
 
         info!("requesting {}", url.serialize());
@@ -585,6 +599,10 @@ pub fn load<A>(load_data: LoadData,
         loop {
             let mut req = try!(request_factory.create(url.clone(), method.clone()));
             *req.headers_mut() = request_headers.clone();
+
+            if cancel_listener.is_cancelled() {
+                return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+            }
 
             if log_enabled!(log::LogLevel::Info) {
                 info!("{}", method);
@@ -623,7 +641,7 @@ pub fn load<A>(load_data: LoadData,
                     method.clone(), request_headers.clone(),
                     cloned_data, pipeline_id
                 );
-}
+            }
 
             response = match maybe_response {
                 Ok(r) => r,
@@ -715,7 +733,7 @@ fn send_data<R: Read>(reader: &mut R,
                       start_chan: LoadConsumer,
                       metadata: Metadata,
                       classifier: Arc<MIMEClassifier>,
-                      cancel_listener: CancellationListener) {
+                      cancel_listener: &CancellationListener) {
     let (progress_chan, mut chunk) = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
