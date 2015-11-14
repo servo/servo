@@ -307,6 +307,13 @@ test(function () {
   WebIDL creates actual OwnProperties and then [] just acts as a normal property lookup */
   assert_equals( elem.classList[0], undefined );
 }, 'classList[0] must be undefined when all classes have been removed');
+test(function () {
+  var foo = document.createElement('div');
+  foo.classList.add();
+  assert_true( foo.hasAttribute('class') );
+  assert_equals( foo.classList + '', '', 'implicit' );
+  assert_equals( foo.classList.toString(), '', 'explicit' );
+}, 'Invoking add or remove should set the class attribute');
 // The ordered set parser must skip ASCII whitespace (U+0009, U+000A, U+000C, U+000D, and U+0020.)
 test(function () {
   var foo = document.createElement('div');
