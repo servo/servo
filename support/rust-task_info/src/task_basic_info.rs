@@ -7,32 +7,32 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Interface to the measurements in the thread_basic_info struct, gathered by
-//! invoking `thread_info()` with the `TASK_BASIC_INFO` flavor.
+//! Interface to the measurements in the task_basic_info struct, gathered by
+//! invoking `task_info()` with the `TASK_BASIC_INFO` flavor.
 
 use libc::{c_int, size_t};
 
-/// Obtains thread_basic_info::virtual_size.
+/// Obtains task_basic_info::virtual_size.
 pub fn virtual_size() -> Option<usize> {
     let mut virtual_size: size_t = 0;
     let rv = unsafe {
-        ThreadBasicInfoVirtualSize(&mut virtual_size)
+        TaskBasicInfoVirtualSize(&mut virtual_size)
     };
     if rv == 0 { Some(virtual_size as usize) } else { None }
 }
 
-/// Obtains thread_basic_info::resident_size.
+/// Obtains task_basic_info::resident_size.
 pub fn resident_size() -> Option<usize> {
     let mut resident_size: size_t = 0;
     let rv = unsafe {
-        ThreadBasicInfoResidentSize(&mut resident_size)
+        TaskBasicInfoResidentSize(&mut resident_size)
     };
     if rv == 0 { Some(resident_size as usize) } else { None }
 }
 
 extern {
-    fn ThreadBasicInfoVirtualSize(virtual_size: *mut size_t) -> c_int;
-    fn ThreadBasicInfoResidentSize(resident_size: *mut size_t) -> c_int;
+    fn TaskBasicInfoVirtualSize(virtual_size: *mut size_t) -> c_int;
+    fn TaskBasicInfoResidentSize(resident_size: *mut size_t) -> c_int;
 }
 
 #[cfg(test)]
@@ -49,4 +49,3 @@ mod test {
         assert!(resident_size().unwrap() > 0);
     }
 }
-
