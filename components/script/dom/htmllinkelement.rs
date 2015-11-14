@@ -119,18 +119,17 @@ impl VirtualMethods for HTMLLinkElement {
             return;
         }
 
-        let sizes_atom = &Atom::from_slice("sizes");
         let rel = get_attr(self.upcast(), &atom!(rel));
         match attr.local_name() {
             &atom!(href) => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
-                    let sizes = get_attr(self.upcast(), sizes_atom);
+                    let sizes = get_attr(self.upcast(), &atom!("sizes"));
                     self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
                 }
             },
-            atom if atom == sizes_atom => {
+            &atom!("sizes") => {
                 if is_favicon(&rel) {
                     if let Some(ref href) = get_attr(self.upcast(), &atom!("href")) {
                         self.handle_favicon_url(rel.as_ref().unwrap(), href, &Some(attr.value().to_string()));
@@ -163,7 +162,7 @@ impl VirtualMethods for HTMLLinkElement {
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
-            let sizes = get_attr(self.upcast(), &Atom::from_slice("sizes"));
+            let sizes = get_attr(self.upcast(), &atom!("sizes"));
 
             match href {
                 Some(ref href) if string_is_stylesheet(&rel) => {
