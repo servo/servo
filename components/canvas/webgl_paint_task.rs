@@ -72,6 +72,8 @@ impl WebGLPaintTask {
                 gl::attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) =>
                 gl::buffer_data(buffer_type, &data, usage),
+            CanvasWebGLMsg::BufferSubData(buffer_type, offset, data) =>
+                gl::buffer_sub_data(buffer_type, offset, &data),
             CanvasWebGLMsg::Clear(mask) =>
                 gl::clear(mask),
             CanvasWebGLMsg::ClearColor(r, g, b, a) =>
@@ -116,6 +118,16 @@ impl WebGLPaintTask {
                 self.uniform_location(program_id, name, chan),
             CanvasWebGLMsg::CompileShader(shader_id, source) =>
                 self.compile_shader(shader_id, source),
+            CanvasWebGLMsg::CompressedTexImage2D(target, level, internal_format,
+                                                 width, height, border, pixels) =>
+                gl::compressed_tex_image_2d(target, level, internal_format,
+                                            width as gl::GLsizei, height as gl::GLsizei,
+                                            border, &pixels),
+            CanvasWebGLMsg::CompressedTexSubImage2D(target, level, xoffset, yoffset,
+                                                    width, height, format, pixels) =>
+                gl::compressed_tex_sub_image_2d(target, level, xoffset, yoffset,
+                                                width as gl::GLsizei, height as gl::GLsizei,
+                                                format, &pixels),
             CanvasWebGLMsg::CreateBuffer(chan) =>
                 self.create_buffer(chan),
             CanvasWebGLMsg::CreateFramebuffer(chan) =>

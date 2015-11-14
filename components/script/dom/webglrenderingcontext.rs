@@ -29,7 +29,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
-use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
+use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView, JS_GetUint8ArrayData};
 use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
@@ -395,6 +395,103 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
+            .unwrap()
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: Option<*mut JSObject>) {
+        let data = match data {
+            Some(data) => data,
+            None => return,
+        };
+        let data_vec = unsafe {
+            let mut length = 0;
+            let mut ptr = ptr::null_mut();
+            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
+            if buffer_data.is_null() {
+                panic!("Argument data to WebGLRenderingContext.buffersubdata is not a Float32Array")
+            }
+            let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
+            let data_vec_length = length / mem::size_of::<f32>() as u32;
+            slice::from_raw_parts(data_f32, data_vec_length as usize).to_vec()
+        };
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferSubData(target, offset as isize, data_vec)))
+            .unwrap()
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CompressedTexImage2D(&self, _cx: *mut JSContext, target: u32, level: i32, internal_format: u32,
+                            width: i32, height: i32, border: i32, pixels: *mut JSObject) {
+        match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => (),
+
+            _ => return self.webgl_error(InvalidEnum),
+        }
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
+        match self.GetSupportedExtensions() {
+            Some(data) => match data.len() {
+                0 => return self.webgl_error(InvalidEnum),
+                _ => ()
+            },
+            None => return self.webgl_error(InvalidEnum)
+        };
+        let pixels_vec = unsafe {
+            let mut length = 0;
+            let mut ptr = ptr::null_mut();
+            let buffer_data = JS_GetObjectAsArrayBufferView(pixels, &mut length, &mut ptr);
+            if buffer_data.is_null() {
+                panic!("Argument data to WebGLRenderingContext.compressedteximage2D is not a Float32Array")
+            }
+            let data_u8 = JS_GetUint8ArrayData(buffer_data, ptr::null());
+            let data_vec_length = length / mem::size_of::<u8>() as u32;
+            slice::from_raw_parts(data_u8, data_vec_length as usize).to_vec()
+        };
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::CompressedTexImage2D(target, level, internal_format,
+                                                                        width as isize, height as isize,
+                                                                        border, pixels_vec)))
+            .unwrap()
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CompressedTexSubImage2D(&self, _cx: *mut JSContext, target: u32, level: i32,
+                               xoffset: i32, yoffset: i32, width: i32, height: i32,
+                               format: u32, pixels: *mut JSObject) {
+        match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => (),
+
+            _ => return self.webgl_error(InvalidEnum),
+        }
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
+        match self.GetSupportedExtensions() {
+            Some(data) => match data.len() {
+                0 => return self.webgl_error(InvalidEnum),
+                _ => ()
+            },
+            None => return self.webgl_error(InvalidEnum)
+        };
+        let pixels_vec = unsafe {
+            let mut length = 0;
+            let mut ptr = ptr::null_mut();
+            let buffer_data = JS_GetObjectAsArrayBufferView(pixels, &mut length, &mut ptr);
+            if buffer_data.is_null() {
+                panic!("Argument data to WebGLRenderingContext.compressedtexsubimage2D is not a Float32Array")
+            }
+            let data_u8 = JS_GetUint8ArrayData(buffer_data, ptr::null());
+            let data_vec_length = length / mem::size_of::<u8>() as u32;
+            slice::from_raw_parts(data_u8, data_vec_length as usize).to_vec()
+        };
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::CompressedTexSubImage2D(target, level,
+                                                                           xoffset, yoffset,
+                                                                           width as isize, height as isize, format,
+                                                                           pixels_vec)))
             .unwrap()
     }
 
