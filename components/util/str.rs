@@ -303,20 +303,39 @@ pub enum LengthOrPercentageOrAuto {
     Length(Au),
 }
 
-/// Parses a length per HTML5 § 2.4.4.4. If unparseable, `Auto` is returned.
+/// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
+/// Parses a dimension value per HTML5 § 2.4.4.4. If unparseable, `Auto` is
+/// returned.
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
+    // Steps 1 & 2 are not relevant
+
+    // Step 3
     value = value.trim_left_matches(WHITESPACE);
-    if value.is_empty() {
-        return LengthOrPercentageOrAuto::Auto
-    }
-    if value.starts_with("+") {
-        value = &value[1..]
-    }
-    value = value.trim_left_matches('0');
+
+    // Step 4
     if value.is_empty() {
         return LengthOrPercentageOrAuto::Auto
     }
 
+    // Step 5
+    if value.starts_with("+") {
+        value = &value[1..]
+    }
+
+    // Steps 6 & 7
+    match value.chars().nth(0) {
+        Some('0'...'9') => {},
+        _ => return LengthOrPercentageOrAuto::Auto,
+    }
+
+    // Steps 8 to 13
+    // We trim the string length to the minimum of:
+    // 1. the end of the string
+    // 2. the first occurence of a '%' (U+0025 PERCENT SIGN)
+    // 3. the second occurrence of a '.' (U+002E FULL STOP)
+    // 4. the occurrence of a character that is neither a digit nor '%' nor '.'
+    // Note: Step 10 is directly subsumed by FromStr::from_str
     let mut end_index = value.len();
     let (mut found_full_stop, mut found_percent) = (false, false);
     for (i, ch) in value.chars().enumerate() {
@@ -348,7 +367,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 
     match FromStr::from_str(value) {
-        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_px(number)),
+        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_f64_px(number)),
         Err(_) => LengthOrPercentageOrAuto::Auto,
     }
 }

@@ -14,5 +14,5 @@ partial interface HTMLHRElement {
   attribute DOMString color;
   //         attribute boolean noShade;
   //         attribute DOMString size;
-  //         attribute DOMString width;
+  attribute DOMString width;
 };
