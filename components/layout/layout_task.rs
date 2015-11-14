@@ -972,11 +972,11 @@ impl LayoutTask {
         }
     }
 
-    fn compute_abs_pos_and_build_display_list<'a>(&'a mut self,
-                                                  data: &Reflow,
-                                                  layout_root: &mut FlowRef,
-                                                  shared_layout_context: &mut SharedLayoutContext,
-                                                  rw_data: &mut LayoutTaskData) {
+    fn compute_abs_pos_and_build_display_list(&mut self,
+                                              data: &Reflow,
+                                              layout_root: &mut FlowRef,
+                                              shared_layout_context: &mut SharedLayoutContext,
+                                              rw_data: &mut LayoutTaskData) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
         profile(time::ProfilerCategory::LayoutDispListBuild,
@@ -1345,10 +1345,10 @@ impl LayoutTask {
                                                      &mut layout_context);
     }
 
-    fn perform_post_style_recalc_layout_passes<'a>(&'a mut self,
-                                                   data: &Reflow,
-                                                   rw_data: &mut LayoutTaskData,
-                                                   layout_context: &mut SharedLayoutContext) {
+    fn perform_post_style_recalc_layout_passes(&mut self,
+                                               data: &Reflow,
+                                               rw_data: &mut LayoutTaskData,
+                                               layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&self.constellation_chan,
@@ -1404,10 +1404,10 @@ impl LayoutTask {
         }
     }
 
-    fn perform_post_main_layout_passes<'a>(&'a mut self,
-                                           data: &Reflow,
-                                           rw_data: &mut LayoutTaskData,
-                                           layout_context: &mut SharedLayoutContext) {
+    fn perform_post_main_layout_passes(&mut self,
+                                       data: &Reflow,
+                                       rw_data: &mut LayoutTaskData,
+                                       layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
         if let Some(mut root_flow) = self.root_flow.clone() {
             self.compute_abs_pos_and_build_display_list(data,
