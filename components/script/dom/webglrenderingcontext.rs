@@ -378,16 +378,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(&self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
+        match target {
+            constants::ARRAY_BUFFER |
+            constants::ELEMENT_ARRAY_BUFFER => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+        match usage {
+            constants::STREAM_DRAW |
+            constants::STATIC_DRAW |
+            constants::DYNAMIC_DRAW => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
         let data = match data {
             Some(data) => data,
-            None => return,
+            None => return self.webgl_error(InvalidValue),
         };
         let data_vec = unsafe {
             let mut length = 0;
             let mut ptr = ptr::null_mut();
             let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
             if buffer_data.is_null() {
-                panic!("Argument data to WebGLRenderingContext.bufferdata is not a Float32Array")
+                return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
             }
             let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
             let data_vec_length = length / mem::size_of::<f32>() as u32;
@@ -396,6 +407,56 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
             .unwrap()
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: Option<*mut JSObject>) {
+        match target {
+            constants::ARRAY_BUFFER |
+            constants::ELEMENT_ARRAY_BUFFER => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+        let data = match data {
+            Some(data) => data,
+            None => return,
+        };
+        if offset < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+        let data_vec = unsafe {
+            let mut length = 0;
+            let mut ptr = ptr::null_mut();
+            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
+            if buffer_data.is_null() {
+                return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
+            }
+            let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
+            let data_vec_length = length / mem::size_of::<f32>() as u32;
+            slice::from_raw_parts(data_f32, data_vec_length as usize).to_vec()
+        };
+        // FIXME(simartin) Check that the defined region is inside the allocated one
+        // https://github.com/servo/servo/issues/8738
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferSubData(target, offset as isize, data_vec)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CompressedTexImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
+                            _width: i32, _height: i32, _border: i32, _pixels: *mut JSObject) {
+        // FIXME: No compressed texture format is currently supported, so error out as per
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
+        self.webgl_error(InvalidEnum)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CompressedTexSubImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32,
+                               _xoffset: i32, _yoffset: i32, _width: i32, _height: i32,
+                               _format: u32, _pixels: *mut JSObject) {
+        // FIXME: No compressed texture format is currently supported, so error out as per
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
+        self.webgl_error(InvalidEnum)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
