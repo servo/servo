@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use legacy::PresentationalHintSynthesis;
 use media_queries::{Device, MediaType};
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -277,9 +276,12 @@ impl Stylist {
                                                      &mut shareable);
 
         // Step 2: Presentational hints.
-        self.synthesize_presentational_hints_for_legacy_attributes(element,
-                                                                   applicable_declarations,
-                                                                   &mut shareable);
+        let length = applicable_declarations.len();
+        element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
+        if applicable_declarations.len() != length {
+            // Never share style for elements with preshints
+            shareable = false;
+        }
 
         // Step 3: User and author normal rules.
         map.user.normal.get_all_matching_rules(element,
