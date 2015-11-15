@@ -192,6 +192,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_getter!(CrossOrigin);
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_setter!(SetCrossOrigin, "crossorigin");
+    
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap);
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
