@@ -333,9 +333,9 @@ impl CanvasFragmentInfo {
     /// Returns the original block-size of the canvas.
     pub fn canvas_block_size(&self) -> Au {
         if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            self.dom_height
-        } else {
             self.dom_width
+        } else {
+            self.dom_height
         }
     }
 }
