@@ -31854,6 +31854,18 @@
             "url": "/html/rendering/non-replaced-elements/the-page/body_text_00ffff.xhtml"
           }
         ],
+        "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim.html": [
+          {
+            "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim.html",
+            "references": [
+              [
+                "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim.html"
+          }
+        ],
         "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border_percent.xhtml": [
           {
             "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border_percent.xhtml",
@@ -35241,6 +35253,18 @@
             ]
           ],
           "url": "/html/rendering/bindings/the-input-element-as-a-text-entry-widget/unrecognized-type-should-fallback-as-text-type.html"
+        }
+      ],
+      "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim.html": [
+        {
+          "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim.html",
+          "references": [
+            [
+              "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img-dim.html"
         }
       ]
     }
