@@ -29831,6 +29831,24 @@
     "deleted": [],
     "items": {
       "testharness": {
+        "dom/nodes/Node-contains.xml": [
+          {
+            "path": "dom/nodes/Node-contains.xml",
+            "url": "/dom/nodes/Node-contains.xml"
+          }
+        ],
+        "dom/nodes/getElementsByClassName-10.xml": [
+          {
+            "path": "dom/nodes/getElementsByClassName-10.xml",
+            "url": "/dom/nodes/getElementsByClassName-10.xml"
+          }
+        ],
+        "dom/nodes/getElementsByClassName-11.xml": [
+          {
+            "path": "dom/nodes/getElementsByClassName-11.xml",
+            "url": "/dom/nodes/getElementsByClassName-11.xml"
+          }
+        ],
         "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html": [
           {
             "path": "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html",
