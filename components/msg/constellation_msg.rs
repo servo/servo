@@ -25,13 +25,18 @@ use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
-#[derive(Clone)]
-pub struct ConstellationChan(pub Sender<Msg>);
+pub struct ConstellationChan<T>(pub Sender<T>);
 
-impl ConstellationChan {
-    pub fn new() -> (Receiver<Msg>, ConstellationChan) {
+impl<T> ConstellationChan<T> {
+    pub fn new() -> (Receiver<T>, ConstellationChan<T>) {
         let (chan, port) = channel();
         (port, ConstellationChan(chan))
+    }
+}
+
+impl<T> Clone for ConstellationChan<T> {
+    fn clone(&self) -> ConstellationChan<T> {
+        ConstellationChan(self.0.clone())
     }
 }
 
@@ -229,57 +234,38 @@ pub struct IframeLoadInfo {
     pub sandbox: IFrameSandboxState,
 }
 
-/// Messages from the compositor and script to the constellation.
+/// Messages from the compositor to the constellation.
 #[derive(Deserialize, Serialize)]
-pub enum Msg {
+pub enum CompositorMsg {
     Exit,
-    Failure(Failure),
-    InitLoadUrl(Url),
-    LoadComplete(PipelineId),
-    /// Dispatched after the DOM load event has fired on a document
-    DOMLoad(PipelineId),
     FrameSize(PipelineId, Size2D<f32>),
-    LoadUrl(PipelineId, LoadData),
-    ScriptLoadedURLInIFrame(IframeLoadInfo),
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
-    PainterReady(PipelineId),
-    ResizedWindow(WindowSizeData),
-    KeyEvent(Key, KeyState, KeyModifiers),
-    /// Requests that the constellation inform the compositor of the title of the pipeline
-    /// immediately.
-    GetPipelineTitle(PipelineId),
-    /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(Cursor),
-    /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
-    /// Indicates whether this pipeline is currently running animations.
-    ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId),
-    /// Request that the constellation send the current pipeline id for the provided frame
-    /// id, or for the root frame if this is None, over a provided channel
-    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the FrameId corresponding to the document
     /// with the provided pipeline id
     GetFrame(PipelineId, IpcSender<Option<FrameId>>),
-    /// Notifies the constellation that this frame has received focus.
-    Focus(PipelineId),
-    /// Requests that the constellation retrieve the current contents of the clipboard
-    GetClipboardContents(IpcSender<String>),
-    /// Requests that the constellation set the contents of the clipboard
-    SetClipboardContents(String),
-    /// Dispatch a webdriver command
-    WebDriverCommand(WebDriverCommandMsg),
-    /// Notifies the constellation that the viewport has been constrained in some manner
-    ViewportConstrained(PipelineId, ViewportConstraints),
+    /// Request that the constellation send the current pipeline id for the provided frame
+    /// id, or for the root frame if this is None, over a provided channel
+    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
+    /// Requests that the constellation inform the compositor of the title of the pipeline
+    /// immediately.
+    GetPipelineTitle(PipelineId),
+    InitLoadUrl(Url),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
-    /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId),
-    /// Favicon detected
-    NewFavicon(Url),
-    /// <head> tag finished parsing
-    HeadParsed,
+    KeyEvent(Key, KeyState, KeyModifiers),
+    LoadUrl(PipelineId, LoadData),
+    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    ResizedWindow(WindowSizeData),
+    /// Requests that the constellation instruct layout to begin a new tick of the animation.
+    TickAnimation(PipelineId),
+    /// Dispatch a webdriver command
+    WebDriverCommand(WebDriverCommandMsg),
+}
+
+/// Messages from the script to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum ScriptMsg {
+    /// Indicates whether this pipeline is currently running animations.
+    ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintTask(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
@@ -288,8 +274,34 @@ pub enum Msg {
     CreateWebGLPaintTask(Size2D<i32>,
                          GLContextAttributes,
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
+    /// Dispatched after the DOM load event has fired on a document
+    DOMLoad(PipelineId),
+    Failure(Failure),
+    /// Notifies the constellation that this frame has received focus.
+    Focus(PipelineId),
+    /// Requests that the constellation retrieve the current contents of the clipboard
+    GetClipboardContents(IpcSender<String>),
+    /// <head> tag finished parsing
+    HeadParsed,
+    LoadComplete(PipelineId),
+    LoadUrl(PipelineId, LoadData),
+    /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
+    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
+    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    /// Favicon detected
+    NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
+    PainterReady(PipelineId),
+    /// Notification that this iframe should be removed.
+    RemoveIFrame(PipelineId),
+    ScriptLoadedURLInIFrame(IframeLoadInfo),
+    /// Requests that the constellation set the contents of the clipboard
+    SetClipboardContents(String),
+    /// Requests that the constellation inform the compositor of the a cursor change.
+    SetCursor(Cursor),
+    /// Notifies the constellation that the viewport has been constrained in some manner
+    ViewportConstrained(PipelineId, ViewportConstraints),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]

@@ -14,7 +14,7 @@ use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
 use clipboard::ClipboardContext;
 use compositor_task::CompositorProxy;
-use compositor_task::Msg as CompositorMsg;
+use compositor_task::Msg as ToCompositorMsg;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -23,7 +23,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::AnimationState;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::CompositorMsg as FromCompositorMsg;
+use msg::constellation_msg::ScriptMsg as FromScriptMsg;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{IframeLoadInfo, IFrameSandboxState, MozBrowserEvent, NavigationDirection};
@@ -75,16 +76,16 @@ enum ReadyToSave {
 /// the `script` crate).
 pub struct Constellation<LTF, STF> {
     /// A channel through which script messages can be sent to this object.
-    pub script_sender: ConstellationChan,
+    pub script_sender: ConstellationChan<FromScriptMsg>,
 
     /// A channel through which compositor messages can be sent to this object.
-    pub compositor_sender: ConstellationChan,
+    pub compositor_sender: ConstellationChan<FromCompositorMsg>,
 
     /// Receives messages from scripts.
-    pub script_receiver: Receiver<ConstellationMsg>,
+    pub script_receiver: Receiver<FromScriptMsg>,
 
     /// Receives messages from the compositor
-    pub compositor_receiver: Receiver<ConstellationMsg>,
+    pub compositor_receiver: Receiver<FromCompositorMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
@@ -259,14 +260,13 @@ enum ExitPipelineMode {
 }
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
-    pub fn start(state: InitialConstellationState) -> ConstellationChan {
-        let (script_receiver, script_sender) = ConstellationChan::new();
-        let (compositor_receiver, compositor_sender) = ConstellationChan::new();
-        let script_sender_clone = script_sender.clone();
+    pub fn start(state: InitialConstellationState) -> ConstellationChan<FromCompositorMsg> {
+        let (script_receiver, script_sender) = ConstellationChan::<FromScriptMsg>::new();
+        let (compositor_receiver, compositor_sender) = ConstellationChan::<FromCompositorMsg>::new();
         let compositor_sender_clone = compositor_sender.clone();
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
-                script_sender: script_sender_clone,
+                script_sender: script_sender,
                 compositor_sender: compositor_sender_clone,
                 script_receiver: script_receiver,
                 compositor_receiver: compositor_receiver,
@@ -313,18 +313,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         compositor_sender
     }
 
-#[allow(unsafe_code)]
     fn run(&mut self) {
         loop {
-            let request = {
-                let receiver_from_script = &self.script_receiver;
-                let receiver_from_compositor = &self.compositor_receiver;
-                select! {
-                    msg = receiver_from_script.recv() => msg.unwrap(),
-                    msg = receiver_from_compositor.recv() => msg.unwrap()
-                }
-            };
-            if !self.handle_request(request) {
+            if !self.handle_request() {
                 break;
             }
         }
@@ -420,104 +411,155 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     /// Handles loading pages, navigation, and granting access to the compositor
-    fn handle_request(&mut self, request: ConstellationMsg) -> bool {
+    #[allow(unsafe_code)]
+    fn handle_request(&mut self) -> bool {
+        enum Request {
+            Script(FromScriptMsg),
+            Compositor(FromCompositorMsg)
+        }
+
+        let request = {
+            let receiver_from_script = &self.script_receiver;
+            let receiver_from_compositor = &self.compositor_receiver;
+            select! {
+                msg = receiver_from_script.recv() =>
+                    Request::Script(msg.unwrap()),
+                msg = receiver_from_compositor.recv() =>
+                    Request::Compositor(msg.unwrap())
+            }
+        };
+
         match request {
-            ConstellationMsg::Exit => {
+            // Messages from compositor
+
+
+            Request::Compositor(FromCompositorMsg::Exit) => {
                 debug!("constellation exiting");
                 self.handle_exit();
                 return false;
             }
-            ConstellationMsg::Failure(Failure { pipeline_id, parent_info }) => {
-                self.handle_failure_msg(pipeline_id, parent_info);
-            }
-            // This should only be called once per constellation, and only by the browser
-            ConstellationMsg::InitLoadUrl(url) => {
-                debug!("constellation got init load URL message");
-                self.handle_init_load(url);
-            }
             // The compositor discovered the size of a subframe. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
-            ConstellationMsg::FrameSize(pipeline_id, size) => {
+            Request::Compositor(FromCompositorMsg::FrameSize(pipeline_id, size)) => {
                 debug!("constellation got frame size message");
                 self.handle_frame_size_msg(pipeline_id, &Size2D::from_untyped(&size));
             }
-            ConstellationMsg::ScriptLoadedURLInIFrame(load_info) => {
+            Request::Compositor(FromCompositorMsg::GetFrame(pipeline_id, resp_chan)) => {
+                debug!("constellation got get root pipeline message");
+                self.handle_get_frame(pipeline_id, resp_chan);
+            }
+            Request::Compositor(FromCompositorMsg::GetPipeline(frame_id, resp_chan)) => {
+                debug!("constellation got get root pipeline message");
+                self.handle_get_pipeline(frame_id, resp_chan);
+            }
+            Request::Compositor(FromCompositorMsg::GetPipelineTitle(pipeline_id)) => {
+                debug!("constellation got get-pipeline-title message");
+                self.handle_get_pipeline_title_msg(pipeline_id);
+            }
+            Request::Compositor(FromCompositorMsg::KeyEvent(key, state, modifiers)) => {
+                debug!("constellation got key event message");
+                self.handle_key_msg(key, state, modifiers);
+            }
+            // Load a new page from a typed url
+            // If there is already a pending page (self.pending_frames), it will not be overridden;
+            // However, if the id is not encompassed by another change, it will be.
+            Request::Compositor(FromCompositorMsg::LoadUrl(source_id, load_data)) => {
+                debug!("constellation got URL load message from compositor");
+                self.handle_load_url_msg(source_id, load_data);
+            }
+            Request::Compositor(FromCompositorMsg::IsReadyToSaveImage(pipeline_states)) => {
+                let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
+                if opts::get().is_running_problem_test {
+                    println!("got ready to save image query, result is {:?}", is_ready);
+                }
+                let is_ready = is_ready == ReadyToSave::Ready;
+                self.compositor_proxy.send(ToCompositorMsg::IsReadyToSaveImageReply(is_ready));
+                if opts::get().is_running_problem_test {
+                    println!("sent response");
+                }
+            }
+            // This should only be called once per constellation, and only by the browser
+            Request::Compositor(FromCompositorMsg::InitLoadUrl(url)) => {
+                debug!("constellation got init load URL message");
+                self.handle_init_load(url);
+            }
+            // Handle a forward or back request
+            Request::Compositor(FromCompositorMsg::Navigate(pipeline_info, direction)) => {
+                debug!("constellation got navigation message from compositor");
+                self.handle_navigate_msg(pipeline_info, direction);
+            }
+            Request::Compositor(FromCompositorMsg::ResizedWindow(new_size)) => {
+                debug!("constellation got window resize message");
+                self.handle_resized_window_msg(new_size);
+            }
+            Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id)) => {
+                self.handle_tick_animation(pipeline_id)
+            }
+            Request::Compositor(FromCompositorMsg::WebDriverCommand(command)) => {
+                debug!("constellation got webdriver command message");
+                self.handle_webdriver_msg(command);
+            }
+
+
+            // Messages from script
+
+
+            Request::Script(FromScriptMsg::Failure(Failure { pipeline_id, parent_info })) => {
+                self.handle_failure_msg(pipeline_id, parent_info);
+            }
+            Request::Script(FromScriptMsg::ScriptLoadedURLInIFrame(load_info)) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.containing_pipeline_id,
                        load_info.old_subpage_id,
                        load_info.new_subpage_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            ConstellationMsg::SetCursor(cursor) => {
+            Request::Script(FromScriptMsg::SetCursor(cursor)) => {
                 self.handle_set_cursor_msg(cursor)
             }
-            ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
+            Request::Script(FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state)) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
-            ConstellationMsg::TickAnimation(pipeline_id) => {
-                self.handle_tick_animation(pipeline_id)
-            }
-            // Load a new page, usually -- but not always -- from a mouse click or typed url
+            // Load a new page from a mouse click
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            ConstellationMsg::LoadUrl(source_id, load_data) => {
-                debug!("constellation got URL load message");
+            Request::Script(FromScriptMsg::LoadUrl(source_id, load_data)) => {
+                debug!("constellation got URL load message from script");
                 self.handle_load_url_msg(source_id, load_data);
             }
-            // A page loaded through one of several methods above has completed all parsing,
-            // script, and reflow messages have been sent.
-            ConstellationMsg::LoadComplete(pipeline_id) => {
+            // A page loaded has completed all parsing, script, and reflow messages have been sent.
+            Request::Script(FromScriptMsg::LoadComplete(pipeline_id)) => {
                 debug!("constellation got load complete message");
                 self.handle_load_complete_msg(&pipeline_id)
             }
             // The DOM load event fired on a document
-            ConstellationMsg::DOMLoad(pipeline_id) => {
+            Request::Script(FromScriptMsg::DOMLoad(pipeline_id)) => {
                 debug!("constellation got dom load message");
                 self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
-            ConstellationMsg::Navigate(pipeline_info, direction) => {
-                debug!("constellation got navigation message");
+            Request::Script(FromScriptMsg::Navigate(pipeline_info, direction)) => {
+                debug!("constellation got navigation message from script");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
             // Notification that painting has finished and is requesting permission to paint.
-            ConstellationMsg::PainterReady(pipeline_id) => {
+            Request::Script(FromScriptMsg::PainterReady(pipeline_id)) => {
                 debug!("constellation got painter ready message");
                 self.handle_painter_ready_msg(pipeline_id);
             }
-            ConstellationMsg::ResizedWindow(new_size) => {
-                debug!("constellation got window resize message");
-                self.handle_resized_window_msg(new_size);
-            }
-            ConstellationMsg::KeyEvent(key, state, modifiers) => {
-                debug!("constellation got key event message");
-                self.handle_key_msg(key, state, modifiers);
-            }
-            ConstellationMsg::GetPipelineTitle(pipeline_id) => {
-                debug!("constellation got get-pipeline-title message");
-                self.handle_get_pipeline_title_msg(pipeline_id);
-            }
-            ConstellationMsg::MozBrowserEvent(pipeline_id,
+            Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
                                               subpage_id,
-                                              event) => {
+                                              event)) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(pipeline_id,
                                                  subpage_id,
                                                  event);
             }
-            ConstellationMsg::GetPipeline(frame_id, resp_chan) => {
-                debug!("constellation got get root pipeline message");
-                self.handle_get_pipeline(frame_id, resp_chan);
-            }
-            ConstellationMsg::GetFrame(pipeline_id, resp_chan) => {
-                debug!("constellation got get root pipeline message");
-                self.handle_get_frame(pipeline_id, resp_chan);
-            }
-            ConstellationMsg::Focus(pipeline_id) => {
+            Request::Script(FromScriptMsg::Focus(pipeline_id)) => {
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
             }
-            ConstellationMsg::GetClipboardContents(sender) => {
+            Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
                 let result = self.clipboard_ctx.as_ref().map_or(
                     "".to_owned(),
                     |ctx| ctx.get_contents().unwrap_or_else(|e| {
@@ -527,55 +569,40 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 );
                 sender.send(result).unwrap();
             }
-            ConstellationMsg::SetClipboardContents(s) => {
+            Request::Script(FromScriptMsg::SetClipboardContents(s)) => {
                 if let Some(ref mut ctx) = self.clipboard_ctx {
                     if let Err(e) = ctx.set_contents(s) {
                         debug!("Error setting clipboard contents ({})", e);
                     }
                 }
             }
-            ConstellationMsg::WebDriverCommand(command) => {
-                debug!("constellation got webdriver command message");
-                self.handle_webdriver_msg(command);
-            }
-            ConstellationMsg::ViewportConstrained(pipeline_id, constraints) => {
+            Request::Script(FromScriptMsg::ViewportConstrained(pipeline_id, constraints)) => {
                 debug!("constellation got viewport-constrained event message");
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             }
-            ConstellationMsg::IsReadyToSaveImage(pipeline_states) => {
-                let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
-                if opts::get().is_running_problem_test {
-                    println!("got ready to save image query, result is {:?}", is_ready);
-                }
-                let is_ready = is_ready == ReadyToSave::Ready;
-                self.compositor_proxy.send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
-                if opts::get().is_running_problem_test {
-                    println!("sent response");
-                }
-            }
-            ConstellationMsg::RemoveIFrame(pipeline_id) => {
+            Request::Script(FromScriptMsg::RemoveIFrame(pipeline_id)) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
             }
-            ConstellationMsg::NewFavicon(url) => {
+            Request::Script(FromScriptMsg::NewFavicon(url)) => {
                 debug!("constellation got new favicon message");
-                self.compositor_proxy.send(CompositorMsg::NewFavicon(url));
+                self.compositor_proxy.send(ToCompositorMsg::NewFavicon(url));
             }
-            ConstellationMsg::HeadParsed => {
+            Request::Script(FromScriptMsg::HeadParsed) => {
                 debug!("constellation got head parsed message");
-                self.compositor_proxy.send(CompositorMsg::HeadParsed);
+                self.compositor_proxy.send(ToCompositorMsg::HeadParsed);
             }
-            ConstellationMsg::CreateCanvasPaintTask(size, sender) => {
+            Request::Script(FromScriptMsg::CreateCanvasPaintTask(size, sender)) => {
                 debug!("constellation got create-canvas-paint-task message");
                 self.handle_create_canvas_paint_task_msg(&size, sender)
             }
-            ConstellationMsg::CreateWebGLPaintTask(size, attributes, sender) => {
+            Request::Script(FromScriptMsg::CreateWebGLPaintTask(size, attributes, sender)) => {
                 debug!("constellation got create-WebGL-paint-task message");
                 self.handle_create_webgl_paint_task_msg(&size, attributes, sender)
             }
-            ConstellationMsg::NodeStatus(message) => {
+            Request::Script(FromScriptMsg::NodeStatus(message)) => {
                 debug!("constellation got NodeStatus message");
-                self.compositor_proxy.send(CompositorMsg::Status(message));
+                self.compositor_proxy.send(ToCompositorMsg::Status(message));
             }
         }
         true
@@ -593,7 +620,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         });
         self.storage_task.send(StorageTaskMsg::Exit).unwrap();
         self.font_cache_task.exit();
-        self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
+        self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
     }
 
     fn handle_failure_msg(&mut self,
@@ -643,7 +670,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone()));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
-        self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
+        self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_size_msg(&mut self,
@@ -719,13 +746,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
-        self.compositor_proxy.send(CompositorMsg::SetCursor(cursor))
+        self.compositor_proxy.send(ToCompositorMsg::SetCursor(cursor))
     }
 
     fn handle_change_running_animations_state(&mut self,
                                               pipeline_id: PipelineId,
                                               animation_state: AnimationState) {
-        self.compositor_proxy.send(CompositorMsg::ChangeRunningAnimationsState(pipeline_id,
+        self.compositor_proxy.send(ToCompositorMsg::ChangeRunningAnimationsState(pipeline_id,
                                                                                animation_state))
     }
 
@@ -789,7 +816,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         if let Some(id) = self.pipeline_to_frame_map.get(pipeline_id) {
             let forward = !self.frame(*id).next.is_empty();
             let back = !self.frame(*id).prev.is_empty();
-            self.compositor_proxy.send(CompositorMsg::LoadStart(back, forward));
+            self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
         }
     }
 
@@ -804,7 +831,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let forward = !self.frame(frame_id).next.is_empty();
         let back = !self.frame(frame_id).prev.is_empty();
-        self.compositor_proxy.send(CompositorMsg::LoadComplete(back, forward));
+        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward));
     }
 
     fn handle_dom_load(&mut self,
@@ -920,7 +947,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     ConstellationControlMsg::SendEvent(pipeline.id, event)).unwrap();
             }
             None => {
-                let event = CompositorMsg::KeyEvent(key, state, mods);
+                let event = ToCompositorMsg::KeyEvent(key, state, mods);
                 self.compositor_proxy.clone_compositor_proxy().send(event);
             }
         }
@@ -928,7 +955,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
         match self.pipelines.get(&pipeline_id) {
-            None => self.compositor_proxy.send(CompositorMsg::ChangePageTitle(pipeline_id, None)),
+            None => self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => {
                 pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id)).unwrap();
             }
@@ -1062,7 +1089,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     frame.current
                 });
                 if Some(pipeline_id) == current_pipeline_id {
-                    self.compositor_proxy.send(CompositorMsg::CreatePng(reply));
+                    self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
                     reply.send(None).unwrap();
                 }
@@ -1223,7 +1250,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_viewport_constrained_msg(&mut self,
                                        pipeline_id: PipelineId,
                                        constraints: ViewportConstraints) {
-        self.compositor_proxy.send(CompositorMsg::ViewportConstrained(pipeline_id, constraints));
+        self.compositor_proxy.send(ToCompositorMsg::ViewportConstrained(pipeline_id, constraints));
     }
 
     /// Checks the state of all script and layout pipelines to see if they are idle
@@ -1419,7 +1446,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let frame_tree = self.frame_to_sendable(root_frame_id);
 
             let (chan, port) = channel();
-            self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree,
+            self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
                                                                    chan,
                                                                    self.compositor_sender.clone()));
             if port.recv().is_err() {

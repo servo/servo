@@ -14,6 +14,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::uintptr_t;
 use msg::compositor_msg::Epoch;
 use msg::compositor_msg::LayerId;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
 use net_traits::image_cache_task::ImageCacheTask;
@@ -251,7 +252,7 @@ pub struct NewLayoutTaskInfo {
     pub is_parent: bool,
     pub layout_pair: OpaqueScriptLayoutChannel,
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan<ConstellationMsg>,
     pub failure: Failure,
     pub script_chan: Sender<ConstellationControlMsg>,
     pub image_cache_task: ImageCacheTask,

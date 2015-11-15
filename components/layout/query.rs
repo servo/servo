@@ -12,7 +12,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
 use layout_task::LayoutTaskData;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};

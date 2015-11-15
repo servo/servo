@@ -33,7 +33,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};

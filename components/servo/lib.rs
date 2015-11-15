@@ -48,12 +48,12 @@ extern crate libc;
 extern crate webdriver_server;
 
 #[cfg(feature = "webdriver")]
-fn webdriver(port: u16, constellation: msg::constellation_msg::ConstellationChan) {
+fn webdriver(port: u16, constellation: msg::constellation_msg::ConstellationChan<ConstellationMsg>) {
     webdriver_server::start_server(port, constellation.clone());
 }
 
 #[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationChan) { }
+fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationChan<ConstellationMsg>) { }
 
 use compositing::CompositorEventListener;
 use compositing::compositor_task::InitialCompositorState;
@@ -62,8 +62,8 @@ use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 use gfx::font_cache_task::FontCacheTask;
+use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::new_image_cache_task;
 use net::resource_task::new_resource_task;
 use net::storage_task::StorageTaskFactory;
@@ -193,7 +193,7 @@ fn create_constellation(opts: opts::Opts,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-                        supports_clipboard: bool) -> ConstellationChan {
+                        supports_clipboard: bool) -> ConstellationChan<ConstellationMsg> {
     let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 
     let image_cache_task = new_image_cache_task(resource_task.clone());

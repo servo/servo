@@ -62,7 +62,7 @@ use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLa
 use libc;
 use mem::heap_size_of_self_and_children;
 use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{PipelineNamespace};
@@ -403,7 +403,7 @@ pub struct ScriptTask {
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// A handle to the compositor for communicating ready state messages.
     compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
