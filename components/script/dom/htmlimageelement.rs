@@ -247,6 +247,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
         image.is_some()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
+    fn CurrentSrc(&self) -> String {
+        let image = self.image.borrow();
+        image.currentRequest.CurrentUrl()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name);
 
