@@ -34,7 +34,6 @@ use std::cmp::{max, min};
 use std::collections::LinkedList;
 use std::fmt;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
 use style::computed_values::{overflow_x, position, text_align, text_decoration, transform_style};
@@ -306,28 +305,38 @@ pub struct CanvasFragmentInfo {
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub renderer_id: Option<usize>,
     pub ipc_renderer: Option<Arc<Mutex<IpcSender<CanvasMsg>>>>,
+    pub dom_width: Au,
+    pub dom_height: Au,
 }
 
 impl CanvasFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode, data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(data.width as i32)),
-                Some(Au::from_px(data.height as i32))),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
             renderer_id: data.renderer_id,
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
+            dom_width: Au::from_px(data.width as i32),
+            dom_height: Au::from_px(data.height as i32),
         }
     }
 
     /// Returns the original inline-size of the canvas.
     pub fn canvas_inline_size(&self) -> Au {
-        self.replaced_image_fragment_info.dom_inline_size.unwrap_or(Au(0))
+        if self.replaced_image_fragment_info.writing_mode_is_vertical {
+            self.dom_height
+        } else {
+            self.dom_width
+        }
     }
 
     /// Returns the original block-size of the canvas.
     pub fn canvas_block_size(&self) -> Au {
-        self.replaced_image_fragment_info.dom_block_size.unwrap_or(Au(0))
+        if self.replaced_image_fragment_info.writing_mode_is_vertical {
+            self.dom_height
+        } else {
+            self.dom_width
+        }
     }
 }
 
@@ -349,21 +358,12 @@ impl ImageFragmentInfo {
                url: Option<Url>,
                layout_context: &LayoutContext)
                -> ImageFragmentInfo {
-        fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
-            let element = node.as_element();
-            element.get_attr(&ns!(""), name)
-                   .and_then(|string| string.parse().ok())
-                   .map(Au::from_px)
-        }
-
         let image = url.and_then(|url| {
             layout_context.get_or_request_image(url, UsePlaceholder::Yes)
         });
 
         ImageFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                convert_length(node, &atom!("width")),
-                convert_length(node, &atom!("height"))),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
             image: image,
         }
     }
@@ -417,29 +417,15 @@ impl ImageFragmentInfo {
 pub struct ReplacedImageFragmentInfo {
     pub computed_inline_size: Option<Au>,
     pub computed_block_size: Option<Au>,
-    pub dom_inline_size: Option<Au>,
-    pub dom_block_size: Option<Au>,
     pub writing_mode_is_vertical: bool,
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new(node: &ThreadSafeLayoutNode,
-               dom_width: Option<Au>,
-               dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
+    pub fn new(node: &ThreadSafeLayoutNode) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
         ReplacedImageFragmentInfo {
             computed_inline_size: None,
             computed_block_size: None,
-            dom_inline_size: if is_vertical {
-                dom_height
-            } else {
-                dom_width
-            },
-            dom_block_size: if is_vertical {
-                dom_width
-            } else {
-                dom_height
-            },
             writing_mode_is_vertical: is_vertical,
         }
     }
@@ -459,20 +445,18 @@ impl ReplacedImageFragmentInfo {
     // `dom_length`: inline-size or block-size as specified in the `img` tag.
     // `style_length`: inline-size as given in the CSS
     pub fn style_length(style_length: LengthOrPercentageOrAuto,
-                        dom_length: Option<Au>,
                         container_size: Option<Au>) -> MaybeAuto {
-        match (style_length, dom_length, container_size) {
-            (LengthOrPercentageOrAuto::Length(length), _, _) => MaybeAuto::Specified(length),
-            (LengthOrPercentageOrAuto::Percentage(pc), _, Some(container_size)) => {
+        match (style_length, container_size) {
+            (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
+            (LengthOrPercentageOrAuto::Percentage(pc), Some(container_size)) => {
                 MaybeAuto::Specified(container_size.scale_by(pc))
             }
-            (LengthOrPercentageOrAuto::Percentage(_), _, None) => MaybeAuto::Auto,
-            (LengthOrPercentageOrAuto::Calc(calc), _, Some(container_size)) => {
+            (LengthOrPercentageOrAuto::Percentage(_), None) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
                 MaybeAuto::Specified(calc.length() + container_size.scale_by(calc.percentage()))
             }
-            (LengthOrPercentageOrAuto::Calc(_), _, None) => MaybeAuto::Auto,
-            (LengthOrPercentageOrAuto::Auto, Some(dom_length), _) => MaybeAuto::Specified(dom_length),
-            (LengthOrPercentageOrAuto::Auto, None, _) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Calc(_), None) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
         }
     }
 
@@ -493,7 +477,6 @@ impl ReplacedImageFragmentInfo {
         // TODO(ksh8281): compute border,margin
         let inline_size = ReplacedImageFragmentInfo::style_length(
             style_inline_size,
-            self.dom_inline_size,
             Some(container_inline_size));
 
         let inline_size = match inline_size {
@@ -508,7 +491,6 @@ impl ReplacedImageFragmentInfo {
 
                     let specified_height = ReplacedImageFragmentInfo::style_length(
                         style_block_size,
-                        self.dom_block_size,
                         None);
                     let specified_height = match specified_height {
                         MaybeAuto::Auto => intrinsic_height,
@@ -548,7 +530,6 @@ impl ReplacedImageFragmentInfo {
         let inline_size = self.computed_inline_size();
         let block_size = ReplacedImageFragmentInfo::style_length(
             style_block_size,
-            self.dom_block_size,
             containing_block_block_size);
 
         let block_size = match block_size {
@@ -1349,17 +1330,13 @@ impl Fragment {
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                // FIXME(pcwalton): Shouldn't `width` and `height` be preshints?
-                let image_inline_size = match (image_fragment_info.replaced_image_fragment_info
-                                                                  .dom_inline_size,
-                                               self.style.content_inline_size()) {
-                    (None, LengthOrPercentageOrAuto::Auto) |
-                    (None, LengthOrPercentageOrAuto::Percentage(_)) => {
+                let image_inline_size = match self.style.content_inline_size() {
+                    LengthOrPercentageOrAuto::Auto |
+                    LengthOrPercentageOrAuto::Percentage(_) => {
                         image_fragment_info.image_inline_size()
                     }
-                    (Some(dom_inline_size), _) => dom_inline_size,
-                    (None, LengthOrPercentageOrAuto::Length(length)) => length,
-                    (None, LengthOrPercentageOrAuto::Calc(calc)) => calc.length(),
+                    LengthOrPercentageOrAuto::Length(length) => length,
+                    LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
                 };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,
@@ -1367,11 +1344,18 @@ impl Fragment {
                 });
             }
             SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
-                let canvas_inline_size = canvas_fragment_info.canvas_inline_size();
+                let canvas_inline_size = match self.style.content_inline_size() {
+                    LengthOrPercentageOrAuto::Auto |
+                    LengthOrPercentageOrAuto::Percentage(_) => {
+                        canvas_fragment_info.canvas_inline_size()
+                    }
+                    LengthOrPercentageOrAuto::Length(length) => length,
+                    LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
+                };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: canvas_inline_size,
                     preferred_inline_size: canvas_inline_size,
-                })
+                });
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
@@ -1870,6 +1854,16 @@ impl Fragment {
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
                 let computed_block_size = image_fragment_info.replaced_image_fragment_info
                                                              .computed_block_size();
+                InlineMetrics {
+                    block_size_above_baseline: computed_block_size +
+                                                   self.border_padding.block_start,
+                    depth_below_baseline: self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start,
+                }
+            }
+            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
+                let computed_block_size = canvas_fragment_info.replaced_image_fragment_info
+                                                              .computed_block_size();
                 InlineMetrics {
                     block_size_above_baseline: computed_block_size +
                                                    self.border_padding.block_start,
