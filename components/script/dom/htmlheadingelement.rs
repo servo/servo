@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
+use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding::{self, HTMLHeadingElementMethods};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
+use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -44,5 +46,19 @@ impl HTMLHeadingElement {
                level: HeadingLevel) -> Root<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, prefix, document, level);
         Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
+    }
+}
+
+impl HTMLHeadingElementMethods for HTMLHeadingElement {
+    // https://html.spec.whatwg.org/multipage/#dom-hx-align
+    make_getter!(Align);
+
+    // https://html.spec.whatwg.org/multipage/#dom-hx-align
+    make_setter!(SetAlign, "align");
+}
+
+impl VirtualMethods for HTMLHeadingElement {
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 }

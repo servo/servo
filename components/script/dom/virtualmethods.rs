@@ -22,6 +22,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmlheadingelement::HTMLHeadingElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -32,6 +33,7 @@ use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmlparagraphelement::HTMLParagraphElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
@@ -157,6 +159,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
             node.downcast::<HTMLHeadElement>().unwrap() as &VirtualMethods
         }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadingElement)) => {
+            node.downcast::<HTMLHeadingElement>().unwrap() as &VirtualMethods
+        }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)) => {
             node.downcast::<HTMLHRElement>().unwrap() as &VirtualMethods
         }
@@ -186,6 +191,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
             node.downcast::<HTMLOptionElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement)) => {
+            node.downcast::<HTMLParagraphElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
             node.downcast::<HTMLScriptElement>().unwrap() as &VirtualMethods
