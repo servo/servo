@@ -60,6 +60,9 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
+        if !::util::prefs::get_pref("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+            return;
+        }
         let element = self.upcast::<Element>();
         if let Some(content) = element.get_attribute(&ns!(""), &atom!("content")).r() {
             let content = content.value();
