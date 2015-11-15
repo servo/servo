@@ -45,7 +45,6 @@ pub mod animation;
 pub mod attr;
 mod custom_properties;
 pub mod font_face;
-pub mod legacy;
 pub mod media_queries;
 pub mod node;
 pub mod parser;

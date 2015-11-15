@@ -64,7 +64,6 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
-use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -643,12 +642,6 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
         }
     }
 
-    fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
-        unsafe {
-            self.element.get_unsigned_integer_attribute_for_layout(attribute)
-        }
-    }
-
     #[inline]
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
         unsafe {
@@ -885,18 +878,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
-                                          -> Option<u32> {
-        unsafe {
-            match self.get_jsmanaged().downcast::<Element>() {
-                Some(element) => {
-                    element.get_unsigned_integer_attribute_for_layout(attribute)
-                }
-                None => panic!("not an element!")
-            }
-        }
-    }
-
     /// Get the description of how to account for recent style changes.
     /// This is a simple bitfield and fine to copy by value.
     pub fn restyle_damage(self) -> RestyleDamage {
@@ -1037,6 +1018,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             let iframe_element = self.get_jsmanaged().downcast::<HTMLIFrameElement>()
                 .expect("not an iframe element!");
             iframe_element.pipeline_id().unwrap()
+        }
+    }
+
+    pub fn get_colspan(&self) -> u32 {
+        unsafe {
+            self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
         }
     }
 }
