@@ -20,6 +20,7 @@ class GroupingFormatter(base.BaseFormatter):
         self.last_test_finished = "Running tests..."
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
+        self.test_failure_text = ""
         self.tests_with_failing_subtests = []
         self.interactive = os.isatty(sys.stdout.fileno())
 
@@ -182,7 +183,7 @@ class GroupingFormatter(base.BaseFormatter):
             if self.interactive:
                 return self.generate_output(text=None, new_display=new_display)
             else:
-                return self.generate_output(text="  %s\n\n" % test_name,
+                return self.generate_output(text="  %s\n" % test_name,
                                             new_display=new_display)
 
         # If the test crashed or timed out, we also include any process output,
@@ -208,6 +209,7 @@ class GroupingFormatter(base.BaseFormatter):
             self.tests_with_failing_subtests.append(test_name)
             output += self.get_output_for_unexpected_subtests(test_name,
                                                               subtest_failures)
+        self.test_failure_text += output
 
         return self.generate_output(text=output, new_display=new_display)
 
@@ -218,10 +220,15 @@ class GroupingFormatter(base.BaseFormatter):
     def suite_end(self, data):
         self.end_time = data["time"]
 
-        output = u"Ran %i tests finished in %.1f seconds.\n" % (
-                 self.completed_tests, (self.end_time - self.start_time) / 1000)
+        if not self.interactive:
+            output = u"\n"
+        else:
+            output = ""
+
+        output += u"Ran %i tests finished in %.1f seconds.\n" % (
+            self.completed_tests, (self.end_time - self.start_time) / 1000)
         output += u"  \u2022 %i ran as expected. %i tests skipped.\n" % (
-                  sum(self.expected.values()), self.expected['SKIP'])
+            sum(self.expected.values()), self.expected['SKIP'])
 
         def text_for_unexpected_list(text, section):
             tests = self.unexpected_tests[section]
@@ -240,8 +247,13 @@ class GroupingFormatter(base.BaseFormatter):
         if num_with_failing_subtests:
             output += (u"  \u2022 %i tests had unexpected subtest results\n"
                        % num_with_failing_subtests)
-
         output += "\n"
+
+        # Repeat failing test output, so that it is easier to find, since the
+        # non-interactive version prints all the test names.
+        if not self.interactive and self.test_failure_text:
+            output += u"Tests with unexpected results:\n" + self.test_failure_text
+
         return self.generate_output(text=output, new_display="")
 
     def process_output(self, data):
