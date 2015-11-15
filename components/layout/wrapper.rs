@@ -64,7 +64,6 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
-use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -643,12 +642,6 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
         }
     }
 
-    fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
-        unsafe {
-            self.element.get_unsigned_integer_attribute_for_layout(attribute)
-        }
-    }
-
     #[inline]
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
         unsafe {
@@ -881,18 +874,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 white_space::T::pre |
                 white_space::T::pre_wrap |
                 white_space::T::pre_line => false,
-            }
-        }
-    }
-
-    pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
-                                          -> Option<u32> {
-        unsafe {
-            match self.get_jsmanaged().downcast::<Element>() {
-                Some(element) => {
-                    element.get_unsigned_integer_attribute_for_layout(attribute)
-                }
-                None => panic!("not an element!")
             }
         }
     }

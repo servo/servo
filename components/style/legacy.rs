@@ -13,14 +13,6 @@ use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
 use std::sync::Arc;
 
-
-/// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum UnsignedIntegerAttribute {
-    /// `<td colspan>`
-    ColSpan,
-}
-
 /// Extension methods for `Stylist` that cause rules to be synthesized for legacy attributes.
 pub trait PresentationalHintSynthesis {
     /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer

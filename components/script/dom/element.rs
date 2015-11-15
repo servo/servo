@@ -75,7 +75,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
-use style::legacy::{UnsignedIntegerAttribute, from_declaration};
+use style::legacy::from_declaration;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -226,9 +226,6 @@ pub trait LayoutElementHelpers {
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     #[allow(unsafe_code)]
     unsafe fn get_colspan(self) -> u32;
-    #[allow(unsafe_code)]
-    unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
-                                                        -> Option<u32>;
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
@@ -509,23 +506,6 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // Don't panic since `display` can cause this to be called on arbitrary
             // elements.
             1
-        }
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_unsigned_integer_attribute_for_layout(&self,
-                                                        attribute: UnsignedIntegerAttribute)
-                                                        -> Option<u32> {
-        match attribute {
-            UnsignedIntegerAttribute::ColSpan => {
-                if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-                    this.get_colspan()
-                } else {
-                    // Don't panic since `display` can cause this to be called on arbitrary
-                    // elements.
-                    None
-                }
-            }
         }
     }
 
