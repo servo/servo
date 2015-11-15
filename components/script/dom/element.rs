@@ -75,7 +75,6 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
-use style::legacy::from_declaration;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -259,6 +258,12 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
+        #[inline]
+        fn from_declaration(rule: PropertyDeclaration)
+                            -> DeclarationBlock<Vec<PropertyDeclaration>> {
+            DeclarationBlock::from_declarations(Arc::new(vec![rule]))
+        }
+
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             this.get_background_color()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
