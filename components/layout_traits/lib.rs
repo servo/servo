@@ -24,6 +24,7 @@ extern crate util;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::LayoutToPaintMsg;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::{mem, time};
@@ -46,7 +47,7 @@ pub trait LayoutTaskFactory {
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: IpcReceiver<LayoutControlMsg>,
-              constellation_chan: ConstellationChan,
+              constellation_chan: ConstellationChan<ConstellationMsg>,
               failure_msg: Failure,
               script_chan: Sender<ConstellationControlMsg>,
               layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,

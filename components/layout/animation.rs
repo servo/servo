@@ -8,7 +8,8 @@ use clock_ticks;
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
-use msg::constellation_msg::{AnimationState, ConstellationChan, Msg, PipelineId};
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
+use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use script::layout_interface::Animation;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -48,7 +49,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Mutex<Sender<Anim
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed.
-pub fn update_animation_state(constellation_chan: &ConstellationChan,
+pub fn update_animation_state(constellation_chan: &ConstellationChan<ConstellationMsg>,
                               running_animations: &mut Arc<HashMap<OpaqueNode, Vec<Animation>>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId) {
@@ -100,7 +101,7 @@ pub fn update_animation_state(constellation_chan: &ConstellationChan,
     }
 
     constellation_chan.0
-                      .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
+                      .send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state))
                       .unwrap();
 }
 

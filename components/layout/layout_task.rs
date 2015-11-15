@@ -37,7 +37,7 @@ use layout_debug;
 use layout_traits::LayoutTaskFactory;
 use log;
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
 use opaque_node::OpaqueNodeMethods;
@@ -95,7 +95,7 @@ const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutTaskData {
     /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
@@ -149,7 +149,7 @@ pub struct LayoutTask {
     font_cache_sender: Sender<()>,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the script task.
     script_chan: Sender<ConstellationControlMsg>,
@@ -226,7 +226,7 @@ impl LayoutTaskFactory for LayoutTask {
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: IpcReceiver<LayoutControlMsg>,
-              constellation_chan: ConstellationChan,
+              constellation_chan: ConstellationChan<ConstellationMsg>,
               failure_msg: Failure,
               script_chan: Sender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
@@ -354,7 +354,7 @@ impl LayoutTask {
            is_iframe: bool,
            port: Receiver<Msg>,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
-           constellation_chan: ConstellationChan,
+           constellation_chan: ConstellationChan<ConstellationMsg>,
            script_chan: Sender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,

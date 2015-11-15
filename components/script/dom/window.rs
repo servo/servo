@@ -43,6 +43,7 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
@@ -191,7 +192,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the constellation task.
     #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
@@ -1071,7 +1072,7 @@ impl Window {
         self.layout_chan.clone()
     }
 
-    pub fn constellation_chan(&self) -> ConstellationChan {
+    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
         self.constellation_chan.clone()
     }
 
@@ -1224,7 +1225,7 @@ impl Window {
                storage_task: StorageTask,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-               constellation_chan: ConstellationChan,
+               constellation_chan: ConstellationChan<ConstellationMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,

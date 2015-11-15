@@ -24,6 +24,7 @@ use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{CommonScriptMsg, Runnable};
@@ -37,7 +38,7 @@ use util::str::DOMString;
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "#7193"]
-    textinput: DOMRefCell<TextInput<ConstellationChan>>,
+    textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
     cols: Cell<u32>,
     rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty

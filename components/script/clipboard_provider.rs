@@ -4,7 +4,7 @@
 
 use ipc_channel::ipc;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 
@@ -15,7 +15,7 @@ pub trait ClipboardProvider {
     fn set_clipboard_contents(&mut self, String);
 }
 
-impl ClipboardProvider for ConstellationChan {
+impl ClipboardProvider for ConstellationChan<ConstellationMsg> {
     fn clipboard_contents(&mut self) -> String {
         let (tx, rx) = ipc::channel().unwrap();
         self.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
