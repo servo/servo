@@ -632,13 +632,6 @@ impl ColumnIntrinsicInlineSize {
         }
     }
 
-    /// Returns the true minimum size of this column, given the containing block's inline size.
-    /// Beware that this is generally only correct for fixed table layout. (Compare CSS 2.1 §
-    /// 17.5.2.1 with the algorithm in INTRINSIC § 4.)
-    pub fn minimum(&self, containing_block_inline_size: Au) -> Au {
-        cmp::max(self.minimum_length, containing_block_inline_size.scale_by(self.percentage))
-    }
-
     /// Returns the higher of the two percentages specified in `self` and `other`.
     pub fn greatest_percentage(&self, other: &ColumnIntrinsicInlineSize) -> CSSFloat {
         if self.percentage > other.percentage {

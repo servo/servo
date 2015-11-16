@@ -804,16 +804,6 @@ impl InlineFragments {
         self.fragments.is_empty()
     }
 
-    /// Pushes a new inline fragment.
-    pub fn push(&mut self, fragment: &mut Fragment) {
-        self.fragments.push(fragment.clone());
-    }
-
-    /// Merges another set of inline fragments with this one.
-    pub fn push_all(&mut self, mut other: InlineFragments) {
-        self.fragments.append(&mut other.fragments);
-    }
-
     /// A convenience function to return the fragment at a given index.
     pub fn get(&self, index: usize) -> &Fragment {
         &self.fragments[index]

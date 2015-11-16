@@ -1430,11 +1430,6 @@ impl ContainingBlockLink {
         self.link = Some(Arc::downgrade(&link))
     }
 
-    #[allow(unsafe_code)]
-    pub unsafe fn get(&mut self) -> &mut Option<WeakFlowRef> {
-        &mut self.link
-    }
-
     #[inline]
     pub fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
         match self.link {
@@ -1482,9 +1477,5 @@ impl OpaqueFlow {
             let object = mem::transmute::<&Flow, raw::TraitObject>(flow);
             OpaqueFlow(object.data as usize)
         }
-    }
-
-    pub fn from_base_flow(base_flow: &BaseFlow) -> OpaqueFlow {
-        OpaqueFlow(base_flow as *const BaseFlow as usize)
     }
 }

@@ -44,12 +44,6 @@ fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
 }
 
-pub fn owned_flow_to_unsafe_flow(flow: *const FlowRef) -> UnsafeFlow {
-    unsafe {
-        mem::transmute::<&Flow, UnsafeFlow>(&**flow)
-    }
-}
-
 pub fn mut_owned_flow_to_unsafe_flow(flow: *mut FlowRef) -> UnsafeFlow {
     unsafe {
         mem::transmute::<&Flow, UnsafeFlow>(&**flow)
@@ -57,12 +51,6 @@ pub fn mut_owned_flow_to_unsafe_flow(flow: *mut FlowRef) -> UnsafeFlow {
 }
 
 pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
-    unsafe {
-        mem::transmute::<&Flow, UnsafeFlow>(flow)
-    }
-}
-
-pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
     unsafe {
         mem::transmute::<&Flow, UnsafeFlow>(flow)
     }

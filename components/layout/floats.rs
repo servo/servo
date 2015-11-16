@@ -153,10 +153,6 @@ impl Floats {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.list.floats.len()
-    }
-
     /// Returns a rectangle that encloses the region from block-start to block-start + block-size,
     /// with inline-size small enough that it doesn't collide with any floats. max_x is the
     /// inline-size beyond which floats have no effect. (Generally this is the containing block
