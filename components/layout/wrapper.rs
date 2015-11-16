@@ -672,13 +672,6 @@ impl<T> PseudoElementType<T> {
         }
     }
 
-    pub fn is_after(&self) -> bool {
-        match *self {
-            PseudoElementType::After(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn strip(&self) -> PseudoElementType<()> {
         match *self {
             PseudoElementType::Normal => PseudoElementType::Normal,

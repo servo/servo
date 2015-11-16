@@ -78,10 +78,6 @@ impl TableRowGroupFlow {
         }
     }
 
-    pub fn fragment(&mut self) -> &Fragment {
-        &self.block_flow.fragment
-    }
-
     pub fn populate_collapsed_border_spacing<'a, I>(
             &mut self,
             collapsed_inline_direction_border_widths_for_table: &[Au],

@@ -95,10 +95,6 @@ impl TableRowFlow {
         }
     }
 
-    pub fn fragment(&mut self) -> &Fragment {
-        &self.block_flow.fragment
-    }
-
     /// Assign block-size for table-row flow.
     ///
     /// TODO(pcwalton): This doesn't handle floats and positioned elements right.
@@ -542,10 +538,6 @@ impl Encodable for CollapsedBorder {
 pub enum CollapsedBorderProvenance {
     FromPreviousTableCell = 6,
     FromNextTableCell = 5,
-    FromTableRow = 4,
-    FromTableRowGroup = 3,
-    FromTableColumn = 2,
-    FromTableColumnGroup = 1,
     FromTable = 0,
 }
 
