@@ -615,20 +615,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
-                let mut reports = vec![];
                 let name = "compositor-task";
                 // These are both `ExplicitUnknownLocationSize` because the memory might be in the
                 // GPU or on the heap.
-                reports.push(mem::Report {
+                let reports = vec![mem::Report {
                     path: path![name, "surface-map"],
                     kind: ReportKind::ExplicitUnknownLocationSize,
                     size: self.surface_map.mem(),
-                });
-                reports.push(mem::Report {
+                }, mem::Report {
                     path: path![name, "layer-tree"],
                     kind: ReportKind::ExplicitUnknownLocationSize,
                     size: self.scene.get_memory_usage(),
-                });
+                }];
                 reports_chan.send(reports);
             }
 
