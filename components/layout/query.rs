@@ -57,7 +57,7 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 
     /// Requests the node containing the point of interest.
-    fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
+    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
@@ -82,8 +82,7 @@ impl LayoutRPC for LayoutRPCImpl {
         Err(())
     }
 
-    fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
-                  -> Result<MouseOverResponse, ()> {
+    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
         let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         {

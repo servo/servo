@@ -483,30 +483,19 @@ impl Document {
     }
 
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
-        let root = self.GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return None,
-        };
-        let root = root.upcast::<Node>();
-        let address = match self.window.layout().hit_test(root.to_trusted_node_address(), *point) {
+        assert!(self.GetDocumentElement().is_some());
+        match self.window.layout().hit_test(*point) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
                 None
             }
-        };
-        address
+        }
     }
 
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let root = self.GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return vec!(),
-        };
-        let root = root.upcast::<Node>();
-        match self.window.layout().mouse_over(root.to_trusted_node_address(), *point) {
+        assert!(self.GetDocumentElement().is_some());
+        match self.window.layout().mouse_over(*point) {
             Ok(MouseOverResponse(node_address)) => node_address,
             Err(()) => vec!(),
         }
