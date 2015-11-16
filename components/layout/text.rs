@@ -21,6 +21,7 @@ use std::mem;
 use std::sync::Arc;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
 use style::computed_values::{white_space};
+use style::inline::WhitespaceMethods;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font as FontStyle;
 use unicode_bidi::{is_rtl, process_text};
@@ -40,7 +41,7 @@ fn text(fragments: &LinkedList<Fragment>) -> String {
     for fragment in fragments {
         match fragment.specific {
             SpecificFragmentInfo::UnscannedText(ref info) => {
-                if fragment.white_space_preserve_newlines() {
+                if fragment.white_space().preserve_newlines() {
                     text.push_str(&info.text);
                 } else {
                     text.push_str(&info.text.replace("\n", " "));
@@ -411,7 +412,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
         let string_before;
         let insertion_point_before;
         {
-            if !first_fragment.white_space_preserve_newlines() {
+            if !first_fragment.white_space().preserve_newlines() {
                 return;
             }
 
