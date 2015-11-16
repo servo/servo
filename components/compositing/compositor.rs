@@ -618,7 +618,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let name = "compositor-task";
                 // These are both `ExplicitUnknownLocationSize` because the memory might be in the
                 // GPU or on the heap.
-                let mut reports = vec![mem::Report {
+                let reports = vec![mem::Report {
                     path: path![name, "surface-map"],
                     kind: ReportKind::ExplicitUnknownLocationSize,
                     size: self.surface_map.mem(),
