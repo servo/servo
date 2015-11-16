@@ -4227,6 +4227,18 @@
             "url": "/_mozilla/css/vertical_align_top_span_a.html"
           }
         ],
+        "css/viewport_ignore_desktop.html": [
+          {
+            "path": "css/viewport_ignore_desktop.html",
+            "references": [
+              [
+                "/_mozilla/css/viewport_ignore_desktop_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/viewport_ignore_desktop.html"
+          }
+        ],
         "css/visibility_hidden.html": [
           {
             "path": "css/visibility_hidden.html",
@@ -9422,6 +9434,18 @@
             ]
           ],
           "url": "/_mozilla/css/vertical_align_top_span_a.html"
+        }
+      ],
+      "css/viewport_ignore_desktop.html": [
+        {
+          "path": "css/viewport_ignore_desktop.html",
+          "references": [
+            [
+              "/_mozilla/css/viewport_ignore_desktop.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/viewport_ignore_desktop.html"
         }
       ],
       "css/visibility_hidden.html": [

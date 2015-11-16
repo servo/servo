@@ -69,7 +69,7 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
 != text_overflow_a.html text_overflow_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
-== viewport_meta.html viewport_rule_ref.html
+prefs:"layout.viewport.enabled" == viewport_meta.html viewport_rule_ref.html
 resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
 # resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
