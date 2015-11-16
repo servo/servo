@@ -61,7 +61,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
-use std::ops::{Deref, DerefMut, Drop};
+use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -1063,16 +1063,6 @@ impl LayoutTask {
     fn handle_reflow<'a, 'b>(&mut self,
                              data: &ScriptReflow,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        // Make sure that every return path from this method joins the script task,
-        // otherwise the script task will panic.
-        struct AutoJoinScriptTask<'a> { data: &'a ScriptReflow };
-        impl<'a> Drop for AutoJoinScriptTask<'a> {
-            fn drop(&mut self) {
-                self.data.script_join_chan.send(()).unwrap();
-            }
-        };
-        let _ajst = AutoJoinScriptTask { data: data };
-
         let document = unsafe { LayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
