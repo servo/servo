@@ -101,8 +101,8 @@ pub trait LayoutRPC {
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the node containing the point of interest
-    fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
-    fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
+    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
+    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
