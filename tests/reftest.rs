@@ -8,7 +8,6 @@
 // except according to those terms.
 
 #![feature(fs_walk)]
-#![feature(path_ext)]
 #![feature(slice_patterns)]
 #![feature(test)]
 
@@ -21,7 +20,7 @@ extern crate util;
 use image::{DynamicImage, GenericImage, ImageFormat, RgbImage};
 use std::env;
 use std::ffi::OsStr;
-use std::fs::{PathExt, File, walk_dir};
+use std::fs::{File, walk_dir};
 use std::io::{self, Read, Result, Write};
 use std::path::{Path, PathBuf};
 use std::process;
