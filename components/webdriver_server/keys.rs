@@ -4,6 +4,13 @@
 
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, SHIFT};
 
+
+/// Takes a character and returns an Option containing a tuple of the
+/// corresponding keycode and whether shift is required. This is
+/// currently pretty much ascii-only and the webdriver spec isn't
+/// entirely clear on how to deal with characters outside this
+/// range. Returns None if no key corresponding to the character is
+/// matched.
 fn key_from_char(key_string: &char) -> Option<(Key, bool)> {
     match *key_string {
         ' ' => Some((Key::Space, false)),
@@ -107,7 +114,7 @@ fn key_from_char(key_string: &char) -> Option<(Key, bool)> {
         '\u{E003}' => Some((Key::Backspace, false)),
         '\u{E004}' => Some((Key::Tab, false)),
         '\u{E005}' => None,
-        '\u{E006}' => Some((Key::Enter, false)), // This is supposed to be Return
+        '\u{E006}' => Some((Key::Enter, false)), // This is supposed to be the Return key
         '\u{E007}' => Some((Key::Enter, false)),
         '\u{E008}' => Some((Key::LeftShift, false)),
         '\u{E009}' => Some((Key::LeftShift, false)),
