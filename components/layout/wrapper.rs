@@ -90,7 +90,7 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
-    pub fn from_layout_js(n: LayoutJS<Node>) -> LayoutNode<'ln> {
+    fn from_layout_js(n: LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: n,
             chain: PhantomData,
@@ -360,7 +360,7 @@ pub struct LayoutDocument<'le> {
 }
 
 impl<'le> LayoutDocument<'le> {
-    pub fn from_layout_js(doc: LayoutJS<Document>) -> LayoutDocument<'le> {
+    fn from_layout_js(doc: LayoutJS<Document>) -> LayoutDocument<'le> {
         LayoutDocument {
             document: doc,
             chain: PhantomData,
@@ -389,7 +389,7 @@ pub struct LayoutElement<'le> {
 }
 
 impl<'le> LayoutElement<'le> {
-    pub fn from_layout_js(el: LayoutJS<Element>) -> LayoutElement<'le> {
+    fn from_layout_js(el: LayoutJS<Element>) -> LayoutElement<'le> {
         LayoutElement {
             element: el,
             chain: PhantomData,
