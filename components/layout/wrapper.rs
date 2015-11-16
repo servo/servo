@@ -869,13 +869,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             //
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
-            match self.style().get_inheritedtext().white_space {
-                white_space::T::normal |
-                white_space::T::nowrap => true,
-                white_space::T::pre |
-                white_space::T::pre_wrap |
-                white_space::T::pre_line => false,
-            }
+            self.style().get_inheritedtext().white_space.preserve_newlines()
         }
     }
 
