@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Test the return value of connect when connecting two AudioNodes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function(t) {
+  var context = new OfflineAudioContext(1, 1, 44100);
+  var g1 = context.createGain();
+  var g2 = context.createGain();
+  var rv = g1.connect(g2);
+  assert_equals(rv, g2);
+  var rv = g1.connect(g2);
+  assert_equals(rv, g2);
+}, "connect should return the node connected to.");
+</script>

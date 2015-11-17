@@ -33,6 +33,20 @@ function countStorageEvents(callback, expectedNumEvents, times)
     setTimeout(onTimeout, 20);
 }
 
+function clearStorage(storageName, callback)
+{
+    if (window[storageName].length === 0) {
+        storageEventList = [];
+        setTimeout(callback, 0);
+    } else {
+        window[storageName].clear();
+        runAfterNStorageEvents(function() {
+            storageEventList = [];
+            callback();
+        }, 1);
+    }
+}
+
 function testStorages(testCallback)
 {
     testCallback("sessionStorage");

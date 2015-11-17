@@ -50,19 +50,44 @@ function test_getElementsByTagName(context, element) {
   }, "Should be able to set expando shadowing a proto prop (namedItem)")
 
   test(function() {
-    var t = element.appendChild(document.createElement("pre"));
-    t.id = "x";
-    this.add_cleanup(function() {element.removeChild(t)});
+    var t1 = element.appendChild(document.createElement("pre"));
+    t1.id = "x";
+    var t2 = element.appendChild(document.createElement("pre"));
+    t2.setAttribute("name", "y");
+    var t3 = element.appendChild(document.createElementNS("", "pre"));
+    t3.setAttribute("id", "z");
+    var t4 = element.appendChild(document.createElementNS("", "pre"));
+    t4.setAttribute("name", "w");
+    this.add_cleanup(function() {
+      element.removeChild(t1)
+      element.removeChild(t2)
+      element.removeChild(t3)
+      element.removeChild(t4)
+    });
 
     var list = context.getElementsByTagName('pre');
     var pre = list[0];
     assert_equals(pre.id, "x");
-    assert_equals(list['x'], pre);
 
-    assert_true('x' in list, "'x' in list");
-    assert_true(list.hasOwnProperty('x'), "list.hasOwnProperty('x')");
+    var exposedNames = { 'x': 0, 'y': 1, 'z': 2 };
+    for (var exposedName in exposedNames) {
+      assert_equals(list[exposedName], list[exposedNames[exposedName]]);
+      assert_equals(list[exposedName], list.namedItem(exposedName));
+      assert_true(exposedName in list, "'" + exposedName + "' in list");
+      assert_true(list.hasOwnProperty(exposedName),
+                  "list.hasOwnProperty('" + exposedName + "')");
+    }
 
-    assert_array_equals(Object.getOwnPropertyNames(list).sort(), ["0", "x"]);
+    var unexposedNames = ["w"];
+    for (var unexposedName of unexposedNames) {
+      assert_false(unexposedName in list);
+      assert_false(list.hasOwnProperty(unexposedName));
+      assert_equals(list[unexposedName], undefined);
+      assert_equals(list.namedItem(unexposedName), null);
+    }
+
+    assert_array_equals(Object.getOwnPropertyNames(list).sort(),
+                        ["0", "1", "2", "3", "x", "y", "z"]);
 
     var desc = Object.getOwnPropertyDescriptor(list, '0');
     assert_equals(typeof desc, "object", "descriptor should be an object");

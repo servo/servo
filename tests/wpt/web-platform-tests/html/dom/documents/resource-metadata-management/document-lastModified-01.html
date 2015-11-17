@@ -25,14 +25,18 @@
   var minutes = d.getMinutes()
   var seconds = d.getSeconds()
 
-  test(function() {
-    var local_time = hours * 60 * 60 + minutes * 60 + seconds;
-    var m = pattern.exec(last_modified);
-    var last_modified_time = parseInt(m[1]) * 60 * 60 + parseInt(m[2]) * 60 + parseInt(m[3]);
-    assert_approx_equals(last_modified_time, local_time, 2,
-                         "Hours and minutes should match local time.");
-  }, "Date returned by lastModified is in the user's local time zone.");
-
+  // Checking whether d and and new instance of Date have the same timezone.
+  // Do not run the time zone test in the case daylight saving occurs.
+  var d2 = new Date();
+  if (d2.getTimezoneOffset() == d.getTimezoneOffset()) {
+    test(function() {
+      var local_time = hours * 60 * 60 + minutes * 60 + seconds;
+      var m = pattern.exec(last_modified);
+      var last_modified_time = parseInt(m[1]) * 60 * 60 + parseInt(m[2]) * 60 + parseInt(m[3]);
+      assert_approx_equals(last_modified_time, local_time, 2,
+                           "Hours and minutes should match local time.");
+    }, "Date returned by lastModified is in the user's local time zone.");
+  }
   var t = async_test("Date returned by lastModified is current after timeout.");
 
   setTimeout(function() {

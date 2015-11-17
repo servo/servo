@@ -5,8 +5,8 @@
 testname	revision	result	comment
 html/caretposition-001.htm	ec2bdc9c730d65a0319935187debd4c6811d57b1	?
 xhtml1/caretposition-001.xht	ec2bdc9c730d65a0319935187debd4c6811d57b1	?
-html/cssom-getboundingclientrect-001.htm	20226816a4a06d869e8c8d49428a8851a8ab9988	?
-xhtml1/cssom-getboundingclientrect-001.xht	20226816a4a06d869e8c8d49428a8851a8ab9988	?
+html/cssom-getboundingclientrect-001.htm	3267558f1f0dd9d519f59c9d91b757782bf40bc6	?
+xhtml1/cssom-getboundingclientrect-001.xht	3267558f1f0dd9d519f59c9d91b757782bf40bc6	?
 html/cssom-getboundingclientrect-002.htm	29a0bd1179d5cbf42b4cb21706022d3328b6b134	?
 xhtml1/cssom-getboundingclientrect-002.xht	29a0bd1179d5cbf42b4cb21706022d3328b6b134	?
 html/cssom-getclientrects.htm	2b2a3a320d19265eab4e6a5a05b20f43c0565e21	?
@@ -17,6 +17,8 @@ html/elementfrompoint-001.htm	52a4d67631063dcb64c8d1bba460430195f3877a	?
 xhtml1/elementfrompoint-001.xht	52a4d67631063dcb64c8d1bba460430195f3877a	?
 html/elementfromposition.htm	78b980b1011fb13154d1ddf81eaf962f59bfa0d7	?
 xhtml1/elementfromposition.xht	78b980b1011fb13154d1ddf81eaf962f59bfa0d7	?
+html/htmlelement-offset-width-001.htm	dded4e35be63095033534b9074bd6b09e2cdcc58	?
+xhtml1/htmlelement-offset-width-001.xht	dded4e35be63095033534b9074bd6b09e2cdcc58	?
 html/matchmedia.htm	968cc094c6258392a6d1f8dd5eb814f43ed6692f	?
 xhtml1/matchmedia.xht	968cc094c6258392a6d1f8dd5eb814f43ed6692f	?
 html/matchmediaaddlistener.htm	ff9c78237902cf841131fcc2a30344dd737e1f55	?

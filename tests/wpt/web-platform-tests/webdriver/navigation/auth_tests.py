@@ -12,7 +12,7 @@ from wptserve.handlers import basic_auth_handler
 
 class WebDriverAuthTest(unittest.TestCase):
 
-    # Set up class to start HTTP Server that responds to 
+    # Set up class to start HTTP Server that responds to
     # test URLs with various 401 responses
     @classmethod
     def setUpClass(cls):
