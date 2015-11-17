@@ -242,7 +242,9 @@ enum ShutdownState {
 }
 
 struct HitTestResult {
+    /// The topmost layer containing the requested point
     layer: Rc<Layer<CompositorData>>,
+    /// The point in the coordinates of the document containing `layer`
     point: TypedPoint2D<LayerPixel, f32>,
 }
 
@@ -1940,7 +1942,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn find_topmost_layer_at_point_for_layer(&self,
                                              layer: Rc<Layer<CompositorData>>,
+                                             // The point in the parent layer's coordinates
                                              point: TypedPoint2D<LayerPixel, f32>,
+                                             // The clip rect in the parent layer's coordinates
                                              clip_rect: &TypedRect<LayerPixel, f32>)
                                              -> Option<HitTestResult> {
         let layer_bounds = *layer.bounds.borrow();
@@ -1948,6 +1952,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if layer_bounds.is_empty() && masks_to_bounds {
             return None;
         }
+        let scroll_offset = layer.extra_data.borrow().scroll_offset;
+
+        // Total offset from parent coordinates to this layer's coordinates.
+        let layer_offset = scroll_offset + layer_bounds.origin;
 
         let clipped_layer_bounds = match clip_rect.intersection(&layer_bounds) {
             Some(rect) => rect,
@@ -1955,25 +1963,29 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         let clip_rect_for_children = if masks_to_bounds {
-            Rect::new(Point2D::zero(), clipped_layer_bounds.size)
+            &clipped_layer_bounds
         } else {
-            clipped_layer_bounds.translate(&clip_rect.origin)
-        };
+            clip_rect
+        }.translate(&-layer_offset);
 
-        let child_point = point - layer_bounds.origin;
+        let child_point = point - layer_offset;
         for child in layer.children().iter().rev() {
             // Translate the clip rect into the child's coordinate system.
-            let clip_rect_for_child =
-                clip_rect_for_children.translate(&-*child.content_offset.borrow());
             let result = self.find_topmost_layer_at_point_for_layer(child.clone(),
                                                                     child_point,
-                                                                    &clip_rect_for_child);
-            if result.is_some() {
-                return result;
+                                                                    &clip_rect_for_children);
+            if let Some(mut result) = result {
+                // Return the point in page coordinates of the document containing the topmost
+                // layer.
+                let pipeline_id = layer.extra_data.borrow().pipeline_id;
+                let child_pipeline_id = result.layer.extra_data.borrow().pipeline_id;
+                if pipeline_id == child_pipeline_id {
+                    result.point = result.point + layer_offset;
+                }
+                return Some(result);
             }
         }
 
-        let point = point - *layer.content_offset.borrow();
         if !clipped_layer_bounds.contains(&point) {
             return None;
         }
