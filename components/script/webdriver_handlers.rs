@@ -203,6 +203,21 @@ pub fn handle_get_name(page: &Rc<Page>,
     }).unwrap();
 }
 
+pub fn handle_get_attribute(page: &Rc<Page>,
+                            pipeline: PipelineId,
+                            node_id: String,
+                            name: String,
+                            reply: IpcSender<Result<Option<String>, ()>>) {
+    reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
+        Some(node) => {
+            Ok(node.downcast::<Element>().unwrap().GetAttribute(DOMString::from(name))
+               .map(String::from))
+        },
+        None => Err(())
+    }).unwrap();
+}
+
+
 pub fn handle_get_url(page: &Rc<Page>,
                       _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
