@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>innerText setter test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+function setupTest(context, plain) {
+  container.innerHTML = context;
+  var e = container.firstChild;
+  while (e && e.nodeType != Node.ELEMENT_NODE) {
+    e = e.nextSibling;
+  }
+  e.innerText = plain;
+  return e;
+}
+function testText(context, plain, expectedText, msg) {
+  test(function(){
+    var e = setupTest(context, plain);
+    assert_not_equals(e.firstChild, null, "Should have a child");
+    assert_equals(e.firstChild.nodeType, Node.TEXT_NODE, "Child should be a text node");
+    assert_equals(e.firstChild.nextSibling, null, "Should have only one child");
+    assert_equals(e.firstChild.data, expectedText);
+  }, msg);
+}
+function testHTML(context, plain, expectedHTML, msg) {
+  test(function(){
+    var e = setupTest(context, plain);
+    assert_equals(e.innerHTML, expectedHTML);
+  }, msg);
+}
+</script>
+<script src="setter-tests.js"></script>

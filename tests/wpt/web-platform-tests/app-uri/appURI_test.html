@@ -126,13 +126,13 @@
 
 
         /**
-         *	ContentType reponse
+         *	ContentType response
          *
          *	rules for dereferencing an app: URI => 
 		  8. Let potential-file be the result of attempting locate the file at path
          */
 
-        TC_name = "Test: [HTTP] 200 reponse status (OK),value of content-type as the [HTTP] ";
+        TC_name = "Test: [HTTP] 200 response status (OK),value of content-type as the [HTTP] ";
         TC_name += "Content-Type header, and the contents of potential-file as the response body";
 
         var ContentTypeResponsetests = [ /* scheme:[ TC name, URI, content-type] */
@@ -334,7 +334,7 @@
                 xhr.send();
             });
         }
-        Get_403_reponse(TC_name + " Access to resticted URI - 403 Forbidden error expected", 
+        Get_403_reponse(TC_name + " Access to restricted URI - 403 Forbidden error expected", 
         window.location.protocol + "//f15a6d20-cefa-13e5-1972-800e20d19a76/" + 'resources/ExamPLE/mmY/index.html', "");
 
 

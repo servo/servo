@@ -6,8 +6,11 @@
 <script>
 var t = async_test();
 var w = window.open("close_unload-1.html");
-setTimeout(function() {
+onmessage = t.step_func(function(event) {
+  if (event.data != "loaded") {
+    return;
+  }
   w.close();
-}, 1000);
+});
 callback = function() {t.done()}
 </script>

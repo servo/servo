@@ -5,6 +5,8 @@
 <title id='title'>HTMLOptionsCollection</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
 <div id="log"></div>
 <select id="selly">
   <option id="id1" name="name1">1</option>
@@ -37,26 +39,16 @@ test(function () {
 }, "if no item has a name or id value matching the parameter, return null and stop");
 
 test(function () {
-    var testarr = [];
-    for (var i = 0; i < selly.namedItem('id3').length; i++) {
-        testarr.push(selly.namedItem('id3')[i].text);
-    }
-    assert_array_equals(testarr, ['3','duplicate ID']);
-}, "return an HTMLOptionsCollection in correct order for repeated 'id' value");
+    assert_equals(selly.namedItem('id3')["value"], "3");
+}, "if multiple items have a name or *id* value matching the parameter, return the first object and stop");
 
 test(function () {
-    var testarr = [];
-    for (var i = 0; i < selly.namedItem('name4').length; i++) {
-        testarr.push(selly.namedItem('name4')[i].text);
-    }
-    assert_array_equals(testarr, ['4', 'duplicate name']);
-}, "return an HTMLOptionsCollection in correct order for repeated 'name' value");
+    assert_equals(selly.namedItem('name4')["value"], "4");
+}, "if multiple items have a *name* or id value matching the parameter, return the first object and stop");
 
 test(function () {
-    var testarr = [];
-    for (var i = 0; i < selly.namedItem('mixed1').length; i++) {
-        testarr.push(selly.namedItem('mixed1')[i].text);
-    }
-    assert_array_equals(testarr, ['mixed ID', 'mixed name']);
-}, "return an HTMLOptionsCollection in correct order for repeated mixed value");
+    assert_equals(selly.namedItem('mixed1')["value"], "mixed ID");
+}, "if multiple items have a *name* or *id* value matching the parameter, return the first object and stop");
 </script>
+</body>
+</html>

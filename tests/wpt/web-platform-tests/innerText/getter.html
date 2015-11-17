@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>innerText getter test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.before::before { content:'abc'; }
+.table { display:table; }
+.itable { display:inline-table; }
+.row { display:table-row; }
+.cell { display:table-cell; }
+.first-line-uppercase::first-line { text-transform:uppercase; }
+.first-letter-uppercase::first-letter { text-transform:uppercase; }
+.first-letter-float::first-letter { float:left; }
+</style>
+<div id="container"></div>
+<script>
+function testText(html, expectedPlain, msg) {
+  test(function() {
+    container.innerHTML = html;
+    var e = document.getElementById('target');
+    if (!e) {
+      e = container.firstChild;
+    }
+    var pokes = document.getElementsByClassName('poke');
+    for (var i = 0; i < pokes.length; ++i) {
+      pokes[i].textContent = 'abc';
+    }
+    pokes = document.getElementsByClassName('poke-rp');
+    for (var i = 0; i < pokes.length; ++i) {
+      var rp = document.createElement("rp");
+      rp.textContent = "abc";
+      pokes[i].appendChild(rp);
+    }
+    var shadows = document.getElementsByClassName('shadow');
+    for (var i = 0; i < shadows.length; ++i) {
+      var s = shadows[i].createShadowRoot();
+      s.textContent = 'abc';
+    }
+    while (e && e.nodeType != Node.ELEMENT_NODE) {
+      e = e.nextSibling;
+    }
+    assert_equals(e.innerText, expectedPlain);
+  }, msg);
+}
+</script>
+<script src="getter-tests.js"></script>

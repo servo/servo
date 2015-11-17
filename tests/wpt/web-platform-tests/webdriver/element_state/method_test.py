@@ -66,6 +66,42 @@ class GetElementAttributeTest(base_test.WebDriverBaseTest):
         el = self.driver.find_element_by_css_selector("div")
         self.assertIsNone(el.get_attribute("class"))
 
+    def test_find_attribute_with_special_characters(self):
+        self.driver.get(self.webserver.where_is("element_state/res/get-element-attribute-extended.html"))
+        element = self.driver.find_element_by_id("id_special_char_attribute_name")
+        attribute = element.get_attribute("*")
+        self.assertEquals("special_char_attribute_name", attribute)
+
+    def test_find_attribute_with_special_char_name_and_value(self):
+        self.driver.get(self.webserver.where_is("element_state/res/get-element-attribute-extended.html"))
+        element = self.driver.find_element_by_id("id_special_char_attribute_name_and_value")
+        attribute = element.get_attribute("@")
+        self.assertEquals("(", attribute)
+
+    def test_find_attribute_with_numeric_name(self):
+        self.driver.get(self.webserver.where_is("element_state/res/get-element-attribute-extended.html"))
+        element = self.driver.find_element_by_id("id_attribute_name_numeric")
+        attribute = element.get_attribute("1")
+        self.assertEquals("numeric attribute name", attribute)
+
+    def test_find_attribute_with_numeric_value(self):
+        self.driver.get(self.webserver.where_is("element_state/res/get-element-attribute-extended.html"))
+        element = self.driver.find_element_by_id("id_attribute_value_numeric")
+        attribute = element.get_attribute("one")
+        self.assertEquals("2", attribute)
+
+    def test_find_attribute_with_negative_numeric_name(self):
+        self.driver.get(self.webserver.where_is("element_state/res/get-element-attribute-extended.html"))
+        element = self.driver.find_element_by_id("id_attribute_negative_numeric_name")
+        attribute = element.get_attribute("-5")
+        self.assertEquals("attribute name is -5", attribute)
+
+    def test_find_attribute_with_negative_numeric_value(self):
+        self.driver.get(self.webserver.where_is("element_state/res/get-element-attribute-extended.html"))
+        element = self.driver.find_element_by_id("id_attribute_negative_numeric_value")
+        attribute = element.get_attribute("negative_numeric_value")
+        self.assertEquals("-9", attribute)
+
 
 if __name__ == "__main__":
     unittest.main()

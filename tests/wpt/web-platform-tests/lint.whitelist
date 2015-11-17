@@ -24,7 +24,6 @@ INDENT TABS: tools/*
 INDENT TABS: touch-events/*
 INDENT TABS: web-animations/*
 INDENT TABS: webaudio/*
-INDENT TABS: webdriver/*
 INDENT TABS: webvtt/*
 INDENT TABS: XMLHttpRequest/*
 
@@ -43,7 +42,6 @@ TRAILING WHITESPACE: shadow-dom/*
 TRAILING WHITESPACE: svg/import/*
 TRAILING WHITESPACE: tools/*
 TRAILING WHITESPACE: webaudio/*
-TRAILING WHITESPACE: webdriver/*
 TRAILING WHITESPACE: WebIDL/*
 TRAILING WHITESPACE: webvtt/*
 TRAILING WHITESPACE: XMLHttpRequest/*

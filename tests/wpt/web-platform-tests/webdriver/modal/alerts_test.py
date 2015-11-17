@@ -47,8 +47,8 @@ class AlertsTest(base_test.WebDriverBaseTest):
     def test_setting_the_value_of_an_alert_throws(self):
         self.driver.find_element_by_css_selector('#alert').click()
         alert = self.wait.until(lambda x: x.switch_to_alert())
-	with self.assertRaises(exceptions.ElementNotVisibleException):
-	    alert.send_keys('cheese')
+        with self.assertRaises(exceptions.ElementNotVisibleException):
+            alert.send_keys('cheese')
         alert.accept()
 
     def test_alert_should_not_allow_additional_commands_if_dismissed(self):

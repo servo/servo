@@ -4489,7 +4489,7 @@
         "path": "html/rendering/non-replaced-elements/the-hr-element-0/color.html",
         "references": [
           [
-            "html/rendering/non-replaced-elements/the-hr-element-0/color-ref.html",
+            "/html/rendering/non-replaced-elements/the-hr-element-0/color-ref.html",
             "=="
           ]
         ],
@@ -11182,6 +11182,14 @@
         "url": "/IndexedDB/idbindex_get7.htm"
       },
       {
+        "path": "IndexedDB/idbindex_getAll.html",
+        "url": "/IndexedDB/idbindex_getAll.html"
+      },
+      {
+        "path": "IndexedDB/idbindex_getAllKeys.html",
+        "url": "/IndexedDB/idbindex_getAllKeys.html"
+      },
+      {
         "path": "IndexedDB/idbindex_getKey.htm",
         "url": "/IndexedDB/idbindex_getKey.htm"
       },
@@ -11446,6 +11454,14 @@
         "url": "/IndexedDB/idbobjectstore_get7.htm"
       },
       {
+        "path": "IndexedDB/idbobjectstore_getAll.html",
+        "url": "/IndexedDB/idbobjectstore_getAll.html"
+      },
+      {
+        "path": "IndexedDB/idbobjectstore_getAllKeys.html",
+        "url": "/IndexedDB/idbobjectstore_getAllKeys.html"
+      },
+      {
         "path": "IndexedDB/idbobjectstore_index.htm",
         "url": "/IndexedDB/idbobjectstore_index.htm"
       },
@@ -11536,6 +11552,10 @@
       {
         "path": "IndexedDB/idbtransaction_abort.htm",
         "url": "/IndexedDB/idbtransaction_abort.htm"
+      },
+      {
+        "path": "IndexedDB/idbtransaction_objectStoreNames.html",
+        "url": "/IndexedDB/idbtransaction_objectStoreNames.html"
       },
       {
         "path": "IndexedDB/idbversionchangeevent.htm",
@@ -13870,6 +13890,10 @@
         "url": "/dom/nodes/Node-contains.html"
       },
       {
+        "path": "dom/nodes/Node-contains.xml",
+        "url": "/dom/nodes/Node-contains.xml"
+      },
+      {
         "path": "dom/nodes/Node-insertBefore.html",
         "url": "/dom/nodes/Node-insertBefore.html"
       },
@@ -14004,6 +14028,14 @@
       {
         "path": "dom/nodes/getElementsByClassName-09.htm",
         "url": "/dom/nodes/getElementsByClassName-09.htm"
+      },
+      {
+        "path": "dom/nodes/getElementsByClassName-10.xml",
+        "url": "/dom/nodes/getElementsByClassName-10.xml"
+      },
+      {
+        "path": "dom/nodes/getElementsByClassName-11.xml",
+        "url": "/dom/nodes/getElementsByClassName-11.xml"
       },
       {
         "path": "dom/nodes/getElementsByClassName-12.htm",
@@ -14670,6 +14702,10 @@
         "url": "/hr-time/basic.html"
       },
       {
+        "path": "hr-time/basic.worker.js",
+        "url": "/hr-time/basic.worker"
+      },
+      {
         "path": "hr-time/idlharness.html",
         "url": "/hr-time/idlharness.html"
       },
@@ -14816,6 +14852,10 @@
       {
         "path": "html/browsers/browsing-the-web/navigating-across-documents/child_navigates_parent_submit.html",
         "url": "/html/browsers/browsing-the-web/navigating-across-documents/child_navigates_parent_submit.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html",
+        "url": "/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html"
       },
       {
         "path": "html/browsers/browsing-the-web/navigating-across-documents/navigation_unload_data_url.html",
@@ -18510,6 +18550,10 @@
         "url": "/html/webappapis/animation-frames/callback-invoked.html"
       },
       {
+        "path": "html/webappapis/animation-frames/callback-multicalls.html",
+        "url": "/html/webappapis/animation-frames/callback-multicalls.html"
+      },
+      {
         "path": "html/webappapis/animation-frames/cancel-invoked.html",
         "url": "/html/webappapis/animation-frames/cancel-invoked.html"
       },
@@ -18534,12 +18578,20 @@
         "url": "/html/webappapis/scripting/events/body-onload.html"
       },
       {
+        "path": "html/webappapis/scripting/events/event-handler-attributes-body-window.html",
+        "url": "/html/webappapis/scripting/events/event-handler-attributes-body-window.html"
+      },
+      {
         "path": "html/webappapis/scripting/events/event-handler-javascript.html",
         "url": "/html/webappapis/scripting/events/event-handler-javascript.html"
       },
       {
         "path": "html/webappapis/scripting/events/event-handler-spec-example.html",
         "url": "/html/webappapis/scripting/events/event-handler-spec-example.html"
+      },
+      {
+        "path": "html/webappapis/scripting/events/onerroreventhandler.html",
+        "url": "/html/webappapis/scripting/events/onerroreventhandler.html"
       },
       {
         "path": "html/webappapis/scripting/processing-model-2/addEventListener.html",
@@ -18736,6 +18788,14 @@
       {
         "path": "infrastructure/failing-test.html",
         "url": "/infrastructure/failing-test.html"
+      },
+      {
+        "path": "innerText/getter.html",
+        "url": "/innerText/getter.html"
+      },
+      {
+        "path": "innerText/setter.html",
+        "url": "/innerText/setter.html"
       },
       {
         "path": "js/behaviours/SetPrototypeOf-window.html",
@@ -26218,6 +26278,38 @@
         "url": "/url/url-constructor.html"
       },
       {
+        "path": "url/urlsearchparams-append.html",
+        "url": "/url/urlsearchparams-append.html"
+      },
+      {
+        "path": "url/urlsearchparams-constructor.html",
+        "url": "/url/urlsearchparams-constructor.html"
+      },
+      {
+        "path": "url/urlsearchparams-delete.html",
+        "url": "/url/urlsearchparams-delete.html"
+      },
+      {
+        "path": "url/urlsearchparams-get.html",
+        "url": "/url/urlsearchparams-get.html"
+      },
+      {
+        "path": "url/urlsearchparams-getall.html",
+        "url": "/url/urlsearchparams-getall.html"
+      },
+      {
+        "path": "url/urlsearchparams-has.html",
+        "url": "/url/urlsearchparams-has.html"
+      },
+      {
+        "path": "url/urlsearchparams-set.html",
+        "url": "/url/urlsearchparams-set.html"
+      },
+      {
+        "path": "url/urlsearchparams-stringifier.html",
+        "url": "/url/urlsearchparams-stringifier.html"
+      },
+      {
         "path": "user-timing/idlharness.html",
         "url": "/user-timing/idlharness.html"
       },
@@ -26322,12 +26414,20 @@
         "url": "/web-animations/animation-timeline/idlharness.html"
       },
       {
+        "path": "web-animations/keyframe-effect/constructor.html",
+        "url": "/web-animations/keyframe-effect/constructor.html"
+      },
+      {
         "path": "webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html",
         "url": "/webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html"
       },
       {
         "path": "webaudio/the-audio-api/the-audiodestinationnode-interface/idl-test.html",
         "url": "/webaudio/the-audio-api/the-audiodestinationnode-interface/idl-test.html"
+      },
+      {
+        "path": "webaudio/the-audio-api/the-audionode-interface/audionode-connect-return-value.html",
+        "url": "/webaudio/the-audio-api/the-audionode-interface/audionode-connect-return-value.html"
       },
       {
         "path": "webaudio/the-audio-api/the-audioparam-interface/retrospective-setValueAtTime.html",
@@ -29760,6 +29860,15 @@
     ],
     "wdspec": [
       {
+        "path": "webdriver/command_contexts/open_and_close_window_test.py"
+      },
+      {
+        "path": "webdriver/command_contexts/window_handle_test.py"
+      },
+      {
+        "path": "webdriver/command_contexts/window_size_test.py"
+      },
+      {
         "path": "webdriver/cookie/cookie_test.py"
       },
       {
@@ -29773,6 +29882,9 @@
       },
       {
         "path": "webdriver/element_state/properties.py"
+      },
+      {
+        "path": "webdriver/element_state/selected_test.py"
       },
       {
         "path": "webdriver/element_state/visibility_test.py"
@@ -29820,6 +29932,12 @@
         "path": "webdriver/user_input/clear_test.py"
       },
       {
+        "path": "webdriver/user_input/click_test.py"
+      },
+      {
+        "path": "webdriver/user_input/sendkeys_test.py"
+      },
+      {
         "path": "webdriver/windows/tabbing.py"
       },
       {
@@ -29829,40 +29947,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "dom/nodes/Node-contains.xml": [
-          {
-            "path": "dom/nodes/Node-contains.xml",
-            "url": "/dom/nodes/Node-contains.xml"
-          }
-        ],
-        "dom/nodes/getElementsByClassName-10.xml": [
-          {
-            "path": "dom/nodes/getElementsByClassName-10.xml",
-            "url": "/dom/nodes/getElementsByClassName-10.xml"
-          }
-        ],
-        "dom/nodes/getElementsByClassName-11.xml": [
-          {
-            "path": "dom/nodes/getElementsByClassName-11.xml",
-            "url": "/dom/nodes/getElementsByClassName-11.xml"
-          }
-        ],
-        "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html": [
-          {
-            "path": "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html",
-            "url": "/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html"
-          }
-        ],
-        "html/webappapis/scripting/events/onerroreventhandler.html": [
-          {
-            "path": "html/webappapis/scripting/events/onerroreventhandler.html",
-            "url": "/html/webappapis/scripting/events/onerroreventhandler.html"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -31856,6 +31941,30 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/the-fieldset-element-0/min-width-not-important.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/the-hr-element-0/color.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/the-hr-element-0/color.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/the-hr-element-0/color-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/the-hr-element-0/color.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/the-hr-element-0/width.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/the-hr-element-0/width.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/the-hr-element-0/width-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/the-hr-element-0/width.html"
       }
     ],
     "html/rendering/non-replaced-elements/the-page/body_text_00ffff.xhtml": [
@@ -35399,7 +35508,7 @@
       }
     ]
   },
-  "rev": "7123012427f92f0dc38a120e6e86a75b6c03aab5",
+  "rev": "5a754b40cd49c0404863c431b58cc311dc5d167c",
   "url_base": "/",
   "version": 2
 }

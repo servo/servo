@@ -285,30 +285,10 @@ var validator = {
   },
 
   set_dirty: function(ctl) {
-    document.designMode = "on";
     ctl.focus();
     var old_value = ctl.value;
     ctl.value = "a";
     ctl.value = old_value;
-    if (
-      // See https://html.spec.whatwg.org/multipage/#input-type-attr-summary
-      // and https://html.spec.whatwg.org/multipage/#textFieldSelection
-      (
-        ctl.tagName === "INPUT" && (
-          ctl.type === "text" ||
-          ctl.type === "search" ||
-          ctl.type === "tel" ||
-          ctl.type === "url" ||
-          ctl.type === "password"
-        )
-      ) ||
-      ctl.tagName === "TEXTAREA"
-    ) {
-      ctl.value += "1";
-      ctl.setSelectionRange(ctl.value.length - 1, ctl.value.length);
-      document.execCommand("Delete");
-    }
-    document.designMode = "off";
   },
 
   pre_check: function(ctl, item) {
