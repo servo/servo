@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
@@ -11,6 +12,7 @@ use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::element::Element;
+use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::Node;
 use dom::window::ScriptHelpers;
@@ -144,6 +146,25 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
         Err(_) => {
             Err(())
         }
+    }).unwrap();
+}
+
+pub fn handle_focus_element(page: &Rc<Page>,
+                            pipeline: PipelineId,
+                            element_id: String,
+                            reply: IpcSender<Result<(), ()>>) {
+    reply.send(match find_node_by_unique_id(page, pipeline, element_id) {
+        Some(ref node) => {
+            match node.downcast::<HTMLElement>() {
+                Some(ref elem) => {
+                    // Need a way to find if this actually succeeded
+                    elem.Focus();
+                    Ok(())
+                }
+                None => Err(())
+            }
+        },
+        None => Err(())
     }).unwrap();
 }
 
