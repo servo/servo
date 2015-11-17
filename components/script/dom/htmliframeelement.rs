@@ -16,7 +16,7 @@ use dom::bindings::reflector::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::event::Event;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -188,6 +188,29 @@ impl HTMLIFrameElement {
     #[inline]
     pub fn subpage_id(&self) -> Option<SubpageId> {
         self.subpage_id.get()
+    }
+
+    pub fn pipeline(&self) -> Option<PipelineId> {
+        self.pipeline_id.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
+    pub fn iframe_load_event_steps(&self) {
+        // TODO A cross-origin child document would not be easily accessible
+        //      from this script thread. It's unclear how to implement
+        //      steps 2, 3, and 5 efficiently in this case.
+        // TODO Step 2 - check child document `mute iframe load` flag
+        // TODO Step 3 - set child document  `mut iframe load` flag
+
+        // Step 4
+        let window = window_from_node(self);
+        let event = Event::new(GlobalRef::Window(window.r()),
+                               DOMString::from("load".to_owned()),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        event.fire(self.upcast());
+
+        // TODO Step 5 - unset child document `mut iframe load` flag
     }
 }
 
