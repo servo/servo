@@ -22,7 +22,25 @@ use js::{JSPROP_ENUMERATE, JSPROP_GETTER, JSPROP_READONLY};
 use libc;
 use std::{mem, ptr};
 
-static JSPROXYSLOT_EXPANDO: u32 = 0;
+/// DOM proxies have an extra slot for the expando object at index
+/// JSPROXYSLOT_EXPANDO.
+
+/// The expando object is a plain JSObject whose properties correspond to
+/// "expandos" (custom properties set by the script author).
+
+/// The exact value stored in the JSPROXYSLOT_EXPANDO slot depends on whether
+/// the interface is annotated with the [OverrideBuiltins] extended attribute.
+
+/// If it is, the proxy is initialized with a PrivateValue, which contains a
+/// pointer to a ExpandoAndGeneration struct; this contains a Heap<> pointer
+/// to the actual expando object (stored as a Value) as well as the
+/// "generation" of the object (stored as a u32).
+
+/// If it is not, the proxy is initialized with an UndefinedValue. In
+/// ensure_expando_object, it is set to an ObjectValue that refers to the
+/// expando object directly. (It is set back to an UndefinedValue only when
+/// the object is about to die.)
+pub static JSPROXYSLOT_EXPANDO: u32 = 0;
 
 /// Invoke the [[GetOwnProperty]] trap (`getOwnPropertyDescriptor`) on `proxy`,
 /// with argument `id` and return the result, if it is not `undefined`.
