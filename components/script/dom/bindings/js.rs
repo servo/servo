@@ -52,7 +52,7 @@ use util::task_state;
 /// This should only be used as a field in other DOM objects.
 #[must_root]
 pub struct JS<T> {
-    ptr: NonZero<*const T>
+    ptr: NonZero<*const T>,
 }
 
 // JS<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
@@ -68,7 +68,7 @@ impl<T> JS<T> {
     pub unsafe fn to_layout(&self) -> LayoutJS<T> {
         debug_assert!(task_state::get().is_layout());
         LayoutJS {
-            ptr: self.ptr.clone()
+            ptr: self.ptr.clone(),
         }
     }
 }
@@ -80,7 +80,7 @@ impl<T: Reflectable> JS<T> {
     pub fn from_rooted(root: &Root<T>) -> JS<T> {
         debug_assert!(task_state::get().is_script());
         JS {
-            ptr: unsafe { NonZero::new(&**root) }
+            ptr: unsafe { NonZero::new(&**root) },
         }
     }
     /// Create a JS<T> from a &T
@@ -88,7 +88,7 @@ impl<T: Reflectable> JS<T> {
     pub fn from_ref(obj: &T) -> JS<T> {
         debug_assert!(task_state::get().is_script());
         JS {
-            ptr: unsafe { NonZero::new(&*obj) }
+            ptr: unsafe { NonZero::new(&*obj) },
         }
     }
 }
@@ -114,18 +114,23 @@ impl<T: Reflectable> JSTraceable for JS<T> {
 /// traits must be implemented on this.
 #[allow_unrooted_interior]
 pub struct LayoutJS<T> {
-    ptr: NonZero<*const T>
+    ptr: NonZero<*const T>,
 }
 
 impl<T: Castable> LayoutJS<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(&self) -> LayoutJS<U> where U: Castable, T: DerivedFrom<U> {
+    pub fn upcast<U>(&self) -> LayoutJS<U>
+        where U: Castable,
+              T: DerivedFrom<U>
+    {
         debug_assert!(task_state::get().is_layout());
         unsafe { mem::transmute_copy(self) }
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(&self) -> Option<LayoutJS<U>> where U: DerivedFrom<T> {
+    pub fn downcast<U>(&self) -> Option<LayoutJS<U>>
+        where U: DerivedFrom<T>
+    {
         debug_assert!(task_state::get().is_layout());
         unsafe {
             if (*self.unsafe_get()).is::<U>() {
@@ -164,11 +169,15 @@ impl<T> PartialEq for LayoutJS<T> {
 impl<T> Eq for LayoutJS<T> {}
 
 impl<T> Hash for JS<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) { self.ptr.hash(state) }
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.ptr.hash(state)
+    }
 }
 
 impl<T> Hash for LayoutJS<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) { self.ptr.hash(state) }
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.ptr.hash(state)
+    }
 }
 
 impl <T> Clone for JS<T> {
@@ -177,7 +186,7 @@ impl <T> Clone for JS<T> {
     fn clone(&self) -> JS<T> {
         debug_assert!(task_state::get().is_script());
         JS {
-            ptr: self.ptr.clone()
+            ptr: self.ptr.clone(),
         }
     }
 }
@@ -187,7 +196,7 @@ impl <T> Clone for LayoutJS<T> {
     fn clone(&self) -> LayoutJS<T> {
         debug_assert!(task_state::get().is_layout());
         LayoutJS {
-            ptr: self.ptr.clone()
+            ptr: self.ptr.clone(),
         }
     }
 }
@@ -195,12 +204,11 @@ impl <T> Clone for LayoutJS<T> {
 impl LayoutJS<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress)
-                                            -> LayoutJS<Node> {
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
         debug_assert!(task_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
         LayoutJS {
-            ptr: NonZero::new(addr as *const Node)
+            ptr: NonZero::new(addr as *const Node),
         }
     }
 }
@@ -325,7 +333,7 @@ impl<T: Reflectable + PartialEq> PartialEq<T> for MutHeap<JS<T>> {
 #[must_root]
 #[derive(JSTraceable)]
 pub struct MutNullableHeap<T: HeapGCValue> {
-    ptr: UnsafeCell<Option<T>>
+    ptr: UnsafeCell<Option<T>>,
 }
 
 impl<T: Reflectable> MutNullableHeap<JS<T>> {
@@ -333,7 +341,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     pub fn new(initial: Option<&T>) -> MutNullableHeap<JS<T>> {
         debug_assert!(task_state::get().is_script());
         MutNullableHeap {
-            ptr: UnsafeCell::new(initial.map(JS::from_ref))
+            ptr: UnsafeCell::new(initial.map(JS::from_ref)),
         }
     }
 
@@ -401,7 +409,7 @@ impl<T: HeapGCValue> Default for MutNullableHeap<T> {
     fn default() -> MutNullableHeap<T> {
         debug_assert!(task_state::get().is_script());
         MutNullableHeap {
-            ptr: UnsafeCell::new(None)
+            ptr: UnsafeCell::new(None),
         }
     }
 }
@@ -463,7 +471,9 @@ pub struct RootCollectionPtr(pub *const RootCollection);
 
 impl Copy for RootCollectionPtr {}
 impl Clone for RootCollectionPtr {
-    fn clone(&self) -> RootCollectionPtr { *self }
+    fn clone(&self) -> RootCollectionPtr {
+        *self
+    }
 }
 
 impl RootCollection {
@@ -471,7 +481,7 @@ impl RootCollection {
     pub fn new() -> RootCollection {
         debug_assert!(task_state::get().is_script());
         RootCollection {
-            roots: UnsafeCell::new(vec!()),
+            roots: UnsafeCell::new(vec![]),
         }
     }
 
@@ -495,7 +505,7 @@ impl RootCollection {
                 Some(idx) => {
                     roots.remove(idx);
                 },
-                None => panic!("Can't remove a root that was never rooted!")
+                None => panic!("Can't remove a root that was never rooted!"),
             }
         }
     }
@@ -528,12 +538,17 @@ pub struct Root<T: Reflectable> {
 
 impl<T: Castable> Root<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(root: Root<T>) -> Root<U> where U: Castable, T: DerivedFrom<U> {
+    pub fn upcast<U>(root: Root<T>) -> Root<U>
+        where U: Castable,
+              T: DerivedFrom<U>
+    {
         unsafe { mem::transmute(root) }
     }
 
     /// Cast a DOM object root downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(root: Root<T>) -> Option<Root<U>> where U: DerivedFrom<T> {
+    pub fn downcast<U>(root: Root<T>) -> Option<Root<U>>
+        where U: DerivedFrom<T>
+    {
         if root.is::<U>() {
             Some(unsafe { mem::transmute(root) })
         } else {
@@ -546,8 +561,7 @@ impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot not outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
-    pub fn new(unrooted: NonZero<*const T>)
-               -> Root<T> {
+    pub fn new(unrooted: NonZero<*const T>) -> Root<T> {
         debug_assert!(task_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
@@ -587,6 +601,8 @@ impl<T: Reflectable> PartialEq for Root<T> {
 
 impl<T: Reflectable> Drop for Root<T> {
     fn drop(&mut self) {
-        unsafe { (*self.root_list).unroot(self); }
+        unsafe {
+            (*self.root_list).unroot(self);
+        }
     }
 }

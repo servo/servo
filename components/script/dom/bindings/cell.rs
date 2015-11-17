@@ -5,7 +5,7 @@
 //! A shareable mutable container for the DOM.
 
 use dom::bindings::trace::JSTraceable;
-use js::jsapi::{JSTracer};
+use js::jsapi::JSTracer;
 use std::cell::{BorrowState, Ref, RefCell, RefMut};
 use util::task_state;
 use util::task_state::SCRIPT;
@@ -40,7 +40,7 @@ impl<T> DOMRefCell<T> {
     pub unsafe fn borrow_for_gc_trace(&self) -> &T {
         // FIXME: IN_GC isn't reliable enough - doesn't catch minor GCs
         // https://github.com/servo/servo/issues/6389
-        //debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
+        // debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
         &*self.value.as_unsafe_cell().get()
     }
 

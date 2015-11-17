@@ -19,13 +19,14 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
             // Step 2.
             Err(Error::Namespace)
         },
-        XMLName::QName => Ok(())
+        XMLName::QName => Ok(()),
     }
 }
 
 /// Validate a namespace and qualified name and extract their parts.
 /// See https://dom.spec.whatwg.org/#validate-and-extract for details.
-pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
+pub fn validate_and_extract(namespace: Option<DOMString>,
+                            qualified_name: &str)
                             -> Fallible<(Namespace, Option<Atom>, Atom)> {
     // Step 1.
     let namespace = namespace_from_domstring(namespace);
@@ -64,8 +65,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
             // Step 7.
             Err(Error::Namespace)
         },
-        (ref ns, p) if ns != &ns!(XMLNS) &&
-                      (qualified_name == "xmlns" || p == Some("xmlns")) => {
+        (ref ns, p) if ns != &ns!(XMLNS) && (qualified_name == "xmlns" || p == Some("xmlns")) => {
             // Step 8.
             Err(Error::Namespace)
         },
@@ -86,7 +86,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
 pub enum XMLName {
     QName,
     Name,
-    InvalidXMLName
+    InvalidXMLName,
 }
 
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
@@ -95,33 +95,34 @@ pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
         match c {
             ':' |
-            'A' ... 'Z' |
+            'A'...'Z' |
             '_' |
-            'a' ... 'z' |
-            '\u{C0}' ... '\u{D6}' |
-            '\u{D8}' ... '\u{F6}' |
-            '\u{F8}' ... '\u{2FF}' |
-            '\u{370}' ... '\u{37D}' |
-            '\u{37F}' ... '\u{1FFF}' |
-            '\u{200C}' ... '\u{200D}' |
-            '\u{2070}' ... '\u{218F}' |
-            '\u{2C00}' ... '\u{2FEF}' |
-            '\u{3001}' ... '\u{D7FF}' |
-            '\u{F900}' ... '\u{FDCF}' |
-            '\u{FDF0}' ... '\u{FFFD}' |
-            '\u{10000}' ... '\u{EFFFF}' => true,
+            'a'...'z' |
+            '\u{C0}'...'\u{D6}' |
+            '\u{D8}'...'\u{F6}' |
+            '\u{F8}'...'\u{2FF}' |
+            '\u{370}'...'\u{37D}' |
+            '\u{37F}'...'\u{1FFF}' |
+            '\u{200C}'...'\u{200D}' |
+            '\u{2070}'...'\u{218F}' |
+            '\u{2C00}'...'\u{2FEF}' |
+            '\u{3001}'...'\u{D7FF}' |
+            '\u{F900}'...'\u{FDCF}' |
+            '\u{FDF0}'...'\u{FFFD}' |
+            '\u{10000}'...'\u{EFFFF}' => true,
             _ => false,
         }
     }
 
     fn is_valid_continuation(c: char) -> bool {
-        is_valid_start(c) || match c {
+        is_valid_start(c) ||
+        match c {
             '-' |
             '.' |
-            '0' ... '9' |
+            '0'...'9' |
             '\u{B7}' |
-            '\u{300}' ... '\u{36F}' |
-            '\u{203F}' ... '\u{2040}' => true,
+            '\u{300}'...'\u{36F}' |
+            '\u{203F}'...'\u{2040}' => true,
             _ => false,
         }
     }
@@ -149,7 +150,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
         if c == ':' {
             match seen_colon {
                 true => non_qname_colons = true,
-                false => seen_colon = true
+                false => seen_colon = true,
             }
         }
         last = c
@@ -161,7 +162,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
 
     match non_qname_colons {
         false => XMLName::QName,
-        true => XMLName::Name
+        true => XMLName::Name,
     }
 }
 

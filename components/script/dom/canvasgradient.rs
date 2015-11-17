@@ -39,7 +39,8 @@ impl CanvasGradient {
 
     pub fn new(global: GlobalRef, style: CanvasGradientStyle) -> Root<CanvasGradient> {
         reflect_dom_object(box CanvasGradient::new_inherited(style),
-                           global, CanvasGradientBinding::Wrap)
+                           global,
+                           CanvasGradientBinding::Wrap)
     }
 }
 
@@ -52,7 +53,7 @@ impl CanvasGradientMethods for CanvasGradient {
 
         let color = match parse_color(&color) {
             Ok(color) => color,
-            _ => return Err(Error::Syntax)
+            _ => return Err(Error::Syntax),
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {
@@ -71,17 +72,21 @@ impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {
-            CanvasGradientStyle::Linear(ref gradient) =>  {
-                FillOrStrokeStyle::LinearGradient(
-                    LinearGradientStyle::new(gradient.x0, gradient.y0,
-                                             gradient.x1, gradient.y1,
-                                             gradient_stops))
-            },
+            CanvasGradientStyle::Linear(ref gradient) => {
+                FillOrStrokeStyle::LinearGradient(LinearGradientStyle::new(gradient.x0,
+                                                                           gradient.y0,
+                                                                           gradient.x1,
+                                                                           gradient.y1,
+                                                                           gradient_stops))
+            }
             CanvasGradientStyle::Radial(ref gradient) => {
-                FillOrStrokeStyle::RadialGradient(
-                    RadialGradientStyle::new(gradient.x0, gradient.y0, gradient.r0,
-                                             gradient.x1, gradient.y1, gradient.r1,
-                                             gradient_stops))
+                FillOrStrokeStyle::RadialGradient(RadialGradientStyle::new(gradient.x0,
+                                                                           gradient.y0,
+                                                                           gradient.r0,
+                                                                           gradient.x1,
+                                                                           gradient.y1,
+                                                                           gradient.r1,
+                                                                           gradient_stops))
             }
         }
     }

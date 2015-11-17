@@ -27,13 +27,13 @@ impl ClipboardProvider for ConstellationChan {
 }
 
 pub struct DummyClipboardContext {
-    content: String
+    content: String,
 }
 
 impl DummyClipboardContext {
     pub fn new(s: &str) -> DummyClipboardContext {
         DummyClipboardContext {
-            content: s.to_owned()
+            content: s.to_owned(),
         }
     }
 }

@@ -56,7 +56,7 @@ impl CharacterDataMethods for CharacterData {
         let data_from_offset = match find_utf16_code_unit_offset(&data, offset) {
             Some(offset_bytes) => &data[offset_bytes..],
             // Step 2.
-            None => return Err(Error::IndexSize)
+            None => return Err(Error::IndexSize),
         };
         let substring = match find_utf16_code_unit_offset(data_from_offset, count) {
             // Steps 3.
@@ -90,7 +90,7 @@ impl CharacterDataMethods for CharacterData {
             let (prefix, data_from_offset) = match find_utf16_code_unit_offset(&data, offset) {
                 Some(offset_bytes) => data.split_at(offset_bytes),
                 // Step 2.
-                None => return Err(Error::IndexSize)
+                None => return Err(Error::IndexSize),
             };
             let suffix = match find_utf16_code_unit_offset(data_from_offset, count) {
                 // Steps 3.
@@ -182,7 +182,7 @@ fn find_utf16_code_unit_offset(s: &str, offset: u32) -> Option<usize> {
     let mut code_units = 0;
     for (i, c) in s.char_indices() {
         if code_units == offset {
-            return Some(i)
+            return Some(i);
         }
         code_units += 1;
         if c > '\u{FFFF}' {

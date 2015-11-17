@@ -32,7 +32,7 @@ pub struct CSSStyleDeclaration {
 #[derive(PartialEq, HeapSizeOf)]
 pub enum CSSModificationAccess {
     ReadWrite,
-    Readonly
+    Readonly,
 }
 
 macro_rules! css_properties(
@@ -48,12 +48,12 @@ macro_rules! css_properties(
     );
 );
 
-fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclaration>])
-                       -> String {
+fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclaration>]) -> String {
     // https://drafts.csswg.org/css-variables/#variables-in-shorthands
     if let Some(css) = declarations[0].with_variables_from_shorthand(shorthand) {
-        if declarations[1..].iter()
-                            .all(|d| d.with_variables_from_shorthand(shorthand) == Some(css)) {
+        if declarations[1..]
+               .iter()
+               .all(|d| d.with_variables_from_shorthand(shorthand) == Some(css)) {
             css.to_owned()
         } else {
             String::new()
@@ -74,7 +74,8 @@ fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclara
 impl CSSStyleDeclaration {
     pub fn new_inherited(owner: &Element,
                          pseudo: Option<PseudoElement>,
-                         modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
+                         modification_access: CSSModificationAccess)
+                         -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_ref(owner),
@@ -83,10 +84,14 @@ impl CSSStyleDeclaration {
         }
     }
 
-    pub fn new(global: &Window, owner: &Element,
+    pub fn new(global: &Window,
+               owner: &Element,
                pseudo: Option<PseudoElement>,
-               modification_access: CSSModificationAccess) -> Root<CSSStyleDeclaration> {
-        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access),
+               modification_access: CSSModificationAccess)
+               -> Root<CSSStyleDeclaration> {
+        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner,
+                                                                  pseudo,
+                                                                  modification_access),
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
     }
@@ -109,7 +114,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let elem = self.owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
             Some(ref declarations) => declarations.normal.len() + declarations.important.len(),
-            None => 0
+            None => 0,
         };
         len as u32
     }
@@ -150,7 +155,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 2
         if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1
-            let mut list = vec!();
+            let mut list = vec![];
 
             // Step 2.2
             for longhand in shorthand.longhands() {
@@ -203,8 +208,11 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
-    fn SetProperty(&self, mut property: DOMString, value: DOMString,
-                   priority: DOMString) -> ErrorResult {
+    fn SetProperty(&self,
+                   mut property: DOMString,
+                   value: DOMString,
+                   priority: DOMString)
+                   -> ErrorResult {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
@@ -281,7 +289,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             Some(shorthand) => {
                 element.set_inline_style_property_priority(shorthand.longhands(), priority)
             }
-            None => element.set_inline_style_property_priority(&[&*property], priority)
+            None => element.set_inline_style_property_priority(&[&*property], priority),
         }
 
         let document = document_from_node(element);
@@ -318,7 +326,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                 }
             }
             // Step 5
-            None => elem.remove_inline_style_property(&property)
+            None => elem.remove_inline_style_property(&property),
         }
 
         // Step 6

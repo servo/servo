@@ -112,7 +112,8 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
-        JS_CallValueTracer(tracer, val.ptr.get() as *mut _,
+        JS_CallValueTracer(tracer,
+                           val.ptr.get() as *mut _,
                            GCTraceKindToAscii(val.get().trace_kind()));
     }
 }
@@ -126,7 +127,8 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing reflector {}", description);
-        JS_CallUnbarrieredObjectTracer(tracer, reflector.rootable(),
+        JS_CallUnbarrieredObjectTracer(tracer,
+                                       reflector.rootable(),
                                        GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
@@ -139,7 +141,8 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallObjectTracer(tracer, obj.ptr.get() as *mut _,
+        JS_CallObjectTracer(tracer,
+                            obj.ptr.get() as *mut _,
                             GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
@@ -354,12 +357,12 @@ impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
 /// Homemade trait object for JSTraceable things
 struct TraceableInfo {
     pub ptr: *const libc::c_void,
-    pub trace: fn(obj: *const libc::c_void, tracer: *mut JSTracer)
+    pub trace: fn(obj: *const libc::c_void, tracer: *mut JSTracer),
 }
 
 /// Holds a set of JSTraceables that need to be rooted
 pub struct RootedTraceableSet {
-    set: Vec<TraceableInfo>
+    set: Vec<TraceableInfo>,
 }
 
 #[allow(missing_docs)]  // FIXME
@@ -376,7 +379,7 @@ pub use self::dummy::ROOTED_TRACEABLES;
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {
         RootedTraceableSet {
-            set: vec!()
+            set: vec![],
         }
     }
 
@@ -424,7 +427,7 @@ impl RootedTraceableSet {
 /// If you know what you're doing, use this.
 #[derive(JSTraceable)]
 pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
-    ptr: &'a T
+    ptr: &'a T,
 }
 
 impl<'a, T: JSTraceable> RootedTraceable<'a, T> {
@@ -433,7 +436,9 @@ impl<'a, T: JSTraceable> RootedTraceable<'a, T> {
         unsafe {
             RootedTraceableSet::add(traceable);
         }
-        RootedTraceable { ptr: traceable }
+        RootedTraceable {
+            ptr: traceable,
+        }
     }
 }
 
@@ -451,7 +456,7 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
 #[derive(JSTraceable)]
 #[allow_unrooted_interior]
 pub struct RootedVec<T: JSTraceable> {
-    v: Vec<T>
+    v: Vec<T>,
 }
 
 
@@ -459,9 +464,7 @@ impl<T: JSTraceable> RootedVec<T> {
     /// Create a vector of items of type T that is rooted for
     /// the lifetime of this struct
     pub fn new() -> RootedVec<T> {
-        let addr = unsafe {
-            return_address() as *const libc::c_void
-        };
+        let addr = unsafe { return_address() as *const libc::c_void };
 
         unsafe { RootedVec::new_with_destination_address(addr) }
     }
@@ -470,7 +473,9 @@ impl<T: JSTraceable> RootedVec<T> {
     /// for RootTraceableSet.
     pub unsafe fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
         RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
-        RootedVec::<T> { v: vec!() }
+        RootedVec::<T> {
+            v: vec![],
+        }
     }
 }
 
@@ -504,7 +509,9 @@ impl<T: JSTraceable> DerefMut for RootedVec<T> {
 
 impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
     #[allow(moved_no_move)]
-    fn from_iter<T>(iterable: T) -> RootedVec<JS<A>> where T: IntoIterator<Item=Root<A>> {
+    fn from_iter<T>(iterable: T) -> RootedVec<JS<A>>
+        where T: IntoIterator<Item = Root<A>>
+    {
         let mut vec = unsafe {
             RootedVec::new_with_destination_address(return_address() as *const libc::c_void)
         };

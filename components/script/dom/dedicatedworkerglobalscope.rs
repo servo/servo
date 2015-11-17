@@ -113,7 +113,9 @@ struct AutoWorkerReset<'a> {
 }
 
 impl<'a> AutoWorkerReset<'a> {
-    fn new(workerscope: &'a DedicatedWorkerGlobalScope, worker: TrustedWorkerAddress) -> AutoWorkerReset<'a> {
+    fn new(workerscope: &'a DedicatedWorkerGlobalScope,
+           worker: TrustedWorkerAddress)
+           -> AutoWorkerReset<'a> {
         AutoWorkerReset {
             workerscope: workerscope,
             old_worker: replace(&mut *workerscope.worker.borrow_mut(), Some(worker)),
@@ -165,8 +167,11 @@ impl DedicatedWorkerGlobalScope {
                      -> DedicatedWorkerGlobalScope {
 
         DedicatedWorkerGlobalScope {
-            workerglobalscope: WorkerGlobalScope::new_inherited(
-                init, worker_url, runtime, from_devtools_receiver, timer_event_chan),
+            workerglobalscope: WorkerGlobalScope::new_inherited(init,
+                                                                worker_url,
+                                                                runtime,
+                                                                from_devtools_receiver,
+                                                                timer_event_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -187,9 +192,16 @@ impl DedicatedWorkerGlobalScope {
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
                -> Root<DedicatedWorkerGlobalScope> {
-        let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            init, worker_url, id, from_devtools_receiver, runtime.clone(), parent_sender,
-            own_sender, receiver, timer_event_chan, timer_event_port);
+        let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
+                                                                  worker_url,
+                                                                  id,
+                                                                  from_devtools_receiver,
+                                                                  runtime.clone(),
+                                                                  parent_sender,
+                                                                  own_sender,
+                                                                  receiver,
+                                                                  timer_event_chan,
+                                                                  timer_event_port);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 
@@ -315,7 +327,8 @@ impl DedicatedWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ar = JSAutoRequest::new(scope.get_cx());
-                let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
+                let _ac = JSAutoCompartment::new(scope.get_cx(),
+                                                 scope.reflector().get_jsobject().get());
                 let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
@@ -375,8 +388,10 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
-            box WorkerMessageHandler::new(worker, data))).unwrap();
+        self.parent_sender
+            .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+                                               box WorkerMessageHandler::new(worker, data)))
+            .unwrap();
         Ok(())
     }
 

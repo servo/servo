@@ -23,8 +23,7 @@ pub struct CloseEvent {
 }
 
 impl CloseEvent {
-    pub fn new_inherited(wasClean: bool, code: u16,
-                         reason: DOMString) -> CloseEvent {
+    pub fn new_inherited(wasClean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(),
             wasClean: wasClean,
@@ -39,7 +38,8 @@ impl CloseEvent {
                cancelable: EventCancelable,
                wasClean: bool,
                code: u16,
-               reason: DOMString) -> Root<CloseEvent> {
+               reason: DOMString)
+               -> Root<CloseEvent> {
         let event = box CloseEvent::new_inherited(wasClean, code, reason);
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
@@ -55,14 +55,23 @@ impl CloseEvent {
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Root<CloseEvent>> {
-        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+        let bubbles = if init.parent.bubbles {
+            EventBubbles::Bubbles
+        } else {
+            EventBubbles::DoesNotBubble
+        };
         let cancelable = if init.parent.cancelable {
             EventCancelable::Cancelable
         } else {
             EventCancelable::NotCancelable
         };
-        Ok(CloseEvent::new(global, type_, bubbles, cancelable, init.wasClean,
-                           init.code, init.reason.clone()))
+        Ok(CloseEvent::new(global,
+                           type_,
+                           bubbles,
+                           cancelable,
+                           init.wasClean,
+                           init.code,
+                           init.reason.clone()))
     }
 }
 

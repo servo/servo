@@ -24,10 +24,10 @@ pub struct DocumentType {
 
 impl DocumentType {
     fn new_inherited(name: DOMString,
-                         public_id: Option<DOMString>,
-                         system_id: Option<DOMString>,
-                         document: &Document)
-            -> DocumentType {
+                     public_id: Option<DOMString>,
+                     system_id: Option<DOMString>,
+                     document: &Document)
+                     -> DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
             name: name,
@@ -41,10 +41,7 @@ impl DocumentType {
                system_id: Option<DOMString>,
                document: &Document)
                -> Root<DocumentType> {
-        let documenttype = DocumentType::new_inherited(name,
-                                                       public_id,
-                                                       system_id,
-                                                       document);
+        let documenttype = DocumentType::new_inherited(name, public_id, system_id, document);
         Node::reflect_node(box documenttype, document, DocumentTypeBinding::Wrap)
     }
 
