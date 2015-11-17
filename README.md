@@ -8,6 +8,8 @@ Servo welcomes contribution from everyone.  See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md)
 for help getting started.
 
+Visit the [Servo Project page](http://servo.org/) for news and guides.
+
 ## Prerequisites
 
 On OS X (homebrew):
