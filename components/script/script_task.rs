@@ -992,6 +992,8 @@ impl ScriptTask {
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
+            ConstellationControlMsg::DispatchFrameLoadEvent(pipeline_id, containing_id) =>
+                self.handle_frame_load_event(containing_id, pipeline_id),
             ConstellationControlMsg::GetCurrentState(sender, pipeline_id) => {
                 let state = self.handle_get_current_state(pipeline_id);
                 sender.send(state).unwrap();
@@ -1504,6 +1506,15 @@ impl ScriptTask {
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
         if let Some(ref page) = self.find_subpage(pipeline_id)  {
             self.rebuild_and_force_reflow(page, ReflowReason::WebFontLoaded);
+        }
+    }
+
+    /// Notify the containing document of a child frame that has completed loading.
+    fn handle_frame_load_event(&self, containing_pipeline: PipelineId, id: PipelineId) {
+        let page = get_page(&self.root_page(), containing_pipeline);
+        let document = page.document();
+        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
+            iframe.iframe_load_event_steps();
         }
     }
 

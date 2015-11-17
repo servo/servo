@@ -237,6 +237,8 @@ pub enum Msg {
     InitLoadUrl(Url),
     LoadComplete(PipelineId),
     /// Dispatched after the DOM load event has fired on a document
+    /// Causes a `load` event to be dispatched to any enclosing frame context element
+    /// for the given pipeline.
     DOMLoad(PipelineId),
     FrameSize(PipelineId, Size2D<f32>),
     LoadUrl(PipelineId, LoadData),
