@@ -22,17 +22,22 @@ pub struct StructuredCloneData {
 
 impl StructuredCloneData {
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
-    pub fn write(cx: *mut JSContext, message: HandleValue)
-                 -> Fallible<StructuredCloneData> {
+    pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
         let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut(),
+            JS_WriteStructuredClone(cx,
+                                    message,
+                                    &mut data,
+                                    &mut nbytes,
+                                    ptr::null(),
+                                    ptr::null_mut(),
                                     HandleValue::undefined())
         };
         if !result {
-            unsafe { JS_ClearPendingException(cx); }
+            unsafe {
+                JS_ClearPendingException(cx);
+            }
             return Err(Error::DataClone);
         }
         Ok(StructuredCloneData {
@@ -46,10 +51,13 @@ impl StructuredCloneData {
     /// Panics if `JS_ReadStructuredClone` fails.
     pub fn read(self, global: GlobalRef, rval: MutableHandleValue) {
         unsafe {
-            assert!(JS_ReadStructuredClone(
-                global.get_cx(), self.data, self.nbytes,
-                JS_STRUCTURED_CLONE_VERSION, rval,
-                ptr::null(), ptr::null_mut()));
+            assert!(JS_ReadStructuredClone(global.get_cx(),
+                                           self.data,
+                                           self.nbytes,
+                                           JS_STRUCTURED_CLONE_VERSION,
+                                           rval,
+                                           ptr::null(),
+                                           ptr::null_mut()));
         }
     }
 }

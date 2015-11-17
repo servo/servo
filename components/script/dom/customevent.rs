@@ -40,7 +40,8 @@ impl CustomEvent {
                type_: DOMString,
                bubbles: bool,
                cancelable: bool,
-               detail: HandleValue) -> Root<CustomEvent> {
+               detail: HandleValue)
+               -> Root<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global);
         ev.InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         ev
@@ -48,7 +49,8 @@ impl CustomEvent {
     #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &CustomEventBinding::CustomEventInit) -> Fallible<Root<CustomEvent>>{
+                       init: &CustomEventBinding::CustomEventInit)
+                       -> Fallible<Root<CustomEvent>> {
         Ok(CustomEvent::new(global,
                             type_,
                             init.parent.bubbles,

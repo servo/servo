@@ -50,28 +50,39 @@ impl DOMImplementation {
 // https://dom.spec.whatwg.org/#domimplementation
 impl DOMImplementationMethods for DOMImplementation {
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    fn CreateDocumentType(&self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
+    fn CreateDocumentType(&self,
+                          qualified_name: DOMString,
+                          pubid: DOMString,
+                          sysid: DOMString)
                           -> Fallible<Root<DocumentType>> {
         try!(validate_qualified_name(&qualified_name));
         Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
-    fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                      maybe_doctype: Option<&DocumentType>) -> Fallible<Root<Document>> {
+    fn CreateDocument(&self,
+                      namespace: Option<DOMString>,
+                      qname: DOMString,
+                      maybe_doctype: Option<&DocumentType>)
+                      -> Fallible<Root<Document>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1.
-        let doc = Document::new(win, None, IsHTMLDocument::NonHTMLDocument,
-                                None, None, DocumentSource::NotFromParser, loader);
+        let doc = Document::new(win,
+                                None,
+                                IsHTMLDocument::NonHTMLDocument,
+                                None,
+                                None,
+                                DocumentSource::NotFromParser,
+                                loader);
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
         } else {
             match doc.CreateElementNS(namespace, qname) {
                 Err(error) => return Err(error),
-                Ok(elem) => Some(elem)
+                Ok(elem) => Some(elem),
             }
         };
 
@@ -102,8 +113,13 @@ impl DOMImplementationMethods for DOMImplementation {
         let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1-2.
-        let doc = Document::new(win, None, IsHTMLDocument::HTMLDocument, None, None,
-                                DocumentSource::NotFromParser, loader);
+        let doc = Document::new(win,
+                                None,
+                                IsHTMLDocument::HTMLDocument,
+                                None,
+                                None,
+                                DocumentSource::NotFromParser,
+                                loader);
 
         {
             // Step 3.
@@ -115,14 +131,16 @@ impl DOMImplementationMethods for DOMImplementation {
         {
             // Step 4.
             let doc_node = doc.upcast::<Node>();
-            let doc_html = Root::upcast::<Node>(
-                HTMLHtmlElement::new(DOMString::from("html"), None, doc.r()));
+            let doc_html = Root::upcast::<Node>(HTMLHtmlElement::new(DOMString::from("html"),
+                                                                     None,
+                                                                     doc.r()));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
-                let doc_head = Root::upcast::<Node>(
-                    HTMLHeadElement::new(DOMString::from("head"), None, doc.r()));
+                let doc_head = Root::upcast::<Node>(HTMLHeadElement::new(DOMString::from("head"),
+                                                                         None,
+                                                                         doc.r()));
                 doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
@@ -130,8 +148,10 @@ impl DOMImplementationMethods for DOMImplementation {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let doc_title = Root::upcast::<Node>(
-                            HTMLTitleElement::new(DOMString::from("title"), None, doc.r()));
+                        let doc_title =
+                            Root::upcast::<Node>(HTMLTitleElement::new(DOMString::from("title"),
+                                                                       None,
+                                                                       doc.r()));
                         doc_head.AppendChild(&doc_title).unwrap();
 
                         // Step 6.2.

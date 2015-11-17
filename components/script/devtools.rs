@@ -5,9 +5,9 @@
 use devtools_traits::{CONSOLE_API, CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR};
 use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError, ScriptToDevtoolsControlMsg};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker, TimelineMarkerType};
-use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -39,8 +39,8 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         } else if rval.ptr.is_boolean() {
             EvaluateJSReply::BooleanValue(rval.ptr.to_boolean())
         } else if rval.ptr.is_double() || rval.ptr.is_int32() {
-            EvaluateJSReply::NumberValue(
-                FromJSValConvertible::from_jsval(cx, rval.handle(), ()).unwrap())
+            EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval.handle(), ())
+                                             .unwrap())
         } else if rval.ptr.is_string() {
             EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.ptr.to_string())))
         } else if rval.ptr.is_null() {
@@ -69,7 +69,9 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSen
     reply.send(node.summarize()).unwrap();
 }
 
-pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
+pub fn handle_get_document_element(page: &Rc<Page>,
+                                   pipeline: PipelineId,
+                                   reply: IpcSender<NodeInfo>) {
     let page = get_page(&*page, pipeline);
     let document = page.document();
     let document_element = document.GetDocumentElement().unwrap();
@@ -92,11 +94,14 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     panic!("couldn't find node with unique id {}", node_id)
 }
 
-pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<Vec<NodeInfo>>) {
+pub fn handle_get_children(page: &Rc<Page>,
+                           pipeline: PipelineId,
+                           node_id: String,
+                           reply: IpcSender<Vec<NodeInfo>>) {
     let parent = find_node_by_unique_id(&*page, pipeline, node_id);
-    let children = parent.children().map(|child| {
-        child.summarize()
-    }).collect();
+    let children = parent.children()
+                         .map(|child| child.summarize())
+                         .collect();
     reply.send(children).unwrap();
 }
 
@@ -109,16 +114,20 @@ pub fn handle_get_layout(page: &Rc<Page>,
     let rect = elem.GetBoundingClientRect();
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
-    reply.send(ComputedNodeLayout { width: width, height: height }).unwrap();
+    reply.send(ComputedNodeLayout {
+             width: width,
+             height: height,
+         })
+         .unwrap();
 }
 
 pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
                                   message_types: CachedConsoleMessageTypes,
                                   reply: IpcSender<Vec<CachedConsoleMessage>>) {
-    //TODO: check the messageTypes against a global Cache for console messages and page exceptions
+    // TODO: check the messageTypes against a global Cache for console messages and page exceptions
     let mut messages = Vec::new();
     if message_types.contains(PAGE_ERROR) {
-        //TODO: make script error reporter pass all reported errors
+        // TODO: make script error reporter pass all reported errors
         //      to devtools and cache them for returning here.
         let msg = PageError {
             _type: "PageError".to_owned(),
@@ -138,7 +147,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
         messages.push(CachedConsoleMessage::PageError(msg));
     }
     if message_types.contains(CONSOLE_API) {
-        //TODO: do for real
+        // TODO: do for real
         let msg = ConsoleAPI {
             _type: "ConsoleAPI".to_owned(),
             level: "error".to_owned(),
@@ -164,7 +173,8 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
     for modification in modifications {
         match modification.newValue {
             Some(string) => {
-                let _ = elem.SetAttribute(DOMString::from(modification.attributeName), DOMString::from(string));
+                let _ = elem.SetAttribute(DOMString::from(modification.attributeName),
+                                          DOMString::from(string));
             },
             None => elem.RemoveAttribute(DOMString::from(modification.attributeName)),
         }
@@ -182,8 +192,7 @@ pub fn handle_set_timeline_markers(page: &Rc<Page>,
     window.set_devtools_timeline_markers(marker_types, reply);
 }
 
-pub fn handle_drop_timeline_markers(page: &Rc<Page>,
-                                    marker_types: Vec<TimelineMarkerType>) {
+pub fn handle_drop_timeline_markers(page: &Rc<Page>, marker_types: Vec<TimelineMarkerType>) {
     let window = page.window();
     window.drop_devtools_timeline_markers(marker_types);
 }

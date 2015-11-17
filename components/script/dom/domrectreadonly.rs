@@ -29,12 +29,23 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(global: GlobalRef, x: f64, y: f64, width: f64, height: f64) -> Root<DOMRectReadOnly> {
-        reflect_dom_object(box DOMRectReadOnly::new_inherited(x, y, width, height), global, Wrap)
+    pub fn new(global: GlobalRef,
+               x: f64,
+               y: f64,
+               width: f64,
+               height: f64)
+               -> Root<DOMRectReadOnly> {
+        reflect_dom_object(box DOMRectReadOnly::new_inherited(x, y, width, height),
+                           global,
+                           Wrap)
     }
 
     pub fn Constructor(global: GlobalRef,
-                        x: f64, y: f64, width: f64, height: f64) -> Fallible<Root<DOMRectReadOnly>> {
+                       x: f64,
+                       y: f64,
+                       width: f64,
+                       height: f64)
+                       -> Fallible<Root<DOMRectReadOnly>> {
         Ok(DOMRectReadOnly::new(global, x, y, width, height))
     }
 
@@ -79,24 +90,40 @@ impl DOMRectReadOnlyMethods for DOMRectReadOnly {
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-top
     fn Top(&self) -> f64 {
         let height = self.height.get();
-        if height >= 0f64 { self.y.get() } else { self.y.get() + height }
+        if height >= 0f64 {
+            self.y.get()
+        } else {
+            self.y.get() + height
+        }
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-right
     fn Right(&self) -> f64 {
         let width = self.width.get();
-        if width < 0f64 { self.x.get() } else { self.x.get() + width }
+        if width < 0f64 {
+            self.x.get()
+        } else {
+            self.x.get() + width
+        }
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-bottom
     fn Bottom(&self) -> f64 {
         let height = self.height.get();
-        if height < 0f64 { self.y.get() } else { self.y.get() + height }
+        if height < 0f64 {
+            self.y.get()
+        } else {
+            self.y.get() + height
+        }
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-left
     fn Left(&self) -> f64 {
         let width = self.width.get();
-        if width >= 0f64 { self.x.get() } else { self.x.get() + width }
+        if width >= 0f64 {
+            self.x.get()
+        } else {
+            self.x.get() + width
+        }
     }
 }

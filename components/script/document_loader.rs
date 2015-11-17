@@ -5,7 +5,7 @@
 //! Tracking of pending loads in a document.
 //! https://html.spec.whatwg.org/multipage/#the-end
 
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::AsyncResponseTarget;
 use net_traits::{PendingAsyncLoad, ResourceTask};
 use std::sync::Arc;
@@ -86,7 +86,7 @@ impl DocumentLoader {
     }
 
     pub fn is_blocked(&self) -> bool {
-        //TODO: Ensure that we report blocked if parsing is still ongoing.
+        // TODO: Ensure that we report blocked if parsing is still ongoing.
         !self.blocking_loads.is_empty()
     }
 

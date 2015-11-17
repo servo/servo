@@ -50,8 +50,9 @@ pub trait WeakReferenceable: Reflectable + Sized {
     fn downgrade(&self) -> WeakRef<Self> {
         unsafe {
             let object = self.reflector().get_jsobject().get();
-            let mut ptr =
-                JS_GetReservedSlot(object, DOM_WEAK_SLOT).to_private() as *mut WeakBox<Self>;
+            let mut ptr = JS_GetReservedSlot(object,
+                                             DOM_WEAK_SLOT)
+                              .to_private() as *mut WeakBox<Self>;
             if ptr.is_null() {
                 debug!("Creating new WeakBox holder for {:p}.", self);
                 ptr = Box::into_raw(box WeakBox {
@@ -63,9 +64,13 @@ pub trait WeakReferenceable: Reflectable + Sized {
             let box_ = &*ptr;
             assert!(box_.value.get().is_some());
             let new_count = box_.count.get() + 1;
-            debug!("Incrementing WeakBox refcount for {:p} to {}.", self, new_count);
+            debug!("Incrementing WeakBox refcount for {:p} to {}.",
+                   self,
+                   new_count);
             box_.count.set(new_count);
-            WeakRef { ptr: NonZero::new(ptr) }
+            WeakRef {
+                ptr: NonZero::new(ptr),
+            }
         }
     }
 }
@@ -95,7 +100,9 @@ impl<T: WeakReferenceable> Clone for WeakRef<T> {
             let box_ = &**self.ptr;
             let new_count = box_.count.get() + 1;
             box_.count.set(new_count);
-            WeakRef { ptr: self.ptr }
+            WeakRef {
+                ptr: self.ptr,
+            }
         }
     }
 }
@@ -143,7 +150,9 @@ impl<T: WeakReferenceable> MutableWeakRef<T> {
 
     /// Set the pointee of a mutable weak reference.
     pub fn set(&self, value: Option<&T>) {
-        unsafe { *self.cell.get() = value.map(WeakRef::new); }
+        unsafe {
+            *self.cell.get() = value.map(WeakRef::new);
+        }
     }
 
     /// Root a mutable weak reference. Returns `None` if the object

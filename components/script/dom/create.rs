@@ -77,8 +77,10 @@ use dom::htmlvideoelement::HTMLVideoElement;
 use string_cache::{Atom, QualName};
 use util::str::DOMString;
 
-pub fn create_element(name: QualName, prefix: Option<Atom>,
-                      document: &Document, creator: ElementCreator)
+pub fn create_element(name: QualName,
+                      prefix: Option<Atom>,
+                      document: &Document,
+                      creator: ElementCreator)
                       -> Root<Element> {
     // FIXME(ajeffrey): Convert directly from Atom to DOMString.
 

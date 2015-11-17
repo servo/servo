@@ -35,7 +35,7 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
-    EncodingError
+    EncodingError,
 }
 
 #[dom_struct]
@@ -53,7 +53,9 @@ impl DOMException {
     }
 
     pub fn new(global: GlobalRef, code: DOMErrorName) -> Root<DOMException> {
-        reflect_dom_object(box DOMException::new_inherited(code), global, DOMExceptionBinding::Wrap)
+        reflect_dom_object(box DOMException::new_inherited(code),
+                           global,
+                           DOMExceptionBinding::Wrap)
     }
 }
 
@@ -63,7 +65,7 @@ impl DOMExceptionMethods for DOMException {
         match self.code {
             // https://heycam.github.io/webidl/#dfn-throw
             DOMErrorName::EncodingError => 0,
-            code => code as u16
+            code => code as u16,
         }
     }
 
