@@ -17,7 +17,7 @@ use std::cell::RefCell;
 use std::mem;
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, layout_node_to_unsafe_layout_node};
+use wrapper::{LayoutNode, LayoutNodeTrait, layout_node_to_unsafe_layout_node};
 use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is

@@ -23,7 +23,7 @@ use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use wrapper::UnsafeLayoutNode;
-use wrapper::{LayoutNode, layout_node_from_unsafe_layout_node, layout_node_to_unsafe_layout_node};
+use wrapper::{LayoutNode, LayoutNodeTrait, layout_node_from_unsafe_layout_node, layout_node_to_unsafe_layout_node};
 
 const CHUNK_SIZE: usize = 64;
 

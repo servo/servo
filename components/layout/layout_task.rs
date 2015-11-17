@@ -82,7 +82,7 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::{LayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutDocumentTrait, LayoutElementTrait, LayoutNode, LayoutNodeTrait, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;

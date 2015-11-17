@@ -19,7 +19,7 @@ use traversal::{BuildDisplayList, ComputeAbsolutePositions};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::geometry::ZERO_POINT;
 use util::opts;
-use wrapper::LayoutNode;
+use wrapper::{LayoutNode, LayoutNodeTrait};
 
 pub fn traverse_dom_preorder(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext) {
