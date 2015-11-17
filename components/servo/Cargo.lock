@@ -24,6 +24,7 @@ dependencies = [
  "net 0.0.1",
  "net_tests 0.0.1",
  "net_traits 0.0.1",
+ "net_traits_tests 0.0.1",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
@@ -1229,6 +1230,13 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+]
+
+[[package]]
+name = "net_traits_tests"
+version = "0.0.1"
+dependencies = [
+ "net_traits 0.0.1",
 ]
 
 [[package]]
