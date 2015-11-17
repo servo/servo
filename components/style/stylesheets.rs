@@ -148,10 +148,7 @@ impl Stylesheet {
     ///
     /// Always true if no associated MediaQueryList exists.
     pub fn is_effective_for_device(&self, device: &Device) -> bool {
-        match self.media {
-            Some(ref media) => media.evaluate(device),
-            None => true
-        }
+        self.media.as_ref().map_or(true, |ref media| media.evaluate(device))
     }
 
     /// Return an iterator over all the rules within the style-sheet.

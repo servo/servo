@@ -599,10 +599,7 @@ impl Node {
     }
 
     pub fn is_parent_of(&self, child: &Node) -> bool {
-        match child.parent_node.get() {
-            Some(ref parent) => parent.r() == self,
-            None => false,
-        }
+        child.parent_node.get().map_or(false, |ref parent| parent.r() == self)
     }
 
     pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
