@@ -121,7 +121,7 @@ pub trait CompositorLayer {
 
     // Takes in a MouseWindowEvent, determines if it should be passed to children, and
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
-    // page coordinates.
+    // client coordinates.
     fn send_mouse_event<Window>(&self,
                                 compositor: &IOCompositor<Window>,
                                 event: MouseWindowEvent,
