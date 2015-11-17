@@ -1957,17 +1957,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let clip_rect_for_children = if masks_to_bounds {
             Rect::new(Point2D::zero(), clipped_layer_bounds.size)
         } else {
-            clipped_layer_bounds.translate(&clip_rect.origin)
+            clipped_layer_bounds.translate(&-layer_bounds.origin)
         };
 
         let child_point = point - layer_bounds.origin;
         for child in layer.children().iter().rev() {
             // Translate the clip rect into the child's coordinate system.
-            let clip_rect_for_child =
-                clip_rect_for_children.translate(&-*child.content_offset.borrow());
             let result = self.find_topmost_layer_at_point_for_layer(child.clone(),
                                                                     child_point,
-                                                                    &clip_rect_for_child);
+                                                                    &clip_rect_for_children);
             if result.is_some() {
                 return result;
             }
