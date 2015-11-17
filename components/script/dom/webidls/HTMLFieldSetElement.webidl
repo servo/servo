@@ -11,7 +11,9 @@ interface HTMLFieldSetElement : HTMLElement {
 
   //readonly attribute DOMString type;
 
+  //HTMLFormControlsCollection: https://github.com/servo/servo/issues/8566
   //readonly attribute HTMLFormControlsCollection elements;
+
   readonly attribute HTMLCollection elements;
 
   //readonly attribute boolean willValidate;
