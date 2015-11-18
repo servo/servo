@@ -194,8 +194,6 @@ impl ActiveTimers {
                                   duration: MsDuration,
                                   is_interval: IsInterval,
                                   source: TimerSource) -> TimerHandle {
-        assert!(self.suspended_since.get().is_none());
-
         // step 3
         let TimerHandle(new_handle) = self.next_timer_handle.get();
         self.next_timer_handle.set(TimerHandle(new_handle + 1));
