@@ -58,42 +58,42 @@ extern crate unicode_script;
 extern crate url;
 
 #[macro_use]
-pub mod layout_debug;
+mod layout_debug;
 
-pub mod animation;
-pub mod block;
-pub mod construct;
-pub mod context;
-pub mod data;
-pub mod display_list_builder;
-pub mod flex;
-pub mod floats;
-pub mod flow;
-pub mod flow_list;
-pub mod flow_ref;
-pub mod fragment;
-pub mod generated_content;
-pub mod incremental;
-pub mod inline;
+mod animation;
+mod block;
+mod construct;
+mod context;
+mod data;
+mod display_list_builder;
+mod flex;
+mod floats;
+mod flow;
+mod flow_list;
+mod flow_ref;
+mod fragment;
+mod generated_content;
+mod incremental;
+mod inline;
 pub mod layout_task;
-pub mod list_item;
-pub mod model;
-pub mod multicol;
-pub mod opaque_node;
-pub mod parallel;
-pub mod query;
-pub mod sequential;
-pub mod table;
-pub mod table_caption;
-pub mod table_cell;
-pub mod table_colgroup;
-pub mod table_row;
-pub mod table_rowgroup;
-pub mod table_wrapper;
-pub mod text;
-pub mod traversal;
-pub mod wrapper;
+mod list_item;
+mod model;
+mod multicol;
+mod opaque_node;
+mod parallel;
+mod query;
+mod sequential;
+mod table;
+mod table_caption;
+mod table_cell;
+mod table_colgroup;
+mod table_row;
+mod table_rowgroup;
+mod table_wrapper;
+mod text;
+mod traversal;
+mod wrapper;
 
-pub mod css {
+mod css {
     pub mod matching;
 }

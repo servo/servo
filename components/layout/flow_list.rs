@@ -22,46 +22,6 @@ pub struct MutFlowListIterator<'a> {
 }
 
 impl FlowList {
-    /// Provide a reference to the front element, or None if the list is empty
-    #[inline]
-    pub fn front(&self) -> Option<&Flow> {
-        self.flows.front().map(|head| &**head)
-    }
-
-    /// Provide a mutable reference to the front element, or None if the list is empty
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn front_mut(&mut self) -> Option<&mut Flow> {
-        self.flows.front_mut().map(flow_ref::deref_mut)
-    }
-
-    /// Provide a reference to the back element, or None if the list is empty
-    #[inline]
-    pub fn back(&self) -> Option<&Flow> {
-        self.flows.back().map(|tail| &**tail)
-    }
-
-    /// Provide a mutable reference to the back element, or None if the list is empty
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn back_mut(&mut self) -> Option<&mut Flow> {
-        self.flows.back_mut().map(flow_ref::deref_mut)
-    }
-
-    /// Add an element first in the list
-    ///
-    /// O(1)
-    pub fn push_front(&mut self, new_head: FlowRef) {
-        self.flows.push_front(new_head);
-    }
-
-    /// Remove the first element and return it, or None if the list is empty
-    ///
-    /// O(1)
-    pub fn pop_front(&mut self) -> Option<FlowRef> {
-        self.flows.pop_front()
-    }
-
     /// Add an element last in the list
     ///
     /// O(1)

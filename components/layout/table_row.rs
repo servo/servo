@@ -95,10 +95,6 @@ impl TableRowFlow {
         }
     }
 
-    pub fn fragment(&mut self) -> &Fragment {
-        &self.block_flow.fragment
-    }
-
     /// Assign block-size for table-row flow.
     ///
     /// TODO(pcwalton): This doesn't handle floats and positioned elements right.
@@ -538,6 +534,9 @@ impl Encodable for CollapsedBorder {
 ///
 /// The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
 /// 17.6.2.1. Higher values override lower values.
+// FIXME(#8586): FromTableRow, FromTableRowGroup, FromTableColumn,
+// FromTableColumnGroup are unused
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, PartialEq, RustcEncodable)]
 pub enum CollapsedBorderProvenance {
     FromPreviousTableCell = 6,

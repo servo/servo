@@ -51,13 +51,6 @@ impl ApplicableDeclarations {
             normal_shareable: false,
         }
     }
-
-    pub fn clear(&mut self) {
-        self.normal = SmallVec::new();
-        self.before = Vec::new();
-        self.after = Vec::new();
-        self.normal_shareable = false;
-    }
 }
 
 #[derive(Clone)]
