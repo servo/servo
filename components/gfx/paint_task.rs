@@ -21,7 +21,7 @@ use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScrollPolicy};
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
@@ -214,7 +214,7 @@ pub struct PaintTask<C> {
     layout_to_paint_port: Receiver<LayoutToPaintMsg>,
     chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
     compositor: C,
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// A channel to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -250,7 +250,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
-                  constellation_chan: ConstellationChan,
+                  constellation_chan: ConstellationChan<ConstellationMsg>,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
@@ -268,7 +268,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
-                // FIXME: rust/#5967
                 let mut paint_task = PaintTask {
                     id: id,
                     _url: url,

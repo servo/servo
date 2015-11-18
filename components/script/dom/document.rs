@@ -80,7 +80,7 @@ use layout_interface::{LayoutChan, Msg};
 use layout_interface::{ReflowGoal, ReflowQueryType};
 use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::AnimationState;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};

@@ -31,7 +31,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use offscreen_gl_context::GLContextAttributes;

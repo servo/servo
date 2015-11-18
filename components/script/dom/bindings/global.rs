@@ -18,6 +18,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
@@ -91,7 +92,7 @@ impl<'a> GlobalRef<'a> {
     }
 
     /// Get a `ConstellationChan` to send messages to the constellation channel when available.
-    pub fn constellation_chan(&self) -> ConstellationChan {
+    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
         match *self {
             GlobalRef::Window(window) => window.constellation_chan(),
             GlobalRef::Worker(worker) => worker.constellation_chan(),

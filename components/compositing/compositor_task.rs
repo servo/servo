@@ -12,6 +12,7 @@ use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
+use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState};
 use profile_traits::mem;
@@ -179,7 +180,7 @@ pub enum Msg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
+    SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan<ConstellationMsg>),
     /// The load of a page has begun: (can go back, can go forward).
     LoadStart(bool, bool),
     /// The load of a page has completed: (can go back, can go forward).
@@ -295,7 +296,7 @@ pub struct InitialCompositorState {
     /// A port on which messages inbound to the compositor can be received.
     pub receiver: Box<CompositorReceiver>,
     /// A channel to the constellation.
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan<ConstellationMsg>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.

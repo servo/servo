@@ -27,7 +27,7 @@ use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FrameId, LoadData, PipelineId};
 use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
 use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
@@ -57,7 +57,7 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
                 (Post, "/session/{sessionId}/servo/prefs/reset", ServoExtensionRoute::ResetPrefs)]
 }
 
-pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
+pub fn start_server(port: u16, constellation_chan: ConstellationChan<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
     spawn_named("WebdriverHttpServer".to_owned(), move || {
         server::start(SocketAddr::new("0.0.0.0".parse().unwrap(), port), handler,
@@ -72,7 +72,7 @@ struct WebDriverSession {
 
 struct Handler {
     session: Option<WebDriverSession>,
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
     script_timeout: u32,
     load_timeout: u32,
     implicit_wait_timeout: u32
@@ -207,9 +207,8 @@ impl WebDriverSession {
     }
 }
 
-
 impl Handler {
-    pub fn new(constellation_chan: ConstellationChan) -> Handler {
+    pub fn new(constellation_chan: ConstellationChan<ConstellationMsg>) -> Handler {
         Handler {
             session: None,
             constellation_chan: constellation_chan,

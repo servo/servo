@@ -28,7 +28,7 @@ use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
 use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, Image, PixelFormat};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
@@ -168,7 +168,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     frame_tree_id: FrameTreeId,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -703,7 +703,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn set_frame_tree(&mut self,
                       frame_tree: &SendableFrameTree,
                       response_chan: Sender<()>,
-                      new_constellation_chan: ConstellationChan) {
+                      new_constellation_chan: ConstellationChan<ConstellationMsg>) {
         response_chan.send(()).unwrap();
 
         // There are now no more pending iframes.

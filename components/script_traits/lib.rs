@@ -31,6 +31,7 @@ use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
+use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
 use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId};
@@ -253,7 +254,7 @@ pub struct InitialScriptState {
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: Receiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan<ConstellationMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// Information that script sends out when it panics.
