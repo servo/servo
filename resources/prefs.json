@@ -10,5 +10,5 @@
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
-  "shell.homepage": "http://doc.servo.org/servo/index.html"
+  "shell.homepage": "http://servo.org"
 }
