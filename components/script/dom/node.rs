@@ -67,7 +67,7 @@ use string_cache::{Atom, Namespace, QualName};
 use style::properties::ComputedValues;
 use util::str::DOMString;
 use util::task_state;
-use uuid;
+use uuid::Uuid;
 
 //
 // The basic Node structure
@@ -115,7 +115,7 @@ pub struct Node {
     /// node is finalized.
     layout_data: LayoutDataRef,
 
-    unique_id: DOMRefCell<String>,
+    unique_id: DOMRefCell<Option<Box<Uuid>>>,
 }
 
 impl PartialEq for Node {
@@ -793,11 +793,11 @@ impl Node {
     }
 
     pub fn get_unique_id(&self) -> String {
-        if self.unique_id.borrow().is_empty() {
+        if self.unique_id.borrow().is_none() {
             let mut unique_id = self.unique_id.borrow_mut();
-            *unique_id = uuid::Uuid::new_v4().to_simple_string();
+            *unique_id = Some(Box::new(Uuid::new_v4()));
         }
-        self.unique_id.borrow().clone()
+        self.unique_id.borrow().as_ref().unwrap().to_simple_string()
     }
 
     pub fn summarize(&self) -> NodeInfo {
@@ -1310,7 +1310,7 @@ impl Node {
 
             layout_data: LayoutDataRef::new(),
 
-            unique_id: DOMRefCell::new(String::new()),
+            unique_id: DOMRefCell::new(None),
         }
     }
 
