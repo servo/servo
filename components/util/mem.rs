@@ -39,6 +39,7 @@ use str::{DOMString, LengthOrPercentageOrAuto};
 use string_cache::atom::Atom;
 use string_cache::namespace::{QualName, Namespace};
 use url;
+use uuid::Uuid;
 
 extern {
     // Get the size of a heap block.
@@ -425,3 +426,4 @@ known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, R
 known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 
 known_heap_size!(0, ElementState, Combinator, PseudoElement, str);
+known_heap_size!(0, Uuid);
