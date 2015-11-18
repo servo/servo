@@ -53,7 +53,7 @@ use js::rust::ToString;
 use libc;
 use num::Float;
 use std::{ptr, slice};
-use util::str::{DOMString};
+use util::str::DOMString;
 pub use util::str::{StringificationBehavior, jsstring_to_str};
 
 
@@ -119,7 +119,10 @@ impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
 impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite<T> {
     type Config = ();
 
-    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, option: ()) -> Result<Finite<T>, ()> {
+    unsafe fn from_jsval(cx: *mut JSContext,
+                         value: HandleValue,
+                         option: ())
+                         -> Result<Finite<T>, ()> {
         let result = try!(FromJSValConvertible::from_jsval(cx, value, option));
         match Finite::new(result) {
             Some(v) => Ok(v),
@@ -140,18 +143,17 @@ pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
     }
 }
 
-//http://heycam.github.io/webidl/#es-USVString
+// http://heycam.github.io/webidl/#es-USVString
 impl ToJSValConvertible for USVString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.0.to_jsval(cx, rval);
     }
 }
 
-//http://heycam.github.io/webidl/#es-USVString
+// http://heycam.github.io/webidl/#es-USVString
 impl FromJSValConvertible for USVString {
     type Config = ();
-    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
-                         -> Result<USVString, ()> {
+    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ()) -> Result<USVString, ()> {
         let jsstr = ToString(cx, value);
         if jsstr.is_null() {
             debug!("ToString failed");
@@ -170,10 +172,11 @@ impl FromJSValConvertible for USVString {
     }
 }
 
-//http://heycam.github.io/webidl/#es-ByteString
+// http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        let jsstr = JS_NewStringCopyN(cx, self.as_ptr() as *const libc::c_char,
+        let jsstr = JS_NewStringCopyN(cx,
+                                      self.as_ptr() as *const libc::c_char,
                                       self.len() as libc::size_t);
         if jsstr.is_null() {
             panic!("JS_NewStringCopyN failed");
@@ -182,10 +185,13 @@ impl ToJSValConvertible for ByteString {
     }
 }
 
-//http://heycam.github.io/webidl/#es-ByteString
+// http://heycam.github.io/webidl/#es-ByteString
 impl FromJSValConvertible for ByteString {
     type Config = ();
-    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ()) -> Result<ByteString, ()> {
+    unsafe fn from_jsval(cx: *mut JSContext,
+                         value: HandleValue,
+                         _option: ())
+                         -> Result<ByteString, ()> {
         let string = ToString(cx, value);
         if string.is_null() {
             debug!("ToString failed");
@@ -195,8 +201,7 @@ impl FromJSValConvertible for ByteString {
         let latin1 = JS_StringHasLatin1Chars(string);
         if latin1 {
             let mut length = 0;
-            let chars = JS_GetLatin1StringCharsAndLength(cx, ptr::null(),
-                                                         string, &mut length);
+            let chars = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
             assert!(!chars.is_null());
 
             let char_slice = slice::from_raw_parts(chars as *mut u8, length as usize);
@@ -293,9 +298,11 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
 /// not an object for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
 #[inline]
-pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject, proto_check: F)
+pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
+                                          proto_check: F)
                                           -> Result<*const libc::c_void, ()>
-                                          where F: Fn(&'static DOMClass) -> bool {
+    where F: Fn(&'static DOMClass) -> bool
+{
     let dom_class = try!(get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             debug!("found wrapper");

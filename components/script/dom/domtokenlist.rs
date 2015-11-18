@@ -45,7 +45,7 @@ impl DOMTokenList {
         match token {
             "" => Err(Error::Syntax),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
-            slice => Ok(Atom::from_slice(slice))
+            slice => Ok(Atom::from_slice(slice)),
         }
     }
 }
@@ -99,9 +99,7 @@ impl DOMTokenListMethods for DOMTokenList {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = try!(self.check_token_exceptions(&token));
-            atoms.iter().position(|atom| *atom == token).map(|index| {
-                atoms.remove(index)
-            });
+            atoms.iter().position(|atom| *atom == token).map(|index| atoms.remove(index));
         }
         self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
@@ -127,7 +125,7 @@ impl DOMTokenListMethods for DOMTokenList {
                     self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
                     Ok(true)
                 }
-            }
+            },
         }
     }
 

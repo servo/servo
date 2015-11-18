@@ -32,8 +32,13 @@ pub struct Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: Atom, value: AttrValue, name: Atom, namespace: Namespace,
-                     prefix: Option<Atom>, owner: Option<&Element>) -> Attr {
+    fn new_inherited(local_name: Atom,
+                     value: AttrValue,
+                     name: Atom,
+                     namespace: Namespace,
+                     prefix: Option<Atom>,
+                     owner: Option<&Element>)
+                     -> Attr {
         Attr {
             reflector_: Reflector::new(),
             identifier: AttrIdentifier {
@@ -47,13 +52,22 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &Window, local_name: Atom, value: AttrValue,
-               name: Atom, namespace: Namespace,
-               prefix: Option<Atom>, owner: Option<&Element>) -> Root<Attr> {
-        reflect_dom_object(
-            box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
-            GlobalRef::Window(window),
-            AttrBinding::Wrap)
+    pub fn new(window: &Window,
+               local_name: Atom,
+               value: AttrValue,
+               name: Atom,
+               namespace: Namespace,
+               prefix: Option<Atom>,
+               owner: Option<&Element>)
+               -> Root<Attr> {
+        reflect_dom_object(box Attr::new_inherited(local_name,
+                                                   value,
+                                                   name,
+                                                   namespace,
+                                                   prefix,
+                                                   owner),
+                           GlobalRef::Window(window),
+                           AttrBinding::Wrap)
     }
 
     #[inline]
@@ -90,7 +104,9 @@ impl AttrMethods for Attr {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
-                let value = owner.parse_attribute(&self.identifier.namespace, self.local_name(), value);
+                let value = owner.parse_attribute(&self.identifier.namespace,
+                                                  self.local_name(),
+                                                  value);
                 self.set_value(value, owner.r());
             }
         }
@@ -127,7 +143,7 @@ impl AttrMethods for Attr {
         let Namespace(ref atom) = self.identifier.namespace;
         match &**atom {
             "" => None,
-            url => Some(DOMString::from(url))
+            url => Some(DOMString::from(url)),
         }
     }
 
@@ -155,8 +171,8 @@ impl Attr {
         owner.will_mutate_attr();
         mem::swap(&mut *self.value.borrow_mut(), &mut value);
         if self.identifier.namespace == ns!("") {
-            vtable_for(owner.upcast()).attribute_mutated(
-                self, AttributeMutation::Set(Some(&value)));
+            vtable_for(owner.upcast())
+                .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
         }
     }
 
@@ -179,13 +195,14 @@ impl Attr {
         match (self.owner().r(), owner) {
             (None, Some(new)) => {
                 // Already in the list of attributes of new owner.
-                assert!(new.get_attribute(&ns, &self.identifier.local_name) == Some(Root::from_ref(self)))
+                assert!(new.get_attribute(&ns, &self.identifier.local_name) ==
+                        Some(Root::from_ref(self)))
             }
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(old.get_attribute(&ns, &self.identifier.local_name).is_none())
             }
-            (old, new) => assert!(old == new)
+            (old, new) => assert!(old == new),
         }
         self.owner.set(owner);
     }

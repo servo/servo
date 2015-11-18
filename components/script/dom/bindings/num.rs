@@ -24,7 +24,8 @@ impl<T: Float> Finite<T> {
     /// Create a new `Finite<T: Float>`.
     #[inline]
     pub fn wrap(value: T) -> Finite<T> {
-        assert!(value.is_finite(), "Finite<T> doesn't encapsulate unrestricted value.");
+        assert!(value.is_finite(),
+                "Finite<T> doesn't encapsulate unrestricted value.");
         Finite(value)
     }
 }

@@ -15,7 +15,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{GetGlobalForObjectCrossCompartment};
+use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
@@ -140,7 +140,7 @@ impl<'a> GlobalRef<'a> {
     pub fn get_next_worker_id(&self) -> WorkerId {
         match *self {
             GlobalRef::Window(ref window) => window.get_next_worker_id(),
-            GlobalRef::Worker(ref worker) => worker.get_next_worker_id()
+            GlobalRef::Worker(ref worker) => worker.get_next_worker_id(),
         }
     }
 
@@ -199,7 +199,10 @@ impl<'a> GlobalRef<'a> {
 
     /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
     /// passed.
-    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+    pub fn schedule_callback(&self,
+                             callback: Box<ScheduledCallback>,
+                             duration: MsDuration)
+                             -> TimerHandle {
         match *self {
             GlobalRef::Window(window) => window.schedule_callback(callback, duration),
             GlobalRef::Worker(worker) => worker.schedule_callback(callback, duration),

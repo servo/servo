@@ -21,7 +21,10 @@ pub struct CanvasPattern {
 }
 
 impl CanvasPattern {
-    fn new_inherited(surface_data: Vec<u8>, surface_size: Size2D<i32>, repeat: RepetitionStyle) -> CanvasPattern {
+    fn new_inherited(surface_data: Vec<u8>,
+                     surface_size: Size2D<i32>,
+                     repeat: RepetitionStyle)
+                     -> CanvasPattern {
         let (x, y) = match repeat {
             RepetitionStyle::Repeat => (true, true),
             RepetitionStyle::RepeatX => (true, false),
@@ -43,13 +46,16 @@ impl CanvasPattern {
                repeat: RepetitionStyle)
                -> Root<CanvasPattern> {
         reflect_dom_object(box CanvasPattern::new_inherited(surface_data, surface_size, repeat),
-                           global, CanvasPatternBinding::Wrap)
+                           global,
+                           CanvasPatternBinding::Wrap)
     }
 }
 
 impl<'a> ToFillOrStrokeStyle for &'a CanvasPattern {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
-        FillOrStrokeStyle::Surface(
-            SurfaceStyle::new(self.surface_data.clone(), self.surface_size, self.repeat_x, self.repeat_y))
+        FillOrStrokeStyle::Surface(SurfaceStyle::new(self.surface_data.clone(),
+                                                     self.surface_size,
+                                                     self.repeat_x,
+                                                     self.repeat_y))
     }
 }

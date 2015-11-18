@@ -8,9 +8,9 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::global_root_from_object;
 use dom::bindings::reflector::Reflectable;
 use js::jsapi::GetGlobalForObjectCrossCompartment;
+use js::jsapi::JSAutoCompartment;
 use js::jsapi::{Heap, MutableHandleObject, RootedObject, RootedValue};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
-use js::jsapi::{JSAutoCompartment};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
@@ -28,13 +28,13 @@ pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
     /// Throw any exception to the caller code.
-    Rethrow
+    Rethrow,
 }
 
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
 pub struct CallbackFunction {
-    object: CallbackObject
+    object: CallbackObject,
 }
 
 impl CallbackFunction {
@@ -42,8 +42,8 @@ impl CallbackFunction {
     pub fn new() -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject {
-                callback: Heap::default()
-            }
+                callback: Heap::default(),
+            },
         }
     }
 
@@ -57,7 +57,7 @@ impl CallbackFunction {
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
 pub struct CallbackInterface {
-    object: CallbackObject
+    object: CallbackObject,
 }
 
 /// A common base class for representing IDL callback function and
@@ -103,8 +103,8 @@ impl CallbackInterface {
     pub fn new() -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject {
-                callback: Heap::default()
-            }
+                callback: Heap::default(),
+            },
         }
     }
 
@@ -116,21 +116,18 @@ impl CallbackInterface {
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str)
-                                 -> Fallible<JSVal> {
+    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str) -> Fallible<JSVal> {
         let mut callable = RootedValue::new(cx, UndefinedValue());
         let obj = RootedObject::new(cx, self.callback());
         unsafe {
             let c_name = CString::new(name).unwrap();
-            if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(),
-                               callable.handle_mut()) {
+            if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
-            if !callable.ptr.is_object() ||
-               !IsCallable(callable.ptr.to_object()) {
-                return Err(Error::Type(
-                    format!("The value of the {} property is not callable", name)));
+            if !callable.ptr.is_object() || !IsCallable(callable.ptr.to_object()) {
+                return Err(Error::Type(format!("The value of the {} property is not callable",
+                                               name)));
             }
         }
         Ok(callable.ptr)
@@ -172,15 +169,17 @@ impl CallSetup {
     pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = global_root_from_object(callback.callback());
         let cx = global.r().get_cx();
-        unsafe { JS_BeginRequest(cx); }
+        unsafe {
+            JS_BeginRequest(cx);
+        }
 
         let exception_compartment = unsafe {
             GetGlobalForObjectCrossCompartment(callback.callback())
         };
         CallSetup {
-            exception_compartment:
-                RootedObject::new_with_addr(cx, exception_compartment,
-                                            unsafe { return_address() }),
+            exception_compartment: RootedObject::new_with_addr(cx,
+                                                               exception_compartment,
+                                                               unsafe { return_address() }),
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
             handling: handling,
@@ -195,10 +194,11 @@ impl CallSetup {
 
 impl Drop for CallSetup {
     fn drop(&mut self) {
-        unsafe { JS_LeaveCompartment(self.cx, self.old_compartment); }
-        let need_to_deal_with_exception =
-            self.handling == ExceptionHandling::Report &&
-            unsafe { JS_IsExceptionPending(self.cx) };
+        unsafe {
+            JS_LeaveCompartment(self.cx, self.old_compartment);
+        }
+        let need_to_deal_with_exception = self.handling == ExceptionHandling::Report &&
+                                          unsafe { JS_IsExceptionPending(self.cx) };
         if need_to_deal_with_exception {
             unsafe {
                 let old_global = RootedObject::new(self.cx, self.exception_compartment.ptr);
@@ -212,6 +212,8 @@ impl Drop for CallSetup {
                 }
             }
         }
-        unsafe { JS_EndRequest(self.cx); }
+        unsafe {
+            JS_EndRequest(self.cx);
+        }
     }
 }

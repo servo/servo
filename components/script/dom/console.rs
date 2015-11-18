@@ -26,7 +26,9 @@ impl Console {
     }
 
     pub fn new(global: GlobalRef) -> Root<Console> {
-        reflect_dom_object(box Console::new_inherited(global), global, ConsoleBinding::Wrap)
+        reflect_dom_object(box Console::new_inherited(global),
+                           global,
+                           ConsoleBinding::Wrap)
     }
 }
 
@@ -82,13 +84,13 @@ impl ConsoleMethods for Console {
 }
 
 fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
-    //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
+    // TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
         message: String::from(message),
         logLevel: logLevel,
         filename: "test".to_owned(),
         lineNumber: 1,
-        columnNumber: 1
+        columnNumber: 1,
     }
 }
 
@@ -96,7 +98,9 @@ fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
     let global = console.global.root();
     let pipelineId = global.r().pipeline();
     global.r().devtools_chan().as_ref().map(|chan| {
-        chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(
-            pipelineId, console_message.clone(), global.r().get_worker_id())).unwrap();
+        chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(pipelineId,
+                                                         console_message.clone(),
+                                                         global.r().get_worker_id()))
+            .unwrap();
     });
 }

@@ -12,11 +12,10 @@ use std::ptr;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T: Reflectable>
-        (obj:     Box<T>,
-         global:  GlobalRef,
-         wrap_fn: extern "Rust" fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
-         -> Root<T> {
+pub fn reflect_dom_object<T: Reflectable>(obj: Box<T>,
+                                          global: GlobalRef,
+                                          wrap_fn: fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
+                                          -> Root<T> {
     wrap_fn(global.get_cx(), global, obj)
 }
 
@@ -65,7 +64,7 @@ impl Reflector {
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: UnsafeCell::new(ptr::null_mut())
+            object: UnsafeCell::new(ptr::null_mut()),
         }
     }
 }

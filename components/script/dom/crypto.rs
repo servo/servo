@@ -39,12 +39,15 @@ impl Crypto {
 impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
-    fn GetRandomValues(&self, _cx: *mut JSContext, input: *mut JSObject)
+    fn GetRandomValues(&self,
+                       _cx: *mut JSContext,
+                       input: *mut JSObject)
                        -> Fallible<*mut JSObject> {
         let mut length = 0;
         let mut data = ptr::null_mut();
         if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
-            return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView".to_owned()));
+            return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
+                                       .to_owned()));
         }
         if !is_integer_buffer(input) {
             return Err(Error::TypeMismatch);
@@ -73,6 +76,6 @@ fn is_integer_buffer(input: *mut JSObject) -> bool {
         Type::Int16 |
         Type::Uint32 |
         Type::Int32 => true,
-        _ => false
+        _ => false,
     }
 }
