@@ -88,6 +88,7 @@ use style::restyle_hints::ElementSnapshot;
 use style::values::specified::Length;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
+use uuid::Uuid;
 
 
 /// A trait to allow tracing (only) DOM objects.
@@ -252,7 +253,7 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 }
 
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, Uuid);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
