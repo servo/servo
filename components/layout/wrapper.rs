@@ -230,13 +230,13 @@ pub struct ServoWrapperTypes<'a> {
 }
 
 impl<'a> WrapperTypes<'a> for ServoWrapperTypes<'a> {
-    type Node = LayoutNode<'a>;
-    type Element = LayoutElement<'a>;
-    type Document = LayoutDocument<'a>;
+    type Node = ServoLayoutNode<'a>;
+    type Element = ServoLayoutElement<'a>;
+    type Document = ServoLayoutDocument<'a>;
 }
 
 #[derive(Copy, Clone)]
-pub struct LayoutNode<'a> {
+pub struct ServoLayoutNode<'a> {
     /// The wrapped node.
     node: LayoutJS<Node>,
 
@@ -244,35 +244,35 @@ pub struct LayoutNode<'a> {
     chain: PhantomData<&'a ()>,
 }
 
-impl<'a> PartialEq for LayoutNode<'a> {
+impl<'a> PartialEq for ServoLayoutNode<'a> {
     #[inline]
-    fn eq(&self, other: &LayoutNode) -> bool {
+    fn eq(&self, other: &ServoLayoutNode) -> bool {
         self.node == other.node
     }
 }
 
-impl<'ln> LayoutNode<'ln> {
-    fn from_layout_js(n: LayoutJS<Node>) -> LayoutNode<'ln> {
-        LayoutNode {
+impl<'ln> ServoLayoutNode<'ln> {
+    fn from_layout_js(n: LayoutJS<Node>) -> ServoLayoutNode<'ln> {
+        ServoLayoutNode {
             node: n,
             chain: PhantomData,
         }
     }
 
-    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
-        LayoutNode::from_layout_js(LayoutJS::from_trusted_node_address(*address))
+    pub unsafe fn new(address: &TrustedNodeAddress) -> ServoLayoutNode {
+        ServoLayoutNode::from_layout_js(LayoutJS::from_trusted_node_address(*address))
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
-    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
-        LayoutNode {
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ServoLayoutNode<'ln> {
+        ServoLayoutNode {
             node: *node,
             chain: self.chain,
         }
     }
 }
 
-impl<'ln> LayoutNodeTrait<'ln, ServoWrapperTypes<'ln>> for LayoutNode<'ln> {
+impl<'ln> LayoutNodeTrait<'ln, ServoWrapperTypes<'ln>> for ServoLayoutNode<'ln> {
     fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
@@ -322,7 +322,7 @@ impl<'ln> LayoutNodeTrait<'ln, ServoWrapperTypes<'ln>> for LayoutNode<'ln> {
         }
     }
 
-    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<LayoutNode<'ln>> {
+    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<ServoLayoutNode<'ln>> {
         if self.opaque() == reflow_root {
             None
         } else {
@@ -338,12 +338,12 @@ impl<'ln> LayoutNodeTrait<'ln, ServoWrapperTypes<'ln>> for LayoutNode<'ln> {
         unsafe { self.node.children_count() }
     }
 
-    fn as_element(&self) -> Option<LayoutElement<'ln>> {
+    fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
     }
 
-    fn as_document(&self) -> Option<LayoutDocument<'ln>> {
-        self.node.downcast().map(|document| LayoutDocument::from_layout_js(document))
+    fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
+        self.node.downcast().map(|document| ServoLayoutDocument::from_layout_js(document))
     }
 
     fn has_changed(&self) -> bool {
@@ -386,38 +386,38 @@ impl<'ln> LayoutNodeTrait<'ln, ServoWrapperTypes<'ln>> for LayoutNode<'ln> {
         }
     }
 
-    fn parent_node(&self) -> Option<LayoutNode<'ln>> {
+    fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn first_child(&self) -> Option<LayoutNode<'ln>> {
+    fn first_child(&self) -> Option<ServoLayoutNode<'ln>> {
         unsafe {
             self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn last_child(&self) -> Option<LayoutNode<'ln>> {
+    fn last_child(&self) -> Option<ServoLayoutNode<'ln>> {
         unsafe {
             self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
+    fn prev_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
         unsafe {
             self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
+    fn next_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 }
 
-impl<'ln> LayoutNode<'ln> {
+impl<'ln> ServoLayoutNode<'ln> {
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
         for _ in 0..indent {
@@ -503,29 +503,29 @@ impl<'a, Wrappers> Iterator for LayoutTreeIterator<'a, Wrappers> where Wrappers:
 
 // A wrapper around documents that ensures ayout can only ever access safe properties.
 #[derive(Copy, Clone)]
-pub struct LayoutDocument<'ld> {
+pub struct ServoLayoutDocument<'ld> {
     document: LayoutJS<Document>,
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> LayoutDocumentTrait<'ld, ServoWrapperTypes<'ld>> for LayoutDocument<'ld> {
-    fn as_node(&self) -> LayoutNode<'ld> {
-        LayoutNode::from_layout_js(self.document.upcast())
+impl<'ld> LayoutDocumentTrait<'ld, ServoWrapperTypes<'ld>> for ServoLayoutDocument<'ld> {
+    fn as_node(&self) -> ServoLayoutNode<'ld> {
+        ServoLayoutNode::from_layout_js(self.document.upcast())
     }
 
-    fn root_node(&self) -> Option<LayoutNode<'ld>> {
-        self.as_node().children().find(LayoutNode::is_element)
+    fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
+        self.as_node().children().find(ServoLayoutNode::is_element)
     }
 
-    fn drain_modified_elements(&self) -> Vec<(LayoutElement<'ld>, ElementSnapshot)> {
+    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, ElementSnapshot)> {
         let elements =  unsafe { self.document.drain_modified_elements() };
-        elements.into_iter().map(|(el, snapshot)| (LayoutElement::from_layout_js(el), snapshot)).collect()
+        elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
 }
 
-impl<'ld> LayoutDocument<'ld> {
-    fn from_layout_js(doc: LayoutJS<Document>) -> LayoutDocument<'ld> {
-        LayoutDocument {
+impl<'ld> ServoLayoutDocument<'ld> {
+    fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
+        ServoLayoutDocument {
             document: doc,
             chain: PhantomData,
         }
@@ -534,14 +534,14 @@ impl<'ld> LayoutDocument<'ld> {
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 #[derive(Copy, Clone)]
-pub struct LayoutElement<'le> {
+pub struct ServoLayoutElement<'le> {
     element: LayoutJS<Element>,
     chain: PhantomData<&'le ()>,
 }
 
-impl<'le> LayoutElementTrait<'le, ServoWrapperTypes<'le>> for LayoutElement<'le> {
-    fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode::from_layout_js(self.element.upcast())
+impl<'le> LayoutElementTrait<'le, ServoWrapperTypes<'le>> for ServoLayoutElement<'le> {
+    fn as_node(&self) -> ServoLayoutNode<'le> {
+        ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
     fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
@@ -556,17 +556,17 @@ impl<'le> LayoutElementTrait<'le, ServoWrapperTypes<'le>> for LayoutElement<'le>
 }
 
 
-impl<'le> LayoutElement<'le> {
-    fn from_layout_js(el: LayoutJS<Element>) -> LayoutElement<'le> {
-        LayoutElement {
+impl<'le> ServoLayoutElement<'le> {
+    fn from_layout_js(el: LayoutJS<Element>) -> ServoLayoutElement<'le> {
+        ServoLayoutElement {
             element: el,
             chain: PhantomData,
         }
     }
 }
 
-fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
-    node.downcast().map(|element| LayoutElement::from_layout_js(element))
+fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
+    node.downcast().map(|element| ServoLayoutElement::from_layout_js(element))
 }
 
 macro_rules! state_getter {
@@ -579,22 +579,22 @@ macro_rules! state_getter {
     }
 }
 
-impl<'le> ::selectors::Element for LayoutElement<'le> {
-    fn parent_element(&self) -> Option<LayoutElement<'le>> {
+impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
+    fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
         unsafe {
             self.element.upcast().parent_node_ref().and_then(as_element)
         }
     }
 
-    fn first_child_element(&self) -> Option<LayoutElement<'le>> {
+    fn first_child_element(&self) -> Option<ServoLayoutElement<'le>> {
         self.as_node().children().filter_map(|n| n.as_element()).next()
     }
 
-    fn last_child_element(&self) -> Option<LayoutElement<'le>> {
+    fn last_child_element(&self) -> Option<ServoLayoutElement<'le>> {
         self.as_node().rev_children().filter_map(|n| n.as_element()).next()
     }
 
-    fn prev_sibling_element(&self) -> Option<LayoutElement<'le>> {
+    fn prev_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
         let mut node = self.as_node();
         while let Some(sibling) = node.prev_sibling() {
             if let Some(element) = sibling.as_element() {
@@ -605,7 +605,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         None
     }
 
-    fn next_sibling_element(&self) -> Option<LayoutElement<'le>> {
+    fn next_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
         let mut node = self.as_node();
         while let Some(sibling) = node.next_sibling() {
             if let Some(element) = sibling.as_element() {
@@ -732,7 +732,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     }
 }
 
-impl<'le> TElementAttributes for LayoutElement<'le> {
+impl<'le> TElementAttributes for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
@@ -785,7 +785,7 @@ impl<T> PseudoElementType<T> {
 #[derive(Copy, Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
-    node: LayoutNode<'ln>,
+    node: ServoLayoutNode<'ln>,
 
     pseudo: PseudoElementType<display::T>,
 }
@@ -800,7 +800,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
-    pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
+    pub fn new<'a>(node: &ServoLayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
             node: node.clone(),
             pseudo: PseudoElementType::Normal,
@@ -1204,14 +1204,14 @@ impl<'le> ThreadSafeLayoutElement<'le> {
 /// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
 
-pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
+pub fn layout_node_to_unsafe_layout_node(node: &ServoLayoutNode) -> UnsafeLayoutNode {
     unsafe {
         let ptr: usize = mem::transmute_copy(node);
         (ptr, 0)
     }
 }
 
-pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode {
+pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> ServoLayoutNode {
     let (node, _) = *node;
     mem::transmute(node)
 }
