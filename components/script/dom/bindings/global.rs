@@ -23,7 +23,7 @@ use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
 use script_traits::{MsDuration, TimerEventRequest};
-use timers::{OneshotTimerCallback, TimerHandle};
+use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -202,7 +202,7 @@ impl<'a> GlobalRef<'a> {
     pub fn schedule_callback(&self,
                              callback: OneshotTimerCallback,
                              duration: MsDuration)
-                             -> TimerHandle {
+                             -> OneshotTimerHandle {
         match *self {
             GlobalRef::Window(window) => window.schedule_callback(callback, duration),
             GlobalRef::Worker(worker) => worker.schedule_callback(callback, duration),
@@ -210,7 +210,7 @@ impl<'a> GlobalRef<'a> {
     }
 
     /// Unschedule a previously-scheduled callback.
-    pub fn unschedule_callback(&self, handle: TimerHandle) {
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         match *self {
             GlobalRef::Window(window) => window.unschedule_callback(handle),
             GlobalRef::Worker(worker) => worker.unschedule_callback(handle),

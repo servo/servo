@@ -53,7 +53,7 @@ use std::default::Default;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use time;
-use timers::{OneshotTimerCallback, TimerHandle};
+use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, UrlParser};
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
@@ -136,7 +136,7 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     global: GlobalField,
-    timeout_cancel: DOMRefCell<Option<TimerHandle>>,
+    timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,

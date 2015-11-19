@@ -70,7 +70,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
 use time;
-use timers::{IsInterval, JsTimers, OneshotTimerCallback, OneshotTimers, TimerCallback, TimerHandle};
+use timers::{IsInterval, JsTimers, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -1080,13 +1080,13 @@ impl Window {
         self.scheduler_chan.clone()
     }
 
-    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> TimerHandle {
+    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.oneshot_timers.schedule_callback(callback,
                                               duration,
                                               TimerSource::FromWindow(self.id.clone()))
     }
 
-    pub fn unschedule_callback(&self, handle: TimerHandle) {
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         self.oneshot_timers.unschedule_callback(handle);
     }
 
