@@ -21,7 +21,7 @@ use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScrollPolicy};
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
+use msg::constellation_msg::PaintMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
@@ -330,7 +330,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                        c.send(ConstellationMsg::Ready(self.id)).unwrap();
                         continue;
                     }
 
@@ -345,7 +345,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                        c.send(ConstellationMsg::Ready(self.id)).unwrap();
                         continue;
                     }
 

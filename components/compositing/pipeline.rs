@@ -15,6 +15,7 @@ use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::compositor_msg::ScriptToCompositorMsg;
+use msg::constellation_msg::PaintMsg;
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, MozBrowserEvent, WindowSizeData};
@@ -81,6 +82,8 @@ pub struct InitialPipelineState {
     pub parent_info: Option<(PipelineId, SubpageId)>,
     /// A channel to the associated constellation.
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    /// A channel to the associated paint task.
+    pub painter_chan: ConstellationChan<PaintMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the compositor.
@@ -226,6 +229,7 @@ impl Pipeline {
         let privileged_pipeline_content = PrivilegedPipelineContent {
             id: state.id,
             constellation_chan: state.constellation_chan,
+            painter_chan: state.painter_chan,
             compositor_proxy: state.compositor_proxy,
             font_cache_task: state.font_cache_task,
             time_profiler_chan: state.time_profiler_chan,
@@ -429,6 +433,7 @@ impl UnprivilegedPipelineContent {
 pub struct PrivilegedPipelineContent {
     id: PipelineId,
     constellation_chan: ConstellationChan<ConstellationMsg>,
+    painter_chan: ConstellationChan<PaintMsg>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     script_to_compositor_port: Option<IpcReceiver<ScriptToCompositorMsg>>,
     font_cache_task: FontCacheTask,
@@ -464,7 +469,7 @@ impl PrivilegedPipelineContent {
                           mem::replace(&mut self.layout_to_paint_port, None).unwrap(),
                           mem::replace(&mut self.chrome_to_paint_port, None).unwrap(),
                           self.compositor_proxy.clone_compositor_proxy(),
-                          self.constellation_chan.clone(),
+                          self.painter_chan.clone(),
                           self.font_cache_task.clone(),
                           self.failure.clone(),
                           self.time_profiler_chan.clone(),
