@@ -283,6 +283,7 @@ class MachCommands(CommandBase):
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
 
         os.environ["hosts_file_path"] = hosts_file_path
+        os.environ["RUST_BACKTRACE"] = "1"
 
         kwargs["debug"] = not kwargs["release"]
 
