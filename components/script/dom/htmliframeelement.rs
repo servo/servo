@@ -11,12 +11,13 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, LayoutJS};
+use dom::bindings::js::{Root, LayoutJS, MutNullableHeap, JS};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::event::Event;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -29,6 +30,7 @@ use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use page::IterablePage;
+use script_task::{ScriptTaskEventCategory, CommonScriptMsg, ScriptTask, Runnable};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -36,6 +38,12 @@ use url::{Url, UrlParser};
 use util::prefs;
 use util::str::DOMString;
 use util::str::{self, LengthOrPercentageOrAuto};
+
+#[derive(PartialEq)]
+enum ProcessingMode {
+    FirstTime,
+    NotFirstTime,
+}
 
 pub fn mozbrowser_enabled() -> bool {
     prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
@@ -121,11 +129,40 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn process_the_iframe_attributes(&self) {
+    /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+    pub fn iframe_load_event_steps(&self) {
+        // TODO step 1 (get child document)
+        // TODO step 2 (check mute iframe load flag)
+        // TODO step 3 (set mute iframe load flag)
+
+        // Step 4
+        let win = window_from_node(self);
+        let event = Event::new(GlobalRef::Window(&*win),
+                               DOMString::from("load"),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        event.fire(self.upcast());
+
+        // TODO step 5 (unset mute iframe load flag)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes
+    fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+        // TODO: srcdoc
+
         let url = match self.get_url() {
-            Some(url) => url.clone(),
+            Some(url) => url,
+            None if mode == ProcessingMode::FirstTime => {
+                let event_loop = window_from_node(self).script_chan();
+                let _ = event_loop.send(CommonScriptMsg::RunnableMsg(
+                    ScriptTaskEventCategory::DomEvent,
+                    box IframeLoadEventSteps::new(self)));
+                return;
+            }
             None => Url::parse("about:blank").unwrap(),
         };
+
+        // TODO: check ancestor browsing contexts for same URL
 
         self.navigate_child_browsing_context(url);
     }
@@ -416,10 +453,8 @@ impl VirtualMethods for HTMLIFrameElement {
                 }));
             },
             &atom!(src) => {
-                if let AttributeMutation::Set(_) = mutation {
-                    if self.upcast::<Node>().is_in_doc() {
-                        self.process_the_iframe_attributes();
-                    }
+                if self.upcast::<Node>().is_in_doc() {
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
                 }
             },
             _ => {},
@@ -439,7 +474,7 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         if tree_in_doc {
-            self.process_the_iframe_attributes();
+            self.process_the_iframe_attributes(ProcessingMode::FirstTime);
         }
     }
 
@@ -465,5 +500,24 @@ impl VirtualMethods for HTMLIFrameElement {
             self.subpage_id.set(None);
             self.pipeline_id.set(None);
         }
+    }
+}
+
+struct IframeLoadEventSteps {
+    frame_element: Trusted<HTMLIFrameElement>,
+}
+
+impl IframeLoadEventSteps {
+    fn new(frame_element: &HTMLIFrameElement) -> IframeLoadEventSteps {
+        let win = window_from_node(frame_element);
+        IframeLoadEventSteps {
+            frame_element: Trusted::new(win.get_cx(), frame_element, win.script_chan()),
+        }
+    }
+}
+
+impl Runnable for IframeLoadEventSteps {
+    fn handler(self: Box<IframeLoadEventSteps>) {
+        self.frame_element.root().iframe_load_event_steps();
     }
 }

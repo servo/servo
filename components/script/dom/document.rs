@@ -58,7 +58,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -2412,12 +2412,9 @@ impl DocumentProgressHandler {
         let browsing_context = browsing_context.as_ref().unwrap();
 
         if let Some(frame_element) = browsing_context.frame_element() {
-            let frame_window = window_from_node(frame_element);
-            let event = Event::new(GlobalRef::Window(frame_window.r()),
-                                   DOMString::from("load"),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::NotCancelable);
-            event.fire(frame_element.upcast());
+            if let Some(iframe_element) = frame_element.downcast::<HTMLIFrameElement>() {
+                iframe_element.iframe_load_event_steps();
+            }
         };
 
         document.notify_constellation_load();
