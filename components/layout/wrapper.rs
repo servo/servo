@@ -75,13 +75,13 @@ use util::str::{is_whitespace, search_index};
 /// only ever see these and must never see instances of `LayoutJS`.
 
 pub trait WrapperTypes<'a> : Sized {
-    type Node: LayoutNodeTrait<'a, Self>;
-    type Document: LayoutDocumentTrait<'a, Self>;
-    type Element: LayoutElementTrait<'a, Self>;
+    type Node: LayoutNode<'a, Self>;
+    type Document: LayoutDocument<'a, Self>;
+    type Element: LayoutElement<'a, Self>;
 }
 
-pub trait LayoutNodeTrait<'ln, Wrappers> : Sized + Copy + Clone
-                                           where Wrappers: WrapperTypes<'ln> {
+pub trait LayoutNode<'ln, Wrappers> : Sized + Copy + Clone
+                                      where Wrappers: WrapperTypes<'ln> {
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
 
@@ -165,8 +165,8 @@ pub trait LayoutNodeTrait<'ln, Wrappers> : Sized + Copy + Clone
     fn next_sibling(&self) -> Option<Wrappers::Node>;
 }
 
-pub trait LayoutDocumentTrait<'ld, Wrappers> : Sized + Copy + Clone
-                                               where Wrappers: WrapperTypes<'ld> {
+pub trait LayoutDocument<'ld, Wrappers> : Sized + Copy + Clone
+                                          where Wrappers: WrapperTypes<'ld> {
     fn as_node(&self) -> Wrappers::Node;
 
     fn root_node(&self) -> Option<Wrappers::Node>;
@@ -174,8 +174,8 @@ pub trait LayoutDocumentTrait<'ld, Wrappers> : Sized + Copy + Clone
     fn drain_modified_elements(&self) -> Vec<(Wrappers::Element, ElementSnapshot)>;
 }
 
-pub trait LayoutElementTrait<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Element
-                                              where Wrappers: WrapperTypes<'le> {
+pub trait LayoutElement<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Element
+                                         where Wrappers: WrapperTypes<'le> {
     fn as_node(&self) -> Wrappers::Node;
 
     fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock>;
@@ -272,7 +272,7 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> LayoutNodeTrait<'ln, ServoWrapperTypes<'ln>> for ServoLayoutNode<'ln> {
+impl<'ln> LayoutNode<'ln, ServoWrapperTypes<'ln>> for ServoLayoutNode<'ln> {
     fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
@@ -508,7 +508,7 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> LayoutDocumentTrait<'ld, ServoWrapperTypes<'ld>> for ServoLayoutDocument<'ld> {
+impl<'ld> LayoutDocument<'ld, ServoWrapperTypes<'ld>> for ServoLayoutDocument<'ld> {
     fn as_node(&self) -> ServoLayoutNode<'ld> {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
@@ -539,7 +539,7 @@ pub struct ServoLayoutElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
-impl<'le> LayoutElementTrait<'le, ServoWrapperTypes<'le>> for ServoLayoutElement<'le> {
+impl<'le> LayoutElement<'le, ServoWrapperTypes<'le>> for ServoLayoutElement<'le> {
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }

@@ -31,7 +31,7 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
-use wrapper::{ServoLayoutElement, LayoutElementTrait, ServoLayoutNode, LayoutNodeTrait};
+use wrapper::{LayoutElement, LayoutNode, ServoLayoutElement, ServoLayoutNode};
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
