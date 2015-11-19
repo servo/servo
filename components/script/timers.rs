@@ -79,6 +79,181 @@ impl OneshotTimerCallback {
     }
 }
 
+impl Ord for OneshotTimer {
+    fn cmp(&self, other: &OneshotTimer) -> Ordering {
+        match self.scheduled_for.cmp(&other.scheduled_for).reverse() {
+            Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
+            res => res
+        }
+    }
+}
+
+impl PartialOrd for OneshotTimer {
+    fn partial_cmp(&self, other: &OneshotTimer) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for OneshotTimer {}
+impl PartialEq for OneshotTimer {
+    fn eq(&self, other: &OneshotTimer) -> bool {
+        self as *const OneshotTimer == other as *const OneshotTimer
+    }
+}
+
+impl OneshotTimers {
+    pub fn new(timer_event_chan: IpcSender<TimerEvent>,
+               scheduler_chan: IpcSender<TimerEventRequest>)
+               -> OneshotTimers {
+        OneshotTimers {
+            timer_event_chan: timer_event_chan,
+            scheduler_chan: scheduler_chan,
+            next_timer_handle: Cell::new(OneshotTimerHandle(1)),
+            timers: DOMRefCell::new(Vec::new()),
+            suspended_since: Cell::new(None),
+            suspension_offset: Cell::new(Length::new(0)),
+            expected_event_id: Cell::new(TimerEventId(0)),
+        }
+    }
+
+    pub fn schedule_callback(&self,
+                             callback: OneshotTimerCallback,
+                             duration: MsDuration,
+                             source: TimerSource)
+                             -> OneshotTimerHandle {
+        let OneshotTimerHandle(new_handle) = self.next_timer_handle.get();
+        self.next_timer_handle.set(OneshotTimerHandle(new_handle + 1));
+
+        let scheduled_for = self.base_time() + duration;
+
+        let timer = OneshotTimer {
+            handle: OneshotTimerHandle(new_handle),
+            source: source,
+            callback: callback,
+            scheduled_for: scheduled_for,
+        };
+
+        let OneshotTimerHandle(max_handle) = {
+            let mut timers = self.timers.borrow_mut();
+            let insertion_index = timers.binary_search(&timer).err().unwrap();
+            timers.insert(insertion_index, timer);
+
+            timers.last().unwrap().handle
+        };
+
+        if max_handle == new_handle {
+            self.schedule_timer_call();
+        }
+
+        OneshotTimerHandle(new_handle)
+    }
+
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
+        let was_next = self.is_next_timer(handle);
+
+        self.timers.borrow_mut().retain(|t| t.handle != handle);
+
+        if was_next {
+            self.invalidate_expected_event_id();
+            self.schedule_timer_call();
+        }
+    }
+
+    fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
+        match self.timers.borrow().last() {
+            None => false,
+            Some(ref max_timer) => max_timer.handle == handle
+        }
+    }
+
+    pub fn fire_timer<T: Reflectable>(&self, id: TimerEventId, this: &T) {
+        let expected_id = self.expected_event_id.get();
+        if expected_id != id {
+            debug!("ignoring timer fire event {:?} (expected {:?})", id, expected_id);
+            return;
+        }
+
+        assert!(self.suspended_since.get().is_none());
+
+        let base_time = self.base_time();
+
+        // Since the event id was the expected one, at least one timer should be due.
+        assert!(base_time >= self.timers.borrow().last().unwrap().scheduled_for);
+
+        loop {
+            let timer = {
+                let mut timers = self.timers.borrow_mut();
+
+                if timers.is_empty() || timers.last().unwrap().scheduled_for > base_time {
+                    break;
+                }
+
+                timers.pop().unwrap()
+            };
+
+            let callback = timer.callback;
+            callback.invoke(this);
+        }
+
+        self.schedule_timer_call();
+    }
+
+    fn base_time(&self) -> MsDuration {
+        let offset = self.suspension_offset.get();
+
+        match self.suspended_since.get() {
+            Some(time) => time - offset,
+            None => precise_time_ms() - offset,
+        }
+    }
+
+    pub fn suspend(&self) {
+        assert!(self.suspended_since.get().is_none());
+
+        self.suspended_since.set(Some(precise_time_ms()));
+        self.invalidate_expected_event_id();
+    }
+
+    pub fn resume(&self) {
+        assert!(self.suspended_since.get().is_some());
+
+        let additional_offset = match self.suspended_since.get() {
+            Some(suspended_since) => precise_time_ms() - suspended_since,
+            None => panic!("Timers are not suspended.")
+        };
+
+        self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
+
+        self.schedule_timer_call();
+    }
+
+    fn schedule_timer_call(&self) {
+        if self.suspended_since.get().is_some() {
+            // The timer will be scheduled when the pipeline is thawed.
+            return;
+        }
+
+        let timers = self.timers.borrow();
+
+        if let Some(timer) = timers.last() {
+            let expected_event_id = self.invalidate_expected_event_id();
+
+            let delay = Length::new(timer.scheduled_for.get().saturating_sub(precise_time_ms().get()));
+            let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
+                                            expected_event_id, delay);
+            self.scheduler_chan.send(request).unwrap();
+        }
+    }
+
+    fn invalidate_expected_event_id(&self) -> TimerEventId {
+        let TimerEventId(currently_expected) = self.expected_event_id.get();
+        let next_id = TimerEventId(currently_expected + 1);
+        debug!("invalidating expected timer (was {:?}, now {:?}", currently_expected, next_id);
+        self.expected_event_id.set(next_id);
+        next_id
+    }
+}
+
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord)]
 pub struct JsTimerHandle(i32);
 
@@ -127,28 +302,6 @@ pub enum IsInterval {
     NonInterval,
 }
 
-impl Ord for OneshotTimer {
-    fn cmp(&self, other: &OneshotTimer) -> Ordering {
-        match self.scheduled_for.cmp(&other.scheduled_for).reverse() {
-            Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
-            res => res
-        }
-    }
-}
-
-impl PartialOrd for OneshotTimer {
-    fn partial_cmp(&self, other: &OneshotTimer) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for OneshotTimer {}
-impl PartialEq for OneshotTimer {
-    fn eq(&self, other: &OneshotTimer) -> bool {
-        self as *const OneshotTimer == other as *const OneshotTimer
-    }
-}
-
 #[derive(Clone)]
 pub enum TimerCallback {
     StringTimerCallback(DOMString),
@@ -165,22 +318,6 @@ impl HeapSizeOf for InternalTimerCallback {
     fn heap_size_of_children(&self) -> usize {
         // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
         0
-    }
-}
-
-impl OneshotTimers {
-    pub fn new(timer_event_chan: IpcSender<TimerEvent>,
-               scheduler_chan: IpcSender<TimerEventRequest>)
-               -> OneshotTimers {
-        OneshotTimers {
-            timer_event_chan: timer_event_chan,
-            scheduler_chan: scheduler_chan,
-            next_timer_handle: Cell::new(OneshotTimerHandle(1)),
-            timers: DOMRefCell::new(Vec::new()),
-            suspended_since: Cell::new(None),
-            suspension_offset: Cell::new(Length::new(0)),
-            expected_event_id: Cell::new(TimerEventId(0)),
-        }
     }
 }
 
@@ -263,145 +400,6 @@ impl JsTimers {
 
             self.state.oneshots.unschedule_callback(oneshot_handle);
         }
-    }
-}
-
-impl OneshotTimers {
-    pub fn schedule_callback(&self,
-                             callback: OneshotTimerCallback,
-                             duration: MsDuration,
-                             source: TimerSource)
-                             -> OneshotTimerHandle {
-        let OneshotTimerHandle(new_handle) = self.next_timer_handle.get();
-        self.next_timer_handle.set(OneshotTimerHandle(new_handle + 1));
-
-        let scheduled_for = self.base_time() + duration;
-
-        let timer = OneshotTimer {
-            handle: OneshotTimerHandle(new_handle),
-            source: source,
-            callback: callback,
-            scheduled_for: scheduled_for,
-        };
-
-        let OneshotTimerHandle(max_handle) = {
-            let mut timers = self.timers.borrow_mut();
-            let insertion_index = timers.binary_search(&timer).err().unwrap();
-            timers.insert(insertion_index, timer);
-
-            timers.last().unwrap().handle
-        };
-
-        if max_handle == new_handle {
-            self.schedule_timer_call();
-        }
-
-        OneshotTimerHandle(new_handle)
-    }
-
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        let was_next = self.is_next_timer(handle);
-
-        self.timers.borrow_mut().retain(|t| t.handle != handle);
-
-        if was_next {
-            self.invalidate_expected_event_id();
-            self.schedule_timer_call();
-        }
-    }
-
-    pub fn fire_timer<T: Reflectable>(&self, id: TimerEventId, this: &T) {
-        let expected_id = self.expected_event_id.get();
-        if expected_id != id {
-            debug!("ignoring timer fire event {:?} (expected {:?})", id, expected_id);
-            return;
-        }
-
-        assert!(self.suspended_since.get().is_none());
-
-        let base_time = self.base_time();
-
-        // Since the event id was the expected one, at least one timer should be due.
-        assert!(base_time >= self.timers.borrow().last().unwrap().scheduled_for);
-
-        loop {
-            let timer = {
-                let mut timers = self.timers.borrow_mut();
-
-                if timers.is_empty() || timers.last().unwrap().scheduled_for > base_time {
-                    break;
-                }
-
-                timers.pop().unwrap()
-            };
-
-            let callback = timer.callback;
-            callback.invoke(this);
-        }
-
-        self.schedule_timer_call();
-    }
-
-    fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
-        match self.timers.borrow().last() {
-            None => false,
-            Some(ref max_timer) => max_timer.handle == handle
-        }
-    }
-
-    fn schedule_timer_call(&self) {
-        if self.suspended_since.get().is_some() {
-            // The timer will be scheduled when the pipeline is thawed.
-            return;
-        }
-
-        let timers = self.timers.borrow();
-
-        if let Some(timer) = timers.last() {
-            let expected_event_id = self.invalidate_expected_event_id();
-
-            let delay = Length::new(timer.scheduled_for.get().saturating_sub(precise_time_ms().get()));
-            let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
-                                            expected_event_id, delay);
-            self.scheduler_chan.send(request).unwrap();
-        }
-    }
-
-    pub fn suspend(&self) {
-        assert!(self.suspended_since.get().is_none());
-
-        self.suspended_since.set(Some(precise_time_ms()));
-        self.invalidate_expected_event_id();
-    }
-
-    pub fn resume(&self) {
-        assert!(self.suspended_since.get().is_some());
-
-        let additional_offset = match self.suspended_since.get() {
-            Some(suspended_since) => precise_time_ms() - suspended_since,
-            None => panic!("Timers are not suspended.")
-        };
-
-        self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
-
-        self.schedule_timer_call();
-    }
-
-    fn base_time(&self) -> MsDuration {
-        let offset = self.suspension_offset.get();
-
-        match self.suspended_since.get() {
-            Some(time) => time - offset,
-            None => precise_time_ms() - offset,
-        }
-    }
-
-    fn invalidate_expected_event_id(&self) -> TimerEventId {
-        let TimerEventId(currently_expected) = self.expected_event_id.get();
-        let next_id = TimerEventId(currently_expected + 1);
-        debug!("invalidating expected timer (was {:?}, now {:?}", currently_expected, next_id);
-        self.expected_event_id.set(next_id);
-        next_id
     }
 }
 
