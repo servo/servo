@@ -358,12 +358,12 @@ fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'static [
 /// Creates the *interface prototype object*.
 /// Fails on JSAPI failure.
 fn create_interface_prototype_object(cx: *mut JSContext,
-                                     global: HandleObject,
+                                     parent_proto: HandleObject,
                                      proto_class: &'static JSClass,
                                      members: &'static NativeProperties,
                                      rval: MutableHandleObject) {
     unsafe {
-        rval.set(JS_NewObjectWithUniqueType(cx, proto_class, global));
+        rval.set(JS_NewObjectWithUniqueType(cx, proto_class, parent_proto));
         assert!(!rval.get().is_null());
 
         if let Some(methods) = members.methods {
