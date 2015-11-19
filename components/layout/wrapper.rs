@@ -73,8 +73,170 @@ use util::str::{is_whitespace, search_index};
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
+
+pub trait WrapperTypes<'a> : Sized {
+    type Node: LayoutNode<'a, Self>;
+    type Document: LayoutDocument<'a, Self>;
+    type Element: LayoutElement<'a, Self>;
+}
+
+pub trait LayoutNode<'ln, Wrappers> : Sized + Copy + Clone
+                                      where Wrappers: WrapperTypes<'ln> {
+    /// Returns the type ID of this node.
+    fn type_id(&self) -> NodeTypeId;
+
+    fn is_element(&self) -> bool;
+
+    fn dump(self);
+
+    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Wrappers>;
+
+    /// Returns an iterator over this node's children.
+    fn children(self) -> LayoutNodeChildrenIterator<'ln, Wrappers>;
+
+    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Wrappers>;
+
+    /// Converts self into an `OpaqueNode`.
+    fn opaque(&self) -> OpaqueNode;
+
+    /// Resets layout data and styles for the node.
+    ///
+    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
+    fn initialize_layout_data(self);
+
+    /// While doing a reflow, the node at the root has no parent, as far as we're
+    /// concerned. This method returns `None` at the reflow root.
+    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<Self>;
+
+    fn debug_id(self) -> usize;
+
+    fn as_element(&self) -> Option<Wrappers::Element>;
+
+    fn as_document(&self) -> Option<Wrappers::Document>;
+
+    fn children_count(&self) -> u32;
+
+    fn has_changed(&self) -> bool;
+
+    unsafe fn set_changed(&self, value: bool);
+
+    fn is_dirty(&self) -> bool;
+
+    unsafe fn set_dirty(&self, value: bool);
+
+    fn has_dirty_descendants(&self) -> bool;
+
+    unsafe fn set_dirty_descendants(&self, value: bool);
+
+    fn dirty_self(&self) {
+        unsafe {
+            self.set_dirty(true);
+            self.set_dirty_descendants(true);
+        }
+    }
+
+    fn dirty_descendants(&self) {
+        for ref child in self.children() {
+            child.dirty_self();
+            child.dirty_descendants();
+        }
+    }
+
+    /// Borrows the layout data without checks.
+    #[inline(always)]
+    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper>;
+
+    /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>>;
+
+    /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>>;
+
+    fn parent_node(&self) -> Option<Wrappers::Node>;
+
+    fn first_child(&self) -> Option<Wrappers::Node>;
+
+    fn last_child(&self) -> Option<Wrappers::Node>;
+
+    fn prev_sibling(&self) -> Option<Wrappers::Node>;
+
+    fn next_sibling(&self) -> Option<Wrappers::Node>;
+}
+
+pub trait LayoutDocument<'ld, Wrappers> : Sized + Copy + Clone
+                                          where Wrappers: WrapperTypes<'ld> {
+    fn as_node(&self) -> Wrappers::Node;
+
+    fn root_node(&self) -> Option<Wrappers::Node>;
+
+    fn drain_modified_elements(&self) -> Vec<(Wrappers::Element, ElementSnapshot)>;
+}
+
+pub trait LayoutElement<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Element
+                                         where Wrappers: WrapperTypes<'le> {
+    fn as_node(&self) -> Wrappers::Node;
+
+    fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock>;
+
+    fn get_state(&self) -> ElementState;
+
+    /// Properly marks nodes as dirty in response to restyle hints.
+    fn note_restyle_hint(&self, mut hint: RestyleHint) {
+        // Bail early if there's no restyling to do.
+        if hint.is_empty() {
+            return;
+        }
+
+        // If the restyle hint is non-empty, we need to restyle either this element
+        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
+        let node = self.as_node();
+        let mut curr = node;
+        while let Some(parent) = curr.parent_node() {
+            if parent.has_dirty_descendants() { break }
+            unsafe { parent.set_dirty_descendants(true); }
+            curr = parent;
+        }
+
+        // Process hints.
+        if hint.contains(RESTYLE_SELF) {
+            node.dirty_self();
+
+            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
+            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
+            // properly. See the explanation in the github issue.
+            hint.insert(RESTYLE_DESCENDANTS);
+        }
+        if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
+            node.dirty_descendants();
+        }
+        if hint.contains(RESTYLE_LATER_SIBLINGS) {
+            let mut next = ::selectors::Element::next_sibling_element(self);
+            while let Some(sib) = next {
+                let sib_node = sib.as_node();
+                sib_node.dirty_self();
+                sib_node.dirty_descendants();
+                next = ::selectors::Element::next_sibling_element(&sib);
+            }
+        }
+    }
+}
+
+pub struct ServoWrapperTypes<'a> {
+  // Satisfy the compiler about the unused lifetime.
+  phantom: PhantomData<&'a ()>,
+}
+
+impl<'a> WrapperTypes<'a> for ServoWrapperTypes<'a> {
+    type Node = ServoLayoutNode<'a>;
+    type Element = ServoLayoutElement<'a>;
+    type Document = ServoLayoutDocument<'a>;
+}
+
 #[derive(Copy, Clone)]
-pub struct LayoutNode<'a> {
+pub struct ServoLayoutNode<'a> {
     /// The wrapped node.
     node: LayoutJS<Node>,
 
@@ -82,50 +244,180 @@ pub struct LayoutNode<'a> {
     chain: PhantomData<&'a ()>,
 }
 
-impl<'a> PartialEq for LayoutNode<'a> {
+impl<'a> PartialEq for ServoLayoutNode<'a> {
     #[inline]
-    fn eq(&self, other: &LayoutNode) -> bool {
+    fn eq(&self, other: &ServoLayoutNode) -> bool {
         self.node == other.node
     }
 }
 
-impl<'ln> LayoutNode<'ln> {
-    fn from_layout_js(n: LayoutJS<Node>) -> LayoutNode<'ln> {
-        LayoutNode {
+impl<'ln> ServoLayoutNode<'ln> {
+    fn from_layout_js(n: LayoutJS<Node>) -> ServoLayoutNode<'ln> {
+        ServoLayoutNode {
             node: n,
             chain: PhantomData,
         }
     }
 
-    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
-        LayoutNode::from_layout_js(LayoutJS::from_trusted_node_address(*address))
+    pub unsafe fn new(address: &TrustedNodeAddress) -> ServoLayoutNode {
+        ServoLayoutNode::from_layout_js(LayoutJS::from_trusted_node_address(*address))
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
-    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
-        LayoutNode {
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ServoLayoutNode<'ln> {
+        ServoLayoutNode {
             node: *node,
             chain: self.chain,
         }
     }
+}
 
-    /// Returns the type ID of this node.
-    pub fn type_id(&self) -> NodeTypeId {
+impl<'ln> LayoutNode<'ln, ServoWrapperTypes<'ln>> for ServoLayoutNode<'ln> {
+    fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
         }
     }
 
-    pub fn is_element(&self) -> bool {
+    fn is_element(&self) -> bool {
         unsafe {
             self.node.is_element_for_layout()
         }
     }
 
-    pub fn dump(self) {
+    fn dump(self) {
         self.dump_indent(0);
     }
 
+    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, ServoWrapperTypes<'ln>> {
+        LayoutTreeIterator::new(self)
+    }
+
+    fn children(self) -> LayoutNodeChildrenIterator<'ln, ServoWrapperTypes<'ln>> {
+        LayoutNodeChildrenIterator {
+            current: self.first_child(),
+        }
+    }
+
+    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, ServoWrapperTypes<'ln>> {
+        LayoutNodeReverseChildrenIterator {
+            current: self.last_child()
+        }
+    }
+
+    fn opaque(&self) -> OpaqueNode {
+        OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
+    }
+
+    fn initialize_layout_data(self) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref {
+            None => {
+                *layout_data_ref = Some(LayoutDataWrapper {
+                    shared_data: SharedLayoutData { style: None },
+                    data: box PrivateLayoutData::new(),
+                });
+            }
+            Some(_) => {}
+        }
+    }
+
+    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<ServoLayoutNode<'ln>> {
+        if self.opaque() == reflow_root {
+            None
+        } else {
+            self.parent_node()
+        }
+    }
+
+    fn debug_id(self) -> usize {
+        self.opaque().to_untrusted_node_address().0 as usize
+    }
+
+    fn children_count(&self) -> u32 {
+        unsafe { self.node.children_count() }
+    }
+
+    fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
+        as_element(self.node)
+    }
+
+    fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
+        self.node.downcast().map(|document| ServoLayoutDocument::from_layout_js(document))
+    }
+
+    fn has_changed(&self) -> bool {
+        unsafe { self.node.get_flag(HAS_CHANGED) }
+    }
+
+    unsafe fn set_changed(&self, value: bool) {
+        self.node.set_flag(HAS_CHANGED, value)
+    }
+
+    fn is_dirty(&self) -> bool {
+        unsafe { self.node.get_flag(IS_DIRTY) }
+    }
+
+    unsafe fn set_dirty(&self, value: bool) {
+        self.node.set_flag(IS_DIRTY, value)
+    }
+
+    fn has_dirty_descendants(&self) -> bool {
+        unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
+    }
+
+    unsafe fn set_dirty_descendants(&self, value: bool) {
+        self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
+    }
+
+    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
+        mem::transmute(self.get_jsmanaged().layout_data_unchecked())
+    }
+
+    fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>> {
+        unsafe {
+            mem::transmute(self.get_jsmanaged().layout_data())
+        }
+    }
+
+    fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>> {
+        unsafe {
+            mem::transmute(self.get_jsmanaged().layout_data_mut())
+        }
+    }
+
+    fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn first_child(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn last_child(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn prev_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn next_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+}
+
+impl<'ln> ServoLayoutNode<'ln> {
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
         for _ in 0..indent {
@@ -153,188 +445,45 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-    pub fn traverse_preorder(self) -> LayoutTreeIterator<'ln> {
-        LayoutTreeIterator::new(self)
-    }
-
-    /// Returns an iterator over this node's children.
-    pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
-        LayoutNodeChildrenIterator {
-            current: self.first_child(),
-        }
-    }
-
-    pub fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln> {
-        LayoutNodeReverseChildrenIterator {
-            current: self.last_child()
-        }
-
-    }
-
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {
         &self.node
     }
-
-    /// Converts self into an `OpaqueNode`.
-    pub fn opaque(&self) -> OpaqueNode {
-        OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
-    }
-
-    /// Resets layout data and styles for the node.
-    ///
-    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    pub fn initialize_layout_data(self) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref {
-            None => {
-                *layout_data_ref = Some(LayoutDataWrapper {
-                    shared_data: SharedLayoutData { style: None },
-                    data: box PrivateLayoutData::new(),
-                });
-            }
-            Some(_) => {}
-        }
-    }
-
-    /// While doing a reflow, the node at the root has no parent, as far as we're
-    /// concerned. This method returns `None` at the reflow root.
-    pub fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<LayoutNode<'ln>> {
-        if self.opaque() == reflow_root {
-            None
-        } else {
-            self.parent_node()
-        }
-    }
-
-    pub fn debug_id(self) -> usize {
-        self.opaque().to_untrusted_node_address().0 as usize
-    }
-
-    pub fn as_element(&self) -> Option<LayoutElement<'ln>> {
-        as_element(self.node)
-    }
-
-    pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
-        self.node.downcast().map(|document| LayoutDocument::from_layout_js(document))
-    }
-
-    fn parent_node(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn first_child(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn last_child(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    pub fn children_count(&self) -> u32 {
-        unsafe { self.node.children_count() }
-    }
 }
 
-impl<'ln> LayoutNode<'ln> {
-    pub fn has_changed(&self) -> bool {
-        unsafe { self.node.get_flag(HAS_CHANGED) }
-    }
-
-    pub unsafe fn set_changed(&self, value: bool) {
-        self.node.set_flag(HAS_CHANGED, value)
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        unsafe { self.node.get_flag(IS_DIRTY) }
-    }
-
-    pub unsafe fn set_dirty(&self, value: bool) {
-        self.node.set_flag(IS_DIRTY, value)
-    }
-
-    pub fn has_dirty_descendants(&self) -> bool {
-        unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
-    }
-
-    pub unsafe fn set_dirty_descendants(&self, value: bool) {
-        self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
-    }
-
-    /// Borrows the layout data without checks.
-    #[inline(always)]
-    pub unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
-        mem::transmute(self.get_jsmanaged().layout_data_unchecked())
-    }
-
-    /// Borrows the layout data immutably. Fails on a conflicting borrow.
-    #[inline(always)]
-    pub fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get_jsmanaged().layout_data())
-        }
-    }
-
-    /// Borrows the layout data mutably. Fails on a conflicting borrow.
-    #[inline(always)]
-    pub fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get_jsmanaged().layout_data_mut())
-        }
-    }
+pub struct LayoutNodeChildrenIterator<'a, Wrappers: WrapperTypes<'a>> {
+    current: Option<Wrappers::Node>,
 }
 
-pub struct LayoutNodeChildrenIterator<'a> {
-    current: Option<LayoutNode<'a>>,
-}
-
-impl<'a> Iterator for LayoutNodeChildrenIterator<'a> {
-    type Item = LayoutNode<'a>;
-    fn next(&mut self) -> Option<LayoutNode<'a>> {
+impl<'a, Wrappers: WrapperTypes<'a>> Iterator for LayoutNodeChildrenIterator<'a, Wrappers> {
+    type Item = Wrappers::Node;
+    fn next(&mut self) -> Option<Wrappers::Node> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling());
         node
     }
 }
 
-pub struct LayoutNodeReverseChildrenIterator<'a> {
-    current: Option<LayoutNode<'a>>,
+pub struct LayoutNodeReverseChildrenIterator<'a, Wrappers: WrapperTypes<'a>> {
+    current: Option<Wrappers::Node>,
 }
 
-impl<'a> Iterator for LayoutNodeReverseChildrenIterator<'a> {
-    type Item = LayoutNode<'a>;
-    fn next(&mut self) -> Option<LayoutNode<'a>> {
+impl<'a, Wrappers: WrapperTypes<'a>> Iterator for LayoutNodeReverseChildrenIterator<'a, Wrappers> {
+    type Item = Wrappers::Node;
+    fn next(&mut self) -> Option<Wrappers::Node> {
         let node = self.current;
         self.current = node.and_then(|node| node.prev_sibling());
         node
     }
 }
 
-pub struct LayoutTreeIterator<'a> {
-    stack: Vec<LayoutNode<'a>>,
+pub struct LayoutTreeIterator<'a, Wrappers: WrapperTypes<'a>> {
+    stack: Vec<Wrappers::Node>,
 }
 
-impl<'a> LayoutTreeIterator<'a> {
-    fn new(root: LayoutNode<'a>) -> LayoutTreeIterator<'a> {
+impl<'a, Wrappers> LayoutTreeIterator<'a, Wrappers> where Wrappers: WrapperTypes<'a> {
+    fn new(root: Wrappers::Node) -> LayoutTreeIterator<'a, Wrappers> {
         let mut stack = vec!();
         stack.push(root);
         LayoutTreeIterator {
@@ -343,9 +492,9 @@ impl<'a> LayoutTreeIterator<'a> {
     }
 }
 
-impl<'a> Iterator for LayoutTreeIterator<'a> {
-    type Item = LayoutNode<'a>;
-    fn next(&mut self) -> Option<LayoutNode<'a>> {
+impl<'a, Wrappers> Iterator for LayoutTreeIterator<'a, Wrappers> where Wrappers: WrapperTypes<'a> {
+    type Item = Wrappers::Node;
+    fn next(&mut self) -> Option<Wrappers::Node> {
         let ret = self.stack.pop();
         ret.map(|node| self.stack.extend(node.rev_children()));
         ret
@@ -354,120 +503,70 @@ impl<'a> Iterator for LayoutTreeIterator<'a> {
 
 // A wrapper around documents that ensures ayout can only ever access safe properties.
 #[derive(Copy, Clone)]
-pub struct LayoutDocument<'le> {
+pub struct ServoLayoutDocument<'ld> {
     document: LayoutJS<Document>,
-    chain: PhantomData<&'le ()>,
+    chain: PhantomData<&'ld ()>,
 }
 
-impl<'le> LayoutDocument<'le> {
-    fn from_layout_js(doc: LayoutJS<Document>) -> LayoutDocument<'le> {
-        LayoutDocument {
+impl<'ld> LayoutDocument<'ld, ServoWrapperTypes<'ld>> for ServoLayoutDocument<'ld> {
+    fn as_node(&self) -> ServoLayoutNode<'ld> {
+        ServoLayoutNode::from_layout_js(self.document.upcast())
+    }
+
+    fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
+        self.as_node().children().find(ServoLayoutNode::is_element)
+    }
+
+    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, ElementSnapshot)> {
+        let elements =  unsafe { self.document.drain_modified_elements() };
+        elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
+    }
+}
+
+impl<'ld> ServoLayoutDocument<'ld> {
+    fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
+        ServoLayoutDocument {
             document: doc,
             chain: PhantomData,
         }
-    }
-
-    pub fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode::from_layout_js(self.document.upcast())
-    }
-
-    pub fn root_node(&self) -> Option<LayoutNode<'le>> {
-        self.as_node().children().find(LayoutNode::is_element)
-    }
-
-    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementSnapshot)> {
-        let elements =  unsafe { self.document.drain_modified_elements() };
-        elements.into_iter().map(|(el, snapshot)| (LayoutElement::from_layout_js(el), snapshot)).collect()
     }
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 #[derive(Copy, Clone)]
-pub struct LayoutElement<'le> {
+pub struct ServoLayoutElement<'le> {
     element: LayoutJS<Element>,
     chain: PhantomData<&'le ()>,
 }
 
-impl<'le> LayoutElement<'le> {
-    fn from_layout_js(el: LayoutJS<Element>) -> LayoutElement<'le> {
-        LayoutElement {
-            element: el,
-            chain: PhantomData,
-        }
+impl<'le> LayoutElement<'le, ServoWrapperTypes<'le>> for ServoLayoutElement<'le> {
+    fn as_node(&self) -> ServoLayoutNode<'le> {
+        ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         unsafe {
             &*self.element.style_attribute()
         }
     }
 
-    pub fn as_node(&self) -> LayoutNode<'le> {
-        LayoutNode::from_layout_js(self.element.upcast())
-    }
-
-    pub fn get_state(&self) -> ElementState {
+    fn get_state(&self) -> ElementState {
         self.element.get_state_for_layout()
     }
+}
 
-    /// Properly marks nodes as dirty in response to restyle hints.
-    pub fn note_restyle_hint(&self, mut hint: RestyleHint) {
-        // Bail early if there's no restyling to do.
-        if hint.is_empty() {
-            return;
-        }
 
-        // If the restyle hint is non-empty, we need to restyle either this element
-        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
-        let node = self.as_node();
-        let mut curr = node;
-        while let Some(parent) = curr.parent_node() {
-            if parent.has_dirty_descendants() { break }
-            unsafe { parent.set_dirty_descendants(true); }
-            curr = parent;
-        }
-
-        // Set up our helpers.
-        fn dirty_node(node: &LayoutNode) {
-            unsafe {
-                node.set_dirty(true);
-                node.set_dirty_descendants(true);
-            }
-        }
-        fn dirty_descendants(node: &LayoutNode) {
-            for ref child in node.children() {
-                dirty_node(child);
-                dirty_descendants(child);
-            }
-        }
-
-        // Process hints.
-        if hint.contains(RESTYLE_SELF) {
-            dirty_node(&node);
-
-            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
-            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
-            // properly. See the explanation in the github issue.
-            hint.insert(RESTYLE_DESCENDANTS);
-        }
-        if hint.contains(RESTYLE_DESCENDANTS) {
-            unsafe { node.set_dirty_descendants(true); }
-            dirty_descendants(&node);
-        }
-        if hint.contains(RESTYLE_LATER_SIBLINGS) {
-            let mut next = ::selectors::Element::next_sibling_element(self);
-            while let Some(sib) = next {
-                let sib_node = sib.as_node();
-                dirty_node(&sib_node);
-                dirty_descendants(&sib_node);
-                next = ::selectors::Element::next_sibling_element(&sib);
-            }
+impl<'le> ServoLayoutElement<'le> {
+    fn from_layout_js(el: LayoutJS<Element>) -> ServoLayoutElement<'le> {
+        ServoLayoutElement {
+            element: el,
+            chain: PhantomData,
         }
     }
 }
 
-fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
-    node.downcast().map(|element| LayoutElement::from_layout_js(element))
+fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
+    node.downcast().map(|element| ServoLayoutElement::from_layout_js(element))
 }
 
 macro_rules! state_getter {
@@ -480,22 +579,22 @@ macro_rules! state_getter {
     }
 }
 
-impl<'le> ::selectors::Element for LayoutElement<'le> {
-    fn parent_element(&self) -> Option<LayoutElement<'le>> {
+impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
+    fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
         unsafe {
             self.element.upcast().parent_node_ref().and_then(as_element)
         }
     }
 
-    fn first_child_element(&self) -> Option<LayoutElement<'le>> {
+    fn first_child_element(&self) -> Option<ServoLayoutElement<'le>> {
         self.as_node().children().filter_map(|n| n.as_element()).next()
     }
 
-    fn last_child_element(&self) -> Option<LayoutElement<'le>> {
+    fn last_child_element(&self) -> Option<ServoLayoutElement<'le>> {
         self.as_node().rev_children().filter_map(|n| n.as_element()).next()
     }
 
-    fn prev_sibling_element(&self) -> Option<LayoutElement<'le>> {
+    fn prev_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
         let mut node = self.as_node();
         while let Some(sibling) = node.prev_sibling() {
             if let Some(element) = sibling.as_element() {
@@ -506,7 +605,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         None
     }
 
-    fn next_sibling_element(&self) -> Option<LayoutElement<'le>> {
+    fn next_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
         let mut node = self.as_node();
         while let Some(sibling) = node.next_sibling() {
             if let Some(element) = sibling.as_element() {
@@ -633,7 +732,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     }
 }
 
-impl<'le> TElementAttributes for LayoutElement<'le> {
+impl<'le> TElementAttributes for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
@@ -686,7 +785,7 @@ impl<T> PseudoElementType<T> {
 #[derive(Copy, Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
-    node: LayoutNode<'ln>,
+    node: ServoLayoutNode<'ln>,
 
     pseudo: PseudoElementType<display::T>,
 }
@@ -701,7 +800,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
-    pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
+    pub fn new<'a>(node: &ServoLayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
             node: node.clone(),
             pseudo: PseudoElementType::Normal,
@@ -1105,14 +1204,14 @@ impl<'le> ThreadSafeLayoutElement<'le> {
 /// Must be transmutable to and from LayoutNode.
 pub type UnsafeLayoutNode = (usize, usize);
 
-pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
+pub fn layout_node_to_unsafe_layout_node(node: &ServoLayoutNode) -> UnsafeLayoutNode {
     unsafe {
         let ptr: usize = mem::transmute_copy(node);
         (ptr, 0)
     }
 }
 
-pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode {
+pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> ServoLayoutNode {
     let (node, _) = *node;
     mem::transmute(node)
 }

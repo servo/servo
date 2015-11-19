@@ -23,7 +23,7 @@ use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use wrapper::UnsafeLayoutNode;
-use wrapper::{LayoutNode, layout_node_from_unsafe_layout_node, layout_node_to_unsafe_layout_node};
+use wrapper::{LayoutNode, ServoLayoutNode, layout_node_from_unsafe_layout_node, layout_node_to_unsafe_layout_node};
 
 const CHUNK_SIZE: usize = 64;
 
@@ -103,7 +103,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
         let mut discovered_child_nodes = Vec::new();
         for unsafe_node in *unsafe_nodes.0 {
             // Get a real layout node.
-            let node: LayoutNode = unsafe {
+            let node: ServoLayoutNode = unsafe {
                 layout_node_from_unsafe_layout_node(&unsafe_node)
             };
 
@@ -157,7 +157,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&self, unsafe_node: UnsafeLayoutNode) {
         // Get a real layout node.
-        let mut node: LayoutNode = unsafe {
+        let mut node: ServoLayoutNode = unsafe {
             layout_node_from_unsafe_layout_node(&unsafe_node)
         };
         loop {
@@ -440,7 +440,7 @@ fn run_queue_with_custom_work_data_type<To, F>(
     queue.run(shared_layout_context);
 }
 
-pub fn traverse_dom_preorder(root: LayoutNode,
+pub fn traverse_dom_preorder(root: ServoLayoutNode,
                              shared_layout_context: &SharedLayoutContext,
                              queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
     run_queue_with_custom_work_data_type(queue, |queue| {

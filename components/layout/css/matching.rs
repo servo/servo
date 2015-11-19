@@ -31,7 +31,7 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
-use wrapper::{LayoutElement, LayoutNode};
+use wrapper::{LayoutElement, LayoutNode, ServoLayoutElement, ServoLayoutNode};
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
@@ -160,7 +160,7 @@ pub struct StyleSharingCandidateCache {
     cache: LRUCache<StyleSharingCandidate, ()>,
 }
 
-fn create_common_style_affecting_attributes_from_element(element: &LayoutElement)
+fn create_common_style_affecting_attributes_from_element(element: &ServoLayoutElement)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
     for attribute_info in &common_style_affecting_attributes() {
@@ -211,7 +211,7 @@ impl StyleSharingCandidate {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
-    fn new(element: &LayoutElement) -> Option<StyleSharingCandidate> {
+    fn new(element: &ServoLayoutElement) -> Option<StyleSharingCandidate> {
         let parent_element = match element.parent_element() {
             None => return None,
             Some(parent_element) => parent_element,
@@ -257,7 +257,7 @@ impl StyleSharingCandidate {
         })
     }
 
-    fn can_share_style_with(&self, element: &LayoutElement) -> bool {
+    fn can_share_style_with(&self, element: &ServoLayoutElement) -> bool {
         if *element.get_local_name() != self.local_name {
             return false
         }
@@ -342,7 +342,7 @@ impl StyleSharingCandidateCache {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible(&mut self, element: &LayoutElement) {
+    pub fn insert_if_possible(&mut self, element: &ServoLayoutElement) {
         match StyleSharingCandidate::new(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
@@ -376,7 +376,7 @@ pub trait ElementMatchMethods {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<LayoutNode>)
+                                      parent: Option<ServoLayoutNode>)
                                       -> StyleSharingResult;
 }
 
@@ -396,7 +396,7 @@ pub trait MatchMethods {
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<LayoutNode>,
+                           parent: Option<ServoLayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>);
@@ -418,12 +418,12 @@ trait PrivateMatchMethods {
 
 trait PrivateElementMatchMethods {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<LayoutNode>,
+                                              parent_node: Option<ServoLayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>>;
 }
 
-impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
+impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
@@ -502,9 +502,9 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
     }
 }
 
-impl<'ln> PrivateElementMatchMethods for LayoutElement<'ln> {
+impl<'ln> PrivateElementMatchMethods for ServoLayoutElement<'ln> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<LayoutNode>,
+                                              parent_node: Option<ServoLayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
         let parent_node = match parent_node {
@@ -537,7 +537,7 @@ impl<'ln> PrivateElementMatchMethods for LayoutElement<'ln> {
     }
 }
 
-impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
+impl<'ln> ElementMatchMethods for ServoLayoutElement<'ln> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -570,7 +570,7 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<LayoutNode>)
+                                      parent: Option<ServoLayoutNode>)
                                       -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
@@ -603,7 +603,7 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
     }
 }
 
-impl<'ln> MatchMethods for LayoutNode<'ln> {
+impl<'ln> MatchMethods for ServoLayoutNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -645,7 +645,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<LayoutNode>,
+                           parent: Option<ServoLayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>) {

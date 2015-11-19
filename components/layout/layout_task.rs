@@ -82,7 +82,7 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::{LayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutDocument, LayoutElement, LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -750,7 +750,7 @@ impl LayoutTask {
         possibly_locked_rw_data.block(rw_data);
     }
 
-    fn try_get_layout_root(&self, node: LayoutNode) -> Option<FlowRef> {
+    fn try_get_layout_root(&self, node: ServoLayoutNode) -> Option<FlowRef> {
         let mut layout_data_ref = node.mutate_layout_data();
         let layout_data =
             match layout_data_ref.as_mut() {
@@ -828,7 +828,7 @@ impl LayoutTask {
                                       property: &Atom,
                                       layout_root: &mut FlowRef)
                                       -> Option<String> {
-        let node = unsafe { LayoutNode::new(&requested_node) };
+        let node = unsafe { ServoLayoutNode::new(&requested_node) };
 
         let layout_node = ThreadSafeLayoutNode::new(&node);
         let layout_node = match pseudo {
@@ -1063,14 +1063,14 @@ impl LayoutTask {
     fn handle_reflow<'a, 'b>(&mut self,
                              data: &ScriptReflow,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        let document = unsafe { LayoutNode::new(&data.document) };
+        let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
         debug!("layout: received layout request for: {}", self.url.serialize());
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
-        let node: LayoutNode = match document.root_node() {
+        let node: ServoLayoutNode = match document.root_node() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
@@ -1418,7 +1418,7 @@ impl LayoutTask {
         }
     }
 
-    unsafe fn dirty_all_nodes(node: LayoutNode) {
+    unsafe fn dirty_all_nodes(node: ServoLayoutNode) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
             // "changed":
