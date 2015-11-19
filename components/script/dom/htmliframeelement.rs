@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecur
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -37,7 +36,6 @@ use layout_interface::ReflowQueryType;
 use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
-use page::IterablePage;
 use script_runtime::ScriptChan;
 use script_thread::{MainThreadScriptChan, ScriptThread, Runnable};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -469,28 +467,22 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
-            let window = window_from_node(self);
-            let window = window.r();
-            let children = window.page().children.borrow();
-            children.iter().find(|page| {
-                let window = page.window();
-                window.subpage() == Some(subpage_id)
-            }).map(|page| page.window())
+        self.nested_browsing_context.get().and_then(|context| {
+            let window = context.active_window();
+            if window.r().is_local() {
+                Some(window.as_local())
+            } else {
+                None
+            }
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.GetContentWindow().and_then(|window| {
-            let self_url = match self.get_url() {
-                Some(self_url) => self_url,
-                None => return None,
-            };
-            let win_url = window_from_node(self).get_url();
-
-            if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
+        self.nested_browsing_context.get().and_then(|context| {
+            let document = context.active_document();
+            if document.r().is_local() {
+                Some(document.as_local())
             } else {
                 None
             }
