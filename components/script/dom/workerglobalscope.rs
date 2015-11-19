@@ -30,7 +30,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use timers::{IsInterval, JsTimers, OneshotTimerCallback, OneshotTimers, TimerCallback, TimerHandle};
+use timers::{IsInterval, JsTimers, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 use util::str::DOMString;
 
@@ -148,13 +148,13 @@ impl WorkerGlobalScope {
         self.scheduler_chan.clone()
     }
 
-    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> TimerHandle {
+    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.oneshot_timers.schedule_callback(callback,
                                       duration,
                                       TimerSource::FromWorker)
     }
 
-    pub fn unschedule_callback(&self, handle: TimerHandle) {
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         self.oneshot_timers.unschedule_callback(handle);
     }
 

@@ -60,7 +60,7 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
-use timers::{OneshotTimerCallback, TimerHandle};
+use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 use url::percent_encoding::{utf8_percent_encode, USERNAME_ENCODE_SET, PASSWORD_ENCODE_SET};
 use util::str::DOMString;
@@ -147,7 +147,7 @@ pub struct XMLHttpRequest {
     upload_events: Cell<bool>,
     send_flag: Cell<bool>,
 
-    timeout_cancel: DOMRefCell<Option<TimerHandle>>,
+    timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
