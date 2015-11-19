@@ -26,7 +26,7 @@ use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
-pub struct TimerHandle(i32);
+pub struct OneshotTimerHandle(i32);
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
@@ -35,8 +35,8 @@ pub struct OneshotTimers {
     timer_event_chan: IpcSender<TimerEvent>,
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
-    next_timer_handle: Cell<TimerHandle>,
-    timers: DOMRefCell<Vec<Timer>>,
+    next_timer_handle: Cell<OneshotTimerHandle>,
+    timers: DOMRefCell<Vec<OneshotTimer>>,
     suspended_since: Cell<Option<MsDuration>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
@@ -54,8 +54,8 @@ pub struct OneshotTimers {
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
-struct Timer {
-    handle: TimerHandle,
+struct OneshotTimer {
+    handle: OneshotTimerHandle,
     source: TimerSource,
     callback: OneshotTimerCallback,
     scheduled_for: MsDuration,
@@ -101,7 +101,7 @@ struct JsTimersState {
 
 #[derive(JSTraceable, HeapSizeOf)]
 struct JsTimerEntry {
-    oneshot_handle: Option<TimerHandle>,
+    oneshot_handle: Option<OneshotTimerHandle>,
 }
 
 // Holder for the various JS values associated with setTimeout
@@ -127,8 +127,8 @@ pub enum IsInterval {
     NonInterval,
 }
 
-impl Ord for Timer {
-    fn cmp(&self, other: &Timer) -> Ordering {
+impl Ord for OneshotTimer {
+    fn cmp(&self, other: &OneshotTimer) -> Ordering {
         match self.scheduled_for.cmp(&other.scheduled_for).reverse() {
             Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
             res => res
@@ -136,16 +136,16 @@ impl Ord for Timer {
     }
 }
 
-impl PartialOrd for Timer {
-    fn partial_cmp(&self, other: &Timer) -> Option<Ordering> {
+impl PartialOrd for OneshotTimer {
+    fn partial_cmp(&self, other: &OneshotTimer) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Eq for Timer {}
-impl PartialEq for Timer {
-    fn eq(&self, other: &Timer) -> bool {
-        self as *const Timer == other as *const Timer
+impl Eq for OneshotTimer {}
+impl PartialEq for OneshotTimer {
+    fn eq(&self, other: &OneshotTimer) -> bool {
+        self as *const OneshotTimer == other as *const OneshotTimer
     }
 }
 
@@ -175,7 +175,7 @@ impl OneshotTimers {
         OneshotTimers {
             timer_event_chan: timer_event_chan,
             scheduler_chan: scheduler_chan,
-            next_timer_handle: Cell::new(TimerHandle(1)),
+            next_timer_handle: Cell::new(OneshotTimerHandle(1)),
             timers: DOMRefCell::new(Vec::new()),
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Length::new(0)),
@@ -271,20 +271,20 @@ impl OneshotTimers {
                              callback: OneshotTimerCallback,
                              duration: MsDuration,
                              source: TimerSource)
-                             -> TimerHandle {
-        let TimerHandle(new_handle) = self.next_timer_handle.get();
-        self.next_timer_handle.set(TimerHandle(new_handle + 1));
+                             -> OneshotTimerHandle {
+        let OneshotTimerHandle(new_handle) = self.next_timer_handle.get();
+        self.next_timer_handle.set(OneshotTimerHandle(new_handle + 1));
 
         let scheduled_for = self.base_time() + duration;
 
-        let timer = Timer {
-            handle: TimerHandle(new_handle),
+        let timer = OneshotTimer {
+            handle: OneshotTimerHandle(new_handle),
             source: source,
             callback: callback,
             scheduled_for: scheduled_for,
         };
 
-        let TimerHandle(max_handle) = {
+        let OneshotTimerHandle(max_handle) = {
             let mut timers = self.timers.borrow_mut();
             let insertion_index = timers.binary_search(&timer).err().unwrap();
             timers.insert(insertion_index, timer);
@@ -296,10 +296,10 @@ impl OneshotTimers {
             self.schedule_timer_call();
         }
 
-        TimerHandle(new_handle)
+        OneshotTimerHandle(new_handle)
     }
 
-    pub fn unschedule_callback(&self, handle: TimerHandle) {
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         let was_next = self.is_next_timer(handle);
 
         self.timers.borrow_mut().retain(|t| t.handle != handle);
@@ -326,7 +326,7 @@ impl OneshotTimers {
 
         // select timers to run to prevent firing timers
         // that were installed during fire of another timer
-        let mut timers_to_run: Vec<Timer> = Vec::new();
+        let mut timers_to_run = Vec::new();
 
         loop {
             let mut timers = self.timers.borrow_mut();
@@ -346,7 +346,7 @@ impl OneshotTimers {
         self.schedule_timer_call();
     }
 
-    fn is_next_timer(&self, handle: TimerHandle) -> bool {
+    fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
         match self.timers.borrow().last() {
             None => false,
             Some(ref max_timer) => max_timer.handle == handle
