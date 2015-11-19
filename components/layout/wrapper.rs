@@ -74,14 +74,10 @@ use util::str::{is_whitespace, search_index};
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 
-pub trait WrapperTypes<'a> : Sized {
-    type Node: LayoutNode<'a, Self>;
-    type Document: LayoutDocument<'a, Self>;
-    type Element: LayoutElement<'a, Self>;
-}
+pub trait LayoutNode<'ln> : Sized + Copy + Clone {
+    type ConcreteLayoutElement: LayoutElement<'ln>;
+    type ConcreteLayoutDocument: LayoutDocument<'ln>;
 
-pub trait LayoutNode<'ln, Wrappers> : Sized + Copy + Clone
-                                      where Wrappers: WrapperTypes<'ln> {
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
 
@@ -89,12 +85,12 @@ pub trait LayoutNode<'ln, Wrappers> : Sized + Copy + Clone
 
     fn dump(self);
 
-    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Wrappers>;
+    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Self>;
 
     /// Returns an iterator over this node's children.
-    fn children(self) -> LayoutNodeChildrenIterator<'ln, Wrappers>;
+    fn children(self) -> LayoutNodeChildrenIterator<'ln, Self>;
 
-    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Wrappers>;
+    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Self>;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -110,9 +106,9 @@ pub trait LayoutNode<'ln, Wrappers> : Sized + Copy + Clone
 
     fn debug_id(self) -> usize;
 
-    fn as_element(&self) -> Option<Wrappers::Element>;
+    fn as_element(&self) -> Option<Self::ConcreteLayoutElement>;
 
-    fn as_document(&self) -> Option<Wrappers::Document>;
+    fn as_document(&self) -> Option<Self::ConcreteLayoutDocument>;
 
     fn children_count(&self) -> u32;
 
@@ -154,29 +150,33 @@ pub trait LayoutNode<'ln, Wrappers> : Sized + Copy + Clone
     #[inline(always)]
     fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>>;
 
-    fn parent_node(&self) -> Option<Wrappers::Node>;
+    fn parent_node(&self) -> Option<Self>;
 
-    fn first_child(&self) -> Option<Wrappers::Node>;
+    fn first_child(&self) -> Option<Self>;
 
-    fn last_child(&self) -> Option<Wrappers::Node>;
+    fn last_child(&self) -> Option<Self>;
 
-    fn prev_sibling(&self) -> Option<Wrappers::Node>;
+    fn prev_sibling(&self) -> Option<Self>;
 
-    fn next_sibling(&self) -> Option<Wrappers::Node>;
+    fn next_sibling(&self) -> Option<Self>;
 }
 
-pub trait LayoutDocument<'ld, Wrappers> : Sized + Copy + Clone
-                                          where Wrappers: WrapperTypes<'ld> {
-    fn as_node(&self) -> Wrappers::Node;
+pub trait LayoutDocument<'ld> : Sized + Copy + Clone {
+    type ConcreteLayoutNode: LayoutNode<'ld>;
+    type ConcreteLayoutElement: LayoutElement<'ld>;
 
-    fn root_node(&self) -> Option<Wrappers::Node>;
+    fn as_node(&self) -> Self::ConcreteLayoutNode;
 
-    fn drain_modified_elements(&self) -> Vec<(Wrappers::Element, ElementSnapshot)>;
+    fn root_node(&self) -> Option<Self::ConcreteLayoutNode>;
+
+    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteLayoutElement, ElementSnapshot)>;
 }
 
-pub trait LayoutElement<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Element + TElementAttributes
-                                         where Wrappers: WrapperTypes<'le> {
-    fn as_node(&self) -> Wrappers::Node;
+pub trait LayoutElement<'le> : Sized + Copy + Clone + ::selectors::Element + TElementAttributes {
+    type ConcreteLayoutNode: LayoutNode<'le>;
+    type ConcreteLayoutDocument: LayoutDocument<'le>;
+
+    fn as_node(&self) -> Self::ConcreteLayoutNode;
 
     fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock>;
 
@@ -224,17 +224,6 @@ pub trait LayoutElement<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Ele
     }
 }
 
-pub struct ServoWrapperTypes<'a> {
-  // Satisfy the compiler about the unused lifetime.
-  phantom: PhantomData<&'a ()>,
-}
-
-impl<'a> WrapperTypes<'a> for ServoWrapperTypes<'a> {
-    type Node = ServoLayoutNode<'a>;
-    type Element = ServoLayoutElement<'a>;
-    type Document = ServoLayoutDocument<'a>;
-}
-
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {
     /// The wrapped node.
@@ -272,7 +261,10 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> LayoutNode<'ln, ServoWrapperTypes<'ln>> for ServoLayoutNode<'ln> {
+impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
+    type ConcreteLayoutElement = ServoLayoutElement<'ln>;
+    type ConcreteLayoutDocument = ServoLayoutDocument<'ln>;
+
     fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
@@ -289,19 +281,21 @@ impl<'ln> LayoutNode<'ln, ServoWrapperTypes<'ln>> for ServoLayoutNode<'ln> {
         self.dump_indent(0);
     }
 
-    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, ServoWrapperTypes<'ln>> {
+    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Self> {
         LayoutTreeIterator::new(self)
     }
 
-    fn children(self) -> LayoutNodeChildrenIterator<'ln, ServoWrapperTypes<'ln>> {
+    fn children(self) -> LayoutNodeChildrenIterator<'ln, Self> {
         LayoutNodeChildrenIterator {
             current: self.first_child(),
+            phantom: PhantomData,
         }
     }
 
-    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, ServoWrapperTypes<'ln>> {
+    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Self> {
         LayoutNodeReverseChildrenIterator {
-            current: self.last_child()
+            current: self.last_child(),
+            phantom: PhantomData,
         }
     }
 
@@ -452,49 +446,59 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
-pub struct LayoutNodeChildrenIterator<'a, Wrappers: WrapperTypes<'a>> {
-    current: Option<Wrappers::Node>,
+pub struct LayoutNodeChildrenIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
+    current: Option<ConcreteLayoutNode>,
+    // Satisfy the compiler about the unused lifetime.
+    phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, Wrappers: WrapperTypes<'a>> Iterator for LayoutNodeChildrenIterator<'a, Wrappers> {
-    type Item = Wrappers::Node;
-    fn next(&mut self) -> Option<Wrappers::Node> {
+impl<'a, ConcreteLayoutNode> Iterator for LayoutNodeChildrenIterator<'a, ConcreteLayoutNode>
+                                      where ConcreteLayoutNode: LayoutNode<'a> {
+    type Item = ConcreteLayoutNode;
+    fn next(&mut self) -> Option<ConcreteLayoutNode> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling());
         node
     }
 }
 
-pub struct LayoutNodeReverseChildrenIterator<'a, Wrappers: WrapperTypes<'a>> {
-    current: Option<Wrappers::Node>,
+pub struct LayoutNodeReverseChildrenIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
+    current: Option<ConcreteLayoutNode>,
+    // Satisfy the compiler about the unused lifetime.
+    phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, Wrappers: WrapperTypes<'a>> Iterator for LayoutNodeReverseChildrenIterator<'a, Wrappers> {
-    type Item = Wrappers::Node;
-    fn next(&mut self) -> Option<Wrappers::Node> {
+impl<'a, ConcreteLayoutNode> Iterator for LayoutNodeReverseChildrenIterator<'a, ConcreteLayoutNode>
+                                      where ConcreteLayoutNode: LayoutNode<'a> {
+    type Item = ConcreteLayoutNode;
+    fn next(&mut self) -> Option<ConcreteLayoutNode> {
         let node = self.current;
         self.current = node.and_then(|node| node.prev_sibling());
         node
     }
 }
 
-pub struct LayoutTreeIterator<'a, Wrappers: WrapperTypes<'a>> {
-    stack: Vec<Wrappers::Node>,
+pub struct LayoutTreeIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
+    stack: Vec<ConcreteLayoutNode>,
+    // Satisfy the compiler about the unused lifetime.
+    phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, Wrappers> LayoutTreeIterator<'a, Wrappers> where Wrappers: WrapperTypes<'a> {
-    fn new(root: Wrappers::Node) -> LayoutTreeIterator<'a, Wrappers> {
+impl<'a, ConcreteLayoutNode> LayoutTreeIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
+    fn new(root: ConcreteLayoutNode) -> LayoutTreeIterator<'a, ConcreteLayoutNode> {
         let mut stack = vec!();
         stack.push(root);
         LayoutTreeIterator {
-            stack: stack
+            stack: stack,
+            phantom: PhantomData,
         }
     }
 }
 
-impl<'a, Wrappers> Iterator for LayoutTreeIterator<'a, Wrappers> where Wrappers: WrapperTypes<'a> {
-    type Item = Wrappers::Node;
-    fn next(&mut self) -> Option<Wrappers::Node> {
+impl<'a, ConcreteLayoutNode> Iterator for LayoutTreeIterator<'a, ConcreteLayoutNode>
+                                      where ConcreteLayoutNode: LayoutNode<'a> {
+    type Item = ConcreteLayoutNode;
+    fn next(&mut self) -> Option<ConcreteLayoutNode> {
         let ret = self.stack.pop();
         ret.map(|node| self.stack.extend(node.rev_children()));
         ret
@@ -508,7 +512,10 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> LayoutDocument<'ld, ServoWrapperTypes<'ld>> for ServoLayoutDocument<'ld> {
+impl<'ld> LayoutDocument<'ld> for ServoLayoutDocument<'ld> {
+    type ConcreteLayoutNode = ServoLayoutNode<'ld>;
+    type ConcreteLayoutElement = ServoLayoutElement<'ld>;
+
     fn as_node(&self) -> ServoLayoutNode<'ld> {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
@@ -539,7 +546,10 @@ pub struct ServoLayoutElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
-impl<'le> LayoutElement<'le, ServoWrapperTypes<'le>> for ServoLayoutElement<'le> {
+impl<'le> LayoutElement<'le> for ServoLayoutElement<'le> {
+    type ConcreteLayoutNode = ServoLayoutNode<'le>;
+    type ConcreteLayoutDocument = ServoLayoutDocument<'le>;
+
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
