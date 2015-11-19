@@ -1092,6 +1092,8 @@ impl ScriptTask {
                 webdriver_handlers::handle_get_active_element(&page, pipeline_id, reply),
             WebDriverScriptCommand::GetElementTagName(node_id, reply) =>
                 webdriver_handlers::handle_get_name(&page, pipeline_id, node_id, reply),
+            WebDriverScriptCommand::GetElementAttribute(node_id, name, reply) =>
+                webdriver_handlers::handle_get_attribute(&page, pipeline_id, node_id, name, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
