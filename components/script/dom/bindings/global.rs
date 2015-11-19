@@ -23,7 +23,7 @@ use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
-use timers::{ScheduledCallback, TimerHandle};
+use timers::{OneshotTimerCallback, TimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -236,7 +236,7 @@ impl<'a> GlobalRef<'a> {
     /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
     /// passed.
     pub fn schedule_callback(&self,
-                             callback: Box<ScheduledCallback>,
+                             callback: OneshotTimerCallback,
                              duration: MsDuration)
                              -> TimerHandle {
         match *self {

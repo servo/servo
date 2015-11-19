@@ -59,7 +59,7 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
-use timers::{ScheduledCallback, TimerHandle};
+use timers::{OneshotTimerCallback, TimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
@@ -998,39 +998,15 @@ impl XMLHttpRequest {
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(&self, duration_ms: u32) {
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct ScheduledXHRTimeout {
-            #[ignore_heap_size_of = "Because it is non-owning"]
-            xhr: Trusted<XMLHttpRequest>,
-            generation_id: GenerationId,
-        }
-
-        impl ScheduledCallback for ScheduledXHRTimeout {
-            fn invoke(self: Box<Self>) {
-                let this = *self;
-                let xhr = this.xhr.root();
-                if xhr.ready_state.get() != XMLHttpRequestState::Done {
-                    xhr.process_partial_response(XHRProgress::Errored(this.generation_id, Error::Timeout));
-                }
-            }
-
-            fn box_clone(&self) -> Box<ScheduledCallback> {
-                box ScheduledXHRTimeout {
-                    xhr: self.xhr.clone(),
-                    generation_id: self.generation_id,
-                }
-            }
-        }
-
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
         let global = self.global.root();
-        let callback = ScheduledXHRTimeout {
+        let callback = OneshotTimerCallback::XhrTimeout(XHRTimeoutCallback {
             xhr: Trusted::new(self, global.r().networking_task_source()),
             generation_id: self.generation_id.get(),
-        };
+        });
         let duration = Length::new(duration_ms as u64);
-        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(box callback, duration));
+        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(callback, duration));
     }
 
     fn cancel_timeout(&self) {
@@ -1242,6 +1218,22 @@ impl XMLHttpRequest {
                 Some(&ContentType(ref mime)) => { Some(mime.clone()) },
                 None => { None }
             }
+        }
+    }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct XHRTimeoutCallback {
+    #[ignore_heap_size_of = "Because it is non-owning"]
+    xhr: Trusted<XMLHttpRequest>,
+    generation_id: GenerationId,
+}
+
+impl XHRTimeoutCallback {
+    pub fn invoke(self) {
+        let xhr = self.xhr.root();
+        if xhr.ready_state.get() != XMLHttpRequestState::Done {
+            xhr.process_partial_response(XHRProgress::Errored(self.generation_id, Error::Timeout));
         }
     }
 }
