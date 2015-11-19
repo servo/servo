@@ -199,19 +199,18 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to Servo")
     def package(self, params, release=False, dev=False, debug=False, debugger=None):
         env = self.build_env()
-        target_dir = path.join(self.get_target_dir(), "arm-linux-androideabi")
-        dev_flag = ""
+        binary_path = self.get_binary_path(release, dev, android=True)
 
         if dev:
             env["NDK_DEBUG"] = "1"
             env["ANT_FLAVOR"] = "debug"
             dev_flag = "-d"
-            target_dir = path.join(target_dir, "debug")
         else:
             env["ANT_FLAVOR"] = "release"
-            target_dir = path.join(target_dir, "release")
+            dev_flag = ""
 
-        output_apk = path.join(target_dir, "servo.apk")
+        target_dir = os.path.dirname(binary_path)
+        output_apk = "{}.apk".format(binary_path)
         try:
             with cd(path.join("support", "android", "build-apk")):
                 subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
