@@ -319,7 +319,7 @@ impl Document {
         };
         let active_document = browsing_context.active_document();
 
-        if self != &*active_document {
+        if self != active_document.r().as_local() {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -1753,7 +1753,7 @@ impl DocumentMethods for Document {
                 // Step 2.
                 let candidate = browsing_context.active_document();
                 // Step 3.
-                if &*candidate == self {
+                if candidate.r().as_local() == self {
                     true
                 } else {
                     false //TODO  Step 4.
