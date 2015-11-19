@@ -174,7 +174,7 @@ pub trait LayoutDocument<'ld, Wrappers> : Sized + Copy + Clone
     fn drain_modified_elements(&self) -> Vec<(Wrappers::Element, ElementSnapshot)>;
 }
 
-pub trait LayoutElement<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Element
+pub trait LayoutElement<'le, Wrappers> : Sized + Copy + Clone + ::selectors::Element + TElementAttributes
                                          where Wrappers: WrapperTypes<'le> {
     fn as_node(&self) -> Wrappers::Node;
 
