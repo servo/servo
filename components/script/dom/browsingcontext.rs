@@ -21,6 +21,9 @@ use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHand
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
 use js::{JSCLASS_IS_GLOBAL, JSPROP_READONLY};
+use msg::constellation_msg::PipelineId;
+use script_runtime::ScriptChan;
+use std::marker::PhantomData;
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -73,12 +76,12 @@ impl BrowsingContext {
         self.history.borrow_mut().push(SessionHistoryEntry::new(document));
     }
 
-    pub fn active_document(&self) -> Root<Document> {
-        Root::from_ref(&*self.history.borrow()[self.active_index].document)
+    pub fn active_document(&self) -> DocumentRoot {
+        self.history.borrow()[self.active_index].document.root()
     }
 
-    pub fn active_window(&self) -> Root<Window> {
-        Root::from_ref(self.active_document().window())
+    pub fn active_window(&self) -> WindowRoot {
+        self.active_document().r().window().root()
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -92,20 +95,156 @@ impl BrowsingContext {
     }
 }
 
+#[derive(JSTraceable)]
+pub struct RemoteDOMObject<T> {
+    pipeline: PipelineId,
+    event_loop: Box<ScriptChan + Send>,
+    object: PhantomData<T>,
+}
+
+impl<T> RemoteDOMObject<T> {
+    fn clone(&self) -> RemoteDOMObject<T> {
+        RemoteDOMObject {
+            pipeline: self.pipeline,
+            event_loop: self.event_loop.clone(),
+            object: PhantomData,
+        }
+    }
+}
+
+#[must_root]
+#[derive(JSTraceable)]
+pub enum DocumentField {
+    Local(JS<Document>),
+    Remote(RemoteDOMObject<Document>),
+}
+
+impl DocumentField {
+    pub fn as_local(&self) -> &Document {
+        match *self {
+            DocumentField::Local(ref document) => &**document,
+            DocumentField::Remote(_) => panic!("unexpected remote document"),
+        }
+    }
+
+    pub fn root(&self) -> DocumentRoot {
+        match *self {
+            DocumentField::Local(ref document) => DocumentRoot::Local(Root::from_ref(&**document)),
+            DocumentField::Remote(ref document) => DocumentRoot::Remote(document.clone()),
+        }
+    }
+
+    pub fn r(&self) -> DocumentRef {
+        match *self {
+            DocumentField::Local(ref document) => DocumentRef::Local(&**document),
+            DocumentField::Remote(ref document) => DocumentRef::Remote(document.clone()),
+        }
+    }
+}
+
+#[derive(JSTraceable)]
+#[allow(unrooted_must_root)]
+pub enum DocumentRoot {
+    Local(Root<Document>),
+    Remote(RemoteDOMObject<Document>),
+}
+
+impl DocumentRoot {
+    pub fn as_local(self) -> Root<Document> {
+        match self {
+            DocumentRoot::Local(document) => document,
+            DocumentRoot::Remote(_) => panic!("unexpected remote document"),
+        }
+    }
+
+    pub fn r(&self) -> DocumentRef {
+        match *self {
+            DocumentRoot::Local(ref document) => DocumentRef::Local(&**document),
+            DocumentRoot::Remote(ref document) => DocumentRef::Remote(document.clone()),
+        }
+    }
+}
+
+#[allow(unrooted_must_root)]
+pub enum DocumentRef<'a> {
+    Local(&'a Document),
+    Remote(RemoteDOMObject<Document>),
+}
+
+impl<'a> DocumentRef<'a> {
+    pub fn as_local(&self) -> &'a Document {
+        match *self {
+            DocumentRef::Local(document) => document,
+            DocumentRef::Remote(_) => panic!("unexpected remote document"),
+        }
+    }
+
+    pub fn window(&self) -> WindowRef<'a> {
+        match *self {
+            DocumentRef::Local(ref document) => WindowRef::Local(document.window()),
+            DocumentRef::Remote(ref document) => {
+                WindowRef::Remote(RemoteDOMObject {
+                    pipeline: document.pipeline.clone(),
+                    event_loop: document.event_loop.clone(),
+                    object: PhantomData,
+                })
+            }
+        }
+    }
+}
+
+#[allow(unrooted_must_root)]
+pub enum WindowRoot {
+    Local(Root<Window>),
+    Remote(RemoteDOMObject<Window>),
+}
+
+impl WindowRoot {
+    pub fn as_local(self) -> Root<Window> {
+        match self {
+            WindowRoot::Local(window) => window,
+            WindowRoot::Remote(_) => panic!("unexpected remote window"),
+        }
+    }
+}
+
+#[allow(unrooted_must_root)]
+pub enum WindowRef<'a> {
+    Local(&'a Window),
+    Remote(RemoteDOMObject<Window>),
+}
+
+impl<'a> WindowRef<'a> {
+    pub fn as_local(&self) -> &'a Window {
+        match *self {
+            WindowRef::Local(window) => window,
+            WindowRef::Remote(_) => panic!("unexpected remote window"),
+        }
+    }
+
+    pub fn root(&self) -> WindowRoot {
+        match *self {
+            WindowRef::Local(ref window) => WindowRoot::Local(Root::from_ref(&**window)),
+            WindowRef::Remote(ref window) => WindowRoot::Remote(window.clone()),
+        }
+    }
+}
+
 // This isn't a DOM struct, just a convenience struct
 // without a reflector, so we don't mark this as #[dom_struct]
 #[must_root]
 #[privatize]
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct SessionHistoryEntry {
-    document: JS<Document>,
+    #[ignore_heap_size_of = "XXXjdm"]
+    document: DocumentField,
     children: Vec<JS<BrowsingContext>>,
 }
 
 impl SessionHistoryEntry {
     fn new(document: &Document) -> SessionHistoryEntry {
         SessionHistoryEntry {
-            document: JS::from_ref(document),
+            document: DocumentField::Local(JS::from_ref(document)),
             children: vec![],
         }
     }
