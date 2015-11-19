@@ -24,6 +24,7 @@ use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::CompositorMsg as FromCompositorMsg;
+use msg::constellation_msg::PaintMsg as FromPaintMsg;
 use msg::constellation_msg::ScriptMsg as FromScriptMsg;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineId};
@@ -81,11 +82,17 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which compositor messages can be sent to this object.
     pub compositor_sender: ConstellationChan<FromCompositorMsg>,
 
+    /// A channel through which paint task messages can be sent to this object.
+    pub painter_sender: ConstellationChan<FromPaintMsg>,
+
     /// Receives messages from scripts.
     pub script_receiver: Receiver<FromScriptMsg>,
 
     /// Receives messages from the compositor
     pub compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// Receives messages from paint task.
+    pub painter_receiver: Receiver<FromPaintMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
@@ -263,13 +270,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     pub fn start(state: InitialConstellationState) -> ConstellationChan<FromCompositorMsg> {
         let (script_receiver, script_sender) = ConstellationChan::<FromScriptMsg>::new();
         let (compositor_receiver, compositor_sender) = ConstellationChan::<FromCompositorMsg>::new();
+        let (painter_receiver, painter_sender) = ConstellationChan::<FromPaintMsg>::new();
         let compositor_sender_clone = compositor_sender.clone();
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 script_sender: script_sender,
                 compositor_sender: compositor_sender_clone,
+                painter_sender: painter_sender,
                 script_receiver: script_receiver,
                 compositor_receiver: compositor_receiver,
+                painter_receiver: painter_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
                 resource_task: state.resource_task,
@@ -341,6 +351,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 id: pipeline_id,
                 parent_info: parent_info,
                 constellation_chan: self.script_sender.clone(),
+                painter_chan: self.painter_sender.clone(),
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
@@ -415,17 +426,21 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_request(&mut self) -> bool {
         enum Request {
             Script(FromScriptMsg),
-            Compositor(FromCompositorMsg)
+            Compositor(FromCompositorMsg),
+            Paint(FromPaintMsg)
         }
 
         let request = {
             let receiver_from_script = &self.script_receiver;
             let receiver_from_compositor = &self.compositor_receiver;
+            let receiver_from_paint = &self.painter_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.unwrap()),
                 msg = receiver_from_compositor.recv() =>
-                    Request::Compositor(msg.unwrap())
+                    Request::Compositor(msg.unwrap()),
+                msg = receiver_from_paint.recv() =>
+                    Request::Paint(msg.unwrap())
             }
         };
 
@@ -542,11 +557,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got navigation message from script");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
-            // Notification that painting has finished and is requesting permission to paint.
-            Request::Script(FromScriptMsg::PainterReady(pipeline_id)) => {
-                debug!("constellation got painter ready message");
-                self.handle_painter_ready_msg(pipeline_id);
-            }
             Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
                                               subpage_id,
                                               event)) => {
@@ -604,6 +614,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got NodeStatus message");
                 self.compositor_proxy.send(ToCompositorMsg::Status(message));
             }
+
+
+            // Messages from paint task
+
+
+            // Notification that painting has finished and is requesting permission to paint.
+            Request::Paint(FromPaintMsg::Ready(pipeline_id)) => {
+                debug!("constellation got painter ready message");
+                self.handle_painter_ready_msg(pipeline_id);
+            }
+            Request::Paint(FromPaintMsg::Failure(Failure { pipeline_id, parent_info })) => {
+                self.handle_failure_msg(pipeline_id, parent_info);
+            }
+
         }
         true
     }
