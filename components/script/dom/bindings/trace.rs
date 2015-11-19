@@ -54,7 +54,6 @@ use js::rust::Runtime;
 use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
 use net_traits::Metadata;
 use net_traits::image::base::Image;
