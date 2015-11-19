@@ -17,9 +17,10 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, LayoutJS};
+use dom::bindings::js::{Root, LayoutJS, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
+use dom::browsingcontext::BrowsingContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -39,8 +40,9 @@ use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use page::IterablePage;
 use script_runtime::ScriptChan;
-use script_thread::Runnable;
+use script_thread::{ScriptThread, Runnable};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use script_traits::{ConstellationControlMsg, AsyncIFrameLoad, IFrameLoadType};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -79,6 +81,7 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     sandbox: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
+    nested_browsing_context: MutNullableHeap<JS<BrowsingContext>>,
 }
 
 impl HTMLIFrameElement {
@@ -137,17 +140,50 @@ impl HTMLIFrameElement {
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
 
+        let is_about_blank = load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank");
+        let (sync_sender, sync_receiver) = if is_about_blank {
+            let (tx, rx) = ipc::channel().unwrap();
+            (Some(tx), Some(rx))
+        } else {
+            (None, None)
+        };
+
+        let iframe_load = if let Some(sender) = sync_sender {
+            // Instruct the constellation that it should return to using this thread's
+            // event loop as usual after sending the initial frame creation message
+            // to a separate, synchronous event loop.
+            let constellation_chan = ScriptThread::get_constellation_sender();
+            IFrameLoadType::Sync((sender.to_opaque(), constellation_chan.to_opaque()))
+        } else {
+            IFrameLoadType::Async(AsyncIFrameLoad {
+                load_data: load_data,
+                sandbox: sandboxed,
+                old_subpage_id: old_subpage_id,
+            })
+        };
+
         let ConstellationChan(ref chan) = *window.constellation_chan();
         let load_info = IFrameLoadInfo {
-            load_data: load_data,
             containing_pipeline_id: window.pipeline(),
             new_subpage_id: new_subpage_id,
-            old_subpage_id: old_subpage_id,
             new_pipeline_id: new_pipeline_id,
-            sandbox: sandboxed,
             is_private: private_iframe,
+            load_type: iframe_load,
         };
         chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info)).unwrap();
+
+        // If this is a synchronous frame creation, we must block until we receive the
+        // notification from the constellation that the new frame is ready and the
+        // network load can begin.
+        if let Some(receiver) = sync_receiver {
+            let msg = receiver.recv().unwrap();
+            assert!(match msg {
+                ConstellationControlMsg::AttachLayout(_) => true,
+                _ => false,
+            });
+            // Synchronously perform the network load associated with this frame.
+            ScriptThread::process_constellation_event(msg);
+        }
 
         if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
@@ -199,6 +235,19 @@ impl HTMLIFrameElement {
         }
     }
 
+    /// https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
+    fn create_nested_browsing_context(&self) {
+        assert!(self.nested_browsing_context.get().is_none());
+        // Synchronously create a new context and navigate it to about:blank.
+        let url = Url::parse("about:blank").unwrap();
+        // TODO - loaddata here should have referrer info (not None, None)
+        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)));
+        // Fetch the newly created context via its window.
+        let window = ScriptThread::window_for_pipeline(self.pipeline_id.get().unwrap());
+        let nested_context = window.browsing_context();
+        self.nested_browsing_context.set(Some(&nested_context));
+    }
+
     pub fn update_subpage_id(&self, new_subpage_id: SubpageId, new_pipeline_id: PipelineId) {
         self.subpage_id.set(Some(new_subpage_id));
         self.pipeline_id.set(Some(new_pipeline_id));
@@ -218,6 +267,7 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             sandbox: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
+            nested_browsing_context: Default::default(),
         }
     }
 
@@ -580,6 +630,7 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         if tree_in_doc {
+            self.create_nested_browsing_context();
             self.process_the_iframe_attributes(ProcessingMode::FirstTime);
         }
     }
@@ -589,6 +640,8 @@ impl VirtualMethods for HTMLIFrameElement {
 
         let mut blocker = self.load_blocker.borrow_mut();
         LoadBlocker::terminate(&mut blocker);
+
+        self.nested_browsing_context.set(None);
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {

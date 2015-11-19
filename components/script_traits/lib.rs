@@ -39,7 +39,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::Epoch;
 use gfx_traits::LayerId;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender, OpaqueIpcSender};
 use libc::c_void;
 use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
@@ -100,6 +100,8 @@ pub struct NewLayoutInfo {
     pub layout_shutdown_chan: IpcSender<()>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
     pub content_process_shutdown_chan: IpcSender<()>,
+    /// True if this new pipeline load should occur synchronously.
+    pub is_sync: bool,
 }
 
 /// Messages sent from the constellation or layout to the script thread.
@@ -403,21 +405,39 @@ pub enum IFrameSandboxState {
 
 /// Specifies the information required to load a URL in an iframe.
 #[derive(Deserialize, Serialize)]
-pub struct IFrameLoadInfo {
+pub struct AsyncIFrameLoad {
+    /// The old subpage ID for this iframe, if a page was previously loaded.
+    pub old_subpage_id: Option<SubpageId>,
+    /// Sandbox type of this iframe
+    pub sandbox: IFrameSandboxState,
     /// Load data containing the url to load
     pub load_data: Option<LoadData>,
+}
+
+/// XXX
+#[derive(Deserialize, Serialize)]
+pub enum IFrameLoadType {
+    /// The initial target event loop for a synchronous about:blank creation, and the
+    /// replacement event loop for all subsequent messages after the frame is created
+    /// by the constellation.
+    Sync((OpaqueIpcSender, OpaqueIpcSender)),
+    /// XXX
+    Async(AsyncIFrameLoad),
+}
+
+/// Specifies the information required to load a URL in an iframe.
+#[derive(Deserialize, Serialize)]
+pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub containing_pipeline_id: PipelineId,
     /// The new subpage ID for this load
     pub new_subpage_id: SubpageId,
-    /// The old subpage ID for this iframe, if a page was previously loaded.
-    pub old_subpage_id: Option<SubpageId>,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
-    /// Sandbox type of this iframe
-    pub sandbox: IFrameSandboxState,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
+    /// The type of load the is being requested.
+    pub load_type: IFrameLoadType,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
