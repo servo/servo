@@ -27,9 +27,11 @@ use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
 use style::selector_matching::Stylist;
+use style_traits::ParseErrorReporter;
 use url::Url;
 use util::mem::HeapSizeOf;
 use util::opts;
+
 
 struct LocalLayoutContext {
     font_context: RefCell<FontContext>,
@@ -124,6 +126,9 @@ pub struct SharedLayoutContext {
 
     /// Why is this reflow occurring
     pub goal: ReflowGoal,
+
+    ///The CSS error reporter for all CSS loaded in this layout thread
+    pub error_reporter: Box<ParseErrorReporter + Send>
 }
 
 pub struct LayoutContext<'a> {

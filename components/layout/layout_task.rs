@@ -53,6 +53,8 @@ use script::layout_interface::Animation;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
+use script::reporter::CSSErrorReporter;
+use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
 use sequential;
@@ -73,6 +75,8 @@ use style::properties::style_structs;
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
 use style::values::AuExtensionMethods;
+use style::viewport::ViewportRule;
+use style_traits::ParseErrorReporter;
 use url::Url;
 use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
@@ -215,7 +219,12 @@ pub struct LayoutTask {
     /// structures, while still letting the LayoutTask modify them.
     ///
     /// All the other elements of this struct are read-only.
-    rw_data: Arc<Mutex<LayoutTaskData>>,
+
+    pub rw_data: Arc<Mutex<LayoutTaskData>>,
+
+    /// The CSS error reporter for all CSS loaded in this layout thread
+    pub error_reporter: CSSErrorReporter,
+
 }
 
 impl LayoutTaskFactory for LayoutTask {
@@ -385,8 +394,8 @@ impl LayoutTask {
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
         let (font_cache_sender, font_cache_receiver) = channel();
-
-        let stylist = box Stylist::new(device);
+        let error_reporter = CSSErrorReporter;
+        let stylist = box Stylist::new(device, error_reporter.clone());
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         for stylesheet in &*USER_OR_USER_AGENT_STYLESHEETS {
             add_font_face_rules(stylesheet,
@@ -437,6 +446,7 @@ impl LayoutTask {
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
               })),
+              error_reporter: CSSErrorReporter,
         }
     }
 
@@ -473,7 +483,8 @@ impl LayoutTask {
             generation: self.generation,
             new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
             goal: goal,
-            running_animations: self.running_animations.clone(),
+            running_animations: rw_data.running_animations.clone(),
+            error_reporter: self.error_reporter.clone(),
         }
     }
 
@@ -555,7 +566,6 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   &self.url,
@@ -725,9 +735,40 @@ impl LayoutTask {
         response_port.recv().unwrap()
     }
 
-    fn handle_add_stylesheet<'a, 'b>(&self,
-                                     stylesheet: Arc<Stylesheet>,
-                                     possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn handle_load_stylesheet<'a>(&'a self,
+                                  url: Url,
+                                  mq: MediaQueryList,
+                                  pending: PendingAsyncLoad,
+                                  responder: Box<StylesheetLoadResponder + Send>,
+                                  possibly_locked_rw_data:
+                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+        let environment_encoding = UTF_8 as EncodingRef;
+
+        // TODO we don't really even need to load this if mq does not match
+        let (metadata, iter) = load_bytes_iter(pending);
+        let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
+        let final_url = metadata.final_url;
+
+        let sheet = Stylesheet::from_bytes_iter(iter,
+                                                final_url,
+                                                protocol_encoding_label,
+                                                Some(environment_encoding),
+                                                Origin::Author, self.error_reporter.clone());
+
+        //TODO: mark critical subresources as blocking load as well (#5974)
+        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
+                                                                              url,
+                                                                              responder)).unwrap();
+
+        self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
+    }
+
+    fn handle_add_stylesheet<'a>(&'a self,
+                                 sheet: Stylesheet,
+                                 mq: MediaQueryList,
+                                 possibly_locked_rw_data:
+                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
 
@@ -743,11 +784,27 @@ impl LayoutTask {
         possibly_locked_rw_data.block(rw_data);
     }
 
-    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
-    fn handle_set_quirks_mode<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        let mut rw_data = possibly_locked_rw_data.lock();
-        rw_data.stylist.set_quirks_mode(true);
-        possibly_locked_rw_data.block(rw_data);
+    fn handle_add_meta_viewport<'a>(&'a self,
+                                    translated_rule: ViewportRule,
+                                    possibly_locked_rw_data:
+                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
+    {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        rw_data.stylist.add_stylesheet(Stylesheet {
+            rules: vec![CSSRule::Viewport(translated_rule)],
+            origin: Origin::Author
+        });
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+    }
+
+    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be loaded.
+    fn handle_set_quirks_mode<'a>(&'a self,
+                                  possibly_locked_rw_data:
+                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        rw_data.stylist.add_quirks_mode_stylesheet(self.error_reporter.clone());
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+
     }
 
     fn try_get_layout_root(&self, node: ServoLayoutNode) -> Option<FlowRef> {
@@ -1157,7 +1214,6 @@ impl LayoutTask {
                 el.note_restyle_hint(hint);
             }
         }
-
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          viewport_size_changed,
@@ -1265,7 +1321,6 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   &self.url,
@@ -1289,7 +1344,6 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   &self.url,
@@ -1320,7 +1374,6 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   &self.url,
