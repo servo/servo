@@ -6,7 +6,6 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -21,7 +20,6 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
-use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use ipc_channel::ipc;
@@ -32,7 +30,6 @@ use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent};
 use msg::constellation_msg::{IFrameLoadType, AsyncIFrameLoad};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
-use page::IterablePage;
 use script_task::{ScriptTaskEventCategory, CommonScriptMsg, ScriptTask, Runnable};
 use script_traits::ConstellationControlMsg;
 use std::ascii::AsciiExt;
@@ -391,28 +388,22 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
-            let window = window_from_node(self);
-            let window = window.r();
-            let children = window.page().children.borrow();
-            children.iter().find(|page| {
-                let window = page.window();
-                window.subpage() == Some(subpage_id)
-            }).map(|page| page.window())
+        self.nested_browsing_context.get().and_then(|context| {
+            let window = context.active_window();
+            if window.is_local() {
+                Some(Root::from_ref(window.as_local()))
+            } else {
+                None
+            }
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.GetContentWindow().and_then(|window| {
-            let self_url = match self.get_url() {
-                Some(self_url) => self_url,
-                None => return None,
-            };
-            let win_url = window_from_node(self).get_url();
-
-            if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
+        self.nested_browsing_context.get().and_then(|context| {
+            let document = context.active_document();
+            if document.is_local() {
+                Some(Root::from_ref(document.as_local()))
             } else {
                 None
             }

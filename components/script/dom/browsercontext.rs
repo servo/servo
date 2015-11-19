@@ -148,6 +148,13 @@ impl<'a> DocumentRef<'a> {
         }
     }
 
+    pub fn is_local(&self) -> bool {
+        match *self {
+            DocumentRef::Local(_) => true,
+            DocumentRef::Remote(_) => false,
+        }
+    }
+
     pub fn window(&self) -> WindowRef<'a> {
         match *self {
             DocumentRef::Local(ref document) => WindowRef::Local(document.window()),
@@ -172,6 +179,13 @@ impl<'a> WindowRef<'a> {
         match *self {
             WindowRef::Local(window) => window,
             WindowRef::Remote(_) => panic!("unexpected remote window"),
+        }
+    }
+
+    pub fn is_local(&self) -> bool {
+        match *self {
+            WindowRef::Local(_) => true,
+            WindowRef::Remote(_) => false,
         }
     }
 }
