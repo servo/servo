@@ -76,7 +76,7 @@ use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::selector_impl::PseudoElement;
 use time;
-use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
+use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -149,7 +149,7 @@ pub struct Window {
     local_storage: MutNullableHeap<JS<Storage>>,
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerEventRequest>,
-    timers: ActiveTimers,
+    timers: OneshotTimers,
 
     next_worker_id: Cell<WorkerId>,
 
@@ -466,7 +466,8 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
+                                            TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
@@ -475,7 +476,8 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
+        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
+                                            TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
@@ -484,12 +486,13 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.timers.clear_timeout_or_interval(handle);
+        self.timers.clear_timeout_or_interval(GlobalRef::Window(self), handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
+                                            TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::Interval,
@@ -498,7 +501,8 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
+        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
+                                            TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::Interval,
@@ -1155,13 +1159,13 @@ impl Window {
         self.scheduler_chan.clone()
     }
 
-    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.timers.schedule_callback(callback,
                                       duration,
                                       TimerSource::FromWindow(self.id.clone()))
     }
 
-    pub fn unschedule_callback(&self, handle: TimerHandle) {
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         self.timers.unschedule_callback(handle);
     }
 
@@ -1349,7 +1353,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             scheduler_chan: scheduler_chan.clone(),
-            timers: ActiveTimers::new(timer_event_chan, scheduler_chan),
+            timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,
