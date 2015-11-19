@@ -20,6 +20,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
@@ -41,12 +42,14 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
+use script_thread::Runnable;
 use script_traits::{IFrameLoadInfo, LoadData, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use std::cell::Cell;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
+use task_source::TaskSource;
 use url::Url;
 use util::prefs::PREFS;
 use util::servo_version;
@@ -62,6 +65,12 @@ bitflags! {
         const ALLOW_POINTER_LOCK = 0x10,
         const ALLOW_POPUPS = 0x20
     }
+}
+
+#[derive(PartialEq)]
+enum ProcessingMode {
+    FirstTime,
+    NotFirstTime,
 }
 
 #[dom_struct]
@@ -150,8 +159,21 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn process_the_iframe_attributes(&self) {
+    /// https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes
+    fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+        // TODO: srcdoc
+
+        if mode == ProcessingMode::FirstTime && !self.upcast::<Element>().has_attribute(&atom!("src")) {
+            let window = window_from_node(self);
+            let event_loop = window.dom_manipulation_task_source();
+            let _ = event_loop.queue(box IframeLoadEventSteps::new(self),
+                                     window.upcast());
+            return;
+        }
+
         let url = self.get_url();
+
+        // TODO: check ancestor browsing contexts for same URL
 
         let document = document_from_node(self);
         self.navigate_or_reload_child_browsing_context(
@@ -591,10 +613,8 @@ impl VirtualMethods for HTMLIFrameElement {
                 }));
             },
             &atom!("src") => {
-                if let AttributeMutation::Set(_) = mutation {
-                    if self.upcast::<Node>().is_in_doc() {
-                        self.process_the_iframe_attributes();
-                    }
+                if self.upcast::<Node>().is_in_doc() {
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
                 }
             },
             _ => {},
@@ -616,7 +636,7 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         if tree_in_doc {
-            self.process_the_iframe_attributes();
+            self.process_the_iframe_attributes(ProcessingMode::FirstTime);
         }
     }
 
@@ -662,5 +682,24 @@ impl VirtualMethods for HTMLIFrameElement {
             // confused.
             self.pipeline_id.set(None);
         }
+    }
+}
+
+struct IframeLoadEventSteps {
+    frame_element: Trusted<HTMLIFrameElement>,
+}
+
+impl IframeLoadEventSteps {
+    fn new(frame_element: &HTMLIFrameElement) -> IframeLoadEventSteps {
+        IframeLoadEventSteps {
+            frame_element: Trusted::new(frame_element),
+        }
+    }
+}
+
+impl Runnable for IframeLoadEventSteps {
+    fn handler(self: Box<IframeLoadEventSteps>) {
+        let this = self.frame_element.root();
+        this.iframe_load_event_steps(this.pipeline_id().unwrap());
     }
 }
