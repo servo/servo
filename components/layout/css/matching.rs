@@ -32,7 +32,7 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
-use wrapper::{LayoutElement, LayoutNode, ServoLayoutElement, ServoLayoutNode};
+use wrapper::{LayoutElement, LayoutNode};
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
@@ -161,7 +161,7 @@ pub struct StyleSharingCandidateCache {
     cache: LRUCache<StyleSharingCandidate, ()>,
 }
 
-fn create_common_style_affecting_attributes_from_element(element: &ServoLayoutElement)
+fn create_common_style_affecting_attributes_from_element<'le, E: LayoutElement<'le>>(element: &E)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
     for attribute_info in &common_style_affecting_attributes() {
@@ -212,7 +212,7 @@ impl StyleSharingCandidate {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
-    fn new(element: &ServoLayoutElement) -> Option<StyleSharingCandidate> {
+    fn new<'le, E: LayoutElement<'le>>(element: &E) -> Option<StyleSharingCandidate> {
         let parent_element = match element.parent_element() {
             None => return None,
             Some(parent_element) => parent_element,
@@ -254,11 +254,11 @@ impl StyleSharingCandidate {
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
-                   create_common_style_affecting_attributes_from_element(&element)
+                   create_common_style_affecting_attributes_from_element::<'le, E>(&element)
         })
     }
 
-    fn can_share_style_with(&self, element: &ServoLayoutElement) -> bool {
+    fn can_share_style_with<'a, E: LayoutElement<'a>>(&self, element: &E) -> bool {
         if *element.get_local_name() != self.local_name {
             return false
         }
@@ -343,7 +343,7 @@ impl StyleSharingCandidateCache {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible(&mut self, element: &ServoLayoutElement) {
+    pub fn insert_if_possible<'le, E: LayoutElement<'le>>(&mut self, element: &E) {
         match StyleSharingCandidate::new(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
@@ -364,7 +364,7 @@ pub enum StyleSharingResult {
     StyleWasShared(usize, RestyleDamage),
 }
 
-pub trait ElementMatchMethods {
+pub trait ElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -377,11 +377,11 @@ pub trait ElementMatchMethods {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<ServoLayoutNode>)
+                                      parent: Option<ConcreteLayoutElement::ConcreteLayoutNode>)
                                       -> StyleSharingResult;
 }
 
-pub trait MatchMethods {
+pub trait MatchMethods<'ln, ConcreteLayoutNode: LayoutNode<'ln>> {
     /// Inserts and removes the matching `Descendant` selectors from a bloom
     /// filter. This is used to speed up CSS selector matching to remove
     /// unnecessary tree climbs for `Descendant` queries.
@@ -397,7 +397,7 @@ pub trait MatchMethods {
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<ServoLayoutNode>,
+                           parent: Option<ConcreteLayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>);
@@ -421,14 +421,15 @@ trait PrivateMatchMethods {
                                      -> bool;
 }
 
-trait PrivateElementMatchMethods {
+trait PrivateElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<ServoLayoutNode>,
+                                              parent_node: Option<ConcreteLayoutElement::ConcreteLayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>>;
 }
 
-impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
+impl<'ln, ConcreteLayoutNode> PrivateMatchMethods for ConcreteLayoutNode
+                                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
@@ -547,9 +548,11 @@ impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> PrivateElementMatchMethods for ServoLayoutElement<'ln> {
+impl<'le, ConcreteLayoutElement> PrivateElementMatchMethods<'le, ConcreteLayoutElement>
+                                 for ConcreteLayoutElement
+                                 where ConcreteLayoutElement: LayoutElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<ServoLayoutNode>,
+                                              parent_node: Option<ConcreteLayoutElement::ConcreteLayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
         let parent_node = match parent_node {
@@ -582,7 +585,9 @@ impl<'ln> PrivateElementMatchMethods for ServoLayoutElement<'ln> {
     }
 }
 
-impl<'ln> ElementMatchMethods for ServoLayoutElement<'ln> {
+impl<'le, ConcreteLayoutElement> ElementMatchMethods<'le, ConcreteLayoutElement>
+                                 for ConcreteLayoutElement
+                                 where ConcreteLayoutElement: LayoutElement<'le> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -615,7 +620,7 @@ impl<'ln> ElementMatchMethods for ServoLayoutElement<'ln> {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<ServoLayoutNode>)
+                                      parent: Option<ConcreteLayoutElement::ConcreteLayoutNode>)
                                       -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
@@ -648,7 +653,9 @@ impl<'ln> ElementMatchMethods for ServoLayoutElement<'ln> {
     }
 }
 
-impl<'ln> MatchMethods for ServoLayoutNode<'ln> {
+impl<'ln, ConcreteLayoutNode> MatchMethods<'ln, ConcreteLayoutNode>
+                              for ConcreteLayoutNode
+                              where ConcreteLayoutNode: LayoutNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -690,7 +697,7 @@ impl<'ln> MatchMethods for ServoLayoutNode<'ln> {
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<ServoLayoutNode>,
+                           parent: Option<ConcreteLayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>) {
