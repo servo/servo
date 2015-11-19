@@ -298,7 +298,7 @@ impl Document {
         let browsing_context = browsing_context.as_ref().unwrap();
         let active_document = browsing_context.active_document();
 
-        if self != active_document {
+        if self != active_document.as_local() {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -1629,7 +1629,7 @@ impl DocumentMethods for Document {
 
         match browsing_context {
             Some(browsing_context) => {
-                let condidate = browsing_context.active_document();                        // Step 2.
+                let condidate = browsing_context.active_document().as_local();             // Step 2.
                 if condidate.node.get_unique_id() == target.node.get_unique_id() {           // Step 3.
                     true
                 } else {
