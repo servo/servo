@@ -112,8 +112,8 @@ impl<T> RemoteDOMObject<T> {
     }
 }
 
-#[must_root]
 #[derive(JSTraceable)]
+#[must_root]
 pub enum DocumentField {
     Local(JS<Document>),
     Remote(RemoteDOMObject<Document>),
@@ -179,6 +179,13 @@ impl<'a> DocumentRef<'a> {
         }
     }
 
+    pub fn is_local(&self) -> bool {
+        match *self {
+            DocumentRef::Local(_) => true,
+            DocumentRef::Remote(_) => false,
+        }
+    }
+
     pub fn window(&self) -> WindowRef<'a> {
         match *self {
             DocumentRef::Local(ref document) => WindowRef::Local(document.window()),
@@ -206,6 +213,13 @@ impl WindowRoot {
             WindowRoot::Remote(_) => panic!("unexpected remote window"),
         }
     }
+
+    pub fn r(&self) -> WindowRef {
+        match *self {
+            WindowRoot::Local(ref window) => WindowRef::Local(&**window),
+            WindowRoot::Remote(ref window) => WindowRef::Remote(window.clone()),
+        }
+    }
 }
 
 #[allow(unrooted_must_root)]
@@ -226,6 +240,13 @@ impl<'a> WindowRef<'a> {
         match *self {
             WindowRef::Local(ref window) => WindowRoot::Local(Root::from_ref(&**window)),
             WindowRef::Remote(ref window) => WindowRoot::Remote(window.clone()),
+        }
+    }
+
+    pub fn is_local(&self) -> bool {
+        match *self {
+            WindowRef::Local(_) => true,
+            WindowRef::Remote(_) => false,
         }
     }
 }
