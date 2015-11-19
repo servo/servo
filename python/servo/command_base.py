@@ -113,6 +113,7 @@ class CommandBase(object):
         self.config["android"].setdefault("sdk", "")
         self.config["android"].setdefault("ndk", "")
         self.config["android"].setdefault("toolchain", "")
+        self.config["android"].setdefault("target", "arm-linux-androideabi")
 
         self.config.setdefault("gonk", {})
         self.config["gonk"].setdefault("b2g", "")
@@ -145,8 +146,10 @@ class CommandBase(object):
         else:
             return path.join(self.context.topdir, "target")
 
-    def get_binary_path(self, release, dev):
+    def get_binary_path(self, release, dev, android=False):
         base_path = self.get_target_dir()
+        if android:
+            base_path = path.join(base_path, self.config["android"]["target"])
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
 

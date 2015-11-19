@@ -198,7 +198,7 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
         if android:
-            opts += ["--target", "arm-linux-androideabi"]
+            opts += ["--target", self.config["android"]["target"]]
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
@@ -298,7 +298,6 @@ class MachCommands(CommandBase):
     def build_gonk(self, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
 
-        ret = None
         opts = []
         if jobs is not None:
             opts += ["-j", jobs]
@@ -307,7 +306,7 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
-        opts += ["--target", "arm-linux-androideabi"]
+        opts += ["--target", self.config["android"]["target"]]
         env = self.build_env(gonk=True)
         build_start = time()
         with cd(path.join("ports", "gonk")):
