@@ -94,10 +94,11 @@ impl ScriptChan for WorkerThreadWorkerChan {
 }
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, WorkerScriptMsg)> {
-    fn recv(&self) -> CommonScriptMsg {
-        match self.recv().unwrap().1 {
-            WorkerScriptMsg::Common(script_msg) => script_msg,
-            WorkerScriptMsg::DOMMessage(_) => panic!("unexpected worker event message!"),
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        match self.recv().map(|(_, msg)| msg) {
+            Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),
+            Ok(WorkerScriptMsg::DOMMessage(_)) => panic!("unexpected worker event message!"),
+            Err(_) => Err(()),
         }
     }
 }
