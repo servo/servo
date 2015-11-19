@@ -14,6 +14,7 @@
 #![feature(optin_builtin_traits)]
 #![cfg_attr(not(target_os = "android"), feature(path_ext))]
 #![feature(plugin)]
+#![feature(reflect_marker)]
 #![feature(slice_splits)]
 #![feature(step_by)]
 #![feature(step_trait)]

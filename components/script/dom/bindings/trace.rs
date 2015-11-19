@@ -53,7 +53,7 @@ use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
-use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::{ConstellationChan, ScriptMsg};
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
 use net_traits::Metadata;
 use net_traits::image::base::Image;
@@ -275,7 +275,6 @@ no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
 no_jsmanaged_fields!(Runtime);
 no_jsmanaged_fields!(Headers, Method);
-no_jsmanaged_fields!(ConstellationChan<ConstellationMsg>);
 no_jsmanaged_fields!(LayoutChan);
 no_jsmanaged_fields!(WindowProxyHandler);
 no_jsmanaged_fields!(UntrustedNodeAddress);
@@ -298,6 +297,13 @@ no_jsmanaged_fields!(Mime);
 no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
+
+impl JSTraceable for ConstellationChan<ScriptMsg> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

@@ -11,13 +11,14 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
+use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::channel;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
@@ -25,16 +26,17 @@ use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
-pub struct ConstellationChan<T>(pub Sender<T>);
+#[derive(Deserialize, Serialize)]
+pub struct ConstellationChan<T: Deserialize + Serialize>(pub IpcSender<T>);
 
-impl<T> ConstellationChan<T> {
-    pub fn new() -> (Receiver<T>, ConstellationChan<T>) {
-        let (chan, port) = channel();
+impl<T: Deserialize + Serialize> ConstellationChan<T> {
+    pub fn new() -> (IpcReceiver<T>, ConstellationChan<T>) {
+        let (chan, port) = ipc::channel().unwrap();
         (port, ConstellationChan(chan))
     }
 }
 
-impl<T> Clone for ConstellationChan<T> {
+impl<T: Serialize + Deserialize> Clone for ConstellationChan<T> {
     fn clone(&self) -> ConstellationChan<T> {
         ConstellationChan(self.0.clone())
     }

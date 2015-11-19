@@ -39,7 +39,7 @@ use offscreen_gl_context::GLContext;
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::net_traits::hosts;
-use servo::util::opts;
+use servo::util::opts::{self, ArgumentParsingResult};
 use std::rc::Rc;
 
 #[cfg(not(target_os = "android"))]
@@ -52,11 +52,17 @@ fn load_gl_when_headless() {}
 
 fn main() {
     // Parse the command line options and store them globally
-    opts::from_cmdline_args(&*args());
+    let opts_result = opts::from_cmdline_args(&*args());
 
-    if opts::get().is_running_problem_test && ::std::env::var("RUST_LOG").is_err() {
-        ::std::env::set_var("RUST_LOG", "compositing::constellation");
-    }
+    let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
+        Some(token)
+    } else {
+        if opts::get().is_running_problem_test && ::std::env::var("RUST_LOG").is_err() {
+            ::std::env::set_var("RUST_LOG", "compositing::constellation");
+        }
+
+        None
+    };
 
     env_logger::init().unwrap();
 
@@ -64,6 +70,10 @@ fn main() {
 
     // Possibly interpret the `HOST_FILE` environment variable
     hosts::global_init();
+
+    if let Some(token) = content_process_token {
+        return servo::run_content_process(token)
+    }
 
     let window = if opts::get().headless {
         // Load gl functions even when in headless mode,

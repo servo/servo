@@ -28,7 +28,7 @@ use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
 use msg::constellation_msg::CompositorMsg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FrameId, LoadData, PipelineId};
+use msg::constellation_msg::{FrameId, LoadData, PipelineId};
 use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
 use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use regex::Captures;
@@ -37,6 +37,7 @@ use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
+use std::sync::mpsc::Sender;
 use std::thread::{self, sleep_ms};
 use url::Url;
 use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
@@ -57,7 +58,7 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
                 (Post, "/session/{sessionId}/servo/prefs/reset", ServoExtensionRoute::ResetPrefs)]
 }
 
-pub fn start_server(port: u16, constellation_chan: ConstellationChan<ConstellationMsg>) {
+pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
     spawn_named("WebdriverHttpServer".to_owned(), move || {
         server::start(SocketAddr::new("0.0.0.0".parse().unwrap(), port), handler,
@@ -72,7 +73,7 @@ struct WebDriverSession {
 
 struct Handler {
     session: Option<WebDriverSession>,
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: Sender<ConstellationMsg>,
     script_timeout: u32,
     load_timeout: u32,
     implicit_wait_timeout: u32
@@ -208,7 +209,7 @@ impl WebDriverSession {
 }
 
 impl Handler {
-    pub fn new(constellation_chan: ConstellationChan<ConstellationMsg>) -> Handler {
+    pub fn new(constellation_chan: Sender<ConstellationMsg>) -> Handler {
         Handler {
             session: None,
             constellation_chan: constellation_chan,
@@ -267,8 +268,7 @@ impl Handler {
 
     fn pipeline(&self, frame_id: Option<FrameId>) -> Option<PipelineId> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::GetPipeline(frame_id, sender)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetPipeline(frame_id, sender)).unwrap();
 
 
         receiver.recv().unwrap()
@@ -307,9 +307,8 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let load_data = LoadData::new(url);
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender.clone());
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         self.wait_for_load(sender, receiver)
     }
@@ -337,10 +336,9 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
                                                          WebDriverScriptCommand::GetUrl(sender));
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         let url = receiver.recv().unwrap();
 
@@ -348,14 +346,12 @@ impl Handler {
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back)).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Forward)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Forward)).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
@@ -364,9 +360,8 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::Refresh(pipeline_id, sender.clone());
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         self.wait_for_load(sender, receiver)
     }
@@ -375,10 +370,9 @@ impl Handler {
         let pipeline_id = try!(self.root_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
                                                          WebDriverScriptCommand::GetTitle(sender));
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         let value = receiver.recv().unwrap();
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
@@ -406,10 +400,9 @@ impl Handler {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let value_resp = value.map(|x| WebElement::new(x).to_json()).to_json();
@@ -448,16 +441,14 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
         {
-            let ConstellationChan(ref const_chan) = self.constellation_chan;
-            const_chan.send(ConstellationMsg::WebDriverCommand(
+            self.constellation_chan.send(ConstellationMsg::WebDriverCommand(
                 WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd))).unwrap();
         }
 
         let frame = match receiver.recv().unwrap() {
             Ok(Some(pipeline_id)) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                let ConstellationChan(ref const_chan) = self.constellation_chan;
-                const_chan.send(ConstellationMsg::GetFrame(pipeline_id, sender)).unwrap();
+                self.constellation_chan.send(ConstellationMsg::GetFrame(pipeline_id, sender)).unwrap();
                 receiver.recv().unwrap()
             },
             Ok(None) => None,
@@ -481,10 +472,9 @@ impl Handler {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let resp_value: Vec<Json> = value.into_iter().map(
@@ -500,10 +490,9 @@ impl Handler {
         let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -515,10 +504,9 @@ impl Handler {
         let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         let value = receiver.recv().unwrap().map(|x| WebElement::new(x).to_json());
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
@@ -527,10 +515,9 @@ impl Handler {
         let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -542,10 +529,9 @@ impl Handler {
         let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementAttribute(element.id.clone(), name.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -601,9 +587,8 @@ impl Handler {
                       -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.frame_pipeline());
 
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, command);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
@@ -618,12 +603,11 @@ impl Handler {
                                 keys: &SendKeysParameters) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.frame_pipeline());
 
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::FocusElement(element.id.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         // TODO: distinguish the not found and not focusable cases
         try!(receiver.recv().unwrap().or_else(|_| Err(WebDriverError::new(
@@ -633,7 +617,7 @@ impl Handler {
             Err(WebDriverError::new(ErrorStatus::UnsupportedOperation, "Failed to convert keycodes"))));
 
         let cmd_msg = WebDriverCommandMsg::SendKeys(pipeline_id, keys);
-        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         Ok(WebDriverResponse::Void)
     }
@@ -647,9 +631,8 @@ impl Handler {
 
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
-            let ConstellationChan(ref const_chan) = self.constellation_chan;
             let cmd_msg = WebDriverCommandMsg::TakeScreenshot(pipeline_id, sender);
-            const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+            self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
             if let Some(x) = receiver.recv().unwrap() {
                 img = Some(x);

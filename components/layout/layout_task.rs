@@ -70,7 +70,7 @@ use util::ipc::OptionalIpcSender;
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 use util::workqueue::WorkQueue;
 use wrapper::{LayoutDocument, LayoutElement, LayoutNode, ServoLayoutNode};
@@ -137,13 +137,13 @@ pub struct LayoutTask {
     font_cache_receiver: Receiver<()>,
 
     /// The channel on which the font cache can send messages to us.
-    font_cache_sender: Sender<()>,
+    font_cache_sender: IpcSender<()>,
 
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the script task.
-    script_chan: Sender<ConstellationControlMsg>,
+    script_chan: IpcSender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the painting task.
     paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
@@ -219,17 +219,18 @@ impl LayoutTaskFactory for LayoutTask {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan<ConstellationMsg>,
               failure_msg: Failure,
-              script_chan: Sender<ConstellationControlMsg>,
+              script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              shutdown_chan: Sender<()>) {
+              shutdown_chan: IpcSender<()>,
+              content_process_shutdown_chan: IpcSender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id),
-                                         task_state::LAYOUT,
-                                         move || {
+        task::spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id),
+                                               task_state::LAYOUT,
+                                               move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout = LayoutTask::new(id,
@@ -250,7 +251,8 @@ impl LayoutTaskFactory for LayoutTask {
                     layout.start();
                 }, reporter_name, sender, Msg::CollectReports);
             }
-            shutdown_chan.send(()).unwrap();
+            let _ = shutdown_chan.send(());
+            let _ = content_process_shutdown_chan.send(());
         }, ConstellationMsg::Failure(failure_msg), con_chan);
     }
 }
@@ -318,12 +320,12 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
 fn add_font_face_rules(stylesheet: &Stylesheet,
                        device: &Device,
                        font_cache_task: &FontCacheTask,
-                       font_cache_sender: &Sender<()>,
+                       font_cache_sender: &IpcSender<()>,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
             if opts::get().load_webfonts_synchronously {
-                let (sender, receiver) = channel();
+                let (sender, receiver) = ipc::channel().unwrap();
                 font_cache_task.add_web_font(font_face.family.clone(),
                                              (*source).clone(),
                                              sender);
@@ -346,7 +348,7 @@ impl LayoutTask {
            port: Receiver<Msg>,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan<ConstellationMsg>,
-           script_chan: Sender<ConstellationControlMsg>,
+           script_chan: IpcSender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
@@ -375,7 +377,10 @@ impl LayoutTask {
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
-        let (font_cache_sender, font_cache_receiver) = channel();
+        // Ask the router to proxy IPC messages from the font cache task to the layout thread.
+        let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
+        let font_cache_receiver =
+            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
         let stylist = box Stylist::new(device);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
@@ -383,7 +388,7 @@ impl LayoutTask {
             add_font_face_rules(stylesheet,
                                 &stylist.device,
                                 &font_cache_task,
-                                &font_cache_sender,
+                                &ipc_font_cache_sender,
                                 &outstanding_web_fonts_counter);
         }
 
@@ -404,7 +409,7 @@ impl LayoutTask {
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             font_cache_receiver: font_cache_receiver,
-            font_cache_sender: font_cache_sender,
+            font_cache_sender: ipc_font_cache_sender,
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             parallel_traversal: parallel_traversal,
@@ -668,14 +673,13 @@ impl LayoutTask {
                                   info.constellation_chan,
                                   info.failure,
                                   info.script_chan.clone(),
-                                  *info.paint_chan
-                                       .downcast::<OptionalIpcSender<LayoutToPaintMsg>>()
-                                       .unwrap(),
+                                  info.paint_chan.to::<LayoutToPaintMsg>(),
                                   self.image_cache_task.clone(),
                                   self.font_cache_task.clone(),
                                   self.time_profiler_chan.clone(),
                                   self.mem_profiler_chan.clone(),
-                                  info.layout_shutdown_chan);
+                                  info.layout_shutdown_chan,
+                                  info.content_process_shutdown_chan);
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
