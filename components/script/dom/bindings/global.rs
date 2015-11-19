@@ -23,7 +23,7 @@ use net_traits::ResourceThread;
 use profile_traits::mem;
 use script_thread::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
-use timers::{ScheduledCallback, TimerHandle};
+use timers::{OneshotTimerCallback, TimerHandle};
 use url::Url;
 
 /// A freely-copyable reference to a rooted global object.
@@ -224,7 +224,7 @@ impl<'a> GlobalRef<'a> {
     /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
     /// passed.
     pub fn schedule_callback(&self,
-                             callback: Box<ScheduledCallback>,
+                             callback: OneshotTimerCallback,
                              duration: MsDuration)
                              -> TimerHandle {
         match *self {
