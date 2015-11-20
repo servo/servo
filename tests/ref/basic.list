@@ -38,21 +38,10 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Fails intermittently (#3636)
 # == link_style_dynamic_addition.html link_style_dynamic_addition_ref.html
-== list_style_position_a.html list_style_position_ref.html
-!= list_style_type_a.html list_style_type_ref.html
-== margin_a.html margin_b.html
-== marker_block_direction_placement_a.html marker_block_direction_placement_ref.html
-!= noteq_attr_exists_selector.html attr_exists_selector_ref.html
-!= octicons_a.html octicons_ref.html
-== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
-!= ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
 # Should be == with expected failure. See #2797
 != overconstrained_block.html overconstrained_block_ref.html
-== overflow_auto.html overflow_simple_b.html
 # Should be ==?
 != overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
-== overflow_scroll.html overflow_simple_b.html
-== overflow_simple_a.html overflow_simple_b.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html
 # commented out because multiple layers don't work with reftests --pcwalton
