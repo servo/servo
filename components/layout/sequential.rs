@@ -19,11 +19,15 @@ use traversal::{BuildDisplayList, ComputeAbsolutePositions};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::geometry::ZERO_POINT;
 use util::opts;
-use wrapper::{LayoutNode, ServoLayoutNode};
+use wrapper::LayoutNode;
 
-pub fn traverse_dom_preorder(root: ServoLayoutNode,
-                             shared_layout_context: &SharedLayoutContext) {
-    fn doit(node: ServoLayoutNode, recalc_style: RecalcStyleForNode, construct_flows: ConstructFlows) {
+pub fn traverse_dom_preorder<'le, N: LayoutNode<'le>>(
+        root: N,
+        shared_layout_context: &SharedLayoutContext) {
+    fn doit<'le, N: LayoutNode<'le>>(
+            node: N,
+            recalc_style: RecalcStyleForNode,
+            construct_flows: ConstructFlows) {
         recalc_style.process(node);
 
         for kid in node.children() {
@@ -43,7 +47,7 @@ pub fn traverse_dom_preorder(root: ServoLayoutNode,
         root: root.opaque(),
     };
 
-    doit(root, recalc_style, construct_flows);
+    doit::<'le, N>(root, recalc_style, construct_flows);
 }
 
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
