@@ -44,10 +44,19 @@ use uuid;
 
 pub type Connector = HttpsConnector<Openssl>;
 
+// The basic logic here is to prefer ciphers with Forward Secrecy, AES GCM ciphers, AES ciphers,
+// and finally 3DES ciphers.
+const _DEFAULT_CIPHERS: &'static str = concat!(
+    "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:",
+    "DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:",
+    "!eNULL:!MD5:!DSS:!RC4",
+);
+
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
     context.set_verify(SSL_VERIFY_PEER, None);
     context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+    context.set_cipher_list(_DEFAULT_CIPHERS).unwrap();
     let connector = HttpsConnector::new(Openssl {
         context: Arc::new(context)
     });
