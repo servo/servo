@@ -27,7 +27,7 @@ use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::{WhitespaceStrippingResult};
 use gfx::display_list::OpaqueNode;
-use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
+use incremental::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
@@ -1697,7 +1697,8 @@ impl FlowConstructionUtils for FlowRef {
     /// properly computed. (This is not, however, a memory safety problem.)
     fn finish(&mut self) {
         if !opts::get().bubble_inline_sizes_separately {
-            flow_ref::deref_mut(self).bubble_inline_sizes()
+            flow_ref::deref_mut(self).bubble_inline_sizes();
+            flow::mut_base(flow_ref::deref_mut(self)).restyle_damage.remove(BUBBLE_ISIZES);
         }
     }
 }

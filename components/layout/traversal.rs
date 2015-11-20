@@ -10,7 +10,7 @@ use css::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, S
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
-use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script::layout_interface::ReflowGoal;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
@@ -390,6 +390,7 @@ impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.build_display_list(self.layout_context);
+        flow::mut_base(flow).restyle_damage.remove(REPAINT);
     }
 
     #[inline]
