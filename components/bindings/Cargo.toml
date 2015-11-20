@@ -1,0 +1,92 @@
+[package]
+name = "bindings"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "bindings"
+path = "lib.rs"
+
+[features]
+debugmozjs = ['js/debugmozjs']
+
+[dependencies.plugins]
+path = "../plugins"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.net_traits]
+path = "../net_traits"
+
+[dependencies.profile_traits]
+path = "../profile_traits"
+
+[dependencies.script_traits]
+path = "../script_traits"
+
+[dependencies.devtools_traits]
+path = "../devtools_traits"
+
+[dependencies.style]
+path = "../style"
+
+[dependencies.canvas]
+path = "../canvas"
+
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
+[dependencies.js]
+git = "https://github.com/servo/rust-mozjs"
+
+[dependencies.url]
+version = "0.2.36"
+features = ["query_encoding", "serde_serialization"]
+
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+
+[dependencies.angle]
+git = "https://github.com/ecoal95/angle"
+branch = "servo"
+
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.hyper]
+version = "0.6"
+features = [ "serde-serialization" ]
+
+[dependencies.xml5ever]
+git = "https://github.com/Ygg01/xml5ever"
+features = ["unstable"]
+
+[dependencies]
+app_units = {version = "0.1", features = ["plugins"]}
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
+log = "0.3"
+encoding = "0.2"
+fnv = "1.0"
+time = "0.1.12"
+bitflags = "0.3"
+rustc-serialize = "0.3"
+libc = "0.1"
+unicase = "1.0"
+num = "0.1.24"
+websocket = "0.12.0"
+uuid = "0.1.16"
+smallvec = "0.1"
+html5ever = { version = "0.2.1", features = ["unstable"] }
+selectors = "0.2"
+string_cache = { version = "0.1.15", features = ["unstable"] }
+string_cache_plugin = "0.1"
+euclid = {version = "0.3", features = ["plugins"]}
+tendril = "0.1.1"
+rand = "0.3"
+serde = "0.6"
+caseless = "0.1.0"
+image = "0.4.0"
