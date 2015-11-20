@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- Ensures that U+3044, U+308D, U+306F, and U+306B are all supported in the current font. -->
+<!-- Tests that Japanese iroha ordering works in list items. -->
+<link rel=match href=ol_japanese_iroha_ref.html>
 <style>
 @font-face {
     font-family: TakaoPGothic;
@@ -12,16 +13,18 @@ body {
 }
 ol {
     list-style-position: inside;
-    list-style-type: none;
+    list-style-type: hiragana-iroha;
+}
+li {
 }
 </style>
 </head>
 <body>
 <ol>
-    <li>&#x3044;. Gryffindor</li>
-    <li>&#x3044;. Hufflepuff</li>
-    <li>&#x3044;. Ravenclaw</li>
-    <li>&#x3044;. Slytherin</li>
+    <li>Gryffindor</li>
+    <li>Hufflepuff</li>
+    <li>Ravenclaw</li>
+    <li>Slytherin</li>
 </ol>
 </body>
 </html>

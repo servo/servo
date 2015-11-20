@@ -2839,6 +2839,30 @@
             "url": "/_mozilla/css/octicons_a.html"
           }
         ],
+        "css/ol_japanese_iroha_a.html": [
+          {
+            "path": "css/ol_japanese_iroha_a.html",
+            "references": [
+              [
+                "/_mozilla/css/ol_japanese_iroha_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/ol_japanese_iroha_a.html"
+          }
+        ],
+        "css/ol_japanese_iroha_bullet_styles.html": [
+          {
+            "path": "css/ol_japanese_iroha_bullet_styles.html",
+            "references": [
+              [
+                "/_mozilla/css/ol_japanese_iroha_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/ol_japanese_iroha_bullet_styles.html"
+          }
+        ],
         "css/ol_simple_a.html": [
           {
             "path": "css/ol_simple_a.html",
@@ -8110,6 +8134,30 @@
             ]
           ],
           "url": "/_mozilla/css/octicons_a.html"
+        }
+      ],
+      "css/ol_japanese_iroha_a.html": [
+        {
+          "path": "css/ol_japanese_iroha_a.html",
+          "references": [
+            [
+              "/_mozilla/css/ol_japanese_iroha_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/ol_japanese_iroha_a.html"
+        }
+      ],
+      "css/ol_japanese_iroha_bullet_styles.html": [
+        {
+          "path": "css/ol_japanese_iroha_bullet_styles.html",
+          "references": [
+            [
+              "/_mozilla/css/ol_japanese_iroha_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/ol_japanese_iroha_bullet_styles.html"
         }
       ],
       "css/ol_simple_a.html": [
