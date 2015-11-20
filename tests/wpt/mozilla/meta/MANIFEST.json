@@ -206,6 +206,10 @@
               [
                 "/_mozilla/css/attr_exists_selector_ref.html",
                 "=="
+              ],
+              [
+                "/_mozilla/css/noteq_attr_exists_selector.html",
+                "!="
               ]
             ],
             "url": "/_mozilla/css/attr_exists_selector.html"
@@ -5463,6 +5467,10 @@
             [
               "/_mozilla/css/attr_exists_selector_ref.html",
               "=="
+            ],
+            [
+              "/_mozilla/css/noteq_attr_exists_selector.html",
+              "!="
             ]
           ],
           "url": "/_mozilla/css/attr_exists_selector.html"
