@@ -220,14 +220,19 @@ class MachCommands(CommandBase):
             make_cmd = ["make"]
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
-            with cd(self.android_support_dir()):
+            android_path =  path.join(self.get_target_dir(), "arm-linux-androideabi")
+            if dev:
+                android_path =  path.join(android_path, "debug")
+            else:
+                android_path =  path.join(android_path, "release")
+            with cd(android_path):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
                     env=self.build_env(),
                     verbose=verbose)
                 if status:
                     return status
-            openssl_dir = path.join(self.android_support_dir(), "openssl-1.0.1k")
+            openssl_dir = path.join(android_path, "openssl-1.0.1k")
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
