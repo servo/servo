@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use gaol::platform;
 use gaol::profile::{Operation, PathPattern, Profile};
 use std::path::PathBuf;
 use util::resource_files;
@@ -10,6 +9,7 @@ use util::resource_files;
 /// Our content process sandbox profile on Mac. As restrictive as possible.
 #[cfg(target_os = "macos")]
 pub fn content_process_sandbox_profile() -> Profile {
+    use gaol::platform;
     Profile::new(vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
         Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path())),
