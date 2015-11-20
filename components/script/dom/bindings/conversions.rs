@@ -56,48 +56,6 @@ use std::{ptr, slice};
 use util::str::DOMString;
 pub use util::str::{StringificationBehavior, jsstring_to_str};
 
-
-trait As<O>: Copy {
-    fn cast(self) -> O;
-}
-
-macro_rules! impl_as {
-    ($I:ty, $O:ty) => (
-        impl As<$O> for $I {
-            fn cast(self) -> $O {
-                self as $O
-            }
-        }
-    )
-}
-
-impl_as!(f64, u8);
-impl_as!(f64, u16);
-impl_as!(f64, u32);
-impl_as!(f64, u64);
-impl_as!(f64, i8);
-impl_as!(f64, i16);
-impl_as!(f64, i32);
-impl_as!(f64, i64);
-
-impl_as!(u8, f64);
-impl_as!(u16, f64);
-impl_as!(u32, f64);
-impl_as!(u64, f64);
-impl_as!(i8, f64);
-impl_as!(i16, f64);
-impl_as!(i32, f64);
-impl_as!(i64, f64);
-
-impl_as!(i32, i8);
-impl_as!(i32, u8);
-impl_as!(i32, i16);
-impl_as!(u16, u16);
-impl_as!(i32, i32);
-impl_as!(u32, u32);
-impl_as!(i64, i64);
-impl_as!(u64, u64);
-
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
