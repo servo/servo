@@ -4,8 +4,6 @@
 
 //! Utilities for querying the layout, as needed by the layout task.
 
-#![allow(unsafe_code)]
-
 use app_units::Au;
 use construct::ConstructionResult;
 use euclid::point::Point2D;
@@ -20,7 +18,7 @@ use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
-use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, TrustedNodeAddress};
+use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan};
 use selectors::parser::PseudoElement;
 use sequential;
 use std::ops::Deref;
@@ -33,7 +31,7 @@ use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
 use util::geometry::ZERO_POINT;
 use util::logical_geometry::WritingMode;
-use wrapper::{ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
 
@@ -294,13 +292,12 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     }
 }
 
-pub fn process_content_box_request(requested_node: TrustedNodeAddress,
+pub fn process_content_box_request(requested_node: ServoLayoutNode,
                                    layout_root: &mut FlowRef)
                                    -> Rect<Au> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
-    let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-    let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
+    let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     match iterator.rect {
         Some(rect) => rect,
@@ -308,13 +305,12 @@ pub fn process_content_box_request(requested_node: TrustedNodeAddress,
     }
 }
 
-pub fn process_content_boxes_request(requested_node: TrustedNodeAddress,
+pub fn process_content_boxes_request(requested_node: ServoLayoutNode,
                                      layout_root: &mut FlowRef)
                                      -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
-    let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-    let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
+    let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.rects
 }
@@ -435,25 +431,22 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 }
 
-pub fn process_node_geometry_request(requested_node: TrustedNodeAddress,
+pub fn process_node_geometry_request(requested_node: ServoLayoutNode,
                                      layout_root: &mut FlowRef)
                                      -> Rect<i32> {
-    let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-    let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
+    let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
-pub fn process_resolved_style_request(requested_node: TrustedNodeAddress,
+pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
                                       pseudo: &Option<PseudoElement>,
                                       property: &Atom,
                                       layout_root: &mut FlowRef)
                                       -> Option<String> {
-    let node = unsafe { ServoLayoutNode::new(&requested_node) };
-
-    let layout_node = ThreadSafeLayoutNode::new(&node);
+    let layout_node = ThreadSafeLayoutNode::new(&requested_node);
     let layout_node = match pseudo {
         &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
@@ -489,7 +482,7 @@ pub fn process_resolved_style_request(requested_node: TrustedNodeAddress,
 
     fn used_value_for_position_property(layout_node: ThreadSafeLayoutNode,
                                         layout_root: &mut FlowRef,
-                                        requested_node: TrustedNodeAddress,
+                                        requested_node: ServoLayoutNode,
                                         property: &Atom) -> Option<String> {
         let layout_data = layout_node.borrow_layout_data();
         let position = layout_data.as_ref().map(|layout_data| {
@@ -510,10 +503,8 @@ pub fn process_resolved_style_request(requested_node: TrustedNodeAddress,
             atom!("height") => PositionProperty::Height,
             _ => unreachable!()
         };
-        let requested_node: OpaqueNode =
-            OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator =
-            PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
+            PositionRetrievingFragmentBorderBoxIterator::new(requested_node.opaque(),
                                                              property,
                                                              position);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
@@ -541,10 +532,8 @@ pub fn process_resolved_style_request(requested_node: TrustedNodeAddress,
                 atom!("padding-right") => (MarginPadding::Padding, Side::Right),
                 _ => unreachable!()
             };
-            let requested_node: OpaqueNode =
-                OpaqueNodeMethods::from_script_node(requested_node);
             let mut iterator =
-                MarginRetrievingFragmentBorderBoxIterator::new(requested_node,
+                MarginRetrievingFragmentBorderBoxIterator::new(requested_node.opaque(),
                                                                side,
                                                                margin_padding,
                                                                style.writing_mode);
@@ -571,11 +560,10 @@ pub fn process_resolved_style_request(requested_node: TrustedNodeAddress,
     }
 }
 
-pub fn process_offset_parent_query(requested_node: TrustedNodeAddress,
+pub fn process_offset_parent_query(requested_node: ServoLayoutNode,
                                    layout_root: &mut FlowRef)
                                    -> OffsetParentResponse {
-    let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-    let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node);
+    let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
     match parent_info_index {
