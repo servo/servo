@@ -6227,6 +6227,38 @@ impl ComputedValues {
         effects.transform_style
     }
 
+    pub fn transform_requires_layer(&self) -> bool {
+        // Check if the transform matrix is 2D or 3D
+        if let Some(ref transform_list) = self.get_effects().transform.0 {
+            for transform in transform_list {
+                match *transform {
+                    computed_values::transform::ComputedOperation::Perspective(..) => {
+                        return true;
+                    }
+                    computed_values::transform::ComputedOperation::Matrix(m) => {
+                        // See http://dev.w3.org/csswg/css-transforms/#2d-matrix
+                        if m.m31 != 0.0 || m.m32 != 0.0 ||
+                           m.m13 != 0.0 || m.m23 != 0.0 ||
+                           m.m43 != 0.0 || m.m14 != 0.0 ||
+                           m.m24 != 0.0 || m.m34 != 0.0 ||
+                           m.m33 != 1.0 || m.m44 != 1.0 {
+                            return true;
+                        }
+                    }
+                    computed_values::transform::ComputedOperation::Translate(_, _, z) => {
+                        if z != Au(0) {
+                            return true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Neither perspective nor transform present
+        false
+    }
+
     % for style_struct in STYLE_STRUCTS:
     #[inline]
     pub fn get_${style_struct.name.lower()}
