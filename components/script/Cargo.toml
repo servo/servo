@@ -12,6 +12,9 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 
+[dependencies.bindings]
+path = "../bindings"
+
 [dependencies.plugins]
 path = "../plugins"
 

@@ -90,16 +90,7 @@ use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use uuid::Uuid;
 
-
-/// A trait to allow tracing (only) DOM objects.
-pub trait JSTraceable {
-    /// Trace `self`.
-    fn trace(&self, trc: *mut JSTracer);
-}
-
-no_jsmanaged_fields!(EncodingRef);
-
-no_jsmanaged_fields!(Reflector);
+pub use bindings::trace::JSTraceable;
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
@@ -148,162 +139,9 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
     }
 }
 
-impl<T: JSTraceable> JSTraceable for Rc<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        (**self).trace(trc)
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for Box<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        (**self).trace(trc)
-    }
-}
-
-impl<T: JSTraceable + Copy> JSTraceable for Cell<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        self.get().trace(trc)
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        unsafe { (*self.get()).trace(trc) }
-    }
-}
-
-
-impl JSTraceable for Heap<*mut JSObject> {
-    fn trace(&self, trc: *mut JSTracer) {
-        if self.get().is_null() {
-            return;
-        }
-        trace_object(trc, "object", self);
-    }
-}
-
-
-impl JSTraceable for Heap<JSVal> {
-    fn trace(&self, trc: *mut JSTracer) {
-        trace_jsval(trc, "val", self);
-    }
-}
-
-// XXXManishearth Check if the following three are optimized to no-ops
-// if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
-impl<T: JSTraceable> JSTraceable for Vec<T> {
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        for e in &*self {
-            e.trace(trc);
-        }
-    }
-}
-
-// XXXManishearth Check if the following three are optimized to no-ops
-// if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
-impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        for e in self.iter() {
-            e.trace(trc);
-        }
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for Option<T> {
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        self.as_ref().map(|e| e.trace(trc));
-    }
-}
-
-impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        match *self {
-            Ok(ref inner) => inner.trace(trc),
-            Err(ref inner) => inner.trace(trc),
-        }
-    }
-}
-
-impl<K, V, S> JSTraceable for HashMap<K, V, S>
-    where K: Hash + Eq + JSTraceable,
-          V: JSTraceable,
-          S: HashState,
-          <S as HashState>::Hasher: Hasher,
-{
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        for (k, v) in &*self {
-            k.trace(trc);
-            v.trace(trc);
-        }
-    }
-}
-
-impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        let (ref a, ref b) = *self;
-        a.trace(trc);
-        b.trace(trc);
-    }
-}
-
-
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, Uuid);
-no_jsmanaged_fields!(usize, u8, u16, u32, u64);
-no_jsmanaged_fields!(isize, i8, i16, i32, i64);
-no_jsmanaged_fields!(Sender<T>);
-no_jsmanaged_fields!(Receiver<T>);
-no_jsmanaged_fields!(Rect<T>);
-no_jsmanaged_fields!(Size2D<T>);
-no_jsmanaged_fields!(Arc<T>);
-no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask);
-no_jsmanaged_fields!(Metadata);
-no_jsmanaged_fields!(Atom, Namespace, QualName);
 no_jsmanaged_fields!(Trusted<T: Reflectable>);
-no_jsmanaged_fields!(PropertyDeclarationBlock);
-no_jsmanaged_fields!(HashSet<T>);
-// These three are interdependent, if you plan to put jsmanaged data
-// in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
-no_jsmanaged_fields!(TimerEventId, TimerSource);
-no_jsmanaged_fields!(WorkerId);
-no_jsmanaged_fields!(QuirksMode);
-no_jsmanaged_fields!(Runtime);
-no_jsmanaged_fields!(Headers, Method);
 no_jsmanaged_fields!(LayoutChan);
 no_jsmanaged_fields!(WindowProxyHandler);
-no_jsmanaged_fields!(UntrustedNodeAddress);
-no_jsmanaged_fields!(LengthOrPercentageOrAuto);
-no_jsmanaged_fields!(RGBA);
-no_jsmanaged_fields!(EuclidLength<Unit, T>);
-no_jsmanaged_fields!(Matrix2D<T>);
-no_jsmanaged_fields!(StorageType);
-no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
-no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
-no_jsmanaged_fields!(RepetitionStyle);
-no_jsmanaged_fields!(WebGLError);
-no_jsmanaged_fields!(TimeProfilerChan);
-no_jsmanaged_fields!(MemProfilerChan);
-no_jsmanaged_fields!(PseudoElement);
-no_jsmanaged_fields!(Length);
-no_jsmanaged_fields!(ElementState);
-no_jsmanaged_fields!(DOMString);
-no_jsmanaged_fields!(Mime);
-no_jsmanaged_fields!(AttrIdentifier);
-no_jsmanaged_fields!(AttrValue);
-no_jsmanaged_fields!(ElementSnapshot);
-
-impl JSTraceable for ConstellationChan<ScriptMsg> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
@@ -312,49 +150,7 @@ impl JSTraceable for Box<ScriptChan + Send> {
     }
 }
 
-impl JSTraceable for Box<FnBox(f64, )> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<'a> JSTraceable for &'a str {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<A, B> JSTraceable for fn(A) -> B {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 impl JSTraceable for Box<LayoutRPC + 'static> {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl JSTraceable for () {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

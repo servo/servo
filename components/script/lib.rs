@@ -35,6 +35,7 @@
 #![plugin(plugins)]
 
 extern crate app_units;
+extern crate bindings;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -97,6 +98,8 @@ pub mod textinput;
 mod timers;
 mod unpremultiplytable;
 mod webdriver_handlers;
+
+pub use bindings::trace;
 
 use dom::bindings::codegen::RegisterBindings;
 

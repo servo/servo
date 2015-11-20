@@ -32,6 +32,8 @@
 //! | sequences               | `Vec<T>`                         |
 //! | union types             | `T`                              |
 
+pub use bindings::conversions::*;
+
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
@@ -39,7 +41,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::DOMClass;
 use js;
-pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBehavior};
+//pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBehavior};
 use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
@@ -54,7 +56,7 @@ use libc;
 use num::Float;
 use std::{ptr, slice};
 use util::str::DOMString;
-pub use util::str::{StringificationBehavior, jsstring_to_str};
+//pub use util::str::{StringificationBehavior, jsstring_to_str};
 
 
 trait As<O>: Copy {
@@ -98,16 +100,6 @@ impl_as!(u32, u32);
 impl_as!(i64, i64);
 impl_as!(u64, u64);
 
-/// A trait to check whether a given `JSObject` implements an IDL interface.
-pub trait IDLInterface {
-    /// Returns whether the given DOM class derives that interface.
-    fn derives(&'static DOMClass) -> bool;
-}
-
-/// A trait to mark an IDL interface as deriving from another one.
-#[rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`."]
-pub trait DerivedFrom<T: Castable>: Castable {}
-
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
@@ -133,7 +125,7 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
         }
     }
 }
-
+/*
 /// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
 /// string, or if the string does not contain valid UTF-16.
 pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
@@ -142,7 +134,7 @@ pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
     }
 }
-
+*/
 // http://heycam.github.io/webidl/#es-USVString
 impl ToJSValConvertible for USVString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
@@ -221,7 +213,7 @@ impl FromJSValConvertible for ByteString {
     }
 }
 
-
+/*
 impl ToJSValConvertible for Reflector {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
@@ -232,7 +224,6 @@ impl ToJSValConvertible for Reflector {
         }
     }
 }
-
 /// Returns whether the given `clasp` is one for a DOM object.
 pub fn is_dom_class(clasp: *const JSClass) -> bool {
     unsafe {
@@ -376,4 +367,4 @@ impl<T: Reflectable> ToJSValConvertible for Root<T> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
     }
-}
+}*/

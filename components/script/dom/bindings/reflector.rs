@@ -4,6 +4,8 @@
 
 //! The `Reflector` struct.
 
+pub use bindings::reflector::*;
+
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use js::jsapi::{HandleObject, JSContext, JSObject};
@@ -17,62 +19,4 @@ pub fn reflect_dom_object<T: Reflectable>(obj: Box<T>,
                                           wrap_fn: fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
                                           -> Root<T> {
     wrap_fn(global.get_cx(), global, obj)
-}
-
-/// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_derive, unrooted_must_root)]
-#[must_root]
-#[servo_lang = "reflector"]
-#[derive(HeapSizeOf)]
-// If you're renaming or moving this field, update the path in plugins::reflector as well
-pub struct Reflector {
-    #[ignore_heap_size_of = "defined and measured in rust-mozjs"]
-    object: UnsafeCell<*mut JSObject>,
-}
-
-#[allow(unrooted_must_root)]
-impl PartialEq for Reflector {
-    fn eq(&self, other: &Reflector) -> bool {
-        unsafe { *self.object.get() == *other.object.get() }
-    }
-}
-
-impl Reflector {
-    /// Get the reflector.
-    #[inline]
-    pub fn get_jsobject(&self) -> HandleObject {
-        unsafe { HandleObject::from_marked_location(self.object.get()) }
-    }
-
-    /// Initialize the reflector. (May be called only once.)
-    pub fn set_jsobject(&mut self, object: *mut JSObject) {
-        unsafe {
-            let obj = self.object.get();
-            assert!((*obj).is_null());
-            assert!(!object.is_null());
-            *obj = object;
-        }
-    }
-
-    /// Return a pointer to the memory location at which the JS reflector
-    /// object is stored. Used to root the reflector, as
-    /// required by the JSAPI rooting APIs.
-    pub fn rootable(&self) -> *mut *mut JSObject {
-        self.object.get()
-    }
-
-    /// Create an uninitialized `Reflector`.
-    pub fn new() -> Reflector {
-        Reflector {
-            object: UnsafeCell::new(ptr::null_mut()),
-        }
-    }
-}
-
-/// A trait to provide access to the `Reflector` for a DOM object.
-pub trait Reflectable {
-    /// Returns the receiver's reflector.
-    fn reflector(&self) -> &Reflector;
-    /// Initializes the Reflector
-    fn init_reflector(&mut self, obj: *mut JSObject);
 }

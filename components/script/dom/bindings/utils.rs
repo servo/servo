@@ -4,6 +4,8 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
+//pub use bindings::utils::*;
+
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};

@@ -250,7 +250,7 @@ macro_rules! make_dimension_setter(
 macro_rules! no_jsmanaged_fields(
     ($($ty:ident),+) => (
         $(
-            impl $crate::dom::bindings::trace::JSTraceable for $ty {
+            impl $crate::bindings::trace::JSTraceable for $ty {
                 #[inline]
                 fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                     // Do nothing
@@ -259,7 +259,7 @@ macro_rules! no_jsmanaged_fields(
         )+
     );
     ($ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
+        impl<$($gen),+> $crate::bindings::trace::JSTraceable for $ty<$($gen),+> {
             #[inline]
             fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing
@@ -267,7 +267,7 @@ macro_rules! no_jsmanaged_fields(
         }
     );
     ($ty:ident<$($gen:ident: $bound:ident),+>) => (
-        impl<$($gen: $bound),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
+        impl<$($gen: $bound),+> $crate::bindings::trace::JSTraceable for $ty<$($gen),+> {
             #[inline]
             fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing

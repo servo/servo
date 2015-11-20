@@ -188,11 +188,27 @@ impl AsyncResponseListener for ParserContext {
 impl PreInvoke for ParserContext {
 }
 
+struct DOMTokenizer(Tokenizer);
+
+impl ::std::ops::Deref for DOMTokenizer {
+    type Target = Tokenizer;
+
+    fn deref(&self) -> &Tokenizer {
+        &self.0
+    }
+}
+
+impl ::std::ops::DerefMut for DOMTokenizer {
+    fn deref_mut(&mut self) -> &mut Tokenizer {
+        &mut self.0
+    }
+}
+
 #[dom_struct]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in html5ever"]
-    tokenizer: DOMRefCell<Tokenizer>,
+    tokenizer: DOMRefCell<DOMTokenizer>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,
     /// The document associated with this parser.
@@ -248,7 +264,7 @@ impl ServoHTMLParser {
 
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
-            tokenizer: DOMRefCell::new(tok),
+            tokenizer: DOMRefCell::new(DOMTokenizer(tok)),
             pending_input: DOMRefCell::new(vec!()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
@@ -285,7 +301,7 @@ impl ServoHTMLParser {
 
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
-            tokenizer: DOMRefCell::new(tok),
+            tokenizer: DOMRefCell::new(DOMTokenizer(tok)),
             pending_input: DOMRefCell::new(vec!()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
@@ -298,7 +314,7 @@ impl ServoHTMLParser {
     }
 
     #[inline]
-    pub fn tokenizer(&self) -> &DOMRefCell<Tokenizer> {
+    pub fn tokenizer(&self) -> &DOMRefCell<DOMTokenizer> {
         &self.tokenizer
     }
 }
@@ -368,7 +384,7 @@ impl tree_builder::Tracer for Tracer {
     }
 }
 
-impl JSTraceable for Tokenizer {
+impl JSTraceable for DOMTokenizer {
     fn trace(&self, trc: *mut JSTracer) {
         let tracer = Tracer {
             trc: trc,

@@ -55,8 +55,6 @@ enum WebSocketRequestState {
     Closed = 3,
 }
 
-no_jsmanaged_fields!(Sender<WebSocketStream>);
-
 #[derive(HeapSizeOf)]
 enum MessageData {
     Text(String),
