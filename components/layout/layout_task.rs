@@ -758,7 +758,7 @@ impl LayoutTask {
         possibly_locked_rw_data.block(rw_data);
     }
 
-    fn try_get_layout_root(&self, node: ServoLayoutNode) -> Option<FlowRef> {
+    fn try_get_layout_root<'ln, N: LayoutNode<'ln>>(&self, node: N) -> Option<FlowRef> {
         let mut layout_data_ref = node.mutate_layout_data();
         let layout_data =
             match layout_data_ref.as_mut() {
@@ -1271,7 +1271,7 @@ impl LayoutTask {
         }
     }
 
-    unsafe fn dirty_all_nodes(node: ServoLayoutNode) {
+    unsafe fn dirty_all_nodes<'ln, N: LayoutNode<'ln>>(node: N) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
             // "changed":

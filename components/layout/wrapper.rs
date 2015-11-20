@@ -71,14 +71,24 @@ use style::restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_S
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
+/// Opaque type stored in type-unsafe work queues for parallel layout.
+/// Must be transmutable to and from LayoutNode.
+pub type UnsafeLayoutNode = (usize, usize);
+
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 
 pub trait LayoutNode<'ln> : Sized + Copy + Clone {
+    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>;
     type ConcreteLayoutElement: LayoutElement<'ln, ConcreteLayoutNode = Self,
                                               ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
     type ConcreteLayoutDocument: LayoutDocument<'ln, ConcreteLayoutNode = Self,
                                                 ConcreteLayoutElement = Self::ConcreteLayoutElement>;
+
+    fn to_unsafe(&self) -> UnsafeLayoutNode;
+    unsafe fn from_unsafe(&UnsafeLayoutNode) -> Self;
+
+    fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
@@ -268,8 +278,25 @@ impl<'ln> ServoLayoutNode<'ln> {
 }
 
 impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
+    type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'ln>;
     type ConcreteLayoutElement = ServoLayoutElement<'ln>;
     type ConcreteLayoutDocument = ServoLayoutDocument<'ln>;
+
+    fn to_unsafe(&self) -> UnsafeLayoutNode {
+        unsafe {
+            let ptr: usize = mem::transmute_copy(self);
+            (ptr, 0)
+        }
+    }
+
+    unsafe fn from_unsafe(n: &UnsafeLayoutNode) -> Self {
+        let (node, _) = *n;
+        mem::transmute(node)
+    }
+
+    fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode {
+        ServoThreadSafeLayoutNode::new(self)
+    }
 
     fn type_id(&self) -> NodeTypeId {
         unsafe {
@@ -1279,22 +1306,6 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
             self.element.get_attr_val_for_layout(namespace, name)
         }
     }
-}
-
-/// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from LayoutNode.
-pub type UnsafeLayoutNode = (usize, usize);
-
-pub fn layout_node_to_unsafe_layout_node(node: &ServoLayoutNode) -> UnsafeLayoutNode {
-    unsafe {
-        let ptr: usize = mem::transmute_copy(node);
-        (ptr, 0)
-    }
-}
-
-pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> ServoLayoutNode {
-    let (node, _) = *node;
-    mem::transmute(node)
 }
 
 pub enum TextContent {

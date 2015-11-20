@@ -17,8 +17,8 @@ use std::cell::RefCell;
 use std::mem;
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, ServoLayoutNode, layout_node_to_unsafe_layout_node};
-use wrapper::{ServoThreadSafeLayoutNode, ThreadSafeLayoutNode, UnsafeLayoutNode};
+use wrapper::{LayoutNode, UnsafeLayoutNode};
+use wrapper::{ThreadSafeLayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -51,10 +51,11 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_task_local_bloom_filter(parent_node: Option<ServoLayoutNode>,
-                                root: OpaqueNode,
-                                layout_context: &LayoutContext)
-                                -> Box<BloomFilter> {
+fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
+                                        root: OpaqueNode,
+                                        layout_context: &LayoutContext)
+                                        -> Box<BloomFilter>
+                                        where N: LayoutNode<'ln> {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -70,7 +71,7 @@ fn take_task_local_bloom_filter(parent_node: Option<ServoLayoutNode>,
             }
             // Found cached bloom filter.
             (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
-                if old_node == layout_node_to_unsafe_layout_node(&parent) &&
+                if old_node == parent.to_unsafe() &&
                     old_generation == layout_context.shared.generation {
                     // Hey, the cached parent is our parent! We can reuse the bloom filter.
                     debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
@@ -97,9 +98,10 @@ fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
 }
 
 /// "Ancestors" in this context is inclusive of ourselves.
-fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
-                                      mut n: ServoLayoutNode,
-                                      root: OpaqueNode) {
+fn insert_ancestors_into_bloom_filter<'ln, N>(bf: &mut Box<BloomFilter>,
+                                              mut n: N,
+                                              root: OpaqueNode)
+                                              where N: LayoutNode<'ln> {
     debug!("[{}] Inserting ancestors.", tid());
     let mut ancestors = 0;
     loop {
@@ -116,21 +118,21 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
 
 
 /// A top-down traversal.
-pub trait PreorderDomTraversal {
+pub trait PreorderDomTraversal<'ln, ConcreteLayoutNode: LayoutNode<'ln>>  {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: ServoLayoutNode);
+    fn process(&self, node: ConcreteLayoutNode);
 }
 
 /// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderDomTraversal {
+pub trait PostorderDomTraversal<'ln, ConcreteLayoutNode: LayoutNode<'ln>> {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: ServoLayoutNode);
+    fn process(&self, node: ConcreteLayoutNode);
 }
 
 /// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal {
+pub trait PostorderNodeMutTraversal<'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>> {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: &ServoThreadSafeLayoutNode<'a>) -> bool;
+    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) -> bool;
 }
 
 /// The recalc-style-for-node traversal, which styles each node and must run before
@@ -141,10 +143,12 @@ pub struct RecalcStyleForNode<'a> {
     pub root: OpaqueNode,
 }
 
-impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
+impl<'a, 'ln, ConcreteLayoutNode> PreorderDomTraversal<'ln, ConcreteLayoutNode>
+                                  for RecalcStyleForNode<'a>
+                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     #[inline]
     #[allow(unsafe_code)]
-    fn process(&self, node: ServoLayoutNode) {
+    fn process(&self, node: ConcreteLayoutNode) {
         // Initialize layout data.
         //
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
@@ -162,7 +166,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
             // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
             // to force non-incremental reflow.
             if node.has_changed() {
-                let node = ServoThreadSafeLayoutNode::new(&node);
+                let node = node.to_threadsafe();
                 node.unstyle();
             }
 
@@ -199,7 +203,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         },
                         None => {
                             if node.has_changed() {
-                                ServoThreadSafeLayoutNode::new(&node).set_restyle_damage(
+                                node.to_threadsafe().set_restyle_damage(
                                     incremental::rebuild_and_reflow())
                             }
                             None
@@ -222,12 +226,12 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
                     style_sharing_candidate_cache.touch(index);
-                    ServoThreadSafeLayoutNode::new(&node).set_restyle_damage(damage);
+                    node.to_threadsafe().set_restyle_damage(damage);
                 }
             }
         }
 
-        let unsafe_layout_node = layout_node_to_unsafe_layout_node(&node);
+        let unsafe_layout_node = node.to_unsafe();
 
         // Before running the children, we need to insert our nodes into the bloom
         // filter.
@@ -246,13 +250,15 @@ pub struct ConstructFlows<'a> {
     pub root: OpaqueNode,
 }
 
-impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
+impl<'a, 'ln, ConcreteLayoutNode> PostorderDomTraversal<'ln, ConcreteLayoutNode>
+                                  for ConstructFlows<'a>
+                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     #[inline]
     #[allow(unsafe_code)]
-    fn process(&self, node: ServoLayoutNode) {
+    fn process(&self, node: ConcreteLayoutNode) {
         // Construct flows for this node.
         {
-            let tnode = ServoThreadSafeLayoutNode::new(&node);
+            let tnode = node.to_threadsafe();
 
             // Always reconstruct if incremental layout is turned off.
             let nonincremental_layout = opts::get().nonincremental_layout;
@@ -277,7 +283,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
             node.set_dirty_descendants(false);
         }
 
-        let unsafe_layout_node = layout_node_to_unsafe_layout_node(&node);
+        let unsafe_layout_node = node.to_unsafe();
 
         let (mut bf, old_node, old_generation) =
             STYLE_BLOOM.with(|style_bloom| {
@@ -296,7 +302,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
             Some(parent) => {
                 // Otherwise, put it back, but remove this node.
                 node.remove_from_bloom_filter(&mut *bf);
-                let unsafe_parent = layout_node_to_unsafe_layout_node(&parent);
+                let unsafe_parent = parent.to_unsafe();
                 put_task_local_bloom_filter(bf, &unsafe_parent, self.layout_context);
             },
         };

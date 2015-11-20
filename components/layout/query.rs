@@ -31,7 +31,7 @@ use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
 use util::geometry::ZERO_POINT;
 use util::logical_geometry::WritingMode;
-use wrapper::{LayoutNode, ServoLayoutNode, ServoThreadSafeLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
 
@@ -292,9 +292,8 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     }
 }
 
-pub fn process_content_box_request(requested_node: ServoLayoutNode,
-                                   layout_root: &mut FlowRef)
-                                   -> Rect<Au> {
+pub fn process_content_box_request<'ln, N: LayoutNode<'ln>>(
+        requested_node: N, layout_root: &mut FlowRef) -> Rect<Au> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node.opaque());
@@ -305,9 +304,8 @@ pub fn process_content_box_request(requested_node: ServoLayoutNode,
     }
 }
 
-pub fn process_content_boxes_request(requested_node: ServoLayoutNode,
-                                     layout_root: &mut FlowRef)
-                                     -> Vec<Rect<Au>> {
+pub fn process_content_boxes_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+        -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node.opaque());
@@ -431,9 +429,8 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 }
 
-pub fn process_node_geometry_request(requested_node: ServoLayoutNode,
-                                     layout_root: &mut FlowRef)
-                                     -> Rect<i32> {
+pub fn process_node_geometry_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+        -> Rect<i32> {
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
@@ -441,12 +438,10 @@ pub fn process_node_geometry_request(requested_node: ServoLayoutNode,
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
-pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
-                                      pseudo: &Option<PseudoElement>,
-                                      property: &Atom,
-                                      layout_root: &mut FlowRef)
-                                      -> Option<String> {
-    let layout_node = ServoThreadSafeLayoutNode::new(&requested_node);
+pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
+            requested_node: N, pseudo: &Option<PseudoElement>,
+            property: &Atom, layout_root: &mut FlowRef) -> Option<String> {
+    let layout_node = requested_node.to_threadsafe();
     let layout_node = match pseudo {
         &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
@@ -480,10 +475,11 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
     // There are probably other quirks.
     let applies = true;
 
-    fn used_value_for_position_property(layout_node: ServoThreadSafeLayoutNode,
-                                        layout_root: &mut FlowRef,
-                                        requested_node: ServoLayoutNode,
-                                        property: &Atom) -> Option<String> {
+    fn used_value_for_position_property<'ln, N: LayoutNode<'ln>>(
+            layout_node: N::ConcreteThreadSafeLayoutNode,
+            layout_root: &mut FlowRef,
+            requested_node: N,
+            property: &Atom) -> Option<String> {
         let layout_data = layout_node.borrow_layout_data();
         let position = layout_data.as_ref().map(|layout_data| {
             match layout_data.data.flow_construction_result {
@@ -560,9 +556,8 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
     }
 }
 
-pub fn process_offset_parent_query(requested_node: ServoLayoutNode,
-                                   layout_root: &mut FlowRef)
-                                   -> OffsetParentResponse {
+pub fn process_offset_parent_query<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+        -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
