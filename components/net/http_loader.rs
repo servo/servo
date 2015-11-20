@@ -44,16 +44,20 @@ use uuid;
 
 pub type Connector = HttpsConnector<Openssl>;
 
-// The basic logic here is to prefer ciphers with Forward Secrecy, AES GCM ciphers, AES ciphers,
-// and finally 3DES ciphers.
-// This specific suite is taken from Python:
-// https://github.com/python/cpython/blob/master/Lib/ssl.py#L174-L187
+// The basic logic here is to prefer ciphers with ECDSA certificates, Forward
+// Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
 // A complete discussion of the issues involved in TLS configuration can be found here:
 // https://wiki.mozilla.org/Security/Server_Side_TLS
 const DEFAULT_CIPHERS: &'static str = concat!(
-    "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:",
-    "DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:",
-    "!eNULL:!MD5:!DSS:!RC4",
+    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
+    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
+    "DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:",
+    "ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:",
+    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:",
+    "ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
+    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:",
+    "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
+    "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
 );
 
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
