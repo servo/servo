@@ -2595,6 +2595,18 @@
             "url": "/_mozilla/css/margins_inside_floats_a.html"
           }
         ],
+        "css/marker_block_direction_placement_a.html": [
+          {
+            "path": "css/marker_block_direction_placement_a.html",
+            "references": [
+              [
+                "/_mozilla/css/marker_block_direction_placement_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/marker_block_direction_placement_a.html"
+          }
+        ],
         "css/max_width_float_simple_a.html": [
           {
             "path": "css/max_width_float_simple_a.html",
@@ -7838,6 +7850,18 @@
             ]
           ],
           "url": "/_mozilla/css/margins_inside_floats_a.html"
+        }
+      ],
+      "css/marker_block_direction_placement_a.html": [
+        {
+          "path": "css/marker_block_direction_placement_a.html",
+          "references": [
+            [
+              "/_mozilla/css/marker_block_direction_placement_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/marker_block_direction_placement_a.html"
         }
       ],
       "css/max_width_float_simple_a.html": [
