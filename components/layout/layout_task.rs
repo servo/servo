@@ -1031,18 +1031,27 @@ impl LayoutTask {
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             match data.query_type {
-                ReflowQueryType::ContentBoxQuery(node) =>
-                    rw_data.content_box_response = process_content_box_request(node, &mut root_flow),
-                ReflowQueryType::ContentBoxesQuery(node) =>
-                    rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow),
-                ReflowQueryType::NodeGeometryQuery(node) =>
-                    rw_data.client_rect_response = process_node_geometry_request(node, &mut root_flow),
+                ReflowQueryType::ContentBoxQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.content_box_response = process_content_box_request(node, &mut root_flow);
+                },
+                ReflowQueryType::ContentBoxesQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow);
+                },
+                ReflowQueryType::NodeGeometryQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.client_rect_response = process_node_geometry_request(node, &mut root_flow);
+                },
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.resolved_style_response =
-                        process_resolved_style_request(node, pseudo, property, &mut root_flow)
-                }
-                ReflowQueryType::OffsetParentQuery(node) =>
-                    rw_data.offset_parent_response = process_offset_parent_query(node, &mut root_flow),
+                        process_resolved_style_request(node, pseudo, property, &mut root_flow);
+                },
+                ReflowQueryType::OffsetParentQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.offset_parent_response = process_offset_parent_query(node, &mut root_flow);
+                },
                 ReflowQueryType::NoQuery => {}
             }
         }
