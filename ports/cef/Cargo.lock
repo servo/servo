@@ -1319,6 +1319,7 @@ name = "plugins"
 version = "0.0.1"
 dependencies = [
  "tenacious 0.0.11 (git+https://github.com/Manishearth/rust-tenacious)",
+ "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

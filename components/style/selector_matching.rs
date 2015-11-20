@@ -61,7 +61,7 @@ lazy_static! {
             Ok(res) => {
                 Stylesheet::from_bytes(
                     &res,
-                    Url::parse("chrome:///quirks-mode.css").unwrap(),
+                    url!("chrome:///quirks-mode.css"),
                     None,
                     None,
                     Origin::UserAgent)

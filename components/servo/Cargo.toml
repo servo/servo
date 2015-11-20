@@ -29,6 +29,9 @@ path = "../../tests/unit/net"
 [dev-dependencies.net_traits_tests]
 path = "../../tests/unit/net_traits"
 
+[dev-dependencies.plugin_tests]
+path = "../../tests/unit/plugin"
+
 [dev-dependencies.script_tests]
 path = "../../tests/unit/script"
 

@@ -28,6 +28,7 @@ dependencies = [
  "net_traits 0.0.1",
  "net_traits_tests 0.0.1",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "plugin_tests 0.0.1",
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
@@ -1223,6 +1224,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
+ "plugins 0.0.1",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -1389,10 +1391,19 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "plugin_tests"
+version = "0.0.1"
+dependencies = [
+ "plugins 0.0.1",
+ "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "plugins"
 version = "0.0.1"
 dependencies = [
  "tenacious 0.0.11 (git+https://github.com/Manishearth/rust-tenacious)",
+ "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1770,6 +1781,7 @@ dependencies = [
  "app_units 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plugins 0.0.1",
  "selectors 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",

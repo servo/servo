@@ -37,7 +37,7 @@ fn assert_parse(url:          &'static str,
 
     match data {
         None => {
-            assert_eq!(progress, Done(Err("invalid data uri".to_string())));
+            assert_eq!(progress, Done(Err("invalid data uri".to_owned())));
         }
         Some(dat) => {
             assert_eq!(progress, Payload(dat));
@@ -74,8 +74,8 @@ fn plain_charset() {
     assert_parse("data:text/plain;charset=latin1,hello",
         Some(ContentType(Mime(TopLevel::Text,
                               SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("latin1".to_string())))))),
-        Some("latin1".to_string()), Some(b"hello".iter().map(|&x| x).collect()));
+                              vec!((Attr::Charset, Value::Ext("latin1".to_owned())))))),
+        Some("latin1".to_owned()), Some(b"hello".iter().map(|&x| x).collect()));
 }
 
 #[test]
@@ -85,7 +85,7 @@ fn plain_only_charset() {
         Some(ContentType(Mime(TopLevel::Text,
                               SubLevel::Plain,
                               vec!((Attr::Charset, Value::Utf8))))),
-        Some("utf-8".to_string()), Some(b"hello".iter().map(|&x| x).collect()));
+        Some("utf-8".to_owned()), Some(b"hello".iter().map(|&x| x).collect()));
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn base64() {
 #[test]
 fn base64_ct() {
     assert_parse("data:application/octet-stream;base64,C62+7w==",
-        Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_string()), vec!()))),
+        Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_owned()), vec!()))),
         None,
         Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
@@ -110,7 +110,7 @@ fn base64_ct() {
 fn base64_charset() {
     assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
         Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("koi8-r".to_string())))))),
-        Some("koi8-r".to_string()),
+                              vec!((Attr::Charset, Value::Ext("koi8-r".to_owned())))))),
+        Some("koi8-r".to_owned()),
         Some(vec!(0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4)));
 }
