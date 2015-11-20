@@ -2535,6 +2535,18 @@
             "url": "/_mozilla/css/list_style_position_a.html"
           }
         ],
+        "css/list_style_type_a.html": [
+          {
+            "path": "css/list_style_type_a.html",
+            "references": [
+              [
+                "/_mozilla/css/list_style_type_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/list_style_type_a.html"
+          }
+        ],
         "css/many_brs_a.html": [
           {
             "path": "css/many_brs_a.html",
@@ -7754,6 +7766,18 @@
             ]
           ],
           "url": "/_mozilla/css/list_style_position_a.html"
+        }
+      ],
+      "css/list_style_type_a.html": [
+        {
+          "path": "css/list_style_type_a.html",
+          "references": [
+            [
+              "/_mozilla/css/list_style_type_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/list_style_type_a.html"
         }
       ],
       "css/many_brs_a.html": [
