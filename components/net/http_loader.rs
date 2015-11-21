@@ -28,7 +28,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
-use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
+use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -65,6 +65,7 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     context.set_verify(SSL_VERIFY_PEER, None);
     context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
     context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
+    context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3);
     let connector = HttpsConnector::new(Openssl {
         context: Arc::new(context)
     });
