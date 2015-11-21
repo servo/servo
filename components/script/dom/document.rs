@@ -1908,8 +1908,8 @@ impl DocumentMethods for Document {
                           -> Root<NodeIterator> {
         NodeIterator::new(self, root, whatToShow, filter)
     }
-
-    // https://w3c.github.io/touch-events/#idl-def-Document
+    
+    // https://w3c.github.io/touch-events/#widl-Document-createTouchList-TouchList-Touch-touches
     fn CreateTouch(&self,
                    window: &Window,
                    target: &EventTarget,
@@ -1937,36 +1937,6 @@ impl DocumentMethods for Document {
         TouchList::new(&self.window, &touches)
     }
     
-    /*
-    fn CreateTouchEvent(&self,
-                        touches: &TouchList,
-                        targets: &TouchList,
-                        changedTouches: &TouchList,
-                        altKey: bool, //errors with these names
-                        metaKey: bool,
-                        ctrlKey: bool,
-                        shiftKey: bool)
-                        -> Root<TouchEvent> {
-        let touches = &TouchList::new(&self.window, &[]);
-        let targets = &TouchList::new(&self.window, &[]);
-        let changedTouches = &TouchList::new(&self.window, &[]);
-        let altKey = false;
-        let metaKey = false;
-        let ctrlKey = false;
-        let shiftKey = false;
-        TouchEvent::new(&self.window, 
-                        DOMString::from("test"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::Cancelable,
-                        Some(&self.window),
-                        0i32,
-                        touches,
-                        targets,
-                        changedTouches,
-                        altKey, metaKey, ctrlKey, shiftKey)
-        }
-        */
-
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,

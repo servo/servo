@@ -171,14 +171,4 @@ partial interface Document {
                         double screenY);
 
       TouchList createTouchList(Touch... touches);
-
-      /*
-      TouchEvent createTouchEvent(TouchList touches,
-                                  TouchList targets,
-                                  TouchList changedTouches,
-                                  boolean altKey,
-                                  boolean metaKey,
-                                  boolean ctrlKey,
-                                  boolean shiftKey);
-      */
 };
