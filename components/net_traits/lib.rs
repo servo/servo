@@ -104,7 +104,7 @@ impl Response {
             response_type: ResponseType::Error,
             termination_reason: None,
             url: None,
-            url_list: Vec::new(),
+            url_list: vec![],
             status: None,
             headers: Headers::new(),
             body: ResponseBody::Empty,

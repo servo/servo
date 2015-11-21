@@ -212,8 +212,10 @@ impl Request {
 
     /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
     pub fn basic_fetch(&mut self) -> Response {
-        let url_list = self.url_list.clone();
-        let url = url_list.last().unwrap();
+        let url = {
+            let ref url_list = self.url_list;
+            url_list.last().unwrap().clone()
+        };
         match &*url.scheme {
             "about" => match url.non_relative_scheme_data() {
                 Some(s) if &*s == "blank" => {
@@ -357,55 +359,61 @@ impl Request {
                     return actual_response;
                 }
                 let location = match actual_response.headers.get::<Location>() {
-                    Some(location) => location,
-                    None => return Response::network_error(),
+                    Some(&Location(ref location)) => location.clone(),
+                    _ => return Response::network_error(),
                 };
                 // Step 5
-                let location_url = UrlParser::new().base_url(self.url_list.last().unwrap()).parse(location);
+                let location_url = UrlParser::new().base_url(self.url_list.last().unwrap()).parse(&*location);
                 // Step 6
-                let location_url = if let Ok(url) = location_url {
-                    if url.scheme != "data" { url }
-                    else { return Response::network_error(); }
-                } else { return Response::network_error(); };
+                let location_url = match location_url {
+                    Ok(url) => {
+                        if url.scheme == "data" { return Response::network_error(); }
+                        url
+                    }
+                    _ => { return Response::network_error(); }
+                };
                 // Step 7
                 if self.redirect_count == 20 {
                     return Response::network_error();
                 }
                 // Step 8
                 self.redirect_count += 1;
-                // Step 9
-                if self.redirect_mode == RedirectMode::Manual {
-                    response = actual_response.clone().to_filtered(ResponseType::Opaque);
-                }
-                // Step 10
-                if self.redirect_mode == RedirectMode::Follow {
-                    // Substep 1
-                    // FIXME: Use Url::origin
-                    // if (self.mode == RequestMode::CORSMode || self.mode == RequestMode::ForcedPreflightMode) &&
-                    //     location_url.origin() != self.url.origin() &&
-                    //     has_credentials(&location_url) {
-                    //     return Response::network_error();
-                    // }
-                    // Substep 2
-                    if cors_flag && (has_credentials(&location_url)) {
-                        return Response::network_error();
+                match self.redirect_mode {
+                    // Step 9
+                    RedirectMode::Manual => {
+                        response = actual_response.to_filtered(ResponseType::Opaque);
                     }
-                    // Substep 3
-                    // FIXME: Use Url::origin
-                    // if cors_flag && location_url.origin() != self.url.origin() {
-                    //     self.origin = Origin::UID(OpaqueOrigin);
-                    // }
-                    // Substep 4
-                    if actual_response.status.unwrap() == StatusCode::SeeOther ||
-                       ((actual_response.status.unwrap() == StatusCode::MovedPermanently ||
-                         actual_response.status.unwrap() == StatusCode::Found) &&
-                        self.method == Method::Post) {
-                        self.method = Method::Get;
+                    // Step 10
+                    RedirectMode::Follow => {
+                        // Substep 1
+                        // FIXME: Use Url::origin
+                        // if (self.mode == RequestMode::CORSMode || self.mode == RequestMode::ForcedPreflightMode) &&
+                        //     location_url.origin() != self.url.origin() &&
+                        //     has_credentials(&location_url) {
+                        //     return Response::network_error();
+                        // }
+                        // Substep 2
+                        if cors_flag && has_credentials(&location_url) {
+                            return Response::network_error();
+                        }
+                        // Substep 3
+                        // FIXME: Use Url::origin
+                        // if cors_flag && location_url.origin() != self.url.origin() {
+                        //     self.origin = Origin::UID(OpaqueOrigin);
+                        // }
+                        // Substep 4
+                        if actual_response.status.unwrap() == StatusCode::SeeOther ||
+                           ((actual_response.status.unwrap() == StatusCode::MovedPermanently ||
+                             actual_response.status.unwrap() == StatusCode::Found) &&
+                            self.method == Method::Post) {
+                            self.method = Method::Get;
+                        }
+                        // Substep 5
+                        self.url_list.push(location_url);
+                        // Substep 6
+                        return self.main_fetch(cors_flag);
                     }
-                    // Substep 5
-                    self.url_list.push(location_url);
-                    // Substep 6
-                    return self.main_fetch(cors_flag);
+                    RedirectMode::Error => { panic!("RedirectMode is Error after step 8") }
                 }
             }
             // Code 401
