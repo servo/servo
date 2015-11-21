@@ -33,6 +33,7 @@ use unicode_bidi;
 use util;
 use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use util::print_tree::PrintTree;
 use util::range::{Range, RangeIndex};
 use wrapper::PseudoElementType;
 
@@ -774,16 +775,6 @@ pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
 }
-
-impl fmt::Debug for InlineFragments {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for fragment in &self.fragments {
-            try!(write!(f, "\n  * {:?}", fragment))
-        }
-        Ok(())
-    }
-}
-
 
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
@@ -1824,15 +1815,21 @@ impl Flow for InlineFlow {
         }
         containing_block_size
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        for fragment in &self.fragments.fragments {
+            print_tree.add_item(format!("{:?}", fragment));
+        }
+    }
 }
 
 impl fmt::Debug for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?} - {:x} - Ovr {:?} - {:?}",
-            self.class(),
-            self.base.debug_id(),
-            flow::base(self).overflow,
-            self.fragments)
+        write!(f,
+               "{:?}({:x}) {:?}",
+               self.class(),
+               self.base.debug_id(),
+               flow::base(self))
     }
 }
 

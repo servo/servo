@@ -215,11 +215,11 @@ impl fmt::Debug for SpecificFragmentInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             SpecificFragmentInfo::ScannedText(ref info) => {
-                write!(f, " \"{}\"", slice_chars(&*info.run.text, info.range.begin().get() as usize,
+                write!(f, "\"{}\"", slice_chars(&*info.run.text, info.range.begin().get() as usize,
                                                  info.range.end().get() as usize))
             }
             SpecificFragmentInfo::UnscannedText(ref info) => {
-                write!(f, " \"{}\"", info.text)
+                write!(f, "\"{}\"", info.text)
             }
             _ => Ok(())
         }
@@ -2409,13 +2409,32 @@ impl Fragment {
 
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
-        try!(write!(f, "bb {:?} bp {:?} m {:?}{:?}",
-                    self.border_box,
-                    self.border_padding,
-                    self.margin,
-                    self.specific));
-        write!(f, ")")
+        let border_padding_string = if !self.border_padding.is_zero() {
+            format!(" border_padding={:?}", self.border_padding)
+        } else {
+            "".to_owned()
+        };
+
+        let margin_string = if !self.margin.is_zero() {
+            format!(" margin={:?}", self.margin)
+        } else {
+            "".to_owned()
+        };
+
+        let damage_string = if self.restyle_damage != RestyleDamage::empty() {
+            format!(" damage={:?}", self.restyle_damage)
+        } else {
+            "".to_owned()
+        };
+
+        write!(f, "{}({}) [{:?}] border_box={:?}{}{}{}",
+            self.specific.get_type(),
+            self.debug_id(),
+            self.specific,
+            self.border_box,
+            border_padding_string,
+            margin_string,
+            damage_string)
     }
 }
 

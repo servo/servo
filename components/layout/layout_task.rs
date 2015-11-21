@@ -1251,7 +1251,7 @@ impl LayoutTask {
             }
 
             if opts::get().dump_flow_tree {
-                root_flow.dump();
+                root_flow.print("Post layout flow tree".to_owned());
             }
 
             self.generation += 1;

@@ -58,6 +58,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use util::print_tree::PrintTree;
 use wrapper::{PseudoElementType, ServoThreadSafeLayoutNode, ThreadSafeLayoutNode};
 
 /// Virtual methods that make up a float context.
@@ -362,6 +363,12 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
+
+    /// Print any extra children (such as fragments) contained in this Flow
+    /// for debugging purposes. Any items inserted into the tree will become
+    /// children of this flow.
+    fn print_extra_flow_children(&self, _: &mut PrintTree) {
+    }
 }
 
 // Base access
@@ -449,10 +456,10 @@ pub trait ImmutableFlowUtils {
     fn is_inline_flow(self) -> bool;
 
     /// Dumps the flow tree for debugging.
-    fn dump(self);
+    fn print(self, title: String);
 
-    /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
-    fn dump_with_level(self, level: u32);
+    /// Dumps the flow tree for debugging into the given PrintTree.
+    fn print_with_tree(self, print_tree: &mut PrintTree);
 }
 
 pub trait MutableFlowUtils {
@@ -906,13 +913,32 @@ pub struct BaseFlow {
 
 impl fmt::Debug for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let child_count = self.parallel.children_count.load(Ordering::SeqCst);
+        let child_count_string = if child_count > 0 {
+            format!(" children={}", child_count)
+        } else {
+            "".to_owned()
+        };
+
+        let absolute_descendants_string = if self.abs_descendants.len() > 0 {
+            format!(" abs-descendents={}", self.abs_descendants.len())
+        } else {
+            "".to_owned()
+        };
+
+        let damage_string = if self.restyle_damage != RestyleDamage::empty() {
+            format!(" damage={:?}", self.restyle_damage)
+        } else {
+            "".to_owned()
+        };
+
         write!(f,
-               "@ {:?}, CC {}, ADC {}, Ovr {:?}, Dmg {:?}",
+               "pos={:?}, overflow={:?}{}{}{}",
                self.position,
-               self.parallel.children_count.load(Ordering::SeqCst),
-               self.abs_descendants.len(),
                self.overflow,
-               self.restyle_damage)
+               child_count_string,
+               absolute_descendants_string,
+               damage_string)
     }
 }
 
@@ -1278,22 +1304,19 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 
     /// Dumps the flow tree for debugging.
-    fn dump(self) {
-        self.dump_with_level(0)
+    fn print(self, title: String) {
+        let mut print_tree = PrintTree::new(title);
+        self.print_with_tree(&mut print_tree);
     }
 
-    /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
-    fn dump_with_level(self, level: u32) {
-        let mut indent = String::new();
-        for _ in 0..level {
-            indent.push_str("| ")
-        }
-
-        println!("{}+ {:?}", indent, self);
-
+    /// Dumps the flow tree for debugging into the given PrintTree.
+    fn print_with_tree(self, print_tree: &mut PrintTree) {
+        print_tree.new_level(format!("{:?}", self));
+        self.print_extra_flow_children(print_tree);
         for kid in imm_child_iter(self) {
-            kid.dump_with_level(level + 1)
+            kid.print_with_tree(print_tree);
         }
+        print_tree.end_level();
     }
 }
 
