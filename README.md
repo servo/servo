@@ -1,4 +1,4 @@
-# The Servo Parallel Browser Project
+# The Servo Parallel Browser Engine Project
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
