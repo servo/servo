@@ -435,11 +435,6 @@ impl Node {
     }
 
     #[inline]
-    pub fn is_anchor_element(&self) -> bool {
-        self.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement))
-    }
-
-    #[inline]
     pub fn is_doctype(&self) -> bool {
         self.type_id() == NodeTypeId::DocumentType
     }

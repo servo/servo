@@ -35,6 +35,7 @@ use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
 use dom::document::{DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
 use dom::uievent::UIEvent;
@@ -1797,7 +1798,7 @@ impl ScriptTask {
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
-                        if target.upcast::<Node>().is_anchor_element() {
+                        if target.is::<HTMLAnchorElement>() {
                             let event = ConstellationMsg::NodeStatus(None);
                             let ConstellationChan(ref chan) = self.constellation_chan;
                             chan.send(event).unwrap();
@@ -1808,7 +1809,7 @@ impl ScriptTask {
 
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
-                    if target.upcast::<Node>().is_anchor_element() {
+                    if target.is::<HTMLAnchorElement>() {
                         let status = target.get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
