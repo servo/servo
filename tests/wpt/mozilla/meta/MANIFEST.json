@@ -4051,6 +4051,18 @@
             "url": "/_mozilla/css/text_decoration_cached.html"
           }
         ],
+        "css/text_decoration_smoke_a.html": [
+          {
+            "path": "css/text_decoration_smoke_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_smoke_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_smoke_a.html"
+          }
+        ],
         "css/text_indent_a.html": [
           {
             "path": "css/text_indent_a.html",
@@ -9442,6 +9454,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_decoration_cached.html"
+        }
+      ],
+      "css/text_decoration_smoke_a.html": [
+        {
+          "path": "css/text_decoration_smoke_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_smoke_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_smoke_a.html"
         }
       ],
       "css/text_indent_a.html": [

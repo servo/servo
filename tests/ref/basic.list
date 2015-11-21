@@ -49,7 +49,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 # == position_fixed_simple_a.html position_fixed_simple_b.html
 # == position_fixed_static_y_a.html position_fixed_static_y_b.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
-!= text_decoration_smoke_a.html text_decoration_smoke_ref.html
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
 != text_overflow_a.html text_overflow_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
