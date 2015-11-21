@@ -3523,6 +3523,30 @@
             "url": "/_mozilla/css/restyle_hints_state.html"
           }
         ],
+        "css/root_display_inline_a.html": [
+          {
+            "path": "css/root_display_inline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_display_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_display_inline_a.html"
+          }
+        ],
+        "css/root_display_without_style_a.html": [
+          {
+            "path": "css/root_display_without_style_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_display_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_display_without_style_a.html"
+          }
+        ],
         "css/root_height_a.html": [
           {
             "path": "css/root_height_a.html",
@@ -8890,6 +8914,30 @@
             ]
           ],
           "url": "/_mozilla/css/restyle_hints_state.html"
+        }
+      ],
+      "css/root_display_inline_a.html": [
+        {
+          "path": "css/root_display_inline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/root_display_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/root_display_inline_a.html"
+        }
+      ],
+      "css/root_display_without_style_a.html": [
+        {
+          "path": "css/root_display_without_style_a.html",
+          "references": [
+            [
+              "/_mozilla/css/root_display_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/root_display_without_style_a.html"
         }
       ],
       "css/root_height_a.html": [
