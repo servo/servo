@@ -48,22 +48,13 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 # == position_fixed_a.html position_fixed_b.html
 # == position_fixed_simple_a.html position_fixed_simple_b.html
 # == position_fixed_static_y_a.html position_fixed_static_y_b.html
-== position_fixed_tile_edge.html position_fixed_tile_edge_ref.html
-== position_fixed_tile_edge_2.html position_fixed_tile_edge_ref.html
-== position_fixed_tile_edge_3.html position_fixed_tile_edge_ref.html
-== root_display_inline_a.html root_display_ref.html
-== root_display_without_style_a.html root_display_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
-!= text_decoration_smoke_a.html text_decoration_smoke_ref.html
-!= text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
 != text_overflow_a.html text_overflow_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
-prefs:"layout.viewport.enabled" == viewport_meta.html viewport_rule_ref.html
 resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
 # resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 # resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
-prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
 
 flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
 

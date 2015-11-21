@@ -3295,6 +3295,42 @@
             "url": "/_mozilla/css/position_fixed_overflow_a.html"
           }
         ],
+        "css/position_fixed_tile_edge.html": [
+          {
+            "path": "css/position_fixed_tile_edge.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_tile_edge_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_tile_edge.html"
+          }
+        ],
+        "css/position_fixed_tile_edge_2.html": [
+          {
+            "path": "css/position_fixed_tile_edge_2.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_tile_edge_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_tile_edge_2.html"
+          }
+        ],
+        "css/position_fixed_tile_edge_3.html": [
+          {
+            "path": "css/position_fixed_tile_edge_3.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_tile_edge_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_tile_edge_3.html"
+          }
+        ],
         "css/position_relative_a.html": [
           {
             "path": "css/position_relative_a.html",
@@ -3485,6 +3521,30 @@
               ]
             ],
             "url": "/_mozilla/css/restyle_hints_state.html"
+          }
+        ],
+        "css/root_display_inline_a.html": [
+          {
+            "path": "css/root_display_inline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_display_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_display_inline_a.html"
+          }
+        ],
+        "css/root_display_without_style_a.html": [
+          {
+            "path": "css/root_display_without_style_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_display_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_display_without_style_a.html"
           }
         ],
         "css/root_height_a.html": [
@@ -3991,6 +4051,30 @@
             "url": "/_mozilla/css/text_decoration_cached.html"
           }
         ],
+        "css/text_decoration_smoke_a.html": [
+          {
+            "path": "css/text_decoration_smoke_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_smoke_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_smoke_a.html"
+          }
+        ],
+        "css/text_decoration_underline_subpx_a.html": [
+          {
+            "path": "css/text_decoration_underline_subpx_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_underline_subpx_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_underline_subpx_a.html"
+          }
+        ],
         "css/text_indent_a.html": [
           {
             "path": "css/text_indent_a.html",
@@ -4361,6 +4445,30 @@
               ]
             ],
             "url": "/_mozilla/css/viewport_ignore_desktop.html"
+          }
+        ],
+        "css/viewport_meta.html": [
+          {
+            "path": "css/viewport_meta.html",
+            "references": [
+              [
+                "/_mozilla/css/viewport_rule_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/viewport_meta.html"
+          }
+        ],
+        "css/viewport_rule.html": [
+          {
+            "path": "css/viewport_rule.html",
+            "references": [
+              [
+                "/_mozilla/css/viewport_rule_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/viewport_rule.html"
           }
         ],
         "css/visibility_hidden.html": [
@@ -8628,6 +8736,42 @@
           "url": "/_mozilla/css/position_fixed_overflow_a.html"
         }
       ],
+      "css/position_fixed_tile_edge.html": [
+        {
+          "path": "css/position_fixed_tile_edge.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_tile_edge_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_tile_edge.html"
+        }
+      ],
+      "css/position_fixed_tile_edge_2.html": [
+        {
+          "path": "css/position_fixed_tile_edge_2.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_tile_edge_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_tile_edge_2.html"
+        }
+      ],
+      "css/position_fixed_tile_edge_3.html": [
+        {
+          "path": "css/position_fixed_tile_edge_3.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_tile_edge_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_tile_edge_3.html"
+        }
+      ],
       "css/position_relative_a.html": [
         {
           "path": "css/position_relative_a.html",
@@ -8818,6 +8962,30 @@
             ]
           ],
           "url": "/_mozilla/css/restyle_hints_state.html"
+        }
+      ],
+      "css/root_display_inline_a.html": [
+        {
+          "path": "css/root_display_inline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/root_display_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/root_display_inline_a.html"
+        }
+      ],
+      "css/root_display_without_style_a.html": [
+        {
+          "path": "css/root_display_without_style_a.html",
+          "references": [
+            [
+              "/_mozilla/css/root_display_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/root_display_without_style_a.html"
         }
       ],
       "css/root_height_a.html": [
@@ -9324,6 +9492,30 @@
           "url": "/_mozilla/css/text_decoration_cached.html"
         }
       ],
+      "css/text_decoration_smoke_a.html": [
+        {
+          "path": "css/text_decoration_smoke_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_smoke_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_smoke_a.html"
+        }
+      ],
+      "css/text_decoration_underline_subpx_a.html": [
+        {
+          "path": "css/text_decoration_underline_subpx_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_underline_subpx_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_underline_subpx_a.html"
+        }
+      ],
       "css/text_indent_a.html": [
         {
           "path": "css/text_indent_a.html",
@@ -9694,6 +9886,30 @@
             ]
           ],
           "url": "/_mozilla/css/viewport_ignore_desktop.html"
+        }
+      ],
+      "css/viewport_meta.html": [
+        {
+          "path": "css/viewport_meta.html",
+          "references": [
+            [
+              "/_mozilla/css/viewport_rule_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/viewport_meta.html"
+        }
+      ],
+      "css/viewport_rule.html": [
+        {
+          "path": "css/viewport_rule.html",
+          "references": [
+            [
+              "/_mozilla/css/viewport_rule_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/viewport_rule.html"
         }
       ],
       "css/visibility_hidden.html": [
