@@ -120,6 +120,14 @@ impl Response {
     }
 }
 
+/// An algebraic data type containing the parameters to different flavors of fetch
+pub enum FetchKind {
+    // CORS flag
+    Fetch(bool),
+    // CORS flag, CORS preflight flag, authentication fetch flag
+    HttpFetch(bool, bool, bool)
+}
+
 /// Image handling.
 ///
 /// It may be surprising that this goes in the network crate as opposed to the graphics crate.

@@ -11,7 +11,8 @@ use hyper::header::{QualityItem, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
-use net_traits::{AsyncFetchListener, Response, ResponseType, Metadata};
+use net_traits::{AsyncFetchListener, FetchKind, Response};
+use net_traits::{ResponseType, Metadata};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use url::{Url, UrlParser};
@@ -90,7 +91,7 @@ pub enum ResponseTainting {
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 pub struct Request {
     pub method: Method,
-    // Use the last method on Vec to act as spec url field
+    // Use the last method on url_list to act as spec url field
     pub url_list: Vec<Url>,
     pub headers: Headers,
     pub unsafe_request: bool,
@@ -148,13 +149,21 @@ impl Request {
         }
     }
 
-    pub fn fetch_async(mut self,
-                       cors_flag: bool,
-                       listener: Box<AsyncFetchListener + Send>) {
-        spawn_named(format!("fetch for {:?}", self.url_list.last().unwrap().serialize()), move || {
-            let res = self.fetch(cors_flag);
-            listener.response_available(res);
-        });
+    pub fn async_fetch(mut self, listener: Box<AsyncFetchListener + Send>, kind: FetchKind) {
+        match kind {
+            FetchKind::Fetch(cors_flag) => {
+                spawn_named(format!("fetch for {:?}", self.url_list.last().unwrap().serialize()), move || {
+                    let res = self.fetch(cors_flag);
+                    listener.response_available(res);
+                })
+            }
+            FetchKind::HttpFetch(cors, preflight, auth_fetch) => {
+                spawn_named(format!("http_fetch for {:?}", self.url_list.last().unwrap().serialize()), move || {
+                    let res = self.http_fetch(cors, preflight, auth_fetch);
+                    listener.response_available(res);
+                })
+            }
+        }
     }
 
     /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
@@ -237,17 +246,6 @@ impl Request {
 
             _ => Response::network_error()
         }
-    }
-
-    pub fn http_fetch_async(mut self, cors_flag: bool,
-                            cors_preflight_flag: bool,
-                            authentication_fetch_flag: bool,
-                            listener: Box<AsyncFetchListener + Send>) {
-        spawn_named(format!("http_fetch for {:?}", self.url_list.last().unwrap().serialize()), move || {
-            let res = self.http_fetch(cors_flag, cors_preflight_flag,
-                                      authentication_fetch_flag);
-            listener.response_available(res);
-        });
     }
 
     /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
