@@ -3295,6 +3295,42 @@
             "url": "/_mozilla/css/position_fixed_overflow_a.html"
           }
         ],
+        "css/position_fixed_tile_edge.html": [
+          {
+            "path": "css/position_fixed_tile_edge.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_tile_edge_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_tile_edge.html"
+          }
+        ],
+        "css/position_fixed_tile_edge_2.html": [
+          {
+            "path": "css/position_fixed_tile_edge_2.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_tile_edge_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_tile_edge_2.html"
+          }
+        ],
+        "css/position_fixed_tile_edge_3.html": [
+          {
+            "path": "css/position_fixed_tile_edge_3.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_tile_edge_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_tile_edge_3.html"
+          }
+        ],
         "css/position_relative_a.html": [
           {
             "path": "css/position_relative_a.html",
@@ -8626,6 +8662,42 @@
             ]
           ],
           "url": "/_mozilla/css/position_fixed_overflow_a.html"
+        }
+      ],
+      "css/position_fixed_tile_edge.html": [
+        {
+          "path": "css/position_fixed_tile_edge.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_tile_edge_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_tile_edge.html"
+        }
+      ],
+      "css/position_fixed_tile_edge_2.html": [
+        {
+          "path": "css/position_fixed_tile_edge_2.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_tile_edge_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_tile_edge_2.html"
+        }
+      ],
+      "css/position_fixed_tile_edge_3.html": [
+        {
+          "path": "css/position_fixed_tile_edge_3.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_tile_edge_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_tile_edge_3.html"
         }
       ],
       "css/position_relative_a.html": [
