@@ -1909,7 +1909,7 @@ impl DocumentMethods for Document {
         NodeIterator::new(self, root, whatToShow, filter)
     }
     
-    // https://w3c.github.io/touch-events/#widl-Document-createTouchList-TouchList-Touch-touches
+    // https://w3c.github.io/touch-events/#extensions-to-the-document-interface
     fn CreateTouch(&self,
                    window: &Window,
                    target: &EventTarget,
@@ -1932,7 +1932,7 @@ impl DocumentMethods for Document {
                    pageY)
     }
 
-    // https://w3c.github.io/touch-events/#idl-def-Document
+    // https://w3c.github.io/touch-events/#widl-Document-createTouchList-TouchList-Touch-touches
     fn CreateTouchList(&self, touches: &[&Touch]) -> Root<TouchList> {
         TouchList::new(&self.window, &touches)
     }
