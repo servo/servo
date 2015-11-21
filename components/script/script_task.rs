@@ -28,6 +28,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
+use dom::bindings::proxyhandler::{JSPROXYSLOT_EXPANDO, get_expando_object};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
@@ -48,13 +49,14 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::glue::CollectServoSizes;
+use js::glue::{CollectServoSizes, GetProxyExtra, GetProxyHandler, InvokeHasOwn};
+use js::jsapi::JS_AlreadyHasOwnPropertyById;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue, SetDOMProxyInformation};
 use js::jsapi::{DisableIncrementalGC, JS_AddExtraGCRootsTracer, JS_SetWrapObjectCallbacks};
 use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallback};
 use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
-use js::jsapi::{JSObject, SetPreserveWrapperCallback};
+use js::jsapi::{JSObject, SetPreserveWrapperCallback, RootedObject};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -590,8 +592,42 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
 
 unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
     _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
-    // XXX implement me
-    DOMProxyShadowsResult::ShadowCheckFailed
+    let expando = RootedObject::new(_cx, get_expando_object(_object));
+    let val = GetProxyExtra(_object.get(), JSPROXYSLOT_EXPANDO);
+    let is_override_builtins = !val.is_object() && !val.is_undefined();
+    if !expando.ptr.is_null() {
+        let mut found = false;
+        let found_ptr = &mut found as *mut bool;
+        if !JS_AlreadyHasOwnPropertyById(_cx, expando.handle(), _id, found_ptr) {
+            return DOMProxyShadowsResult::ShadowCheckFailed;
+        }
+        if found {
+            return if is_override_builtins {
+                DOMProxyShadowsResult::ShadowsViaIndirectExpando
+            }
+            else {
+                DOMProxyShadowsResult::ShadowsViaDirectExpando
+            }
+        }
+    }
+
+    if !is_override_builtins {
+        return DOMProxyShadowsResult::DoesntShadow;
+    }
+
+    let handler = GetProxyHandler(_object.get());
+
+    let mut found = false;
+    let found_ptr = &mut found as *mut bool;
+    if !InvokeHasOwn(handler, _cx, _object, _id, found_ptr) {
+        return DOMProxyShadowsResult::ShadowCheckFailed;
+    }
+
+    return if found {
+        DOMProxyShadowsResult::Shadows
+    } else {
+        DOMProxyShadowsResult::DoesntShadowUnique
+    }
 }
 
 impl ScriptTask {
