@@ -212,21 +212,21 @@ impl Request {
 
     /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
     pub fn basic_fetch(&mut self) -> Response {
-        let url = {
-            let ref url_list = self.url_list;
-            url_list.last().unwrap().clone()
-        };
-        match &*url.scheme {
-            "about" => match url.non_relative_scheme_data() {
-                Some(s) if &*s == "blank" => {
-                    let mut response = Response::new();
-                    response.headers.set(ContentType(Mime(
-                        TopLevel::Text, SubLevel::Html,
-                        vec![(Attr::Charset, Value::Utf8)])));
-                    response
-                },
-                _ => Response::network_error()
-            },
+        let scheme = self.url_list.last().unwrap().scheme.clone();
+        match &*scheme {
+            "about" => {
+                let url = self.url_list.last().unwrap();
+                match url.non_relative_scheme_data() {
+                    Some(s) if &*s == "blank" => {
+                        let mut response = Response::new();
+                        response.headers.set(ContentType(Mime(
+                            TopLevel::Text, SubLevel::Html,
+                            vec![(Attr::Charset, Value::Utf8)])));
+                        response
+                    },
+                    _ => Response::network_error()
+                }
+            }
             "http" | "https" => {
                 self.http_fetch(false, false, false)
             },
@@ -366,10 +366,8 @@ impl Request {
                 let location_url = UrlParser::new().base_url(self.url_list.last().unwrap()).parse(&*location);
                 // Step 6
                 let location_url = match location_url {
-                    Ok(url) => {
-                        if url.scheme == "data" { return Response::network_error(); }
-                        url
-                    }
+                    Ok(ref url) if url.scheme == "data" => { return Response::network_error(); }
+                    Ok(url) => url,
                     _ => { return Response::network_error(); }
                 };
                 // Step 7
