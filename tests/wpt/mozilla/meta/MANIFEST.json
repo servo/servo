@@ -4063,6 +4063,18 @@
             "url": "/_mozilla/css/text_decoration_smoke_a.html"
           }
         ],
+        "css/text_decoration_underline_subpx_a.html": [
+          {
+            "path": "css/text_decoration_underline_subpx_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_underline_subpx_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_underline_subpx_a.html"
+          }
+        ],
         "css/text_indent_a.html": [
           {
             "path": "css/text_indent_a.html",
@@ -9466,6 +9478,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_decoration_smoke_a.html"
+        }
+      ],
+      "css/text_decoration_underline_subpx_a.html": [
+        {
+          "path": "css/text_decoration_underline_subpx_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_underline_subpx_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_underline_subpx_a.html"
         }
       ],
       "css/text_indent_a.html": [
