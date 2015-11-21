@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -217,6 +219,21 @@ pub fn handle_get_attribute(page: &Rc<Page>,
     }).unwrap();
 }
 
+pub fn handle_get_css(page: &Rc<Page>,
+                      pipeline: PipelineId,
+                      node_id: String,
+                      name: String,
+                      reply: IpcSender<Result<String, ()>>) {
+    reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
+        Some(node) => {
+            let window = page.window();
+            let elem = node.downcast::<Element>().unwrap();
+            Ok(String::from(
+                window.GetComputedStyle(&elem, None).GetPropertyValue(DOMString::from(name))))
+        },
+        None => Err(())
+    }).unwrap();
+}
 
 pub fn handle_get_url(page: &Rc<Page>,
                       _pipeline: PipelineId,
