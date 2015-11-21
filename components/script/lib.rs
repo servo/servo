@@ -99,6 +99,8 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
+use js::jsapi::SetDOMProxyInformation;
+use std::ptr;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -145,6 +147,7 @@ fn perform_platform_specific_initialization() {}
 pub fn init() {
     unsafe {
         assert_eq!(js::jsapi::JS_Init(), true);
+        SetDOMProxyInformation(ptr::null(), 0, Some(script_task::shadow_check_callback));
     }
 
     // Create the global vtables used by the (generated) DOM
