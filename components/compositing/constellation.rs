@@ -701,7 +701,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                           parent_info,
                           window_size,
                           None,
-                          LoadData::new(Url::parse("about:failure").unwrap()));
+                          LoadData::new(url!("about:failure")));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
     }

@@ -1,0 +1,15 @@
+[package]
+name = "plugin_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "plugin_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies.plugins]
+path = "../../../components/plugins"
+
+[dependencies.url]
+version = "0.2.36"

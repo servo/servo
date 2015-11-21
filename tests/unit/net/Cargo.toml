@@ -20,6 +20,9 @@ path = "../../../components/util"
 [dependencies.msg]
 path = "../../../components/msg"
 
+[dependencies.plugins]
+path = "../../../components/plugins"
+
 [dependencies.devtools_traits]
 path = "../../../components/devtools_traits"
 

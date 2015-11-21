@@ -6,12 +6,11 @@ use net::hsts::{HSTSList, HSTSEntry};
 use net::hsts::{secure_url, preload_hsts_domains};
 use net_traits::IncludeSubdomains;
 use time;
-use url::Url;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
     let entry = HSTSEntry {
-        host: "mozilla.org".to_string(),
+        host: "mozilla.org".to_owned(),
         include_subdomains: false,
         max_age: Some(20),
         timestamp: None
@@ -23,7 +22,7 @@ fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
     let entry = HSTSEntry {
-        host: "mozilla.org".to_string(),
+        host: "mozilla.org".to_owned(),
         include_subdomains: false,
         max_age: None,
         timestamp: Some(time::get_time().sec as u64)
@@ -35,7 +34,7 @@ fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
 #[test]
 fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
     let entry = HSTSEntry {
-        host: "mozilla.org".to_string(),
+        host: "mozilla.org".to_owned(),
         include_subdomains: false,
         max_age: Some(10),
         timestamp: Some(time::get_time().sec as u64 - 20u64)
@@ -47,7 +46,7 @@ fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
 #[test]
 fn test_hsts_entry_cant_be_created_with_ipv6_address_as_host() {
     let entry = HSTSEntry::new(
-        "2001:0db8:0000:0000:0000:ff00:0042:8329".to_string(), IncludeSubdomains::NotIncluded, None
+        "2001:0db8:0000:0000:0000:ff00:0042:8329".to_owned(), IncludeSubdomains::NotIncluded, None
     );
 
     assert!(entry.is_none(), "able to create HSTSEntry with IPv6 host");
@@ -56,7 +55,7 @@ fn test_hsts_entry_cant_be_created_with_ipv6_address_as_host() {
 #[test]
 fn test_hsts_entry_cant_be_created_with_ipv4_address_as_host() {
     let entry = HSTSEntry::new(
-        "4.4.4.4".to_string(), IncludeSubdomains::NotIncluded, None
+        "4.4.4.4".to_owned(), IncludeSubdomains::NotIncluded, None
     );
 
     assert!(entry.is_none(), "able to create HSTSEntry with IPv4 host");
@@ -65,11 +64,11 @@ fn test_hsts_entry_cant_be_created_with_ipv4_address_as_host() {
 #[test]
 fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
     let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, Some(500000u64)).unwrap())
     };
 
-    list.push(HSTSEntry::new("mozilla.org".to_string(),
+    list.push(HSTSEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, Some(0)).unwrap());
 
     assert!(list.is_host_secure("mozilla.org") == false)
@@ -78,11 +77,11 @@ fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
 #[test]
 fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_already_matched() {
     let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap())
     };
 
-    list.push(HSTSEntry::new("servo.mozilla.org".to_string(),
+    list.push(HSTSEntry::new("servo.mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
     assert!(list.entries.len() == 1)
@@ -91,13 +90,13 @@ fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_a
 #[test]
 fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_subdomains() {
     let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap())
     };
 
     assert!(list.is_host_secure("servo.mozilla.org"));
 
-    list.push(HSTSEntry::new("mozilla.org".to_string(),
+    list.push(HSTSEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
     assert!(!list.is_host_secure("servo.mozilla.org"))
@@ -106,11 +105,11 @@ fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_sub
 #[test]
 fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
     let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, None).unwrap())
     };
 
-    list.push(HSTSEntry::new("mozilla.org".to_string(),
+    list.push(HSTSEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
     assert!(list.entries.len() == 1)
@@ -125,9 +124,9 @@ fn test_push_multiple_entrie_to_hsts_list_should_add_them_all() {
     assert!(!list.is_host_secure("mozilla.org"));
     assert!(!list.is_host_secure("bugzilla.org"));
 
-    list.push(HSTSEntry::new("mozilla.org".to_string(),
+    list.push(HSTSEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::Included, None).unwrap());
-    list.push(HSTSEntry::new("bugzilla.org".to_string(),
+    list.push(HSTSEntry::new("bugzilla.org".to_owned(),
         IncludeSubdomains::Included, None).unwrap());
 
     assert!(list.is_host_secure("mozilla.org"));
@@ -142,7 +141,7 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 
     assert!(!list.is_host_secure("mozilla.org"));
 
-    list.push(HSTSEntry::new("mozilla.org".to_string(),
+    list.push(HSTSEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::Included, None).unwrap());
 
     assert!(list.is_host_secure("mozilla.org"));
@@ -187,7 +186,7 @@ fn test_hsts_list_with_no_entries_does_not_is_host_secure() {
 #[test]
 fn test_hsts_list_with_exact_domain_entry_is_is_host_secure() {
     let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, None).unwrap()]
     };
 
@@ -197,7 +196,7 @@ fn test_hsts_list_with_exact_domain_entry_is_is_host_secure() {
 #[test]
 fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_is_host_secure() {
     let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap()]
     };
 
@@ -207,7 +206,7 @@ fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_is_host_secu
 #[test]
 fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_is_host_secure() {
     let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, None).unwrap()]
     };
 
@@ -217,7 +216,7 @@ fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_is_host
 #[test]
 fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_is_host_secure() {
     let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap()]
     };
 
@@ -227,7 +226,7 @@ fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_is_host_sec
 #[test]
 fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_is_host_secure() {
     let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_string(),
+        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap()]
     };
 
@@ -238,7 +237,7 @@ fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_is_host_secure() {
 fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
     let hsts_list = HSTSList {
         entries: vec![HSTSEntry {
-            host: "mozilla.org".to_string(),
+            host: "mozilla.org".to_owned(),
             include_subdomains: false,
             max_age: Some(20),
             timestamp: Some(time::get_time().sec as u64 - 100u64)
@@ -256,7 +255,7 @@ fn test_preload_hsts_domains_well_formed() {
 
 #[test]
 fn test_secure_url_does_not_change_explicit_port() {
-    let url = Url::parse("http://mozilla.org:8080/").unwrap();
+    let url = url!("http://mozilla.org:8080/");
     let secure = secure_url(&url);
 
     assert!(secure.port().unwrap() == 8080u16);
@@ -264,7 +263,7 @@ fn test_secure_url_does_not_change_explicit_port() {
 
 #[test]
 fn test_secure_url_does_not_affect_non_http_schemas() {
-    let url = Url::parse("file://mozilla.org").unwrap();
+    let url = url!("file://mozilla.org");
     let secure = secure_url(&url);
 
     assert_eq!(&secure.scheme, "file");
@@ -272,7 +271,7 @@ fn test_secure_url_does_not_affect_non_http_schemas() {
 
 #[test]
 fn test_secure_url_forces_an_http_host_in_list_to_https() {
-    let url = Url::parse("http://mozilla.org").unwrap();
+    let url = url!("http://mozilla.org");
     let secure = secure_url(&url);
 
     assert_eq!(&secure.scheme, "https");

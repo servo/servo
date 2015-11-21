@@ -5,6 +5,7 @@
 #![feature(plugin)]
 #![cfg_attr(test, feature(core_intrinsics))]
 #![plugin(string_cache_plugin)]
+#![plugin(plugins)]
 
 extern crate app_units;
 extern crate cssparser;

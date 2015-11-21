@@ -9,7 +9,6 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};
-use url::Url;
 
 
 #[test]
@@ -21,7 +20,7 @@ fn test_parse_stylesheet() {
         html , body /**/ { display: block; }
         #d1 > .ok { background: blue; }
     ";
-    let url = Url::parse("about::test").unwrap();
+    let url = url!("about::test");
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent);
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,

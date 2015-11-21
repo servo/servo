@@ -124,7 +124,7 @@ impl HTMLIFrameElement {
     pub fn process_the_iframe_attributes(&self) {
         let url = match self.get_url() {
             Some(url) => url.clone(),
-            None => Url::parse("about:blank").unwrap(),
+            None => url!("about:blank"),
         };
 
         self.navigate_child_browsing_context(url);

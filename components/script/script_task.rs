@@ -1969,7 +1969,7 @@ impl ScriptTask {
         };
 
         if load_data.url.scheme == "javascript" {
-            load_data.url = Url::parse("about:blank").unwrap();
+            load_data.url = url!("about:blank");
         }
 
         resource_task.send(ControlMsg::Load(NetLoadData {
