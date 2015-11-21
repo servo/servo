@@ -18,7 +18,7 @@ use std::mem;
 use util::opts;
 use util::tid::tid;
 use wrapper::{LayoutNode, ServoLayoutNode, layout_node_to_unsafe_layout_node};
-use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
+use wrapper::{ThreadSafeLayoutNode, TThreadSafeLayoutNode, UnsafeLayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.

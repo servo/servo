@@ -31,7 +31,7 @@ use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
 use util::geometry::ZERO_POINT;
 use util::logical_geometry::WritingMode;
-use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode, TThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
 

@@ -58,7 +58,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode, TThreadSafeLayoutNode};
 
 /// Virtual methods that make up a float context.
 ///

@@ -57,7 +57,7 @@ use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::linked_list;
 use util::opts;
-use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutNode, TThreadSafeLayoutElement, TThreadSafeLayoutNode};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]

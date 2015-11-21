@@ -50,7 +50,7 @@ use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::slice_chars;
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode, TThreadSafeLayoutElement, TThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
