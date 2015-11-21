@@ -492,9 +492,9 @@ impl Document {
         })
     }
 
-    pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+    pub fn hit_test(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().hit_test(*point) {
+        match self.window.layout().hit_test(*page_point) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
@@ -503,9 +503,9 @@ impl Document {
         }
     }
 
-    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+    pub fn get_nodes_under_mouse(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().mouse_over(*point) {
+        match self.window.layout().mouse_over(*page_point) {
             Ok(MouseOverResponse(node_address)) => node_address,
             Err(()) => vec![],
         }
@@ -604,15 +604,18 @@ impl Document {
     pub fn handle_mouse_event(&self,
                               js_runtime: *mut JSRuntime,
                               _button: MouseButton,
-                              point: Point2D<f32>,
+                              client_point: Point2D<f32>,
                               mouse_event_type: MouseEventType) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
             MouseEventType::MouseUp => "mouseup".to_owned(),
             MouseEventType::MouseDown => "mousedown".to_owned(),
         };
-        debug!("{}: at {:?}", mouse_event_type_string, point);
-        let node = match self.hit_test(&point) {
+        debug!("{}: at {:?}", mouse_event_type_string, client_point);
+
+        let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                                      client_point.y + self.window.PageYOffset() as f32);
+        let node = match self.hit_test(&page_point) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -643,8 +646,8 @@ impl Document {
         }
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
-        let x = point.x as i32;
-        let y = point.y as i32;
+        let client_x = client_point.x as i32;
+        let client_y = client_point.y as i32;
         let clickCount = 1;
         let event = MouseEvent::new(&self.window,
                                     DOMString::from(mouse_event_type_string),
@@ -652,10 +655,10 @@ impl Document {
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
                                     clickCount,
-                                    x,
-                                    y,
-                                    x,
-                                    y, // TODO: Get real screen coordinates?
+                                    client_x,
+                                    client_y,
+                                    client_x,
+                                    client_y, // TODO: Get real screen coordinates?
                                     false,
                                     false,
                                     false,
@@ -683,9 +686,9 @@ impl Document {
                            ReflowReason::MouseEvent);
     }
 
-    pub fn fire_mouse_event(&self, point: Point2D<f32>, target: &EventTarget, event_name: String) {
-        let x = point.x.to_i32().unwrap_or(0);
-        let y = point.y.to_i32().unwrap_or(0);
+    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
+        let client_x = client_point.x.to_i32().unwrap_or(0);
+        let client_y = client_point.y.to_i32().unwrap_or(0);
 
         let mouse_event = MouseEvent::new(&self.window,
                                           DOMString::from(event_name),
@@ -693,10 +696,10 @@ impl Document {
                                           EventCancelable::Cancelable,
                                           Some(&self.window),
                                           0i32,
-                                          x,
-                                          y,
-                                          x,
-                                          y,
+                                          client_x,
+                                          client_y,
+                                          client_x,
+                                          client_y,
                                           false,
                                           false,
                                           false,
@@ -709,12 +712,14 @@ impl Document {
 
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
-                                   point: Option<Point2D<f32>>,
+                                   client_point: Option<Point2D<f32>>,
                                    prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = point.as_ref()
-                                        .map(|point| self.get_nodes_under_mouse(point))
-                                        .unwrap_or(vec![]);
+        let mouse_over_addresses = client_point.as_ref().map(|client_point| {
+            let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                                          client_point.y + self.window.PageYOffset() as f32);
+            self.get_nodes_under_mouse(&page_point)
+        }).unwrap_or(vec![]);
         let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
             node::from_untrusted_node_address(js_runtime, *node_address)
                 .inclusive_ancestors()
@@ -735,8 +740,8 @@ impl Document {
 
                     // FIXME: we should be dispatching this event but we lack an actual
                     //        point to pass to it.
-                    if let Some(point) = point {
-                        self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                    if let Some(client_point) = client_point {
+                        self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
                     }
                 }
             }
@@ -751,8 +756,8 @@ impl Document {
 
                 let target = target.upcast();
 
-                if let Some(point) = point {
-                    self.fire_mouse_event(point, target, "mouseover".to_owned());
+                if let Some(client_point) = client_point {
+                    self.fire_mouse_event(client_point, target, "mouseover".to_owned());
                 }
             }
         }
@@ -763,8 +768,8 @@ impl Document {
                                                                   mouse_over_addresses[0]);
 
             let target = top_most_node.upcast();
-            if let Some(point) = point {
-                self.fire_mouse_event(point, target, "mousemove".to_owned());
+            if let Some(client_point) = client_point {
+                self.fire_mouse_event(client_point, target, "mousemove".to_owned());
             }
         }
 
