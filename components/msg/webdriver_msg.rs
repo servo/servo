@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use constellation_msg::PipelineId;
+use constellation_msg::{PipelineId, WindowSizeData};
 use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json::{Json, ToJson};
 use url::Url;
@@ -21,6 +21,9 @@ pub enum WebDriverScriptCommand {
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
     GetUrl(IpcSender<Url>),
+    GetWindowSize(IpcSender<Option<WindowSizeData>>),
+    IsEnabled(String, IpcSender<Result<bool, ()>>),
+    IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>)
 }
 
