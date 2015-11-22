@@ -1915,7 +1915,7 @@ name = "websocket"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "net2 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
