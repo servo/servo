@@ -1567,6 +1567,18 @@
             "url": "/_mozilla/css/hide_after_create.html"
           }
         ],
+        "css/iframe/bg_color.html": [
+          {
+            "path": "css/iframe/bg_color.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/bg_color_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/bg_color.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7006,6 +7018,18 @@
             ]
           ],
           "url": "/_mozilla/css/hide_after_create.html"
+        }
+      ],
+      "css/iframe/bg_color.html": [
+        {
+          "path": "css/iframe/bg_color.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/bg_color_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/bg_color.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
