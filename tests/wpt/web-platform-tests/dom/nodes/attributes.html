@@ -459,4 +459,17 @@ test(function() {
   var el2 = document.createElement("div");
   assert_throws("INUSE_ATTRIBUTE_ERR", function(){el2.setAttributeNode(attrNode)});
 }, "setAttributeNode on bound attribute should throw InUseAttributeError")
+
+test(function() {
+  var e = document.body;
+
+  e.setAttributeNS(null, "FOO", "bar");
+  assert_equals(e.getAttributeNS(null, "FOO"), "bar");
+  assert_equals(e.getAttributeNS(null, "foo"), null);
+
+  e.setAttribute("FOO", "quux");
+  assert_equals(e.getAttributeNS(null, "FOO"), "bar");
+  assert_equals(e.getAttributeNS(null, "foo"), "quux");
+}, "setAttribute and setAttributeNS have different capitalization behavior")
+
 </script>

@@ -600,11 +600,15 @@ impl Element {
         &self.local_name
     }
 
-    pub fn parsed_name(&self, mut name: DOMString) -> Atom {
+    fn parsed_name_dont_atomize(&self, mut name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
             name.make_ascii_lowercase();
         }
-        Atom::from_slice(&name)
+        name
+    }
+
+    pub fn parsed_name(&self, name: DOMString) -> Atom {
+        Atom::from_slice(&self.parsed_name_dont_atomize(name))
     }
 
     pub fn namespace(&self) -> &Namespace {
@@ -940,6 +944,16 @@ impl Element {
         Ok(())
     }
 
+    fn get_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
+        where F: Fn(&Attr) -> bool
+    {
+        self.attrs
+            .borrow()
+            .iter()
+            .find(|attr| find(&attr))
+            .map(|js| Root::from_ref(&**js))
+    }
+
     fn set_first_matching_attribute<F>(&self,
                                        local_name: Atom,
                                        value: AttrValue,
@@ -949,11 +963,7 @@ impl Element {
                                        find: F)
         where F: Fn(&Attr) -> bool
     {
-        let attr = self.attrs
-                       .borrow()
-                       .iter()
-                       .find(|attr| find(&attr))
-                       .map(|js| Root::from_ref(&**js));
+        let attr = self.get_first_matching_attribute(find);
         if let Some(attr) = attr {
             attr.set_value(value, self);
         } else {
@@ -1211,14 +1221,24 @@ impl ElementMethods for Element {
             return Err(Error::InvalidCharacter);
         }
 
+
         // Step 2.
-        let name = self.parsed_name(name);
+        let name = self.parsed_name_dont_atomize(name);
+
+        // Interning strings is expensive, so first check if we already have an
+        // attribute with the given name.
+        let attr = self.get_first_matching_attribute(|attr| attr.name().as_slice() == &*name);
+        if let Some(attr) = attr {
+            // Step 3-5.
+            let value = self.parse_attribute(&ns!(""), attr.name(), value);
+            attr.set_value(value, self);
+            return Ok(());
+        }
 
         // Step 3-5.
+        let name = Atom::from_slice(&name);
         let value = self.parse_attribute(&ns!(""), &name, value);
-        self.set_first_matching_attribute(
-            name.clone(), value, name.clone(), ns!(""), None,
-            |attr| *attr.name() == name);
+        self.push_new_attribute(name.clone(), value, name, ns!(""), None);
         Ok(())
     }
 
