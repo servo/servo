@@ -1663,6 +1663,18 @@
             "url": "/_mozilla/css/iframe/positioning_margin.html"
           }
         ],
+        "css/iframe/simple.html": [
+          {
+            "path": "css/iframe/simple.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/simple.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7198,6 +7210,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/positioning_margin.html"
+        }
+      ],
+      "css/iframe/simple.html": [
+        {
+          "path": "css/iframe/simple.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/simple.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
