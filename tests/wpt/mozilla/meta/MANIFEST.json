@@ -1639,6 +1639,18 @@
             "url": "/_mozilla/css/iframe/multiple_external.html"
           }
         ],
+        "css/iframe/overflow.html": [
+          {
+            "path": "css/iframe/overflow.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/overflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/overflow.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7150,6 +7162,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/multiple_external.html"
+        }
+      ],
+      "css/iframe/overflow.html": [
+        {
+          "path": "css/iframe/overflow.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/overflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/overflow.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
