@@ -329,9 +329,16 @@ impl Document {
     }
 
     pub fn needs_reflow(&self) -> bool {
-        self.GetDocumentElement().is_some() &&
-        (self.upcast::<Node>().get_has_dirty_descendants() ||
-         !self.modified_elements.borrow().is_empty())
+        // FIXME: This should check the dirty bit on the document,
+        // not the document element. Needs some layout changes to make
+        // that workable.
+        match self.GetDocumentElement() {
+            Some(root) => {
+                root.upcast::<Node>().get_has_dirty_descendants() ||
+                !self.modified_elements.borrow().is_empty()
+            }
+            None => false,
+        }
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.

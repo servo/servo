@@ -966,7 +966,11 @@ impl Window {
             return
         }
 
-        self.force_reflow(goal, query_type, reason)
+        self.force_reflow(goal, query_type, reason);
+
+        // If window_size is `None`, we don't reflow, so the document stays dirty.
+        // Otherwise, we shouldn't need a reflow immediately after a reflow.
+        assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
     }
 
     pub fn layout(&self) -> &LayoutRPC {
