@@ -1908,7 +1908,7 @@ impl DocumentMethods for Document {
                           -> Root<NodeIterator> {
         NodeIterator::new(self, root, whatToShow, filter)
     }
-    
+
     // https://w3c.github.io/touch-events/#extensions-to-the-document-interface
     fn CreateTouch(&self,
                    window: &Window,
@@ -1936,7 +1936,7 @@ impl DocumentMethods for Document {
     fn CreateTouchList(&self, touches: &[&Touch]) -> Root<TouchList> {
         TouchList::new(&self.window, &touches)
     }
-    
+
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
