@@ -13,7 +13,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
-== iframe/hide_after_load.html iframe/hide_after_load_ref.html
 == iframe/hide_and_show.html iframe/hide_and_show_ref.html
 == iframe/hide_layers1.html iframe/hide_layers_ref.html
 == iframe/hide_layers2.html iframe/hide_layers_ref.html
