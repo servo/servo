@@ -338,13 +338,6 @@ impl Request {
         let mut actual_response = actual_response.unwrap();
         let mut response = response.unwrap();
         match actual_response.status.unwrap() {
-            // Code 304
-            StatusCode::NotModified => match self.cache_mode {
-                CacheMode::Default | CacheMode::NoCache => {
-                    // TODO: Check HTTP cache for request and response entry
-                }
-                _ => { }
-            },
             // Code 301, 302, 303, 307, 308
             StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
             StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
