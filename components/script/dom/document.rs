@@ -2445,10 +2445,11 @@ impl DocumentMethods for Document {
             return Ok(DOMString::new());
         }
 
-        let url = self.url();
-        if !is_scheme_host_port_tuple(&url) {
+        if !self.origin.is_scheme_host_port_tuple() {
             return Err(Error::Security);
         }
+
+        let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
         let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
@@ -2461,10 +2462,11 @@ impl DocumentMethods for Document {
             return Ok(());
         }
 
-        let url = self.url();
-        if !is_scheme_host_port_tuple(url) {
+        if !self.origin.is_scheme_host_port_tuple() {
             return Err(Error::Security);
         }
+
+        let url = self.url();
         let _ = self.window
                     .resource_thread()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
@@ -2666,10 +2668,6 @@ impl DocumentMethods for Document {
         // Step 5
         elements
     }
-}
-
-fn is_scheme_host_port_tuple(url: &Url) -> bool {
-    url.host().is_some() && url.port_or_default().is_some()
 }
 
 fn update_with_current_time(marker: &Cell<u64>) {
