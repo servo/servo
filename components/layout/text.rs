@@ -40,7 +40,7 @@ fn text(fragments: &LinkedList<Fragment>) -> String {
     for fragment in fragments {
         match fragment.specific {
             SpecificFragmentInfo::UnscannedText(ref info) => {
-                if fragment.white_space_preserve_newlines() {
+                if fragment.white_space().preserve_newlines() {
                     text.push_str(&info.text);
                 } else {
                     text.push_str(&info.text.replace("\n", " "));
@@ -411,7 +411,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
         let string_before;
         let insertion_point_before;
         {
-            if !first_fragment.white_space_preserve_newlines() {
+            if !first_fragment.white_space().preserve_newlines() {
                 return;
             }
 

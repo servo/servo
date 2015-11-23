@@ -63,7 +63,7 @@ use std::mem;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
-use style::computed_values::{content, display, white_space};
+use style::computed_values::{content, display};
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -960,13 +960,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             //
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
-            match self.style().get_inheritedtext().white_space {
-                white_space::T::normal |
-                white_space::T::nowrap => true,
-                white_space::T::pre |
-                white_space::T::pre_wrap |
-                white_space::T::pre_line => false,
-            }
+            !self.style().get_inheritedtext().white_space.preserve_newlines()
         }
     }
 

@@ -1238,36 +1238,6 @@ impl Fragment {
         self.style().get_inheritedtext().white_space
     }
 
-    pub fn white_space_allow_wrap(&self) -> bool {
-        match self.white_space() {
-            white_space::T::nowrap |
-            white_space::T::pre => false,
-            white_space::T::normal |
-            white_space::T::pre_wrap |
-            white_space::T::pre_line => true,
-        }
-    }
-
-    pub fn white_space_preserve_newlines(&self) -> bool {
-        match self.white_space() {
-            white_space::T::normal |
-            white_space::T::nowrap => false,
-            white_space::T::pre |
-            white_space::T::pre_wrap |
-            white_space::T::pre_line => true,
-        }
-    }
-
-    pub fn white_space_preserve_spaces(&self) -> bool {
-        match self.white_space() {
-            white_space::T::normal |
-            white_space::T::nowrap |
-            white_space::T::pre_line => false,
-            white_space::T::pre |
-            white_space::T::pre_wrap => true,
-        }
-    }
-
     /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
@@ -1297,7 +1267,7 @@ impl Fragment {
     /// Returns true if this element can be split. This is true for text fragments, unless
     /// `white-space: pre` or `white-space: nowrap` is set.
     pub fn can_split(&self) -> bool {
-        self.is_scanned_text_fragment() && self.white_space_allow_wrap()
+        self.is_scanned_text_fragment() && self.white_space().allow_wrap()
     }
 
     /// Returns true if and only if this fragment is a generated content fragment.
@@ -1371,7 +1341,7 @@ impl Fragment {
                                                              .metrics_for_range(range)
                                                              .advance_width;
 
-                let min_line_inline_size = if self.white_space_allow_wrap() {
+                let min_line_inline_size = if self.white_space().allow_wrap() {
                     text_fragment_info.run.min_width_for_range(range)
                 } else {
                     max_line_inline_size
@@ -2224,7 +2194,7 @@ impl Fragment {
     }
 
     pub fn strip_leading_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space_preserve_spaces() {
+        if self.white_space().preserve_spaces() {
             return WhitespaceStrippingResult::RetainFragment
         }
 
@@ -2287,7 +2257,7 @@ impl Fragment {
 
     /// Returns true if the entire fragment was stripped.
     pub fn strip_trailing_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space_preserve_spaces() {
+        if self.white_space().preserve_spaces() {
             return WhitespaceStrippingResult::RetainFragment
         }
 

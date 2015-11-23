@@ -2331,7 +2331,42 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${single_keyword("white-space", "normal pre nowrap pre-wrap pre-line")}
+    <%self:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line">
+        use values::computed::ComputedValueAsSpecified;
+        impl ComputedValueAsSpecified for SpecifiedValue {}
+
+        impl SpecifiedValue {
+            pub fn allow_wrap(&self) -> bool {
+                match *self {
+                    SpecifiedValue::nowrap |
+                    SpecifiedValue::pre => false,
+                    SpecifiedValue::normal |
+                    SpecifiedValue::pre_wrap |
+                    SpecifiedValue::pre_line => true,
+                }
+            }
+
+            pub fn preserve_newlines(&self) -> bool {
+                match *self {
+                    SpecifiedValue::normal |
+                    SpecifiedValue::nowrap => false,
+                    SpecifiedValue::pre |
+                    SpecifiedValue::pre_wrap |
+                    SpecifiedValue::pre_line => true,
+                }
+            }
+
+            pub fn preserve_spaces(&self) -> bool {
+                match *self {
+                    SpecifiedValue::normal |
+                    SpecifiedValue::nowrap |
+                    SpecifiedValue::pre_line => false,
+                    SpecifiedValue::pre |
+                    SpecifiedValue::pre_wrap => true,
+                }
+            }
+        }
+    </%self:single_keyword_computed>
 
     // TODO(pcwalton): `full-width`
     ${single_keyword("text-transform", "none capitalize uppercase lowercase")}

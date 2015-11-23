@@ -534,7 +534,7 @@ impl LineBreaker {
             self.pending_line.green_zone = line_bounds.size;
             false
         } else {
-            fragment.white_space_allow_wrap()
+            fragment.white_space().allow_wrap()
         };
 
         debug!("LineBreaker: trying to append to line {} (fragment size: {:?}, green zone: {:?}): \
@@ -564,7 +564,7 @@ impl LineBreaker {
 
         // If we must flush the line after finishing this fragment due to `white-space: pre`,
         // detect that.
-        let line_flush_mode = if fragment.white_space_preserve_newlines() {
+        let line_flush_mode = if fragment.white_space().preserve_newlines() {
             if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
                 LineFlushMode::Flush
             } else {
@@ -588,7 +588,7 @@ impl LineBreaker {
 
         // If the wrapping mode prevents us from splitting, then back up and split at the last
         // known good split point.
-        if !fragment.white_space_allow_wrap() {
+        if !fragment.white_space().allow_wrap() {
             debug!("LineBreaker: fragment can't split; falling back to last known good split point");
             if !self.split_line_at_last_known_good_position() {
                 // No line breaking opportunity exists at all for this line. Overflow.
