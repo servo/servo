@@ -19,6 +19,16 @@ enum OriginRepresentation {
     Alias(Rc<OriginRepresentation>),
 }
 
+impl OriginRepresentation {
+    fn is_scheme_host_port_tuple(&self) -> bool {
+        match *self {
+            OriginRepresentation::Origin(UrlOrigin::Tuple(..)) => true,
+            OriginRepresentation::Origin(UrlOrigin::UID(..)) => false,
+            OriginRepresentation::Alias(ref origin) => origin.is_scheme_host_port_tuple(),
+        }
+    }
+}
+
 impl Origin {
     pub fn opaque_identifier() -> Origin {
         Origin {
@@ -36,6 +46,10 @@ impl Origin {
         Origin {
             repr: Rc::new(OriginRepresentation::Origin(url.origin())),
         }
+    }
+
+    pub fn is_scheme_host_port_tuple(&self) -> bool {
+        self.repr.is_scheme_host_port_tuple()
     }
 }
 

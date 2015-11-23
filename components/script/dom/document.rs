@@ -1497,6 +1497,12 @@ impl Document {
         let target = node.upcast();
         event.fire(target);
     }
+
+    /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
+    fn is_cookie_averse(&self) -> bool {
+        self.browsing_context.is_none() ||
+        !url_uses_server_based_naming_authority(&self.url)
+    }
 }
 
 fn url_uses_server_based_naming_authority(url: &Url) -> bool {
@@ -2421,11 +2427,14 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn GetCookie(&self) -> Fallible<DOMString> {
-        // TODO: return empty string for cookie-averse Document
-        let url = self.url();
-        if !is_scheme_host_port_tuple(&url) {
+        if self.is_cookie_averse() {
+            return Ok(DOMString::new());
+        }
+
+        if !self.origin.is_scheme_host_port_tuple() {
             return Err(Error::Security);
         }
+        let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
         let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
@@ -2434,11 +2443,14 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
-        // TODO: ignore for cookie-averse Document
-        let url = self.url();
-        if !is_scheme_host_port_tuple(url) {
+        if self.is_cookie_averse() {
+            return Ok(());
+        }
+
+        if !self.origin.is_scheme_host_port_tuple() {
             return Err(Error::Security);
         }
+        let url = self.url();
         let _ = self.window
                     .resource_thread()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
@@ -2577,10 +2589,6 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#handler-onreadystatechange
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
-}
-
-fn is_scheme_host_port_tuple(url: &Url) -> bool {
-    url.host().is_some() && url.port_or_default().is_some()
 }
 
 fn update_with_current_time(marker: &Cell<u64>) {
