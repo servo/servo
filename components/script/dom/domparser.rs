@@ -13,7 +13,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::DocumentSource;
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, IsHTMLDocument, BrowsingContext};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -59,6 +59,7 @@ impl DOMParserMethods for DOMParser {
         match ty {
             Text_html => {
                 let document = Document::new(&self.window,
+                                             BrowsingContext::None,
                                              Some(url.clone()),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
@@ -72,6 +73,7 @@ impl DOMParserMethods for DOMParser {
             Text_xml => {
                 // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
+                                             BrowsingContext::None,
                                              Some(url.clone()),
                                              IsHTMLDocument::NonHTMLDocument,
                                              Some(content_type),

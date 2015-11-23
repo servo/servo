@@ -32,6 +32,7 @@ use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
+use dom::document::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -1819,6 +1820,7 @@ impl ScriptThread {
         };
 
         let document = Document::new(window.r(),
+                                     BrowsingContext::Window,
                                      Some(final_url.clone()),
                                      is_html_document,
                                      content_type,

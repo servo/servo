@@ -24,8 +24,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
-use dom::document::DocumentSource;
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, IsHTMLDocument, DocumentSource, BrowsingContext};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
@@ -1109,6 +1108,7 @@ impl XMLHttpRequest {
             DOMString::from(format!("{}", mime))
         });
         Document::new(win,
+                      BrowsingContext::None,
                       parsed_url,
                       is_html_document,
                       content_type,

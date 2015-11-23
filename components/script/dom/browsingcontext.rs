@@ -43,6 +43,7 @@ impl BrowsingContext {
 
     #[allow(unsafe_code)]
     pub fn new(document: &Document, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+        assert!(document.has_browsing_context());
         unsafe {
             let window = document.window();
 
