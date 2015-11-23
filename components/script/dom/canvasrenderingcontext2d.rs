@@ -441,7 +441,7 @@ impl CanvasRenderingContext2D {
                        Size2D::new(w as f32, h as f32)))
     }
 
-    fn parse_color(&self, string: &str) -> Result<RGBA,()> {
+    fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
         let mut parser = Parser::new(&string);
         let color = CSSColor::parse(&mut parser);
         if parser.is_exhausted() {
