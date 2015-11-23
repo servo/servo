@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html><head>
+		<meta charset="utf-8">
 		<title>CSS Regions: named flow content has contentEditable attribute set and children of it get
 			flowed in a region dynamically</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan">
@@ -42,13 +43,13 @@
 				The blue rectangle should have one block of text inside it and the black rectangle
 				should have two blocks of text inside it. No red should be visible at any time during
 				this test.</li>
-			<li>Double click on the word ìeditableî in the blue rectangle and type
-				ìfoobar bazquuxî.
+			<li>Double click on the word ‚Äúeditable‚Äù in the blue rectangle and type
+				‚Äúfoobar bazquux‚Äù.
 				<ul>
-				 	<li>The word ìeditableî should be replaced with ìfoobar bazquuxî.</li>
+				 	<li>The word ‚Äúeditable‚Äù should be replaced with ‚Äúfoobar bazquux‚Äù.</li>
 				 </ul>
 			</li>
-			<li>Repeat the steps above, but for the two occurrences of the word ìeditableî
+			<li>Repeat the steps above, but for the two occurrences of the word ‚Äúeditable‚Äù
 				in the black rectangle. The expected results are the same as for the previous step.
 			</li>
 		</ol>
@@ -83,4 +84,5 @@
 		})
 		</script>
 	
+
 </body></html>

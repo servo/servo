@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en-before">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-before" class="reftest-wait">
  <head>
   <title>CSS Test: CSS: Changing the background of the BODY element by changing a parent's attribute</title>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
@@ -17,6 +17,7 @@
     function test() {
       document.getElementsByTagName('html')[0].lang = 'en-after';
       document.getElementsByTagName('p')[0].lang = 'en-after';
+      document.documentElement.className = "";
     }
   </script>
  </head>

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Vertical Text (89 tests)</h2>
+  <h2>Introduction to Vertical Text (113 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -40,7 +40,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">3.1 Block Flow Direction: the writing-mode property</a></th></tr>
-      <!-- 74 tests -->
+      <!-- 98 tests -->
       <tr id="block-flow-direction-001-3.1" class="primary ahem">
         <td><strong>
             <a href="block-flow-direction-001.htm">block-flow-direction-001</a></strong></td>
@@ -313,6 +313,270 @@
         <td>writing mode of document - horizontal position of first block
           <ul class="assert">
             <li>This test checks that, when 'writing-mode' value of the root element is set to 'vertical-rl', then its block boxes are laid out leftwardedly (from right to left) one after the other beginning at its righthand side.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-042-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-042.htm">block-flow-direction-042</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>sideways-rl - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-rl' are laid out one after the other with the first beginning at the right-hand side of its containing block; they are ordered from right to left meaning that the 1st block box is the rightmost one, then the 2nd block is juxtaposed at its left-hand side, then the 3rd block is juxtaposed at the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-043-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-043.htm">block-flow-direction-043</a></strong></td>
+        <td><a href="reference/block-flow-direction-043-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>sideways-lr - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and, then the 2nd block is juxtaposed at the right-hand side of 1st block, then the 3rd block is juxtaposed at the 2nd block on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-045-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-045.htm">block-flow-direction-045</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: left' and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a left-floated box with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-046-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-046.htm">block-flow-direction-046</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: left' and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that left-floated boxes with 'writing-mode' set to 'sideways-rl' establish block formating contexts with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-047-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-047.htm">block-flow-direction-047</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: right' and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a right-floated box with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-048-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-048.htm">block-flow-direction-048</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: right' and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that right-floated boxes with 'writing-mode' set to 'sideways-lr' establish block formating contexts with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-049-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-049.htm">block-flow-direction-049</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>position absolute and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an absolutely positioned box with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-050-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-050.htm">block-flow-direction-050</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>position absolute and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an absolutely positioned box with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-051-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-051.htm">block-flow-direction-051</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-052-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-052.htm">block-flow-direction-052</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-053-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-053.htm">block-flow-direction-053</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-054-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-054.htm">block-flow-direction-054</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-055-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-055.htm">block-flow-direction-055</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-056-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-056.htm">block-flow-direction-056</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-057-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-057.htm">block-flow-direction-057</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-cell and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-cell with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-058-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-058.htm">block-flow-direction-058</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-cell and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-cell with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-059-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-059.htm">block-flow-direction-059</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-caption and 'sideways-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-caption with its 'writing-mode' set to 'sideways-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-060-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-060.htm">block-flow-direction-060</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-caption and 'sideways-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-caption with its 'writing-mode' set to 'sideways-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-061-3.1" class="primary ahem image">
+        <td><strong>
+            <a href="block-flow-direction-061.htm">block-flow-direction-061</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>list and sideways-rl - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-rl' are laid out one after the other with the first beginning at the right-hand side of its containing block; they are ordered from right to left meaning that the 1st block box is the rightmost one and then the 2nd block is juxtaposed to its left-hand side, the 3rd block is juxtaposed to the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-062-3.1" class="primary ahem image">
+        <td><strong>
+            <a href="block-flow-direction-062.htm">block-flow-direction-062</a></strong></td>
+        <td><a href="reference/block-flow-direction-043-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>list and sideways-lr - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and then the 2nd block is juxtaposed to the right-hand side of 1st block, the 3rd block is juxtaposed to the 2nd block on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-063-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-063.htm">block-flow-direction-063</a></strong></td>
+        <td><a href="reference/block-flow-direction-043-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>sideways-lr - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and, then the 2nd block is juxtaposed at the right-hand side of 1st block, then the 3rd block is juxtaposed at the 2nd block on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-064-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-064.htm">block-flow-direction-064</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>sideways-rl - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-rl' are laid out one after the other with the first beginning at the right-hand side of its containing block; they are ordered from right to left meaning that the 1st block box is the rightmost one, then the 2nd block is juxtaposed at its left-hand side, then the 3rd block is juxtaposed at the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-065-3.1" class="primary image">
+        <td><strong>
+            <a href="block-flow-direction-065.htm">block-flow-direction-065</a></strong></td>
+        <td><a href="reference/block-flow-direction-025-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>writing mode (sideways-rl) of document - horizontal position of first block
+          <ul class="assert">
+            <li>This test checks that, when 'writing-mode' value of the root element is set to 'sideways-rl', then its block boxes are laid out leftwardedly (from right to left) one after the other beginning at its righthand side. Also, the inline flow direction is 'bottomwardedly', that is inline boxes in the line box flow from the top toward the bottom; inline boxes are laid out vertically, one after the other, starting at the physical top side of its containing block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-066-3.1" class="primary image">
+        <td><strong>
+            <a href="block-flow-direction-066.htm">block-flow-direction-066</a></strong></td>
+        <td><a href="reference/block-flow-direction-066-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>writing mode (sideways-lr) of document - horizontal position of first block
+          <ul class="assert">
+            <li>This test checks that, when 'writing-mode' value of the root element is set to 'sideways-lr', then its block boxes are laid out rightwardedly (from left to right) one after the other beginning at its lefthand side. Also, the inline flow direction is 'topwardedly', that is inline boxes in the line box flow from the bottom toward the top; inline boxes are laid out vertically, one after the other, starting at the physical bottom side of its containing block.</li>
           </ul>
         </td>
       </tr>

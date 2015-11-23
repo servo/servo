@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html><head>
+		<meta charset="utf-8">
 		<title>CSS Regions: element has contentEditable attribute set and both it and a child of it are
 			flowed in a the same region</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan">
@@ -40,14 +41,14 @@
 			<li>Below you should see a rectangle with a black border with some text inside it. No
 				red should be visible at any time during this test.</li>
 			<li>Click between the first pair of green and blue colored markers and type
-				ì<strong>foobar bazquux</strong>î
+				‚Äú<strong>foobar bazquux</strong>‚Äù
 				<ul>
 					<li>The text you typed is displayed at the cursor position between the
 				two markers and the lines of text wrap inside the black border</li>
 				</ul>
 			</li>
 			<li>Click between the second pair of green and blue colored markers and type
-				ì<strong>foobar bazquux</strong>î
+				‚Äú<strong>foobar bazquux</strong>‚Äù
 				<ul>
 					<li>The text you typed is displayed at the cursor position between the
 				two markers and the lines of text wrap inside the black border</li>
@@ -75,4 +76,5 @@
 		insertText("#marked-child", "foobar bazquux");
 		</script>
 	
+
 </body></html>
