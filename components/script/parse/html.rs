@@ -13,7 +13,7 @@ use dom::bindings::js::{JS, RootedReference};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::Document;
-use dom::document::{DocumentSource, IsHTMLDocument};
+use dom::document::{DocumentSource, IsHTMLDocument, BrowsingContext};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::htmlformelement::HTMLFormElement;
@@ -261,7 +261,9 @@ pub fn parse_html_fragment(context_node: &Node,
 
     // Step 1.
     let loader = DocumentLoader::new(&*context_document.loader());
-    let document = Document::new(window.r(), Some(url.clone()),
+    let document = Document::new(window.r(),
+                                 BrowsingContext::None,
+                                 Some(url.clone()),
                                  IsHTMLDocument::HTMLDocument,
                                  None, None,
                                  DocumentSource::FromParser,

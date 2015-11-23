@@ -31,7 +31,7 @@ use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
-use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
+use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument, BrowsingContext};
 use dom::document::{DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -1654,6 +1654,7 @@ impl ScriptTask {
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
         let document = Document::new(window.r(),
+                                     BrowsingContext::Window,
                                      Some(final_url.clone()),
                                      IsHTMLDocument::HTMLDocument,
                                      content_type,

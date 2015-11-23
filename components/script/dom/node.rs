@@ -34,7 +34,7 @@ use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
-use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, IsHTMLDocument, BrowsingContext};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
@@ -1619,7 +1619,9 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window, Some((*document.url()).clone()),
+                let document = Document::new(window,
+                                             BrowsingContext::None,
+                                             Some((*document.url()).clone()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader);
                 Root::upcast::<Node>(document)

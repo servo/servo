@@ -28,6 +28,7 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
+use dom::browsercontext;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -201,6 +202,8 @@ pub struct Document {
     dom_content_loaded_event_start: Cell<u64>,
     dom_content_loaded_event_end: Cell<u64>,
     dom_complete: Cell<u64>,
+    /// Whether this document has a browsing context or not.
+    browsing_context: BrowsingContext,
 }
 
 impl PartialEq for Document {
@@ -292,10 +295,24 @@ impl Document {
         self.is_html_document
     }
 
+    pub fn browsing_context(&self) -> Option<Root<browsercontext::BrowsingContext>> {
+        if self.has_browsing_context() {
+            self.window.browsing_context()
+        } else {
+            None
+        }
+    }
+
+    pub fn has_browsing_context(&self) -> bool {
+        self.browsing_context == BrowsingContext::Window
+    }
+
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        let browsing_context = self.window.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
+        let browsing_context = match self.browsing_context() {
+            Some(browsing_context) => browsing_context,
+            None => return false,
+        };
         let active_document = browsing_context.active_document();
 
         if self != active_document {
@@ -1386,8 +1403,15 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     }
 }
 
+#[derive(PartialEq, JSTraceable, HeapSizeOf)]
+pub enum BrowsingContext {
+    Window,
+    None,
+}
+
 impl Document {
     fn new_inherited(window: &Window,
+                     browsing_context: BrowsingContext,
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
@@ -1406,6 +1430,7 @@ impl Document {
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
+            browsing_context: browsing_context,
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1472,6 +1497,7 @@ impl Document {
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
         Ok(Document::new(win,
+                         BrowsingContext::None,
                          None,
                          IsHTMLDocument::NonHTMLDocument,
                          None,
@@ -1481,6 +1507,7 @@ impl Document {
     }
 
     pub fn new(window: &Window,
+               browsing_context: BrowsingContext,
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
@@ -1489,6 +1516,7 @@ impl Document {
                doc_loader: DocumentLoader)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
+                                                                      browsing_context,
                                                                       url,
                                                                       doctype,
                                                                       content_type,
@@ -1551,6 +1579,7 @@ impl Document {
                 IsHTMLDocument::NonHTMLDocument
             };
             let new_doc = Document::new(self.window(),
+                                        BrowsingContext::None,
                                         None,
                                         doctype,
                                         None,
@@ -1631,10 +1660,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
         let target = self;                                                        // Step 1.
-        let browsing_context = self.window.browsing_context();
-        let browsing_context = browsing_context.as_ref();
-
-        match browsing_context {
+        match self.browsing_context() {
             Some(browsing_context) => {
                 let condidate = browsing_context.active_document();                        // Step 2.
                 if condidate.node.get_unique_id() == target.node.get_unique_id() {           // Step 3.

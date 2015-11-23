@@ -14,7 +14,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::xmlname::validate_qualified_name;
 use dom::document::DocumentSource;
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, IsHTMLDocument, BrowsingContext};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -70,6 +70,7 @@ impl DOMImplementationMethods for DOMImplementation {
 
         // Step 1.
         let doc = Document::new(win,
+                                BrowsingContext::None,
                                 None,
                                 IsHTMLDocument::NonHTMLDocument,
                                 None,
@@ -114,6 +115,7 @@ impl DOMImplementationMethods for DOMImplementation {
 
         // Step 1-2.
         let doc = Document::new(win,
+                                BrowsingContext::None,
                                 None,
                                 IsHTMLDocument::HTMLDocument,
                                 None,
