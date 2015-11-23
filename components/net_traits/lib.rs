@@ -46,7 +46,7 @@ pub mod storage_task;
 
 pub static IPV4_REGEX: Regex = regex!(
     r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
+pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}$");
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy)]
