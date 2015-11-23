@@ -31,7 +31,7 @@ use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
 use util::geometry::ZERO_POINT;
 use util::logical_geometry::WritingMode;
-use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ServoLayoutNode, ServoThreadSafeLayoutNode, ThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
 
@@ -446,7 +446,7 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
                                       property: &Atom,
                                       layout_root: &mut FlowRef)
                                       -> Option<String> {
-    let layout_node = ThreadSafeLayoutNode::new(&requested_node);
+    let layout_node = ServoThreadSafeLayoutNode::new(&requested_node);
     let layout_node = match pseudo {
         &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
@@ -480,7 +480,7 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
     // There are probably other quirks.
     let applies = true;
 
-    fn used_value_for_position_property(layout_node: ThreadSafeLayoutNode,
+    fn used_value_for_position_property(layout_node: ServoThreadSafeLayoutNode,
                                         layout_root: &mut FlowRef,
                                         requested_node: ServoLayoutNode,
                                         property: &Atom) -> Option<String> {

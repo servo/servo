@@ -50,7 +50,7 @@ use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::slice_chars;
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, ServoThreadSafeLayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -309,7 +309,7 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new(node: &ThreadSafeLayoutNode, data: HTMLCanvasData) -> CanvasFragmentInfo {
+    pub fn new(node: &ServoThreadSafeLayoutNode, data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 Some(Au::from_px(data.width as i32)),
@@ -345,11 +345,11 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new(node: &ThreadSafeLayoutNode,
+    pub fn new(node: &ServoThreadSafeLayoutNode,
                url: Option<Url>,
                layout_context: &LayoutContext)
                -> ImageFragmentInfo {
-        fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
+        fn convert_length(node: &ServoThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
             element.get_attr(&ns!(""), name)
                    .and_then(|string| string.parse().ok())
@@ -423,7 +423,7 @@ pub struct ReplacedImageFragmentInfo {
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new(node: &ThreadSafeLayoutNode,
+    pub fn new(node: &ServoThreadSafeLayoutNode,
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
@@ -583,7 +583,7 @@ pub struct IframeFragmentInfo {
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
-    pub fn new(node: &ThreadSafeLayoutNode) -> IframeFragmentInfo {
+    pub fn new(node: &ServoThreadSafeLayoutNode) -> IframeFragmentInfo {
         let pipeline_id = node.iframe_pipeline_id();
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
@@ -758,7 +758,7 @@ pub struct TableColumnFragmentInfo {
 
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
-    pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
+    pub fn new(node: &ServoThreadSafeLayoutNode) -> TableColumnFragmentInfo {
         let element = node.as_element();
         let span = element.get_attr(&ns!(""), &atom!("span"))
                           .and_then(|string| string.parse().ok())
@@ -771,7 +771,7 @@ impl TableColumnFragmentInfo {
 
 impl Fragment {
     /// Constructs a new `Fragment` instance.
-    pub fn new(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
+    pub fn new(node: &ServoThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {
