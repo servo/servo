@@ -524,18 +524,17 @@ pub mod specified {
             let mut products = Vec::new();
             products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
 
-            loop {
-                match input.next() {
-                    Ok(Token::Delim('+')) => {
+            while let Ok(token) = input.next() {
+                match token {
+                    Token::Delim('+') => {
                         products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
                     }
-                    Ok(Token::Delim('-')) => {
+                    Token::Delim('-') => {
                         let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
                         right.values.push(CalcValueNode::Number(-1.));
                         products.push(right);
                     }
-                    Ok(_) => return Err(()),
-                    _ => break
+                    _ => return Err(())
                 }
             }
 

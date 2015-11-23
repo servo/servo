@@ -1169,24 +1169,19 @@ impl BlockFlow {
 
                 // Can't use `for` because we assign to
                 // `candidate_block_size_iterator.candidate_value`.
-                loop {
-                    match candidate_block_size_iterator.next() {
-                        Some(block_size_used_val) => {
-                            solution = Some(
-                            BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
-                                    block_size_used_val,
-                                    margin_block_start,
-                                    margin_block_end,
-                                    block_start,
-                                    block_end,
-                                    content_block_size,
-                                    available_block_size));
+                while let Some(block_size_used_val) =  candidate_block_size_iterator.next() {
+                    solution = Some(
+                        BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
+                            block_size_used_val,
+                            margin_block_start,
+                            margin_block_end,
+                            block_start,
+                            block_end,
+                            content_block_size,
+                            available_block_size));
 
-                            candidate_block_size_iterator.candidate_value
-                                = solution.unwrap().block_size;
-                        }
-                        None => break,
-                    }
+                    candidate_block_size_iterator.candidate_value
+                        = solution.unwrap().block_size;
                 }
             }
         }

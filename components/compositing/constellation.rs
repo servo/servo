@@ -681,17 +681,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
 
-        loop {
-            let pending_pipeline_id = self.pending_frames.iter().find(|pending| {
-                pending.old_pipeline_id == Some(pipeline_id)
-            }).map(|frame| frame.new_pipeline_id);
-            match pending_pipeline_id {
-                Some(pending_pipeline_id) => {
-                    debug!("removing pending frame change for failed pipeline");
-                    self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
-                },
-                None => break,
-            }
+        while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
+            pending.old_pipeline_id == Some(pipeline_id)
+        }).map(|frame| frame.new_pipeline_id) {
+            debug!("removing pending frame change for failed pipeline");
+            self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
         }
         debug!("creating replacement pipeline for about:failure");
 
@@ -1241,20 +1235,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // other hand, if no frames can be enabled after looping through all pending
         // frames, we can safely exit the loop, knowing that we will need to wait on
         // a dependent pipeline to be ready to paint.
-        loop {
-            let valid_frame_change = self.pending_frames.iter().rposition(|frame_change| {
-                let waiting_on_dependency = frame_change.old_pipeline_id.map_or(false, |old_pipeline_id| {
-                    self.pipeline_to_frame_map.get(&old_pipeline_id).is_none()
-                });
-                frame_change.painter_ready && !waiting_on_dependency
+        while let Some(valid_frame_change) = self.pending_frames.iter().rposition(|frame_change| {
+            let waiting_on_dependency = frame_change.old_pipeline_id.map_or(false, |old_pipeline_id| {
+                self.pipeline_to_frame_map.get(&old_pipeline_id).is_none()
             });
-
-            if let Some(valid_frame_change) = valid_frame_change {
-                let frame_change = self.pending_frames.swap_remove(valid_frame_change);
-                self.add_or_replace_pipeline_in_frame_tree(frame_change);
-            } else {
-                break;
-            }
+            frame_change.painter_ready && !waiting_on_dependency
+        }) {
+            let frame_change = self.pending_frames.swap_remove(valid_frame_change);
+            self.add_or_replace_pipeline_in_frame_tree(frame_change);
         }
     }
 
