@@ -5013,6 +5013,12 @@
             "url": "/_mozilla/mozilla/document_defaultView.html"
           }
         ],
+        "mozilla/document_domain.html": [
+          {
+            "path": "mozilla/document_domain.html",
+            "url": "/_mozilla/mozilla/document_domain.html"
+          }
+        ],
         "mozilla/document_getElementById.html": [
           {
             "path": "mozilla/document_getElementById.html",

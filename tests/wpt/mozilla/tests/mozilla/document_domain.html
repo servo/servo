@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+    <head>
+        <title></title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                assert_equals(typeof document.domain, "string", "document.domain is a string");
+                assert_not_equals(document.domain, "", "document.domain is not empty");
+            }, "sanity checks");
+
+            test(function() {
+                assert_equals(document.domain, window.location.hostname, "equals location.hostname");
+            }, "current document");
+
+            test(function() {
+                var doc = new Document();
+                assert_equals(doc.domain, "", "new document has empty domain");
+            }, "new document");
+        </script>
+    </head>
+    <body>
+    </body>
+</html>

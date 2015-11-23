@@ -105,7 +105,7 @@ use string_cache::{Atom, QualName};
 use style::restyle_hints::ElementSnapshot;
 use style::stylesheets::Stylesheet;
 use time;
-use url::Url;
+use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
@@ -1645,6 +1645,19 @@ impl DocumentMethods for Document {
             }
             None => false,
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    fn Domain(&self) -> DOMString {
+        // TODO: This should use the effective script origin when it exists
+        let origin = self.window.get_url();
+
+        if let Some(&Host::Ipv6(ipv6)) = origin.host() {
+            // Omit square brackets for IPv6 addresses.
+            return DOMString::from(ipv6.serialize());
+        }
+
+        DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
