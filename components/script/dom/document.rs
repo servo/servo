@@ -210,6 +210,8 @@ pub struct Document {
     browsing_context: BrowsingContext,
     /// The document's origin.
     origin: Origin,
+    /// The document's effective script origin.
+    effective_script_origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1517,6 +1519,10 @@ impl Document {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
+        // This is an incomplete simplification, since the only cases we implement
+        // for origins require the effective script origin to alias the document's
+        // origin.
+        let effective_script_origin = origin.alias();
 
         Document {
             node: Node::new_document_node(),
@@ -1580,6 +1586,7 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             origin: origin,
+            effective_script_origin: effective_script_origin,
         }
     }
 
@@ -1768,15 +1775,15 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
-        // TODO: This should use the effective script origin when it exists
-        let origin = self.window.get_url();
-
-        if let Some(&Host::Ipv6(ipv6)) = origin.host() {
-            // Omit square brackets for IPv6 addresses.
-            return DOMString::from(ipv6.to_string());
+        if let Some(host) = self.effective_script_origin.host() {
+            if let &Host::Ipv6(ipv6) = host {
+                // Omit square brackets for IPv6 addresses.
+                return DOMString::from(ipv6.to_string());
+            }
+            DOMString::from(host.serialize())
+        } else {
+            DOMString::new()
         }
-
-        DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
