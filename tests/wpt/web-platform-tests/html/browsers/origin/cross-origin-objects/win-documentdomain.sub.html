@@ -10,9 +10,9 @@
 
       var path = location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/frame.html';
       A.location = 'frame.html';
-      B.location = frameURI = 'http://www2.web-platform.test:' + location.port + path;
-      C.location = frameURI = 'http://www2.web-platform.test:' + location.port + path;
-      D.location = frameURI = 'http://www1.web-platform.test:' + location.port + path;
+      B.location = '//{{domains[www2]}}:' + location.port + path;
+      C.location = '//{{domains[www2]}}:' + location.port + path;
+      D.location = '//{{domains[www1]}}:' + location.port + path;
 
       var loadCount = 0;
       function frameLoaded() {

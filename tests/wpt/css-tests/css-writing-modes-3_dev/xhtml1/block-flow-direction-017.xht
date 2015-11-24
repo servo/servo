@@ -5,10 +5,6 @@
 
   <title>CSS Writing Modes Test: table-cell and 'vertical-rl' - block flow direction of block-level boxes</title>
 
-  <!--
-  2015-05-31: Trying to reset test results for that test: hello Koji!
-  -->
-
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
   <link rel="match" href="reference/block-flow-direction-001-ref.xht" />
@@ -18,28 +14,34 @@
 
   <style type="text/css"><![CDATA[
   body
-  {
-  color: yellow;
-  font: 20px/1 Ahem;
-  }
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
 
   div#table-cell
-  {
-  display: table-cell;
-  height: 9em;
-  writing-mode: vertical-rl;
-  }
+    {
+      display: table-cell;
+      height: 9em;
+      writing-mode: vertical-rl;
+    }
 
   div#table-cell > div
-  {
-  background-color: blue;
-  border-bottom: blue solid 1em;
-  border-top: blue solid 1em;
-  }
+    {
+      background-color: blue;
+      border-bottom: blue solid 1em;
+      border-top: blue solid 1em;
+    }
 
-  div.right-border { border-right: blue solid 1em; }
+  div.right-border
+    {
+      border-right: blue solid 1em;
+    }
 
-  div#left-border { border-left: blue solid 1em; }
+  div#left-border
+    {
+      border-left: blue solid 1em;
+    }
   ]]></style>
  </head>
 

@@ -180,6 +180,9 @@ border-image-slice-002.xht == reference/ref-filled-green-100px-square.xht
 border-image-slice-003.xht == reference/ref-if-there-is-no-red.xht
 border-image-slice-percentage.xht == reference/border-image-slice-percentage-ref.xht
 border-image-space-001.xht == reference/border-image-space-001-ref.xht
+border-image-width-005.xht == reference/ref-filled-green-100px-square.xht
+border-image-width-006.xht == reference/ref-filled-green-100px-square.xht
+border-image-width-007.xht == reference/ref-filled-green-100px-square.xht
 border-radius-001.xht == reference/border-radius-001-ref.xht
 border-radius-002.xht == reference/border-radius-002-ref.xht
 border-radius-003.xht == reference/border-radius-003-ref.xht
