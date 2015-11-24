@@ -28,8 +28,8 @@ libc = "0.1"
 regex = "0.1.14"
 time = "0.1.12"
 
-[target.x86_64-apple-darwin.dependencies.thread_info]
-path = "../../support/rust-thread_info"
+[target.x86_64-apple-darwin.dependencies.task_info]
+path = "../../support/rust-task_info"
 
-[target.i686-apple-darwin.dependencies.thread_info]
-path = "../../support/rust-thread_info"
+[target.i686-apple-darwin.dependencies.task_info]
+path = "../../support/rust-task_info"

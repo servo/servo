@@ -71,7 +71,7 @@
 		* Libraries that require special handling for building for Android platforms
 	* android-rs-glue
 		* Library to integrate better with Android platforms
-	* rust-thread_info
+	* rust-task_info
 		* Library for obtaining information about memory usage for a process
 * target
 	* debug
