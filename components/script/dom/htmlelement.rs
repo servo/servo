@@ -64,7 +64,7 @@ impl HTMLElement {
                                     -> HTMLElement {
         HTMLElement {
             element:
-                Element::new_inherited_with_state(state, tag_name, ns!(HTML), prefix, document),
+                Element::new_inherited_with_state(state, tag_name, ns!(html), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -100,7 +100,7 @@ impl HTMLElement {
                     }
                 },
                 _ => {
-                    if let Some(attr) = element.get_attribute(&ns!(""), &atom!("draggable")) {
+                    if let Some(attr) = element.get_attribute(&ns!(), &atom!("draggable")) {
                         let attr = attr.r();
                         let value = attr.value();
                         let is_true = match *value {
@@ -328,15 +328,17 @@ impl HTMLElement {
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
-        let local_name = Atom::from_slice(&to_snake_case(local_name));
-        self.upcast::<Element>().get_attribute(&ns!(""), &local_name).map(|attr| {
+        // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let local_name = Atom::from(&*to_snake_case(local_name));
+        self.upcast::<Element>().get_attribute(&ns!(), &local_name).map(|attr| {
             DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
         })
     }
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
-        let local_name = Atom::from_slice(&to_snake_case(local_name));
-        self.upcast::<Element>().remove_attribute(&ns!(""), &local_name);
+        // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let local_name = Atom::from(&*to_snake_case(local_name));
+        self.upcast::<Element>().remove_attribute(&ns!(), &local_name);
     }
 
     // https://html.spec.whatwg.org/multipage/#category-label

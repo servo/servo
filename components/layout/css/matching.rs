@@ -166,12 +166,12 @@ fn create_common_style_affecting_attributes_from_element(element: &ServoLayoutEl
     for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                if element.get_attr(&ns!(), &attribute_info.atom).is_some() {
                     flags.insert(flag)
                 }
             }
             CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                match element.get_attr(&ns!(""), &attribute_info.atom) {
+                match element.get_attr(&ns!(), &attribute_info.atom) {
                     Some(element_value) if element_value == target_value => {
                         flags.insert(flag)
                     }
@@ -248,7 +248,7 @@ impl StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&ns!(""), &atom!("class"))
+            class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
@@ -263,7 +263,7 @@ impl StyleSharingCandidate {
         }
 
         // FIXME(pcwalton): Use `each_class` here instead of slow string comparison.
-        match (&self.class, element.get_attr(&ns!(""), &atom!("class"))) {
+        match (&self.class, element.get_attr(&ns!(), &atom!("class"))) {
             (&None, Some(_)) | (&Some(_), None) => return false,
             (&Some(ref this_class), Some(element_class)) if
                     element_class != &**this_class => {
@@ -289,12 +289,12 @@ impl StyleSharingCandidate {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
-                            element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                            element.get_attr(&ns!(), &attribute_info.atom).is_some() {
                         return false
                     }
                 }
                 CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                    match element.get_attr(&ns!(""), &attribute_info.atom) {
+                    match element.get_attr(&ns!(), &attribute_info.atom) {
                         Some(ref element_value) if self.common_style_affecting_attributes
                                                        .contains(flag) &&
                                                        *element_value != target_value => {
@@ -313,7 +313,7 @@ impl StyleSharingCandidate {
         }
 
         for attribute_name in &rare_style_affecting_attributes() {
-            if element.get_attr(&ns!(""), attribute_name).is_some() {
+            if element.get_attr(&ns!(), attribute_name).is_some() {
                 return false
             }
         }
@@ -621,7 +621,7 @@ impl<'ln> ElementMatchMethods for ServoLayoutElement<'ln> {
         if self.style_attribute().is_some() {
             return StyleSharingResult::CannotShare
         }
-        if self.get_attr(&ns!(""), &atom!("id")).is_some() {
+        if self.get_attr(&ns!(), &atom!("id")).is_some() {
             return StyleSharingResult::CannotShare
         }
 

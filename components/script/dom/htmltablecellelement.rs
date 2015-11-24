@@ -85,7 +85,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -94,7 +94,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_colspan(&self) -> Option<u32> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("colspan"))
+                .get_attr_for_layout(&ns!(), &atom!("colspan"))
                 .map(AttrValue::as_uint)
         }
     }
@@ -114,7 +114,7 @@ impl VirtualMethods for HTMLTableCellElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!(width) => {
+            atom!("width") => {
                 let width = mutation.new_value(attr).map(|value| {
                     str::parse_length(&value)
                 });

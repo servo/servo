@@ -22,7 +22,7 @@ rustc-serialize = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
-string_cache = "0.1"
+string_cache = "0.2"
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
 

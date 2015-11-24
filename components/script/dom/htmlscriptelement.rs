@@ -216,8 +216,8 @@ impl HTMLScriptElement {
         }
 
         // Step 12.
-        let for_attribute = element.get_attribute(&ns!(""), &atom!("for"));
-        let event_attribute = element.get_attribute(&ns!(""), &atom!("event"));
+        let for_attribute = element.get_attribute(&ns!(), &atom!("for"));
+        let event_attribute = element.get_attribute(&ns!(), &atom!("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
@@ -236,7 +236,7 @@ impl HTMLScriptElement {
         }
 
         // Step 13.
-        if let Some(ref charset) = element.get_attribute(&ns!(""), &atom!("charset")) {
+        if let Some(ref charset) = element.get_attribute(&ns!(), &atom!("charset")) {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }
@@ -248,7 +248,7 @@ impl HTMLScriptElement {
         let base_url = window.get_url();
         let deferred = element.has_attribute(&atom!("defer"));
 
-        let is_external = match element.get_attribute(&ns!(""), &atom!("src")) {
+        let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
             // Step 14.
             Some(ref src) => {
                 // Step 14.1
@@ -500,7 +500,7 @@ impl HTMLScriptElement {
 
     pub fn is_javascript(&self) -> bool {
         let element = self.upcast::<Element>();
-        let type_attr = element.get_attribute(&ns!(""), &atom!("type"));
+        let type_attr = element.get_attribute(&ns!(), &atom!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
@@ -513,7 +513,7 @@ impl HTMLScriptElement {
             },
             None => {
                 debug!("no script type");
-                let language_attr = element.get_attribute(&ns!(""), &atom!("language"));
+                let language_attr = element.get_attribute(&ns!(), &atom!("language"));
                 let is_js = match language_attr.as_ref().map(|s| s.value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");

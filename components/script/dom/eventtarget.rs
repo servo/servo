@@ -309,7 +309,7 @@ impl EventTarget {
         let event_listener = listener.map(|listener|
                                           CommonEventHandler::EventHandler(
                                               EventHandlerNonNull::new(listener.callback())));
-        self.set_inline_event_listener(Atom::from_slice(ty), event_listener);
+        self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
     pub fn set_error_event_handler<T: CallbackContainer>(
@@ -318,11 +318,11 @@ impl EventTarget {
         let event_listener = listener.map(|listener|
                                           CommonEventHandler::ErrorEventHandler(
                                               OnErrorEventHandlerNonNull::new(listener.callback())));
-        self.set_inline_event_listener(Atom::from_slice(ty), event_listener);
+        self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
-        let listener = self.get_inline_event_listener(&Atom::from_slice(ty));
+        let listener = self.get_inline_event_listener(&Atom::from(ty));
         listener.map(|listener| CallbackContainer::new(listener.parent().callback()))
     }
 
@@ -340,7 +340,7 @@ impl EventTargetMethods for EventTarget {
         match listener {
             Some(listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let entry = match handlers.entry(Atom::from_slice(&ty)) {
+                let entry = match handlers.entry(Atom::from(&*ty)) {
                     Occupied(entry) => entry.into_mut(),
                     Vacant(entry) => entry.insert(vec!()),
                 };
@@ -366,7 +366,7 @@ impl EventTargetMethods for EventTarget {
         match listener {
             Some(ref listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let entry = handlers.get_mut(&Atom::from_slice(&ty));
+                let entry = handlers.get_mut(&Atom::from(&*ty));
                 for entry in entry {
                     let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                     let old_entry = EventListenerEntry {

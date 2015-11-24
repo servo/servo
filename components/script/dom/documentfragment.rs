@@ -55,9 +55,9 @@ impl DocumentFragmentMethods for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
         let node = self.upcast::<Node>();
-        let id = Atom::from_slice(&id);
+        let id = Atom::from(&*id);
         node.traverse_preorder().filter_map(Root::downcast::<Element>).find(|descendant| {
-            match descendant.get_attribute(&ns!(""), &atom!(id)) {
+            match descendant.get_attribute(&ns!(), &atom!("id")) {
                 None => false,
                 Some(attr) => *attr.value().as_atom() == id,
             }

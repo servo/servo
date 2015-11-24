@@ -10,7 +10,7 @@ macro_rules! make_getter(
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
-            element.get_string_attribute(&Atom::from_slice($htmlname))
+            element.get_string_attribute(&Atom::from($htmlname))
         }
     );
     ($attr:ident) => {
@@ -27,7 +27,7 @@ macro_rules! make_bool_getter(
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.has_attribute(&Atom::from_slice($htmlname))
+            element.has_attribute(&Atom::from($htmlname))
         }
     );
     ($attr:ident) => {
@@ -44,7 +44,7 @@ macro_rules! make_uint_getter(
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
+            element.get_uint_attribute(&Atom::from($htmlname), $default)
         }
     );
     ($attr:ident, $htmlname:expr) => {
@@ -64,7 +64,7 @@ macro_rules! make_url_getter(
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.get_url_attribute(&Atom::from_slice($htmlname))
+            element.get_url_attribute(&Atom::from($htmlname))
         }
     );
     ($attr:ident) => {
@@ -81,7 +81,7 @@ macro_rules! make_url_or_base_getter(
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
-            let url = element.get_url_attribute(&Atom::from_slice($htmlname));
+            let url = element.get_url_attribute(&Atom::from($htmlname));
             if url.is_empty() {
                 let window = window_from_node(self);
                 DOMString::from(window.get_url().serialize())
@@ -104,7 +104,7 @@ macro_rules! make_enumerated_getter(
             use std::ascii::AsciiExt;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
-            let mut val = element.get_string_attribute(&Atom::from_slice($htmlname));
+            let mut val = element.get_string_attribute(&Atom::from(*$htmlname));
             val.make_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
@@ -129,7 +129,7 @@ macro_rules! make_setter(
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_string_attribute(&Atom::from_slice($htmlname), value)
+            element.set_string_attribute(&Atom::from($htmlname), value)
         }
     );
 );
@@ -143,7 +143,7 @@ macro_rules! make_bool_setter(
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_bool_attribute(&Atom::from_slice($htmlname), value)
+            element.set_bool_attribute(&Atom::from($htmlname), value)
         }
     );
 );
@@ -163,7 +163,7 @@ macro_rules! make_uint_setter(
             };
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_uint_attribute(&Atom::from_slice($htmlname), value)
+            element.set_uint_attribute(&Atom::from($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:expr) => {
@@ -188,7 +188,7 @@ macro_rules! make_limited_uint_setter(
             };
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.set_uint_attribute(&Atom::from_slice($htmlname), value);
+            element.set_uint_attribute(&Atom::from($htmlname), value);
             Ok(())
         }
     );
@@ -209,7 +209,7 @@ macro_rules! make_atomic_setter(
             use string_cache::Atom;
             let element = self.upcast::<Element>();
             // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_atomic_attribute(&Atom::from_slice($htmlname), value)
+            element.set_atomic_attribute(&Atom::from($htmlname), value)
         }
     );
 );
@@ -225,7 +225,7 @@ macro_rules! make_legacy_color_setter(
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_attribute(&Atom::from_slice($htmlname), value)
+            element.set_attribute(&Atom::from($htmlname), value)
         }
     );
 );
@@ -240,7 +240,7 @@ macro_rules! make_dimension_setter(
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_attribute(&Atom::from_slice($htmlname), value)
+            element.set_attribute(&Atom::from($htmlname), value)
         }
     );
 );

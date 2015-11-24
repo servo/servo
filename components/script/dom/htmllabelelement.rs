@@ -95,7 +95,7 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
             return None;
         }
 
-        let for_attr = match self.upcast::<Element>().get_attribute(&ns!(""), &atom!("for")) {
+        let for_attr = match self.upcast::<Element>().get_attribute(&ns!(), &atom!("for")) {
             Some(for_attr) => for_attr,
             None => return self.first_labelable_descendant(),
         };

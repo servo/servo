@@ -176,7 +176,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 3: target browsing context.
 
     // Step 4.
-    let attribute = subject.get_attribute(&ns!(""), &atom!("href")).unwrap();
+    let attribute = subject.get_attribute(&ns!(), &atom!("href")).unwrap();
     let mut href = attribute.Value();
 
     // Step 6.

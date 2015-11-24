@@ -138,7 +138,7 @@ impl Element {
                                     -> Element {
         Element {
             node: Node::new_inherited(document),
-            local_name: Atom::from_slice(&local_name),
+            local_name: Atom::from(&*local_name),
             namespace: namespace,
             prefix: prefix,
             attrs: DOMRefCell::new(vec![]),
@@ -241,7 +241,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
-        get_attr_for_layout(&*self.unsafe_get(), &ns!(""), &atom!("class")).map_or(false, |attr| {
+        get_attr_for_layout(&*self.unsafe_get(), &ns!(), &atom!("class")).map_or(false, |attr| {
             attr.value_tokens_forever().unwrap().iter().any(|atom| atom == name)
         })
     }
@@ -249,7 +249,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     #[inline]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
-        get_attr_for_layout(&*self.unsafe_get(), &ns!(""), &atom!("class"))
+        get_attr_for_layout(&*self.unsafe_get(), &ns!(), &atom!("class"))
             .map(|attr| attr.value_tokens_forever().unwrap())
     }
 
@@ -364,7 +364,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // FIXME(pcwalton): More use of atoms, please!
             // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
             //                a text field
-            match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("type")) {
+            match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(), &atom!("type")) {
                 Some("text") | Some("password") => {
                     match this.get_size_for_layout() {
                         0 => None,
@@ -517,7 +517,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
-        if (*self.unsafe_get()).namespace != ns!(HTML) {
+        if (*self.unsafe_get()).namespace != ns!(html) {
             return false;
         }
         self.upcast::<Node>().owner_doc_for_layout().is_html_document_for_layout()
@@ -593,7 +593,7 @@ pub enum StylePriority {
 
 impl Element {
     pub fn html_element_in_html_document(&self) -> bool {
-        self.namespace == ns!(HTML) && self.upcast::<Node>().is_in_html_doc()
+        self.namespace == ns!(html) && self.upcast::<Node>().is_in_html_doc()
     }
 
     pub fn local_name(&self) -> &Atom {
@@ -604,7 +604,7 @@ impl Element {
         if self.html_element_in_html_document() {
             name.make_ascii_lowercase();
         }
-        Atom::from_slice(&name)
+        Atom::from(&*name)
     }
 
     pub fn namespace(&self) -> &Namespace {
@@ -630,15 +630,17 @@ impl Element {
     }
 
     pub fn is_void(&self) -> bool {
-        if self.namespace != ns!(HTML) {
+        if self.namespace != ns!(html) {
             return false
         }
         match self.local_name {
             /* List of void elements from
             https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm */
-            atom!(area) | atom!(base) | atom!(basefont) | atom!(bgsound) | atom!(br) | atom!(col) | atom!(embed) |
-            atom!(frame) | atom!(hr) | atom!(img) | atom!(input) | atom!(keygen) | atom!(link) | atom!(menuitem) |
-            atom!(meta) | atom!(param) | atom!(source) | atom!(track) | atom!(wbr) => true,
+
+            atom!("area") | atom!("base") | atom!("basefont") | atom!("bgsound") | atom!("br") |
+            atom!("col") |  atom!("embed") | atom!("frame") | atom!("hr") | atom!("img") |
+            atom!("input") | atom!("keygen") | atom!("link") | atom!("menuitem") | atom!("meta") |
+            atom!("param") | atom!("source") | atom!("track") | atom!("wbr") => true,
             _ => false
         }
     }
@@ -855,7 +857,7 @@ impl Element {
                               prefix: Option<Atom>) {
         self.will_mutate_attr();
         let window = window_from_node(self);
-        let in_empty_ns = namespace == ns!("");
+        let in_empty_ns = namespace == ns!();
         let attr = Attr::new(&window,
                              local_name,
                              value,
@@ -899,7 +901,7 @@ impl Element {
             None => qname.local.clone(),
             Some(ref prefix) => {
                 let name = format!("{}:{}", &**prefix, &*qname.local);
-                Atom::from_slice(&name)
+                Atom::from(&*name)
             },
         };
         let value = self.parse_attribute(&qname.ns, &qname.local, value);
@@ -913,7 +915,7 @@ impl Element {
         self.set_first_matching_attribute(name.clone(),
                                           value,
                                           name.clone(),
-                                          ns!(""),
+                                          ns!(),
                                           None,
                                           |attr| attr.local_name() == name);
     }
@@ -927,15 +929,15 @@ impl Element {
         }
 
         // Steps 2-5.
-        let name = Atom::from_slice(&name);
-        let value = self.parse_attribute(&ns!(""), &name, value);
+        let name = Atom::from(&*name);
+        let value = self.parse_attribute(&ns!(), &name, value);
         self.set_first_matching_attribute(name.clone(),
                                           value,
                                           name.clone(),
-                                          ns!(""),
+                                          ns!(),
                                           None,
                                           |attr| {
-                                              *attr.name() == name && *attr.namespace() == ns!("")
+                                              *attr.name() == name && *attr.namespace() == ns!()
                                           });
         Ok(())
     }
@@ -966,7 +968,7 @@ impl Element {
                            local_name: &Atom,
                            value: DOMString)
                            -> AttrValue {
-        if *namespace == ns!("") {
+        if *namespace == ns!() {
             vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
             AttrValue::String(value)
@@ -993,7 +995,7 @@ impl Element {
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
-            if attr.namespace() == &ns!("") {
+            if attr.namespace() == &ns!() {
                 vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Removed);
             }
             attr
@@ -1008,7 +1010,7 @@ impl Element {
                 Quirks => lhs.eq_ignore_ascii_case(&rhs),
             }
         };
-        self.get_attribute(&ns!(""), &atom!("class"))
+        self.get_attribute(&ns!(), &atom!("class"))
             .map(|attr| attr.value().as_tokens().iter().any(|atom| is_equal(name, atom)))
             .unwrap_or(false)
     }
@@ -1024,7 +1026,7 @@ impl Element {
         self.attrs
             .borrow()
             .iter()
-            .any(|attr| attr.local_name() == local_name && attr.namespace() == &ns!(""))
+            .any(|attr| attr.local_name() == local_name && attr.namespace() == &ns!())
     }
 
     pub fn set_bool_attribute(&self, local_name: &Atom, value: bool) {
@@ -1034,7 +1036,7 @@ impl Element {
         if value {
             self.set_string_attribute(local_name, DOMString::new());
         } else {
-            self.remove_attribute(&ns!(""), local_name);
+            self.remove_attribute(&ns!(), local_name);
         }
     }
 
@@ -1058,7 +1060,7 @@ impl Element {
     }
 
     pub fn get_string_attribute(&self, local_name: &Atom) -> DOMString {
-        match self.get_attribute(&ns!(""), local_name) {
+        match self.get_attribute(&ns!(), local_name) {
             Some(x) => x.Value(),
             None => DOMString::new(),
         }
@@ -1069,7 +1071,7 @@ impl Element {
     }
 
     pub fn get_tokenlist_attribute(&self, local_name: &Atom) -> Vec<Atom> {
-        self.get_attribute(&ns!(""), local_name).map(|attr| {
+        self.get_attribute(&ns!(), local_name).map(|attr| {
             attr.r()
                 .value()
                 .as_tokens()
@@ -1089,7 +1091,7 @@ impl Element {
 
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));
-        let attribute = self.get_attribute(&ns!(""), local_name);
+        let attribute = self.get_attribute(&ns!(), local_name);
         match attribute {
             Some(ref attribute) => {
                 match *attribute.value() {
@@ -1201,7 +1203,7 @@ impl ElementMethods for Element {
                           local_name: DOMString)
                           -> Option<Root<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
-        self.get_attribute(namespace, &Atom::from_slice(&local_name))
+        self.get_attribute(namespace, &Atom::from(&*local_name))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattribute
@@ -1215,9 +1217,9 @@ impl ElementMethods for Element {
         let name = self.parsed_name(name);
 
         // Step 3-5.
-        let value = self.parse_attribute(&ns!(""), &name, value);
+        let value = self.parse_attribute(&ns!(), &name, value);
         self.set_first_matching_attribute(
-            name.clone(), value, name.clone(), ns!(""), None,
+            name.clone(), value, name.clone(), ns!(), None,
             |attr| *attr.name() == name);
         Ok(())
     }
@@ -1229,7 +1231,7 @@ impl ElementMethods for Element {
                       value: DOMString) -> ErrorResult {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
-        let qualified_name = Atom::from_slice(&qualified_name);
+        let qualified_name = Atom::from(&*qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
             local_name.clone(), value, qualified_name, namespace.clone(), prefix,
@@ -1246,7 +1248,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-removeattributens
     fn RemoveAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) {
         let namespace = namespace_from_domstring(namespace);
-        let local_name = Atom::from_slice(&local_name);
+        let local_name = Atom::from(&*local_name);
         self.remove_attribute(&namespace, &local_name);
     }
 
@@ -1372,7 +1374,7 @@ impl ElementMethods for Element {
 
             // Step 4.
             NodeTypeId::DocumentFragment => {
-                let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
+                let body_elem = Element::create(QualName::new(ns!(html), atom!("body")),
                                                 None, context_document.r(),
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
@@ -1508,7 +1510,7 @@ impl VirtualMethods for Element {
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         match attr.local_name() {
-            &atom!(style) => {
+            &atom!("style") => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
@@ -1518,7 +1520,7 @@ impl VirtualMethods for Element {
                     doc.content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             },
-            &atom!(id) => {
+            &atom!("id") => {
                 *self.id_attribute.borrow_mut() =
                     mutation.new_value(attr).and_then(|value| {
                         let value = value.as_atom();
@@ -1548,7 +1550,7 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            _ if attr.namespace() == &ns!("") => {
+            _ if attr.namespace() == &ns!() => {
                 if fragment_affecting_attributes().iter().any(|a| a == attr.local_name()) ||
                    common_style_affecting_attributes().iter().any(|a| &a.atom == attr.local_name()) ||
                    rare_style_affecting_attributes().iter().any(|a| a == attr.local_name())
@@ -1691,7 +1693,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
     {
-        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")) {
+        if let Some(ref attr) = self.get_attribute(&ns!(), &atom!("class")) {
             let tokens = attr.value();
             let tokens = tokens.as_tokens();
             for token in tokens {
