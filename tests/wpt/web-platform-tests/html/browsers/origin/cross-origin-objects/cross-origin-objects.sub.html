@@ -22,7 +22,7 @@ path = location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/fr
 var B = document.getElementById('B').contentWindow;
 var C = document.getElementById('C').contentWindow;
 B.frameElement.uriToLoad = path;
-C.frameElement.uriToLoad = 'http://www1.web-platform.test:' + location.port + path;
+C.frameElement.uriToLoad = '//{{domains[www1]}}:' + location.port + path;
 
 function reloadSubframes(cb) {
   var iframes = document.getElementsByTagName('iframe');
@@ -51,7 +51,7 @@ function addTest(fun, desc) { testList.push([fun, desc]); }
  */
 
 addTest(function() {
-  assert_equals(location.host, 'web-platform.test:8000', 'Need to run the top-level test from web-platform.test:8000');
+  assert_equals(location.host, '{{domains[]}}:{{location[port]}}', 'Need to run the top-level test from {{domains[]}}:{{location[port]}}');
   assert_equals(B.parent, window, "window.parent works same-origin");
   assert_equals(C.parent, window, "window.parent works cross-origin");
   assert_equals(B.location.pathname, path, "location.href works same-origin");
@@ -317,7 +317,7 @@ function doDocumentDomainTest(cb) {
     win.close();
     cb();
   });
-  var win = window.open('win-documentdomain.html');
+  var win = window.open('win-documentdomain.sub.html');
 }
 
 // We do a fresh load of the subframes for each test to minimize side-effects.
