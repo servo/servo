@@ -24,6 +24,7 @@ use style::properties::ComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
+use util::print_tree::PrintTree;
 use wrapper::{ServoThreadSafeLayoutNode, ThreadSafeLayoutNode};
 
 /// A table formatting context.
@@ -213,6 +214,10 @@ impl Flow for TableCellFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
     }
 }
 

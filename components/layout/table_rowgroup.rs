@@ -22,6 +22,7 @@ use style::properties::ComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row::{self, CollapsedBordersForRow};
 use util::logical_geometry::{LogicalSize, WritingMode};
+use util::print_tree::PrintTree;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -234,10 +235,14 @@ impl Flow for TableRowGroupFlow {
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
+    }
 }
 
 impl fmt::Debug for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableRowGroupFlow: {:?}", self.block_flow.fragment)
+        write!(f, "TableRowGroupFlow: {:?}", self.block_flow)
     }
 }

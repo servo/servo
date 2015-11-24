@@ -62,6 +62,7 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
+use util::print_tree::PrintTree;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]
@@ -2035,15 +2036,18 @@ impl Flow for BlockFlow {
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         (*mutator)(&mut self.fragment)
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        print_tree.add_item(format!("↑↑ Fragment for block: {:?}", self.fragment));
+    }
 }
 
 impl fmt::Debug for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "{:?} - {:x}: frag={:?} ({:?})",
+               "{:?}({:x}) {:?}",
                self.class(),
                self.base.debug_id(),
-               self.fragment,
                self.base)
     }
 }

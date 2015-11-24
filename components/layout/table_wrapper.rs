@@ -34,6 +34,7 @@ use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
 use util::logical_geometry::LogicalSize;
+use util::print_tree::PrintTree;
 
 #[derive(Copy, Clone, RustcEncodable, Debug)]
 pub enum TableLayout {
@@ -462,14 +463,18 @@ impl Flow for TableWrapperFlow {
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
+    }
 }
 
 impl fmt::Debug for TableWrapperFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.block_flow.base.flags.is_float() {
-            write!(f, "TableWrapperFlow(Float): {:?}", self.block_flow.fragment)
+            write!(f, "TableWrapperFlow(Float): {:?}", self.block_flow)
         } else {
-            write!(f, "TableWrapperFlow: {:?}", self.block_flow.fragment)
+            write!(f, "TableWrapperFlow: {:?}", self.block_flow)
         }
     }
 }
