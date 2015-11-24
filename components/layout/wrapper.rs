@@ -803,6 +803,7 @@ impl<T> PseudoElementType<T> {
 
 pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<'ln, ConcreteThreadSafeLayoutNode = Self>;
+    type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -816,7 +817,7 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn flow_debug_id(self) -> usize;
 
     /// Returns an iterator over this node's children.
-    fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln, Self>;
+    fn children(&self) -> Self::ChildrenIterator;
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
@@ -1019,6 +1020,7 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
 
 impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
+    type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<'ln, Self>;
 
     fn opaque(&self) -> OpaqueNode {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
@@ -1040,7 +1042,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         self.node.flow_debug_id()
     }
 
-    fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln, Self> {
+    fn children(&self) -> Self::ChildrenIterator {
         ThreadSafeLayoutNodeChildrenIterator::new(*self)
     }
 
