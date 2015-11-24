@@ -56,8 +56,8 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
         let elem = self.upcast::<Element>();
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(""), &atom!("type")),
-               elem.get_attribute(&ns!(""), &atom!("data"))) {
+        match (elem.get_attribute(&ns!(), &atom!("type")),
+               elem.get_attribute(&ns!(), &atom!("data"))) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
             }
@@ -98,7 +98,7 @@ impl VirtualMethods for HTMLObjectElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(data) => {
+            &atom!("data") => {
                 if let AttributeMutation::Set(_) = mutation {
                     self.process_data_url();
                 }

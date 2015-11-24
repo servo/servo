@@ -27,7 +27,7 @@ impl AttrValue {
     pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
         let atoms =
             split_html_space_chars(&tokens)
-            .map(Atom::from_slice)
+            .map(Atom::from)
             .fold(vec![], |mut acc, atom| {
                 if !acc.contains(&atom) { acc.push(atom) }
                 acc
@@ -64,7 +64,8 @@ impl AttrValue {
     }
 
     pub fn from_atomic(string: DOMString) -> AttrValue {
-        let value = Atom::from_slice(&string);
+        // FIXME(ajeffrey): convert directly from DOMString to Atom
+        let value = Atom::from(&*string);
         AttrValue::Atom(value)
     }
 

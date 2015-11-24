@@ -98,7 +98,7 @@ impl HTMLTableRowElementLayoutHelpers for LayoutJS<HTMLTableRowElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }

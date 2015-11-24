@@ -662,7 +662,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
                 unsafe {
-                    (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("href")).is_some()
+                    (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &atom!("href")).is_some()
                 }
             }
             _ => false,
@@ -712,7 +712,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     #[inline]
     fn has_servo_nonzero_border(&self) -> bool {
         unsafe {
-            match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(""), &atom!("border")) {
+            match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &atom!("border")) {
                 None | Some(&AttrValue::UInt(_, 0)) => false,
                 _ => true,
             }

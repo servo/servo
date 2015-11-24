@@ -92,7 +92,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("color"))
+                .get_attr_for_layout(&ns!(), &atom!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -102,7 +102,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     fn get_face(&self) -> Option<Atom> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("face"))
+                .get_attr_for_layout(&ns!(), &atom!("face"))
                 .map(AttrValue::as_atom)
                 .cloned()
         }
@@ -112,7 +112,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     fn get_size(&self) -> Option<specified::Length> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("size"))
+                .get_attr_for_layout(&ns!(), &atom!("size"))
                 .and_then(AttrValue::as_length)
                 .cloned()
         }

@@ -137,13 +137,13 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
     }
     fn get_id(&self) -> Option<Atom> {
         match self.snapshot.attrs {
-            Some(_) => self.snapshot.get_attr(&ns!(""), &atom!("id")).map(|value| value.as_atom().clone()),
+            Some(_) => self.snapshot.get_attr(&ns!(), &atom!("id")).map(|value| value.as_atom().clone()),
             None => self.element.get_id(),
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
         match self.snapshot.attrs {
-            Some(_) => self.snapshot.get_attr(&ns!(""), &atom!("class"))
+            Some(_) => self.snapshot.get_attr(&ns!(), &atom!("class"))
                                     .map_or(false, |v| { v.as_tokens().iter().any(|atom| atom == name) }),
             None => self.element.has_class(name),
         }
@@ -180,7 +180,7 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         match self.snapshot.attrs {
             Some(_) => {
-                if let Some(v) = self.snapshot.get_attr(&ns!(""), &atom!("class")) {
+                if let Some(v) = self.snapshot.get_attr(&ns!(), &atom!("class")) {
                     for c in v.as_tokens() { callback(c) }
                 }
             }

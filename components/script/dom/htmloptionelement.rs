@@ -72,7 +72,7 @@ impl HTMLOptionElement {
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
 fn collect_text(element: &Element, value: &mut String) {
-    let svg_script = *element.namespace() == ns!(SVG) && element.local_name() == &atom!("script");
+    let svg_script = *element.namespace() == ns!(svg) && element.local_name() == &atom!("script");
     let html_script = element.is::<HTMLScriptElement>();
     if svg_script || html_script {
         return;
@@ -162,7 +162,7 @@ impl VirtualMethods for HTMLOptionElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(disabled) => {
+            &atom!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -176,7 +176,7 @@ impl VirtualMethods for HTMLOptionElement {
                     }
                 }
             },
-            &atom!(selected) => {
+            &atom!("selected") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness

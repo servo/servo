@@ -286,7 +286,7 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
         }));
     }
     if let Some(ref mut refs) = *references {
-        refs.insert(Atom::from_slice(name));
+        refs.insert(Atom::from(name));
     }
     Ok(())
 }
@@ -510,7 +510,7 @@ fn substitute_block<F>(input: &mut Parser,
                 try!(input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident().unwrap();
-                    let name = Atom::from_slice(parse_name(&name).unwrap());
+                    let name = Atom::from(parse_name(&name).unwrap());
 
                     if let Ok(last) = substitute_one(&name, partial_computed_value) {
                         last_token_type = last;

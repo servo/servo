@@ -57,25 +57,25 @@ pub fn validate_and_extract(namespace: Option<DOMString>,
     debug_assert!(!local_name.contains(colon));
 
     match (namespace, maybe_prefix) {
-        (ns!(""), Some(_)) => {
+        (ns!(), Some(_)) => {
             // Step 6.
             Err(Error::Namespace)
         },
-        (ref ns, Some("xml")) if ns != &ns!(XML) => {
+        (ref ns, Some("xml")) if ns != &ns!(xml) => {
             // Step 7.
             Err(Error::Namespace)
         },
-        (ref ns, p) if ns != &ns!(XMLNS) && (qualified_name == "xmlns" || p == Some("xmlns")) => {
+        (ref ns, p) if ns != &ns!(xmlns) && (qualified_name == "xmlns" || p == Some("xmlns")) => {
             // Step 8.
             Err(Error::Namespace)
         },
-        (ns!(XMLNS), p) if qualified_name != "xmlns" && p != Some("xmlns") => {
+        (ns!(xmlns), p) if qualified_name != "xmlns" && p != Some("xmlns") => {
             // Step 9.
             Err(Error::Namespace)
         },
         (ns, p) => {
             // Step 10.
-            Ok((ns, p.map(Atom::from_slice), Atom::from_slice(local_name)))
+            Ok((ns, p.map(Atom::from), Atom::from(local_name)))
         }
     }
 }
@@ -171,7 +171,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
 /// If the URL is None, returns the empty namespace.
 pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
     match url {
-        None => ns!(""),
-        Some(ref s) => Namespace(Atom::from_slice(s)),
+        None => ns!(),
+        Some(s) => Namespace(Atom::from(&*s)),
     }
 }

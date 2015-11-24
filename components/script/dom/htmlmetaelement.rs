@@ -48,7 +48,7 @@ impl HTMLMetaElement {
 
     fn process_attributes(&self) {
         let element = self.upcast::<Element>();
-        if let Some(name) = element.get_attribute(&ns!(""), &atom!("name")).r() {
+        if let Some(name) = element.get_attribute(&ns!(), &atom!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
@@ -64,7 +64,7 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        if let Some(content) = element.get_attribute(&ns!(""), &atom!("content")).r() {
+        if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {

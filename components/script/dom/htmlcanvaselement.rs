@@ -120,8 +120,8 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
                 None => (None, None),
             };
 
-            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(""), &atom!(width));
-            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(""), &atom!(height));
+            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("width"));
+            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("height"));
             HTMLCanvasData {
                 renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
@@ -292,7 +292,7 @@ impl VirtualMethods for HTMLCanvasElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(width) | &atom!(height) => self.recreate_contexts(),
+            &atom!("width") | &atom!("height") => self.recreate_contexts(),
             _ => (),
         };
     }
