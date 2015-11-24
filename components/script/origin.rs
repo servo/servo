@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 use url::Origin as UrlOrigin;
-use url::Url;
+use url::{Url, Host};
 
 /// A representation of an [origin](https://url.spec.whatwg.org/#origin)
 #[derive(Clone, JSTraceable, HeapSizeOf)]
@@ -25,6 +25,14 @@ impl OriginRepresentation {
             OriginRepresentation::Origin(UrlOrigin::Tuple(..)) => true,
             OriginRepresentation::Origin(UrlOrigin::UID(..)) => false,
             OriginRepresentation::Alias(ref origin) => origin.is_scheme_host_port_tuple(),
+        }
+    }
+
+    fn host(&self) -> Option<&Host> {
+        match *self {
+            OriginRepresentation::Origin(UrlOrigin::Tuple(_, ref host, _)) => Some(host),
+            OriginRepresentation::Origin(UrlOrigin::UID(..)) => None,
+            OriginRepresentation::Alias(ref origin) => origin.host(),
         }
     }
 }
@@ -50,6 +58,10 @@ impl Origin {
 
     pub fn is_scheme_host_port_tuple(&self) -> bool {
         self.repr.is_scheme_host_port_tuple()
+    }
+
+    pub fn host(&self) -> Option<&Host> {
+        self.repr.host()
     }
 }
 
