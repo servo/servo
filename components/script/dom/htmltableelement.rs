@@ -156,7 +156,7 @@ impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &atom!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -172,18 +172,18 @@ impl VirtualMethods for HTMLTableElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!(bgcolor) => {
+            atom!("bgcolor") => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));
             },
-            atom!(border) => {
+            atom!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
                     str::parse_unsigned_integer(value.chars()).unwrap_or(1)
                 }));
             }
-            atom!(cellspacing) => {
+            atom!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_unsigned_integer(value.chars())
                 }));

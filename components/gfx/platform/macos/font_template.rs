@@ -57,7 +57,7 @@ impl FontTemplateData {
                         Err(_) => None
                     }
                 }
-                None => core_text::font::new_from_name(self.identifier.as_slice(), 0.0).ok(),
+                None => core_text::font::new_from_name(&*self.identifier, 0.0).ok(),
             }
         }
         ctfont.as_ref().map(|ctfont| (*ctfont).clone())

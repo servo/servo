@@ -351,7 +351,7 @@ impl ImageFragmentInfo {
                -> ImageFragmentInfo {
         fn convert_length(node: &ServoThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
-            element.get_attr(&ns!(""), name)
+            element.get_attr(&ns!(), name)
                    .and_then(|string| string.parse().ok())
                    .map(Au::from_px)
         }
@@ -760,7 +760,7 @@ impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
     pub fn new(node: &ServoThreadSafeLayoutNode) -> TableColumnFragmentInfo {
         let element = node.as_element();
-        let span = element.get_attr(&ns!(""), &atom!("span"))
+        let span = element.get_attr(&ns!(), &atom!("span"))
                           .and_then(|string| string.parse().ok())
                           .unwrap_or(0);
         TableColumnFragmentInfo {

@@ -51,7 +51,7 @@ impl HTMLStyleElement {
         let win = window_from_node(node);
         let url = win.get_url();
 
-        let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
+        let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
         let mq_str = match mq_attribute {
             Some(a) => String::from(&**a.value()),
             None => String::new(),

@@ -55,7 +55,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
     fn GetNamedItemNS(&self, namespace: Option<DOMString>, local_name: DOMString)
                      -> Option<Root<Attr>> {
         let ns = namespace_from_domstring(namespace);
-        self.owner.get_attribute(&ns, &Atom::from_slice(&local_name))
+        self.owner.get_attribute(&ns, &Atom::from(&*local_name))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
@@ -68,7 +68,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
     fn RemoveNamedItemNS(&self, namespace: Option<DOMString>, local_name: DOMString)
                       -> Fallible<Root<Attr>> {
         let ns = namespace_from_domstring(namespace);
-        self.owner.remove_attribute(&ns, &Atom::from_slice(&local_name))
+        self.owner.remove_attribute(&ns, &Atom::from(&*local_name))
             .ok_or(Error::NotFound)
     }
 

@@ -161,9 +161,9 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
-        let tag_atom = Atom::from_slice(&tag);
+        let tag_atom = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
         tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from_slice(&tag);
+        let ascii_lower_tag = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
         HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
     }
 
@@ -194,7 +194,7 @@ impl HTMLCollection {
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
-        let local = Atom::from_slice(&tag);
+        let local = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
         let ns = namespace_from_domstring(maybe_ns);
         let qname = QualName::new(ns, local);
         HTMLCollection::by_qual_tag_name(window, root, qname)
@@ -219,7 +219,7 @@ impl HTMLCollection {
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
                          -> Root<HTMLCollection> {
-        let class_atoms = split_html_space_chars(&classes).map(Atom::from_slice).collect();
+        let class_atoms = split_html_space_chars(&classes).map(Atom::from).collect();
         HTMLCollection::by_atomic_class_name(window, root, class_atoms)
     }
 
@@ -370,7 +370,7 @@ impl HTMLCollectionMethods for HTMLCollection {
             }
             // Step 2.2
             let name_attr = elem.get_string_attribute(&atom!("name"));
-            if !name_attr.is_empty() && !result.contains(&name_attr) && *elem.namespace() == ns!(HTML) {
+            if !name_attr.is_empty() && !result.contains(&name_attr) && *elem.namespace() == ns!(html) {
                 result.push(name_attr)
             }
         }

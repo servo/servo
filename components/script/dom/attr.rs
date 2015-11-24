@@ -170,7 +170,7 @@ impl Attr {
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr();
         mem::swap(&mut *self.value.borrow_mut(), &mut value);
-        if self.identifier.namespace == ns!("") {
+        if self.identifier.namespace == ns!() {
             vtable_for(owner.upcast())
                 .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
         }

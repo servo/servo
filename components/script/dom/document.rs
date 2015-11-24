@@ -478,10 +478,10 @@ impl Document {
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
-        self.get_element_by_id(&Atom::from_slice(fragid)).or_else(|| {
+        self.get_element_by_id(&Atom::from(fragid)).or_else(|| {
             let check_anchor = |node: &HTMLAnchorElement| {
                 let elem = node.upcast::<Element>();
-                elem.get_attribute(&ns!(""), &atom!("name"))
+                elem.get_attribute(&ns!(), &atom!("name"))
                     .map_or(false, |attr| &**attr.value() == fragid)
             };
             let doc_node = self.upcast::<Node>();
@@ -1037,7 +1037,7 @@ impl Document {
     pub fn set_body_attribute(&self, local_name: &Atom, value: DOMString) {
         if let Some(ref body) = self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
             let body = body.upcast::<Element>();
-            let value = body.parse_attribute(&ns!(""), &local_name, value);
+            let value = body.parse_attribute(&ns!(), &local_name, value);
             body.set_attribute(local_name, value);
         }
     }
@@ -1700,13 +1700,13 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        let tag_atom = Atom::from_slice(&tag_name);
+        let tag_atom = Atom::from(&*tag_name);
         match self.tag_map.borrow_mut().entry(tag_atom.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
                 let mut tag_copy = tag_name;
                 tag_copy.make_ascii_lowercase();
-                let ascii_lower_tag = Atom::from_slice(&tag_copy);
+                let ascii_lower_tag = Atom::from(&*tag_copy);
                 let result = HTMLCollection::by_atomic_tag_name(&self.window,
                                                                 self.upcast(),
                                                                 tag_atom,
@@ -1723,7 +1723,7 @@ impl DocumentMethods for Document {
                               tag_name: DOMString)
                               -> Root<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
-        let local = Atom::from_slice(&tag_name);
+        let local = Atom::from(&*tag_name);
         let qname = QualName::new(ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
@@ -1738,7 +1738,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes)
-                                         .map(Atom::from_slice)
+                                         .map(Atom::from)
                                          .collect();
         match self.classes_map.borrow_mut().entry(class_atoms.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
@@ -1754,7 +1754,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
-        self.get_element_by_id(&Atom::from_slice(&id))
+        self.get_element_by_id(&Atom::from(&*id))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
@@ -1766,7 +1766,7 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(HTML), Atom::from_slice(&local_name));
+        let name = QualName::new(ns!(html), Atom::from(&*local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
@@ -1788,12 +1788,12 @@ impl DocumentMethods for Document {
             return Err(Error::InvalidCharacter);
         }
 
-        let name = Atom::from_slice(&local_name);
+        let name = Atom::from(&*local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
-        let l_name = Atom::from_slice(&local_name);
+        let l_name = Atom::from(&*local_name);
         let value = AttrValue::String(DOMString::new());
 
-        Ok(Attr::new(&self.window, name, value, l_name, ns!(""), None, None))
+        Ok(Attr::new(&self.window, name, value, l_name, ns!(), None, None))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattributens
@@ -1804,7 +1804,7 @@ impl DocumentMethods for Document {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
         let value = AttrValue::String(DOMString::new());
-        let qualified_name = Atom::from_slice(&qualified_name);
+        let qualified_name = Atom::from(&*qualified_name);
         Ok(Attr::new(&self.window,
                      local_name,
                      value,
@@ -1964,12 +1964,12 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
-            if root.namespace() == &ns!(SVG) && root.local_name() == &atom!("svg") {
+            if root.namespace() == &ns!(svg) && root.local_name() == &atom!("svg") {
                 // Step 1.
                 root.upcast::<Node>()
                     .child_elements()
                     .find(|node| {
-                        node.namespace() == &ns!(SVG) && node.local_name() == &atom!("title")
+                        node.namespace() == &ns!(svg) && node.local_name() == &atom!("title")
                     })
                     .map(Root::upcast::<Node>)
             } else {
@@ -1997,14 +1997,14 @@ impl DocumentMethods for Document {
             None => return,
         };
 
-        let elem = if root.namespace() == &ns!(SVG) && root.local_name() == &atom!("svg") {
+        let elem = if root.namespace() == &ns!(svg) && root.local_name() == &atom!("svg") {
             let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.namespace() == &ns!(SVG) && node.local_name() == &atom!("title")
+                node.namespace() == &ns!(svg) && node.local_name() == &atom!("title")
             });
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
-                    let name = QualName::new(ns!(SVG), atom!("title"));
+                    let name = QualName::new(ns!(svg), atom!("title"));
                     let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
@@ -2012,7 +2012,7 @@ impl DocumentMethods for Document {
                           .unwrap()
                 }
             }
-        } else if root.namespace() == &ns!(HTML) {
+        } else if root.namespace() == &ns!(html) {
             let elem = root.upcast::<Node>()
                            .traverse_preorder()
                            .find(|node| node.is::<HTMLTitleElement>());
@@ -2021,7 +2021,7 @@ impl DocumentMethods for Document {
                 None => {
                     match self.GetHead() {
                         Some(head) => {
-                            let name = QualName::new(ns!(HTML), atom!("title"));
+                            let name = QualName::new(ns!(html), atom!("title"));
                             let elem = Element::create(name,
                                                        None,
                                                        self,
@@ -2113,10 +2113,10 @@ impl DocumentMethods for Document {
                 Some(element) => element,
                 None => return false,
             };
-            if element.namespace() != &ns!(HTML) {
+            if element.namespace() != &ns!(html) {
                 return false;
             }
-            element.get_attribute(&ns!(""), &atom!("name"))
+            element.get_attribute(&ns!(), &atom!("name"))
                    .map_or(false, |attr| &**attr.value() == &*name)
         })
     }
@@ -2299,10 +2299,10 @@ impl DocumentMethods for Document {
             };
             match html_elem_type {
                 HTMLElementTypeId::HTMLAppletElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    match elem.get_attribute(&ns!(), &atom!("name")) {
                         Some(ref attr) if attr.value().as_atom() == name => true,
                         _ => {
-                            match elem.get_attribute(&ns!(""), &atom!("id")) {
+                            match elem.get_attribute(&ns!(), &atom!("id")) {
                                 Some(ref attr) => attr.value().as_atom() == name,
                                 None => false,
                             }
@@ -2310,18 +2310,18 @@ impl DocumentMethods for Document {
                     }
                 },
                 HTMLElementTypeId::HTMLFormElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    match elem.get_attribute(&ns!(), &atom!("name")) {
                         Some(ref attr) => attr.value().as_atom() == name,
                         None => false,
                     }
                 },
                 HTMLElementTypeId::HTMLImageElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    match elem.get_attribute(&ns!(), &atom!("name")) {
                         Some(ref attr) => {
                             if attr.value().as_atom() == name {
                                 true
                             } else {
-                                match elem.get_attribute(&ns!(""), &atom!("id")) {
+                                match elem.get_attribute(&ns!(), &atom!("id")) {
                                     Some(ref attr) => attr.value().as_atom() == name,
                                     None => false,
                                 }
@@ -2334,7 +2334,7 @@ impl DocumentMethods for Document {
                 _ => false,
             }
         }
-        let name = Atom::from_slice(&name);
+        let name = Atom::from(&*name);
         let root = self.upcast::<Node>();
         {
             // Step 1.

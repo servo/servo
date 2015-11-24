@@ -38,14 +38,14 @@ impl DOMTokenList {
     }
 
     fn attribute(&self) -> Option<Root<Attr>> {
-        self.element.get_attribute(&ns!(""), &self.local_name)
+        self.element.get_attribute(&ns!(), &self.local_name)
     }
 
     fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
             "" => Err(Error::Syntax),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
-            slice => Ok(Atom::from_slice(slice)),
+            slice => Ok(Atom::from(slice)),
         }
     }
 }

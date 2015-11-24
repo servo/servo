@@ -60,7 +60,7 @@ impl HTMLHRLayoutHelpers for LayoutJS<HTMLHRElement> {
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("color"))
+                .get_attr_for_layout(&ns!(), &atom!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -70,7 +70,7 @@ impl HTMLHRLayoutHelpers for LayoutJS<HTMLHRElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &atom!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)

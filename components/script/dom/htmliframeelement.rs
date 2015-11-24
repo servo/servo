@@ -68,7 +68,7 @@ impl HTMLIFrameElement {
 
     pub fn get_url(&self) -> Option<Url> {
         let element = self.upcast::<Element>();
-        element.get_attribute(&ns!(""), &atom!("src")).and_then(|src| {
+        element.get_attribute(&ns!(), &atom!("src")).and_then(|src| {
             let url = src.value();
             if url.is_empty() {
                 None
@@ -210,7 +210,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &atom!("width"))
                 .map(|attribute| str::parse_length(&attribute))
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
@@ -220,7 +220,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("height"))
+                .get_attr_for_layout(&ns!(), &atom!("height"))
                 .map(|attribute| str::parse_length(&attribute))
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
@@ -398,7 +398,7 @@ impl VirtualMethods for HTMLIFrameElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(sandbox) => {
+            &atom!("sandbox") => {
                 self.sandbox.set(mutation.new_value(attr).map(|value| {
                     let mut modes = SandboxAllowance::AllowNothing as u8;
                     for token in value.as_tokens() {
@@ -415,7 +415,7 @@ impl VirtualMethods for HTMLIFrameElement {
                     modes
                 }));
             },
-            &atom!(src) => {
+            &atom!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
                     if self.upcast::<Node>().is_in_doc() {
                         self.process_the_iframe_attributes();
