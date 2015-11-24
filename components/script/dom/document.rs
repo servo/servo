@@ -224,6 +224,8 @@ pub struct Document {
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: Origin,
+    /// The document's effective script origin.
+    effective_script_origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1620,6 +1622,10 @@ impl Document {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
+        // This is an incomplete simplification, since the only cases we implement
+        // for origins require the effective script origin to alias the document's
+        // origin.
+        let effective_script_origin = origin.alias();
 
         Document {
             node: Node::new_document_node(),
@@ -1685,6 +1691,7 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
+            effective_script_origin: effective_script_origin,
         }
     }
 
@@ -1880,9 +1887,11 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
-        // TODO: This should use the effective script origin when it exists
-        let origin = self.window.get_url();
-        DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))
+        if let Some(host) = self.effective_script_origin.host() {
+            DOMString::from(host.serialize())
+        } else {
+            DOMString::new()
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
