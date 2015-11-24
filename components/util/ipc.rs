@@ -8,6 +8,7 @@ use opts;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
+use std::io::{Error, ErrorKind};
 use std::marker::Reflect;
 use std::mem;
 use std::sync::Mutex;
@@ -27,10 +28,12 @@ pub enum OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
 }
 
 impl<T> OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
-    pub fn send(&self, value: T) -> Result<(), ()> {
+    pub fn send(&self, value: T) -> Result<(), Error> {
         match *self {
             OptionalIpcSender::OutOfProcess(ref ipc_sender) => ipc_sender.send(value),
-            OptionalIpcSender::InProcess(ref sender) => sender.send(value).map_err(|_| ()),
+            OptionalIpcSender::InProcess(ref sender) => {
+                sender.send(value).map_err(|_| Error::new(ErrorKind::Other, "MPSC send failed"))
+            }
         }
     }
 

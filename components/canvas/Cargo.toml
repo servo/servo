@@ -32,7 +32,7 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 features = ["texture_surface"]
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }

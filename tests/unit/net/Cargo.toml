@@ -27,7 +27,7 @@ path = "../../../components/plugins"
 path = "../../../components/devtools_traits"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 cookie = "0.1"
