@@ -28,7 +28,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
-use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
+use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -44,10 +44,28 @@ use uuid;
 
 pub type Connector = HttpsConnector<Openssl>;
 
+// The basic logic here is to prefer ciphers with ECDSA certificates, Forward
+// Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
+// A complete discussion of the issues involved in TLS configuration can be found here:
+// https://wiki.mozilla.org/Security/Server_Side_TLS
+const DEFAULT_CIPHERS: &'static str = concat!(
+    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
+    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
+    "DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:",
+    "ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:",
+    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:",
+    "ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
+    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:",
+    "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
+    "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
+);
+
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
     context.set_verify(SSL_VERIFY_PEER, None);
     context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+    context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
+    context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3);
     let connector = HttpsConnector::new(Openssl {
         context: Arc::new(context)
     });

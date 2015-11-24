@@ -18,7 +18,7 @@ use std::mem;
 use util::opts;
 use util::tid::tid;
 use wrapper::{LayoutNode, ServoLayoutNode, layout_node_to_unsafe_layout_node};
-use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
+use wrapper::{ServoThreadSafeLayoutNode, ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -130,7 +130,7 @@ pub trait PostorderDomTraversal {
 /// A bottom-up, parallelizable traversal.
 pub trait PostorderNodeMutTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
+    fn process<'a>(&'a mut self, node: &ServoThreadSafeLayoutNode<'a>) -> bool;
 }
 
 /// The recalc-style-for-node traversal, which styles each node and must run before
@@ -162,7 +162,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
             // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
             // to force non-incremental reflow.
             if node.has_changed() {
-                let node = ThreadSafeLayoutNode::new(&node);
+                let node = ServoThreadSafeLayoutNode::new(&node);
                 node.unstyle();
             }
 
@@ -199,7 +199,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         },
                         None => {
                             if node.has_changed() {
-                                ThreadSafeLayoutNode::new(&node).set_restyle_damage(
+                                ServoThreadSafeLayoutNode::new(&node).set_restyle_damage(
                                     incremental::rebuild_and_reflow())
                             }
                             None
@@ -222,7 +222,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
                     style_sharing_candidate_cache.touch(index);
-                    ThreadSafeLayoutNode::new(&node).set_restyle_damage(damage);
+                    ServoThreadSafeLayoutNode::new(&node).set_restyle_damage(damage);
                 }
             }
         }
@@ -252,7 +252,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
     fn process(&self, node: ServoLayoutNode) {
         // Construct flows for this node.
         {
-            let tnode = ThreadSafeLayoutNode::new(&node);
+            let tnode = ServoThreadSafeLayoutNode::new(&node);
 
             // Always reconstruct if incremental layout is turned off.
             let nonincremental_layout = opts::get().nonincremental_layout;

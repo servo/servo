@@ -31,7 +31,7 @@ use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
 use util::geometry::ZERO_POINT;
 use util::logical_geometry::WritingMode;
-use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ServoLayoutNode, ServoThreadSafeLayoutNode, ThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
 
@@ -134,13 +134,13 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 }
 
-pub struct UnioningFragmentBorderBoxIterator {
-    pub node_address: OpaqueNode,
-    pub rect: Option<Rect<Au>>,
+struct UnioningFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    rect: Option<Rect<Au>>,
 }
 
 impl UnioningFragmentBorderBoxIterator {
-    pub fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
         UnioningFragmentBorderBoxIterator {
             node_address: node_address,
             rect: None
@@ -165,13 +165,13 @@ impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
     }
 }
 
-pub struct CollectingFragmentBorderBoxIterator {
-    pub node_address: OpaqueNode,
-    pub rects: Vec<Rect<Au>>,
+struct CollectingFragmentBorderBoxIterator {
+    node_address: OpaqueNode,
+    rects: Vec<Rect<Au>>,
 }
 
 impl CollectingFragmentBorderBoxIterator {
-    pub fn new(node_address: OpaqueNode) -> CollectingFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode) -> CollectingFragmentBorderBoxIterator {
         CollectingFragmentBorderBoxIterator {
             node_address: node_address,
             rects: Vec::new(),
@@ -189,19 +189,19 @@ impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
     }
 }
 
-pub enum Side {
+enum Side {
     Left,
     Right,
     Bottom,
     Top
 }
 
-pub enum MarginPadding {
+enum MarginPadding {
     Margin,
     Padding
 }
 
-pub enum PositionProperty {
+enum PositionProperty {
     Left,
     Right,
     Top,
@@ -210,15 +210,15 @@ pub enum PositionProperty {
     Height,
 }
 
-pub struct PositionRetrievingFragmentBorderBoxIterator {
+struct PositionRetrievingFragmentBorderBoxIterator {
     node_address: OpaqueNode,
-    pub result: Option<Au>,
+    result: Option<Au>,
     position: Point2D<Au>,
     property: PositionProperty,
 }
 
 impl PositionRetrievingFragmentBorderBoxIterator {
-    pub fn new(node_address: OpaqueNode,
+    fn new(node_address: OpaqueNode,
            property: PositionProperty,
            position: Point2D<Au>) -> PositionRetrievingFragmentBorderBoxIterator {
         PositionRetrievingFragmentBorderBoxIterator {
@@ -252,16 +252,16 @@ impl FragmentBorderBoxIterator for PositionRetrievingFragmentBorderBoxIterator {
     }
 }
 
-pub struct MarginRetrievingFragmentBorderBoxIterator {
+struct MarginRetrievingFragmentBorderBoxIterator {
     node_address: OpaqueNode,
-    pub result: Option<Au>,
+    result: Option<Au>,
     writing_mode: WritingMode,
     margin_padding: MarginPadding,
     side: Side,
 }
 
 impl MarginRetrievingFragmentBorderBoxIterator {
-    pub fn new(node_address: OpaqueNode, side: Side, margin_padding:
+    fn new(node_address: OpaqueNode, side: Side, margin_padding:
     MarginPadding, writing_mode: WritingMode) -> MarginRetrievingFragmentBorderBoxIterator {
         MarginRetrievingFragmentBorderBoxIterator {
             node_address: node_address,
@@ -446,7 +446,7 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
                                       property: &Atom,
                                       layout_root: &mut FlowRef)
                                       -> Option<String> {
-    let layout_node = ThreadSafeLayoutNode::new(&requested_node);
+    let layout_node = ServoThreadSafeLayoutNode::new(&requested_node);
     let layout_node = match pseudo {
         &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
@@ -480,7 +480,7 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
     // There are probably other quirks.
     let applies = true;
 
-    fn used_value_for_position_property(layout_node: ThreadSafeLayoutNode,
+    fn used_value_for_position_property(layout_node: ServoThreadSafeLayoutNode,
                                         layout_root: &mut FlowRef,
                                         requested_node: ServoLayoutNode,
                                         property: &Atom) -> Option<String> {

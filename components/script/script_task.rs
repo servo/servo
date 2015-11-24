@@ -35,6 +35,7 @@ use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
 use dom::document::{DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
 use dom::uievent::UIEvent;
@@ -49,7 +50,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
-use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue, SetDOMProxyInformation};
+use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
 use js::jsapi::{DisableIncrementalGC, JS_AddExtraGCRootsTracer, JS_SetWrapObjectCallbacks};
 use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallback};
 use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
@@ -588,7 +589,7 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
     }
 }
 
-unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
+pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
     _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
     // XXX implement me
     DOMProxyShadowsResult::ShadowCheckFailed
@@ -704,7 +705,6 @@ impl ScriptTask {
 
         unsafe {
             unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
-            SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
             SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
             SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
             // Pre barriers aren't working correctly at the moment
@@ -1798,7 +1798,7 @@ impl ScriptTask {
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
-                        if target.upcast::<Node>().is_anchor_element() {
+                        if target.is::<HTMLAnchorElement>() {
                             let event = ConstellationMsg::NodeStatus(None);
                             let ConstellationChan(ref chan) = self.constellation_chan;
                             chan.send(event).unwrap();
@@ -1809,7 +1809,7 @@ impl ScriptTask {
 
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
-                    if target.upcast::<Node>().is_anchor_element() {
+                    if target.is::<HTMLAnchorElement>() {
                         let status = target.get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
@@ -1969,7 +1969,7 @@ impl ScriptTask {
         };
 
         if load_data.url.scheme == "javascript" {
-            load_data.url = Url::parse("about:blank").unwrap();
+            load_data.url = url!("about:blank");
         }
 
         resource_task.send(ControlMsg::Load(NetLoadData {

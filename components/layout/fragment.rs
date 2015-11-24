@@ -50,7 +50,7 @@ use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::slice_chars;
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, ServoThreadSafeLayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -309,7 +309,7 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new(node: &ThreadSafeLayoutNode, data: HTMLCanvasData) -> CanvasFragmentInfo {
+    pub fn new(node: &ServoThreadSafeLayoutNode, data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 Some(Au::from_px(data.width as i32)),
@@ -345,11 +345,11 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new(node: &ThreadSafeLayoutNode,
+    pub fn new(node: &ServoThreadSafeLayoutNode,
                url: Option<Url>,
                layout_context: &LayoutContext)
                -> ImageFragmentInfo {
-        fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
+        fn convert_length(node: &ServoThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
             element.get_attr(&ns!(""), name)
                    .and_then(|string| string.parse().ok())
@@ -423,7 +423,7 @@ pub struct ReplacedImageFragmentInfo {
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new(node: &ThreadSafeLayoutNode,
+    pub fn new(node: &ServoThreadSafeLayoutNode,
                dom_width: Option<Au>,
                dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
@@ -583,7 +583,7 @@ pub struct IframeFragmentInfo {
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
-    pub fn new(node: &ThreadSafeLayoutNode) -> IframeFragmentInfo {
+    pub fn new(node: &ServoThreadSafeLayoutNode) -> IframeFragmentInfo {
         let pipeline_id = node.iframe_pipeline_id();
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
@@ -758,7 +758,7 @@ pub struct TableColumnFragmentInfo {
 
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
-    pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
+    pub fn new(node: &ServoThreadSafeLayoutNode) -> TableColumnFragmentInfo {
         let element = node.as_element();
         let span = element.get_attr(&ns!(""), &atom!("span"))
                           .and_then(|string| string.parse().ok())
@@ -771,7 +771,7 @@ impl TableColumnFragmentInfo {
 
 impl Fragment {
     /// Constructs a new `Fragment` instance.
-    pub fn new(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
+    pub fn new(node: &ServoThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {
@@ -1238,36 +1238,6 @@ impl Fragment {
         self.style().get_inheritedtext().white_space
     }
 
-    pub fn white_space_allow_wrap(&self) -> bool {
-        match self.white_space() {
-            white_space::T::nowrap |
-            white_space::T::pre => false,
-            white_space::T::normal |
-            white_space::T::pre_wrap |
-            white_space::T::pre_line => true,
-        }
-    }
-
-    pub fn white_space_preserve_newlines(&self) -> bool {
-        match self.white_space() {
-            white_space::T::normal |
-            white_space::T::nowrap => false,
-            white_space::T::pre |
-            white_space::T::pre_wrap |
-            white_space::T::pre_line => true,
-        }
-    }
-
-    pub fn white_space_preserve_spaces(&self) -> bool {
-        match self.white_space() {
-            white_space::T::normal |
-            white_space::T::nowrap |
-            white_space::T::pre_line => false,
-            white_space::T::pre |
-            white_space::T::pre_wrap => true,
-        }
-    }
-
     /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
@@ -1297,7 +1267,7 @@ impl Fragment {
     /// Returns true if this element can be split. This is true for text fragments, unless
     /// `white-space: pre` or `white-space: nowrap` is set.
     pub fn can_split(&self) -> bool {
-        self.is_scanned_text_fragment() && self.white_space_allow_wrap()
+        self.is_scanned_text_fragment() && self.white_space().allow_wrap()
     }
 
     /// Returns true if and only if this fragment is a generated content fragment.
@@ -1371,7 +1341,7 @@ impl Fragment {
                                                              .metrics_for_range(range)
                                                              .advance_width;
 
-                let min_line_inline_size = if self.white_space_allow_wrap() {
+                let min_line_inline_size = if self.white_space().allow_wrap() {
                     text_fragment_info.run.min_width_for_range(range)
                 } else {
                     max_line_inline_size
@@ -2224,7 +2194,7 @@ impl Fragment {
     }
 
     pub fn strip_leading_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space_preserve_spaces() {
+        if self.white_space().preserve_spaces() {
             return WhitespaceStrippingResult::RetainFragment
         }
 
@@ -2287,7 +2257,7 @@ impl Fragment {
 
     /// Returns true if the entire fragment was stripped.
     pub fn strip_trailing_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space_preserve_spaces() {
+        if self.white_space().preserve_spaces() {
             return WhitespaceStrippingResult::RetainFragment
         }
 

@@ -54,7 +54,7 @@ fn read_response(reader: &mut Read) -> String {
             unsafe { buf.set_len(len); }
             String::from_utf8(buf).unwrap()
         },
-        Ok(_) => "".to_string(),
+        Ok(_) => "".to_owned(),
         Err(e) => panic!("problem reading response {}", e)
     }
 }
@@ -86,7 +86,7 @@ impl HttpResponse for MockResponse {
 
 fn redirect_to(host: String) -> MockResponse {
     let mut headers = Headers::new();
-    headers.set(Location(host.to_string()));
+    headers.set(Location(host.to_owned()));
 
     MockResponse::new(
         headers,
@@ -236,7 +236,7 @@ fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
 
     if let Some(cookie_list) = cookies {
-        assert_eq!(cookie.to_string(), cookie_list);
+        assert_eq!(cookie.to_owned(), cookie_list);
     } else {
         assert_eq!(cookie.len(), 0);
     }
@@ -346,7 +346,7 @@ fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -
 
 #[test]
 fn test_check_default_headers_loaded_in_every_request() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -367,14 +367,14 @@ fn test_check_default_headers_loaded_in_every_request() {
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
     headers.set(accept);
-    headers.set(UserAgent(DEFAULT_USER_AGENT.to_string()));
+    headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
 
     // Testing for method.GET
     let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list.clone(), cookie_jar.clone(), None,
                                                 &AssertMustHaveHeadersRequestFactory {
                                                     expected_headers: headers.clone(),
                                                     body: <[_]>::to_vec(&[])
-                                                }, DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+                                                }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
     // Testing for method.POST
     load_data.method = Method::Post;
@@ -385,12 +385,12 @@ fn test_check_default_headers_loaded_in_every_request() {
                                                 &AssertMustHaveHeadersRequestFactory {
                                                     expected_headers: headers,
                                                     body: <[_]>::to_vec(&[])
-                                                }, DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+                                                }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -407,7 +407,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         &AssertMustIncludeHeadersRequestFactory {
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
 #[test]
@@ -429,7 +429,7 @@ fn test_request_and_response_data_with_network_messages() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let url = Url::parse("https://mozilla.com").unwrap();
+    let url = url!("https://mozilla.com");
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
     let pipeline_id = PipelineId::fake_root_pipeline_id();
@@ -438,7 +438,7 @@ fn test_request_and_response_data_with_network_messages() {
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
     let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
-                                DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+                                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
     // notification received from devtools
     let devhttprequest = expect_devtools_http_request(&devtools_port);
@@ -459,7 +459,7 @@ fn test_request_and_response_data_with_network_messages() {
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
     headers.set(accept);
-    headers.set(UserAgent(DEFAULT_USER_AGENT.to_string()));
+    headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
 
     let httprequest = DevtoolsHttpRequest {
         url: url,
@@ -504,11 +504,11 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let url = Url::parse("https://mozilla.com").unwrap();
+    let url = url!("https://mozilla.com");
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     let load_data = LoadData::new(url.clone(), None);
     let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
-                                DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+                                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
     // notification received from devtools
     assert!(devtools_port.try_recv().is_err());
@@ -526,7 +526,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         fn create(&self, url: Url, method: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 assert_eq!(Method::Post, method);
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else {
                 assert_eq!(Method::Get, method);
                 Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
@@ -534,7 +534,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.method = Method::Post;
 
@@ -542,7 +542,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
-                                DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+                                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
 #[test]
@@ -563,7 +563,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let load_data = LoadData::new(url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -572,7 +572,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     let mut response = load::<MockRequest>(
         load_data, hsts_list, cookie_jar, None,
         &Factory,
-        DEFAULT_USER_AGENT.to_string(),
+        DEFAULT_USER_AGENT.to_owned(),
         &CancellationListener::new(None))
         .unwrap();
 
@@ -597,7 +597,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -607,7 +607,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         hsts_list,
         cookie_jar,
         None, &Factory,
-        DEFAULT_USER_AGENT.to_string(),
+        DEFAULT_USER_AGENT.to_owned(),
         &CancellationListener::new(None))
         .unwrap();
 
@@ -625,7 +625,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(
                     AssertMustHaveBodyRequest::new(
-                        ResponseType::Redirect("http://mozilla.org".to_string()),
+                        ResponseType::Redirect("http://mozilla.org".to_owned()),
                         Some(<[_]>::to_vec("Body on POST!".as_bytes()))
                     )
                 )
@@ -640,7 +640,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
 
@@ -651,7 +651,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         load_data, hsts_list, cookie_jar,
         None,
         &Factory,
-        DEFAULT_USER_AGENT.to_string(),
+        DEFAULT_USER_AGENT.to_owned(),
         &CancellationListener::new(None));
 }
 
@@ -670,7 +670,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let load_data = LoadData::new(url.clone(), None);
 
@@ -682,7 +682,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
                                 cookie_jar,
                                 None,
                                 &Factory,
-                                DEFAULT_USER_AGENT.to_string(),
+                                DEFAULT_USER_AGENT.to_owned(),
                                 &CancellationListener::new(None));
 
     assert_eq!(hsts_list.read().unwrap().is_host_secure("mozilla.com"), false);
@@ -703,7 +703,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
         }
     }
 
-    let url = Url::parse("https://mozilla.com").unwrap();
+    let url = url!("https://mozilla.com");
 
     let load_data = LoadData::new(url.clone(), None);
 
@@ -715,7 +715,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
                                 cookie_jar,
                                 None,
                                 &Factory,
-                                DEFAULT_USER_AGENT.to_string(),
+                                DEFAULT_USER_AGENT.to_owned(),
                                 &CancellationListener::new(None));
 
     assert!(hsts_list.read().unwrap().is_host_secure("mozilla.com"));
@@ -736,7 +736,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -750,7 +750,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
                                 cookie_jar.clone(),
                                 None,
                                 &Factory,
-                                DEFAULT_USER_AGENT.to_string(),
+                                DEFAULT_USER_AGENT.to_owned(),
                                 &CancellationListener::new(None));
 
     assert_cookie_for_domain(cookie_jar.clone(), "http://mozilla.com", "mozillaIs=theBest");
@@ -758,7 +758,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
@@ -784,13 +784,13 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
                                                     &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: cookie,
                                                         body: <[_]>::to_vec(&*load_data.data.unwrap())
-                                                    }, DEFAULT_USER_AGENT.to_string(),
+                                                    }, DEFAULT_USER_AGENT.to_owned(),
                                                     &CancellationListener::new(None));
 }
 
 #[test]
 fn test_load_sends_cookie_if_nonhttp() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -817,7 +817,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         &AssertMustIncludeHeadersRequestFactory {
             expected_headers: headers,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
 #[test]
@@ -835,7 +835,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -845,7 +845,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
                                 cookie_jar.clone(),
                                 None,
                                 &Factory,
-                                DEFAULT_USER_AGENT.to_string(),
+                                DEFAULT_USER_AGENT.to_owned(),
                                 &CancellationListener::new(None));
 
     let mut cookie_jar = cookie_jar.write().unwrap();
@@ -870,12 +870,12 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let load_data = LoadData::new(Url::parse("http://mozilla.com").unwrap(), None);
+    let load_data = LoadData::new(url!("http://mozilla.com"), None);
     let _ = load::<MockRequest>(load_data, hsts_list,
                                 cookie_jar.clone(),
                                 None,
                                 &Factory,
-                                DEFAULT_USER_AGENT.to_string(),
+                                DEFAULT_USER_AGENT.to_owned(),
                                 &CancellationListener::new(None));
 
     assert_cookie_for_domain(cookie_jar, "http://mozilla.com", "");
@@ -884,8 +884,8 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 #[test]
 fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 
-    let sec_url = Url::parse("https://mozilla.com").unwrap();
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let sec_url = url!("https://mozilla.com");
+    let url = url!("http://mozilla.com");
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -911,14 +911,14 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
         &AssertMustNotHaveHeadersRequestFactory {
             headers_not_expected: vec!["Cookie".to_owned()],
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
 #[test]
 fn test_load_sets_content_length_to_length_of_request_body() {
     let content = "This is a request body";
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
@@ -932,7 +932,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
                                                     None, &AssertMustIncludeHeadersRequestFactory {
                                                             expected_headers: content_len_headers,
                                                             body: <[_]>::to_vec(&*load_data.data.unwrap())
-                                                        }, DEFAULT_USER_AGENT.to_string(),
+                                                        }, DEFAULT_USER_AGENT.to_owned(),
                                                         &CancellationListener::new(None));
 }
 
@@ -943,7 +943,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let mut accept_headers = Headers::new();
     accept_headers.set(Accept(vec![text_html.clone()]));
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(Accept(vec![text_html.clone()]));
@@ -958,7 +958,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
                                                     &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
-                                                    }, DEFAULT_USER_AGENT.to_string(),
+                                                    }, DEFAULT_USER_AGENT.to_owned(),
                                                     &CancellationListener::new(None));
 }
 
@@ -972,7 +972,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
     ]));
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -986,7 +986,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
                                                     &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
-                                                    }, DEFAULT_USER_AGENT.to_string(),
+                                                    }, DEFAULT_USER_AGENT.to_owned(),
                                                     &CancellationListener::new(None));
 }
 
@@ -995,7 +995,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let mut accept_encoding_headers = Headers::new();
     accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
@@ -1010,7 +1010,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
                                                     &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_encoding_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
-                                                    }, DEFAULT_USER_AGENT.to_string(),
+                                                    }, DEFAULT_USER_AGENT.to_owned(),
                                                     &CancellationListener::new(None));
 }
 
@@ -1021,7 +1021,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                                                     qitem(Encoding::Deflate),
                                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -1035,7 +1035,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                                                     &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_encoding_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
-                                                    }, DEFAULT_USER_AGENT.to_string(),
+                                                    }, DEFAULT_USER_AGENT.to_owned(),
                                                     &CancellationListener::new(None));
 }
 
@@ -1048,23 +1048,23 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else if url.domain().unwrap() == "mozilla.org" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.com".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.com".to_owned())))
             } else {
                 panic!("unexpected host {:?}", url)
             }
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let load_data = LoadData::new(url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     match load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
-                              DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None)) {
+                              DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
         Err(LoadError::InvalidRedirect(_, msg)) => {
             assert_eq!(msg, "redirect loop");
         },
@@ -1088,14 +1088,14 @@ fn test_load_errors_when_there_is_too_many_redirects() {
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let load_data = LoadData::new(url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     match load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
-                              DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None)) {
+                              DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
         Err(LoadError::MaxRedirects(url)) => {
             assert_eq!(url.domain().unwrap(), "mozilla.com")
         },
@@ -1112,7 +1112,7 @@ fn test_load_follows_a_redirect() {
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else if url.domain().unwrap() == "mozilla.org" {
                 Ok(
                     MockRequest::new(
@@ -1127,18 +1127,18 @@ fn test_load_follows_a_redirect() {
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = url!("http://mozilla.com");
     let load_data = LoadData::new(url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     match load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
-                              DEFAULT_USER_AGENT.to_string(), &CancellationListener::new(None)) {
+                              DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
         Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
             let response = read_response(&mut lr);
-            assert_eq!(response, "Yay!".to_string());
+            assert_eq!(response, "Yay!".to_owned());
         }
     }
 }
@@ -1149,13 +1149,13 @@ impl HttpRequestFactory for DontConnectFactory {
     type R = MockRequest;
 
     fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
-        Err(LoadError::Connection(url, "should not have connected".to_string()))
+        Err(LoadError::Connection(url, "should not have connected".to_owned()))
     }
 }
 
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
-    let url = Url::parse("ftp://not-supported").unwrap();
+    let url = url!("ftp://not-supported");
     let load_data = LoadData::new(url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -1166,7 +1166,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
                               cookie_jar,
                               None,
                               &DontConnectFactory,
-                              DEFAULT_USER_AGENT.to_string(),
+                              DEFAULT_USER_AGENT.to_owned(),
                               &CancellationListener::new(None)) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
@@ -1175,7 +1175,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
-    let url = Url::parse("view-source:ftp://not-supported").unwrap();
+    let url = url!("view-source:ftp://not-supported");
     let load_data = LoadData::new(url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -1186,7 +1186,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
                               cookie_jar,
                               None,
                               &DontConnectFactory,
-                              DEFAULT_USER_AGENT.to_string(),
+                              DEFAULT_USER_AGENT.to_owned(),
                               &CancellationListener::new(None)) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
@@ -1219,7 +1219,7 @@ fn test_load_errors_when_cancelled() {
     let cancel_listener = CancellationListener::new(Some(cancel_resource));
     cancel_sender.send(()).unwrap();
 
-    let url = Url::parse("https://mozilla.com").unwrap();
+    let url = url!("https://mozilla.com");
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -1229,7 +1229,7 @@ fn test_load_errors_when_cancelled() {
                               cookie_jar,
                               None,
                               &Factory,
-                              DEFAULT_USER_AGENT.to_string(),
+                              DEFAULT_USER_AGENT.to_owned(),
                               &cancel_listener) {
         Err(LoadError::Cancelled(_, _)) => (),
         _ => panic!("expected load cancelled error!")

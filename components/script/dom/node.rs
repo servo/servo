@@ -23,8 +23,8 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
-use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{Castable, CharacterDataTypeId};
+use dom::bindings::inheritance::{EventTargetTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
@@ -432,11 +432,6 @@ impl Node {
 
     pub fn children_count(&self) -> u32 {
         self.children_count.get()
-    }
-
-    #[inline]
-    pub fn is_anchor_element(&self) -> bool {
-        self.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement))
     }
 
     #[inline]

@@ -73,7 +73,8 @@ use util::opts;
 use util::task;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::{LayoutDocument, LayoutElement, LayoutNode, ServoLayoutNode};
+use wrapper::{LayoutDocument, LayoutElement, LayoutNode};
+use wrapper::{ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;

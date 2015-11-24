@@ -21,7 +21,7 @@ fn test_exit() {
 fn test_bad_scheme() {
     let resource_task = new_resource_task("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
-    let url = Url::parse("bogus://whatever").unwrap();
+    let url = url!("bogus://whatever");
     resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
@@ -161,13 +161,13 @@ fn test_replace_hosts() {
 
     let host_table: *mut HashMap<String, String> = Box::into_raw(host_table_box);
 
-    let url = Url::parse("http://foo.bar.com:8000/foo").unwrap();
+    let url = url!("http://foo.bar.com:8000/foo");
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "127.0.0.1");
 
-    let url = Url::parse("http://servo.test.server").unwrap();
+    let url = url!("http://servo.test.server");
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "127.0.0.2");
 
-    let url = Url::parse("http://a.foo.bar.com").unwrap();
+    let url = url!("http://a.foo.bar.com");
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "a.foo.bar.com");
 }
 

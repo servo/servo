@@ -8,11 +8,10 @@ use std::borrow::ToOwned;
 use style::media_queries::*;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
-use url::Url;
 
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = url!("http://localhost");
     let stylesheet = Stylesheet::from_str(css, url, Origin::Author);
     let mut rule_count = 0;
     for rule in stylesheet.rules().media() {
@@ -23,7 +22,7 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str)
 }
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = url!("http://localhost");
     let ss = Stylesheet::from_str(css, url, Origin::Author);
     let rule_count = ss.effective_rules(device).style().count();
     assert!(rule_count == expected_rule_count, css.to_owned());
