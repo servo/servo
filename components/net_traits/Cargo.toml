@@ -34,7 +34,5 @@ path = "../plugins"
 log = "0.3"
 euclid = {version = "0.3", features = ["plugins"]}
 image = "0.4.0"
-regex = "0.1.33"
-regex_macros = "0.1.19"
 serde = "0.6"
 serde_macros = "0.6"

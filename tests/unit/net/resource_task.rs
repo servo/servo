@@ -121,12 +121,9 @@ fn test_parse_hostsfile_with_valid_ipv6_addresses()
                                    0000:0000:0000:0000:0000:0000:0000:0001 bar.moz.com\n\
                                    ::1 foo.bar.baz baz.foo.com\n\
                                    2001:0DB8:85A3:0042:1000:8A2E:0370:7334 baz.bar.moz\n\
-                                   2002:0DB8:85A3:0042:1000:8A2E:0370:7334/96 baz2.bar.moz\n\
-                                   2002:0DB8:85A3:0042:1000:8A2E:0370:7334/128 baz3.bar.moz\n\
-                                   :: unspecified.moz.com\n\
-                                   ::/128 unspecified.address.com";
+                                   :: unspecified.moz.com";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
-    assert_eq!(12, (*hosts_table).len());
+    assert_eq!(9, (*hosts_table).len());
 }
 
 #[test]
@@ -134,7 +131,6 @@ fn test_parse_hostsfile_with_invalid_ipv6_addresses()
 {
     let mock_hosts_file_content = "12001:0db8:0000:0000:0000:ff00:0042:8329 foo.bar.com\n\
                                    2001:zdb8:0:0:0:gg00:42:t329 moz.foo.com\n\
-                                   2001:db8::ff00:42:8329:1111:1111:42 foo.moz.com moz.moz.com\n\
                                    2002:0DB8:85A3:0042:1000:8A2E:0370:7334/1289 baz3.bar.moz";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(0, (*hosts_table).len());

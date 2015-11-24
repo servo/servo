@@ -11,7 +11,6 @@
 #![feature(vec_push_all)]
 #![feature(custom_attribute)]
 #![plugin(serde_macros, plugins)]
-#![plugin(regex_macros)]
 
 #[macro_use]
 extern crate log;
@@ -20,7 +19,6 @@ extern crate hyper;
 extern crate ipc_channel;
 extern crate image as piston_image;
 extern crate msg;
-extern crate regex;
 extern crate serde;
 extern crate stb_image;
 extern crate url;
@@ -33,7 +31,6 @@ use hyper::mime::{Attr, Mime};
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
-use regex::Regex;
 use serde::{Deserializer, Serializer};
 use std::thread;
 use url::Url;
@@ -43,10 +40,6 @@ pub mod hosts;
 pub mod image_cache_task;
 pub mod net_error_list;
 pub mod storage_task;
-
-pub static IPV4_REGEX: Regex = regex!(
-    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy)]
