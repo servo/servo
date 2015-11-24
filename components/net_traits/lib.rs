@@ -35,7 +35,9 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
 use serde::{Deserializer, Serializer};
+use std::cell::RefCell;
 use std::thread;
+use std::rc::Rc;
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -95,7 +97,7 @@ pub struct Response {
     pub body: ResponseBody,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
-    pub internal_response: Option<Box<Response>>,
+    pub internal_response: Option<Rc<RefCell<Response>>>,
 }
 
 impl Response {

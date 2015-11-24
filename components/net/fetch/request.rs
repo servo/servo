@@ -14,6 +14,8 @@ use hyper::status::StatusCode;
 use net_traits::{AsyncFetchListener, FetchKind, Response};
 use net_traits::{ResponseType, Metadata};
 use std::ascii::AsciiExt;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::str::FromStr;
 use url::{Url, UrlParser};
 use util::task::spawn_named;
@@ -252,35 +254,37 @@ impl Request {
     pub fn http_fetch(&mut self, cors_flag: bool, cors_preflight_flag: bool,
                       authentication_fetch_flag: bool) -> Response {
         // Step 1
-        let mut response: Option<Response> = None;
+        let mut response: Option<Rc<RefCell<Response>>> = None;
         // Step 2
-        let mut actual_response: Option<Response> = None;
+        let mut actual_response: Option<Rc<RefCell<Response>>> = None;
         // Step 3
         if !self.skip_service_worker && !self.is_service_worker_global_scope {
             // TODO: Substep 1 (handle fetch unimplemented)
             if let Some(ref res) = response {
+                let resp = res.borrow();
                 // Substep 2
-                actual_response = match res.internal_response {
-                    Some(ref internal_res) => Some(*internal_res.clone()),
+                actual_response = match resp.internal_response {
+                    Some(ref internal_res) => Some(internal_res.clone()),
                     None => Some(res.clone())
                 };
                 // Substep 3
-                if (res.response_type == ResponseType::Opaque &&
+                if (resp.response_type == ResponseType::Opaque &&
                     self.mode != RequestMode::NoCORS) ||
-                   (res.response_type == ResponseType::OpaqueRedirect &&
+                   (resp.response_type == ResponseType::OpaqueRedirect &&
                     self.redirect_mode != RedirectMode::Manual) ||
-                   res.response_type == ResponseType::Error {
+                   resp.response_type == ResponseType::Error {
                     return Response::network_error();
                 }
-                // Substep 4
-                if let Some(ref mut res) = actual_response {
-                    if res.url_list.is_empty() {
-                        res.url_list = self.url_list.clone();
-                    }
-                }
-                // Substep 5
-                // TODO: set response's CSP list on actual_response
             }
+            // Substep 4
+            if let Some(ref res) = actual_response {
+                let mut resp = res.borrow_mut();
+                if resp.url_list.is_empty() {
+                    resp.url_list = self.url_list.clone();
+                }
+            }   
+            // Substep 5
+            // TODO: set response's CSP list on actual_response
         }
         // Step 4
         if response.is_none() {
@@ -289,6 +293,8 @@ impl Request {
                 let mut method_mismatch = false;
                 let mut header_mismatch = false;
                 if let Some(ref mut cache) = self.cache {
+                    // FIXME: Once Url::Origin is available, rewrite origin to
+                    // take an Origin instead of a Url
                     let origin = self.origin.clone().unwrap_or(Url::parse("").unwrap());
                     let url = self.url_list.last().unwrap().clone();
                     let credentials = self.credentials_mode == CredentialsMode::Include;
@@ -312,7 +318,7 @@ impl Request {
                     if preflight_result.response_type == ResponseType::Error {
                         return Response::network_error();
                     }
-                    response = Some(preflight_result);
+                    response = Some(Rc::new(RefCell::new(preflight_result)));
                 }
             }
             // Substep 2
@@ -327,15 +333,15 @@ impl Request {
             };
             // Substep 4
             let fetch_result = self.http_network_or_cache_fetch(credentials, authentication_fetch_flag);
-            actual_response = Some(fetch_result.clone());
             // Substep 5
             if cors_flag && self.cors_check(&fetch_result).is_err() {
                 return Response::network_error();
             }
-            response = Some(fetch_result);
+            response = Some(Rc::new(RefCell::new(fetch_result)));
+            actual_response = response.clone();
         }
         // Step 5
-        let mut actual_response = actual_response.unwrap();
+        let mut actual_response = actual_response.unwrap().into_inner();
         let mut response = response.unwrap();
         match actual_response.status.unwrap() {
             // Code 301, 302, 303, 307, 308
@@ -370,7 +376,7 @@ impl Request {
                 match self.redirect_mode {
                     // Step 9
                     RedirectMode::Manual => {
-                        response = actual_response.to_filtered(ResponseType::Opaque);
+                        response = Rc::new(RefCell::new(actual_response.to_filtered(ResponseType::Opaque)));
                     }
                     // Step 10
                     RedirectMode::Follow => {
@@ -410,7 +416,7 @@ impl Request {
                 // Step 1
                 // FIXME: Figure out what to do with request window objects
                 if cors_flag {
-                    return response;
+                    return response.into_inner();
                 }
                 // Step 2
                 // TODO: Spec says requires testing on multiple WWW-Authenticate headers
@@ -434,6 +440,7 @@ impl Request {
             }
             _ => { }
         }
+        let mut response = response.into_inner(); 
         // Step 6
         if authentication_fetch_flag {
             // TODO: Create authentication entry for this request
