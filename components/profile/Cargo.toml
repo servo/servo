@@ -20,7 +20,7 @@ path = "../util"
 git = "https://github.com/libheartbeats/heartbeats-simple-rust.git"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 log = "0.3"

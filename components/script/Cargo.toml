@@ -57,7 +57,7 @@ git = "https://github.com/ecoal95/angle"
 branch = "servo"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.hyper]
 version = "0.6"

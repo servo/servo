@@ -26,7 +26,7 @@ path = "../profile_traits"
 path = "../util"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.url]
 version = "0.2"

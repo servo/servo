@@ -30,7 +30,7 @@ features = [ "serde-serialization" ]
 path = "../msg"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.url]
 version = "0.2"

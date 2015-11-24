@@ -136,7 +136,7 @@ features = ["plugins"]
 git = "https://github.com/pcwalton/gaol"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
