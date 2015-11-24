@@ -75,8 +75,10 @@ use util::str::{is_whitespace, search_index};
 /// only ever see these and must never see instances of `LayoutJS`.
 
 pub trait LayoutNode<'ln> : Sized + Copy + Clone {
-    type ConcreteLayoutElement: LayoutElement<'ln>;
-    type ConcreteLayoutDocument: LayoutDocument<'ln>;
+    type ConcreteLayoutElement: LayoutElement<'ln, ConcreteLayoutNode = Self,
+                                              ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
+    type ConcreteLayoutDocument: LayoutDocument<'ln, ConcreteLayoutNode = Self,
+                                                ConcreteLayoutElement = Self::ConcreteLayoutElement>;
 
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
@@ -162,8 +164,10 @@ pub trait LayoutNode<'ln> : Sized + Copy + Clone {
 }
 
 pub trait LayoutDocument<'ld> : Sized + Copy + Clone {
-    type ConcreteLayoutNode: LayoutNode<'ld>;
-    type ConcreteLayoutElement: LayoutElement<'ld>;
+    type ConcreteLayoutNode: LayoutNode<'ld, ConcreteLayoutElement = Self::ConcreteLayoutElement,
+                                        ConcreteLayoutDocument = Self>;
+    type ConcreteLayoutElement: LayoutElement<'ld, ConcreteLayoutNode = Self::ConcreteLayoutNode,
+                                              ConcreteLayoutDocument = Self>;
 
     fn as_node(&self) -> Self::ConcreteLayoutNode;
 
@@ -173,8 +177,10 @@ pub trait LayoutDocument<'ld> : Sized + Copy + Clone {
 }
 
 pub trait LayoutElement<'le> : Sized + Copy + Clone + ::selectors::Element + TElementAttributes {
-    type ConcreteLayoutNode: LayoutNode<'le>;
-    type ConcreteLayoutDocument: LayoutDocument<'le>;
+    type ConcreteLayoutNode: LayoutNode<'le, ConcreteLayoutElement = Self,
+                                        ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
+    type ConcreteLayoutDocument: LayoutDocument<'le, ConcreteLayoutNode = Self::ConcreteLayoutNode,
+                                                ConcreteLayoutElement = Self>;
 
     fn as_node(&self) -> Self::ConcreteLayoutNode;
 
@@ -183,45 +189,7 @@ pub trait LayoutElement<'le> : Sized + Copy + Clone + ::selectors::Element + TEl
     fn get_state(&self) -> ElementState;
 
     /// Properly marks nodes as dirty in response to restyle hints.
-    fn note_restyle_hint(&self, mut hint: RestyleHint) {
-        // Bail early if there's no restyling to do.
-        if hint.is_empty() {
-            return;
-        }
-
-        // If the restyle hint is non-empty, we need to restyle either this element
-        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
-        let node = self.as_node();
-        let mut curr = node;
-        while let Some(parent) = curr.parent_node() {
-            if parent.has_dirty_descendants() { break }
-            unsafe { parent.set_dirty_descendants(true); }
-            curr = parent;
-        }
-
-        // Process hints.
-        if hint.contains(RESTYLE_SELF) {
-            node.dirty_self();
-
-            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
-            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
-            // properly. See the explanation in the github issue.
-            hint.insert(RESTYLE_DESCENDANTS);
-        }
-        if hint.contains(RESTYLE_DESCENDANTS) {
-            unsafe { node.set_dirty_descendants(true); }
-            node.dirty_descendants();
-        }
-        if hint.contains(RESTYLE_LATER_SIBLINGS) {
-            let mut next = ::selectors::Element::next_sibling_element(self);
-            while let Some(sib) = next {
-                let sib_node = sib.as_node();
-                sib_node.dirty_self();
-                sib_node.dirty_descendants();
-                next = ::selectors::Element::next_sibling_element(&sib);
-            }
-        }
-    }
+    fn note_restyle_hint(&self, mut hint: RestyleHint);
 }
 
 #[derive(Copy, Clone)]
@@ -563,6 +531,46 @@ impl<'le> LayoutElement<'le> for ServoLayoutElement<'le> {
     fn get_state(&self) -> ElementState {
         self.element.get_state_for_layout()
     }
+
+    fn note_restyle_hint(&self, mut hint: RestyleHint) {
+        // Bail early if there's no restyling to do.
+        if hint.is_empty() {
+            return;
+        }
+
+        // If the restyle hint is non-empty, we need to restyle either this element
+        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
+        let node = self.as_node();
+        let mut curr = node;
+        while let Some(parent) = curr.parent_node() {
+            if parent.has_dirty_descendants() { break }
+            unsafe { parent.set_dirty_descendants(true); }
+            curr = parent;
+        }
+
+        // Process hints.
+        if hint.contains(RESTYLE_SELF) {
+            node.dirty_self();
+
+            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
+            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
+            // properly. See the explanation in the github issue.
+            hint.insert(RESTYLE_DESCENDANTS);
+        }
+        if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
+            node.dirty_descendants();
+        }
+        if hint.contains(RESTYLE_LATER_SIBLINGS) {
+            let mut next = ::selectors::Element::next_sibling_element(self);
+            while let Some(sib) = next {
+                let sib_node = sib.as_node();
+                sib_node.dirty_self();
+                sib_node.dirty_descendants();
+                next = ::selectors::Element::next_sibling_element(&sib);
+            }
+        }
+    }
 }
 
 
@@ -794,7 +802,7 @@ impl<T> PseudoElementType<T> {
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 
 pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
-    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<'ln>;
+    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<'ln, ConcreteThreadSafeLayoutNode = Self>;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -942,8 +950,8 @@ trait DangerousThreadSafeLayoutNode<'ln> : ThreadSafeLayoutNode<'ln> {
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait ThreadSafeLayoutElement<'le> {
-    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'le>;
+pub trait ThreadSafeLayoutElement<'le>: Clone + Copy + Sized {
+    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'le, ConcreteThreadSafeLayoutElement = Self>;
 
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&'le str>;
@@ -1253,6 +1261,7 @@ impl<'ln, ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<'ln, C
 
 /// A wrapper around elements that ensures layout can only ever access safe properties and cannot
 /// race on elements.
+#[derive(Copy, Clone)]
 pub struct ServoThreadSafeLayoutElement<'le> {
     element: &'le Element,
 }
