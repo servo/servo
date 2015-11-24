@@ -7,10 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "devtools_traits"
 path = "lib.rs"
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
 [dependencies.msg]
 path = "../msg"
 
@@ -24,6 +20,7 @@ git = "https://github.com/servo/ipc-channel"
 path = "../plugins"
 
 [dependencies]
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 time = "0.1"
 rustc-serialize = "0.3"
 bitflags = "0.3"

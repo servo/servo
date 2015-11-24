@@ -22,10 +22,6 @@ git = "https://github.com/ende76/brotli-rs"
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
 [dependencies.msg]
 path = "../msg"
 
@@ -33,6 +29,7 @@ path = "../msg"
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 log = "0.3"
 time = "0.1.17"
 openssl = "0.7.0"

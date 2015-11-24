@@ -31,7 +31,7 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 cookie = "0.2"
-hyper = "0.6"
+hyper = "0.7"
 url = "0.5"
 time = "0.1"
 flate2 = "0.2.0"

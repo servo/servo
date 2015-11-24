@@ -55,10 +55,6 @@ branch = "servo"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
 [dependencies.xml5ever]
 git = "https://github.com/Ygg01/xml5ever"
 features = ["unstable"]
@@ -69,6 +65,7 @@ cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 time = "0.1.12"
 bitflags = "0.3"
 rustc-serialize = "0.3"
