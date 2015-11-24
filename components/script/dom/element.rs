@@ -1216,23 +1216,24 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-setattribute
     fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        // Step 1.
-        if xml_name_type(&name) == InvalidXMLName {
-            return Err(Error::InvalidCharacter);
-        }
-
-
         // Step 2.
         let name = self.parsed_name_dont_atomize(name);
 
-        // Interning strings is expensive, so first check if we already have an
-        // attribute with the given name.
+        // Interning strings is expensive, as is validating that the attribute
+        // name is valid, so first check if we already have an attribute with
+        // the given name. If we do, then it has already been interned and
+        // validated by someone else.
         let attr = self.get_first_matching_attribute(|attr| attr.name().as_slice() == &*name);
         if let Some(attr) = attr {
             // Step 3-5.
             let value = self.parse_attribute(&ns!(""), attr.name(), value);
             attr.set_value(value, self);
             return Ok(());
+        }
+
+        // Step 1.
+        if xml_name_type(&name) == InvalidXMLName {
+            return Err(Error::InvalidCharacter);
         }
 
         // Step 3-5.
