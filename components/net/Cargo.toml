@@ -44,6 +44,7 @@ rustc-serialize = "0.3"
 cookie = "0.1"
 regex = "0.1.14"
 regex_macros = "0.1.8"
+mime_guess = "1.1.1"
 flate2 = "0.2.0"
 uuid = "0.1.16"
 euclid = {version = "0.3", features = ["plugins"]}

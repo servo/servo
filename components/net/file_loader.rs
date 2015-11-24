@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use mime_classifier::MIMEClassifier;
+use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_task::{CancellationListener, ProgressSender};
@@ -70,7 +71,9 @@ pub fn factory(load_data: LoadData,
                         }
                         match read_block(reader) {
                             Ok(ReadStatus::Partial(buf)) => {
-                                let metadata = Metadata::default(url);
+                                let mut metadata = Metadata::default(url);
+                                let mime_type = guess_mime_type(file_path.as_path());
+                                metadata.set_content_type(Some(&mime_type));
                                 let progress_chan = start_sending_sniffed(senders, metadata,
                                                                           classifier, &buf);
                                 progress_chan.send(Payload(buf)).unwrap();
@@ -83,7 +86,9 @@ pub fn factory(load_data: LoadData,
                                 }
                             }
                             Ok(ReadStatus::EOF) => {
-                                let metadata = Metadata::default(url);
+                                let mut metadata = Metadata::default(url);
+                                let mime_type = guess_mime_type(file_path.as_path());
+                                metadata.set_content_type(Some(&mime_type));
                                 if let Ok(chan) = start_sending_sniffed_opt(senders,
                                                                             metadata,
                                                                             classifier,
