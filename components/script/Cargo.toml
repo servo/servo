@@ -84,8 +84,7 @@ uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
 selectors = "0.2"
-string_cache = { version = "0.1.15", features = ["unstable"] }
-string_cache_plugin = "0.1"
+string_cache = { version = "0.2", features = ["unstable"] }
 euclid = {version = "0.3", features = ["plugins"]}
 tendril = "0.1.1"
 rand = "0.3"
