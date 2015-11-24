@@ -29953,6 +29953,12 @@
     "deleted": [],
     "items": {
       "testharness": {
+        "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html": [
+          {
+            "path": "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html",
+            "url": "/html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html"
+          }
+        ],
         "html/semantics/forms/form-submission-0/url-encoded.html": [
           {
             "path": "html/semantics/forms/form-submission-0/url-encoded.html",
