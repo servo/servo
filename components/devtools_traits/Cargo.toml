@@ -17,10 +17,6 @@ path = "../msg"
 [dependencies.util]
 path = "../util"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
@@ -33,4 +29,5 @@ rustc-serialize = "0.3"
 bitflags = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
+url = "0.5"
 

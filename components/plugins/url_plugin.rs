@@ -114,17 +114,22 @@ impl<'a> ExtCtxtHelpers for ExtCtxt<'a> {
         }
     }
 
-    fn expr_host(&self, sp: Span, host: Host) -> syntax::ptr::P<Expr> {
+    fn expr_host(&self, _sp: Span, host: Host) -> syntax::ptr::P<Expr> {
         match host {
             Host::Domain(domain) => quote_expr!(self, ::url::Host::Domain(String::from($domain))),
             Host::Ipv6(address) => {
-                let pieces_expr = self.expr_slice_u16(sp, &address.pieces);
+                let [a, b, c, d, e, f, g, h] = address.segments();
                 quote_expr!(self,
-                            ::url::Host::Ipv6(
-                                ::url::Ipv6Address {
-                                    pieces: $pieces_expr.to_owned()
-                                }
-                            ))
+                            ::url::Host::Ipv6(::std::net::Ipv6Addr::new(
+                                $a, $b, $c, $d, $e, $f, $g, $h
+                            )))
+            },
+            Host::Ipv4(address) => {
+                let [a, b, c, d] = address.octets();
+                quote_expr!(self,
+                            ::url::Host::Ipv4(::std::net::Ipv4Addr::new(
+                                $a, $b, $c, $d
+                            )))
             },
         }
     }
