@@ -1721,14 +1721,14 @@ pub mod longhands {
                 #[inline]
                 pub fn name(&self) -> &str {
                     match *self {
-                        FontFamily::FamilyName(ref name) => name.as_slice(),
+                        FontFamily::FamilyName(ref name) => &*name,
                     }
                 }
             }
             impl ToCss for FontFamily {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                     match *self {
-                        FontFamily::FamilyName(ref name) => dest.write_str(name.as_slice()),
+                        FontFamily::FamilyName(ref name) => dest.write_str(&*name),
                     }
                 }
             }
@@ -1759,7 +1759,7 @@ pub mod longhands {
         }
         pub fn parse_one_family(input: &mut Parser) -> Result<FontFamily, ()> {
             if let Ok(value) = input.try(|input| input.expect_string()) {
-                return Ok(FontFamily::FamilyName(Atom::from_slice(&value)))
+                return Ok(FontFamily::FamilyName(Atom::from(&*value)))
             }
             let first_ident = try!(input.expect_ident());
 //            match_ignore_ascii_case! { first_ident,
@@ -1775,7 +1775,7 @@ pub mod longhands {
                 value.push_str(" ");
                 value.push_str(&ident);
             }
-            Ok(FontFamily::FamilyName(Atom::from_slice(&value)))
+            Ok(FontFamily::FamilyName(Atom::from(&*value)))
         }
     </%self:longhand>
 
@@ -6006,7 +6006,7 @@ impl PropertyDeclaration {
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
             };
-            result_list.push(PropertyDeclaration::Custom(Atom::from_slice(name), value));
+            result_list.push(PropertyDeclaration::Custom(Atom::from(name), value));
             return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
         }
         match_ignore_ascii_case! { name,
@@ -6317,7 +6317,7 @@ impl ComputedValues {
             _ => {
                 let name = try!(::custom_properties::parse_name(name));
                 let map = try!(self.custom_properties.as_ref().ok_or(()));
-                let value = try!(map.get(&Atom::from_slice(name)).ok_or(()));
+                let value = try!(map.get(&Atom::from(name)).ok_or(()));
                 Ok(value.to_css_string())
             }
         }

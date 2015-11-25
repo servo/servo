@@ -292,7 +292,7 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(src) => {
+            &atom!("src") => {
                 self.update_image(mutation.new_value(attr).map(|value| {
                     // FIXME(ajeffrey): convert directly from AttrValue to DOMString
                     (DOMString::from(&**value), window_from_node(self).get_url())

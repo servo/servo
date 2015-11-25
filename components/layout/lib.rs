@@ -16,7 +16,6 @@
 
 #![deny(unsafe_code)]
 
-#![plugin(string_cache_plugin)]
 #![plugin(plugins)]
 
 extern crate app_units;
@@ -52,7 +51,7 @@ extern crate script_traits;
 extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
-extern crate string_cache;
+#[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
 extern crate unicode_bidi;
 extern crate unicode_script;

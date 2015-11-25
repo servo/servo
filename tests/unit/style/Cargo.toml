@@ -25,6 +25,5 @@ app_units = {version = "0.1", features = ["plugins"]}
 url = "0.2"
 cssparser = "0.4"
 selectors = "0.2"
-string_cache = "0.1"
-string_cache_plugin = "0.1"
+string_cache = "0.2"
 euclid = {version = "0.3", features = ["plugins"]}

@@ -36,7 +36,7 @@ impl HTMLBaseElement {
 
     /// https://html.spec.whatwg.org/multipage/#frozen-base-url
     pub fn frozen_base_url(&self) -> Url {
-        let href = self.upcast::<Element>().get_attribute(&ns!(""), &atom!("href"))
+        let href = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href"))
             .expect("The frozen base url is only defined for base elements \
                      that have a base url.");
         let document = document_from_node(self);
@@ -66,7 +66,7 @@ impl VirtualMethods for HTMLBaseElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if *attr.local_name() == atom!(href) {
+        if *attr.local_name() == atom!("href") {
             document_from_node(self).refresh_base_element();
         }
     }

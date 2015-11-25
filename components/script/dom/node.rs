@@ -1631,7 +1631,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| Atom::from_slice(&p)),
+                    element.prefix().as_ref().map(|p| Atom::from(&**p)),
                     document.r(), ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
@@ -1707,7 +1707,7 @@ impl Node {
 
     pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
-            ns!("") => None,
+            ns!() => None,
             // FIXME(ajeffrey): convert directly from &Atom to DOMString
             Namespace(ref ns) => Some(DOMString::from(&**ns))
         }
@@ -1717,7 +1717,7 @@ impl Node {
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
         fn attr_defines_namespace(attr: &Attr,
                                   prefix: &Option<Atom>) -> bool {
-            *attr.namespace() == ns!(XMLNS) &&
+            *attr.namespace() == ns!(xmlns) &&
                 match (attr.prefix(), prefix) {
                     (&Some(ref attr_prefix), &Some(ref prefix)) =>
                         attr_prefix == &atom!("xmlns") &&
@@ -1731,12 +1731,12 @@ impl Node {
             NodeTypeId::Element(_) => {
                 let element = node.downcast::<Element>().unwrap();
                 // Step 1.
-                if *element.namespace() != ns!("") && *element.prefix() == prefix {
+                if *element.namespace() != ns!() && *element.prefix() == prefix {
                     return element.namespace().clone()
                 }
 
-
-                let prefix_atom = prefix.as_ref().map(|s| Atom::from_slice(s));
+                // FIXME(ajeffrey): directly convert DOMString to Atom
+                let prefix_atom = prefix.as_ref().map(|s| Atom::from(&**s));
 
                 // Step 2.
                 let attrs = element.attrs();
@@ -1751,7 +1751,7 @@ impl Node {
 
                 match node.GetParentElement() {
                     // Step 3.
-                    None => ns!(""),
+                    None => ns!(),
                     // Step 4.
                     Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
                 }
@@ -1759,18 +1759,18 @@ impl Node {
             NodeTypeId::Document => {
                 match node.downcast::<Document>().unwrap().GetDocumentElement().r() {
                     // Step 1.
-                    None => ns!(""),
+                    None => ns!(),
                     // Step 2.
                     Some(document_element) => {
                         Node::locate_namespace(document_element.upcast(), prefix)
                     }
                 }
             },
-            NodeTypeId::DocumentType => ns!(""),
-            NodeTypeId::DocumentFragment => ns!(""),
+            NodeTypeId::DocumentType => ns!(),
+            NodeTypeId::DocumentFragment => ns!(),
             _ => match node.GetParentElement() {
                      // Step 1.
-                     None => ns!(""),
+                     None => ns!(),
                      // Step 2.
                      Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
                  }
@@ -2270,7 +2270,7 @@ impl NodeMethods for Node {
         let namespace = namespace_from_domstring(namespace);
 
         // Step 1.
-        if namespace == ns!("") {
+        if namespace == ns!() {
             return None;
         }
 

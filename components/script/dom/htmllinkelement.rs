@@ -78,7 +78,7 @@ impl HTMLLinkElement {
 }
 
 fn get_attr(element: &Element, local_name: &Atom) -> Option<String> {
-    let elem = element.get_attribute(&ns!(""), local_name);
+    let elem = element.get_attribute(&ns!(), local_name);
     elem.map(|e| {
         let value = e.value();
         (**value).to_owned()
@@ -119,9 +119,9 @@ impl VirtualMethods for HTMLLinkElement {
             return;
         }
 
-        let rel = get_attr(self.upcast(), &atom!(rel));
+        let rel = get_attr(self.upcast(), &atom!("rel"));
         match attr.local_name() {
-            &atom!(href) => {
+            &atom!("href") => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
@@ -136,7 +136,7 @@ impl VirtualMethods for HTMLLinkElement {
                     }
                 }
             },
-            &atom!(media) => {
+            &atom!("media") => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 }
@@ -186,7 +186,7 @@ impl HTMLLinkElement {
             Ok(url) => {
                 let element = self.upcast::<Element>();
 
-                let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
+                let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
                 let value = mq_attribute.r().map(|a| a.value());
                 let mq_str = match value {
                     Some(ref value) => &***value,

@@ -52,7 +52,7 @@ euclid = {version = "0.3", features = ["plugins"]}
 selectors = "0.2"
 serde = "0.6"
 serde_macros = "0.6"
-string_cache = "0.1"
+string_cache = "0.2"
 lazy_static = "0.1"
 getopts = "0.2.11"
 hyper = "0.6"

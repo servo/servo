@@ -4,14 +4,13 @@
 
 #![feature(plugin)]
 #![cfg_attr(test, feature(core_intrinsics))]
-#![plugin(string_cache_plugin)]
 #![plugin(plugins)]
 
 extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
 extern crate selectors;
-extern crate string_cache;
+#[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
 extern crate style_traits;
 extern crate url;

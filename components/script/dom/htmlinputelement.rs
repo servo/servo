@@ -131,7 +131,7 @@ impl HTMLInputElement {
 
     pub fn type_(&self) -> Atom {
         self.upcast::<Element>()
-            .get_attribute(&ns!(""), &atom!("type"))
+            .get_attribute(&ns!(), &atom!("type"))
             .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
     }
 }
@@ -166,7 +166,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
-                .get_attr_val_for_layout(&ns!(""), &atom!("value"))
+                .get_attr_val_for_layout(&ns!(), &atom!("value"))
                 .unwrap_or(default);
             String::from(value)
         }
@@ -451,7 +451,7 @@ impl HTMLInputElement {
     fn get_radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
         self.upcast::<Element>()
-            .get_attribute(&ns!(""), &atom!("name"))
+            .get_attribute(&ns!(), &atom!("name"))
             .map(|name| name.value().as_atom().clone())
     }
 
@@ -507,7 +507,7 @@ impl VirtualMethods for HTMLInputElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(disabled) => {
+            &atom!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -521,7 +521,7 @@ impl VirtualMethods for HTMLInputElement {
                 el.set_enabled_state(!disabled_state);
                 el.check_ancestors_disabled_state_for_form_control();
             },
-            &atom!(checked) if !self.checked_changed.get() => {
+            &atom!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -532,13 +532,13 @@ impl VirtualMethods for HTMLInputElement {
                 };
                 self.update_checked_state(checked_state, false);
             },
-            &atom!(size) => {
+            &atom!("size") => {
                 let size = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             }
-            &atom!(type) => {
+            &atom!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
                         let value = match &**attr.value() {
@@ -567,16 +567,16 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
             },
-            &atom!(value) if !self.value_changed.get() => {
+            &atom!("value") if !self.value_changed.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map(DOMString::from).unwrap_or(DOMString::from("")));
             },
-            &atom!(name) if self.input_type.get() == InputType::InputRadio => {
+            &atom!("name") if self.input_type.get() == InputType::InputRadio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
-            &atom!(placeholder) => {
+            &atom!("placeholder") => {
                 // FIXME(ajeffrey): Should we do in-place mutation of the placeholder?
                 let mut placeholder = self.placeholder.borrow_mut();
                 placeholder.clear();
@@ -591,9 +591,9 @@ impl VirtualMethods for HTMLInputElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!(name) => AttrValue::from_atomic(value),
+            &atom!("name") => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
-            &atom!(type) => AttrValue::from_atomic(value),
+            &atom!("type") => AttrValue::from_atomic(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

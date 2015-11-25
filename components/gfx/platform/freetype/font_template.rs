@@ -24,7 +24,7 @@ impl FontTemplateData {
             },
             None => {
                 // TODO: Handle file load failure!
-                let mut file = File::open(identifier.as_slice()).unwrap();
+                let mut file = File::open(&*identifier).unwrap();
                 let mut buffer = vec![];
                 file.read_to_end(&mut buffer).unwrap();
                 buffer

@@ -26,21 +26,21 @@ fn test_parse_stylesheet() {
         origin: Origin::UserAgent,
         media: None,
         rules: vec![
-            CSSRule::Namespace(None, ns!(HTML)),
+            CSSRule::Namespace(None, ns!(html)),
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(ns!(HTML)),
+                                SimpleSelector::Namespace(ns!(html)),
                                 SimpleSelector::LocalName(LocalName {
-                                    name: atom!(input),
-                                    lower_name: atom!(input),
+                                    name: atom!("input"),
+                                    lower_name: atom!("input"),
                                 }),
                                 SimpleSelector::AttrEqual(AttrSelector {
-                                    name: atom!(type),
-                                    lower_name: atom!(type),
-                                    namespace: NamespaceConstraint::Specific(ns!("")),
+                                    name: atom!("type"),
+                                    lower_name: atom!("type"),
+                                    namespace: NamespaceConstraint::Specific(ns!()),
                                 }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
                             ],
                             next: None,
@@ -62,10 +62,10 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(ns!(HTML)),
+                                SimpleSelector::Namespace(ns!(html)),
                                 SimpleSelector::LocalName(LocalName {
-                                    name: atom!(html),
-                                    lower_name: atom!(html),
+                                    name: atom!("html"),
+                                    lower_name: atom!("html"),
                                 }),
                             ],
                             next: None,
@@ -76,10 +76,10 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(ns!(HTML)),
+                                SimpleSelector::Namespace(ns!(html)),
                                 SimpleSelector::LocalName(LocalName {
-                                    name: atom!(body),
-                                    lower_name: atom!(body),
+                                    name: atom!("body"),
+                                    lower_name: atom!("body"),
                                 }),
                             ],
                             next: None,
@@ -101,11 +101,11 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Class(Atom::from_slice("ok")),
+                                SimpleSelector::Class(Atom::from("ok")),
                             ],
                             next: Some((Arc::new(CompoundSelector {
                                 simple_selectors: vec![
-                                    SimpleSelector::ID(Atom::from_slice("d1")),
+                                    SimpleSelector::ID(Atom::from("d1")),
                                 ],
                                 next: None,
                             }), Combinator::Child)),
