@@ -1723,6 +1723,18 @@
             "url": "/_mozilla/css/iframe/simple_inline_min.html"
           }
         ],
+        "css/iframe/simple_inline_width.html": [
+          {
+            "path": "css/iframe/simple_inline_width.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/simple_inline_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/simple_inline_width.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7324,6 +7336,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/simple_inline_min.html"
+        }
+      ],
+      "css/iframe/simple_inline_width.html": [
+        {
+          "path": "css/iframe/simple_inline_width.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/simple_inline_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/simple_inline_width.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
