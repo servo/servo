@@ -16,6 +16,7 @@ use dom::bindings::xmlname::validate_qualified_name;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::documenttype::DocumentType;
+use dom::xmldocument::XMLDocument;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
@@ -64,12 +65,12 @@ impl DOMImplementationMethods for DOMImplementation {
                       namespace: Option<DOMString>,
                       qname: DOMString,
                       maybe_doctype: Option<&DocumentType>)
-                      -> Fallible<Root<Document>> {
+                      -> Fallible<Root<XMLDocument>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1.
-        let doc = Document::new(win,
+        let doc = XMLDocument::new(win,
                                 None,
                                 IsHTMLDocument::NonHTMLDocument,
                                 None,
