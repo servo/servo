@@ -13,16 +13,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
-== iframe/bg_color.html iframe/bg_color_ref.html
-== iframe/hide_after_load.html iframe/hide_after_load_ref.html
-== iframe/hide_and_show.html iframe/hide_and_show_ref.html
-== iframe/hide_layers1.html iframe/hide_layers_ref.html
-== iframe/hide_layers2.html iframe/hide_layers_ref.html
-== iframe/multiple_external.html iframe/multiple_external_ref.html
-== iframe/overflow.html iframe/overflow_ref.html
-== iframe/positioning_margin.html iframe/positioning_margin_ref.html
-== iframe/simple.html iframe/simple_ref.html
-== iframe/simple_inline_default.html iframe/simple_inline_default_ref.html
 == iframe/simple_inline_height.html iframe/simple_inline_height_ref.html
 == iframe/simple_inline_max.html iframe/simple_inline_max_ref.html
 == iframe/simple_inline_min.html iframe/simple_inline_min_ref.html
