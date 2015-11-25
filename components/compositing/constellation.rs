@@ -66,6 +66,7 @@ use util::{opts, prefs};
 #[derive(Debug, PartialEq)]
 enum ReadyToSave {
     NoRootFrame,
+    PendingFrames,
     WebFontNotLoaded,
     DocumentLoading,
     EpochMismatch,
@@ -225,7 +226,7 @@ impl Frame {
 struct FrameChange {
     old_pipeline_id: Option<PipelineId>,
     new_pipeline_id: PipelineId,
-    painter_ready: bool,
+    document_ready: bool,
 }
 
 /// An iterator over a frame tree, returning nodes in depth-first order.
@@ -428,7 +429,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.pending_frames.push(FrameChange {
             old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
-            painter_ready: false,
+            document_ready: false,
         });
     }
 
@@ -600,6 +601,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got navigation message from script");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
+            // Notification that the new document is ready to become active
+            Request::Script(FromScriptMsg::ActivateDocument(pipeline_id)) => {
+                debug!("constellation got activate document message");
+                self.handle_activate_document_msg(pipeline_id);
+            }
             Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
                                               subpage_id,
                                               event)) => {
@@ -676,10 +682,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
 
             // Notification that painting has finished and is requesting permission to paint.
-            Request::Paint(FromPaintMsg::Ready(pipeline_id)) => {
-                debug!("constellation got painter ready message");
-                self.handle_painter_ready_msg(pipeline_id);
-            }
             Request::Paint(FromPaintMsg::Failure(Failure { pipeline_id, parent_info })) => {
                 debug!("handling paint failure message from pipeline {:?}, {:?}", pipeline_id, parent_info);
                 self.handle_failure_msg(pipeline_id, parent_info);
@@ -1257,11 +1259,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn handle_painter_ready_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Painter {:?} ready to send paint msg", pipeline_id);
-        // This message could originate from a pipeline in the navigation context or
-        // from a pending frame. The only time that we will grant paint permission is
-        // when the message originates from a pending frame or the current frame.
+    fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
+        debug!("Document ready to activate {:?}", pipeline_id);
 
         // If this pipeline is already part of the current frame tree,
         // we don't need to do anything.
@@ -1275,12 +1274,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             frame_change.new_pipeline_id == pipeline_id
         });
         if let Some(pending_index) = pending_index {
-            self.pending_frames[pending_index].painter_ready = true;
+            self.pending_frames[pending_index].document_ready = true;
         }
 
         // This is a bit complex. We need to loop through pending frames and find
         // ones that can be swapped. A frame can be swapped (enabled) once it is
-        // ready to paint (has painter_ready set), and also has no dependencies
+        // ready to layout (has document_ready set), and also has no dependencies
         // (i.e. the pipeline it is replacing has been enabled and now has a frame).
         // The outer loop is required because any time a pipeline is enabled, that
         // may affect whether other pending frames are now able to be enabled. On the
@@ -1291,7 +1290,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let waiting_on_dependency = frame_change.old_pipeline_id.map_or(false, |old_pipeline_id| {
                 self.pipeline_to_frame_map.get(&old_pipeline_id).is_none()
             });
-            frame_change.painter_ready && !waiting_on_dependency
+            frame_change.document_ready && !waiting_on_dependency
         }) {
             let frame_change = self.pending_frames.swap_remove(valid_frame_change);
             self.add_or_replace_pipeline_in_frame_tree(frame_change);
@@ -1346,6 +1345,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // not loaded, so there is nothing to save yet.
         if self.root_frame_id.is_none() {
             return ReadyToSave::NoRootFrame;
+        }
+
+        // If there are pending loads, wait for those to complete.
+        if self.pending_frames.len() > 0 {
+            return ReadyToSave::PendingFrames;
         }
 
         // Step through the current frame tree, checking that the script

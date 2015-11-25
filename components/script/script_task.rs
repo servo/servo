@@ -2051,6 +2051,9 @@ impl ScriptTask {
         let window = window_from_node(document.r());
         window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::ActivateDocument(id)).unwrap();
+
         // No more reflow required
         page.set_reflow_status(false);
 

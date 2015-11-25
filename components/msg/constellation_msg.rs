@@ -244,7 +244,6 @@ pub enum MouseButton {
 /// Messages from the paint task to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum PaintMsg {
-    Ready(PipelineId),
     Failure(Failure),
 }
 
