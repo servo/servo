@@ -1699,6 +1699,18 @@
             "url": "/_mozilla/css/iframe/simple_inline_height.html"
           }
         ],
+        "css/iframe/simple_inline_max.html": [
+          {
+            "path": "css/iframe/simple_inline_max.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/simple_inline_max_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/simple_inline_max.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7276,6 +7288,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/simple_inline_height.html"
+        }
+      ],
+      "css/iframe/simple_inline_max.html": [
+        {
+          "path": "css/iframe/simple_inline_max.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/simple_inline_max_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/simple_inline_max.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
