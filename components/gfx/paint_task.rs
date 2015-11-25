@@ -213,7 +213,6 @@ pub struct PaintTask<C> {
     layout_to_paint_port: Receiver<LayoutToPaintMsg>,
     chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
     compositor: C,
-    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// A channel to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -275,7 +274,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     layout_to_paint_port: layout_to_paint_port,
                     chrome_to_paint_port: chrome_to_paint_port,
                     compositor: compositor,
-                    constellation_chan: constellation_chan,
                     time_profiler_chan: time_profiler_chan,
                     root_paint_layer: None,
                     paint_permission: false,
@@ -327,14 +325,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.current_epoch = Some(epoch);
                     self.root_paint_layer = Some(Arc::new(paint_layer));
 
-                    if !self.paint_permission {
-                        debug!("PaintTask: paint ready msg");
-                        let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::Ready(self.id)).unwrap();
-                        continue;
+                    if self.paint_permission {
+                        self.initialize_layers();
                     }
-
-                    self.initialize_layers();
                 }
                 // Inserts a new canvas renderer to the layer map
                 Msg::FromLayout(LayoutToPaintMsg::CanvasLayer(layer_id, canvas_renderer)) => {
@@ -342,31 +335,26 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.canvas_map.insert(layer_id, canvas_renderer);
                 }
                 Msg::FromChrome(ChromeToPaintMsg::Paint(requests, frame_tree_id)) => {
-                    if !self.paint_permission {
-                        debug!("PaintTask: paint ready msg");
-                        let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::Ready(self.id)).unwrap();
-                        continue;
-                    }
-
-                    let mut replies = Vec::new();
-                    for PaintRequest { buffer_requests, scale, layer_id, epoch, layer_kind }
-                          in requests {
-                        if self.current_epoch == Some(epoch) {
-                            self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
-                        } else {
-                            debug!("PaintTask: Ignoring requests with epoch mismatch: {:?} != {:?}",
-                                   self.current_epoch,
-                                   epoch);
-                            self.compositor.ignore_buffer_requests(buffer_requests);
+                    if self.paint_permission && self.root_paint_layer.is_some() {
+                        let mut replies = Vec::new();
+                        for PaintRequest { buffer_requests, scale, layer_id, epoch, layer_kind }
+                              in requests {
+                            if self.current_epoch == Some(epoch) {
+                                self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
+                            } else {
+                                debug!("PaintTask: Ignoring requests with epoch mismatch: {:?} != {:?}",
+                                       self.current_epoch,
+                                       epoch);
+                                self.compositor.ignore_buffer_requests(buffer_requests);
+                            }
                         }
-                    }
 
-                    debug!("PaintTask: returning surfaces");
-                    self.compositor.assign_painted_buffers(self.id,
-                                                           self.current_epoch.unwrap(),
-                                                           replies,
-                                                           frame_tree_id);
+                        debug!("PaintTask: returning surfaces");
+                        self.compositor.assign_painted_buffers(self.id,
+                                                               self.current_epoch.unwrap(),
+                                                               replies,
+                                                               frame_tree_id);
+                    }
                 }
                 Msg::FromChrome(ChromeToPaintMsg::PaintPermissionGranted) => {
                     self.paint_permission = true;

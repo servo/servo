@@ -294,6 +294,7 @@ pub enum ScriptMsg {
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
+    ActivateDocument(PipelineId),
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId),
     ScriptLoadedURLInIFrame(IframeLoadInfo),
@@ -308,7 +309,6 @@ pub enum ScriptMsg {
 /// Messages from the paint task to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum PaintMsg {
-    Ready(PipelineId),
     Failure(Failure),
 }
 
