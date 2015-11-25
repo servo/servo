@@ -294,7 +294,6 @@ pub enum ScriptMsg {
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
-    PainterReady(PipelineId),
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId),
     ScriptLoadedURLInIFrame(IframeLoadInfo),
@@ -304,6 +303,13 @@ pub enum ScriptMsg {
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+}
+
+/// Messages from the paint task to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum PaintMsg {
+    Ready(PipelineId),
+    Failure(Failure),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
