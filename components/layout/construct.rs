@@ -1439,7 +1439,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             Some(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) |
             Some(NodeTypeId::DocumentType) |
             Some(NodeTypeId::DocumentFragment) |
-            Some(NodeTypeId::Document) => {
+            Some(NodeTypeId::Document(_)) => {
                 (display::T::none, float::T::none, position::T::static_)
             }
         };
@@ -1587,7 +1587,7 @@ impl<'ln> NodeUtils for ServoThreadSafeLayoutNode<'ln> {
             Some(NodeTypeId::CharacterData(_)) |
             Some(NodeTypeId::DocumentType) |
             Some(NodeTypeId::DocumentFragment) |
-            Some(NodeTypeId::Document) |
+            Some(NodeTypeId::Document(_)) |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLImageElement))) |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
