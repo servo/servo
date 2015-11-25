@@ -22,6 +22,7 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
+use dom::xmldocument::XMLDocument;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#domimplementation
@@ -64,23 +65,23 @@ impl DOMImplementationMethods for DOMImplementation {
                       namespace: Option<DOMString>,
                       qname: DOMString,
                       maybe_doctype: Option<&DocumentType>)
-                      -> Fallible<Root<Document>> {
+                      -> Fallible<Root<XMLDocument>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1.
-        let doc = Document::new(win,
-                                None,
-                                IsHTMLDocument::NonHTMLDocument,
-                                None,
-                                None,
-                                DocumentSource::NotFromParser,
-                                loader);
+        let doc = XMLDocument::new(win,
+                                   None,
+                                   IsHTMLDocument::NonHTMLDocument,
+                                   None,
+                                   None,
+                                   DocumentSource::NotFromParser,
+                                   loader);
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.CreateElementNS(namespace, qname) {
+            match doc.upcast::<Document>().CreateElementNS(namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),
             }

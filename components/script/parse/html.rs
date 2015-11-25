@@ -195,7 +195,7 @@ impl<'a> Serializable for &'a Node {
                 Ok(())
             },
 
-            (ChildrenOnly, NodeTypeId::Document) => {
+            (ChildrenOnly, NodeTypeId::Document(_)) => {
                 for handle in node.children() {
                     try!(handle.r().serialize(serializer, IncludeNode));
                 }
@@ -227,7 +227,7 @@ impl<'a> Serializable for &'a Node {
 
             (IncludeNode, NodeTypeId::DocumentFragment) => Ok(()),
 
-            (IncludeNode, NodeTypeId::Document) => panic!("Can't serialize Document node itself"),
+            (IncludeNode, NodeTypeId::Document(_)) => panic!("Can't serialize Document node itself"),
         }
     }
 }
