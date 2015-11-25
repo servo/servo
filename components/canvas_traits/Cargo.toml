@@ -22,7 +22,7 @@ features = ["plugins"]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.serde]
 version = "0.6"

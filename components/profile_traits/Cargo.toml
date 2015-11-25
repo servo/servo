@@ -11,7 +11,7 @@ path = "lib.rs"
 energy-profiling = ["energymon", "energy-monitor"]
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.energymon]
 git = "https://github.com/energymon/energymon-rust.git"
