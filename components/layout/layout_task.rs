@@ -59,7 +59,7 @@ use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{Device, MediaType};
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
@@ -194,7 +194,10 @@ pub struct LayoutTask {
     visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 
     /// The list of currently-running animations.
-    running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
+    running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+
+    /// The list of animations that have expired since the last style recalculation.
+    expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Epoch,
@@ -420,7 +423,8 @@ impl LayoutTask {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
             visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
-            running_animations: Arc::new(HashMap::new()),
+            running_animations: Arc::new(RwLock::new(HashMap::new())),
+            expired_animations: Arc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
             viewport_size: Size2D::new(Au(0), Au(0)),
             rw_data: Arc::new(Mutex::new(
@@ -471,6 +475,7 @@ impl LayoutTask {
             new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
             goal: goal,
             running_animations: self.running_animations.clone(),
+            expired_animations: self.expired_animations.clone(),
         }
     }
 
@@ -1137,13 +1142,13 @@ impl LayoutTask {
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
-            let animations = &*self.running_animations;
+            let animations = self.running_animations.read().unwrap();
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
                         animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
-                                                               animations)
+                                                               &*animations)
                     });
         }
 
@@ -1182,7 +1187,8 @@ impl LayoutTask {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&self.constellation_chan,
-                                              &mut self.running_animations,
+                                              &mut *self.running_animations.write().unwrap(),
+                                              &mut *self.expired_animations.write().unwrap(),
                                               &self.new_animations_receiver,
                                               self.id);
 
