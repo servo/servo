@@ -1392,7 +1392,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 }
 
 impl Document {
-    fn new_inherited(window: &Window,
+    pub fn new_inherited(window: &Window,
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
