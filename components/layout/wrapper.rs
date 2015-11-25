@@ -629,7 +629,12 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     fn is_root(&self) -> bool {
         match self.as_node().parent_node() {
             None => false,
-            Some(node) => node.type_id() == NodeTypeId::Document,
+            Some(node) => {
+                match node.type_id() {
+                    NodeTypeId::Document(_) => true,
+                    _ => false
+                }
+            },
         }
     }
 
