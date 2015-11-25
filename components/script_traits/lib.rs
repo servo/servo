@@ -97,15 +97,6 @@ pub struct NewLayoutInfo {
     pub content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// Used to determine if a script has any pending asynchronous activity.
-#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
-pub enum ScriptState {
-    /// The document has been loaded.
-    DocumentLoaded,
-    /// The document is still loading.
-    DocumentLoading,
-}
-
 /// Messages sent from the constellation or layout to the script task.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -142,8 +133,6 @@ pub enum ConstellationControlMsg {
     /// Notifies the script task that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
-    /// Get the current state of the script task for a given pipeline.
-    GetCurrentState(IpcSender<ScriptState>, PipelineId),
     /// Cause a `load` event to be dispatched at the appropriate frame element.
     DispatchFrameLoadEvent {
         /// The pipeline that has been marked as loaded.
