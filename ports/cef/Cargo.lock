@@ -228,10 +228,10 @@ dependencies = [
 
 [[package]]
 name = "clock_ticks"
-version = "0.0.6"
-source = "git+https://github.com/tomaka/clock_ticks#acfcf96806ae5e3bc647b7412a1c430ce62b79a1"
+version = "0.1.0"
+source = "git+https://github.com/tomaka/clock_ticks#d4b7f5d53d400ae47f20487ebbbf071c351ea40e"
 dependencies = [
- "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -980,7 +980,7 @@ dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "clock_ticks 0.0.6 (git+https://github.com/tomaka/clock_ticks)",
+ "clock_ticks 0.1.0 (git+https://github.com/tomaka/clock_ticks)",
  "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
