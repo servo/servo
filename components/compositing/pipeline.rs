@@ -235,9 +235,9 @@ impl Pipeline {
             mem_profiler_chan: state.mem_profiler_chan,
             load_data: state.load_data,
             failure: failure,
-            layout_to_paint_port: Some(layout_to_paint_port),
+            layout_to_paint_port: layout_to_paint_port,
             chrome_to_paint_chan: chrome_to_paint_chan,
-            chrome_to_paint_port: Some(chrome_to_paint_port),
+            chrome_to_paint_port: chrome_to_paint_port,
             paint_shutdown_chan: paint_shutdown_chan,
             script_to_compositor_port: script_to_compositor_port,
         };
@@ -384,7 +384,7 @@ impl UnprivilegedPipelineContent {
         ScriptTaskFactory::create(None::<&mut STF>, InitialScriptState {
             id: self.id,
             parent_info: self.parent_info,
-            compositor: self.script_to_compositor_chan.clone(),
+            compositor: self.script_to_compositor_chan,
             control_chan: self.script_chan.clone(),
             control_port: mem::replace(&mut self.script_port, None).unwrap(),
             constellation_chan: self.constellation_chan.clone(),
@@ -439,15 +439,26 @@ pub struct PrivilegedPipelineContent {
     mem_profiler_chan: profile_mem::ProfilerChan,
     load_data: LoadData,
     failure: Failure,
-    layout_to_paint_port: Option<Receiver<LayoutToPaintMsg>>,
+    layout_to_paint_port: Receiver<LayoutToPaintMsg>,
     chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    chrome_to_paint_port: Option<Receiver<ChromeToPaintMsg>>,
+    chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
     paint_shutdown_chan: IpcSender<()>,
 }
 
 impl PrivilegedPipelineContent {
-    pub fn start_all(mut self) {
-        self.start_paint_task();
+    pub fn start_all(self) {
+        PaintTask::create(self.id,
+                          self.load_data.url,
+                          self.chrome_to_paint_chan,
+                          self.layout_to_paint_port,
+                          self.chrome_to_paint_port,
+                          self.compositor_proxy.clone_compositor_proxy(),
+                          self.painter_chan,
+                          self.font_cache_task,
+                          self.failure,
+                          self.time_profiler_chan,
+                          self.mem_profiler_chan,
+                          self.paint_shutdown_chan);
 
         let compositor_proxy_for_script_listener_thread =
             self.compositor_proxy.clone_compositor_proxy();
@@ -459,19 +470,19 @@ impl PrivilegedPipelineContent {
         });
     }
 
-    pub fn start_paint_task(&mut self) {
+    pub fn start_paint_task(self) {
         PaintTask::create(self.id,
-                          self.load_data.url.clone(),
-                          self.chrome_to_paint_chan.clone(),
-                          mem::replace(&mut self.layout_to_paint_port, None).unwrap(),
-                          mem::replace(&mut self.chrome_to_paint_port, None).unwrap(),
-                          self.compositor_proxy.clone_compositor_proxy(),
-                          self.painter_chan.clone(),
-                          self.font_cache_task.clone(),
-                          self.failure.clone(),
-                          self.time_profiler_chan.clone(),
-                          self.mem_profiler_chan.clone(),
-                          self.paint_shutdown_chan.clone());
+                          self.load_data.url,
+                          self.chrome_to_paint_chan,
+                          self.layout_to_paint_port,
+                          self.chrome_to_paint_port,
+                          self.compositor_proxy,
+                          self.painter_chan,
+                          self.font_cache_task,
+                          self.failure,
+                          self.time_profiler_chan,
+                          self.mem_profiler_chan,
+                          self.paint_shutdown_chan);
 
     }
 }

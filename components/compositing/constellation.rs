@@ -362,7 +362,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
         let spawning_paint_only = script_channel.is_some();
-        let (pipeline, unprivileged_pipeline_content, mut privileged_pipeline_content) =
+        let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
             Pipeline::create::<LTF, STF>(InitialPipelineState {
                 id: pipeline_id,
                 parent_info: parent_info,
