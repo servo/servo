@@ -724,16 +724,6 @@ dependencies = [
 
 [[package]]
 name = "gl_generator"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "xml-rs 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "gl_generator"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
@@ -1345,12 +1335,12 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aae6e57969c553973c43ce5e4246831ccc2868f0"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#922819338946a3fa26a8ae49dc34cc1ede8b3705"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.4.2 (git+https://github.com/servo/glutin?branch=servo)",
  "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
