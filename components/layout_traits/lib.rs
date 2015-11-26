@@ -8,10 +8,10 @@
 extern crate euclid;
 extern crate gfx;
 extern crate ipc_channel;
-extern crate script_traits;
 extern crate msg;
-extern crate profile_traits;
 extern crate net_traits;
+extern crate profile_traits;
+extern crate script_traits;
 extern crate serde;
 extern crate url;
 extern crate util;

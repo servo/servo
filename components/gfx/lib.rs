@@ -20,19 +20,11 @@
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
+extern crate alloc;
 extern crate app_units;
+extern crate azure;
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate util;
-extern crate alloc;
-extern crate azure;
 extern crate canvas_traits;
 
 // Mac OS-specific library dependencies
@@ -57,9 +49,15 @@ extern crate harfbuzz_sys as harfbuzz;
 
 extern crate ipc_channel;
 extern crate layers;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
+#[macro_use]
+extern crate profile_traits;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate script_traits;
@@ -75,6 +73,8 @@ extern crate style;
 extern crate time;
 extern crate unicode_script;
 extern crate url;
+#[macro_use]
+extern crate util;
 
 
 pub use paint_context::PaintContext;

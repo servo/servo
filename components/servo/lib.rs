@@ -18,7 +18,7 @@
 // `WindowMethods` trait.
 
 extern crate gaol;
-
+extern crate libc;
 #[macro_use]
 extern crate util as _util;
 
@@ -44,8 +44,6 @@ mod export {
     extern crate style;
     extern crate url;
 }
-
-extern crate libc;
 
 #[cfg(feature = "webdriver")]
 extern crate webdriver_server;

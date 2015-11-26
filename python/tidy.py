@@ -217,6 +217,8 @@ def check_rust(file_name, contents):
     comment_depth = 0
     merged_lines = ''
 
+    prev_crate = {}
+
     import_block = False
     whitespace = False
 
@@ -225,6 +227,20 @@ def check_rust(file_name, contents):
     mods = []
 
     for idx, line in enumerate(contents):
+        # check extern crates
+        cut_line = line.strip()
+        if cut_line.startswith("extern crate"):
+            tmp = cut_line.replace("extern crate ", "").replace(";", "")
+            indent = len(line) - len(cut_line)
+            if indent not in prev_crate:
+                prev_crate[indent] = ""
+            if prev_crate[indent] > tmp:
+                message = "extern crate statement is not in alphabetical order"
+                expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_crate[indent])
+                found = "\n\t\033[91mfound: {}\033[0m".format(tmp)
+                yield(idx + 1, message + expected + found)
+            prev_crate[indent] = tmp
+
         # simplify the analysis
         line = line.strip()
 

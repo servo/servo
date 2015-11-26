@@ -16,22 +16,15 @@
 #![plugin(serde_macros)]
 
 extern crate app_units;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate util;
+
 extern crate azure;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate clipboard;
-
 #[cfg(target_os = "macos")]
 extern crate core_graphics;
 #[cfg(target_os = "macos")]
 extern crate core_text;
-
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gaol;
@@ -42,17 +35,22 @@ extern crate image;
 extern crate ipc_channel;
 extern crate layers;
 extern crate layout_traits;
+extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate offscreen_gl_context;
+#[macro_use]
+extern crate profile_traits;
 extern crate script_traits;
 extern crate serde;
 extern crate style_traits;
-
-extern crate libc;
 extern crate time;
 extern crate url;
+#[macro_use]
+extern crate util;
 
 pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
 pub use constellation::Constellation;

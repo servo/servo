@@ -20,19 +20,18 @@
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
+extern crate env_logger;
+extern crate gleam;
 // The window backed by glutin
 extern crate glutin_app as app;
-extern crate env_logger;
 #[cfg(target_os = "android")]
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate offscreen_gl_context;
 // The Servo engine
 extern crate servo;
 extern crate time;
-
-extern crate gleam;
-extern crate offscreen_gl_context;
 
 use gleam::gl;
 use offscreen_gl_context::GLContext;
@@ -222,8 +221,8 @@ android_start!(main);
 
 #[cfg(target_os = "android")]
 mod android {
-    extern crate libc;
     extern crate android_glue;
+    extern crate libc;
 
     use self::libc::c_int;
     use std::borrow::ToOwned;
