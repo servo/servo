@@ -52,6 +52,7 @@ use net_traits::storage_task::{StorageTask, StorageType};
 use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
+use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
@@ -70,6 +71,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
+use style_traits::ParseErrorReporter;
 use time;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::Url;
@@ -216,6 +218,8 @@ pub struct Window {
     /// A flag to prevent async events from attempting to interact with this window.
     #[ignore_heap_size_of = "defined in std"]
     ignore_further_async_events: Arc<AtomicBool>,
+
+    error_reporter: CSSErrorReporter,
 }
 
 impl Window {
@@ -288,6 +292,10 @@ impl Window {
 
     pub fn storage_task(&self) -> StorageTask {
         self.storage_task.clone()
+    }
+
+    pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
+        return self.error_reporter.clone();
     }
 }
 
@@ -1243,7 +1251,7 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-
+        let error_reporter = CSSErrorReporter;
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
@@ -1288,8 +1296,8 @@ impl Window {
             devtools_markers: DOMRefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: DOMRefCell::new(None),
-
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
+            error_reporter: error_reporter
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

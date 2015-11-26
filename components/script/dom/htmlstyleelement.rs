@@ -58,7 +58,7 @@ impl HTMLStyleElement {
         };
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let mut sheet = Stylesheet::from_str(&data, url, Origin::Author);
+        let mut sheet = Stylesheet::from_str(&data, url, Origin::Author, win.css_error_reporter());
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
         sheet.set_media(Some(media));

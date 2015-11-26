@@ -42,6 +42,7 @@ extern crate log;
 extern crate profile_traits;
 #[macro_use]
 extern crate style;
+extern crate style_traits;
 #[macro_use]
 extern crate util;
 extern crate angle;
@@ -90,6 +91,7 @@ mod mem;
 mod network_listener;
 pub mod page;
 pub mod parse;
+pub mod reporter;
 #[allow(unsafe_code)]
 pub mod script_task;
 pub mod textinput;

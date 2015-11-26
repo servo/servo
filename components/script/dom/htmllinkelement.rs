@@ -281,13 +281,17 @@ impl AsyncResponseListener for StylesheetContext {
         let environment_encoding = UTF_8 as EncodingRef;
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
         let final_url = metadata.final_url;
+
+        let elem = self.elem.root();
+        let win = window_from_node(&*elem);
+
         let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
-                                               Some(environment_encoding), Origin::Author);
+                                               Some(environment_encoding), Origin::Author,
+                                               win.css_error_reporter());
         let media = self.media.take().unwrap();
         sheet.set_media(Some(media));
         let sheet = Arc::new(sheet);
 
-        let elem = self.elem.root();
         let elem = elem.r();
         let document = document_from_node(elem);
         let document = document.r();

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::{Parser, SourcePosition};
+use log;
 use media_queries::{Device, MediaType};
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -14,6 +16,7 @@ use selectors::parser::PseudoElement;
 use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
+use style_traits::ParseErrorReporter;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
@@ -24,6 +27,20 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
+struct StdoutErrorReporter;
+
+impl ParseErrorReporter for StdoutErrorReporter {
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
+         if log_enabled!(log::LogLevel::Info) {
+             let location = input.source_location(position);
+             info!("{}:{} {}", location.line, location.column, message)
+         }
+    }
+
+    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
+        box StdoutErrorReporter
+    }
+}
 
 lazy_static! {
     pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
@@ -38,7 +55,8 @@ lazy_static! {
                         Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
                         None,
                         None,
-                        Origin::UserAgent);
+                        Origin::UserAgent,
+                        box StdoutErrorReporter);
                     stylesheets.push(ua_stylesheet);
                 }
                 Err(..) => {
@@ -49,7 +67,7 @@ lazy_static! {
         }
         for &(ref contents, ref url) in &opts::get().user_stylesheets {
             stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User));
+                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter));
         }
         stylesheets
     };
@@ -64,7 +82,8 @@ lazy_static! {
                     url!("chrome:///quirks-mode.css"),
                     None,
                     None,
-                    Origin::UserAgent)
+                    Origin::UserAgent,
+                    box StdoutErrorReporter)
             },
             Err(..) => {
                 error!("Stylist failed to load 'quirks-mode.css'!");

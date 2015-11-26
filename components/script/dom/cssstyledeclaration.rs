@@ -18,6 +18,7 @@ use std::cell::Ref;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
+use style_traits::ParseErrorReporter;
 use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -240,7 +241,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 6
         let window = window_from_node(&*self.owner);
-        let declarations = parse_one_declaration(&property, &value, &window.get_url());
+        let declarations = parse_one_declaration(&property, &value, &window.get_url(), window.css_error_reporter());
 
         // Step 7
         let declarations = if let Ok(declarations) = declarations {
