@@ -239,7 +239,7 @@ impl Pipeline {
             chrome_to_paint_chan: chrome_to_paint_chan,
             chrome_to_paint_port: Some(chrome_to_paint_port),
             paint_shutdown_chan: paint_shutdown_chan,
-            script_to_compositor_port: Some(script_to_compositor_port),
+            script_to_compositor_port: script_to_compositor_port,
         };
 
         (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
@@ -433,7 +433,7 @@ pub struct PrivilegedPipelineContent {
     id: PipelineId,
     painter_chan: ConstellationChan<PaintMsg>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
-    script_to_compositor_port: Option<IpcReceiver<ScriptToCompositorMsg>>,
+    script_to_compositor_port: IpcReceiver<ScriptToCompositorMsg>,
     font_cache_task: FontCacheTask,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
@@ -446,13 +446,12 @@ pub struct PrivilegedPipelineContent {
 }
 
 impl PrivilegedPipelineContent {
-    pub fn start_all(&mut self) {
+    pub fn start_all(mut self) {
         self.start_paint_task();
 
         let compositor_proxy_for_script_listener_thread =
             self.compositor_proxy.clone_compositor_proxy();
-        let script_to_compositor_port =
-            mem::replace(&mut self.script_to_compositor_port, None).unwrap();
+        let script_to_compositor_port = self.script_to_compositor_port;
         thread::spawn(move || {
             compositor_task::run_script_listener_thread(
                 compositor_proxy_for_script_listener_thread,
