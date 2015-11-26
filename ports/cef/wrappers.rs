@@ -121,6 +121,7 @@ cef_pointer_wrapper!(i32);
 cef_pointer_wrapper!(i64);
 cef_pointer_wrapper!(u32);
 cef_pointer_wrapper!(u64);
+cef_pointer_wrapper!(usize);
 
 cef_noop_wrapper!(());
 cef_noop_wrapper!(*const cef_geolocation_handler_t);
@@ -187,6 +188,7 @@ cef_noop_wrapper!(f64);
 cef_noop_wrapper!(i64);
 cef_noop_wrapper!(u32);
 cef_noop_wrapper!(u64);
+cef_noop_wrapper!(usize);
 cef_noop_wrapper!(cef_string_list_t);
 
 cef_unimplemented_wrapper!(*const *mut cef_v8value_t, *const CefV8Value);
@@ -198,7 +200,7 @@ cef_unimplemented_wrapper!(cef_string_t, String);
 impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
     fn to_c(buffer: &'a [u16]) -> *const cef_string_t {
         unsafe {
-            let ptr = libc::malloc(((buffer.len() + 1) * 2) as u64) as *mut c_ushort;
+            let ptr = libc::malloc(((buffer.len() + 1) * 2)) as *mut c_ushort;
             ptr::copy(buffer.as_ptr(), ptr, buffer.len());
             *ptr.offset(buffer.len() as isize) = 0;
 
@@ -206,7 +208,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
             // stack space to create the object in. What a botch.
             Box::into_raw(box cef_string_utf16 {
                 str: ptr,
-                length: buffer.len() as u64,
+                length: buffer.len(),
                 dtor: Some(free_boxed_utf16_string as extern "C" fn(*mut c_ushort)),
             }) as *const _
         }
@@ -267,7 +269,7 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
             boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as libc::size_t) as
                 *mut cef_string_utf16;
             ptr::write(&mut (*boxed_string).str, buffer);
-            ptr::write(&mut (*boxed_string).length, utf16_chars.len() as u64);
+            ptr::write(&mut (*boxed_string).length, utf16_chars.len());
             ptr::write(&mut (*boxed_string).dtor, Some(free_utf16_buffer as extern "C" fn(*mut c_ushort)));
         }
         boxed_string

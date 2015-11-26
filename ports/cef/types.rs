@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use libc::{c_uint, c_ushort, c_int, c_double, size_t};
+use libc::{c_uint, c_ushort, c_int, c_double, size_t, wchar_t};
 #[cfg(target_os="linux")]
 use libc::c_ulong;
 #[cfg(target_os="macos")]
 use libc::c_void;
-use libc::types::os::arch::c95::wchar_t;
 
 use net_traits::net_error_list::NetError;
 
