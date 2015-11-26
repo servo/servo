@@ -1795,6 +1795,18 @@
             "url": "/_mozilla/css/iframe/stacking_context.html"
           }
         ],
+        "css/iframe/stacking_context_position_a.html": [
+          {
+            "path": "css/iframe/stacking_context_position_a.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/stacking_context_position_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/stacking_context_position_a.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7468,6 +7480,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/stacking_context.html"
+        }
+      ],
+      "css/iframe/stacking_context_position_a.html": [
+        {
+          "path": "css/iframe/stacking_context_position_a.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/stacking_context_position_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/stacking_context_position_a.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
