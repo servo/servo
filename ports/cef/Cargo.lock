@@ -901,7 +901,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/ipc-channel#8306cdf03008bc32cd3196e1823661b0c773ffd3"
 dependencies = [
  "bincode 0.4.0 (git+https://github.com/TyOverby/bincode)",
- "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
