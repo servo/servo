@@ -207,6 +207,30 @@ def check_toml(file_name, contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
+def check_crates(file_name, contents):
+    if not file_name.endswith(".rs") or \
+       file_name.endswith("properties.mako.rs") or \
+       file_name.endswith(os.path.join("style", "build.rs")) or \
+       file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
+        raise StopIteration
+    contents = contents.splitlines(True)
+    prev_crate = {}
+
+    for idx, line in enumerate(contents):
+        cut_line = line.strip()
+        if cut_line.startswith("extern crate"):
+            tmp = cut_line.replace("extern crate ", "").replace(";", "")
+            indent = len(line) - len(cut_line)
+            if indent not in prev_crate:
+                prev_crate[indent] = ""
+            if prev_crate[indent] > tmp:
+                message = "extern crate statement is not in alphabetical order"
+                expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_crate[indent])
+                found = "\n\t\033[91mfound: {}\033[0m".format(tmp)
+                yield(idx + 1, message + expected + found)
+            prev_crate[indent] = tmp
+
+
 def check_rust(file_name, contents):
     if not file_name.endswith(".rs") or \
        file_name.endswith("properties.mako.rs") or \
@@ -536,7 +560,8 @@ def scan():
     files_to_check = filter(should_check, all_files)
 
     checking_functions = [check_license, check_by_line, check_flake8, check_toml,
-                          check_lock, check_rust, check_webidl_spec, check_spec]
+                          check_lock, check_rust, check_webidl_spec, check_spec,
+                          check_crates]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = (os.path.join(r, f) for r, _, files in os.walk(reftest_dir) for f in files)
