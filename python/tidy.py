@@ -164,7 +164,7 @@ def check_lock(file_name, contents):
     packages = {}
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["glutin", "wayland-kbd"]
+    exceptions = ["glutin", "wayland-kbd", "libc"]
 
     while idx < len(contents):
         content = contents[idx].strip()
