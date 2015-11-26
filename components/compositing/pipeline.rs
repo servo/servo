@@ -199,7 +199,7 @@ impl Pipeline {
         let unprivileged_pipeline_content = UnprivilegedPipelineContent {
             id: state.id,
             parent_info: state.parent_info,
-            constellation_chan: state.constellation_chan.clone(),
+            constellation_chan: state.constellation_chan,
             scheduler_chan: state.scheduler_chan,
             devtools_chan: script_to_devtools_chan,
             image_cache_task: state.image_cache_task,
@@ -228,7 +228,6 @@ impl Pipeline {
 
         let privileged_pipeline_content = PrivilegedPipelineContent {
             id: state.id,
-            constellation_chan: state.constellation_chan,
             painter_chan: state.painter_chan,
             compositor_proxy: state.compositor_proxy,
             font_cache_task: state.font_cache_task,
@@ -432,7 +431,6 @@ impl UnprivilegedPipelineContent {
 
 pub struct PrivilegedPipelineContent {
     id: PipelineId,
-    constellation_chan: ConstellationChan<ConstellationMsg>,
     painter_chan: ConstellationChan<PaintMsg>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     script_to_compositor_port: Option<IpcReceiver<ScriptToCompositorMsg>>,
