@@ -369,6 +369,10 @@ def check_rust(file_name, contents):
         if ": &Vec<" in line:
             yield (idx + 1, "use &[T] instead of &Vec<T>")
 
+        # No benefit over using &str
+        if ": &String" in line:
+            yield (idx + 1, "use &str instead of &String")
+
 
 # Avoid flagging <Item=Foo> constructs
 def is_associated_type(match, line, index):

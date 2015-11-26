@@ -129,8 +129,8 @@ impl MIMEClassifier {
         }
     }
 
-    fn get_media_type(media_type: &String,
-                          media_subtype: &String) -> Option<MediaType> {
+    fn get_media_type(media_type: &str,
+                          media_subtype: &str) -> Option<MediaType> {
         if MIMEClassifier::is_xml(media_type, media_subtype) {
             Some(MediaType::Xml)
         } else if MIMEClassifier::is_html(media_type, media_subtype) {
