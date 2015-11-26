@@ -234,7 +234,7 @@ impl EventMethods for Event {
         self.canceled.set(false);
         self.trusted.set(false);
         self.target.set(None);
-        *self.type_.borrow_mut() = Atom::from_slice(&type_);
+        *self.type_.borrow_mut() = Atom::from(&*type_);
         self.bubbles.set(bubbles);
         self.cancelable.set(cancelable);
     }

@@ -394,6 +394,10 @@
         "url": "/html/browsers/the-window-object/the-windowproxy-object/test-window-proxy-toolbar-manual.html"
       },
       {
+        "path": "html/browsers/windows/noreferrer-cross-origin-manual.html",
+        "url": "/html/browsers/windows/noreferrer-cross-origin-manual.html"
+      },
+      {
         "path": "html/editing/dnd/datastore/015-manual.html",
         "url": "/html/editing/dnd/datastore/015-manual.html"
       },
@@ -13098,6 +13102,14 @@
         "url": "/cors/status.htm"
       },
       {
+        "path": "cssom-view/elementFromPoint.html",
+        "url": "/cssom-view/elementFromPoint.html"
+      },
+      {
+        "path": "cssom-view/elementsFromPoint.html",
+        "url": "/cssom-view/elementsFromPoint.html"
+      },
+      {
         "path": "custom-elements/concepts/custom-elements-type-naming.html",
         "url": "/custom-elements/concepts/custom-elements-type-naming.html"
       },
@@ -15318,6 +15330,10 @@
         "url": "/html/browsers/offline/manifest_url_check.html"
       },
       {
+        "path": "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html",
+        "url": "/html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html"
+      },
+      {
         "path": "html/browsers/the-window-object/accessing-other-browsing-contexts/indexed-browsing-contexts-01.html",
         "url": "/html/browsers/the-window-object/accessing-other-browsing-contexts/indexed-browsing-contexts-01.html"
       },
@@ -15440,6 +15456,18 @@
       {
         "path": "html/browsers/windows/nested-browsing-contexts/window-top-001.html",
         "url": "/html/browsers/windows/nested-browsing-contexts/window-top-001.html"
+      },
+      {
+        "path": "html/browsers/windows/noreferrer-window-name.html",
+        "url": "/html/browsers/windows/noreferrer-window-name.html"
+      },
+      {
+        "path": "html/browsers/windows/noreferrer.html",
+        "url": "/html/browsers/windows/noreferrer.html"
+      },
+      {
+        "path": "html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.sub.html",
+        "url": "/html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.sub.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html",
@@ -17716,6 +17744,10 @@
       {
         "path": "html/semantics/forms/form-control-infrastructure/form.html",
         "url": "/html/semantics/forms/form-control-infrastructure/form.html"
+      },
+      {
+        "path": "html/semantics/forms/form-submission-0/url-encoded.html",
+        "url": "/html/semantics/forms/form-submission-0/url-encoded.html"
       },
       {
         "path": "html/semantics/forms/resetting-a-form/reset-form.html",
@@ -27602,6 +27634,10 @@
         "url": "/websockets/unload-a-document/003.html"
       },
       {
+        "path": "webstorage/document-domain.html",
+        "url": "/webstorage/document-domain.html"
+      },
+      {
         "path": "webstorage/event_constructor.html",
         "url": "/webstorage/event_constructor.html"
       },
@@ -28757,9 +28793,9 @@
         "url": "/html/browsers/history/the-history-interface/007.html"
       },
       {
-        "path": "html/browsers/origin/cross-origin-objects/cross-origin-objects.html",
+        "path": "html/browsers/origin/cross-origin-objects/cross-origin-objects.sub.html",
         "timeout": "long",
-        "url": "/html/browsers/origin/cross-origin-objects/cross-origin-objects.html"
+        "url": "/html/browsers/origin/cross-origin-objects/cross-origin-objects.sub.html"
       },
       {
         "path": "html/dom/interfaces.html",
@@ -29951,22 +29987,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html": [
-          {
-            "path": "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html",
-            "url": "/html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html"
-          }
-        ],
-        "html/semantics/forms/form-submission-0/url-encoded.html": [
-          {
-            "path": "html/semantics/forms/form-submission-0/url-encoded.html",
-            "url": "/html/semantics/forms/form-submission-0/url-encoded.html"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -35527,7 +35548,7 @@
       }
     ]
   },
-  "rev": "5a754b40cd49c0404863c431b58cc311dc5d167c",
+  "rev": "ee40b886c701ffa25a673240cabdedd59ee3ace4",
   "url_base": "/",
   "version": 2
 }

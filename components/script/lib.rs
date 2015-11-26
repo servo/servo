@@ -31,7 +31,6 @@
 
 #![doc = "The script crate contains all matters DOM."]
 
-#![plugin(string_cache_plugin)]
 #![plugin(plugins)]
 
 extern crate app_units;
@@ -72,7 +71,7 @@ extern crate script_traits;
 #[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
+#[macro_use(atom, ns)] extern crate string_cache;
 extern crate tendril;
 extern crate time;
 extern crate unicase;

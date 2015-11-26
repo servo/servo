@@ -10,31 +10,34 @@
   <link rel="match" href="reference/block-flow-direction-001-ref.htm">
 
   <meta content="ahem" name="flags">
-  <meta content="This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr'  establishes a block formating context with a left-to-right block flow direction." name="assert">
+  <meta content="This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction." name="assert">
 
   <style type="text/css">
   body
-  {
-  color: yellow;
-  font: 20px/1 Ahem;
-  }
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
 
   div#inline-block
-  {
-  background-color: blue;
-  border-top: blue solid 1em;
-  display: inline-block;
-  height: 8em;
-  writing-mode: vertical-lr;
-  }
+    {
+      background-color: blue;
+      border-top: blue solid 1em;
+      display: inline-block;
+      height: 8em;
+      writing-mode: vertical-lr;
+    }
 
   span
-  {
-  border-left: blue solid 1em;
-  display: block;
-  }
+    {
+      border-left: blue solid 1em;
+      display: block;
+    }
 
-  span#right-border { border-right: blue solid 1em; }
+  span#right-border
+    {
+      border-right: blue solid 1em;
+    }
   </style>
  </head>
 
@@ -44,7 +47,7 @@
 
     <div id="inline-block">
 
-<!-- The  "P" --> <span>AAAAAAA B&nbsp; C&nbsp;&nbsp; D&nbsp; E&nbsp;&nbsp; FFFF&nbsp;&nbsp;</span>
+<!-- The "P" --> <span>AAAAAAA B&nbsp; C&nbsp;&nbsp; D&nbsp; E&nbsp;&nbsp; FFFF&nbsp;&nbsp;</span>
 
 <!-- The "A" --> <span>GGGGGGG H&nbsp; J&nbsp;&nbsp; K&nbsp; L&nbsp;&nbsp; MMMMMMM</span>
 

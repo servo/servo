@@ -86,7 +86,7 @@ pub fn create_element(name: QualName,
 
     let prefix = prefix.map(|p| DOMString::from(&*p));
 
-    if name.ns != ns!(HTML) {
+    if name.ns != ns!(html) {
         return Element::new(DOMString::from(&*name.local), name.ns, prefix, document);
     }
 

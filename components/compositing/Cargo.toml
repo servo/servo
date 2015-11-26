@@ -58,7 +58,7 @@ features = ["plugins"]
 git = "https://github.com/aweinstock314/rust-clipboard"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"

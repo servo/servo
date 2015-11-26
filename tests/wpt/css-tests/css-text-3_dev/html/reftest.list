@@ -544,6 +544,7 @@ text-transform-fullwidth-001.htm == reference/text-transform-fullwidth-001-ref.h
 text-transform-lowercase-001.htm == reference/text-transform-lowercase-001-ref.htm
 text-transform-none-001.htm == reference/text-transform-none-001-ref.htm
 text-transform-uppercase-001.htm == reference/text-transform-uppercase-001-ref.htm
+text-word-spacing-001.htm == reference/text-word-spacing-ref.htm
 white-space-collapsing-discard-001.htm == reference/white-space-collapsing-discard-001-ref.htm
 white-space-collapsing-preserve-breaks-001.htm == reference/white-space-collapsing-preserve-breaks-001-ref.htm
 white-space-collapsing-trim-inner-001.htm == reference/white-space-collapsing-trim-inner-001-ref.htm

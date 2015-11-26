@@ -1183,7 +1183,7 @@ impl ScriptTask {
         // Checks if the html element has reftest-wait attribute present.
         // See http://testthewebforward.org/docs/reftests.html
         let html_element = doc.GetDocumentElement();
-        let reftest_wait = html_element.map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
+        let reftest_wait = html_element.map_or(false, |elem| elem.has_class(&Atom::from("reftest-wait")));
         if reftest_wait {
             return ScriptState::DocumentLoading;
         }
@@ -1810,7 +1810,7 @@ impl ScriptTask {
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
                     if target.is::<HTMLAnchorElement>() {
-                        let status = target.get_attribute(&ns!(""), &atom!("href"))
+                        let status = target.get_attribute(&ns!(), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.url();

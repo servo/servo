@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
+		<meta charset="utf-8" />
 		<title>CSS Regions: both named flow content and region element have contentEditable attribute set</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan" />
 		<link href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" rel="help" />
@@ -39,10 +40,10 @@
 		<ol>
 			<li>Below you should see a square with a black border with some text inside it. No
 				red should be visible at any time during this test.</li>
-			<li>Double click the ì<strong>editable</strong>î word between the green and
-				blue colored markers and type ì<strong>foobar bazquux</strong>î
+			<li>Double click the ‚Äú<strong>editable</strong>‚Äù word between the green and
+				blue colored markers and type ‚Äú<strong>foobar bazquux</strong>‚Äù
 				<ul>
-					<li>The word ìeditableî should be replaced with ìfoobar bazquuxî.</li>
+					<li>The word ‚Äúeditable‚Äù should be replaced with ‚Äúfoobar bazquux‚Äù.</li>
 				</ul>
 			</li>
 		</ol>
@@ -62,4 +63,5 @@
 		insertText("#marked-two", "foobar bazquux");
 		</script> 
 	
+
 </body></html>

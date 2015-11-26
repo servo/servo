@@ -172,7 +172,7 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if attr.local_name() == &atom!(disabled) {
+        if attr.local_name() == &atom!("disabled") {
             let el = self.upcast::<Element>();
             match mutation {
                 AttributeMutation::Set(_) => {

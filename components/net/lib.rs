@@ -20,6 +20,7 @@ extern crate flate2;
 extern crate brotli;
 extern crate hyper;
 extern crate ipc_channel;
+extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
 extern crate openssl;

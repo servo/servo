@@ -16,6 +16,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;
 use util::logical_geometry::LogicalSize;
+use util::print_tree::PrintTree;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
@@ -99,6 +100,10 @@ impl Flow for TableCaptionFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
     }
 }
 

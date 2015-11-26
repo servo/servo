@@ -35,8 +35,7 @@ num = "0.1.24"
 lazy_static = "0.1.10"
 selectors = { version = "0.2", features = ["unstable"] }
 smallvec = "0.1"
-string_cache = "0.1"
-string_cache_plugin = "0.1"
+string_cache = "0.2"
 euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"

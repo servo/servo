@@ -12,7 +12,6 @@
 #![feature(vec_push_all)]
 
 #![plugin(serde_macros)]
-#![plugin(string_cache_plugin)]
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
@@ -37,7 +36,7 @@ extern crate rustc_serialize;
 #[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
+#[macro_use(atom, ns)] extern crate string_cache;
 extern crate url;
 extern crate util;
 

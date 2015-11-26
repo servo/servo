@@ -174,7 +174,7 @@ impl FontCache {
                         Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families.get_mut(&family_name).unwrap();
                             for_each_variation(&local_family_name, |path| {
-                                family.add_template(Atom::from_slice(&path), None);
+                                family.add_template(Atom::from(&*path), None);
                             });
                             result.send(()).unwrap();
                         }
@@ -182,7 +182,7 @@ impl FontCache {
                 }
                 Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let family = &mut self.web_families.get_mut(&family_name).unwrap();
-                    family.add_template(Atom::from_slice(&url.to_string()), Some(bytes));
+                    family.add_template(Atom::from(&*url.to_string()), Some(bytes));
                     drop(result.send(()));
                 }
                 Command::Exit(result) => {
@@ -221,7 +221,7 @@ impl FontCache {
 
             if s.templates.is_empty() {
                 for_each_variation(family_name, |path| {
-                    s.add_template(Atom::from_slice(&path), None);
+                    s.add_template(Atom::from(&*path), None);
                 });
             }
 

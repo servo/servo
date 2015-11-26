@@ -145,7 +145,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 1
         property.make_ascii_lowercase();
-        let property = Atom::from_slice(&property);
+        let property = Atom::from(&*property);
 
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
@@ -160,7 +160,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             // Step 2.2
             for longhand in shorthand.longhands() {
                 // Step 2.2.1
-                let declaration = owner.get_inline_style_declaration(&Atom::from_slice(&longhand));
+                let declaration = owner.get_inline_style_declaration(&Atom::from(*longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
@@ -185,7 +185,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn GetPropertyPriority(&self, mut property: DOMString) -> DOMString {
         // Step 1
         property.make_ascii_lowercase();
-        let property = Atom::from_slice(&property);
+        let property = Atom::from(&*property);
 
         // Step 2
         if let Some(shorthand) = Shorthand::from_name(&property) {

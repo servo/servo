@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+	<link rel=match href=hide_and_show_ref.html>
+	<style type="text/css">
+		.hidden {
+			display: none;
+		}
+		iframe {
+			border: 0;
+		}
+	</style>
+    <body id="container">
+    	<iframe id="iframe" class="hidden" src="data:text/html,%3Cbody%20style%3D%22background%3Agreen%3B%20%22%3E"></iframe>
+    </body>
+    <script type="text/javascript">
+	    window.onload = function() {
+	    	document.getElementById("iframe").classList.remove("hidden");
+	    	document.documentElement.classList.remove("reftest-wait");
+	    }
+    </script>
+</html>

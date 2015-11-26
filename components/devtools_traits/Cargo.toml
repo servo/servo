@@ -22,7 +22,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.plugins]
 path = "../plugins"

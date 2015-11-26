@@ -1642,7 +1642,7 @@ trait ObjectElement<'a> {
 impl<'ln> ObjectElement<'ln> for ServoThreadSafeLayoutNode<'ln> {
     fn get_type_and_data(&self) -> (Option<&'ln str>, Option<&'ln str>) {
         let elem = self.as_element();
-        (elem.get_attr(&ns!(""), &atom!("type")), elem.get_attr(&ns!(""), &atom!("data")))
+        (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")))
     }
 
     fn has_object_data(&self) -> bool {

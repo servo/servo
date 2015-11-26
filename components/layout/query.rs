@@ -555,7 +555,7 @@ pub fn process_resolved_style_request(requested_node: ServoLayoutNode,
         }
         // FIXME: implement used value computation for line-height
         ref property => {
-            style.computed_value_to_string(property.as_slice()).ok()
+            style.computed_value_to_string(&*property).ok()
         }
     }
 }

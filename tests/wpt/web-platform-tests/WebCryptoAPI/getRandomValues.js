@@ -16,26 +16,35 @@ function run_test() {
         }, "Float64Array (too long)")
     }, "Float arrays")
 
-    test(function() {
-        assert_equals(self.crypto.getRandomValues(new Int8Array(8)).constructor,
-                      Int8Array, "crypto.getRandomValues(new Int8Array(8))")
-        assert_equals(self.crypto.getRandomValues(new Uint8Array(8)).constructor,
-                      Uint8Array, "crypto.getRandomValues(new Uint8Array(8))")
-
-        assert_equals(self.crypto.getRandomValues(new Int16Array(8)).constructor,
-                      Int16Array, "crypto.getRandomValues(new Int16Array(8))")
-        assert_equals(self.crypto.getRandomValues(new Uint16Array(8)).constructor,
-                      Uint16Array, "crypto.getRandomValues(new Uint16Array(8))")
-
-        assert_equals(self.crypto.getRandomValues(new Int32Array(8)).constructor,
-                      Int32Array, "crypto.getRandomValues(new Int32Array(8))")
-        assert_equals(self.crypto.getRandomValues(new Uint32Array(8)).constructor,
-                      Uint32Array, "crypto.getRandomValues(new Uint32Array(8))")
-    }, "Integer arrays")
+    var arrays = {
+        'Int8Array': Int8Array,
+        'Int16Array': Int16Array,
+        'Int32Array': Int32Array,
+        'Uint8Array': Uint8Array,
+        'Uint8ClampedArray': Uint8ClampedArray,
+        'Uint16Array': Uint16Array,
+        'Uint32Array': Uint32Array,
+    };
 
     test(function() {
-        assert_throws("QuotaExceededError", function() {
-            self.crypto.getRandomValues(new Int8Array(65537))
-        }, "crypto.getRandomValues length over 65536")
+        for (var array in arrays) {
+            assert_equals(self.crypto.getRandomValues(new arrays[array](8)).constructor,
+                          arrays[array], "crypto.getRandomValues(new " + array + "(8))")
+        }
+    }, "Integer array")
+
+    test(function() {
+        for (var array in arrays) {
+            var maxlength = 65536 / (arrays[array].BYTES_PER_ELEMENT);
+            assert_throws("QuotaExceededError", function() {
+                self.crypto.getRandomValues(new arrays[array](maxlength + 1))
+            }, "crypto.getRandomValues length over 65536")
+        }
     }, "Large length")
+
+    test(function() {
+        for (var array in arrays) {
+            assert_true(self.crypto.getRandomValues(new arrays[array](0)).length == 0)
+        }
+    }, "Null arrays")
 }

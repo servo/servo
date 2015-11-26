@@ -1,0 +1,336 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Cross-origin behavior of Window and Location</title>
+<link rel="author" title="Bobby Holley (:bholley)" href="bobbyholley@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#security-window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#security-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe id="B"></iframe>
+<iframe id="C"></iframe>
+<script>
+
+/*
+ * Setup boilerplate. This gives us a same-origin window "B" and a cross-origin
+ * window "C".
+ */
+
+setup({explicit_done: true});
+path = location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/frame.html';
+var B = document.getElementById('B').contentWindow;
+var C = document.getElementById('C').contentWindow;
+B.frameElement.uriToLoad = path;
+C.frameElement.uriToLoad = '//{{domains[www1]}}:' + location.port + path;
+
+function reloadSubframes(cb) {
+  var iframes = document.getElementsByTagName('iframe');
+  iframes.forEach = Array.prototype.forEach;
+  var count = 0;
+  function frameLoaded() {
+    this.onload = null;
+    if (++count == iframes.length)
+      cb();
+  }
+  iframes.forEach(function(ifr) { ifr.onload = frameLoaded; ifr.setAttribute('src', ifr.uriToLoad); });
+}
+function isObject(x) { return Object(x) === x; }
+
+/*
+ * Note: we eschew assert_equals in a lot of these tests, since the harness ends
+ * up throwing when it tries to format a message involving a cross-origin object.
+ */
+
+var testList = [];
+function addTest(fun, desc) { testList.push([fun, desc]); }
+
+
+/*
+ * Basic sanity testing.
+ */
+
+addTest(function() {
+  assert_equals(location.host, '{{domains[]}}:{{location[port]}}', 'Need to run the top-level test from {{domains[]}}:{{location[port]}}');
+  assert_equals(B.parent, window, "window.parent works same-origin");
+  assert_equals(C.parent, window, "window.parent works cross-origin");
+  assert_equals(B.location.pathname, path, "location.href works same-origin");
+  assert_throws(null, function() { C.location.pathname; }, "location.pathname throws cross-origin");
+  assert_equals(B.frames, 'override', "Overrides visible in the same-origin case");
+  assert_equals(C.frames, C, "Overrides invisible in the cross-origin case");
+}, "Basic sanity-checking");
+
+/*
+ * Whitelist behavior.
+ *
+ * Also tests for [[GetOwnProperty]] and [[HasOwnProperty]] behavior.
+ */
+
+var whitelistedWindowProps = ['location', 'postMessage', 'window', 'frames', 'self', 'top', 'parent',
+                              'opener', 'closed', 'close', 'blur', 'focus', 'length'];
+addTest(function() {
+  for (var prop in window) {
+    if (whitelistedWindowProps.indexOf(prop) != -1) {
+      C[prop]; // Shouldn't throw.
+      Object.getOwnPropertyDescriptor(C, prop); // Shouldn't throw.
+      assert_true(Object.prototype.hasOwnProperty.call(C, prop), "hasOwnProperty for " + prop);
+    } else {
+      assert_throws(null, function() { C[prop]; }, "Should throw when accessing " + prop + " on Window");
+      assert_throws(null, function() { Object.getOwnPropertyDescriptor(C, prop); },
+                    "Should throw when accessing property descriptor for " + prop + " on Window");
+      assert_throws(null, function() { Object.prototype.hasOwnProperty.call(C, prop); },
+                    "Should throw when invoking hasOwnProperty for " + prop + " on Window");
+    }
+    if (prop != 'location')
+      assert_throws(null, function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
+  }
+  for (var prop in location) {
+    if (prop == 'replace') {
+      C.location[prop]; // Shouldn't throw.
+      Object.getOwnPropertyDescriptor(C.location, prop); // Shouldn't throw.
+      assert_true(Object.prototype.hasOwnProperty.call(C.location, prop), "hasOwnProperty for " + prop);
+    }
+    else {
+      assert_throws(null, function() { C[prop]; }, "Should throw when accessing " + prop + " on Location");
+      assert_throws(null, function() { Object.getOwnPropertyDescriptor(C, prop); },
+                    "Should throw when accessing property descriptor for " + prop + " on Location");
+      assert_throws(null, function() { Object.prototype.hasOwnProperty.call(C, prop); },
+                    "Should throw when invoking hasOwnProperty for " + prop + " on Location");
+    }
+    if (prop != 'href')
+      assert_throws(null, function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+  }
+}, "Only whitelisted properties are accessible cross-origin");
+
+/*
+ * ES Internal Methods.
+ */
+
+/*
+ * [[GetPrototypeOf]]
+ */
+addTest(function() {
+  assert_true(Object.getPrototypeOf(C) === null, "cross-origin Window proto is null");
+  assert_true(Object.getPrototypeOf(C.location) === null, "cross-origin Location proto is null (__proto__)");
+  var protoGetter = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get;
+  assert_true(protoGetter.call(C) === null, "cross-origin Window proto is null");
+  assert_true(protoGetter.call(C.location) === null, "cross-origin Location proto is null (__proto__)");
+  assert_throws(null, function() { C.__proto__; }, "__proto__ property not available cross-origin");
+  assert_throws(null, function() { C.location.__proto__; }, "__proto__ property not available cross-origin");
+
+}, "[[GetPrototypeOf]] should return null");
+
+/*
+ * [[SetPrototypeOf]]
+ */
+addTest(function() {
+  assert_throws(null, function() { C.__proto__ = new Object(); }, "proto set on cross-origin Window");
+  assert_throws(null, function() { C.location.__proto__ = new Object(); }, "proto set on cross-origin Location");
+  var setters = [Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set];
+  if (Object.setPrototypeOf)
+    setters.push(function(p) { Object.setPrototypeOf(this, p); });
+  setters.forEach(function(protoSetter) {
+    assert_throws(null, function() { protoSetter.call(C, new Object()); }, "proto setter |call| on cross-origin Window");
+    assert_throws(null, function() { protoSetter.call(C.location, new Object()); }, "proto setter |call| on cross-origin Location");
+  });
+}, "[[SetPrototypeOf]] should throw");
+
+/*
+ * [[IsExtensible]]
+ */
+addTest(function() {
+  assert_true(Object.isExtensible(C), "cross-origin Window should be extensible");
+  assert_true(Object.isExtensible(C.location), "cross-origin Location should be extensible");
+}, "[[IsExtensible]] should return true for cross-origin objects");
+
+/*
+ * [[PreventExtensions]]
+ */
+addTest(function() {
+  assert_throws(null, function() { Object.preventExtensions(C) },
+                "preventExtensions on cross-origin Window should throw");
+  assert_throws(null, function() { Object.preventExtensions(C.location) },
+                "preventExtensions on cross-origin Location should throw");
+}, "[[PreventExtensions]] should throw for cross-origin objects");
+
+/*
+ * [[GetOwnProperty]]
+ */
+
+addTest(function() {
+  assert_true(isObject(Object.getOwnPropertyDescriptor(C, 'close')), "C.close is |own|");
+  assert_true(isObject(Object.getOwnPropertyDescriptor(C, 'top')), "C.top is |own|");
+  assert_true(isObject(Object.getOwnPropertyDescriptor(C.location, 'href')), "C.location.href is |own|");
+  assert_true(isObject(Object.getOwnPropertyDescriptor(C.location, 'replace')), "C.location.replace is |own|");
+}, "[[GetOwnProperty]] - Properties on cross-origin objects should be reported |own|");
+
+function checkPropertyDescriptor(desc, propName, expectWritable) {
+  assert_true(isObject(desc), "property descriptor for " + propName + " should exist");
+  assert_equals(desc.enumerable, false, "property descriptor for " + propName + " should be non-enumerable");
+  assert_equals(desc.configurable, true, "property descriptor for " + propName + " should be configurable");
+  if ('value' in desc)
+    assert_equals(desc.writable, expectWritable, "property descriptor for " + propName + " should have writable: " + expectWritable);
+  else
+    assert_equals(typeof desc.set != 'undefined', expectWritable,
+                  "property descriptor for " + propName + " should " + (expectWritable ? "" : "not ") + "have setter");
+}
+
+addTest(function() {
+  whitelistedWindowProps.forEach(function(prop) {
+    var desc = Object.getOwnPropertyDescriptor(C, prop);
+    checkPropertyDescriptor(desc, prop, prop == 'location');
+  });
+  checkPropertyDescriptor(Object.getOwnPropertyDescriptor(C.location, 'replace'), 'replace', false);
+  checkPropertyDescriptor(Object.getOwnPropertyDescriptor(C.location, 'href'), 'href', true);
+  assert_equals(typeof Object.getOwnPropertyDescriptor(C.location, 'href').get, 'undefined', "Cross-origin location should have no href getter");
+}, "[[GetOwnProperty]] - Property descriptors for cross-origin properties should be set up correctly");
+
+/*
+ * [[Delete]]
+ */
+addTest(function() {
+  assert_throws(null, function() { delete C.location; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.parent; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.length; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.document; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.foopy; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.location.href; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.location.replace; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.location.port; }, "Can't delete cross-origin property");
+  assert_throws(null, function() { delete C.location.foopy; }, "Can't delete cross-origin property");
+}, "[[Delete]] Should throw on cross-origin objects");
+
+/*
+ * [[DefineOwnProperty]]
+ */
+function checkDefine(obj, prop) {
+  var valueDesc = { configurable: true, enumerable: false, writable: false, value: 2 };
+  var accessorDesc = { configurable: true, enumerable: false, get: function() {} };
+  assert_throws(null, function() { Object.defineProperty(obj, prop, valueDesc); }, "Can't define cross-origin value property " + prop);
+  assert_throws(null, function() { Object.defineProperty(obj, prop, accessorDesc); }, "Can't define cross-origin accessor property " + prop);
+}
+addTest(function() {
+  checkDefine(C, 'length');
+  checkDefine(C, 'parent');
+  checkDefine(C, 'location');
+  checkDefine(C, 'document');
+  checkDefine(C, 'foopy');
+  checkDefine(C.location, 'href');
+  checkDefine(C.location, 'replace');
+  checkDefine(C.location, 'port');
+  checkDefine(C.location, 'foopy');
+}, "[[DefineOwnProperty]] Should throw for cross-origin objects");
+
+/*
+ * [[Enumerate]]
+ */
+
+addTest(function() {
+  for (var prop in C)
+    assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Window");
+  for (var prop in C.location)
+    assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Location");
+}, "[[Enumerate]] should return an empty iterator");
+
+/*
+ * [[OwnPropertyKeys]]
+ */
+
+addTest(function() {
+  assert_array_equals(whitelistedWindowProps.sort(), Object.getOwnPropertyNames(C).sort(),
+                      "Object.getOwnPropertyNames() gives the right answer for cross-origin Window");
+  assert_array_equals(Object.getOwnPropertyNames(C.location).sort(), ['href', 'replace'],
+                      "Object.getOwnPropertyNames() gives the right answer for cross-origin Location");
+}, "[[OwnPropertyKeys]] should return all properties from cross-origin objects");
+
+addTest(function() {
+  assert_true(B.eval('parent.C') === C, "A and B observe the same identity for C's Window");
+  assert_true(B.eval('parent.C.location') === C.location, "A and B observe the same identity for C's Location");
+}, "A and B jointly observe the same identity for cross-origin Window and Location");
+
+function checkFunction(f, proto) {
+  var name = f.name || '<missing name>';
+  assert_equals(typeof f, 'function', name + " is a function");
+  assert_equals(Object.getPrototypeOf(f), proto, f.name + " has the right prototype");
+}
+
+addTest(function() {
+  checkFunction(C.close, Function.prototype);
+  checkFunction(C.location.replace, Function.prototype);
+}, "Cross-origin functions get local Function.prototype");
+
+addTest(function() {
+  assert_true(isObject(Object.getOwnPropertyDescriptor(C, 'parent')),
+              "Need to be able to use Object.getOwnPropertyDescriptor do this test");
+  checkFunction(Object.getOwnPropertyDescriptor(C, 'parent').get, Function.prototype);
+  checkFunction(Object.getOwnPropertyDescriptor(C.location, 'href').set, Function.prototype);
+}, "Cross-origin Window accessors get local Function.prototype");
+
+addTest(function() {
+  checkFunction(close, Function.prototype);
+  assert_true(close != B.close, 'same-origin Window functions get their own object');
+  assert_true(close != C.close, 'cross-origin Window functions get their own object');
+  var close_B = B.eval('parent.C.close');
+  assert_true(close != close_B, 'close_B is unique when viewed by the parent');
+  assert_true(close_B != C.close, 'different Window functions per-incumbent script settings object');
+  checkFunction(close_B, B.Function.prototype);
+
+  checkFunction(location.replace, Function.prototype);
+  assert_true(location.replace != C.location.replace, "cross-origin Location functions get their own object");
+  var replace_B = B.eval('parent.C.location.replace');
+  assert_true(replace_B != C.location.replace, 'different Location functions per-incumbent script settings object');
+  checkFunction(replace_B, B.Function.prototype);
+}, "Same-origin observers get different functions for cross-origin objects");
+
+addTest(function() {
+  assert_true(isObject(Object.getOwnPropertyDescriptor(C, 'parent')),
+              "Need to be able to use Object.getOwnPropertyDescriptor do this test");
+  var get_self_parent = Object.getOwnPropertyDescriptor(window, 'parent').get;
+  var get_parent_A = Object.getOwnPropertyDescriptor(C, 'parent').get;
+  var get_parent_B = B.eval('Object.getOwnPropertyDescriptor(parent.C, "parent").get');
+  assert_true(get_self_parent != get_parent_A, 'different Window accessors per-incumbent script settings object');
+  assert_true(get_parent_A != get_parent_B, 'different Window accessors per-incumbent script settings object');
+  checkFunction(get_self_parent, Function.prototype);
+  checkFunction(get_parent_A, Function.prototype);
+  checkFunction(get_parent_B, B.Function.prototype);
+}, "Same-origin obsevers get different accessors for cross-origin Window");
+
+addTest(function() {
+  var set_self_href = Object.getOwnPropertyDescriptor(window.location, 'href').set;
+  var set_href_A = Object.getOwnPropertyDescriptor(C.location, 'href').set;
+  var set_href_B = B.eval('Object.getOwnPropertyDescriptor(parent.C.location, "href").set');
+  assert_true(set_self_href != set_href_A, 'different Location accessors per-incumbent script settings object');
+  assert_true(set_href_A != set_href_B, 'different Location accessors per-incumbent script settings object');
+  checkFunction(set_self_href, Function.prototype);
+  checkFunction(set_href_A, Function.prototype);
+  checkFunction(set_href_B, B.Function.prototype);
+}, "Same-origin observers get different accessors for cross-origin Location");
+
+function doDocumentDomainTest(cb) {
+  window.addEventListener('message', function onmessage(evt) {
+    window.removeEventListener('message', onmessage);
+    test(function() {
+      var results = evt.data;
+      assert_true(results.length > 0, 'Need results');
+      results.forEach(function(r) { assert_true(r.pass, r.message); });
+    }, "Cross-origin object identity preserved across document.domain");
+    win.close();
+    cb();
+  });
+  var win = window.open('win-documentdomain.sub.html');
+}
+
+// We do a fresh load of the subframes for each test to minimize side-effects.
+// It would be nice to reload ourselves as well, but we can't do that without
+// disrupting the test harness.
+function runNextTest() {
+  var entry = testList.shift();
+  test(entry[0], entry[1]);
+  if (testList.length != 0)
+    reloadSubframes(runNextTest);
+  else
+    doDocumentDomainTest(done); // Asynchronous.
+}
+reloadSubframes(runNextTest);
+
+</script>

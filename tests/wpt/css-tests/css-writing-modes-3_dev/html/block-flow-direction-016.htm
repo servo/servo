@@ -10,35 +10,41 @@
   <link rel="match" href="reference/block-flow-direction-001-ref.htm">
 
   <meta content="ahem" name="flags">
-  <meta content="This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr'  establishes a block formating context with a left-to-right block flow direction." name="assert">
+  <meta content="This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction." name="assert">
 
   <style type="text/css">
   body
-  {
-  color: yellow;
-  font: 20px/1 Ahem;
-  }
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
 
   div.inline-block
-  {
-  background-color: blue;
-  border-left: blue solid 1em;
-  border-top: blue solid 1em;
-  display: inline-block;
-  height: 8em;
-  vertical-align: top;
+    {
+      background-color: blue;
+      border-left: blue solid 1em;
+      border-top: blue solid 1em;
+      display: inline-block;
+      height: 8em;
+      vertical-align: top;
   /*
   Why 'vertical-align: top' ?
   See
   http://lists.w3.org/Archives/Public/public-css-testsuite/2014Dec/0013.html
   for explanations
   */
-  writing-mode: vertical-lr;
-  }
+      writing-mode: vertical-lr;
+    }
 
-  span { display: block; }
+  span
+    {
+      display: block;
+    }
 
-  span#right-border { border-right: blue solid 1em; }
+  span#right-border
+    {
+      border-right: blue solid 1em;
+    }
   </style>
  </head>
 

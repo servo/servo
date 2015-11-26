@@ -166,12 +166,12 @@ fn create_common_style_affecting_attributes_from_element(element: &ServoLayoutEl
     for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                if element.get_attr(&ns!(), &attribute_info.atom).is_some() {
                     flags.insert(flag)
                 }
             }
             CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                match element.get_attr(&ns!(""), &attribute_info.atom) {
+                match element.get_attr(&ns!(), &attribute_info.atom) {
                     Some(element_value) if element_value == target_value => {
                         flags.insert(flag)
                     }
@@ -248,7 +248,7 @@ impl StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&ns!(""), &atom!("class"))
+            class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
@@ -263,7 +263,7 @@ impl StyleSharingCandidate {
         }
 
         // FIXME(pcwalton): Use `each_class` here instead of slow string comparison.
-        match (&self.class, element.get_attr(&ns!(""), &atom!("class"))) {
+        match (&self.class, element.get_attr(&ns!(), &atom!("class"))) {
             (&None, Some(_)) | (&Some(_), None) => return false,
             (&Some(ref this_class), Some(element_class)) if
                     element_class != &**this_class => {
@@ -289,12 +289,12 @@ impl StyleSharingCandidate {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
-                            element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                            element.get_attr(&ns!(), &attribute_info.atom).is_some() {
                         return false
                     }
                 }
                 CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                    match element.get_attr(&ns!(""), &attribute_info.atom) {
+                    match element.get_attr(&ns!(), &attribute_info.atom) {
                         Some(ref element_value) if self.common_style_affecting_attributes
                                                        .contains(flag) &&
                                                        *element_value != target_value => {
@@ -313,7 +313,7 @@ impl StyleSharingCandidate {
         }
 
         for attribute_name in &rare_style_affecting_attributes() {
-            if element.get_attr(&ns!(""), attribute_name).is_some() {
+            if element.get_attr(&ns!(), attribute_name).is_some() {
                 return false
             }
         }
@@ -414,6 +414,10 @@ trait PrivateMatchMethods {
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage;
+    fn update_animations_for_cascade(&self,
+                                     layout_context: &SharedLayoutContext,
+                                     style: &mut Option<Arc<ComputedValues>>)
+                                     -> bool;
 }
 
 trait PrivateElementMatchMethods {
@@ -435,20 +439,12 @@ impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage {
-        // Finish any transitions.
+        let mut cacheable = true;
         if animate_properties {
-            if let Some(ref mut style) = *style {
-                let this_opaque = self.opaque();
-                if let Some(ref animations) = layout_context.running_animations.get(&this_opaque) {
-                    for animation in *animations {
-                        animation.property_animation.update(&mut *Arc::make_mut(style), 1.0);
-                    }
-                }
-            }
+            cacheable = !self.update_animations_for_cascade(layout_context, style) && cacheable;
         }
 
         let mut this_style;
-        let cacheable;
         match parent_style {
             Some(ref parent_style) => {
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
@@ -461,7 +457,7 @@ impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
                                                         shareable,
                                                         Some(&***parent_style),
                                                         cached_computed_values);
-                cacheable = is_cacheable;
+                cacheable = cacheable && is_cacheable;
                 this_style = the_style
             }
             None => {
@@ -470,7 +466,7 @@ impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
                                                         shareable,
                                                         None,
                                                         None);
-                cacheable = is_cacheable;
+                cacheable = cacheable && is_cacheable;
                 this_style = the_style
             }
         };
@@ -479,10 +475,12 @@ impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
         // it did trigger a transition.
         if animate_properties {
             if let Some(ref style) = *style {
-                animation::start_transitions_if_applicable(new_animations_sender,
-                                                           self.opaque(),
-                                                           &**style,
-                                                           &mut this_style);
+                let animations_started =
+                    animation::start_transitions_if_applicable(new_animations_sender,
+                                                               self.opaque(),
+                                                               &**style,
+                                                               &mut this_style);
+                cacheable = cacheable && !animations_started
             }
         }
 
@@ -499,6 +497,50 @@ impl<'ln> PrivateMatchMethods for ServoLayoutNode<'ln> {
         // Write in the final style and return the damage done to our caller.
         *style = Some(this_style);
         damage
+    }
+
+    fn update_animations_for_cascade(&self,
+                                     layout_context: &SharedLayoutContext,
+                                     style: &mut Option<Arc<ComputedValues>>)
+                                     -> bool {
+        let style = match *style {
+            None => return false,
+            Some(ref mut style) => style,
+        };
+
+        // Finish any expired transitions.
+        let this_opaque = self.opaque();
+        let had_animations_to_expire;
+        {
+            let all_expired_animations = layout_context.expired_animations.read().unwrap();
+            let animations_to_expire = all_expired_animations.get(&this_opaque);
+            had_animations_to_expire = animations_to_expire.is_some();
+            if let Some(ref animations) = animations_to_expire {
+                for animation in *animations {
+                    animation.property_animation.update(&mut *Arc::make_mut(style), 1.0);
+                }
+            }
+        }
+
+        if had_animations_to_expire {
+            layout_context.expired_animations.write().unwrap().remove(&this_opaque);
+        }
+
+        // Merge any running transitions into the current style, and cancel them.
+        let had_running_animations = layout_context.running_animations
+                                                   .read()
+                                                   .unwrap()
+                                                   .get(&this_opaque)
+                                                   .is_some();
+        if had_running_animations {
+            let mut all_running_animations = layout_context.running_animations.write().unwrap();
+            for running_animation in all_running_animations.get(&this_opaque).unwrap() {
+                animation::update_style_for_animation(running_animation, style, None);
+            }
+            all_running_animations.remove(&this_opaque);
+        }
+
+        had_animations_to_expire || had_running_animations
     }
 }
 
@@ -579,7 +621,7 @@ impl<'ln> ElementMatchMethods for ServoLayoutElement<'ln> {
         if self.style_attribute().is_some() {
             return StyleSharingResult::CannotShare
         }
-        if self.get_attr(&ns!(""), &atom!("id")).is_some() {
+        if self.get_attr(&ns!(), &atom!("id")).is_some() {
             return StyleSharingResult::CannotShare
         }
 

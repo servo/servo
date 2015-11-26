@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    function loadFrames() {
+      window.A = document.getElementById('A').contentWindow;
+      window.B = document.getElementById('B').contentWindow;
+      window.C = document.getElementById('C').contentWindow;
+      window.D = document.getElementById('D').contentWindow;
+
+      var path = location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/frame.html';
+      A.location = 'frame.html';
+      B.location = '//{{domains[www2]}}:' + location.port + path;
+      C.location = '//{{domains[www2]}}:' + location.port + path;
+      D.location = '//{{domains[www1]}}:' + location.port + path;
+
+      var loadCount = 0;
+      function frameLoaded() {
+        if (++loadCount == 4)
+          go();
+      }
+      Array.forEach(document.getElementsByTagName('iframe'), function(ifr) { ifr.onload = frameLoaded; });
+    }
+
+
+    var results = [];
+    function assert(cond, msg) {
+      results.push({pass: !!cond, message: msg});
+    }
+
+    function go() {
+      window.onmessage = function() {
+        assert(B.checkWindowReferences(), "B's Window references are still self-consistent after document.domain");
+        for (var i = 0; i < window.length; ++i) {
+          assert(window[i] === B.windowReferences[i],
+                 "Window reference " + i + " consistent between globals after document.domain");
+          assert(window[i].location === B.locationReferences[i],
+                 "Location reference " + i + " consistent between globals after document.domain");
+        }
+        opener.postMessage(results, '*');
+      };
+      A.document.domain = A.document.domain;
+      document.domain = document.domain;
+      B.postMessage('', '*');
+    }
+
+  </script>
+</head>
+<body onload="loadFrames()">
+  <iframe id="A"></iframe>
+  <iframe id="B"></iframe>
+  <iframe id="C"></iframe>
+  <iframe id="D"></iframe>
+</body>
+</html>

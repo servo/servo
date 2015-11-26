@@ -478,10 +478,10 @@ impl Document {
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
-        self.get_element_by_id(&Atom::from_slice(fragid)).or_else(|| {
+        self.get_element_by_id(&Atom::from(fragid)).or_else(|| {
             let check_anchor = |node: &HTMLAnchorElement| {
                 let elem = node.upcast::<Element>();
-                elem.get_attribute(&ns!(""), &atom!("name"))
+                elem.get_attribute(&ns!(), &atom!("name"))
                     .map_or(false, |attr| &**attr.value() == fragid)
             };
             let doc_node = self.upcast::<Node>();
@@ -492,9 +492,9 @@ impl Document {
         })
     }
 
-    pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+    pub fn hit_test(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().hit_test(*point) {
+        match self.window.layout().hit_test(*page_point) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
@@ -503,9 +503,9 @@ impl Document {
         }
     }
 
-    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+    pub fn get_nodes_under_mouse(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().mouse_over(*point) {
+        match self.window.layout().mouse_over(*page_point) {
             Ok(MouseOverResponse(node_address)) => node_address,
             Err(()) => vec![],
         }
@@ -604,15 +604,18 @@ impl Document {
     pub fn handle_mouse_event(&self,
                               js_runtime: *mut JSRuntime,
                               _button: MouseButton,
-                              point: Point2D<f32>,
+                              client_point: Point2D<f32>,
                               mouse_event_type: MouseEventType) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
             MouseEventType::MouseUp => "mouseup".to_owned(),
             MouseEventType::MouseDown => "mousedown".to_owned(),
         };
-        debug!("{}: at {:?}", mouse_event_type_string, point);
-        let node = match self.hit_test(&point) {
+        debug!("{}: at {:?}", mouse_event_type_string, client_point);
+
+        let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                                      client_point.y + self.window.PageYOffset() as f32);
+        let node = match self.hit_test(&page_point) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -643,8 +646,8 @@ impl Document {
         }
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
-        let x = point.x as i32;
-        let y = point.y as i32;
+        let client_x = client_point.x as i32;
+        let client_y = client_point.y as i32;
         let clickCount = 1;
         let event = MouseEvent::new(&self.window,
                                     DOMString::from(mouse_event_type_string),
@@ -652,10 +655,10 @@ impl Document {
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
                                     clickCount,
-                                    x,
-                                    y,
-                                    x,
-                                    y, // TODO: Get real screen coordinates?
+                                    client_x,
+                                    client_y,
+                                    client_x,
+                                    client_y, // TODO: Get real screen coordinates?
                                     false,
                                     false,
                                     false,
@@ -683,9 +686,9 @@ impl Document {
                            ReflowReason::MouseEvent);
     }
 
-    pub fn fire_mouse_event(&self, point: Point2D<f32>, target: &EventTarget, event_name: String) {
-        let x = point.x.to_i32().unwrap_or(0);
-        let y = point.y.to_i32().unwrap_or(0);
+    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
+        let client_x = client_point.x.to_i32().unwrap_or(0);
+        let client_y = client_point.y.to_i32().unwrap_or(0);
 
         let mouse_event = MouseEvent::new(&self.window,
                                           DOMString::from(event_name),
@@ -693,10 +696,10 @@ impl Document {
                                           EventCancelable::Cancelable,
                                           Some(&self.window),
                                           0i32,
-                                          x,
-                                          y,
-                                          x,
-                                          y,
+                                          client_x,
+                                          client_y,
+                                          client_x,
+                                          client_y,
                                           false,
                                           false,
                                           false,
@@ -709,12 +712,14 @@ impl Document {
 
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
-                                   point: Option<Point2D<f32>>,
+                                   client_point: Option<Point2D<f32>>,
                                    prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = point.as_ref()
-                                        .map(|point| self.get_nodes_under_mouse(point))
-                                        .unwrap_or(vec![]);
+        let mouse_over_addresses = client_point.as_ref().map(|client_point| {
+            let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                                          client_point.y + self.window.PageYOffset() as f32);
+            self.get_nodes_under_mouse(&page_point)
+        }).unwrap_or(vec![]);
         let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
             node::from_untrusted_node_address(js_runtime, *node_address)
                 .inclusive_ancestors()
@@ -735,8 +740,8 @@ impl Document {
 
                     // FIXME: we should be dispatching this event but we lack an actual
                     //        point to pass to it.
-                    if let Some(point) = point {
-                        self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                    if let Some(client_point) = client_point {
+                        self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
                     }
                 }
             }
@@ -751,8 +756,8 @@ impl Document {
 
                 let target = target.upcast();
 
-                if let Some(point) = point {
-                    self.fire_mouse_event(point, target, "mouseover".to_owned());
+                if let Some(client_point) = client_point {
+                    self.fire_mouse_event(client_point, target, "mouseover".to_owned());
                 }
             }
         }
@@ -763,8 +768,8 @@ impl Document {
                                                                   mouse_over_addresses[0]);
 
             let target = top_most_node.upcast();
-            if let Some(point) = point {
-                self.fire_mouse_event(point, target, "mousemove".to_owned());
+            if let Some(client_point) = client_point {
+                self.fire_mouse_event(client_point, target, "mousemove".to_owned());
             }
         }
 
@@ -1037,7 +1042,7 @@ impl Document {
     pub fn set_body_attribute(&self, local_name: &Atom, value: DOMString) {
         if let Some(ref body) = self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
             let body = body.upcast::<Element>();
-            let value = body.parse_attribute(&ns!(""), &local_name, value);
+            let value = body.parse_attribute(&ns!(), &local_name, value);
             body.set_attribute(local_name, value);
         }
     }
@@ -1700,13 +1705,13 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        let tag_atom = Atom::from_slice(&tag_name);
+        let tag_atom = Atom::from(&*tag_name);
         match self.tag_map.borrow_mut().entry(tag_atom.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
                 let mut tag_copy = tag_name;
                 tag_copy.make_ascii_lowercase();
-                let ascii_lower_tag = Atom::from_slice(&tag_copy);
+                let ascii_lower_tag = Atom::from(&*tag_copy);
                 let result = HTMLCollection::by_atomic_tag_name(&self.window,
                                                                 self.upcast(),
                                                                 tag_atom,
@@ -1723,7 +1728,7 @@ impl DocumentMethods for Document {
                               tag_name: DOMString)
                               -> Root<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
-        let local = Atom::from_slice(&tag_name);
+        let local = Atom::from(&*tag_name);
         let qname = QualName::new(ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
@@ -1738,7 +1743,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes)
-                                         .map(Atom::from_slice)
+                                         .map(Atom::from)
                                          .collect();
         match self.classes_map.borrow_mut().entry(class_atoms.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
@@ -1754,7 +1759,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
-        self.get_element_by_id(&Atom::from_slice(&id))
+        self.get_element_by_id(&Atom::from(&*id))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
@@ -1766,7 +1771,7 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(HTML), Atom::from_slice(&local_name));
+        let name = QualName::new(ns!(html), Atom::from(&*local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
@@ -1788,12 +1793,12 @@ impl DocumentMethods for Document {
             return Err(Error::InvalidCharacter);
         }
 
-        let name = Atom::from_slice(&local_name);
+        let name = Atom::from(&*local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
-        let l_name = Atom::from_slice(&local_name);
+        let l_name = Atom::from(&*local_name);
         let value = AttrValue::String(DOMString::new());
 
-        Ok(Attr::new(&self.window, name, value, l_name, ns!(""), None, None))
+        Ok(Attr::new(&self.window, name, value, l_name, ns!(), None, None))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattributens
@@ -1804,7 +1809,7 @@ impl DocumentMethods for Document {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
         let value = AttrValue::String(DOMString::new());
-        let qualified_name = Atom::from_slice(&qualified_name);
+        let qualified_name = Atom::from(&*qualified_name);
         Ok(Attr::new(&self.window,
                      local_name,
                      value,
@@ -1964,12 +1969,12 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
-            if root.namespace() == &ns!(SVG) && root.local_name() == &atom!("svg") {
+            if root.namespace() == &ns!(svg) && root.local_name() == &atom!("svg") {
                 // Step 1.
                 root.upcast::<Node>()
                     .child_elements()
                     .find(|node| {
-                        node.namespace() == &ns!(SVG) && node.local_name() == &atom!("title")
+                        node.namespace() == &ns!(svg) && node.local_name() == &atom!("title")
                     })
                     .map(Root::upcast::<Node>)
             } else {
@@ -1997,14 +2002,14 @@ impl DocumentMethods for Document {
             None => return,
         };
 
-        let elem = if root.namespace() == &ns!(SVG) && root.local_name() == &atom!("svg") {
+        let elem = if root.namespace() == &ns!(svg) && root.local_name() == &atom!("svg") {
             let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.namespace() == &ns!(SVG) && node.local_name() == &atom!("title")
+                node.namespace() == &ns!(svg) && node.local_name() == &atom!("title")
             });
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
-                    let name = QualName::new(ns!(SVG), atom!("title"));
+                    let name = QualName::new(ns!(svg), atom!("title"));
                     let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
@@ -2012,7 +2017,7 @@ impl DocumentMethods for Document {
                           .unwrap()
                 }
             }
-        } else if root.namespace() == &ns!(HTML) {
+        } else if root.namespace() == &ns!(html) {
             let elem = root.upcast::<Node>()
                            .traverse_preorder()
                            .find(|node| node.is::<HTMLTitleElement>());
@@ -2021,7 +2026,7 @@ impl DocumentMethods for Document {
                 None => {
                     match self.GetHead() {
                         Some(head) => {
-                            let name = QualName::new(ns!(HTML), atom!("title"));
+                            let name = QualName::new(ns!(html), atom!("title"));
                             let elem = Element::create(name,
                                                        None,
                                                        self,
@@ -2113,10 +2118,10 @@ impl DocumentMethods for Document {
                 Some(element) => element,
                 None => return false,
             };
-            if element.namespace() != &ns!(HTML) {
+            if element.namespace() != &ns!(html) {
                 return false;
             }
-            element.get_attribute(&ns!(""), &atom!("name"))
+            element.get_attribute(&ns!(), &atom!("name"))
                    .map_or(false, |attr| &**attr.value() == &*name)
         })
     }
@@ -2299,10 +2304,10 @@ impl DocumentMethods for Document {
             };
             match html_elem_type {
                 HTMLElementTypeId::HTMLAppletElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    match elem.get_attribute(&ns!(), &atom!("name")) {
                         Some(ref attr) if attr.value().as_atom() == name => true,
                         _ => {
-                            match elem.get_attribute(&ns!(""), &atom!("id")) {
+                            match elem.get_attribute(&ns!(), &atom!("id")) {
                                 Some(ref attr) => attr.value().as_atom() == name,
                                 None => false,
                             }
@@ -2310,18 +2315,18 @@ impl DocumentMethods for Document {
                     }
                 },
                 HTMLElementTypeId::HTMLFormElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    match elem.get_attribute(&ns!(), &atom!("name")) {
                         Some(ref attr) => attr.value().as_atom() == name,
                         None => false,
                     }
                 },
                 HTMLElementTypeId::HTMLImageElement => {
-                    match elem.get_attribute(&ns!(""), &atom!("name")) {
+                    match elem.get_attribute(&ns!(), &atom!("name")) {
                         Some(ref attr) => {
                             if attr.value().as_atom() == name {
                                 true
                             } else {
-                                match elem.get_attribute(&ns!(""), &atom!("id")) {
+                                match elem.get_attribute(&ns!(), &atom!("id")) {
                                     Some(ref attr) => attr.value().as_atom() == name,
                                     None => false,
                                 }
@@ -2334,7 +2339,7 @@ impl DocumentMethods for Document {
                 _ => false,
             }
         }
-        let name = Atom::from_slice(&name);
+        let name = Atom::from(&*name);
         let root = self.upcast::<Node>();
         {
             // Step 1.

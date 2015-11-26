@@ -97,7 +97,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -107,7 +107,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(""), &atom!("text"))
+                .get_attr_for_layout(&ns!(), &atom!("text"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -153,7 +153,7 @@ impl VirtualMethods for HTMLBodyElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         let do_super_mutate = match (attr.local_name(), mutation) {
-            (&atom!(background), _) => {
+            (&atom!("background"), _) => {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let document = document_from_node(self);
                     let base = document.url();
@@ -169,11 +169,11 @@ impl VirtualMethods for HTMLBodyElement {
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
                 match name {
-                    &atom!(onfocus) | &atom!(onload) | &atom!(onscroll) | &atom!(onafterprint) |
-                    &atom!(onbeforeprint) | &atom!(onbeforeunload) | &atom!(onhashchange) |
-                    &atom!(onlanguagechange) | &atom!(onmessage) | &atom!(onoffline) | &atom!(ononline) |
-                    &atom!(onpagehide) | &atom!(onpageshow) | &atom!(onpopstate) | &atom!(onstorage) |
-                    &atom!(onresize) | &atom!(onunload) | &atom!(onerror)
+                    &atom!("onfocus") | &atom!("onload") | &atom!("onscroll") | &atom!("onafterprint") |
+                    &atom!("onbeforeprint") | &atom!("onbeforeunload") | &atom!("onhashchange") |
+                    &atom!("onlanguagechange") | &atom!("onmessage") | &atom!("onoffline") | &atom!("ononline") |
+                    &atom!("onpagehide") | &atom!("onpageshow") | &atom!("onpopstate") | &atom!("onstorage") |
+                    &atom!("onresize") | &atom!("onunload") | &atom!("onerror")
                       => {
                           let evtarget = window.upcast::<EventTarget>(); // forwarded event
                           evtarget.set_event_handler_uncompiled(cx, url, reflector,
