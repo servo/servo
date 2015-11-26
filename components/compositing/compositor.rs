@@ -55,14 +55,14 @@ use util::opts;
 use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum UnableToComposite {
     NoContext,
     WindowUnprepared,
     NotReadyToPaintImage(NotReadyToPaint),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum NotReadyToPaint {
     LayerHasOutstandingPaintMessages,
     MissingRoot,
@@ -1770,7 +1770,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (opts::get().output_file.is_some() || opts::get().exit_after_load) {
             println!("Shutting down the Constellation after generating an output file or exit flag specified");
             self.start_shutting_down();
-        } else if composited.is_err() && opts::get().is_running_problem_test {
+        } else if composited.is_err() &&
+            opts::get().is_running_problem_test &&
+            composited.as_ref().err().unwrap() != &UnableToComposite::NotReadyToPaintImage(
+                NotReadyToPaint::WaitingOnConstellation) {
             println!("not ready to composite: {:?}", composited.err().unwrap());
         }
     }
