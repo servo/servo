@@ -19,18 +19,9 @@
 #![plugin(plugins)]
 
 extern crate app_units;
+extern crate azure;
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-#[no_link]
-extern crate plugins as servo_plugins;
-#[macro_use]
-extern crate util;
-extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
 extern crate cssparser;
@@ -42,8 +33,15 @@ extern crate gfx_traits;
 extern crate ipc_channel;
 extern crate layout_traits;
 extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
+#[macro_use]
+#[no_link]
+extern crate plugins as servo_plugins;
+#[macro_use]
+extern crate profile_traits;
 extern crate rustc_serialize;
 extern crate script;
 extern crate script_traits;
@@ -57,6 +55,8 @@ extern crate style_traits;
 extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate url;
+#[macro_use]
+extern crate util;
 
 #[macro_use]
 mod layout_debug;

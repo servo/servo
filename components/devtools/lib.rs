@@ -19,11 +19,11 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate log;
 extern crate devtools_traits;
 extern crate hyper;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate rustc_serialize;
 extern crate serde;

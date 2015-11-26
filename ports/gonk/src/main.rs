@@ -23,23 +23,21 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-extern crate servo;
-extern crate time;
-extern crate util;
-extern crate errno;
-
 extern crate compositing;
-extern crate script_traits;
-
+extern crate egl;
+extern crate env_logger;
+extern crate errno;
 extern crate euclid;
-extern crate libc;
-extern crate msg;
 extern crate gleam;
 extern crate layers;
-extern crate egl;
-extern crate url;
+extern crate libc;
+extern crate msg;
 extern crate net_traits;
-extern crate env_logger;
+extern crate script_traits;
+extern crate servo;
+extern crate time;
+extern crate url;
+extern crate util;
 
 #[link(name = "stlport")]
 extern {}
