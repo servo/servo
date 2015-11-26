@@ -13,7 +13,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
-prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_vertical_writing_mode_ref.html
 == iframe/stacking_context.html iframe/stacking_context_ref.html
 == iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 

@@ -1771,6 +1771,18 @@
             "url": "/_mozilla/css/iframe/size_attributes.html"
           }
         ],
+        "css/iframe/size_attributes_vertical_writing_mode.html": [
+          {
+            "path": "css/iframe/size_attributes_vertical_writing_mode.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/size_attributes_vertical_writing_mode_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/size_attributes_vertical_writing_mode.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7420,6 +7432,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/size_attributes.html"
+        }
+      ],
+      "css/iframe/size_attributes_vertical_writing_mode.html": [
+        {
+          "path": "css/iframe/size_attributes_vertical_writing_mode.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/size_attributes_vertical_writing_mode_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/size_attributes_vertical_writing_mode.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
