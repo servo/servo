@@ -1783,6 +1783,18 @@
             "url": "/_mozilla/css/iframe/size_attributes_vertical_writing_mode.html"
           }
         ],
+        "css/iframe/stacking_context.html": [
+          {
+            "path": "css/iframe/stacking_context.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/stacking_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/stacking_context.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -7444,6 +7456,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/size_attributes_vertical_writing_mode.html"
+        }
+      ],
+      "css/iframe/stacking_context.html": [
+        {
+          "path": "css/iframe/stacking_context.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/stacking_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/stacking_context.html"
         }
       ],
       "css/image_rendering_auto_a.html": [

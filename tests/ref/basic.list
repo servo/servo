@@ -13,7 +13,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
-== iframe/stacking_context.html iframe/stacking_context_ref.html
 == iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 
 # inline_border_a.html inline_border_b.html
