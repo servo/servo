@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use about_loader;
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
@@ -14,6 +15,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
+use url::Url;
 use util::task::spawn_named;
 
 static READ_SIZE: usize = 8192;
@@ -101,8 +103,13 @@ pub fn factory(load_data: LoadData,
                             }
                         };
                     }
-                    Err(e) => {
-                        send_error(url, e.description().to_owned(), senders);
+                    Err(_) => {
+                        // this should be one of the three errors listed in
+                        // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
+                        // but, we'll go for a "file not found!"
+                        let url = Url::parse("about:not-found").unwrap();
+                        let load_data_404 = LoadData::new(url, None);
+                        about_loader::factory(load_data_404, senders, classifier, cancel_listener)
                     }
                 }
             }
