@@ -729,7 +729,7 @@ impl Window {
         let headless_context = headless_builder.build().unwrap();
         unsafe { headless_context.make_current().expect("Failed to make context current!") };
 
-        gl::load_with(|s| headless_context.get_proc_address(s));
+        gl::load_with(|s| headless_context.get_proc_address(s) as *const c_void);
 
         let window = Window {
             context: headless_context,
