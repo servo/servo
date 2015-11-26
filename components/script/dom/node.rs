@@ -283,6 +283,7 @@ impl Node {
         }
 
         new_child.parent_node.set(Some(self));
+        self.children_count.set(self.children_count.get() + 1);
 
         let parent_in_doc = self.is_in_doc();
         for node in new_child.traverse_preorder() {
@@ -320,6 +321,7 @@ impl Node {
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
         child.parent_node.set(None);
+        self.children_count.set(self.children_count.get() - 1);
 
         let parent_in_doc = self.is_in_doc();
         for node in child.traverse_preorder() {
@@ -1576,7 +1578,7 @@ impl Node {
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(
                 &ChildrenMutation::replace(old_previous_sibling.r(),
-                                           &node, &[],
+                                           &Some(&node), &[],
                                            old_next_sibling.r()));
         }
     }
@@ -2032,11 +2034,6 @@ impl NodeMethods for Node {
             }
         }
 
-        // Ok if not caught by previous error checks.
-        if node == child {
-            return Ok(Root::from_ref(child));
-        }
-
         // Step 7-8.
         let child_next_sibling = child.GetNextSibling();
         let node_next_sibling = node.GetNextSibling();
@@ -2047,14 +2044,19 @@ impl NodeMethods for Node {
         };
 
         // Step 9.
+        let previous_sibling = child.GetPreviousSibling();
+
+        // Step 10.
         let document = document_from_node(self);
         Node::adopt(node, document.r());
 
-        // Step 10.
-        let previous_sibling = child.GetPreviousSibling();
-
-        // Step 11.
-        Node::remove(child, self, SuppressObserver::Suppressed);
+        let removed_child = if node != child {
+            // Step 11.
+            Node::remove(child, self, SuppressObserver::Suppressed);
+            Some(child)
+        } else {
+            None
+        };
 
         // Step 12.
         let mut nodes = RootedVec::new();
@@ -2071,7 +2073,7 @@ impl NodeMethods for Node {
         // Step 14.
         vtable_for(&self).children_changed(
             &ChildrenMutation::replace(previous_sibling.r(),
-                                       &child, nodes,
+                                       &removed_child, nodes,
                                        reference_child));
 
         // Step 15.
@@ -2342,21 +2344,6 @@ impl VirtualMethods for Node {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        match *mutation {
-            ChildrenMutation::Append { added, .. } |
-            ChildrenMutation::Insert { added, .. } |
-            ChildrenMutation::Prepend { added, .. } => {
-                self.children_count.set(
-                    self.children_count.get() + added.len() as u32);
-            },
-            ChildrenMutation::Replace { added, .. } => {
-                self.children_count.set(
-                    self.children_count.get() - 1u32 + added.len() as u32);
-            },
-            ChildrenMutation::ReplaceAll { added, .. } => {
-                self.children_count.set(added.len() as u32);
-            },
-        }
         if let Some(list) = self.child_list.get() {
             list.as_children_list().children_changed(mutation);
         }
@@ -2405,22 +2392,26 @@ impl<'a> ChildrenMutation<'a> {
     }
 
     fn replace(prev: Option<&'a Node>,
-               removed: &'a &'a Node,
+               removed: &'a Option<&'a Node>,
                added: &'a [&'a Node],
                next: Option<&'a Node>)
                -> ChildrenMutation<'a> {
-        if let (None, None) = (prev, next) {
-            ChildrenMutation::ReplaceAll {
-                removed: ref_slice(removed),
-                added: added,
+        if let Some(ref removed) = *removed {
+            if let (None, None) = (prev, next) {
+                ChildrenMutation::ReplaceAll {
+                    removed: ref_slice(removed),
+                    added: added,
+                }
+            } else {
+                ChildrenMutation::Replace {
+                    prev: prev,
+                    removed: *removed,
+                    added: added,
+                    next: next,
+                }
             }
         } else {
-            ChildrenMutation::Replace {
-                prev: prev,
-                removed: *removed,
-                added: added,
-                next: next,
-            }
+            ChildrenMutation::insert(prev, added, next)
         }
     }
 
