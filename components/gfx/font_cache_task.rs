@@ -192,6 +192,7 @@ impl FontCache {
                                     }
                                     ResponseAction::ResponseComplete(Ok(_)) => {
                                         if !*response_valid.lock().unwrap() {
+                                            drop(result.send(()));
                                             return;
                                         }
                                         let mut bytes = bytes.lock().unwrap();
