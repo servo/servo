@@ -225,7 +225,7 @@ impl ReportsTree {
 
     // Searches the tree's children for a path_seg match, and returns the index if there is a
     // match.
-    fn find_child(&self, path_seg: &String) -> Option<usize> {
+    fn find_child(&self, path_seg: &str) -> Option<usize> {
         for (i, child) in self.children.iter().enumerate() {
             if child.path_seg == *path_seg {
                 return Some(i);

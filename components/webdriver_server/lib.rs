@@ -525,11 +525,11 @@ impl Handler {
         }
     }
 
-    fn handle_element_attribute(&self, element: &WebElement, name: &String) -> WebDriverResult<WebDriverResponse> {
+    fn handle_element_attribute(&self, element: &WebElement, name: &str) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementAttribute(element.id.clone(), name.clone(), sender);
+        let cmd = WebDriverScriptCommand::GetElementAttribute(element.id.clone(), name.to_owned(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
@@ -539,11 +539,11 @@ impl Handler {
         }
     }
 
-    fn handle_element_css(&self, element: &WebElement, name: &String) -> WebDriverResult<WebDriverResponse> {
+    fn handle_element_css(&self, element: &WebElement, name: &str) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementCSS(element.id.clone(), name.clone(), sender);
+        let cmd = WebDriverScriptCommand::GetElementCSS(element.id.clone(), name.to_owned(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match receiver.recv().unwrap() {
