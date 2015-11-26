@@ -20,23 +20,23 @@ extern crate app_units;
 extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
+extern crate encoding;
+extern crate euclid;
+extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate matches;
-#[macro_use]
-extern crate style_traits;
-extern crate encoding;
-extern crate euclid;
-extern crate fnv;
 extern crate num;
 extern crate rustc_serialize;
 #[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
+#[macro_use]
+extern crate style_traits;
 extern crate url;
 extern crate util;
 

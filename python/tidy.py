@@ -221,12 +221,25 @@ def check_rust(file_name, contents):
     whitespace = False
 
     uses = []
-
+    prev_crate = {}
     mods = []
 
-    for idx, line in enumerate(contents):
+    for idx, original_line in enumerate(contents):
         # simplify the analysis
-        line = line.strip()
+        line = original_line.strip()
+
+        # check extern crates
+        if line.startswith("extern crate"):
+            crate_name = line.replace("extern crate ", "").replace(";", "")
+            indent = len(original_line) - len(line)
+            if indent not in prev_crate:
+                prev_crate[indent] = ""
+            if prev_crate[indent] > crate_name:
+                message = "extern crate statement is not in alphabetical order"
+                expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_crate[indent])
+                found = "\n\t\033[91mfound: {}\033[0m".format(crate_name)
+                yield(idx + 1, message + expected + found)
+            prev_crate[indent] = crate_name
 
         # Simple heuristic to avoid common case of no comments.
         if '/' in line:

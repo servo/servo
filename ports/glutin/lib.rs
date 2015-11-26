@@ -9,6 +9,7 @@
 #[macro_use] extern crate bitflags;
 #[cfg(target_os = "macos")] extern crate cgl;
 extern crate compositing;
+#[cfg(target_os = "android")] extern crate egl;
 extern crate euclid;
 extern crate gleam;
 extern crate glutin;
@@ -18,9 +19,8 @@ extern crate msg;
 extern crate net_traits;
 #[cfg(feature = "window")] extern crate script_traits;
 extern crate time;
-extern crate util;
-#[cfg(target_os = "android")] extern crate egl;
 extern crate url;
+extern crate util;
 #[cfg(target_os = "linux")] extern crate x11;
 
 use compositing::windowing::WindowEvent;
