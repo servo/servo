@@ -75,6 +75,7 @@ use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, Metadata, Resour
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
+use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
@@ -1659,22 +1660,43 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
+
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                Some(DOMString::from("text/xml"))
+            }
+
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 Some(DOMString::from("text/plain"))
             }
+
             _ => None
         };
 
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
-        let document = Document::new(window.r(),
+    let document;
+    match metadata.content_type {
+
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                document = Document::new(window.r(),
+                                     Some(final_url.clone()),
+                                     IsHTMLDocument::NonHTMLDocument,
+                                     content_type,
+                                     last_modified,
+                                     DocumentSource::NotFromParser,
+                                     loader);
+            }
+            _ => {
+                document = Document::new(window.r(),
                                      Some(final_url.clone()),
                                      IsHTMLDocument::HTMLDocument,
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
                                      loader);
+            }
+    }
 
         let frame_element = frame_element.r().map(Castable::upcast);
         window.init_browsing_context(document.r(), frame_element);
@@ -1724,8 +1746,21 @@ impl ScriptTask {
             DOMString::new()
         };
 
-        parse_html(document.r(), parse_input, final_url,
-                   ParseContext::Owner(Some(incomplete.pipeline_id)));
+    match metadata.content_type {
+
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                parse_xml(document.r(),
+                          parse_input,
+                          final_url,
+                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+            _ => {
+                parse_html(document.r(),
+                           parse_input,
+                           final_url,
+                           ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+    }
 
         page_remover.neuter();
 
