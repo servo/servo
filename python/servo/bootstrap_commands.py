@@ -174,9 +174,8 @@ class MachCommands(CommandBase):
                      help='Force download even if docs already exist')
     def bootstrap_rustc_docs(self, force=False):
         self.ensure_bootstrapped()
-        hash_dir = path.join(self.context.sharedir, "rust",
-                             self.rust_snapshot_path().split("/")[0])
-        docs_dir = path.join(hash_dir, "doc")
+        rust_root = self.config["tools"]["rust-root"]
+        docs_dir = path.join(rust_root, "doc")
         if not force and path.exists(docs_dir):
             print("Snapshot Rust docs already downloaded.", end=" ")
             print("Use |bootstrap-rust-docs --force| to download again.")
@@ -187,12 +186,12 @@ class MachCommands(CommandBase):
         docs_name = self.rust_snapshot_path().replace("rustc-", "rust-docs-")
         snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
                         % host_triple())
-        tgz_file = path.join(hash_dir, 'doc.tar.gz')
+        tgz_file = path.join(rust_root, 'doc.tar.gz')
 
         download_file("Rust docs", snapshot_url, tgz_file)
 
         print("Extracting Rust docs...")
-        temp_dir = path.join(hash_dir, "temp_docs")
+        temp_dir = path.join(rust_root, "temp_docs")
         if path.isdir(temp_dir):
             shutil.rmtree(temp_dir)
         extract(tgz_file, temp_dir)
