@@ -17,7 +17,7 @@ use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use incremental::{self, RestyleDamage};
+use incremental::{self, RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
@@ -774,10 +774,14 @@ impl Fragment {
     pub fn new(node: &ServoThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
+
+        let mut restyle_damage = node.restyle_damage();
+        restyle_damage.remove(RECONSTRUCT_FLOW);
+
         Fragment {
             node: node.opaque(),
             style: style,
-            restyle_damage: node.restyle_damage(),
+            restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -793,10 +797,13 @@ impl Fragment {
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       pseudo: PseudoElementType<()>,
                                       style: Arc<ComputedValues>,
-                                      restyle_damage: RestyleDamage,
+                                      mut restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
                                       -> Fragment {
         let writing_mode = style.writing_mode;
+
+        restyle_damage.remove(RECONSTRUCT_FLOW);
+
         Fragment {
             node: node,
             style: style,
@@ -826,10 +833,13 @@ impl Fragment {
                                                           self.border_box.start,
                                                           size);
 
+        let mut restyle_damage = incremental::rebuild_and_reflow();
+        restyle_damage.remove(RECONSTRUCT_FLOW);
+
         Fragment {
             node: self.node,
             style: self.style.clone(),
-            restyle_damage: incremental::rebuild_and_reflow(),
+            restyle_damage: restyle_damage,
             border_box: new_border_box,
             border_padding: self.border_padding,
             margin: self.margin,
