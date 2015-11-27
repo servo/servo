@@ -123,11 +123,6 @@ dependencies = [
 
 [[package]]
 name = "bitflags"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "bitflags"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -762,7 +757,7 @@ dependencies = [
  "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "user32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "wayland-client 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "wayland-kbd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wayland-kbd 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wayland-window 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1960,12 +1955,12 @@ dependencies = [
 
 [[package]]
 name = "wayland-kbd"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dlib 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "mmap 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wayland-client 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
