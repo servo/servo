@@ -1333,7 +1333,7 @@ impl Node {
                                          child: Option<&Node>) -> ErrorResult {
         // Step 1.
         match parent.type_id() {
-            NodeTypeId::Document |
+            NodeTypeId::Document(_) |
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => (),
             _ => return Err(Error::HierarchyRequest)
@@ -1367,11 +1367,11 @@ impl Node {
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
-            NodeTypeId::Document => return Err(Error::HierarchyRequest)
+            NodeTypeId::Document(_) => return Err(Error::HierarchyRequest)
         }
 
         // Step 6.
-        if parent.type_id() == NodeTypeId::Document {
+        if parent.is::<Document>() {
             match node.type_id() {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
@@ -1435,7 +1435,7 @@ impl Node {
                     }
                 },
                 NodeTypeId::CharacterData(_) => (),
-                NodeTypeId::Document => unreachable!(),
+                NodeTypeId::Document(_) => unreachable!(),
             }
         }
         Ok(())
@@ -1611,7 +1611,7 @@ impl Node {
                 let comment = Comment::new(cdata.Data(), document.r());
                 Root::upcast::<Node>(comment)
             },
-            NodeTypeId::Document => {
+            NodeTypeId::Document(_) => {
                 let document = node.downcast::<Document>().unwrap();
                 let is_html_doc = match document.is_html_document() {
                     true => IsHTMLDocument::HTMLDocument,
@@ -1657,7 +1657,7 @@ impl Node {
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
-            NodeTypeId::Document => {
+            NodeTypeId::Document(_) => {
                 let node_doc = node.downcast::<Document>().unwrap();
                 let copy_doc = copy.downcast::<Document>().unwrap();
                 copy_doc.set_encoding_name(node_doc.encoding_name().clone());
@@ -1756,7 +1756,7 @@ impl Node {
                     Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
                 }
             },
-            NodeTypeId::Document => {
+            NodeTypeId::Document(_) => {
                 match node.downcast::<Document>().unwrap().GetDocumentElement().r() {
                     // Step 1.
                     None => ns!(),
@@ -1788,7 +1788,7 @@ impl NodeMethods for Node {
                 NodeConstants::PROCESSING_INSTRUCTION_NODE,
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) =>
                 NodeConstants::COMMENT_NODE,
-            NodeTypeId::Document =>
+            NodeTypeId::Document(_) =>
                 NodeConstants::DOCUMENT_NODE,
             NodeTypeId::DocumentType =>
                 NodeConstants::DOCUMENT_TYPE_NODE,
@@ -1814,7 +1814,7 @@ impl NodeMethods for Node {
                 self.downcast::<DocumentType>().unwrap().name().clone()
             },
             NodeTypeId::DocumentFragment => DOMString::from("#document-fragment"),
-            NodeTypeId::Document => DOMString::from("#document")
+            NodeTypeId::Document(_) => DOMString::from("#document")
         }
     }
 
@@ -1830,7 +1830,7 @@ impl NodeMethods for Node {
             NodeTypeId::Element(..) |
             NodeTypeId::DocumentType |
             NodeTypeId::DocumentFragment => Some(self.owner_doc()),
-            NodeTypeId::Document => None
+            NodeTypeId::Document(_) => None
         }
     }
 
@@ -1903,7 +1903,7 @@ impl NodeMethods for Node {
                 Some(characterdata.Data())
             }
             NodeTypeId::DocumentType |
-            NodeTypeId::Document => {
+            NodeTypeId::Document(_) => {
                 None
             }
         }
@@ -1930,7 +1930,7 @@ impl NodeMethods for Node {
                 characterdata.SetData(value);
             }
             NodeTypeId::DocumentType |
-            NodeTypeId::Document => {}
+            NodeTypeId::Document(_) => {}
         }
     }
 
@@ -1949,7 +1949,7 @@ impl NodeMethods for Node {
 
         // Step 1.
         match self.type_id() {
-            NodeTypeId::Document |
+            NodeTypeId::Document(_) |
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => (),
             _ => return Err(Error::HierarchyRequest)
@@ -1970,7 +1970,7 @@ impl NodeMethods for Node {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is::<Document>() =>
                 return Err(Error::HierarchyRequest),
             NodeTypeId::DocumentType if !self.is::<Document>() => return Err(Error::HierarchyRequest),
-            NodeTypeId::Document => return Err(Error::HierarchyRequest),
+            NodeTypeId::Document(_) => return Err(Error::HierarchyRequest),
             _ => ()
         }
 
@@ -2029,7 +2029,7 @@ impl NodeMethods for Node {
                     }
                 },
                 NodeTypeId::CharacterData(..) => (),
-                NodeTypeId::Document => unreachable!(),
+                NodeTypeId::Document(_) => unreachable!(),
             }
         }
 
@@ -2279,7 +2279,7 @@ impl NodeMethods for Node {
             NodeTypeId::Element(..) => {
                 self.downcast::<Element>().unwrap().lookup_prefix(namespace)
             },
-            NodeTypeId::Document => {
+            NodeTypeId::Document(_) => {
                 self.downcast::<Document>().unwrap().GetDocumentElement().and_then(|element| {
                     element.lookup_prefix(namespace)
                 })

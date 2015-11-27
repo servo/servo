@@ -1392,14 +1392,14 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 }
 
 impl Document {
-    fn new_inherited(window: &Window,
-                     url: Option<Url>,
-                     is_html_document: IsHTMLDocument,
-                     content_type: Option<DOMString>,
-                     last_modified: Option<String>,
-                     source: DocumentSource,
-                     doc_loader: DocumentLoader)
-                     -> Document {
+    pub fn new_inherited(window: &Window,
+                         url: Option<Url>,
+                         is_html_document: IsHTMLDocument,
+                         content_type: Option<DOMString>,
+                         last_modified: Option<String>,
+                         source: DocumentSource,
+                         doc_loader: DocumentLoader)
+                         -> Document {
         let url = url.unwrap_or_else(|| url!("about:blank"));
 
         let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {

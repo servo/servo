@@ -17,9 +17,9 @@ interface DOMImplementation {
   DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId,
                                   DOMString systemId);
   [NewObject, Throws]
-  Document createDocument(DOMString? namespace,
-                          [TreatNullAs=EmptyString] DOMString qualifiedName,
-                          optional DocumentType? doctype = null);
+  XMLDocument createDocument(DOMString? namespace,
+                             [TreatNullAs=EmptyString] DOMString qualifiedName,
+                             optional DocumentType? doctype = null);
   [NewObject]
   Document createHTMLDocument(optional DOMString title);
 

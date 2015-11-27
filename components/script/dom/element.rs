@@ -1371,7 +1371,7 @@ impl ElementMethods for Element {
 
         let parent = match context_parent.type_id() {
             // Step 3.
-            NodeTypeId::Document => return Err(Error::NoModificationAllowed),
+            NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed),
 
             // Step 4.
             NodeTypeId::DocumentFragment => {
