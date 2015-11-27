@@ -61,7 +61,7 @@ pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, va
         match (*sm).keys().nth(index as usize) {
             Some(k) => {
                 cef_string_utf16_set(k.as_bytes().as_ptr() as *const u16,
-                                     k.len() as u64,
+                                     k.len(),
                                      value,
                                      1)
             },

@@ -229,7 +229,7 @@ mod android {
     use std::borrow::ToOwned;
 
     pub fn setup_logging() {
-        use self::libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
+        use self::libc::{STDERR_FILENO, STDOUT_FILENO};
         //use std::env;
 
         //env::set_var("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
@@ -239,14 +239,14 @@ mod android {
         unsafe { super::app_dummy(); }
     }
 
-    struct FilePtr(*mut self::libc::types::common::c95::FILE);
+    struct FilePtr(*mut self::libc::FILE);
 
     unsafe impl Send for FilePtr {}
 
     fn redirect_output(file_no: c_int) {
-        use self::libc::funcs::c95::stdio::fgets;
-        use self::libc::funcs::posix88::stdio::fdopen;
-        use self::libc::funcs::posix88::unistd::{pipe, dup2};
+        use self::libc::fdopen;
+        use self::libc::fgets;
+        use self::libc::{pipe, dup2};
         use servo::util::task::spawn_named;
         use std::ffi::CStr;
         use std::ffi::CString;

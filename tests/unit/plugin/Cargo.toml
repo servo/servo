@@ -11,5 +11,5 @@ doctest = false
 [dependencies.plugins]
 path = "../../../components/plugins"
 
-[dependencies.url]
-version = "0.2.36"
+[dependencies]
+url = "0.5"

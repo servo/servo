@@ -157,7 +157,8 @@ impl HeapSizeOf for url::Host {
     fn heap_size_of_children(&self) -> usize {
         match *self {
             url::Host::Domain(ref str) => str.heap_size_of_children(),
-            url::Host::Ipv6(_) => 0
+            url::Host::Ipv6(_) => 0,
+            url::Host::Ipv4(_) => 0,
         }
     }
 }

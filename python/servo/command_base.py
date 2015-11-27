@@ -97,7 +97,7 @@ class CommandBase(object):
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
-                context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
+                context.sharedir, "rust", self.rust_snapshot_path())
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
@@ -127,7 +127,8 @@ class CommandBase(object):
             filename = path.join(self.context.topdir, "rust-snapshot-hash")
             with open(filename) as f:
                 snapshot_hash = f.read().strip()
-            self._rust_snapshot_path = "%s-%s" % (snapshot_hash, host_triple())
+            self._rust_snapshot_path = ("%s/rustc-nightly-%s" %
+                                        (snapshot_hash, host_triple()))
         return self._rust_snapshot_path
 
     def cargo_build_id(self):
@@ -337,6 +338,8 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
                 self.config["tools"]["rust-root"], "rustc", "bin", "rustc")):
+            print("looking for rustc at %s" % path.join(
+                self.config["tools"]["rust-root"], "rustc", "bin", "rustc"))
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(

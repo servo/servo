@@ -48,10 +48,6 @@ path = "../canvas_traits"
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
-[dependencies.url]
-version = "0.2.36"
-features = ["query_encoding", "serde_serialization"]
-
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
@@ -61,10 +57,6 @@ branch = "servo"
 
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
-
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
 
 [dependencies.xml5ever]
 git = "https://github.com/Ygg01/xml5ever"
@@ -76,13 +68,14 @@ cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 time = "0.1.12"
 bitflags = "0.3"
 rustc-serialize = "0.3"
-libc = "0.1"
+libc = "0.2"
 unicase = "1.0"
 num = "0.1.24"
-websocket = "0.12.0"
+websocket = "0.14.0"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
@@ -93,4 +86,5 @@ tendril = "0.1.1"
 rand = "0.3"
 serde = "0.6"
 caseless = "0.1.0"
-image = "0.4.0"
+image = "0.5.0"
+url = "0.5"

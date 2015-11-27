@@ -39,7 +39,7 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
         if index as usize > (*lt).len() - 1 { return 0; }
         let ref string = (*lt)[index as usize];
         let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
-        cef_string_utf16_set(utf16_chars.as_ptr(), utf16_chars.len() as u64, value, 1)
+        cef_string_utf16_set(utf16_chars.as_ptr(), utf16_chars.len(), value, 1)
     }
 }
 

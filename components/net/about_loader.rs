@@ -10,7 +10,6 @@ use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
-use std::fs::PathExt;
 use std::sync::Arc;
 use url::Url;
 use util::resource_files::resources_dir_path;

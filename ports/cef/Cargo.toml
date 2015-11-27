@@ -11,7 +11,7 @@ crate-type = ["dylib"]
 [dependencies]
 log = "*"
 url = "*"
-libc = "*"
+libc = "0.2"
 euclid = {version = "0.3", features = ["plugins"]}
 gleam = "0.1"
 

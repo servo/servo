@@ -22,27 +22,21 @@ git = "https://github.com/ende76/brotli-rs"
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
 [dependencies.msg]
 path = "../msg"
 
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies]
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 log = "0.3"
 time = "0.1.17"
-openssl="0.6.1"
+openssl = "0.7.0"
 rustc-serialize = "0.3"
-cookie = "0.1"
+cookie = "0.2"
 mime_guess = "1.1.1"
 flate2 = "0.2.0"
 uuid = "0.1.16"
 euclid = {version = "0.3", features = ["plugins"]}
+url = "0.5"
