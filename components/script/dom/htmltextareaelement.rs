@@ -126,7 +126,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
@@ -137,25 +137,25 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
-    make_getter!(Placeholder);
+    make_getter!(Placeholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
-    make_bool_getter!(ReadOnly);
+    make_bool_getter!(ReadOnly, "readonly");
 
     // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
     make_bool_setter!(SetReadOnly, "readonly");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-required
-    make_bool_getter!(Required);
+    make_bool_getter!(Required, "required");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-required
     make_bool_setter!(SetRequired, "required");
@@ -167,7 +167,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     make_limited_uint_setter!(SetRows, "rows", DEFAULT_ROWS);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
-    make_getter!(Wrap);
+    make_getter!(Wrap, "wrap");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
     make_setter!(SetWrap, "wrap");

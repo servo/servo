@@ -380,12 +380,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
-    make_getter!(Width);
+    make_getter!(Width, "width");
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
     make_setter!(SetWidth, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
-    make_getter!(Height);
+    make_getter!(Height, "height");
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
     make_setter!(SetHeight, "height");
 }

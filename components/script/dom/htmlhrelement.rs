@@ -38,13 +38,13 @@ impl HTMLHRElement {
 
 impl HTMLHRElementMethods for HTMLHRElement {
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
-    make_getter!(Color);
+    make_getter!(Color, "color");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
     make_legacy_color_setter!(SetColor, "color");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-width
-    make_getter!(Width);
+    make_getter!(Width, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-width
     make_dimension_setter!(SetWidth, "width");

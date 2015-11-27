@@ -47,13 +47,13 @@ impl HTMLFontElementMethods for HTMLFontElement {
     make_legacy_color_setter!(SetColor, "color");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_getter!(Face);
+    make_getter!(Face, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
     make_atomic_setter!(SetFace, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
-    make_getter!(Size);
+    make_getter!(Size, "size");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {

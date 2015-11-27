@@ -68,7 +68,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
     make_bool_setter!(SetDisabled, "disabled");

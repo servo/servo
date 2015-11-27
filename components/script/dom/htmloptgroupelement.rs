@@ -43,7 +43,7 @@ impl HTMLOptGroupElement {
 
 impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_setter!(SetDisabled, "disabled");

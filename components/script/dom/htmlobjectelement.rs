@@ -79,7 +79,7 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
-    make_getter!(Type);
+    make_getter!(Type, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");

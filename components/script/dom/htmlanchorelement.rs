@@ -86,25 +86,25 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
-    make_getter!(Coords);
+    make_getter!(Coords, "coords");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
     make_setter!(SetCoords, "coords");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-name
     make_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rev
-    make_getter!(Rev);
+    make_getter!(Rev, "rev");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rev
     make_setter!(SetRev, "rev");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
-    make_getter!(Shape);
+    make_getter!(Shape, "shape");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
     make_setter!(SetShape, "shape");

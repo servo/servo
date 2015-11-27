@@ -182,22 +182,22 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 
 impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
-    make_getter!(Alt);
+    make_getter!(Alt, "alt");
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_setter!(SetAlt, "alt");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-src
-    make_url_getter!(Src);
+    make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
-    make_getter!(UseMap);
+    make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
-    make_bool_getter!(IsMap);
+    make_bool_getter!(IsMap, "ismap");
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_setter!(SetIsMap, "ismap");
 
@@ -248,37 +248,37 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-align
-    make_getter!(Align);
+    make_getter!(Align, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-align
     make_setter!(SetAlign, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-hspace
-    make_uint_getter!(Hspace);
+    make_uint_getter!(Hspace, "hspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-hspace
     make_uint_setter!(SetHspace, "hspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-vspace
-    make_uint_getter!(Vspace);
+    make_uint_getter!(Vspace, "vspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-vspace
     make_uint_setter!(SetVspace, "vspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
-    make_getter!(LongDesc);
+    make_getter!(LongDesc, "longdesc");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
     make_setter!(SetLongDesc, "longdesc");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-border
-    make_getter!(Border);
+    make_getter!(Border, "border");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-border
     make_setter!(SetBorder, "border");

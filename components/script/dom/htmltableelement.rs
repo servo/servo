@@ -111,13 +111,13 @@ impl HTMLTableElementMethods for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
-    make_getter!(BgColor);
+    make_getter!(BgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
     make_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-width
-    make_getter!(Width);
+    make_getter!(Width, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-width
     make_dimension_setter!(SetWidth, "width");
