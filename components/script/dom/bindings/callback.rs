@@ -62,7 +62,6 @@ pub struct CallbackInterface {
 
 /// A common base class for representing IDL callback function and
 /// callback interface types.
-#[allow(raw_pointer_derive)]
 #[derive(JSTraceable)]
 struct CallbackObject {
     /// The underlying `JSObject`.
