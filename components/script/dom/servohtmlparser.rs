@@ -121,17 +121,11 @@ impl AsyncResponseListener for ParserContext {
                 parser.parse_sync();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
-                // replace with fix from that issue.
-
-                // text/plain documents require setting the tokenizer into PLAINTEXT mode.
-                // This is done by using a <plaintext> element as the html5ever tokenizer
-                // provides no other way to change to that state.
-                // Spec for text/plain handling is:
                 // https://html.spec.whatwg.org/multipage/#read-text
-                let page = format!("<pre>\u{000A}<plaintext>");
+                let page = format!("<pre>\n");
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
+                parser.tokenizer().borrow_mut().set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {}, // Handle text/html
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
