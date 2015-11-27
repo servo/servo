@@ -30129,7 +30129,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/webappapis/scripting/events/event-handler-processing-algorithm.html": [
+          {
+            "path": "html/webappapis/scripting/events/event-handler-processing-algorithm.html",
+            "url": "/html/webappapis/scripting/events/event-handler-processing-algorithm.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

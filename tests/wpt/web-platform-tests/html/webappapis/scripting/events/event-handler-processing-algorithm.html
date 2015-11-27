@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Event handlers processing algorithm</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script
+<body>
+ <div id="foo" style="width: 100px; height: 100px; background-color: black"></div>
+ <script>
+ test(function(){
+     document.getElementById("foo").onmouseover = function() { return true; };
+     document.getElementById("foo").addEventListener("mouseover", function(ev) { assert_equals(ev.defaultPrevented, true) }, false);
+     document.getElementById("foo").dispatchEvent(new Event('mouseover', {cancelable: true}));
+ }, "test mouseover");
+ test(function(){
+     window.beforeunload = function() {return null};
+     window.addEventListener("beforeunload", function(ev) { assert_equals(ev.defaultPrevented, true)});
+     window.dispatchEvent(new Event('beforeunload', {cancelable: true}));
+ }, "test beforeunload")
+ test(function(){
+     document.getElementById("foo").click = function() { return false; };
+     document.getElementById("foo").addEventListener("click", function(ev) { assert_equals(ev.defaultPrevented, true) }, false);
+     document.getElementById("foo").dispatchEvent(new Event("click", {cancelable: true}));
+ }, "test default event");
+</script>
