@@ -13,17 +13,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
-== iframe/simple_inline_height.html iframe/simple_inline_height_ref.html
-== iframe/simple_inline_max.html iframe/simple_inline_max_ref.html
-== iframe/simple_inline_min.html iframe/simple_inline_min_ref.html
-== iframe/simple_inline_width.html iframe/simple_inline_width_ref.html
-== iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
-== iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
-== iframe/size_attributes.html iframe/size_attributes_ref.html
-prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_vertical_writing_mode_ref.html
-== iframe/stacking_context.html iframe/stacking_context_ref.html
-== iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
-
 # inline_border_a.html inline_border_b.html
 flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Fails intermittently (#3636)
