@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "aster"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1351,7 +1351,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.0.13 (git+https://github.com/Manishearth/rust-tenacious)",
+ "tenacious 0.0.14 (git+https://github.com/Manishearth/rust-tenacious)",
  "url 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1404,23 +1404,23 @@ dependencies = [
 
 [[package]]
 name = "quasi"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "quasi_codegen"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "quasi_macros"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "quasi_codegen 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi_codegen 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1558,12 +1558,12 @@ dependencies = [
 
 [[package]]
 name = "serde_codegen"
-version = "0.6.3"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "quasi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "quasi_macros 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi_macros 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1580,7 +1580,7 @@ name = "serde_macros"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde_codegen 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_codegen 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1640,7 +1640,7 @@ dependencies = [
 [[package]]
 name = "simd"
 version = "0.1.0"
-source = "git+https://github.com/huonw/simd#be4242121e081206d8769cc60a7d2fa8e23cdc68"
+source = "git+https://github.com/huonw/simd#c4403387adb9a25188ff00ddc82582c2e1017030"
 
 [[package]]
 name = "skia"
@@ -1766,8 +1766,8 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.0.13"
-source = "git+https://github.com/Manishearth/rust-tenacious#44c943182fb93a1c4b2e6d0b2d8ebb35d8c07775"
+version = "0.0.14"
+source = "git+https://github.com/Manishearth/rust-tenacious#7e1729efe79ac8427dac322bfc936dbdb1f36d10"
 
 [[package]]
 name = "tendril"

@@ -5,7 +5,8 @@
 use rustc::front::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::middle::ty;
-use rustc_front::{hir, visit};
+use rustc_front::hir;
+use rustc_front::intravisit as visit;
 use syntax::attr::AttrMetaMethods;
 use syntax::{ast, codemap};
 use utils::{match_def_path, in_derive_expn};

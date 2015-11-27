@@ -76,7 +76,7 @@ pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
     match map.find(map.get_parent(id)) {
         Some(ast_map::NodeImplItem(itm)) => {
             match itm.node {
-                hir::MethodImplItem(ref sig, _) => sig.unsafety == hir::Unsafety::Unsafe,
+                hir::ImplItemKind::Method(ref sig, _) => sig.unsafety == hir::Unsafety::Unsafe,
                 _ => false
             }
         },

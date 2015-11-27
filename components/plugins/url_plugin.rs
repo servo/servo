@@ -16,7 +16,7 @@ use url::{Url, Host, RelativeSchemeData, SchemeData};
 pub fn expand_url(cx: &mut ExtCtxt, sp: Span, tts: &[TokenTree])
         -> Box<MacResult + 'static> {
     let mut parser = parse::new_parser_from_tts(cx.parse_sess(), cx.cfg(), tts.to_vec());
-    let query_expr = cx.expander().fold_expr(parser.parse_expr_nopanic().unwrap());
+    let query_expr = cx.expander().fold_expr(parser.parse_expr().unwrap());
 
     // Ensure a str literal was passed to the macro
     let query = match parse_str_lit(&query_expr) {
