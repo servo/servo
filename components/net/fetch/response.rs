@@ -6,6 +6,8 @@ use hyper::header::Headers;
 use hyper::status::StatusCode;
 use net_traits::{Response, ResponseBody, ResponseType};
 use std::ascii::AsciiExt;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 use url::Url;
 
@@ -20,6 +22,7 @@ impl ResponseMethods for Response {
             response_type: ResponseType::Default,
             termination_reason: None,
             url: None,
+            url_list: Vec::new(),
             status: Some(StatusCode::Ok),
             headers: Headers::new(),
             body: ResponseBody::Empty,
@@ -37,7 +40,7 @@ impl ResponseMethods for Response {
         }
         let old_headers = self.headers.clone();
         let mut response = self.clone();
-        response.internal_response = Some(box self);
+        response.internal_response = Some(Rc::new(RefCell::new(self)));
         match filter_type {
             ResponseType::Default | ResponseType::Error => unreachable!(),
             ResponseType::Basic => {
@@ -62,7 +65,8 @@ impl ResponseMethods for Response {
                 response.headers = headers;
                 response.response_type = filter_type;
             },
-            ResponseType::Opaque => {
+            ResponseType::Opaque |
+            ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
                 response.body = ResponseBody::Empty;
