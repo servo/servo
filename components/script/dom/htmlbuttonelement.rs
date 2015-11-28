@@ -71,7 +71,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
@@ -82,44 +82,46 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    make_enumerated_getter!(Type, "submit", ("reset") | ("button") | ("menu"));
+    make_enumerated_getter!(Type, "type", "submit", ("reset") | ("button") | ("menu"));
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
-    make_url_or_base_getter!(FormAction);
+    make_url_or_base_getter!(FormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_enumerated_getter!(
-        FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
+    make_enumerated_getter!(FormEnctype,
+                            "formenctype",
+                            "application/x-www-form-urlencoded",
+                            ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
+    make_enumerated_getter!(FormMethod, "formmethod", "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_setter!(SetFormMethod, "formmethod");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
-    make_getter!(FormTarget);
+    make_getter!(FormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
-    make_getter!(Value);
+    make_getter!(Value, "value");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
     make_setter!(SetValue, "value");

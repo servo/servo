@@ -609,7 +609,7 @@ impl VirtualMethods for HTMLScriptElement {
 
 impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_getter!(Src);
+    make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_setter!(SetSrc, "src");
 

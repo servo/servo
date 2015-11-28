@@ -56,7 +56,7 @@ impl HTMLTableRowElement {
 
 impl HTMLTableRowElementMethods for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
-    make_getter!(BgColor);
+    make_getter!(BgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
     make_legacy_color_setter!(SetBgColor, "bgcolor");

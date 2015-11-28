@@ -122,7 +122,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
@@ -133,13 +133,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-multiple
-    make_bool_getter!(Multiple);
+    make_bool_getter!(Multiple, "multiple");
 
     // https://html.spec.whatwg.org/multipage/#dom-select-multiple
     make_bool_setter!(SetMultiple, "multiple");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_setter!(SetName, "name");

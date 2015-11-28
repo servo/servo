@@ -75,19 +75,22 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_setter!(SetAcceptCharset, "accept-charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
-    make_url_or_base_getter!(Action);
+    make_url_or_base_getter!(Action, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
     make_setter!(SetAction, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_enumerated_getter!(Autocomplete, "on", ("off"));
+    make_enumerated_getter!(Autocomplete, "autocomplete", "on", ("off"));
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
-    make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
+    make_enumerated_getter!(Enctype,
+                            "enctype",
+                            "application/x-www-form-urlencoded",
+                            ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
     make_setter!(SetEnctype, "enctype");
@@ -103,25 +106,25 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
-    make_enumerated_getter!(Method, "get", ("post") | ("dialog"));
+    make_enumerated_getter!(Method, "method", "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
     make_setter!(SetMethod, "method");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
-    make_bool_getter!(NoValidate);
+    make_bool_getter!(NoValidate, "novalidate");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
     make_bool_setter!(SetNoValidate, "novalidate");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-target
-    make_getter!(Target);
+    make_getter!(Target, "target");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-target
     make_setter!(SetTarget, "target");

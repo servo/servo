@@ -51,7 +51,7 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
     make_uint_setter!(SetColSpan, "colspan", DEFAULT_COLSPAN);
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-bgcolor
-    make_getter!(BgColor);
+    make_getter!(BgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-bgcolor
     make_legacy_color_setter!(SetBgColor, "bgcolor");

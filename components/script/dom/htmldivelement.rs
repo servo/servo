@@ -34,7 +34,7 @@ impl HTMLDivElement {
 
 impl HTMLDivElementMethods for HTMLDivElement {
     // https://html.spec.whatwg.org/multipage/#dom-div-align
-    make_getter!(Align);
+    make_getter!(Align, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-div-align
     make_setter!(SetAlign, "align");

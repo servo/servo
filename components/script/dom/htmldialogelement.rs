@@ -39,7 +39,7 @@ impl HTMLDialogElement {
 
 impl HTMLDialogElementMethods for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
-    make_bool_getter!(Open);
+    make_bool_getter!(Open, "open");
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_setter!(SetOpen, "open");

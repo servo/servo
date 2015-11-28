@@ -60,7 +60,7 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-text
-    make_getter!(Text);
+    make_getter!(Text, "text");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-text
     make_legacy_color_setter!(SetText, "text");
