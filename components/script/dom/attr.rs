@@ -31,6 +31,12 @@ pub struct Attr {
     owner: MutNullableHeap<JS<Element>>,
 }
 
+impl PartialEq for Attr {
+    fn eq(&self, other: &Attr) -> bool {
+        self as *const Attr == &*other
+    }
+}
+
 impl Attr {
     fn new_inherited(local_name: Atom,
                      value: AttrValue,
