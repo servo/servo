@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(fnbox)]
 #![feature(mpsc_select)]
-#![feature(path_ext)]
 #![feature(plugin)]
 #![feature(vec_push_all)]
 #![feature(plugin)]
