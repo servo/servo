@@ -12,10 +12,11 @@ use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use std::f64;
-use std::thread::sleep_ms;
+use std::time::Duration;
+use std::{thread, f64};
 use std_time::precise_time_ns;
 use util::task::spawn_named;
+use util::time::duration_from_seconds;
 
 pub trait Formattable {
     fn format(&self) -> String;
@@ -123,11 +124,10 @@ impl Profiler {
         let (chan, port) = ipc::channel().unwrap();
         match period {
             Some(period) => {
-                let period = (period * 1000.) as u32;
                 let chan = chan.clone();
                 spawn_named("Time profiler timer".to_owned(), move || {
                     loop {
-                        sleep_ms(period);
+                        thread::sleep(duration_from_seconds(period));
                         if chan.send(ProfilerMsg::Print).is_err() {
                             break;
                         }
@@ -173,7 +173,7 @@ impl Profiler {
                 loop {
                     for _ in 0..loop_count {
                         match run_ap_thread() {
-                            true => sleep_ms(SLEEP_MS),
+                            true => thread::sleep(Duration::from_millis(SLEEP_MS as u64)),
                             false => return,
                         }
                     }

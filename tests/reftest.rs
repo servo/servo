@@ -25,7 +25,8 @@ use std::io::{self, Read, Result, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::process::{Command};
-use std::thread::sleep_ms;
+use std::thread;
+use std::time::Duration;
 use test::run_tests_console;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use url::Url;
@@ -124,7 +125,7 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     };
 
     // Wait for the shell to launch or to fail
-    sleep_ms(1000);
+    thread::sleep(Duration::from_secs(1));
     child.kill().unwrap();
     let output = try!(child.wait_with_output());
 

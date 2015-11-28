@@ -16,7 +16,8 @@ use std::cell::RefCell;
 use std::net::TcpStream;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep_ms;
+use std::thread;
+use std::time::Duration;
 use util::task;
 
 pub struct TimelineActor {
@@ -116,7 +117,7 @@ impl Encodable for HighResolutionStamp {
     }
 }
 
-static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u32 = 200; //ms
+static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u64 = 200; //ms
 
 impl TimelineActor {
     pub fn new(name: String,
@@ -158,7 +159,7 @@ impl TimelineActor {
                 }
                 emitter.send(markers);
 
-                sleep_ms(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT);
+                thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
             }
         });
     }

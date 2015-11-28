@@ -73,6 +73,7 @@ pub mod task;
 pub mod task_state;
 pub mod taskpool;
 pub mod tid;
+pub mod time;
 pub mod vec;
 pub mod workqueue;
 

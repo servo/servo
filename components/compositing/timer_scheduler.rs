@@ -15,6 +15,7 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc::{channel, Receiver, Select};
 use std::thread::{self, spawn, Thread};
+use std::time::Duration;
 use util::task::spawn_named;
 
 /// A quick hack to work around the removal of [`std::old_io::timer::Timer`](
@@ -37,7 +38,7 @@ impl CancelableOneshotTimer {
             let mut park_time = duration;
 
             loop {
-                thread::park_timeout_ms(park_time.get() as u32);
+                thread::park_timeout(Duration::from_millis(park_time.get()));
 
                 if canceled_clone.load(atomic::Ordering::Relaxed) {
                     return;
