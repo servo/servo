@@ -5,7 +5,6 @@
 #![feature(alloc_jemalloc)]
 #![feature(box_syntax)]
 #![feature(iter_arith)]
-#![feature(slice_splits)]
 #![feature(plugin)]
 #![plugin(plugins)]
 
