@@ -11,7 +11,8 @@ use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, Repor
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::thread::sleep_ms;
+use std::time::Duration;
+use std::{thread, u32, u64};
 use util::task::spawn_named;
 
 pub struct Profiler {
@@ -31,11 +32,17 @@ impl Profiler {
 
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
-            let period_ms = (period * 1000.) as u32;
+            const NANOS_PER_SEC: f64 = 1_000_000_000.0;
+            let period_secs = period.trunc();
+            assert!(period_secs >= 0.0 && period_secs < u64::MAX as f64);
+            let period_nanos = (period.fract() * NANOS_PER_SEC).trunc();
+            assert!(period_nanos >= 0.0 && period_nanos < u32::MAX as f64);
+            let period_duration = Duration::new(period_secs as u64, period_nanos as u32);
+
             let chan = chan.clone();
             spawn_named("Memory profiler timer".to_owned(), move || {
                 loop {
-                    sleep_ms(period_ms);
+                    thread::sleep(period_duration);
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }

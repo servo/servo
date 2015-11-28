@@ -12,8 +12,8 @@ use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use std::f64;
-use std::thread::sleep_ms;
+use std::time::Duration;
+use std::{thread, f64, u32, u64};
 use std_time::precise_time_ns;
 use util::task::spawn_named;
 
@@ -123,11 +123,17 @@ impl Profiler {
         let (chan, port) = ipc::channel().unwrap();
         match period {
             Some(period) => {
-                let period = (period * 1000.) as u32;
+                const NANOS_PER_SEC: f64 = 1_000_000_000.0;
+                let period_secs = period.trunc();
+                assert!(period_secs >= 0.0 && period_secs < u64::MAX as f64);
+                let period_nanos = (period.fract() * NANOS_PER_SEC).trunc();
+                assert!(period_nanos >= 0.0 && period_nanos < u32::MAX as f64);
+                let period_duration = Duration::new(period_secs as u64, period_nanos as u32);
+
                 let chan = chan.clone();
                 spawn_named("Time profiler timer".to_owned(), move || {
                     loop {
-                        sleep_ms(period);
+                        thread::sleep(period_duration);
                         if chan.send(ProfilerMsg::Print).is_err() {
                             break;
                         }
@@ -173,7 +179,7 @@ impl Profiler {
                 loop {
                     for _ in 0..loop_count {
                         match run_ap_thread() {
-                            true => sleep_ms(SLEEP_MS),
+                            true => thread::sleep(Duration::from_millis(SLEEP_MS as u64)),
                             false => return,
                         }
                     }
