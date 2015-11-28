@@ -142,9 +142,16 @@ Document implements GlobalEventHandlers;
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
   // [TreatNullAs=EmptyString] attribute DOMString fgColor;
+
+  // https://github.com/servo/servo/issues/8715
   // [TreatNullAs=EmptyString] attribute DOMString linkColor;
+
+  // https://github.com/servo/servo/issues/8716
   // [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
+
+  // https://github.com/servo/servo/issues/8717
   // [TreatNullAs=EmptyString] attribute DOMString alinkColor;
+
   [TreatNullAs=EmptyString] attribute DOMString bgColor;
 
   [SameObject]
