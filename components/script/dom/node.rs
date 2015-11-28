@@ -179,7 +179,6 @@ pub struct SharedLayoutData {
 }
 
 /// Encapsulates the abstract layout data.
-#[allow(raw_pointer_derive)]
 #[derive(HeapSizeOf)]
 pub struct LayoutData {
     _shared_data: SharedLayoutData,
@@ -2319,7 +2318,6 @@ impl NodeMethods for Node {
 /// The address of a node known to be valid. These are sent from script to layout,
 /// and are also used in the HTML parser interface.
 
-#[allow(raw_pointer_derive)]
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 

@@ -20,7 +20,7 @@ pub fn reflect_dom_object<T: Reflectable>(obj: Box<T>,
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_derive, unrooted_must_root)]
+#[allow(unrooted_must_root)]
 #[must_root]
 #[servo_lang = "reflector"]
 #[derive(HeapSizeOf)]

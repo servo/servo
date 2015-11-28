@@ -53,7 +53,6 @@ use util::mem::HeapSizeOf;
 use util::str::jsstring_to_str;
 
 /// Proxy handler for a WindowProxy.
-#[allow(raw_pointer_derive)]
 pub struct WindowProxyHandler(pub *const libc::c_void);
 
 impl HeapSizeOf for WindowProxyHandler {
@@ -63,7 +62,6 @@ impl HeapSizeOf for WindowProxyHandler {
     }
 }
 
-#[allow(raw_pointer_derive)]
 #[derive(JSTraceable, HeapSizeOf)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
@@ -142,7 +140,6 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[allow(raw_pointer_derive)]
 #[derive(Copy, Clone)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing

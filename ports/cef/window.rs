@@ -46,7 +46,6 @@ use self::x11::xlib::{XInitThreads,XOpenDisplay};
 pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 
 /// The type of an off-screen window.
-#[allow(raw_pointer_derive)]
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,

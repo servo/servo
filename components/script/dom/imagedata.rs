@@ -17,7 +17,6 @@ use std::slice;
 use std::vec::Vec;
 
 #[dom_struct]
-#[allow(raw_pointer_derive)]
 pub struct ImageData {
     reflector_: Reflector,
     width: u32,
