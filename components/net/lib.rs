@@ -11,15 +11,15 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
-#[macro_use]
-extern crate log;
+extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate flate2;
-extern crate brotli;
 extern crate hyper;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;

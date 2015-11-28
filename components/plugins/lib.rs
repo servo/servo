@@ -15,16 +15,14 @@
 
 #![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private, slice_patterns)]
 
-#[macro_use]
-extern crate syntax;
-#[macro_use]
-extern crate rustc;
-
-extern crate rustc_front;
-
-extern crate tenacious;
 #[cfg(feature = "clippy")]
 extern crate clippy;
+#[macro_use]
+extern crate rustc;
+extern crate rustc_front;
+#[macro_use]
+extern crate syntax;
+extern crate tenacious;
 
 extern crate url;
 

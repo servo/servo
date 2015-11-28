@@ -20,17 +20,13 @@
 
 #![plugin(plugins, serde_macros)]
 
+extern crate alloc;
 extern crate app_units;
+extern crate azure;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-extern crate alloc;
-extern crate azure;
 extern crate euclid;
 extern crate getopts;
 extern crate html5ever;
@@ -38,9 +34,13 @@ extern crate hyper;
 extern crate ipc_channel;
 extern crate js;
 extern crate layers;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
-extern crate num_cpus;
+#[macro_use]
+extern crate log;
 extern crate num as num_lib;
+extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;

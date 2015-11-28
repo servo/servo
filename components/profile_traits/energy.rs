@@ -25,8 +25,8 @@ pub fn energy_interval_ms() -> u32 {
 
 #[cfg(feature = "energy-profiling")]
 mod energymon {
-    extern crate energymon;
     extern crate energy_monitor;
+    extern crate energymon;
 
     use self::energy_monitor::EnergyMonitor;
     use self::energymon::EnergyMon;

@@ -33,19 +33,10 @@
 
 #![plugin(plugins)]
 
+extern crate angle;
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate style;
-extern crate style_traits;
-#[macro_use]
-extern crate util;
-extern crate angle;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate caseless;
@@ -61,10 +52,14 @@ extern crate image;
 extern crate ipc_channel;
 extern crate js;
 extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate offscreen_gl_context;
+#[macro_use]
+extern crate profile_traits;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
@@ -73,10 +68,15 @@ extern crate script_traits;
 extern crate serde;
 extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
+#[macro_use]
+extern crate style;
+extern crate style_traits;
 extern crate tendril;
 extern crate time;
 extern crate unicase;
 extern crate url;
+#[macro_use]
+extern crate util;
 extern crate uuid;
 extern crate websocket;
 
