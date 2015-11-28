@@ -2731,6 +2731,18 @@
             "url": "/_mozilla/css/linebreak_simple_a.html"
           }
         ],
+        "css/link_style_dynamic_addition.html": [
+          {
+            "path": "css/link_style_dynamic_addition.html",
+            "references": [
+              [
+                "/_mozilla/css/link_style_dynamic_addition_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/link_style_dynamic_addition.html"
+          }
+        ],
         "css/link_style_order.html": [
           {
             "path": "css/link_style_order.html",
@@ -8428,6 +8440,18 @@
             ]
           ],
           "url": "/_mozilla/css/linebreak_simple_a.html"
+        }
+      ],
+      "css/link_style_dynamic_addition.html": [
+        {
+          "path": "css/link_style_dynamic_addition.html",
+          "references": [
+            [
+              "/_mozilla/css/link_style_dynamic_addition_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/link_style_dynamic_addition.html"
         }
       ],
       "css/link_style_order.html": [
