@@ -6,10 +6,11 @@
 
 use dom::document::Document;
 use url::Url;
+use msg::constellation_msg::PipelineId;
 use util::str::DOMString;
 
 pub enum ParseContext {
-    Owner(Option<i32>)
+    Owner(Option<PipelineId>)
 }
 
 
