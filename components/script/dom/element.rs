@@ -1358,6 +1358,12 @@ impl ElementMethods for Element {
         self.remove_attribute(&namespace, &local_name);
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-removeattributenode
+    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<Root<Attr>> {
+        self.remove_first_matching_attribute(|a| a == attr)
+            .ok_or(Error::NotFound)
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-hasattribute
     fn HasAttribute(&self, name: DOMString) -> bool {
         self.GetAttribute(name).is_some()
