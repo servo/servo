@@ -208,8 +208,7 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.find_font_template(family.name()
-                                                                            .to_owned(),
+                let font_template = self.font_cache_task.find_font_template(family.clone(),
                                                                             desc.clone());
                 match font_template {
                     Some(font_template) => {
@@ -340,4 +339,3 @@ impl Hash for LayoutFontGroupCacheKey {
 pub fn invalidate_font_caches() {
     FONT_CACHE_EPOCH.fetch_add(1, Ordering::SeqCst);
 }
-

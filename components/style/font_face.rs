@@ -7,14 +7,13 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;
-use string_cache::Atom;
 use url::Url;
 use util::mem::HeapSizeOf;
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Source {
     Url(UrlSource),
-    Local(Atom),
+    Local(FontFamily),
 }
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
@@ -25,7 +24,7 @@ pub struct UrlSource {
 
 #[derive(Debug, HeapSizeOf, PartialEq, Eq)]
 pub struct FontFaceRule {
-    pub family: Atom,
+    pub family: FontFamily,
     pub sources: Vec<Source>,
 }
 
@@ -62,7 +61,7 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
 }
 
 enum FontFaceDescriptorDeclaration {
-    Family(Atom),
+    Family(FontFamily),
     Src(Vec<Source>),
 }
 
@@ -86,7 +85,7 @@ impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
         match_ignore_ascii_case! { name,
             "font-family" => {
                 Ok(FontFaceDescriptorDeclaration::Family(try!(
-                            parse_one_non_generic_family_name(input))))
+                            parse_one_family(input))))
             },
             "src" => {
                 Ok(FontFaceDescriptorDeclaration::Src(try!(input.parse_comma_separated(|input| {
@@ -98,17 +97,9 @@ impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
     }
 }
 
-fn parse_one_non_generic_family_name(input: &mut Parser) -> Result<Atom, ()> {
-    match parse_one_family(input) {
-        Ok(FontFamily::FamilyName(name)) => Ok(name.clone()),
-        _ => Err(())
-    }
-}
-
-
 fn parse_one_src(context: &ParserContext, input: &mut Parser) -> Result<Source, ()> {
     if input.try(|input| input.expect_function_matching("local")).is_ok() {
-        return Ok(Source::Local(try!(input.parse_nested_block(parse_one_non_generic_family_name))))
+        return Ok(Source::Local(try!(input.parse_nested_block(parse_one_family))))
     }
     let url = try!(input.expect_url());
     let url = context.base_url.join(&url).unwrap_or_else(
