@@ -19,18 +19,19 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::font_face::Source;
+use style::properties::longhands::font_family::computed_value::FontFamily;
 use url::Url;
 use util::str::LowercaseString;
 use util::task::spawn_named;
 
 /// A list of font templates that make up a given font family.
-struct FontFamily {
+struct FontTemplates {
     templates: Vec<FontTemplate>,
 }
 
-impl FontFamily {
-    fn new() -> FontFamily {
-        FontFamily {
+impl FontTemplates {
+    fn new() -> FontTemplates {
+        FontTemplates {
             templates: vec!(),
         }
     }
@@ -98,20 +99,37 @@ struct FontCache {
     port: IpcReceiver<Command>,
     channel_to_self: IpcSender<Command>,
     generic_fonts: HashMap<LowercaseString, LowercaseString>,
-    local_families: HashMap<LowercaseString, FontFamily>,
-    web_families: HashMap<LowercaseString, FontFamily>,
+    local_families: HashMap<LowercaseString, FontTemplates>,
+    web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
     resource_task: ResourceTask,
 }
 
-fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString>,
-                    generic_name: &str, mapped_name: &str) {
-    let opt_system_default = system_default_family(generic_name);
-    let family_name = match opt_system_default {
-        Some(system_default) => LowercaseString::new(&system_default),
-        None => LowercaseString::new(mapped_name),
-    };
-    generic_fonts.insert(LowercaseString::new(generic_name), family_name);
+fn populate_generic_fonts() -> HashMap<LowercaseString, LowercaseString> {
+    let font_pairs = [
+        (FontFamily::Serif, "Times New Roman"),
+        (FontFamily::SansSerif, "Arial"),
+        (FontFamily::Cursive, "Apple Chancery"),
+        (FontFamily::Fantasy, "Papyrus"),
+        (FontFamily::Monospace, "Menlo")
+    ];
+
+    let mut generic_fonts = HashMap::with_capacity(font_pairs.len());
+
+    for &(ref font_family, mapped_name) in &font_pairs {
+        let generic_name = font_family.name();
+        let family_name = {
+            let opt_system_default = system_default_family(generic_name);
+            match opt_system_default {
+                Some(system_default) => LowercaseString::new(&system_default),
+                None => LowercaseString::new(mapped_name)
+            }
+        };
+
+        generic_fonts.insert(LowercaseString::new(generic_name), family_name);
+    }
+
+    generic_fonts
 }
 
 impl FontCache {
@@ -132,8 +150,8 @@ impl FontCache {
                 Command::AddWebFont(family_name, src, result) => {
                     let family_name = LowercaseString::new(&family_name);
                     if !self.web_families.contains_key(&family_name) {
-                        let family = FontFamily::new();
-                        self.web_families.insert(family_name.clone(), family);
+                        let templates = FontTemplates::new();
+                        self.web_families.insert(family_name.clone(), templates);
                     }
 
                     match src {
@@ -198,8 +216,8 @@ impl FontCache {
         for_each_available_family(|family_name| {
             let family_name = LowercaseString::new(&family_name);
             if !self.local_families.contains_key(&family_name) {
-                let family = FontFamily::new();
-                self.local_families.insert(family_name, family);
+                let templates = FontTemplates::new();
+                self.local_families.insert(family_name, templates);
             }
         });
     }
@@ -283,12 +301,7 @@ impl FontCacheTask {
         let channel_to_self = chan.clone();
         spawn_named("FontCacheTask".to_owned(), move || {
             // TODO: Allow users to specify these.
-            let mut generic_fonts = HashMap::with_capacity(5);
-            add_generic_font(&mut generic_fonts, "serif", "Times New Roman");
-            add_generic_font(&mut generic_fonts, "sans-serif", "Arial");
-            add_generic_font(&mut generic_fonts, "cursive", "Apple Chancery");
-            add_generic_font(&mut generic_fonts, "fantasy", "Papyrus");
-            add_generic_font(&mut generic_fonts, "monospace", "Menlo");
+            let generic_fonts = populate_generic_fonts();
 
             let mut cache = FontCache {
                 port: port,
@@ -349,4 +362,3 @@ impl FontCacheTask {
         response_port.recv().unwrap();
     }
 }
-
