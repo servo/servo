@@ -5,7 +5,7 @@
 use canvas::canvas_paint_task::RectToi32;
 use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
-use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
+use canvas_traits::{FillOrStrokeStyle, FillRule, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
 use dom::bindings::cell::DOMRefCell;
@@ -693,6 +693,19 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn Clip(&self, _: CanvasFillRule) {
         // TODO: Process fill rule
         self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Clip)).unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
+    fn IsPointInPath(&self, x: f64, y: f64, fill_rule: CanvasFillRule) -> bool {
+        let fill_rule = match fill_rule {
+            CanvasFillRule::Nonzero => FillRule::Nonzero,
+            CanvasFillRule::Evenodd => FillRule::Evenodd,
+        };
+        let (sender, receiver) = ipc::channel::<bool>().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::Canvas2d(Canvas2dMsg::IsPointInPath(x, y, fill_rule, sender)))
+            .unwrap();
+        receiver.recv().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
