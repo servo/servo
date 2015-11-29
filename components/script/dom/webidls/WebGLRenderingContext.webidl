@@ -476,7 +476,7 @@ interface WebGLRenderingContextBase
 
     void activeTexture(GLenum texture);
     void attachShader(WebGLProgram? program, WebGLShader? shader);
-    //void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
+    void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
     void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
     void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
@@ -552,7 +552,7 @@ interface WebGLRenderingContextBase
     void disable(GLenum cap);
     //void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
-    //void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
+    void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
 
     void enable(GLenum cap);
     void enableVertexAttribArray(GLuint index);
@@ -573,14 +573,14 @@ interface WebGLRenderingContextBase
 
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram? program, DOMString name);
 
-    //any getBufferParameter(GLenum target, GLenum pname);
+    any getBufferParameter(GLenum target, GLenum pname);
     any getParameter(GLenum pname);
 
     [WebGLHandlesContextLoss] GLenum getError();
 
     //any getFramebufferAttachmentParameter(GLenum target, GLenum attachment,
     //                                      GLenum pname);
-    //any getProgramParameter(WebGLProgram? program, GLenum pname);
+    any getProgramParameter(WebGLProgram? program, GLenum pname);
     //DOMString? getProgramInfoLog(WebGLProgram? program);
     //any getRenderbufferParameter(GLenum target, GLenum pname);
     any getShaderParameter(WebGLShader? shader, GLenum pname);
@@ -689,17 +689,23 @@ interface WebGLRenderingContextBase
     void useProgram(WebGLProgram? program);
     //void validateProgram(WebGLProgram? program);
 
-    //void vertexAttrib1f(GLuint indx, GLfloat x);
+    // FIXME(dmarcos)
+    // The code generator doesn't handle Float32Array so we're using 'object'
+    void vertexAttrib1f(GLuint indx, GLfloat x);
     //void vertexAttrib1fv(GLuint indx, Float32Array values);
+    void vertexAttrib1fv(GLuint indx, object values);
     //void vertexAttrib1fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
+    void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
     //void vertexAttrib2fv(GLuint indx, Float32Array values);
+    void vertexAttrib2fv(GLuint indx, object values);
     //void vertexAttrib2fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
+    void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
     //void vertexAttrib3fv(GLuint indx, Float32Array values);
+    void vertexAttrib3fv(GLuint indx, object values);
     //void vertexAttrib3fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+    void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     //void vertexAttrib4fv(GLuint indx, Float32Array values);
+    void vertexAttrib4fv(GLuint indx, object values);
     //void vertexAttrib4fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttribPointer(GLuint indx, GLint size, GLenum type,
                              GLboolean normalized, GLsizei stride, GLintptr offset);

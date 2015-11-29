@@ -4,7 +4,7 @@
 
 use canvas_traits::WebGLError::*;
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, WebGLError};
-use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
+use canvas_traits::{WebGLFramebufferBindingRequest, WebGLParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -30,7 +30,7 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use offscreen_gl_context::GLContextAttributes;
@@ -145,17 +145,42 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
-        match target {
+    fn tex_parameter(&self, target: u32, name: u32, value: TexParameterValue) {
+        let texture = match target {
             constants::TEXTURE_2D => self.bound_texture_2d.get(),
             constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
-
-            _ => unreachable!(),
+            _ => return self.webgl_error(InvalidEnum),
+        };
+        if let Some(texture) = texture {
+            handle_potential_webgl_error!(self, texture.tex_parameter(target, name, value));
+        } else {
+            return self.webgl_error(InvalidOperation);
         }
     }
 
     fn mark_as_dirty(&self) {
         self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+    }
+
+    #[allow(unsafe_code)]
+    fn float32_array_to_slice(&self, data: *mut JSObject) -> Option<Vec<f32>> {
+        unsafe {
+            let mut length = 0;
+            let mut ptr = ptr::null_mut();
+            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
+            if buffer_data.is_null() {
+                self.webgl_error(InvalidValue); // https://github.com/servo/servo/issues/5014
+                return None;
+            }
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
+            Some(slice::from_raw_parts(data_f32, length as usize).to_vec())
+        }
+    }
+
+    fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::VertexAttrib(indx, x, y, z, w)))
+            .unwrap();
     }
 }
 
@@ -190,20 +215,40 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetBufferParameter(target, parameter, sender)))
+            .unwrap();
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
+            WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
+            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
+            WebGLParameter::Invalid => NullValue(),
+        }
+    }
+
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        // TODO(ecoal95): Implement the missing parameters from the spec
-        unsafe {
-            let mut rval = RootedValue::new(cx, UndefinedValue());
-            match parameter {
-                constants::VERSION =>
-                    "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
-                constants::RENDERER |
-                constants::VENDOR =>
-                    "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
-                _ => rval.ptr = NullValue(),
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetParameter(parameter, sender)))
+            .unwrap();
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::Float(val) => DoubleValue(val as f64),
+            WebGLParameter::String(val) => {
+                let mut rval = RootedValue::new(cx, UndefinedValue());
+                unsafe {
+                    val.to_jsval(cx, rval.handle_mut());
+                }
+                rval.ptr
             }
-            rval.ptr
+            WebGLParameter::Invalid => NullValue(),
         }
     }
 
@@ -303,6 +348,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn BindAttribLocation(&self, program: Option<&WebGLProgram>,
+                          index: u32, name: DOMString) {
+        if let Some(program) = program {
+            handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
         match target {
@@ -393,18 +446,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
-        let data_vec = unsafe {
-            let mut length = 0;
-            let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
-            if buffer_data.is_null() {
-                return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
-            }
-            slice::from_raw_parts(ptr, length as usize).to_vec()
-        };
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
-            .unwrap()
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
+                .unwrap()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -669,6 +715,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+        let type_size = match type_ {
+            constants::BYTE | constants::UNSIGNED_BYTE => 1,
+            constants::SHORT | constants::UNSIGNED_SHORT => 2,
+            constants::INT | constants::UNSIGNED_INT | constants::FLOAT => 4,
+            _ => return self.webgl_error(InvalidEnum),
+        };
+
+        if offset % type_size != 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if count <= 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if offset < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        // TODO ensure a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER
+        // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
+        // null generate an InvalidOperation error
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawElements(mode, count, type_, offset)))
+                    .unwrap();
+                self.mark_as_dirty();
+            },
+            _ => self.webgl_error(InvalidEnum),
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
         self.ipc_renderer
@@ -686,21 +770,34 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
-        if let Some(shader) = shader {
-            shader.info_log().map(DOMString::from)
+    fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
+        if let Some(program) = program {
+            match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::String(_) => panic!("Program parameter should not be string"),
+                WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
+                WebGLParameter::Invalid => NullValue(),
+            }
         } else {
-            None
+            NullValue()
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+        shader.and_then(|s| s.info_log()).map(DOMString::from)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
         if let Some(shader) = shader {
-            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLShaderParameter::Invalid) {
-                WebGLShaderParameter::Int(val) => Int32Value(val),
-                WebGLShaderParameter::Bool(val) => BooleanValue(val),
-                WebGLShaderParameter::Invalid => NullValue(),
+            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
+                WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
+                WebGLParameter::Invalid => NullValue(),
             }
         } else {
             NullValue()
@@ -848,19 +945,85 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return,
         };
 
-        let data_vec = unsafe {
-            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
-            slice::from_raw_parts(data_f32, 4).to_vec()
-        };
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
-            .unwrap()
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
+
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             program.use_program()
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib1f(&self, indx: u32, x: f32) {
+        self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib2f(&self, indx: u32, x: f32, y: f32) {
+        self.vertex_attrib(indx, x, y, 0f32, 1f32)
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 2 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], data_vec[1], 0f32, 1f32)
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib3f(&self, indx: u32, x: f32, y: f32, z: f32) {
+        self.vertex_attrib(indx, x, y, z, 1f32)
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 3 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], 1f32)
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib4f(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+        self.vertex_attrib(indx, x, y, z, w)
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], data_vec[3])
         }
     }
 
@@ -962,36 +1125,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexParameterf(&self, target: u32, name: u32, value: f32) {
-        match target {
-            constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => {
-                if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.tex_parameter(target, name, TexParameterValue::Float(value));
-                    handle_potential_webgl_error!(self, result);
-                } else {
-                    return self.webgl_error(InvalidOperation);
-                }
-            },
-
-            _ => self.webgl_error(InvalidEnum),
-        }
+        self.tex_parameter(target, name, TexParameterValue::Float(value))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexParameteri(&self, target: u32, name: u32, value: i32) {
-        match target {
-            constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => {
-                if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.tex_parameter(target, name, TexParameterValue::Int(value));
-                    handle_potential_webgl_error!(self, result);
-                } else {
-                    return self.webgl_error(InvalidOperation);
-                }
-            },
-
-            _ => self.webgl_error(InvalidEnum),
-        }
+        self.tex_parameter(target, name, TexParameterValue::Int(value))
     }
 }
 
