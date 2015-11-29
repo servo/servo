@@ -49,7 +49,7 @@ use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverM
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
-use webdriver::response::{NewSessionResponse, ValueResponse, WebDriverResponse};
+use webdriver::response::{NewSessionResponse, ValueResponse, WebDriverResponse, WindowSizeResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
@@ -343,6 +343,57 @@ impl Handler {
         let url = receiver.recv().unwrap();
 
         Ok(WebDriverResponse::Generic(ValueResponse::new(url.serialize().to_json())))
+    }
+
+    fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::GetWindowSize(sender));
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        match receiver.recv().unwrap() {
+            Some(window_size) => {
+                let vp = window_size.visible_viewport;
+                let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+                Ok(WebDriverResponse::WindowSize(window_size_response))
+            },
+            None => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "Unable to determine window size"))
+        }
+    }
+
+    fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let element_id = element.id.clone();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::IsEnabled(element_id, sender));
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        match receiver.recv().unwrap() {
+            Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse::new(is_enabled.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference, "Element not found"))
+        }
+    }
+
+    fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let element_id = element.id.clone();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::IsSelected(element_id, sender));
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        match receiver.recv().unwrap() {
+            Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse::new(is_selected.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference, "Element not found"))
+        }
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
@@ -730,6 +781,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
+            WebDriverCommand::GetWindowSize => self.handle_window_size(),
+            WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
+            WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),
             WebDriverCommand::GoForward => self.handle_go_forward(),
             WebDriverCommand::Refresh => self.handle_refresh(),
