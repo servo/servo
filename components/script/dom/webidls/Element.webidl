@@ -51,6 +51,8 @@ interface Element : Node {
   Attr? setAttributeNodeNS(Attr newAttr);
   void removeAttribute(DOMString name);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
+  [Throws]
+  Attr removeAttributeNode(Attr oldAttr);
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
