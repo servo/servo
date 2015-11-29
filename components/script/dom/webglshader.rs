@@ -4,9 +4,8 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use angle::hl::{BuiltInResources, Output, ShaderValidator};
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult, WebGLShaderParameter};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult, WebGLParameter};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -132,16 +131,11 @@ impl WebGLShader {
         self.info_log.borrow().clone()
     }
 
-    /// glGetShaderParameter
-    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLShaderParameter> {
-        match param_id {
-            constants::SHADER_TYPE | constants::DELETE_STATUS | constants::COMPILE_STATUS => {},
-            _ => return Err(WebGLError::InvalidEnum),
-        }
-
+    /// glGetParameter
+    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(self.id, param_id, sender))).unwrap();
-        Ok(receiver.recv().unwrap())
+        receiver.recv().unwrap()
     }
 
     /// Get the shader source

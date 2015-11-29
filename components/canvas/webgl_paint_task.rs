@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, FromLayoutMsg, FromPaintMsg};
-use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
+use canvas_traits::{WebGLError, WebGLFramebufferBindingRequest, WebGLParameter, WebGLResult};
 use core::nonzero::NonZero;
 use euclid::size::Size2D;
 use gleam::gl;
@@ -110,6 +110,8 @@ impl WebGLPaintTask {
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.attrib_location(program_id, name, chan),
+            CanvasWebGLMsg::GetProgramParameter(program_id, param_id, chan) =>
+                self.program_parameter(program_id, param_id, chan),
             CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
                 self.shader_parameter(shader_id, param_id, chan),
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
@@ -315,16 +317,36 @@ impl WebGLPaintTask {
         chan.send(attrib_location).unwrap();
     }
 
+    fn program_parameter(&self,
+                         program_id: u32,
+                         param_id: u32,
+                         chan: IpcSender<WebGLResult<WebGLParameter>>) {
+        let result = match param_id {
+            gl::DELETE_STATUS |
+            gl::LINK_STATUS |
+            gl::VALIDATE_STATUS =>
+                Ok(WebGLParameter::Bool(gl::get_program_iv(program_id, param_id) != 0)),
+            gl::ATTACHED_SHADERS |
+            gl::ACTIVE_ATTRIBUTES |
+            gl::ACTIVE_UNIFORMS =>
+                Ok(WebGLParameter::Int(gl::get_program_iv(program_id, param_id))),
+            _ => Err(WebGLError::InvalidEnum),
+        };
+
+        chan.send(result).unwrap();
+    }
+
     fn shader_parameter(&self,
-                            shader_id: u32,
-                            param_id: u32,
-                            chan: IpcSender<WebGLShaderParameter>) {
+                        shader_id: u32,
+                        param_id: u32,
+                        chan: IpcSender<WebGLResult<WebGLParameter>>) {
         let result = match param_id {
             gl::SHADER_TYPE =>
-                WebGLShaderParameter::Int(gl::get_shader_iv(shader_id, param_id)),
-            gl::DELETE_STATUS | gl::COMPILE_STATUS =>
-                WebGLShaderParameter::Bool(gl::get_shader_iv(shader_id, param_id) != 0),
-            _ => panic!("Unexpected shader parameter type"),
+                Ok(WebGLParameter::Int(gl::get_shader_iv(shader_id, param_id))),
+            gl::DELETE_STATUS |
+            gl::COMPILE_STATUS =>
+                Ok(WebGLParameter::Bool(gl::get_shader_iv(shader_id, param_id) != 0)),
+            _ => Err(WebGLError::InvalidEnum),
         };
 
         chan.send(result).unwrap();
