@@ -38,5 +38,5 @@ git = "https://github.com/servo/ipc-channel"
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 num = "0.1.24"
-gleam = "0.1"
+gleam = "0.2"
 euclid = {version = "0.4", features = ["plugins"]}

@@ -150,7 +150,7 @@ dependencies = [
  "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "gleam 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
  "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -254,7 +254,7 @@ dependencies = [
  "gaol 0.0.1 (git+https://github.com/pcwalton/gaol)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
- "gleam 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
  "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
@@ -694,6 +694,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gleam"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gl_generator 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "glob"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -706,7 +715,7 @@ dependencies = [
  "cgl 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
