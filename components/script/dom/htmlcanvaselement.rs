@@ -258,39 +258,45 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                  _mime_type: Option<DOMString>,
                  _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
 
+        // Step 1.
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
-
-            // Step 1.
             if !context.origin_is_clean() {
                 return Err(Error::Security);
             }
-
-            // Step 2.
-            if self.Width() == 0 || self.Height() == 0 {
-                return Ok(DOMString::from("data:,"));
-            }
-
-            // Step 3.
-            let window = window_from_node(self);
-            let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
-                                                       Finite::wrap(self.Width() as f64),
-                                                       Finite::wrap(self.Height() as f64)));
-            let raw_data = image_data.get_data_array(&GlobalRef::Window(window.r()));
-
-            // Only handle image/png for now.
-            let mime_type = "image/png";
-
-            let mut encoded = Vec::new();
-            {
-                let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
-                encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
-            }
-
-            let encoded = encoded.to_base64(STANDARD);
-            Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
-        } else {
-            Err(Error::NotSupported)
         }
+
+        // Step 2.
+        if self.Width() == 0 || self.Height() == 0 {
+            return Ok(DOMString::from("data:,"));
+        }
+
+        // Step 3.
+        let raw_data = match *self.context.borrow() {
+            Some(CanvasContext::Context2d(ref context)) => {
+                let window = window_from_node(self);
+                let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
+                                                           Finite::wrap(self.Width() as f64),
+                                                           Finite::wrap(self.Height() as f64)));
+                image_data.get_data_array(&GlobalRef::Window(window.r()))
+            }
+            None => {
+                // Each pixel is fully-transparent black.
+                vec![0; (self.Width() * self.Height() * 4) as usize]
+            }
+            _ => return Err(Error::NotSupported) // WebGL
+        };
+
+        // Only handle image/png for now.
+        let mime_type = "image/png";
+
+        let mut encoded = Vec::new();
+        {
+            let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
+            encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
+        }
+
+        let encoded = encoded.to_base64(STANDARD);
+        Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
     }
 }
 
