@@ -71,12 +71,24 @@ use style::restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_S
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
+/// Opaque type stored in type-unsafe work queues for parallel layout.
+/// Must be transmutable to and from LayoutNode.
+pub type UnsafeLayoutNode = (usize, usize);
+
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 
 pub trait LayoutNode<'ln> : Sized + Copy + Clone {
-    type ConcreteLayoutElement: LayoutElement<'ln>;
-    type ConcreteLayoutDocument: LayoutDocument<'ln>;
+    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>;
+    type ConcreteLayoutElement: LayoutElement<'ln, ConcreteLayoutNode = Self,
+                                              ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
+    type ConcreteLayoutDocument: LayoutDocument<'ln, ConcreteLayoutNode = Self,
+                                                ConcreteLayoutElement = Self::ConcreteLayoutElement>;
+
+    fn to_unsafe(&self) -> UnsafeLayoutNode;
+    unsafe fn from_unsafe(&UnsafeLayoutNode) -> Self;
+
+    fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
@@ -162,8 +174,10 @@ pub trait LayoutNode<'ln> : Sized + Copy + Clone {
 }
 
 pub trait LayoutDocument<'ld> : Sized + Copy + Clone {
-    type ConcreteLayoutNode: LayoutNode<'ld>;
-    type ConcreteLayoutElement: LayoutElement<'ld>;
+    type ConcreteLayoutNode: LayoutNode<'ld, ConcreteLayoutElement = Self::ConcreteLayoutElement,
+                                        ConcreteLayoutDocument = Self>;
+    type ConcreteLayoutElement: LayoutElement<'ld, ConcreteLayoutNode = Self::ConcreteLayoutNode,
+                                              ConcreteLayoutDocument = Self>;
 
     fn as_node(&self) -> Self::ConcreteLayoutNode;
 
@@ -173,8 +187,10 @@ pub trait LayoutDocument<'ld> : Sized + Copy + Clone {
 }
 
 pub trait LayoutElement<'le> : Sized + Copy + Clone + ::selectors::Element + TElementAttributes {
-    type ConcreteLayoutNode: LayoutNode<'le>;
-    type ConcreteLayoutDocument: LayoutDocument<'le>;
+    type ConcreteLayoutNode: LayoutNode<'le, ConcreteLayoutElement = Self,
+                                        ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
+    type ConcreteLayoutDocument: LayoutDocument<'le, ConcreteLayoutNode = Self::ConcreteLayoutNode,
+                                                ConcreteLayoutElement = Self>;
 
     fn as_node(&self) -> Self::ConcreteLayoutNode;
 
@@ -262,8 +278,25 @@ impl<'ln> ServoLayoutNode<'ln> {
 }
 
 impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
+    type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'ln>;
     type ConcreteLayoutElement = ServoLayoutElement<'ln>;
     type ConcreteLayoutDocument = ServoLayoutDocument<'ln>;
+
+    fn to_unsafe(&self) -> UnsafeLayoutNode {
+        unsafe {
+            let ptr: usize = mem::transmute_copy(self);
+            (ptr, 0)
+        }
+    }
+
+    unsafe fn from_unsafe(n: &UnsafeLayoutNode) -> Self {
+        let (node, _) = *n;
+        mem::transmute(node)
+    }
+
+    fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode {
+        ServoThreadSafeLayoutNode::new(self)
+    }
 
     fn type_id(&self) -> NodeTypeId {
         unsafe {
@@ -799,7 +832,8 @@ impl<T> PseudoElementType<T> {
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 
 pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
-    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<'ln>;
+    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<'ln, ConcreteThreadSafeLayoutNode = Self>;
+    type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -813,7 +847,7 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn flow_debug_id(self) -> usize;
 
     /// Returns an iterator over this node's children.
-    fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln, Self>;
+    fn children(&self) -> Self::ChildrenIterator;
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
@@ -947,8 +981,8 @@ trait DangerousThreadSafeLayoutNode<'ln> : ThreadSafeLayoutNode<'ln> {
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait ThreadSafeLayoutElement<'le> {
-    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'le>;
+pub trait ThreadSafeLayoutElement<'le>: Clone + Copy + Sized {
+    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'le, ConcreteThreadSafeLayoutElement = Self>;
 
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&'le str>;
@@ -1016,6 +1050,7 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
 
 impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
+    type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<'ln, Self>;
 
     fn opaque(&self) -> OpaqueNode {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
@@ -1037,7 +1072,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         self.node.flow_debug_id()
     }
 
-    fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln, Self> {
+    fn children(&self) -> Self::ChildrenIterator {
         ThreadSafeLayoutNodeChildrenIterator::new(*self)
     }
 
@@ -1258,6 +1293,7 @@ impl<'ln, ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<'ln, C
 
 /// A wrapper around elements that ensures layout can only ever access safe properties and cannot
 /// race on elements.
+#[derive(Copy, Clone)]
 pub struct ServoThreadSafeLayoutElement<'le> {
     element: &'le Element,
 }
@@ -1270,22 +1306,6 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
             self.element.get_attr_val_for_layout(namespace, name)
         }
     }
-}
-
-/// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from LayoutNode.
-pub type UnsafeLayoutNode = (usize, usize);
-
-pub fn layout_node_to_unsafe_layout_node(node: &ServoLayoutNode) -> UnsafeLayoutNode {
-    unsafe {
-        let ptr: usize = mem::transmute_copy(node);
-        (ptr, 0)
-    }
-}
-
-pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> ServoLayoutNode {
-    let (node, _) = *node;
-    mem::transmute(node)
 }
 
 pub enum TextContent {

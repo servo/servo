@@ -25,7 +25,7 @@ use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::print_tree::PrintTree;
-use wrapper::{ServoThreadSafeLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{ThreadSafeLayoutNode};
 
 /// A table formatting context.
 #[derive(RustcEncodable)]
@@ -45,10 +45,8 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_fragment_and_visibility_flag(node: &ServoThreadSafeLayoutNode,
-                                                  fragment: Fragment,
-                                                  visible: bool)
-                                                  -> TableCellFlow {
+    pub fn from_node_fragment_and_visibility_flag<'ln, N: ThreadSafeLayoutNode<'ln>>(
+            node: &N, fragment: Fragment, visible: bool) -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment, None),
             collapsed_borders: CollapsedBordersForCell::new(),

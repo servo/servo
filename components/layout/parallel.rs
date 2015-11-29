@@ -22,8 +22,7 @@ use traversal::{ConstructFlows, RecalcStyleForNode};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
-use wrapper::UnsafeLayoutNode;
-use wrapper::{LayoutNode, ServoLayoutNode, layout_node_from_unsafe_layout_node, layout_node_to_unsafe_layout_node};
+use wrapper::{LayoutNode, UnsafeLayoutNode};
 
 const CHUNK_SIZE: usize = 64;
 
@@ -88,7 +87,9 @@ pub type ChunkedFlowTraversalFunction =
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
 /// A parallel top-down DOM traversal.
-pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
+pub trait ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
+        : PreorderDomTraversal<'ln, ConcreteLayoutNode>
+          where ConcreteLayoutNode: LayoutNode<'ln> {
     fn run_parallel(&self,
                     nodes: UnsafeLayoutNodeList,
                     proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
@@ -103,9 +104,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
         let mut discovered_child_nodes = Vec::new();
         for unsafe_node in *unsafe_nodes.0 {
             // Get a real layout node.
-            let node: ServoLayoutNode = unsafe {
-                layout_node_from_unsafe_layout_node(&unsafe_node)
-            };
+            let node = unsafe { ConcreteLayoutNode::from_unsafe(&unsafe_node) };
 
             // Perform the appropriate traversal.
             self.process(node);
@@ -123,7 +122,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
             // Possibly enqueue the children.
             if child_count != 0 {
                 for kid in node.children() {
-                    discovered_child_nodes.push(layout_node_to_unsafe_layout_node(&kid))
+                    discovered_child_nodes.push(kid.to_unsafe())
                 }
             } else {
                 // If there were no more children, start walking back up.
@@ -141,7 +140,9 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
 }
 
 /// A parallel bottom-up DOM traversal.
-trait ParallelPostorderDomTraversal : PostorderDomTraversal {
+trait ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>
+        : PostorderDomTraversal<'ln, ConcreteLayoutNode>
+          where ConcreteLayoutNode: LayoutNode<'ln> {
     fn root(&self) -> OpaqueNode;
 
     /// Process current node and potentially traverse its ancestors.
@@ -157,9 +158,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&self, unsafe_node: UnsafeLayoutNode) {
         // Get a real layout node.
-        let mut node: ServoLayoutNode = unsafe {
-            layout_node_from_unsafe_layout_node(&unsafe_node)
-        };
+        let mut node = unsafe { ConcreteLayoutNode::from_unsafe(&unsafe_node) };
         loop {
             // Perform the appropriate operation.
             self.process(node);
@@ -349,41 +348,59 @@ impl<'a> ParallelPreorderFlowTraversal for ComputeAbsolutePositions<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for BuildDisplayList<'a> {}
 
-impl<'a> ParallelPostorderDomTraversal for ConstructFlows<'a> {
+impl<'a, 'ln, ConcreteLayoutNode> ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>
+                                  for ConstructFlows<'a>
+                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     fn root(&self) -> OpaqueNode {
         self.root
     }
 }
 
-impl <'a> ParallelPreorderDomTraversal for RecalcStyleForNode<'a> {
+impl<'a, 'ln, ConcreteLayoutNode> ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
+                                  for RecalcStyleForNode<'a>
+                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     fn run_parallel(&self,
                     unsafe_nodes: UnsafeLayoutNodeList,
                     proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
-        self.run_parallel_helper(unsafe_nodes, proxy, recalc_style, construct_flows)
+        // Not exactly sure why we need UFCS here, but we seem to.
+        <RecalcStyleForNode<'a> as ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>>
+          ::run_parallel_helper(self, unsafe_nodes, proxy,
+                                recalc_style::<'ln, ConcreteLayoutNode>,
+                                construct_flows::<'ln, ConcreteLayoutNode>)
     }
 }
 
-fn recalc_style(unsafe_nodes: UnsafeLayoutNodeList,
-                proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
+fn recalc_style<'ln, ConcreteLayoutNode>(unsafe_nodes: UnsafeLayoutNodeList,
+                                         proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>)
+                                         where ConcreteLayoutNode: LayoutNode<'ln> {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let recalc_style_for_node_traversal = RecalcStyleForNode {
         layout_context: &layout_context,
         root: unsafe_nodes.1,
     };
-    recalc_style_for_node_traversal.run_parallel(unsafe_nodes, proxy)
+
+    // The UFCS is necessary here to select the proper set of generic routines which
+    // will eventually cast the UnsafeNode to a concrete LayoutNode implementation.
+    <RecalcStyleForNode as ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>>
+        ::run_parallel(&recalc_style_for_node_traversal, unsafe_nodes, proxy)
 }
 
-fn construct_flows(root: OpaqueNode,
-                   unsafe_node: UnsafeLayoutNode,
-                   proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
+fn construct_flows<'ln, ConcreteLayoutNode: LayoutNode<'ln>>(
+        root: OpaqueNode,
+        unsafe_node: UnsafeLayoutNode,
+        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let construct_flows_traversal = ConstructFlows {
         layout_context: &layout_context,
         root: root,
     };
-    construct_flows_traversal.run_parallel(unsafe_node)
+
+    // The UFCS is necessary here to select the proper set of generic routines which
+    // will eventually cast the UnsafeNode to a concrete LayoutNode implementation.
+    <ConstructFlows as ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>>
+        ::run_parallel(&construct_flows_traversal, unsafe_node)
 }
 
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
@@ -440,13 +457,13 @@ fn run_queue_with_custom_work_data_type<To, F>(
     queue.run(shared_layout_context);
 }
 
-pub fn traverse_dom_preorder(root: ServoLayoutNode,
+pub fn traverse_dom_preorder<'ln, ConcreteLayoutNode: LayoutNode<'ln>>(root: ConcreteLayoutNode,
                              shared_layout_context: &SharedLayoutContext,
                              queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
-            fun:  recalc_style,
-            data: (box vec![layout_node_to_unsafe_layout_node(&root)], root.opaque()),
+            fun:  recalc_style::<'ln, ConcreteLayoutNode>,
+            data: (box vec![root.to_unsafe()], root.opaque()),
         });
     }, shared_layout_context);
 }
