@@ -260,27 +260,30 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
 
         // Step 3.
-        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
-            let window = window_from_node(self);
-            let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
-                                                       Finite::wrap(self.Width() as f64),
-                                                       Finite::wrap(self.Height() as f64)));
-            let raw_data = image_data.get_data_array(&GlobalRef::Window(window.r()));
-
-            // Only handle image/png for now.
-            let mime_type = "image/png";
-
-            let mut encoded = Vec::new();
-            {
-                let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
-                encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
+        let raw_data = match *self.context.borrow() {
+            Some(CanvasContext::Context2d(ref context)) => {
+                let window = window_from_node(self);
+                let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
+                                                           Finite::wrap(self.Width() as f64),
+                                                           Finite::wrap(self.Height() as f64)));
+                image_data.get_data_array(&GlobalRef::Window(window.r()))
             }
+            _ => {
+                vec![255u8; (self.Width() * self.Height() * 4) as usize]
+            }
+        };
 
-            let encoded = encoded.to_base64(STANDARD);
-            Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
-        } else {
-            Err(Error::NotSupported)
+        // Only handle image/png for now.
+        let mime_type = "image/png";
+
+        let mut encoded = Vec::new();
+        {
+            let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
+            encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
         }
+
+        let encoded = encoded.to_base64(STANDARD);
+        Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
     }
 }
 
