@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult, WebGLParameter};
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
@@ -128,6 +128,13 @@ impl WebGLProgram {
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, String::from(name), sender)))
             .unwrap();
         Ok(receiver.recv().unwrap())
+    }
+
+    /// glGetProgramParameter
+    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetProgramParameter(self.id, param_id, sender))).unwrap();
+        receiver.recv().unwrap()
     }
 }
 
