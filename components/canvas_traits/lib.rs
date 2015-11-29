@@ -43,6 +43,12 @@ use std::sync::mpsc::Sender;
 use util::mem::HeapSizeOf;
 
 #[derive(Clone, Deserialize, Serialize)]
+pub enum FillRule {
+    Nonzero,
+    Evenodd,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
@@ -93,6 +99,7 @@ pub enum Canvas2dMsg {
     Fill,
     FillRect(Rect<f32>),
     GetImageData(Rect<i32>, Size2D<f64>, IpcSender<Vec<u8>>),
+    IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     PutImageData(Vec<u8>, Point2D<f64>, Size2D<f64>, Rect<f64>),
