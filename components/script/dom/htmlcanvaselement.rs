@@ -279,7 +279,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             let encoded = encoded.to_base64(STANDARD);
             Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
         } else {
-            Err(Error::NotSupported)
+            Ok(DOMString::from(format!("data:image/png;")))
         }
     }
 }
