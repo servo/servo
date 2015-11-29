@@ -11,8 +11,8 @@ use cssparser::{Parser, RGBA};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
@@ -669,8 +669,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    fn Fill(&self, _: CanvasWindingRule) {
-        // TODO: Process winding rule
+    fn Fill(&self, _: CanvasFillRule) {
+        // TODO: Process fill rule
         self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Fill)).unwrap();
         self.mark_as_dirty();
     }
@@ -682,8 +682,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    fn Clip(&self, _: CanvasWindingRule) {
-        // TODO: Process winding rule
+    fn Clip(&self, _: CanvasFillRule) {
+        // TODO: Process fill rule
         self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Clip)).unwrap();
     }
 

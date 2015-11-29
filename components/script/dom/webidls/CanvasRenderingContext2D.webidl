@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-enum CanvasWindingRule { "nonzero", "evenodd" };
+enum CanvasFillRule { "nonzero", "evenodd" };
 
 // https://html.spec.whatwg.org/multipage/#2dcontext
 typedef (HTMLImageElement or
@@ -30,7 +30,6 @@ interface CanvasRenderingContext2D {
   void restore(); // pop state stack and restore state
 
   // transformations (default transform is the identity matrix)
-  //         attribute SVGMatrix currentTransform;
   void scale(unrestricted double x, unrestricted double y);
   void rotate(unrestricted double angle);
   void translate(unrestricted double x, unrestricted double y);
@@ -40,12 +39,15 @@ interface CanvasRenderingContext2D {
                  unrestricted double d,
                  unrestricted double e,
                  unrestricted double f);
+
+  // [NewObject] DOMMatrix getTransform();
   void setTransform(unrestricted double a,
                     unrestricted double b,
                     unrestricted double c,
                     unrestricted double d,
                     unrestricted double e,
                     unrestricted double f);
+  // void setTransform(optional DOMMatrixInit matrix);
   void resetTransform();
 
   // compositing
@@ -53,11 +55,12 @@ interface CanvasRenderingContext2D {
   attribute DOMString globalCompositeOperation; // (default source-over)
 
   // image smoothing
-           attribute boolean imageSmoothingEnabled; // (default true)
+  attribute boolean imageSmoothingEnabled; // (default true)
+  // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
 
   // colours and styles (see also the CanvasDrawingStyles interface)
-           attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
-           attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
+  attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
+  attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   [Throws]
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
@@ -80,25 +83,24 @@ interface CanvasRenderingContext2D {
 
   // path API (see also CanvasPathMethods)
   void beginPath();
-  void fill(optional CanvasWindingRule fillRule = "nonzero");
-  //void fill(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
+  void fill(optional CanvasFillRule fillRule = "nonzero");
+  //void fill(Path2D path, optional CanvasFillRule fillRule = "nonzero");
   void stroke();
   //void stroke(Path2D path);
-  //void drawSystemFocusRing(Element element);
-  //void drawSystemFocusRing(Path2D path, Element element);
-  //boolean drawCustomFocusRing(Element element);
-  //boolean drawCustomFocusRing(Path2D path, Element element);
+  //void drawFocusIfNeeded(Element element);
+  //void drawFocusIfNeeded(Path2D path, Element element);
   //void scrollPathIntoView();
   //void scrollPathIntoView(Path2D path);
-  void clip(optional CanvasWindingRule fillRule = "nonzero");
-  //void clip(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
+  void clip(optional CanvasFillRule fillRule = "nonzero");
+  //void clip(Path2D path, optional CanvasFillRule fillRule = "nonzero");
   //void resetClip();
   //boolean isPointInPath(unrestricted double x, unrestricted double y,
-  //                      optional CanvasWindingRule fillRule = "nonzero");
-  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
-  //                      optional CanvasWindingRule fillRule = "nonzero");
+  //                      optional CanvasFillRule fillRule = "nonzero");
+  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted
+  //                      double y, optional CanvasFillRule fillRule = "nonzero");
   //boolean isPointInStroke(unrestricted double x, unrestricted double y);
-  //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
+  //                        boolean isPointInStroke(Path2D path, unrestricted double x,
+  //                        unrestricted double y);
 
   // text (see also the CanvasDrawingStyles interface)
   //void fillText(DOMString text, unrestricted double x, unrestricted double y,
@@ -122,6 +124,7 @@ interface CanvasRenderingContext2D {
   // hit regions
   //void addHitRegion(optional HitRegionOptions options);
   //void removeHitRegion(DOMString id);
+  //void clearHitRegions();
 
   // pixel manipulation
   [Throws]
@@ -136,6 +139,8 @@ interface CanvasRenderingContext2D {
                     double dirtyX, double dirtyY,
                     double dirtyWidth, double dirtyHeight);
 };
+CanvasRenderingContext2D implements CanvasDrawingStyles;
+CanvasRenderingContext2D implements CanvasPathMethods;
 
 [NoInterfaceObject]
 interface CanvasDrawingStyles {
@@ -191,6 +196,3 @@ interface CanvasPathMethods {
   //                             boolean anticlockwise);
 };
 
-
-CanvasRenderingContext2D implements CanvasDrawingStyles;
-CanvasRenderingContext2D implements CanvasPathMethods;
