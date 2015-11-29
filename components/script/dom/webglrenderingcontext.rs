@@ -4,7 +4,7 @@
 
 use canvas_traits::WebGLError::*;
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, WebGLError};
-use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
+use canvas_traits::{WebGLFramebufferBindingRequest, WebGLParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -686,21 +686,30 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
-        if let Some(shader) = shader {
-            shader.info_log().map(DOMString::from)
+    fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
+        if let Some(program) = program {
+            match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::Invalid => NullValue(),
+            }
         } else {
-            None
+            NullValue()
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+        shader.and_then(|s| s.info_log()).map(DOMString::from)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
         if let Some(shader) = shader {
-            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLShaderParameter::Invalid) {
-                WebGLShaderParameter::Int(val) => Int32Value(val),
-                WebGLShaderParameter::Bool(val) => BooleanValue(val),
-                WebGLShaderParameter::Invalid => NullValue(),
+            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::Invalid => NullValue(),
             }
         } else {
             NullValue()

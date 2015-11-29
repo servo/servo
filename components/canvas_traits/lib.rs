@@ -167,7 +167,8 @@ pub enum CanvasWebGLMsg {
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
-    GetShaderParameter(u32, u32, IpcSender<WebGLShaderParameter>),
+    GetProgramParameter(u32, u32, IpcSender<WebGLResult<WebGLParameter>>),
+    GetShaderParameter(u32, u32, IpcSender<WebGLResult<WebGLParameter>>),
     GetAttribLocation(u32, String, IpcSender<Option<i32>>),
     GetUniformLocation(u32, String, IpcSender<Option<i32>>),
     PolygonOffset(f32, f32),
@@ -204,7 +205,7 @@ pub enum WebGLFramebufferBindingRequest {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub enum WebGLShaderParameter {
+pub enum WebGLParameter {
     Int(i32),
     Bool(bool),
     Invalid,

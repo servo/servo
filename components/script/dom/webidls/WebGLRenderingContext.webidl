@@ -580,7 +580,7 @@ interface WebGLRenderingContextBase
 
     //any getFramebufferAttachmentParameter(GLenum target, GLenum attachment,
     //                                      GLenum pname);
-    //any getProgramParameter(WebGLProgram? program, GLenum pname);
+    any getProgramParameter(WebGLProgram? program, GLenum pname);
     //DOMString? getProgramInfoLog(WebGLProgram? program);
     //any getRenderbufferParameter(GLenum target, GLenum pname);
     any getShaderParameter(WebGLShader? shader, GLenum pname);
