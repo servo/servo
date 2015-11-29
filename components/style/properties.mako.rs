@@ -1711,29 +1711,32 @@ pub mod longhands {
             use std::fmt;
             use string_cache::Atom;
 
-            #[derive(Debug, PartialEq, Eq, Clone, Hash, HeapSizeOf)]
+            #[derive(Debug, PartialEq, Eq, Clone, Hash, HeapSizeOf, Deserialize, Serialize)]
             pub enum FontFamily {
                 FamilyName(Atom),
-                // Generic
-//                Serif,
-//                SansSerif,
-//                Cursive,
-//                Fantasy,
-//                Monospace,
+                // Generic,
+                Serif,
+                SansSerif,
+                Cursive,
+                Fantasy,
+                Monospace,
             }
             impl FontFamily {
                 #[inline]
                 pub fn name(&self) -> &str {
                     match *self {
                         FontFamily::FamilyName(ref name) => &*name,
+                        FontFamily::Serif => "serif",
+                        FontFamily::SansSerif => "sans-serif",
+                        FontFamily::Cursive => "cursive",
+                        FontFamily::Fantasy => "fantasy",
+                        FontFamily::Monospace => "monospace"
                     }
                 }
             }
             impl ToCss for FontFamily {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    match *self {
-                        FontFamily::FamilyName(ref name) => dest.write_str(&*name),
-                    }
+                    dest.write_str(self.name())
                 }
             }
             impl ToCss for T {
@@ -1753,7 +1756,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(vec![FontFamily::FamilyName(atom!("serif"))])
+            computed_value::T(vec![FontFamily::Serif])
         }
         /// <family-name>#
         /// <family-name> = <string> | [ <ident>+ ]
@@ -1766,14 +1769,15 @@ pub mod longhands {
                 return Ok(FontFamily::FamilyName(Atom::from(&*value)))
             }
             let first_ident = try!(input.expect_ident());
-//            match_ignore_ascii_case! { first_ident,
-//                "serif" => return Ok(Serif),
-//                "sans-serif" => return Ok(SansSerif),
-//                "cursive" => return Ok(Cursive),
-//                "fantasy" => return Ok(Fantasy),
-//                "monospace" => return Ok(Monospace)
-//                _ => {}
-//            }
+
+            match_ignore_ascii_case! { first_ident,
+                "serif" => return Ok(FontFamily::Serif),
+                "sans-serif" => return Ok(FontFamily::SansSerif),
+                "cursive" => return Ok(FontFamily::Cursive),
+                "fantasy" => return Ok(FontFamily::Fantasy),
+                "monospace" => return Ok(FontFamily::Monospace)
+                _ => {}
+            }
             let mut value = first_ident.into_owned();
             while let Ok(ident) = input.try(|input| input.expect_ident()) {
                 value.push_str(" ");
