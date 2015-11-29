@@ -322,11 +322,11 @@ impl FontCacheTask {
         }
     }
 
-    pub fn find_font_template(&self, family: String, desc: FontTemplateDescriptor)
+    pub fn find_font_template(&self, family: &FontFamily, desc: FontTemplateDescriptor)
                                                 -> Option<Arc<FontTemplateData>> {
 
         let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
+        self.chan.send(Command::GetFontTemplate(family.name().to_owned(), desc, response_chan)).unwrap();
 
         let reply = response_port.recv().unwrap();
 
