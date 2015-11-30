@@ -544,6 +544,19 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
+def check_wpt_lint_errors():
+    import subprocess
+    curdir = os.getcwd()
+    # Must run from wpt's working dir
+    os.chdir(os.path.join(".", "tests", "wpt", "web-platform-tests"))
+    try:
+        subprocess.check_call(os.path.join(".", "lint"))
+    except subprocess.CalledProcessError as e:
+        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
+    finally:
+        os.chdir(curdir)
+
+
 def scan():
     all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
@@ -556,8 +569,9 @@ def scan():
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
+    wpt_lint_errors = check_wpt_lint_errors()
 
-    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors))
 
     if errors:
         for error in errors:
