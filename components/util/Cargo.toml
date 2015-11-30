@@ -44,7 +44,7 @@ rustc-serialize = "0.3"
 smallvec = "0.1"
 num_cpus = "0.2.2"
 num = "0.1.24"
-euclid = {version = "0.3", features = ["plugins"]}
+euclid = {version = "0.4", features = ["plugins"]}
 selectors = "0.2"
 serde = "0.6"
 serde_macros = "0.6"
