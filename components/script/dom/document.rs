@@ -58,7 +58,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -79,9 +79,9 @@ use layout_interface::{HitTestResponse, MouseOverResponse};
 use layout_interface::{LayoutChan, Msg};
 use layout_interface::{ReflowGoal, ReflowQueryType};
 use msg::compositor_msg::ScriptToCompositorMsg;
-use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
+use msg::constellation_msg::{AnimationState, PipelineId};
 use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
@@ -1333,6 +1333,14 @@ impl Document {
             .find(|node| node.subpage_id() == Some(subpage_id))
     }
 
+    /// Find an iframe element in the document.
+    pub fn find_iframe_by_pipeline(&self, pipeline: PipelineId) -> Option<Root<HTMLIFrameElement>> {
+        self.upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(Root::downcast::<HTMLIFrameElement>)
+            .find(|node| node.pipeline() == Some(pipeline))
+    }
+
     pub fn get_dom_loading(&self) -> u64 {
         self.dom_loading.get()
     }
@@ -2432,18 +2440,6 @@ impl DocumentProgressHandler {
         let wintarget = window.upcast::<EventTarget>();
         event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
-
-        let browsing_context = window.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
-
-        if let Some(frame_element) = browsing_context.frame_element() {
-            let frame_window = window_from_node(frame_element);
-            let event = Event::new(GlobalRef::Window(frame_window.r()),
-                                   DOMString::from("load"),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::NotCancelable);
-            event.fire(frame_element.upcast());
-        };
 
         document.notify_constellation_load();
 

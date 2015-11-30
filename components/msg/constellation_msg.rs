@@ -277,6 +277,8 @@ pub enum ScriptMsg {
                          GLContextAttributes,
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
     /// Dispatched after the DOM load event has fired on a document
+    /// Causes a `load` event to be dispatched to any enclosing frame context element
+    /// for the given pipeline.
     DOMLoad(PipelineId),
     Failure(Failure),
     /// Notifies the constellation that this frame has received focus.
