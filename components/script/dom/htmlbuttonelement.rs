@@ -115,6 +115,12 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
+    // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
+    make_bool_getter!(FormNoValidate, "formnovalidate");
+
+    // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
+    make_bool_setter!(SetFormNoValidate, "formnovalidate");
+
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_getter!(Name, "name");
 
