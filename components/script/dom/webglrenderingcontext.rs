@@ -30,7 +30,7 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
@@ -192,18 +192,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        // TODO(ecoal95): Implement the missing parameters from the spec
-        unsafe {
-            let mut rval = RootedValue::new(cx, UndefinedValue());
-            match parameter {
-                constants::VERSION =>
-                    "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
-                constants::RENDERER |
-                constants::VENDOR =>
-                    "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
-                _ => rval.ptr = NullValue(),
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetParameter(parameter, sender)))
+            .unwrap();
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::Float(val) => DoubleValue(val as f64),
+            WebGLParameter::String(val) => {
+                let mut rval = RootedValue::new(cx, UndefinedValue());
+                unsafe {
+                    val.to_jsval(cx, rval.handle_mut());
+                }
+                rval.ptr
             }
-            rval.ptr
+            WebGLParameter::Invalid => NullValue(),
         }
     }
 
@@ -634,6 +638,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
                 WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::String(_) => panic!("Program parameter should not be string"),
+                WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
                 WebGLParameter::Invalid => NullValue(),
             }
         } else {
@@ -652,6 +658,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
                 WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
+                WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
                 WebGLParameter::Invalid => NullValue(),
             }
         } else {
