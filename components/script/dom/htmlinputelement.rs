@@ -337,6 +337,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
+    // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
+    make_bool_getter!(FormNoValidate, "formnovalidate");
+
+    // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
+    make_bool_setter!(SetFormNoValidate, "formnovalidate");
+
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
         self.upcast::<Element>().get_state().contains(IN_INDETERMINATE_STATE)

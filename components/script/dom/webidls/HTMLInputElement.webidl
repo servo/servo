@@ -18,7 +18,7 @@ interface HTMLInputElement : HTMLElement {
              attribute DOMString formAction;
              attribute DOMString formEnctype;
              attribute DOMString formMethod;
-  //         attribute boolean formNoValidate;
+             attribute boolean formNoValidate;
              attribute DOMString formTarget;
   //         attribute unsigned long height;
              attribute boolean indeterminate;
