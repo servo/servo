@@ -6,13 +6,15 @@
 
 use compositor_task::{CompositorProxy, Msg};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::thread::{Builder, sleep_ms};
+use std::thread::{self, Builder};
+use std::u32;
 use time;
+use util::time::duration_from_nanoseconds;
 
 /// The amount of time in nanoseconds that we give to the painting thread to paint new tiles upon
 /// processing a scroll event that caused new tiles to be revealed. When this expires, we give up
 /// and composite anyway (showing a "checkerboard") to avoid dropping the frame.
-static TIMEOUT: i64 = 12_000_000;
+static TIMEOUT: u64 = 12_000_000;
 
 pub struct ScrollingTimerProxy {
     sender: Sender<ToScrollingTimerMsg>,
@@ -55,9 +57,9 @@ impl ScrollingTimerProxy {
 impl ScrollingTimer {
     pub fn run(&mut self) {
         while let Ok(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)) = self.receiver.recv() {
-            let target = timestamp as i64 + TIMEOUT;
-            let delta_ns = target - (time::precise_time_ns() as i64);
-            sleep_ms((delta_ns / 1000000) as u32);
+            let target = timestamp + TIMEOUT;
+            let delta_ns = target - time::precise_time_ns();
+            thread::sleep(duration_from_nanoseconds(delta_ns));
             self.compositor_proxy.send(Msg::ScrollTimeout(timestamp));
         }
     }

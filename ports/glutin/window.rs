@@ -298,7 +298,8 @@ impl Window {
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     fn handle_next_event(&self) -> bool {
-        use std::thread::sleep_ms;
+        use std::thread;
+        use std::time::Duration;
 
         // TODO(gw): This is an awful hack to work around the
         // broken way we currently call X11 from multiple threads.
@@ -324,7 +325,7 @@ impl Window {
                 self.handle_window_event(event)
             }
             None => {
-                sleep_ms(16);
+                thread::sleep(Duration::from_millis(16));
                 false
             }
         }

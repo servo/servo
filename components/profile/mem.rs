@@ -11,8 +11,9 @@ use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, Repor
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::thread::sleep_ms;
+use std::thread;
 use util::task::spawn_named;
+use util::time::duration_from_seconds;
 
 pub struct Profiler {
     /// The port through which messages are received.
@@ -31,11 +32,10 @@ impl Profiler {
 
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
-            let period_ms = (period * 1000.) as u32;
             let chan = chan.clone();
             spawn_named("Memory profiler timer".to_owned(), move || {
                 loop {
-                    sleep_ms(period_ms);
+                    thread::sleep(duration_from_seconds(period));
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }

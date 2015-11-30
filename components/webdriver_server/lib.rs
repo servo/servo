@@ -38,7 +38,8 @@ use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::sync::mpsc::Sender;
-use std::thread::{self, sleep_ms};
+use std::thread;
+use std::time::Duration;
 use url::Url;
 use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
 use util::task::spawn_named;
@@ -228,7 +229,7 @@ impl Handler {
                 return Ok(x)
             };
 
-            sleep_ms(interval);
+            thread::sleep(Duration::from_millis(interval));
         };
 
         Err(WebDriverError::new(ErrorStatus::Timeout,
@@ -319,7 +320,7 @@ impl Handler {
         let timeout = self.load_timeout;
         let timeout_chan = sender;
         thread::spawn(move || {
-            sleep_ms(timeout);
+            thread::sleep(Duration::from_millis(timeout as u64));
             let _ = timeout_chan.send(LoadStatus::LoadTimeout);
         });
 
@@ -704,7 +705,7 @@ impl Handler {
                 break;
             };
 
-            sleep_ms(interval)
+            thread::sleep(Duration::from_millis(interval))
         }
 
         let img = match img {
