@@ -1666,9 +1666,8 @@ impl ScriptTask {
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
-
-	let document;	
-	match metadata.content_type {
+    let document;
+    match metadata.content_type {
 
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
                 document = Document::new(window.r(),
@@ -1678,7 +1677,7 @@ impl ScriptTask {
                                      last_modified,
                                      DocumentSource::NotFromParser,
                                      loader);
-            } 
+            }
             _ => {
                 document = Document::new(window.r(),
                                      Some(final_url.clone()),
@@ -1688,7 +1687,7 @@ impl ScriptTask {
                                      DocumentSource::FromParser,
                                      loader);
             }
-	}
+    }
 
         let frame_element = frame_element.r().map(Castable::upcast);
         window.init_browsing_context(document.r(), frame_element);
@@ -1738,17 +1737,21 @@ impl ScriptTask {
             DOMString::new()
         };
 
-	match metadata.content_type {
+    match metadata.content_type {
 
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
-                parse_xml(document.r(), parse_input, final_url,
-                 	  xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+                parse_xml(document.r(),
+                          parse_input,
+                          final_url,
+                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
             }
-            _ => {	        
-                parse_html(document.r(), parse_input, final_url,
-                   		ParseContext::Owner(Some(incomplete.pipeline_id)));
+            _ => {
+                parse_html(document.r(),
+                           parse_input,
+                           final_url,
+                           ParseContext::Owner(Some(incomplete.pipeline_id)));
             }
-	}
+    }
 
         page_remover.neuter();
 
