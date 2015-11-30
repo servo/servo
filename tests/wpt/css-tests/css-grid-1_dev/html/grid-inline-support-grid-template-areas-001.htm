@@ -28,29 +28,29 @@
             TestingUtils.testGridTemplateAreas('inline-grid', '"lower UPPER 10 -minus _low 1-st ©copy_right line¶"', '"lower UPPER 10 -minus _low 1-st ©copy_right line¶"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b"', '"a b"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b" "c d"', '"a b" "c d"');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"a     b"     "c     d"', '"a b" "c d"');
+            TestingUtils.testGridTemplateAreas('inline-grid', '"a     b"     "c     d"', ['"a b" "c d"', '"a     b" "c     d"']);
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b""c d"', '"a b" "c d"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b"\t"c d"', '"a b" "c d"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b"\n"c d"', '"a b" "c d"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b" "a b"', '"a b" "a b"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a a" "b b"', '"a a" "b b"');
             TestingUtils.testGridTemplateAreas('inline-grid', '". a ." "b a c"', '". a ." "b a c"');
-            TestingUtils.testGridTemplateAreas('inline-grid', '".. a ..." "b a c"', '". a ." "b a c"');
-            TestingUtils.testGridTemplateAreas('inline-grid', '".a..." "b a c"', '". a ." "b a c"');
+            TestingUtils.testGridTemplateAreas('inline-grid', '".. a ..." "b a c"', ['". a ." "b a c"', '".. a ..." "b a c"']);
+            TestingUtils.testGridTemplateAreas('inline-grid', '".a..." "b a c"', ['". a ." "b a c"', '".a..." "b a c"']);
             TestingUtils.testGridTemplateAreas('inline-grid', '"head head" "nav main" "foot ."', '"head head" "nav main" "foot ."');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"head head" "nav main" "foot ...."', '"head head" "nav main" "foot ."');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"head head" "nav main" "foot."', '"head head" "nav main" "foot ."');
+            TestingUtils.testGridTemplateAreas('inline-grid', '"head head" "nav main" "foot ...."', ['"head head" "nav main" "foot ."', '"head head" "nav main" "foot ...."']);
+            TestingUtils.testGridTemplateAreas('inline-grid', '"head head" "nav main" "foot."', ['"head head" "nav main" "foot ."', '"head head" "nav main" "foot."']);
             TestingUtils.testGridTemplateAreas('inline-grid', '". header header ." "nav main main main" "nav footer footer ."', '". header header ." "nav main main main" "nav footer footer ."');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"... header header ...." "nav main main main" "nav footer footer ...."', '". header header ." "nav main main main" "nav footer footer ."');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"...header header...." "nav main main main" "nav footer footer...."', '". header header ." "nav main main main" "nav footer footer ."');
+            TestingUtils.testGridTemplateAreas('inline-grid', '"... header header ...." "nav main main main" "nav footer footer ...."', ['". header header ." "nav main main main" "nav footer footer ."', '"... header header ...." "nav main main main" "nav footer footer ...."']);
+            TestingUtils.testGridTemplateAreas('inline-grid', '"...header header...." "nav main main main" "nav footer footer...."', ['". header header ." "nav main main main" "nav footer footer ."', '"...header header...." "nav main main main" "nav footer footer...."']);
             TestingUtils.testGridTemplateAreas('inline-grid', '"title stats" "score stats" "board board" "ctrls ctrls"', '"title stats" "score stats" "board board" "ctrls ctrls"');
             TestingUtils.testGridTemplateAreas('inline-grid', '"title board" "stats board" "score ctrls"', '"title board" "stats board" "score ctrls"');
             TestingUtils.testGridTemplateAreas('inline-grid', '". a" "b a" ". a"', '". a" "b a" ". a"');
-            TestingUtils.testGridTemplateAreas('inline-grid', '".. a" "b a" "... a"', '". a" "b a" ". a"');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"..a" "b a" ".a"', '". a" "b a" ". a"');
+            TestingUtils.testGridTemplateAreas('inline-grid', '".. a" "b a" "... a"', ['". a" "b a" ". a"', '".. a" "b a" "... a"']);
+            TestingUtils.testGridTemplateAreas('inline-grid', '"..a" "b a" ".a"', ['". a" "b a" ". a"', '"..a" "b a" ".a"']);
             TestingUtils.testGridTemplateAreas('inline-grid', '"a a a" "b b b"', '"a a a" "b b b"');
             TestingUtils.testGridTemplateAreas('inline-grid', '". ." "a a"', '". ." "a a"');
-            TestingUtils.testGridTemplateAreas('inline-grid', '"... ...." "a a"', '". ." "a a"');
+            TestingUtils.testGridTemplateAreas('inline-grid', '"... ...." "a a"', ['". ." "a a"', '"... ...." "a a"']);
 
             // Reset values.
             document.getElementById('inline-grid').style.gridTemplateAreas = '';
@@ -69,7 +69,7 @@
             TestingUtils.testGridTemplateAreas('inline-grid', '"b a" "b b"', 'none');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a b" "b a"', 'none');
             TestingUtils.testGridTemplateAreas('inline-grid', '"a ." ". a"', 'none');
-            TestingUtils.testGridTemplateAreas('inline-grid', '","', '","');
+            TestingUtils.testGridTemplateAreas('inline-grid', '","', 'none');
             TestingUtils.testGridTemplateAreas('inline-grid', '"10%"', 'none');
             TestingUtils.testGridTemplateAreas('inline-grid', '"USD$"', 'none');
         </script>

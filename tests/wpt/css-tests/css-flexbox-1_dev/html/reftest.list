@@ -295,6 +295,7 @@ flexbox_align-items-flexstart.htm == reference/flexbox_align-items-flexstart-ref
 flexbox_align-items-flexstart-2.htm == reference/flexbox_align-items-flexstart-2-ref.htm
 flexbox_align-items-stretch.htm == reference/flexbox_align-items-stretch-ref.htm
 flexbox_align-items-stretch-2.htm == reference/flexbox_align-items-stretch-2-ref.htm
+flexbox_align-items-stretch-writing-modes.htm == reference/flexbox_align-items-stretch-writing-modes-ref.htm
 flexbox_align-self-auto.htm == reference/flexbox_align-self-auto-ref.htm
 flexbox_align-self-baseline.htm == reference/flexbox_align-self-baseline-ref.htm
 flexbox_align-self-center.htm == reference/flexbox_align-self-center-ref.htm

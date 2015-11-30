@@ -295,6 +295,7 @@ flexbox_align-items-flexstart.xht == reference/flexbox_align-items-flexstart-ref
 flexbox_align-items-flexstart-2.xht == reference/flexbox_align-items-flexstart-2-ref.xht
 flexbox_align-items-stretch.xht == reference/flexbox_align-items-stretch-ref.xht
 flexbox_align-items-stretch-2.xht == reference/flexbox_align-items-stretch-2-ref.xht
+flexbox_align-items-stretch-writing-modes.xht == reference/flexbox_align-items-stretch-writing-modes-ref.xht
 flexbox_align-self-auto.xht == reference/flexbox_align-self-auto-ref.xht
 flexbox_align-self-baseline.xht == reference/flexbox_align-self-baseline-ref.xht
 flexbox_align-self-center.xht == reference/flexbox_align-self-center-ref.xht
