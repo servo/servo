@@ -9,7 +9,7 @@ path = "lib.rs"
 
 [features]
 window = []
-headless = ["glutin/headless"]
+headless = ["servo-glutin/headless"]
 
 [dependencies]
 time = "0.1.12"
@@ -17,7 +17,8 @@ bitflags = "0.3"
 libc = "0.2"
 url = "0.5"
 gleam = "0.1"
-euclid = {version = "0.3", features = ["plugins"]}
+euclid = {version = "0.4", features = ["plugins"]}
+servo-glutin = "0.4"
 
 [dependencies.compositing]
 path = "../../components/compositing"
@@ -38,10 +39,6 @@ path = "../../components/net_traits"
 [dependencies.util]
 path = "../../components/util"
 
-[dependencies.glutin]
-git = "https://github.com/servo/glutin"
-branch = "servo"
-
 [target.i686-unknown-linux-gnu.dependencies]
 x11 = "2.0.0"
 
@@ -57,5 +54,5 @@ x11 = "2.0.0"
 [target.x86_64-apple-darwin.dependencies]
 cgl = "0.1"
 
-[target.arm-linux-androideabi.dependencies.egl]
-git = "https://github.com/servo/rust-egl"
+[target.arm-linux-androideabi.dependencies]
+servo-egl = "0.2"

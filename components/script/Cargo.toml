@@ -81,7 +81,7 @@ smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
 selectors = "0.2"
 string_cache = { version = "0.2", features = ["unstable"] }
-euclid = {version = "0.3", features = ["plugins"]}
+euclid = {version = "0.4", features = ["plugins"]}
 tendril = "0.1.1"
 rand = "0.3"
 serde = "0.6"

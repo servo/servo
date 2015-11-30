@@ -124,10 +124,6 @@ optional = true
 version = "0.3"
 features = ["release_max_level_info"]
 
-[dependencies.euclid]
-version = "0.3"
-features = ["plugins"]
-
 [dependencies.gaol]
 git = "https://github.com/pcwalton/gaol"
 
@@ -150,4 +146,4 @@ time = "0.1.12"
 bitflags = "0.3"
 libc = "0.2"
 url = {version = "0.5", features = ["serde_serialization", "query_encoding"]}
-
+euclid = {version = "0.4", features = ["plugins"]}

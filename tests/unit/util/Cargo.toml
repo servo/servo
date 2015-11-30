@@ -18,5 +18,5 @@ path = "../../../components/plugins"
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 libc = "0.2"
-euclid = {version = "0.3", features = ["plugins"]}
+euclid = {version = "0.4", features = ["plugins"]}
 
