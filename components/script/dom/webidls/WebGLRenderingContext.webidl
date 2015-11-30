@@ -573,7 +573,7 @@ interface WebGLRenderingContextBase
 
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram? program, DOMString name);
 
-    //any getBufferParameter(GLenum target, GLenum pname);
+    any getBufferParameter(GLenum target, GLenum pname);
     any getParameter(GLenum pname);
 
     [WebGLHandlesContextLoss] GLenum getError();
