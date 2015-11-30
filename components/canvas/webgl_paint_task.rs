@@ -110,6 +110,8 @@ impl WebGLPaintTask {
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.attrib_location(program_id, name, chan),
+            CanvasWebGLMsg::GetBufferParameter(target, param_id, chan) =>
+                self.buffer_parameter(target, param_id, chan),
             CanvasWebGLMsg::GetParameter(param_id, chan) =>
                 self.parameter(param_id, chan),
             CanvasWebGLMsg::GetProgramParameter(program_id, param_id, chan) =>
@@ -446,6 +448,20 @@ impl WebGLPaintTask {
 
             // Invalid parameters
             _ => Err(WebGLError::InvalidEnum)
+        };
+
+        chan.send(result).unwrap();
+    }
+
+    fn buffer_parameter(&self,
+                        target: u32,
+                        param_id: u32,
+                        chan: IpcSender<WebGLResult<WebGLParameter>>) {
+        let result = match param_id {
+            gl::BUFFER_SIZE |
+            gl::BUFFER_USAGE =>
+                Ok(WebGLParameter::Int(gl::get_buffer_parameter_iv(target, param_id))),
+            _ => Err(WebGLError::InvalidEnum),
         };
 
         chan.send(result).unwrap();

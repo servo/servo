@@ -190,6 +190,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn GetBufferParameter(&self, cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetBufferParameter(target, parameter, sender)))
+            .unwrap();
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
+            WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
+            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
+            WebGLParameter::Invalid => NullValue(),
+        }
+    }
+
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
         let (sender, receiver) = ipc::channel().unwrap();
