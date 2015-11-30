@@ -340,6 +340,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
+    // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
+    make_bool_getter!(FormNoValidate, "formnovalidate");
+
+    // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
+    make_bool_setter!(SetFormNoValidate, "formnovalidate");
+
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
     make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
