@@ -1847,7 +1847,7 @@ class CGPrototypeJSClass(CGThing):
         return """\
 static PrototypeClass: JSClass = JSClass {
     name: %s as *const u8 as *const libc::c_char,
-    flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
+    flags: 0,
     addProperty: None,
     delProperty: None,
     getProperty: None,
@@ -2360,14 +2360,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         else:
             protoClass = "Some(&PrototypeClass)"
 
-        if self.descriptor.concrete:
-            if self.descriptor.proxy:
-                domClass = "Some(&Class)"
-            else:
-                domClass = "Some(&Class.dom_class)"
-        else:
-            domClass = "None"
-
         if self.descriptor.interface.hasInterfaceObject():
             if self.descriptor.interface.ctor():
                 constructHook = CONSTRUCT_HOOK_NAME
@@ -2386,8 +2378,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 do_create_interface_objects(cx, receiver, parent_proto.handle(),
                             %s, %s,
                             &named_constructors,
-                            %s,
-                            &sNativeProperties, rval);""" % (protoClass, constructor, domClass)
+                            &sNativeProperties, rval);""" % (protoClass, constructor)
 
         createArray = """\
 let named_constructors: [(NonNullJSNative, &'static str, u32); %d] = [
