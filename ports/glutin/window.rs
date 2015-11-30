@@ -86,17 +86,21 @@ impl Window {
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
-        let mut glutin_window = glutin::WindowBuilder::new()
-                            .with_title("Servo".to_string())
-                            .with_decorations(!opts::get().no_native_titlebar)
-                            .with_vsync()
-                            .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
-                            .with_gl(Window::gl_version())
-                            .with_visibility(is_foreground)
-                            .with_parent(parent)
-                            .with_multitouch()
-                            .build()
-                            .unwrap();
+        let width = window_size.to_untyped().width;
+        let height = window_size.to_untyped().height;
+        let mut builder = glutin::WindowBuilder::new().with_title("Servo".to_string())
+                                                      .with_decorations(!opts::get().no_native_titlebar)
+                                                      .with_dimensions(width, height)
+                                                      .with_gl(Window::gl_version())
+                                                      .with_visibility(is_foreground)
+                                                      .with_parent(parent)
+                                                      .with_multitouch();
+
+        if opts::get().enable_vsync {
+            builder = builder.with_vsync();
+        }
+
+        let mut glutin_window = builder.build().unwrap();
 
         unsafe { glutin_window.make_current().expect("Failed to make context current!") }
 
