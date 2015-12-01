@@ -1095,7 +1095,7 @@ impl Element {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
-        let attribute = self.get_attribute(&ns!(""), local_name);
+        let attribute = self.get_attribute(&ns!(), local_name);
 
         match attribute {
             Some(ref attribute) => {
