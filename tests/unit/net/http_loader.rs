@@ -460,13 +460,13 @@ fn test_request_and_response_data_with_network_messages() {
                             ]);
     headers.set(accept);
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
-
     let httprequest = DevtoolsHttpRequest {
         url: url,
         method: Method::Get,
         headers: headers,
         body: None,
         pipeline_id: pipeline_id,
+        startedDateTime: devhttprequest.startedDateTime
     };
 
     let content = "Yay!";
