@@ -15,6 +15,12 @@ test(function() {
   assert_equals(document.alinkColor, document.body.aLink);
 })
 test(function() {
+  document.body.text = null;
+  assert_equals(document.fgColor, "");
+  assert_equals(document.body.text, "");
+  assert_equals(document.body.getAttribute("text"), "");
+})
+test(function() {
   document.body.text = "blue";
   assert_equals(document.fgColor, "blue");
   assert_equals(document.body.text, "blue");

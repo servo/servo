@@ -2289,6 +2289,16 @@ impl DocumentMethods for Document {
         self.set_body_attribute(&atom!("bgcolor"), value)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-fgcolor
+    fn FgColor(&self) -> DOMString {
+        self.get_body_attribute(&atom!("text"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-fgcolor
+    fn SetFgColor(&self, value: DOMString) {
+        self.set_body_attribute(&atom!("text"), value)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool) -> *mut JSObject {
         #[derive(JSTraceable, HeapSizeOf)]
