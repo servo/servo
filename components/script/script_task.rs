@@ -1709,6 +1709,9 @@ impl ScriptTask {
             window: JS::from_rooted(&window),
         }));
 
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id)).unwrap();
+
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
             use url::percent_encoding::percent_decode_to;
@@ -2050,9 +2053,6 @@ impl ScriptTask {
                                  NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r());
         window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::ActivateDocument(id)).unwrap();
 
         // No more reflow required
         page.set_reflow_status(false);
