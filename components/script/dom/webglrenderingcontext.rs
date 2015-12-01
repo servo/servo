@@ -323,6 +323,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn BindAttribLocation(&self, program: Option<&WebGLProgram>,
+                          index: u32, name: DOMString) {
+        if let Some(program) = program {
+            handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
         match target {

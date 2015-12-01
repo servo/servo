@@ -94,6 +94,23 @@ impl WebGLProgram {
         Ok(())
     }
 
+    /// glBindAttribLocation
+    pub fn bind_attrib_location(&self, index: u32, name: DOMString) -> WebGLResult<()> {
+        if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        // Check if the name is reserved
+        if name.starts_with("webgl") || name.starts_with("_webgl_") {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        self.renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindAttribLocation(self.id, index, String::from(name))))
+            .unwrap();
+        Ok(())
+    }
+
     /// glGetAttribLocation
     pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
