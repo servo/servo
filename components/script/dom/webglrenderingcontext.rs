@@ -4,7 +4,7 @@
 
 use canvas_traits::WebGLError::*;
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, WebGLError};
-use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
+use canvas_traits::{WebGLFramebufferBindingRequest, WebGLParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -30,7 +30,7 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
@@ -190,20 +190,40 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn GetBufferParameter(&self, cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetBufferParameter(target, parameter, sender)))
+            .unwrap();
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
+            WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
+            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
+            WebGLParameter::Invalid => NullValue(),
+        }
+    }
+
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        // TODO(ecoal95): Implement the missing parameters from the spec
-        unsafe {
-            let mut rval = RootedValue::new(cx, UndefinedValue());
-            match parameter {
-                constants::VERSION =>
-                    "WebGL 1.0".to_jsval(cx, rval.handle_mut()),
-                constants::RENDERER |
-                constants::VENDOR =>
-                    "Mozilla/Servo".to_jsval(cx, rval.handle_mut()),
-                _ => rval.ptr = NullValue(),
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetParameter(parameter, sender)))
+            .unwrap();
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::Float(val) => DoubleValue(val as f64),
+            WebGLParameter::String(val) => {
+                let mut rval = RootedValue::new(cx, UndefinedValue());
+                unsafe {
+                    val.to_jsval(cx, rval.handle_mut());
+                }
+                rval.ptr
             }
-            rval.ptr
+            WebGLParameter::Invalid => NullValue(),
         }
     }
 
@@ -629,21 +649,34 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
-        if let Some(shader) = shader {
-            shader.info_log().map(DOMString::from)
+    fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
+        if let Some(program) = program {
+            match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::String(_) => panic!("Program parameter should not be string"),
+                WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
+                WebGLParameter::Invalid => NullValue(),
+            }
         } else {
-            None
+            NullValue()
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+        shader.and_then(|s| s.info_log()).map(DOMString::from)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
         if let Some(shader) = shader {
-            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLShaderParameter::Invalid) {
-                WebGLShaderParameter::Int(val) => Int32Value(val),
-                WebGLShaderParameter::Bool(val) => BooleanValue(val),
-                WebGLShaderParameter::Invalid => NullValue(),
+            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(val) => BooleanValue(val),
+                WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
+                WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
+                WebGLParameter::Invalid => NullValue(),
             }
         } else {
             NullValue()
