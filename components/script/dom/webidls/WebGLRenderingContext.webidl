@@ -476,7 +476,7 @@ interface WebGLRenderingContextBase
 
     void activeTexture(GLenum texture);
     void attachShader(WebGLProgram? program, WebGLShader? shader);
-    //void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
+    void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
     void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
     void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
