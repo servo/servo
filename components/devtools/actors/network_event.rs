@@ -66,6 +66,64 @@ struct GetRequestHeadersReply {
     rawHeaders: String
 }
 
+#[derive(RustcEncodable)]
+struct GetResponseHeadersReply {
+    from: String,
+    headers: Vec<String>,
+    headerSize: u8,
+    rawHeaders: String
+}
+
+#[derive(RustcEncodable)]
+struct GetResponseContentReply {
+    from: String,
+    content: Option<Vec<u8>>,
+	contentDiscarded: bool,
+}
+
+#[derive(RustcEncodable)]
+struct GetRequestPostDataReply {
+    from: String,
+    postData: Option<Vec<u8>>,
+    postDataDiscarded: bool
+}
+
+#[derive(RustcEncodable)]
+struct GetRequestCookiesReply {
+    from: String,
+    cookies: Vec<u8>
+}
+
+#[derive(RustcEncodable)]
+struct GetResponseCookiesReply {
+    from: String,
+    cookies: Vec<u8>
+}
+
+#[derive(RustcEncodable)]
+struct Timings {
+    blocked: u32,
+	dns: u32,
+	connect: u32,
+	send: u32,
+	wait: u32,
+	receive: u32,
+}
+
+#[derive(RustcEncodable)]
+struct GetEventTimingsReply {
+    from: String,
+    timings: Timings,
+	totalTime: u32,
+}
+
+#[derive(RustcEncodable)]
+struct GetSecurityInfoReply {
+    from: String,
+    seuritInfo: String,
+}
+
+
 impl Actor for NetworkEventActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -79,30 +137,138 @@ impl Actor for NetworkEventActor {
         Ok(match msg_type {
             "getRequestHeaders" => {
                 // TODO: Pass the correct values for headers, headerSize, rawHeaders
+                let mut headersIter = self.request.headers.iter();
+				let headersSize = self.request.headers.len() as u8;
+				let mut headerNames = Vec::new();				
+				let mut rawHeadersString = "".to_owned();
+				for i in 0..headersSize {
+					//let item = headersIter.next();
+					
+					if let Some(item) = headersIter.next() {
+                		let name = item.name();
+						let value = item.value_string();
+						headerNames.push(name.to_owned());
+						rawHeadersString = rawHeadersString + name + ":" + &value+"\r\n";
+					}
+		
+				}
+                
                 let msg = GetRequestHeadersReply {
                     from: self.name(),
-                    headers: Vec::new(),
-                    headerSize: 10,
-                    rawHeaders: "Raw headers".to_owned(),
+                    headers: headerNames,
+                    headerSize: headersSize,
+                    rawHeaders: rawHeadersString,
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             }
             "getRequestCookies" => {
-                ActorMessageStatus::Ignored
+					let mut newVec = Vec::new();
+					if let Some(req_cookies) = self.request.headers.get_raw("Cookie") {
+        				for cookie in req_cookies.iter() {
+            			if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                			newVec= cookie_value.into_bytes();
+            				}
+        				}
+    				}
+
+					let msg = GetRequestCookiesReply {
+                    from: self.name(),
+                    cookies: newVec,
+               		 };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
             }
             "getRequestPostData" => {
-                ActorMessageStatus::Ignored
+				
+				if let Some(list) = self.request.body.clone() {
+					//let mut newVec = list.clone();
+                	let msg = GetRequestPostDataReply {
+                    	from: self.name(),
+    					postData: Some(list),
+    					postDataDiscarded: false,
+                	};
+				stream.write_json_packet(&msg);	
+				}else{
+					let msg = GetRequestPostDataReply {
+                    	from: self.name(),
+    					postData: None,
+    					postDataDiscarded: false,
+                	};
+				stream.write_json_packet(&msg);
+				}
+				
+                ActorMessageStatus::Processed
             }
             "getResponseHeaders" => {
-                ActorMessageStatus::Ignored
+				if let Some(res_headers) = self.response.headers.clone() {
+		            let mut headersIter = res_headers.iter();
+					let headersSize = res_headers.len() as u8;
+					let mut headerNames = Vec::new();				
+					let mut rawHeadersString = "".to_owned();
+					for i in 0..headersSize {
+						if let Some(item) = headersIter.next() {
+		            		let name = item.name();
+							let value = item.value_string();
+							headerNames.push(name.to_owned());
+							rawHeadersString = rawHeadersString + name + ":" + &value+"\r\n";
+						}
+		
+					}
+		            
+		            let msg = GetResponseHeadersReply {
+		                from: self.name(),
+		                headers: headerNames,
+		                headerSize: headersSize,
+		                rawHeaders: rawHeadersString,
+		            };
+		            stream.write_json_packet(&msg);
+					}
+		            ActorMessageStatus::Processed
             }
             "getResponseCookies" => {
-                ActorMessageStatus::Ignored
+                let mut newVec = Vec::new();
+					if let Some(res_cookies) = self.request.headers.get_raw("set-cookie") {
+        				for cookie in res_cookies.iter() {
+            			if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                			newVec= cookie_value.into_bytes();
+            				}
+        				}
+    				}
+
+					let msg = GetResponseCookiesReply {
+                    from: self.name(),
+                    cookies: newVec,
+               		 };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
             }
             "getResponseContent" => {
-                ActorMessageStatus::Ignored
+                if let Some(list) = self.response.body.clone() {
+                	let msg = GetResponseContentReply {
+                    	from: self.name(),
+    					content: Some(list),
+    					contentDiscarded: false,
+                	};
+				stream.write_json_packet(&msg);	
+				}else{
+					let msg = GetResponseContentReply {
+                    	from: self.name(),
+    					content: None,
+    					contentDiscarded: false,
+                	};
+				stream.write_json_packet(&msg);
+				}
+				
+                ActorMessageStatus::Processed
             }
+			"getEventTimings" => {
+				
+				ActorMessageStatus::Processed
+			}
+			"getSecurityInfo" => {
+				ActorMessageStatus::Processed
+			}
             _ => ActorMessageStatus::Ignored
         })
     }

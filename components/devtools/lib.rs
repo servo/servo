@@ -101,6 +101,7 @@ struct NetworkEventMsg {
     eventActor: EventActor,
 }
 
+
 #[derive(RustcEncodable)]
 struct NetworkEventUpdateMsg {
     from: String,
