@@ -100,6 +100,8 @@ impl WebGLPaintTask {
                 gl::front_face(mode),
             CanvasWebGLMsg::DrawArrays(mode, first, count) =>
                 gl::draw_arrays(mode, first, count),
+            CanvasWebGLMsg::DrawElements(mode, count, type_, offset) =>
+                gl::draw_elements(mode, count, type_, offset as u32),
             CanvasWebGLMsg::Hint(name, val) =>
                 gl::hint(name, val),
             CanvasWebGLMsg::LineWidth(width) =>
