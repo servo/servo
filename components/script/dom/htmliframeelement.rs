@@ -186,6 +186,11 @@ impl HTMLIFrameElement {
     }
 
     #[inline]
+    pub fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline_id.get()
+    }
+
+    #[inline]
     pub fn subpage_id(&self) -> Option<SubpageId> {
         self.subpage_id.get()
     }

@@ -5,12 +5,15 @@
 use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
@@ -604,7 +607,7 @@ impl Document {
 
     pub fn handle_mouse_event(&self,
                               js_runtime: *mut JSRuntime,
-                              _button: MouseButton,
+                              button: MouseButton,
                               client_point: Point2D<f32>,
                               mouse_event_type: MouseEventType) {
         let mouse_event_type_string = match mouse_event_type {
@@ -634,6 +637,21 @@ impl Document {
                 }
             },
         };
+
+        // If the target is an iframe, forward the event to the child document.
+        if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
+            if let Some(pipeline_id) = iframe.pipeline_id() {
+                let rect = iframe.upcast::<Element>().GetBoundingClientRect();
+                let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                let child_point = client_point - child_origin;
+
+                let event = ConstellationMsg::ForwardMouseButtonEvent(pipeline_id,
+                                                                      mouse_event_type,
+                                                                      button, child_point);
+                self.window.constellation_chan().0.send(event).unwrap();
+            }
+            return;
+        }
 
         let node = el.upcast::<Node>();
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
@@ -767,11 +785,23 @@ impl Document {
         if mouse_over_addresses.len() > 0 {
             let top_most_node = node::from_untrusted_node_address(js_runtime,
                                                                   mouse_over_addresses[0]);
+            let client_point = client_point.unwrap(); // Must succeed because hit test succeeded.
+
+            // If the target is an iframe, forward the event to the child document.
+            if let Some(iframe) = top_most_node.downcast::<HTMLIFrameElement>() {
+                if let Some(pipeline_id) = iframe.pipeline_id() {
+                    let rect = iframe.upcast::<Element>().GetBoundingClientRect();
+                    let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                    let child_point = client_point - child_origin;
+
+                    let event = ConstellationMsg::ForwardMouseMoveEvent(pipeline_id, child_point);
+                    self.window.constellation_chan().0.send(event).unwrap();
+                }
+                return;
+            }
 
             let target = top_most_node.upcast();
-            if let Some(client_point) = client_point {
-                self.fire_mouse_event(client_point, target, "mousemove".to_owned());
-            }
+            self.fire_mouse_event(client_point, target, "mousemove".to_owned());
         }
 
         // Store the current mouse over targets for next frame
