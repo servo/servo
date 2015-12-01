@@ -37,6 +37,8 @@ use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
+use time;
+use time::Tm;
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
@@ -174,7 +176,9 @@ pub trait HttpResponse: Read {
     fn headers(&self) -> &Headers;
     fn status(&self) -> StatusCode;
     fn status_raw(&self) -> &RawStatus;
-
+    fn http_version(&self) -> String {
+        return "HTTP/1.1".to_owned()
+    }
     fn content_encoding(&self) -> Option<Encoding> {
         self.headers().get::<ContentEncoding>().and_then(|h| {
             match *h {
@@ -192,6 +196,7 @@ pub trait HttpResponse: Read {
     }
 }
 
+
 struct WrappedHttpResponse {
     response: Response
 }
@@ -202,6 +207,8 @@ impl Read for WrappedHttpResponse {
         self.response.read(buf)
     }
 }
+
+
 
 impl HttpResponse for WrappedHttpResponse {
     fn headers(&self) -> &Headers {
@@ -214,6 +221,10 @@ impl HttpResponse for WrappedHttpResponse {
 
     fn status_raw(&self) -> &RawStatus {
         self.response.status_raw()
+    }
+
+    fn http_version(&self) -> String {
+        self.response.version.to_string()
     }
 }
 
@@ -468,11 +479,11 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             method: Method,
                             headers: Headers,
                             body: Option<Vec<u8>>,
-                            pipeline_id: PipelineId) {
+                            pipeline_id: PipelineId, now: Tm) {
 
     if let Some(ref chan) = devtools_chan {
         let request = DevtoolsHttpRequest {
-            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id };
+            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id, startedDateTime: now };
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
@@ -660,12 +671,11 @@ pub fn load<A>(load_data: LoadData,
                     req.send(&None)
                 }
             };
-
             if let Some(pipeline_id) = load_data.pipeline_id {
                 send_request_to_devtools(
                     devtools_chan.clone(), request_id.clone(), url.clone(),
                     method.clone(), request_headers.clone(),
-                    cloned_data, pipeline_id
+                    cloned_data, pipeline_id, time::now()
                 );
             }
 
