@@ -544,6 +544,16 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
+def check_wpt_lint_errors():
+    import subprocess
+    wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
+    lint_cmd = os.path.join(wpt_working_dir, "lint")
+    try:
+        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
+    except subprocess.CalledProcessError as e:
+        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
+
+
 def scan():
     all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
@@ -556,9 +566,9 @@ def scan():
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
+    wpt_lint_errors = check_wpt_lint_errors()
 
-    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
-
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors))
     if errors:
         for error in errors:
             print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
