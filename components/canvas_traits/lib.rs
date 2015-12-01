@@ -167,6 +167,7 @@ pub enum CanvasWebGLMsg {
     BindRenderbuffer(u32, u32),
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
+    DrawElements(u32, i32, u32, i64),
     EnableVertexAttribArray(u32),
     GetBufferParameter(u32, u32, IpcSender<WebGLResult<WebGLParameter>>),
     GetParameter(u32, IpcSender<WebGLResult<WebGLParameter>>),

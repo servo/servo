@@ -697,6 +697,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+        let type_size = match type_ {
+            constants::BYTE | constants::UNSIGNED_BYTE => 1,
+            constants::SHORT | constants::UNSIGNED_SHORT => 2,
+            constants::INT | constants::UNSIGNED_INT | constants::FLOAT => 4,
+            _ => return self.webgl_error(InvalidEnum),
+        };
+
+        if offset % type_size != 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if count <= 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if offset < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        // TODO ensure a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER
+        // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
+        // null generate an InvalidOperation error
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawElements(mode, count, type_, offset)))
+                    .unwrap();
+                self.mark_as_dirty();
+            },
+            _ => self.webgl_error(InvalidEnum),
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
         self.ipc_renderer

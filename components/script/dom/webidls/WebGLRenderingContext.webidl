@@ -552,7 +552,7 @@ interface WebGLRenderingContextBase
     void disable(GLenum cap);
     //void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
-    //void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
+    void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
 
     void enable(GLenum cap);
     void enableVertexAttribArray(GLuint index);
