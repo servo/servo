@@ -613,6 +613,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
             }
+            Request::Script(FromScriptMsg::ForwardMouseButtonEvent(
+                    pipeline_id, event_type, button, point)) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline_id,
+                        CompositorEvent::MouseButtonEvent(event_type, button, point)));
+                }
+            }
+            Request::Script(FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point)) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline_id,
+                        CompositorEvent::MouseMoveEvent(Some(point))));
+                }
+            }
             Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
                 let result = self.clipboard_ctx.as_ref().map_or(
                     "".to_owned(),

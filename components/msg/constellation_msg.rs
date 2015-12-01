@@ -7,6 +7,7 @@
 
 use canvas_traits::CanvasMsg;
 use compositor_msg::Epoch;
+use euclid::point::Point2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
@@ -283,6 +284,10 @@ pub enum ScriptMsg {
     Failure(Failure),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
+    /// Re-send a mouse button event that was sent to the parent window.
+    ForwardMouseButtonEvent(PipelineId, MouseEventType, MouseButton, Point2D<f32>),
+    /// Re-send a mouse move event that was sent to the parent window.
+    ForwardMouseMoveEvent(PipelineId, Point2D<f32>),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
     /// <head> tag finished parsing
