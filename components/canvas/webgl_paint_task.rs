@@ -58,6 +58,10 @@ impl WebGLPaintTask {
                 self.context_attributes(sender),
             CanvasWebGLMsg::ActiveTexture(target) =>
                 gl::active_texture(target),
+            CanvasWebGLMsg::AttachShader(program_id, shader_id) =>
+                gl::attach_shader(program_id, shader_id),
+            CanvasWebGLMsg::BindAttribLocation(program_id, index, name) =>
+                gl::bind_attrib_location(program_id, index, &name),
             CanvasWebGLMsg::BlendColor(r, g, b, a) =>
                 gl::blend_color(r, g, b, a),
             CanvasWebGLMsg::BlendEquation(mode) =>
@@ -68,8 +72,6 @@ impl WebGLPaintTask {
                 gl::blend_func(src, dest),
             CanvasWebGLMsg::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) =>
                 gl::blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha),
-            CanvasWebGLMsg::AttachShader(program_id, shader_id) =>
-                gl::attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) =>
                 gl::buffer_data(buffer_type, &data, usage),
             CanvasWebGLMsg::BufferSubData(buffer_type, offset, data) =>
