@@ -10,5 +10,5 @@ interface HTMLHeadingElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLHeadingElement-partial
 partial interface HTMLHeadingElement {
-  //         attribute DOMString align;
+  attribute DOMString align;
 };
