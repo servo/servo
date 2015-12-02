@@ -26,6 +26,7 @@ use url::{self, Url};
 pub struct Opts {
     pub is_running_problem_test: bool,
 
+   
     /// The initial URL to load.
     pub url: Option<Url>,
 
@@ -189,7 +190,7 @@ pub struct Opts {
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
 
-    pub graphics_select: String,
+    pub graphics_select: RenderApi,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -395,20 +396,20 @@ enum UserAgent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum RenderApi {
+pub enum RenderApi {
     GL,
     ES2
 }
 
 const DEFAULT_GRAPHICS: RenderApi = RenderApi::GL;
 
- fn default_graphics_select_string(goption: RenderApi) -> String {
+ fn default_graphics_select_string(goption: RenderApi) -> RenderApi {
       match goption {
           RenderApi::GL => {
-                "GL"
+                RenderApi::GL
           },
           RenderApi::ES2 => {
-              "ES2"
+              RenderApi::ES2
           }
       }.to_owned()
   }
