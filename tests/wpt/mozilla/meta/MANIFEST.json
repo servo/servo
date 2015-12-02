@@ -3607,6 +3607,18 @@
             "url": "/_mozilla/css/position_fixed_simple_a.html"
           }
         ],
+        "css/position_fixed_static_y_a.html": [
+          {
+            "path": "css/position_fixed_static_y_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_static_y_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_static_y_a.html"
+          }
+        ],
         "css/position_fixed_tile_edge.html": [
           {
             "path": "css/position_fixed_tile_edge.html",
@@ -9364,6 +9376,18 @@
             ]
           ],
           "url": "/_mozilla/css/position_fixed_simple_a.html"
+        }
+      ],
+      "css/position_fixed_static_y_a.html": [
+        {
+          "path": "css/position_fixed_static_y_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_static_y_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_static_y_a.html"
         }
       ],
       "css/position_fixed_tile_edge.html": [
