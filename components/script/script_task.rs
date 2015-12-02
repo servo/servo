@@ -1118,9 +1118,13 @@ impl ScriptTask {
             WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
                 webdriver_handlers::handle_get_frame_id(&page, pipeline_id, frame_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
-                webdriver_handlers::handle_get_url(&page, pipeline_id, reply),
+                webdriver_handlers::handle_get_url(&page, reply),
             WebDriverScriptCommand::GetWindowSize(reply) =>
-                webdriver_handlers::handle_get_window_size(&page, pipeline_id, reply),
+                webdriver_handlers::handle_get_window_size(&page, reply),
+            WebDriverScriptCommand::SetWindowSize(width, height, reply) =>
+                webdriver_handlers::handle_set_window_size(&page, width, height, reply),
+            WebDriverScriptCommand::Close(reply) =>
+                webdriver_handlers::handle_close(&page, reply),
             WebDriverScriptCommand::IsEnabled(element_id, reply) =>
                 webdriver_handlers::handle_is_enabled(&page, pipeline_id, element_id, reply),
             WebDriverScriptCommand::IsSelected(element_id, reply) =>
