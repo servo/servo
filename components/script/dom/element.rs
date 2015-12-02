@@ -1109,7 +1109,10 @@ impl Element {
         }
     }
 
-    // TODO: set_int_attribute(...)
+    pub fn set_int_attribute(&self, local_name: &Atom, value: i32) {
+        assert!(&**local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::Int(DOMString::from(value.to_string()), value));
+    }
 
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));

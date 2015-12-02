@@ -5,8 +5,8 @@
 use cssparser::RGBA;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
-use util::str::{DOMString, LengthOrPercentageOrAuto, parse_integer, parse_unsigned_integer, parse_legacy_color, parse_length};
-use util::str::{split_html_space_chars, str_join};
+use util::str::{DOMString, LengthOrPercentageOrAuto, parse_unsigned_integer, parse_legacy_color, parse_length};
+use util::str::{split_html_space_chars, str_join, parse_integer};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -53,10 +53,20 @@ impl AttrValue {
         AttrValue::UInt(string, result)
     }
 
-    // https://html.spec.whatwg.org/multipage/infrastructure.html#limited-to-only-non-negative-numbers
     pub fn from_i32(string: DOMString, default: i32) -> AttrValue {
         let result = parse_integer(string.chars()).unwrap_or(default);
         AttrValue::Int(string, result)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers
+    pub fn from_limited_i32(string: DOMString, default: i32) -> AttrValue {
+        let result = parse_integer(string.chars()).unwrap_or(default);
+
+        if result < 0 {
+            AttrValue::Int(string, default)
+        } else {
+            AttrValue::Int(string, result)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers-greater-than-zero

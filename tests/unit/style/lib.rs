@@ -20,6 +20,7 @@ extern crate util;
 #[cfg(test)] mod stylesheets;
 #[cfg(test)] mod media_queries;
 #[cfg(test)] mod viewport;
+#[cfg(test)] mod attr;
 
 #[cfg(test)] mod writing_modes {
     use style::properties::{INITIAL_VALUES, get_writing_mode};
