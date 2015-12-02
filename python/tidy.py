@@ -48,6 +48,8 @@ ignored_files = [
 
 
 def should_check(file_name):
+    if os.path.basename(file_name) == "Cargo.lock":
+        return True
     if ".#" in file_name:
         return False
     if os.path.splitext(file_name)[1] not in filetypes_to_check:
