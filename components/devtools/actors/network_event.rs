@@ -12,6 +12,7 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use hyper::header::Headers;
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
@@ -57,6 +58,18 @@ pub struct ResponseStartMsg {
     pub headersSize: u32,
     pub discardResponseBody: bool,
 }
+
+#[derive(RustcEncodable)]
+pub struct ResponseContentMsg {
+   // pub mimeType: String,
+   // pub contentSize: u32,
+   // pub transferredSize: u32,
+   // pub discardResponseBody: bool,
+	pub content: Option<Vec<u8>>,
+	pub contentDiscarded: bool,
+	
+}
+
 
 #[derive(RustcEncodable)]
 struct GetRequestHeadersReply {
@@ -263,10 +276,31 @@ impl Actor for NetworkEventActor {
                 ActorMessageStatus::Processed
             }
 			"getEventTimings" => {
-				
+				// TODO: This is a fake timings msg
+				let timingsObj = Timings {
+									blocked: 0,
+									dns: 0,
+									connect: 0,
+									send: 0,
+									wait: 0,
+									receive: 0,
+								};
+				// TODO: Send the correct values for all these fields. 
+				let msg = GetEventTimingsReply {
+    						 from: self.name(),
+   							 timings: timingsObj,
+							 totalTime: 0,
+						   };
+				stream.write_json_packet(&msg);
 				ActorMessageStatus::Processed
 			}
 			"getSecurityInfo" => {
+				// TODO: Send the correct values for securityInfo.
+				let msg = GetSecurityInfoReply {
+    						from: self.name(),
+    						seuritInfo: "".to_owned(),
+						  };
+				stream.write_json_packet(&msg);
 				ActorMessageStatus::Processed
 			}
             _ => ActorMessageStatus::Ignored
@@ -320,14 +354,53 @@ impl NetworkEventActor {
     pub fn response_start(&self) -> ResponseStartMsg {
         // TODO: Send the correct values for all these fields.
         //       This is a fake message.
+
+		//let new_headers = self.response.headers.clone();
+		let mut hSize=0;
+		if let Some(res_headers) = self.response.headers.clone() {
+			hSize = res_headers.len() as u32;
+		}
+		
+		let mut status_code=0;
+		let mut status_message="".to_owned();
+		if let Some(res_status) = self.response.status.clone() {
+			let RawStatus(code,text_Res) = res_status;
+			status_code = code;
+			status_message = text_Res.into_owned();
+		}
         ResponseStartMsg {
             httpVersion: "HTTP/1.1".to_owned(),
             remoteAddress: "63.245.217.43".to_owned(),
             remotePort: 443,
-            status: "200".to_owned(),
-            statusText: "OK".to_owned(),
-            headersSize: 337,
-            discardResponseBody: true
+            status: status_code.to_string(),
+            statusText: status_message,
+            headersSize: hSize,
+            discardResponseBody: false
         }
     }
+	
+	pub fn response_content(&self) -> ResponseContentMsg {
+			
+			let msg=	ResponseContentMsg {
+						content: self.response.body.clone(),
+						contentDiscarded: false,
+					};
+				return msg;
+			-----------------------------
+				if let Some(list) = self.response.headers.clone() {
+            	let mimetype = match list.get() {
+								Some(&ContentType(ref mime)) => Some(mime),
+								None => None
+							};
+				ResponseContentMsg {
+				mimeType: mimetype,
+				contentSize: 0,
+				transferredSize: 0,
+				discardResponseBody: false,
+			}
+
+			}
+
+	}
+
 }

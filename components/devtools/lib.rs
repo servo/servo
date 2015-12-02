@@ -35,7 +35,7 @@ use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
-use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
+use actors::network_event::{EventActor, NetworkEventActor, ResponseContentMsg, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
@@ -103,11 +103,43 @@ struct NetworkEventMsg {
 
 
 #[derive(RustcEncodable)]
-struct NetworkEventUpdateMsg {
+struct ResponseStartUpdateMsg {
     from: String,
     __type__: String,
     updateType: String,
     response: ResponseStartMsg,
+}
+
+#[derive(RustcEncodable)]
+struct ResponseContentUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    responseContent: ResponseContentMsg,
+}
+
+#[derive(RustcEncodable)]
+struct RequestCookiesUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    cookies: ResponseStartMsg,
+}
+
+#[derive(RustcEncodable)]
+struct EventTimingsUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    totalTime: u32,
+}
+
+#[derive(RustcEncodable)]
+struct SecurityInfoUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    securityState: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -355,8 +387,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 actor.add_response(httpresponse);
 
                 //Send a networkEventUpdate (responseStart) to the client
-                let msg = NetworkEventUpdateMsg {
-                    from: netevent_actor_name,
+                let msg = ResponseStartUpdateMsg {
+                    from: netevent_actor_name.clone(),
                     __type__: "networkEventUpdate".to_owned(),
                     updateType: "responseStart".to_owned(),
                     response: actor.response_start()
@@ -365,6 +397,40 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
+				
+				let msg2 = EventTimingsUpdateMsg {
+                    from: netevent_actor_name.clone(),
+                    __type__: "networkEventUpdate".to_owned(),
+                    updateType: "eventTimings".to_owned(),
+                    totalTime: 0
+                };
+
+                for stream in &mut connections {
+                    stream.write_json_packet(&msg2);
+                }
+
+				let msg3 = SecurityInfoUpdateMsg {
+                    from: netevent_actor_name.clone(),
+                    __type__: "networkEventUpdate".to_owned(),
+                    updateType: "securityInfo".to_owned(),
+                    securityState: "".to_owned(),
+                };
+
+                for stream in &mut connections {
+                    stream.write_json_packet(&msg3);
+                }
+
+				let msg4 = ResponseContentUpdateMsg {
+                    from: netevent_actor_name.clone(),
+                    __type__: "networkEventUpdate".to_owned(),
+                    updateType: "responseContent".to_owned(),
+                    responseContent: actor.response_content(),
+                };
+
+                for stream in &mut connections {
+                    stream.write_json_packet(&msg4);
+                }
+
             }
             //TODO: Send the other types of update messages at appropriate times
             //      requestHeaders, requestCookies, responseHeaders, securityInfo, etc
