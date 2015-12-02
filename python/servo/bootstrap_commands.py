@@ -251,7 +251,7 @@ class MachCommands(CommandBase):
 
         # The chromium "json" has single line comments in it which, of course,
         # are non-standard/non-valid json. Simply strip them out before parsing
-        content_json = re.sub(r'//.*$', '', content_decoded, flags=re.MULTILINE)
+        content_json = re.sub(r'(^|\s+)//.*$', '', content_decoded, flags=re.MULTILINE)
 
         try:
             pins_and_static_preloads = json.loads(content_json)
