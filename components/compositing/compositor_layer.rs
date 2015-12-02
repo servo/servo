@@ -12,9 +12,9 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{MouseEventType, PipelineId};
 use script_traits::CompositorEvent;
-use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
+use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
 use windowing::{MouseWindowEvent, WindowMethods};
@@ -372,11 +372,11 @@ impl CompositorLayer for Layer<CompositorData> {
         let event_point = cursor.to_untyped();
         let message = match event {
             MouseWindowEvent::Click(button, _) =>
-                ClickEvent(button, event_point),
+                MouseButtonEvent(MouseEventType::Click, button, event_point),
             MouseWindowEvent::MouseDown(button, _) =>
-                MouseDownEvent(button, event_point),
+                MouseButtonEvent(MouseEventType::MouseDown, button, event_point),
             MouseWindowEvent::MouseUp(button, _) =>
-                MouseUpEvent(button, event_point),
+                MouseButtonEvent(MouseEventType::MouseUp, button, event_point),
         };
         self.send_event(compositor, message);
     }

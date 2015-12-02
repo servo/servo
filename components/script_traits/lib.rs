@@ -34,6 +34,7 @@ use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
+use msg::constellation_msg::{MouseButton, MouseEventType};
 use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
@@ -146,17 +147,6 @@ pub enum ConstellationControlMsg {
     },
 }
 
-/// The mouse button involved in the event.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum MouseButton {
-    /// The left mouse button.
-    Left,
-    /// The middle mouse button.
-    Middle,
-    /// The right mouse button.
-    Right,
-}
-
 /// The type of input represented by a multi-touch event.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum TouchEventType {
@@ -181,12 +171,8 @@ pub struct TouchId(pub i32);
 pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData),
-    /// A point was clicked.
-    ClickEvent(MouseButton, Point2D<f32>),
-    /// A mouse button was pressed on a point.
-    MouseDownEvent(MouseButton, Point2D<f32>),
-    /// A mouse button was released on a point.
-    MouseUpEvent(MouseButton, Point2D<f32>),
+    /// A mouse button state changed.
+    MouseButtonEvent(MouseEventType, MouseButton, Point2D<f32>),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
     MouseMoveEvent(Option<Point2D<f32>>),
     /// A touch event was generated with a touch ID and location.

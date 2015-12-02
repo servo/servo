@@ -82,13 +82,14 @@ use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{AnimationState, PipelineId};
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
+use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{MouseButton, MouseEventType, MozBrowserEvent, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable};
-use script_traits::{MouseButton, TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -1361,14 +1362,6 @@ impl Document {
         self.dom_complete.get()
     }
 }
-
-#[derive(HeapSizeOf)]
-pub enum MouseEventType {
-    Click,
-    MouseDown,
-    MouseUp,
-}
-
 
 #[derive(PartialEq, HeapSizeOf)]
 pub enum DocumentSource {
