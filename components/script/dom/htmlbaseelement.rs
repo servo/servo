@@ -11,6 +11,7 @@ use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
+use string_cache::Atom;
 use url::{Url, UrlParser};
 use util::str::DOMString;
 
@@ -20,14 +21,14 @@ pub struct HTMLBaseElement {
 }
 
 impl HTMLBaseElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, prefix, document);

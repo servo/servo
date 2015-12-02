@@ -126,20 +126,20 @@ impl Element {
     }
 
 
-    pub fn new_inherited(local_name: DOMString,
+    pub fn new_inherited(local_name: Atom,
                          namespace: Namespace, prefix: Option<DOMString>,
                          document: &Document) -> Element {
         Element::new_inherited_with_state(ElementState::empty(), local_name,
                                           namespace, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: ElementState, local_name: DOMString,
+    pub fn new_inherited_with_state(state: ElementState, local_name: Atom,
                                     namespace: Namespace, prefix: Option<DOMString>,
                                     document: &Document)
                                     -> Element {
         Element {
             node: Node::new_inherited(document),
-            local_name: Atom::from(&*local_name),
+            local_name: local_name,
             namespace: namespace,
             prefix: prefix,
             attrs: DOMRefCell::new(vec![]),
@@ -151,7 +151,7 @@ impl Element {
         }
     }
 
-    pub fn new(local_name: DOMString,
+    pub fn new(local_name: Atom,
                namespace: Namespace,
                prefix: Option<DOMString>,
                document: &Document) -> Root<Element> {

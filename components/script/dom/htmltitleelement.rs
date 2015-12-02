@@ -13,6 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -21,14 +22,14 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTitleElement> {
         let element = HTMLTitleElement::new_inherited(localName, prefix, document);

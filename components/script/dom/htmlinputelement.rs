@@ -105,7 +105,7 @@ impl InputActivationState {
 static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
         let chan = document.window().constellation_chan();
         HTMLInputElement {
             htmlelement:
@@ -122,7 +122,7 @@ impl HTMLInputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLInputElement> {
         let element = HTMLInputElement::new_inherited(localName, prefix, document);

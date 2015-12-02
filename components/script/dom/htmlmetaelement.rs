@@ -14,6 +14,7 @@ use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
+use string_cache::Atom;
 use style::stylesheets::{CSSRule, Origin, Stylesheet};
 use style::viewport::ViewportRule;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -25,7 +26,7 @@ pub struct HTMLMetaElement {
 }
 
 impl HTMLMetaElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
@@ -35,7 +36,7 @@ impl HTMLMetaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, prefix, document);

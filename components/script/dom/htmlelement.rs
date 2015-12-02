@@ -54,12 +54,12 @@ impl PartialEq for HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new_inherited(tag_name: DOMString, prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: Atom, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: ElementState, tag_name: DOMString,
+    pub fn new_inherited_with_state(state: ElementState, tag_name: Atom,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> HTMLElement {
         HTMLElement {
@@ -71,7 +71,7 @@ impl HTMLElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
         let element = HTMLElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }

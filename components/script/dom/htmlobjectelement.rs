@@ -17,6 +17,7 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
 use std::sync::Arc;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -26,7 +27,7 @@ pub struct HTMLObjectElement {
 }
 
 impl HTMLObjectElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
@@ -37,7 +38,7 @@ impl HTMLObjectElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, prefix, document);

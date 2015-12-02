@@ -49,7 +49,7 @@ impl PartialEq for HTMLFormElement {
 }
 
 impl HTMLFormElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFormElement {
         HTMLFormElement {
@@ -59,7 +59,7 @@ impl HTMLFormElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFormElement> {
         let element = HTMLFormElement::new_inherited(localName, prefix, document);
