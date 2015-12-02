@@ -188,6 +188,8 @@ pub struct Opts {
 
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
+
+    pub graphics_select: String,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -392,6 +394,25 @@ enum UserAgent {
     Gonk,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+enum RenderApi {
+    GL,
+    ES2
+}
+
+const DEFAULT_GRAPHICS: RenderApi = RenderApi::GL;
+
+ fn default_graphics_select_string(goption: RenderApi) -> String {
+      match goption {
+          RenderApi::GL => {
+                "GL"
+          },
+          RenderApi::ES2 => {
+              "ES2"
+          }
+      }.to_owned()
+  }
+
 fn default_user_agent_string(agent: UserAgent) -> String {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
@@ -488,6 +509,7 @@ pub fn default_opts() -> Opts {
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
+	graphics_select: default_graphics_select_string(DEFAULT_GRAPHICS),
     }
 }
 
@@ -532,6 +554,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optflagopt("G", "graphics", "Select graphics backend (GL or ES2)", "GL");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -624,6 +647,13 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let nonincremental_layout = opt_match.opt_present("i");
 
+    let graphics_select = match opt_match.opt_str("G") {
+         Some(ref ga) if ga == "GL" => default_graphics_select_string(RenderApi::GL),
+         Some(ref ga) if ga == "ES2" => default_graphics_select_string(RenderApi::ES2),
+         Some(ga) =>  args_fail(&format!("error: graphics option should be GL or ES2:")),
+         None => default_graphics_select_string(RenderApi::GL),
+     };
+
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
         paint_threads = 1;
@@ -702,6 +732,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
         sandbox: opt_match.opt_present("S"),
+	graphics_select: graphics_select,
         show_debug_borders: debug_options.show_compositor_borders,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_paint: debug_options.show_parallel_paint,
