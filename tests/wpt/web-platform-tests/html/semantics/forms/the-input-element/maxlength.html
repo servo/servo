@@ -39,15 +39,9 @@
 
       test(
           function() {
-            try {
+            assert_throws("INDEX_SIZE_ERR", function() {
               document.getElementById("assign-negative").maxLength = -5;
-            } catch (e) {
-              if (e.name == "IndexSizeError") {
-                return;
-              }
-            }
-
-            throw new Error("expected IndexSizeError");
+            });
           }, "Assigning negative integer throws IndexSizeError");
 
       test(
