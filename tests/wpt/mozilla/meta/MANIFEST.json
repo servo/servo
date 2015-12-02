@@ -4375,6 +4375,18 @@
             "url": "/_mozilla/css/text_decoration_cached.html"
           }
         ],
+        "css/text_decoration_propagation_a.html": [
+          {
+            "path": "css/text_decoration_propagation_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_propagation_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_propagation_a.html"
+          }
+        ],
         "css/text_decoration_smoke_a.html": [
           {
             "path": "css/text_decoration_smoke_a.html",
@@ -10156,6 +10168,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_decoration_cached.html"
+        }
+      ],
+      "css/text_decoration_propagation_a.html": [
+        {
+          "path": "css/text_decoration_propagation_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_propagation_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_propagation_a.html"
         }
       ],
       "css/text_decoration_smoke_a.html": [
