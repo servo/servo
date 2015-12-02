@@ -34,6 +34,7 @@ use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 #[cfg(feature = "window")]
 use util::opts;
+use util::opts::RenderApi;
 
 #[cfg(feature = "window")]
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
@@ -138,15 +139,19 @@ impl Window {
         }
     }
 
-    #[cfg(not(target_os = "android"))]
+#[cfg(any(target_os = "android",target_os = "linux"))]
     fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGl, (2, 1))
-    }
+	match opts::get().graphics_select {
+		RenderApi::GL => {
+ 			GlRequest::Specific(Api::OpenGl, (2, 1))
+		},
+		RenderApi::ES2 => {
+ 			GlRequest::Specific(Api::OpenGlEs, (2, 0))
+		}
+	}
+}
 
-    #[cfg(target_os = "android")]
-    fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGlEs, (2, 0))
-    }
+
 
     #[cfg(not(target_os = "android"))]
     fn load_gl_functions(window: &glutin::Window) {
@@ -631,10 +636,20 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os = "linux")]
+
     fn native_display(&self) -> NativeDisplay {
         use x11::xlib;
         unsafe {
-            NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
+ 		 match opts::get().graphics_select {
+		RenderApi::GL => {
+ 			NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
+		},
+		RenderApi::ES2 => {
+ 			NativeDisplay::from_es2(self.window.platform_display() as *mut xlib::Display)
+		}
+	}
+
+            
         }
     }
 
