@@ -975,8 +975,9 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn get_colspan(&self) -> u32;
 }
 
-// These can violate the thread-safety and therefore are not public.
-trait DangerousThreadSafeLayoutNode<'ln> : ThreadSafeLayoutNode<'ln> {
+// This trait is only public so that it can be implemented by the gecko wrapper.
+// It can be used to violate thread-safety, so don't use it elsewhere in layout!
+pub trait DangerousThreadSafeLayoutNode<'ln> : ThreadSafeLayoutNode<'ln> {
     unsafe fn dangerous_first_child(&self) -> Option<Self>;
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
