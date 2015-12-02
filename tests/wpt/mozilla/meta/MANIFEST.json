@@ -3559,6 +3559,18 @@
             "url": "/_mozilla/css/position_abs_width_percentage_a.html"
           }
         ],
+        "css/position_fixed_a.html": [
+          {
+            "path": "css/position_fixed_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_a.html"
+          }
+        ],
         "css/position_fixed_background_color_a.html": [
           {
             "path": "css/position_fixed_background_color_a.html",
@@ -9292,6 +9304,18 @@
             ]
           ],
           "url": "/_mozilla/css/position_abs_width_percentage_a.html"
+        }
+      ],
+      "css/position_fixed_a.html": [
+        {
+          "path": "css/position_fixed_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_a.html"
         }
       ],
       "css/position_fixed_background_color_a.html": [
