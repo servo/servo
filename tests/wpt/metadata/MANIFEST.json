@@ -18012,6 +18012,10 @@
         "url": "/html/semantics/forms/the-input-element/input-type-checkbox.html"
       },
       {
+        "path": "html/semantics/forms/the-input-element/maxlength.html",
+        "url": "/html/semantics/forms/the-input-element/maxlength.html"
+      },
+      {
         "path": "html/semantics/forms/the-input-element/month.html",
         "url": "/html/semantics/forms/the-input-element/month.html"
       },
@@ -18086,10 +18090,6 @@
       {
         "path": "html/semantics/forms/the-input-element/week.html",
         "url": "/html/semantics/forms/the-input-element/week.html"
-      },
-      {
-        "path": "html/semantics/forms/the-input-element/maxlength.html",
-        "url": "/html/semantics/forms/the-input-element/maxlength.html"
       },
       {
         "path": "html/semantics/forms/the-label-element/label-attributes.html",
@@ -30133,7 +30133,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "manual": {
+        "html/semantics/forms/the-input-element/maxlength-manual.html": [
+          {
+            "path": "html/semantics/forms/the-input-element/maxlength-manual.html",
+            "url": "/html/semantics/forms/the-input-element/maxlength-manual.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
