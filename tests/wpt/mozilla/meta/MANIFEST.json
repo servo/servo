@@ -3295,6 +3295,18 @@
             "url": "/_mozilla/css/overflow_position_abs_inline_block.html"
           }
         ],
+        "css/overflow_position_abs_inside_normal_a.html": [
+          {
+            "path": "css/overflow_position_abs_inside_normal_a.html",
+            "references": [
+              [
+                "/_mozilla/css/overflow_position_abs_inside_normal_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/overflow_position_abs_inside_normal_a.html"
+          }
+        ],
         "css/overflow_position_abs_simple_a.html": [
           {
             "path": "css/overflow_position_abs_simple_a.html",
@@ -9016,6 +9028,18 @@
             ]
           ],
           "url": "/_mozilla/css/overflow_position_abs_inline_block.html"
+        }
+      ],
+      "css/overflow_position_abs_inside_normal_a.html": [
+        {
+          "path": "css/overflow_position_abs_inside_normal_a.html",
+          "references": [
+            [
+              "/_mozilla/css/overflow_position_abs_inside_normal_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/overflow_position_abs_inside_normal_a.html"
         }
       ],
       "css/overflow_position_abs_simple_a.html": [
