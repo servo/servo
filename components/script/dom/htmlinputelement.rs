@@ -609,7 +609,7 @@ impl VirtualMethods for HTMLInputElement {
                             self.textinput.borrow_mut().max_length = Some(value as usize)
                         }
                     },
-                    _ => panic!("Expected an AttrValue::UInt"),
+                    _ => panic!("Expected an AttrValue::Int"),
                 }
             }
             &atom!("placeholder") => {
