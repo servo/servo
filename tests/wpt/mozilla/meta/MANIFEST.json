@@ -4423,6 +4423,18 @@
             "url": "/_mozilla/css/text_justify_none_a.html"
           }
         ],
+        "css/text_overflow_a.html": [
+          {
+            "path": "css/text_overflow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_a.html"
+          }
+        ],
         "css/text_overflow_basic_a.html": [
           {
             "path": "css/text_overflow_basic_a.html",
@@ -10192,6 +10204,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_justify_none_a.html"
+        }
+      ],
+      "css/text_overflow_a.html": [
+        {
+          "path": "css/text_overflow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_a.html"
         }
       ],
       "css/text_overflow_basic_a.html": [
