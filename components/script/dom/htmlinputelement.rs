@@ -8,8 +8,8 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
+use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -104,7 +104,7 @@ impl InputActivationState {
 }
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
-static DEFAULT_MAX_LENGTH : i32 = -1;
+static DEFAULT_MAX_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
@@ -344,15 +344,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
-    fn SetMaxLength(&self, val: i32) {
-        self.maxlength.set(val);
-
-        if val >= 0 {
-            self.textinput.borrow_mut().max_length = Some(val as usize)
-        } else {
-            self.textinput.borrow_mut().max_length = None
-        }
-    }
+    make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
