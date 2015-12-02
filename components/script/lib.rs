@@ -20,7 +20,6 @@
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
 #![feature(plugin)]
-#![feature(ref_slice)]
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
 #![feature(unicode)]
@@ -52,6 +51,7 @@ extern crate image;
 extern crate ipc_channel;
 extern crate js;
 extern crate libc;
+extern crate ref_slice;
 #[macro_use]
 extern crate log;
 extern crate msg;
