@@ -5,6 +5,10 @@
             "include_subdomains": true
         }, 
         {
+            "host": "pinning-test.badssl.com", 
+            "include_subdomains": true
+        }, 
+        {
             "host": "google.com", 
             "include_subdomains": true
         }, 
@@ -137,6 +141,18 @@
             "include_subdomains": true
         }, 
         {
+            "host": "fi.google.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--7xa.google.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pixel.google.com", 
+            "include_subdomains": true
+        }, 
+        {
             "host": "google", 
             "include_subdomains": true
         }, 
@@ -222,6 +238,18 @@
         }, 
         {
             "host": "gvt3.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "withyoutube.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "withgoogle.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "g4w.co", 
             "include_subdomains": true
         }, 
         {
@@ -374,6 +402,14 @@
         }, 
         {
             "host": "googletagservices.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ggpht.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blogspot.com", 
             "include_subdomains": true
         }, 
         {
@@ -2541,6 +2577,14 @@
             "include_subdomains": true
         }, 
         {
+            "host": "dropboxstatic.com", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "dropboxusercontent.com", 
+            "include_subdomains": false
+        }, 
+        {
             "host": "code-poets.co.uk", 
             "include_subdomains": true
         }, 
@@ -4022,10 +4066,6 @@
         }, 
         {
             "host": "fronteers.nl", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "getssl.uz", 
             "include_subdomains": true
         }, 
         {
@@ -5689,6 +5729,10 @@
             "include_subdomains": true
         }, 
         {
+            "host": "pay.ubuntu.com", 
+            "include_subdomains": true
+        }, 
+        {
             "host": "login.launchpad.net", 
             "include_subdomains": true
         }, 
@@ -6398,7 +6442,7 @@
         }, 
         {
             "host": "guidetoiceland.is", 
-            "include_subdomains": true
+            "include_subdomains": false
         }, 
         {
             "host": "happylifestyle.com", 
@@ -6478,10 +6522,6 @@
         }, 
         {
             "host": "niloxy.com", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "noobs-r-us.co.uk", 
             "include_subdomains": true
         }, 
         {
@@ -7965,10 +8005,6 @@
             "include_subdomains": true
         }, 
         {
-            "host": "astaxi.net", 
-            "include_subdomains": true
-        }, 
-        {
             "host": "bradkovach.com", 
             "include_subdomains": true
         }, 
@@ -8010,14 +8046,6 @@
         }, 
         {
             "host": "eromixx.com", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "ezequiel-garzon.com", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "ezequiel-garzon.net", 
             "include_subdomains": true
         }, 
         {
@@ -8090,10 +8118,6 @@
         }, 
         {
             "host": "mcard.vn", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "mccrypto.de", 
             "include_subdomains": true
         }, 
         {
@@ -8561,10 +8585,6 @@
             "include_subdomains": true
         }, 
         {
-            "host": "etoprekrasno.ru", 
-            "include_subdomains": true
-        }, 
-        {
             "host": "fish-hook.ru", 
             "include_subdomains": true
         }, 
@@ -8654,10 +8674,6 @@
         }, 
         {
             "host": "keybase.io", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "keycom.co.uk", 
             "include_subdomains": true
         }, 
         {
@@ -8938,7 +8954,7 @@
         }, 
         {
             "host": "carbonmade.com", 
-            "include_subdomains": true
+            "include_subdomains": false
         }, 
         {
             "host": "collinmbarrett.com", 
@@ -8990,10 +9006,6 @@
         }, 
         {
             "host": "fluxfingers.net", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "getbambu.com", 
             "include_subdomains": true
         }, 
         {
@@ -9282,10 +9294,6 @@
         }, 
         {
             "host": "foxelbox.com", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "fsma.pl", 
             "include_subdomains": true
         }, 
         {
@@ -9786,7 +9794,7 @@
         }, 
         {
             "host": "branchtrack.com", 
-            "include_subdomains": true
+            "include_subdomains": false
         }, 
         {
             "host": "brks.xyz", 
@@ -10282,10 +10290,6 @@
         }, 
         {
             "host": "pbprint.ru", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "phcorner.net", 
             "include_subdomains": true
         }, 
         {
@@ -10854,10 +10858,6 @@
         }, 
         {
             "host": "cydia-search.io", 
-            "include_subdomains": true
-        }, 
-        {
-            "host": "delbart.se", 
             "include_subdomains": true
         }, 
         {
@@ -11549,10 +11549,6 @@
             "include_subdomains": true
         }, 
         {
-            "host": "uber.com", 
-            "include_subdomains": true
-        }, 
-        {
             "host": "throwpass.com", 
             "include_subdomains": true
         }, 
@@ -11699,6 +11695,5242 @@
         {
             "host": "student.andover.edu", 
             "include_subdomains": true
+        }, 
+        {
+            "host": "0.me.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "agilebits.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alenan.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "amisharingstuff.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "amunoz.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "appuro.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "askfit.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "axado.com.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bebesurdoue.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "burnworks.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "canadalife.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chaosdorf.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cheerflow.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chrisbrown.id.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chromebooksforwork.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cloudmigrator365.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cloudpagesforwork.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "clu-in.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cmc-versand.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cnlic.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cocoaheads.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "colorlib.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "corruption-mc.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "corruption-rsps.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "corruption-server.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cthulhuden.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dateno1.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "democracy.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "democracychronicles.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "demuzere.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "deviltracks.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dietrich.cx", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dissimulo.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dlscomputers.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dogoodbehappyllc.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dreid.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "e-deca2.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elitehosting.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "empowerdb.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "endlesshorizon.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "entrepreneur.or.id", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eol34.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eroticen.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eucl3d.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "firmapi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "freeweibo.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "funchestra.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gamenected.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gamenected.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "getsport.mobi", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ghostblog.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gmdu.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "grafitec.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "greatfire.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "greenroach.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hablemosdetecnologia.com.ve", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hardh.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "haveeruexaminer.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "helloacm.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hurricanelabs.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hyper-text.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "idndx.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "im-c-shop.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "inbitcoin.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "inspiroinc.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "instant-hack.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "iraqidinar.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "itsagadget.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ivancacic.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "j0s.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jamesmaurer.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jinbo123.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "joshstroup.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "justyy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kasko.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kawaii.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kazandaemon.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kbcequitas.hu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "keskeces.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lehighmathcircle.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lenzw.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "leon-jaekel.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "linuxcommand.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lognot.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maclemon.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maternalsafety.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "max-moeglich.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mclab.su", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mdek.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "meddelare.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "medexpress.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mediawiki.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mikaela.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "milahendri.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moniquedekermadec.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "msebera.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mypagella.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "necesitodinero.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "obermeiers.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ollning.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "omacostudio.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ourbank.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "paysera.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "petersmark.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "phryneas.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pinesandneedles.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pmnts.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "qingxuan.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "raah.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "recon-networks.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "renlong.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "reucon.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ristioja.ee", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "roberthurlbut.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rugstorene.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shadowkitsune.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shaundanielz.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shellvatore.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shipcloud.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simplexsupport.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "slainvet.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smartlocksmith.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "social-media-strategies.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sparklingsparklers.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sportifik.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tanzhijun.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tcao.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "teamblueridge.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tecart-cloud.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tecart-system.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tecartcrm.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "techandtux.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tehrabbitt.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thehiddenbay.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ticketmates.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tinyvpn.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tinyvpn.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tls1914.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "topnewstoday.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "totalcarcheck.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "toxme.se", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "trueblueessentials.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tumutanzi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tuzaijidi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ubicv.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "un-zero-un.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "unionstationapp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "utonia.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "victorcanera.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vokeapp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "waze.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "whitehouse.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikibooks.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikimediafoundation.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikinews.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikiquote.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikisource.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikiversity.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikivoyage.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wiktionary.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "worcesterfestival.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "x.st", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "x64architecture.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--datenrettung-mnchen-jbc.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--hfk-allgu-schwaben-stb.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--mgbbh2a9fub.xn--ngbc5azd", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yippie.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yu.gg", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zeno-system.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "track.plus", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blog.gov.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "clubmini.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "codingforspeed.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cradlepointecm.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dobet.in", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "domainexpress.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ediscomp.sk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "edissecurity.sk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ewe2.ninja", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fluxent.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fruitusers.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gpsvideocanada.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gracedays.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "inksupply.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jhburton.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "odin.xxx", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pagure.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pagure.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "silvergoldbull.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "silvergoldbull.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sunnyfruit.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "szaydon.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tosecure.link", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "uploadbeta.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wholebites.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wikipedia.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "woresite.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "agonswim.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "appharbor.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "armory.consulting", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "armory.supplies", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "b2and.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bowlroll.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bryanquigley.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cfcnexus.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "clipped4u.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "coffeestrategies.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cvsoftub.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dailyenglishchallenge.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "derreichesack.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "devnsec.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "donateaday.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dragon-chem.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eelsden.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elenag.ga", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "emailhunter.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "expressvpn.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "factorygw.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flamingkeys.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "giveattheoffice.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "givingnexus.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "granth.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "happyfabric.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "happygadget.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "illorenese.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "imirhil.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ipledgeonline.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "junethack.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mamaison.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mca2017.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mnd.sc", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "modemagazines.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "n-pix.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "open-to-repair.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "panoti.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "philosophyguides.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pmctire.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "polis.or.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "quppa.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rc4.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rot47.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rusl.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "satmep.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "secctexasgiving.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "secureideas.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simod.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simplycharlottemason.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "skoda-clever-lead.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "skoda-im-dialog.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "skoda-nurdiebesten.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "slix.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "speed-mailer.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "steelephys.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stick2bike.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "swift-devedge.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "syntaxnightmare.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tbrss.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tokke.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "unapp.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "valopv.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "varvy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "videomail.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "welovemail.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "whispeer.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wm-talk.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xd.cm", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zaufanatrzeciastrona.pl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zx6rninja.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zachborboa.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alt.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "badcronjob.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bankin.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "boris.one", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "brakstad.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bulldog-hosting.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "campus-finance.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cao.la", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cashlink.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ckleemann.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cloud-project.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cloudwalk.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "coore.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crackingking.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "davidgrudl.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "davisroi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "didacte.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dirkwolf.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dotadata.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dronepit.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "duckduckstart.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "e-typ.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eleicoes2016.com.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "engelundlicht.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "etaes.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ethicaldata.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "floskelwolke.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "geekcast.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gmta.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "govtrack.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "guilde-vindicta.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hisbrucker.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hledejlevne.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hookandloom.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hranicka.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hsts.date", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ipv6-adresse.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "iqboxy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ivk.website", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jacekowski.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kermadec.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "latrine.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ldc.com.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "leominstercu.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lmddgtfy.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lmsptfy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "madrants.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "marktboten.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "melf.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "meteosky.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mirtes.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mitchellrenouf.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "munzee.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "musikkfondene.no", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mydeos.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "myraytech.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nethackwiki.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nette.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "only-roses.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "openkvk.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "phpfashion.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pleier-it.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pleier.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "recommended.reviews", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "reddit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "remoteutilities.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rj.gg", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rtcx.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "runementors.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rusl.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sellme.biz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shopapi.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "silentkernel.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "skimming.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "skoleniphp.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smb445.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sobabox.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "soply.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sweetll.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "taskstream.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thedreamtravelgroup.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thehotfix.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tiffnix.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tomli.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vivendi.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vsean.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wesleycabus.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wover.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wpserp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "z0rro.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zhihua-lai.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "1017scribes.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "anfsanchezo.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bcvps.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beautykat.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bevapehappy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bouncyballs.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bvalle.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cafe-scientifique.org.ec", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "caveclan.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chaletmanager.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "changetip.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ciscodude.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crysadm.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cuvva.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "de-spil.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dolphin-cloud.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dolphin-hosting.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dolphin-it.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "enquos.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flipagram.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gravity-net.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gtanda.tk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hannover-banditen.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hdc.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "instacart.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "intarweb.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kirkpatrickdavis.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maarten.nyc", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mantor.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "motionpicturesolutions.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "motocyklovedily.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "parasitologyclub.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "phongmay24h.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pilgermaske.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pol.in.th", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "puyblanc.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rantanda.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "redd.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "respice.xyz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rewardstock.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rr.in.th", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "salserototal.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "schallert.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "section.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "secureradio.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simplelearner.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tlo.link", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tlo.xyz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "typewolf.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vorlif.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xellos.ml", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--4dbjwf8c.cf", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--4dbjwf8c.ga", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--4dbjwf8c.ml", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--4dbjwf8c.tk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--lgb3a8bcpn.cf", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--lgb3a8bcpn.ga", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--lgb3a8bcpn.gq", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--lgb3a8bcpn.ml", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--ls8hi7a.tk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yyyy.xyz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zhaojin97.cn", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "www.icann.org", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "368mibn.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "888sport.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aevpn.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "andreigec.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "arnaudfeld.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beneffy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "brrr.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "charge.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cloudspace-analytics.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "comiteshopping.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "coreless-stretchfilm.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crudysql.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "csgokings.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dank.ninja", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "demuzere.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "demuzere.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "demuzere.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "docucopies.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elmermx.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "extreemhost.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fabianasantiago.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gamers-life.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "globalinstitutefortraining.org.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "graingert.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "greenvines.com.tw", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hao2taiwan.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hollowrap.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hostanalyticsconsulting.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hostingactive.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "humankode.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "immunicity.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kahopoon.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "khetzal.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "koerperimpuls.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lostinsecurity.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mailinabox.email", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "malash.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "masjidtawheed.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "newodesign.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nicolaelmer.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ochsundjunior.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "onixcco.com.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pctonic.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "photoblogverona.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pluga.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "prefis.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "prepandgo-euro.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "production.vn", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "raconconsulting.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rangde.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "remotestance.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "renuo.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "riskmitigation.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sanhei.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "scaling.solutions", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sifls.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smkn1lengkong.sch.id", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ssldecoder.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "startupsort.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sx3.no", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tech-seminar.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tncnanet.com.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tomo.gr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "utilia.tools", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "viewmyrecords.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "www.vino75.com", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "vmrdev.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vulnerability.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xiaolan.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xiaoxiao.im", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hana.ondemand.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fastmail.com", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "www.fastmail.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "3chit.cf", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "777coin.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ad-notam.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ad-notam.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ad-notam.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ad-notam.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ad-notam.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "adhs-chaoten.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ageg.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alpca.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "americanbio.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "amoory.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "appmobile.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "attotech.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aussiecable.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "avarty.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aylak.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "benny003.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "berthabailey.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bexit.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bitminter.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blognone.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "borchers-media.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bqtoolbox.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "burningcrash.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "capriccio.to", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "certifi.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "clycat.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cogumelosmagicos.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "connect.ua", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cryptobells.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "csfs.org.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cspvalidator.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cubewano.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "deepcovelabs.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "deliciisanatoase.ro", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dienstplan.one", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "drbethanybarnes.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eddmixpanel.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ehipaa.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ehipaadev.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "emanuelduss.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "enjen.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "envygeeks.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "envygeeks.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fayolle.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flirchi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fuglede.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gc-mc.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gcs-ventures.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gerencianet.com.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gfournier.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gotech.com.eg", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gyboche.science", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hackenturet.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "harmoney.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "istheapplestoredown.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jayblock.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jgid.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "juergenhecht.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kpvpn.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "labrador-retrievers.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "labradorpuppiesforsalebyregisteredlabradorbreeders.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "logement-saisonnier.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lovingearth.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mareklecian.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maximilian-greger.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mb-is.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mbdb.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "minecraftforum.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mobile.eti.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mosstier.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "motd.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mysecretcase.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "namorico.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "natukusa.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nekomimi.pl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "netprofile.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "numericacu.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "oshayr.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ourevents.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "overkillshop.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pantsu.cat", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "paylike.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "peifi.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pennylane.me.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "petko.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pfd-nz.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pirati.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "plirt.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "qgustavor.tk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rentinsingapore.com.sg", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rideworks.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "riesenweber.id.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rivy.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "robi-net.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rootservice.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sanasport.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "si-benelux.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simplednscrypt.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smartmessages.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smksi2.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "snapappointments.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "southernutahinfluencers.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "staack.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stackptr.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stinkytrashhound.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stugb.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sunflyer.cn", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "swapadoodle.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "syncer.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tannenhof-moelln.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "theintercept.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thinklikeanentrepreneur.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ulabox.cat", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ulabox.es", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "umgardi.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "upay.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "upstats.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "usgande.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vat-eu.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "veblen.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "viemeister.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "voliere-info.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wait.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wdesk.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wohnsitz-ausland.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "woima.fi", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wolfemg.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wrldevelopment.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xiaody.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xn--t8j4aa4nyhxa7duezbl49aqg5546e264d.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xtremegaming.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xunn.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zdrojak.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zera.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "0xfc.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "abrilect.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "adduono.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ahmerjamilkhan.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "akombakom.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alainwolf.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aulo.in", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beier.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bentrask.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bryn.xyz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cavac.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cipherli.st", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "claralabs.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "coolaj86.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "coralproject.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crosscom.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "curroapp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "daplie.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "darknebula.space", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "datapun.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "datsound.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "devlux.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ellsinger.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "excessamerica.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "express-vpn.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "felixrr.pro", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "filippo.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flowlo.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flukethoughts.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fraye.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "freedom.press", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fresh-hotel.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "goaltree.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "goldenhillsoftware.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "greenpeace-magazin.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "guineapigmustach.es", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "htaccessbook.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "isitup.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kaloix.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kiano.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "krypsys.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lainchan.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lazurit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lelongbank.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lexway.pk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "libertyrp.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lustrumxi.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maderwin.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mypagella.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mypagella.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mysecretrewards.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nettopower.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nicestresser.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nsboston.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "o7.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "onet.space", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "oopsmycase.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "opennippon.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "opennippon.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "perishablepress.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "planboardapp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "plugin-planet.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "qionglu.pw", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "redb.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rootforum.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sambeso.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sarasturdivant.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "scourt.org.ua", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "secure-games.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "selecadm.name", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sirenslove.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smm.im", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stassi.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stephenandburns.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sway-cdn.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sway.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thinkindifferent.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tunnelblick.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "typing.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ufotable.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "up1.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vermontcareergateway.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "virtualsanity.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "whatsmychaincert.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wjglerum.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wp-tao.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yoloprod.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zzsec.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "my.swedbank.se", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "internetbank.swedbank.se", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "demo.swedbank.se", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lana.swedbank.se", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "online.swedbank.se", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "33-km.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "42ms.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "abeestrada.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "accountradar.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "adamradocz.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aladdin.ie", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alarmsystemreviews.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "allthingswild.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "amerimarkdirect.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "andreypopp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ankaraprofesyonelnakliyat.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aojf.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "apachelounge.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "apstudynotes.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "areatrend.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atgseed.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atgseed.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "authint.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "basnoslovno.com.ua", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "basnoslovno.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beans-one.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bettrlifeapp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "billninja.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bionicspirit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bitlish.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blackburn.link", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blazor.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blechschmidt.saarland", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bugginslab.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bwcscorecard.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "certcenter.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cesobaly.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "checktype.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chloe.re", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chrst.ph", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "coldhak.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "comarkinstruments.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "consciousandglamorous.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crestoncottage.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crl-autos.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crossfitblackwater.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "csgodicegame.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cvmu.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "de-medici.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "decoder.link", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "depixion.agency", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "devopps.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dhautefeuille.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "droidwiki.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dubrovskiy.pro", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "edakoe.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "edgereinvent.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elsitar.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "espgg.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "etherpad.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "evomon.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "expresshosting.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fig.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "finkelstein.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flow.su", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fr33d0m.link", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "getbox.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ggp2.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gigacloud.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "globalexpert.co.nz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "grh.am", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hawkeyeinsight.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hencagon.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hetmer.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hilahdih.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hrbatypes.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hroschyk.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ichronos.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "idaspis.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ifleurs.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "iggprivate.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "iggsoft.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "iggsoftware.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ihsbsd.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "illjinx.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "incparadise.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "institutolancaster.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "integrationinc.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ipv6cloud.club", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "joelj.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kba-online.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "knygos.lt", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "koukni.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kpinvest.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kristofferkoch.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kweddingplanning.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kylinj.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lagoza.name", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "latenitefilms.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "laylo.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lentri.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "litespeed.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "loancompare.co.za", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lsky.cn", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lucamerega.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "makerstuff.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "malinator.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "marie-curie.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "markusehrlicher.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "marumagic.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mcrn.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "meetscompany.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "meta.sc", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mnium.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparcraft.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparcraft.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparcraft.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparisthebest.biz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparisthebest.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparisthebest.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparisthebest.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparisthebest.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moparscape.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "my-pawnshop.com.ua", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "myfrm.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mygov.scot", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nagb.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nagb.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "najedlo.sk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "newmediaone.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nodetemple.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "noworrywp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "o6asan.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "panthur.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "perfektesgewicht.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "perfektesgewicht.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "perplex.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pettsy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "please-deny.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pm13.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "postbox.life", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "postscheduler.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "potbar.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "potbox.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "privacy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "privacyinternational.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "publicsuffix.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "punchr-kamikazee.rhcloud.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "recyclingpromotions.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "reddiseals.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "regenerescence.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "repaxan.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "robtex.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "roomhub.jp", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rsajeey.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rubi-ka.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ryanhowell.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ryansmithphotography.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "schnell-gold.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "segurosocial.gov", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "selectel.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sevsopr.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "silver-heart.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "slamix.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "smartpolicingplatform.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "socialsecurity.gov", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "splikity.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "square.gs", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ssa.gov", 
+            "include_subdomains": false
+        }, 
+        {
+            "host": "ssl.rip", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stellenticket.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "subdimension.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "syezd.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tafoma.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "takkaaaaa.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "techcentric.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thebreakroom.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thecloudmigrator.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thego2swatking.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thehackerblog.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "theitsage.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "theyosh.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tobiassachs.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "topnovini.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "trendberry.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "trybind.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "uberfunction.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ulrik.moe", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "utopians.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vanetv.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "varunagw.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vistb.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vyber-odhadce.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "webyazilimankara.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "whyworldhot.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "witae.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "withinsecurity.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "woodlandschurch.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "woodlandsmetro.church", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wordsmart.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "workwithgo.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yoloboatrentals.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yoloseo.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zen-trader.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "andreas-kluge.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "andreaskluge.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fastaim.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "matrip.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "reporturi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "reporturi.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "report-uri.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "18f.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "1co-jp.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "1password.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ad-notam.pt", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "adblock.ovh", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "admsel.ec", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alltheducks.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alphassl.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "altedirect.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "altestore.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ankaraprofesyonelnakliyat.com.tr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ankaraprofesyonelwebtasarim.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ankarauzmanlarnakliyat.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "anzeiger.ag", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "apnakliyat.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "aryasenna.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "askwhy.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "askwhy.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atisoft.com.tr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atisoft.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atisoft.net.tr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atisoft.web.tr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "balboa.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bcsytv.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beholdthehurricane.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beranovi.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "betterhelp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "borysek.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "broadsheet.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "broersma.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "brownfieldstsc.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bulmafox.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "byrtz.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "callsigns.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "chimeratool.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "classicspublishing.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "clickandgo.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "colognegaming.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "compucorner.mx", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "concentrade.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "crepererum.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cryptoparty.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dannyrohde.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "devdoodle.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "diasp.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dime-staging.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "docket.news", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "econsumer.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elephpant.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elimdengelen.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elisa.ee", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "entersynapse.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "epay.bg", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "escalate.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "espci.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ev-zertifikate.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "evdenevenakliyatankara.pw", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "exfiles.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "expxkcd.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eyyit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fandomservices.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fasdoutreach.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fca-tools.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fetch.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "findmybottleshop.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "flamewall.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "freelance.boutique", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "freifunk-luenen.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "frtr.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "g-m-w.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gamingzoneservers.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "garbage-juice.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "getbutterfly.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "glws.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gmw-ingenieurbuero.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "granular.ag", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gsm-map.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gyboche.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "harristony.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "harvester.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "haselsteiner.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "helgakristoffer.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "helgakristoffer.wedding", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "heutger.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hpkp-faq.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "imoni-blog.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "insideaudit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "instela.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "interisaudit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "intxt.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "itsg-faq.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "j3e.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jakubboucek.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jennedebleser.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jhalderm.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jirav.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "josefjanosec.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "klasfauseweh.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lashstuff.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "linux.fi", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "linuxgeek.ro", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "liquid.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lukasunger.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mac-torrents.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "marlen.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maveris.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "melted.pw", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mexicansbook.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "milanpala.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "missdream.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "moreapp.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "murraycoin.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nakliyatsirketi.biz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nbb.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nder.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "netwarc.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nikao-tech.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nikobradshaw.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nikolasbradshaw.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nomial.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "npmcdn.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nutritionculture.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "oasis.mobi", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "offshoot.rentals", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "opsbears.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "otchecker.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "penfold.fr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pgmann.cf", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pier28.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "piligrimname.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "poleartschool.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "posterspy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "postn.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "powercloud.technology", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "proos.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "psw-group.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "psw.academy", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "psw.consulting", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "psw.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "realcapoeira.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ricki-z.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "right-to-love.name", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "robandjanine.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "robspc.repair", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rodolfo.gs", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "safematix.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sanderdorigo.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sandervankasteel.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sdrobs.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "securedevelop.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shopbakersnook.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "signing-milter.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simonkjellberg.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "simphony.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "snapappts.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "socialhead.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sogutma.com.tr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "soporte.cc", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ssl-zertifikate.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "sslzilla.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "steamdb.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stupus.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "taborsky.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "teampaddymurphy.ie", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "teampoint.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "therewill.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thomspooren.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "threelions.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tm-solutions.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tomasjacik.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "trainex.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "trinitycore.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "twaka.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "twist.party", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "urandom.eu.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vallis.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "viscopic.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "viva-french.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vyberodhadce.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "webtasarim.pw", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "welldrake.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "werdeeintimo.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wo2forum.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wrara.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wyeworks.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xetown.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "xss.sk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yingyj.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zgrep.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zortium.report", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "0x90.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "alexwardweb.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "another.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "atolm.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "avastantivirus.ro", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "beeksnetwork.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bergstoneware.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "berst.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bigbluedoor.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "binaryevolved.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bitcoinhk.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "blackdragoninc.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "bockenauer.at", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "brainster.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "c16t.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cabarave.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cannyfoxx.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "cattivo.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "clmde.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "codeux.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "constructionjobs.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "conversiones.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "converter.ml", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "couragewhispers.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dale-electric.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "danpiel.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "darioturchetti.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "datasharesystem.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "david.kitchen", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dden.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "deviltraxxx.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "diversityflags.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dnscrypt.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "docloh.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dolphincorp.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "domodedovo.travel", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "doyoucheck.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "dziekonski.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "easyhaul.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "easykonto.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "edpubs.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eeqj.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "elitefishtank.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "endofnet.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "englerts.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eugenekay.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "evasovova.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eyasc.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "eydesignguidelines.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fedrtc.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fiilr.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "frillip.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "fsapubs.gov", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gfwsb.ml", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "giftservices.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "goabonga.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "grace-wan.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "greenteamtwente.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "gregmilton.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hackcraft.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "helix.am", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "herpaderp.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hlavacek.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hobby-gamerz-community.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hochhaus.us", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "holisticon.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hopewellproperties.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "hostinghelp.guru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ikk.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "indybay.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "itinsight.hu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jacobhaug.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jaroslavtrsek.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jav-collective.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "jlkhosting.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "juniwalk.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kiebel.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kimmel.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "kynaston.org.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "larrysalibra.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lateralsecurity.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lemp.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "letras.mus.br", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "librelamp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "libsodium.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "linux.cn", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "livedemo.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lukasberan.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "lukasunger.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "macker.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "maco.org.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "makowitz.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "melcher.it", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mercamaris.es", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "micro-rain-systems.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mlpepilepsy.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mnetworkingsolutions.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mortgagecentersmo.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mrs-shop.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "muguayuan.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "musthavesforreal.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "mybudget.xyz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "myg21.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nagoya-kyuyo.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nametiles.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "neosolution.ca", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "netbrief.ml", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "nevadafiber.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "noima.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "noisetrap.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "onespiritinc.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "orderswift.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "otoy.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "override.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pacoda.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "paratlan.hu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pcloud.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "peytonfarrar.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "phpdorset.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pimpmymac.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pirateproxy.la", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pirateproxy.pl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "piwko.co", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pjuu.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "polis.to", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "poon.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "poon.tech", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pr1sm.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "premierheart.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "pressrush.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "proxybay.la", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ptm.ro", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "qlrace.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "qualityedgarsolutions.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ramon-c.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "realmofespionage.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ringh.am", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rmb.li", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "rngmeme.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "roeckx.be", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "roeitijd.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "roombase.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ruxit.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ryanteck.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "safar.sk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "samegoal.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "samegoal.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "schwinabart.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "selfici.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "shiroki-k.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "skipfault.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "spdf.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ss.lv", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stirlingpoon.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stirlingpoon.xyz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "stomt.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "talado.gr", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "taskulu.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tazemama.biz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "the-paddies.de", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thepartywarehouse.co.uk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "thorbis.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tidycustoms.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tiens-ib.cz", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "tucny.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ukas.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "ultros.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "unpr.dk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "utdsgda.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "valordolarblue.com.ar", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vanlaanen.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "verizonguidelines.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vieclam24h.vn", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vm0.eu", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "vnvisa.ru", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "watersb.org", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "watertrails.io", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "westerhoud.nl", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "whatsapp.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "whey-protein.ch", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "wiire.me", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "williamfeely.info", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "workray.com", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yobst.tk", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "yombo.net", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "zking.ga", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "secure.advancepayroll.com.au", 
+            "include_subdomains": true
+        }, 
+        {
+            "host": "www.captaintrain.com", 
+            "include_subdomains": false
         }
     ]
 }
