@@ -225,6 +225,10 @@ def check_rust(file_name, contents):
     prev_crate = {}
     prev_mod = {}
 
+    decl_message = "{} is not in alphabetical order"
+    decl_expected = "\n\t\033[93mexpected: {}\033[0m"
+    decl_found = "\n\t\033[91mfound: {}\033[0m"
+
     for idx, original_line in enumerate(contents):
         # simplify the analysis
         line = original_line.strip()
@@ -323,15 +327,14 @@ def check_rust(file_name, contents):
 
         # check extern crates
         if line.startswith("extern crate"):
-            crate_name = line.replace("extern crate ", "").replace(";", "")
+            crate_name = line[13:-1]
             indent = len(original_line) - len(line)
             if indent not in prev_crate:
                 prev_crate[indent] = ""
             if prev_crate[indent] > crate_name:
-                message = "extern crate statement is not in alphabetical order"
-                expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_crate[indent])
-                found = "\n\t\033[91mfound: {}\033[0m".format(crate_name)
-                yield(idx + 1, message + expected + found)
+                yield(idx + 1, decl_message.format("extern crate declaration")
+                      + decl_expected.format(prev_crate[indent])
+                      + decl_found.format(crate_name))
             prev_crate[indent] = crate_name
 
         # imports must be in the same line, alphabetically sorted, and merged
@@ -344,10 +347,9 @@ def check_rust(file_name, contents):
                 yield (idx + 1, "use statement spans multiple lines")
             current_use = use[:len(use) - 1]
             if indent == current_indent and prev_use and current_use < prev_use:
-                message = "use statement is not in alphabetical order"
-                expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_use)
-                found = "\n\t\033[91mfound: {}\033[0m".format(current_use)
-                yield(idx + 1, message + expected + found)
+                yield(idx + 1, decl_message.format("use statement")
+                      + decl_expected.format(prev_use)
+                      + decl_found.format(current_use))
             prev_use = current_use
             current_indent = indent
 
@@ -360,31 +362,24 @@ def check_rust(file_name, contents):
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
-            mod = ""
             indent = len(original_line) - len(line)
-            if line.startswith("mod "):
-                mod = line[4:]
-            else:
-                mod = line[8:]
+            mod = line[4:] if line.startswith("mod ") else line[8:]
 
             if idx < 0 or "#[macro_use]" not in contents[idx - 1]:
                 match = line.find(" {")
                 if indent not in prev_mod:
                     prev_mod[indent] = ""
-                if match == -1:
-                    if not mod.endswith(";"):
-                        yield (idx + 1, "mod statement spans multiple lines")
+                if match == -1 and not mod.endswith(";"):
+                    yield (idx + 1, "mod declaration spans multiple lines")
                 mod = mod[:len(mod) - 1]
                 if len(prev_mod[indent]) > 0 and mod < prev_mod[indent]:
-                    message = "mod statement is not in alphabetical order"
-                    expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_mod[indent])
-                    found = "\n\t\033[91mfound: {}\033[0m".format(mod)
-                    yield (idx + 1, message + expected + found)
+                    yield(idx + 1, decl_message.format("mod declaration")
+                          + decl_expected.format(prev_mod[indent])
+                          + decl_found.format(mod))
                 prev_mod[indent] = mod
         else:
             # we now erase previous entries
-            for key_indent in prev_mod:
-                prev_mod[key_indent] = ""
+            prev_mod = {}
 
         # There should not be any extra pointer dereferencing
         if ": &Vec<" in line:
