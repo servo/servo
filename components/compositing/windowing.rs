@@ -11,9 +11,9 @@ use euclid::size::TypedSize2D;
 use euclid::{Point2D, Size2D};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, MouseButton};
 use net_traits::net_error_list::NetError;
-use script_traits::{MouseButton, TouchEventType, TouchId};
+use script_traits::{TouchEventType, TouchId};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use url::Url;
@@ -26,7 +26,6 @@ pub enum MouseWindowEvent {
     MouseDown(MouseButton, TypedPoint2D<DevicePixel, f32>),
     MouseUp(MouseButton, TypedPoint2D<DevicePixel, f32>),
 }
-
 
 #[derive(Clone)]
 pub enum WindowNavigateMsg {
