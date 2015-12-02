@@ -186,6 +186,9 @@ pub struct Opts {
 
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
+
+    // Which rendering API to use.
+    pub render_api: RenderApi,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -391,6 +394,14 @@ enum UserAgent {
     Gonk,
 }
 
+#[derive(Clone, Debug, Eq, Deserialize, PartialEq, Serialize)]
+pub enum RenderApi {
+    GL,
+    ES2,
+}
+
+const DEFAULT_RENDER_API: RenderApi = RenderApi::GL;
+
 fn default_user_agent_string(agent: UserAgent) -> String {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
@@ -487,6 +498,7 @@ pub fn default_opts() -> Opts {
         use_webrender: false,
         webrender_stats: false,
         use_msaa: false,
+        render_api: DEFAULT_RENDER_API,
     }
 }
 
@@ -531,6 +543,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
+    opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -675,6 +688,13 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let use_webrender = opt_match.opt_present("w") && !opt_match.opt_present("z");
 
+    let render_api = match opt_match.opt_str("G") {
+        Some(ref ga) if ga == "gl" => RenderApi::GL,
+        Some(ref ga) if ga == "es2" => RenderApi::ES2,
+        None => DEFAULT_RENDER_API,
+        _ => args_fail(&format!("error: graphics option must be gl or es2:")),
+    };
+
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
@@ -704,6 +724,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
         sandbox: opt_match.opt_present("S"),
+        render_api: render_api,
         show_debug_borders: debug_options.show_compositor_borders,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_paint: debug_options.show_parallel_paint,
