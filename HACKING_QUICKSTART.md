@@ -159,7 +159,7 @@ Using `RUST_LOG="debug"` is usually the very first thing you might want to do if
 RUST_LOG="debug" ./mach run -d -- -i -y 1 -t 1  /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
 ```
 
-You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. This is documented at https://rust-lang.github.io/log/env_logger/.
+You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](http://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
 
 Use `RUST_BACKTRACE=1` to dump the backtrace when Servo panics.
 
