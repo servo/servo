@@ -29,6 +29,16 @@ def is_headless_build():
     return int(os.getenv('SERVO_HEADLESS', 0)) == 1
 
 
+def headless_supported():
+    supported = sys.platform.startswith("linux")
+
+    if not supported:
+        print("Headless mode (OSMesa) is not supported on your platform.")
+        print("Building without headless mode.")
+
+    return supported
+
+
 def notify_linux(title, text):
     try:
         import dbus
@@ -207,13 +217,9 @@ class MachCommands(CommandBase):
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
-        if headless or is_headless_build():
-            if sys.platform.startswith("linux"):
-                opts += ["--no-default-features"]
-                features += ["headless"]
-            else:
-                print("Headless mode (OSMesa) is not supported on your platform.")
-                print("Building without headless mode.")
+        if (headless or is_headless_build()) and headless_supported():
+            opts += ["--no-default-features"]
+            features += ["headless"]
 
         if android:
             features += ["android_glue"]
@@ -332,15 +338,19 @@ class MachCommands(CommandBase):
     @Command('build-tests',
              description='Build the Servo test suites',
              category='build')
+    @CommandArgument('--headless',
+                     default=None,
+                     action='store_true',
+                     help='Enable headless mode (OSMesa)')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
     @CommandArgument('--release', default=False, action="store_true",
                      help="Build tests with release mode")
-    def build_tests(self, jobs=None, verbose=False, release=False):
+    def build_tests(self, headless=False, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
         args = ["cargo", "test", "--no-run"]
-        if is_headless_build():
+        if (headless or is_headless_build()) and headless_supported():
             args += ["--no-default-features", "--features", "headless"]
         if release:
             args += ["--release"]
