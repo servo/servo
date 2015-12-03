@@ -12,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::location::Location;
 use dom::node::Node;
 use dom::window::Window;
 use js::jsapi::{JSContext, JSObject};
@@ -85,6 +86,11 @@ impl XMLDocument {
 }
 
 impl XMLDocumentMethods for XMLDocument {
+    // https://html.spec.whatwg.org/multipage/#dom-document-location
+    fn Location(&self) -> Root<Location> {
+        self.document.Location()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.document.SupportedPropertyNames()
