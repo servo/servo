@@ -27,12 +27,13 @@ use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
 use net_traits::hosts::replace_hosts;
+use ref_slice::ref_slice;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::ptr;
 use std::sync::{Arc, Mutex};
-use std::{ptr, slice};
 use util::str::DOMString;
 use util::task::spawn_named;
 use websocket::client::receiver::Receiver;
@@ -230,7 +231,7 @@ impl WebSocket {
         // Step 4.
         let protocols: &[DOMString] = protocols
                                       .as_ref()
-                                      .map_or(&[], |ref string| slice::ref_slice(string));
+                                      .map_or(&[], |ref string| ref_slice(string));
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
