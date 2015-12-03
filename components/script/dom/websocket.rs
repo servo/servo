@@ -30,6 +30,7 @@ use net_traits::hosts::replace_hosts;
 use ref_slice::ref_slice;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
@@ -39,9 +40,9 @@ use util::task::spawn_named;
 use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
-use websocket::header::Origin;
+use websocket::header::{Headers, Origin, WebSocketProtocol};
 use websocket::message::Type;
-use websocket::result::WebSocketResult;
+use websocket::result::{WebSocketError, WebSocketResult};
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
@@ -161,15 +162,15 @@ pub struct WebSocket {
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<String>, //Closing reason
     binary_type: Cell<BinaryType>,
+    protocol: DOMRefCell<String>, //Subprotocol selected by server
 }
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
 fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),
-                                    origin: String)
-   -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
+                                    origin: String, protocols: Vec<String>)
+   -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
     // URL that we actually fetch from the network, after applying the replacements
     // specified in the hosts file.
-
     let host = Host {
         hostname: resource_url.serialize_host().unwrap(),
         port: resource_url.port_or_default()
@@ -178,13 +179,38 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     let mut request = try!(Client::connect(net_url));
     request.headers.set(Origin(origin));
     request.headers.set(host);
+    if !protocols.is_empty() {
+        request.headers.set(WebSocketProtocol(protocols.clone()));
+    }
 
     let response = try!(request.send());
     try!(response.validate());
 
-    Ok(response.begin().split())
+    {
+        let protocol_in_use = get_protocol_in_use(response.protocol());
+        if let Some(protocol_name) = protocol_in_use {
+                if !protocols.is_empty() && !protocols.iter().any(|p| p.eq_ignore_ascii_case(protocol_name)) {
+                    return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
+            };
+        };
+    }
+
+    let headers = response.headers.clone();
+    let (sender, receiver) = response.begin().split();
+    Ok((headers, sender, receiver))
+
 }
 
+///Defensively unwraps the protocol string from the response object's protocol
+fn get_protocol_in_use(wsp: Option<&WebSocketProtocol>) -> Option<&str> {
+    if let Some(protocol) = wsp {
+        let protocol_list = &protocol;
+        if !protocol_list.is_empty() {
+            return Some(&protocol_list[0]);
+        }
+    };
+    return None;
+}
 
 impl WebSocket {
     fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
@@ -202,6 +228,7 @@ impl WebSocket {
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
             binary_type: Cell::new(BinaryType::Blob),
+            protocol: DOMRefCell::new("".to_owned()),
         }
 
     }
@@ -245,6 +272,8 @@ impl WebSocket {
                 return Err(Error::Syntax);
             }
 
+            // TODO: also check that no separator characters are used
+            // https://tools.ietf.org/html/rfc6455#section-4.1
             if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
                 return Err(Error::Syntax);
             }
@@ -258,12 +287,13 @@ impl WebSocket {
 
         let origin = global.get_url().serialize();
         let sender = global.script_chan();
+        let protocols: Vec<String> = protocols.iter().map(|x| String::from(x.clone())).collect();
         spawn_named(format!("WebSocket connection to {}", ws.Url()), move || {
             // Step 8: Protocols.
 
             // Step 9.
-            let channel = establish_a_websocket_connection(&resource_url, net_url, origin);
-            let (ws_sender, mut receiver) = match channel {
+            let channel = establish_a_websocket_connection(&resource_url, net_url, origin, protocols.clone());
+            let (headers, ws_sender, mut receiver) = match channel {
                 Ok(channel) => channel,
                 Err(e) => {
                     debug!("Failed to establish a WebSocket connection: {:?}", e);
@@ -279,6 +309,8 @@ impl WebSocket {
             let open_task = box ConnectionEstablishedTask {
                 addr: address.clone(),
                 sender: ws_sender.clone(),
+                protocols: protocols,
+                headers: headers,
             };
             sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
 
@@ -399,6 +431,11 @@ impl WebSocketMethods for WebSocket {
         self.binary_type.set(btype)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-protocol
+    fn Protocol(&self) -> DOMString {
+         DOMString::from(self.protocol.borrow().clone())
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> Fallible<()> {
 
@@ -491,25 +528,43 @@ impl WebSocketMethods for WebSocket {
 struct ConnectionEstablishedTask {
     addr: Trusted<WebSocket>,
     sender: Arc<Mutex<Sender<WebSocketStream>>>,
+    protocols: Vec<String>,
+    headers: Headers,
 }
 
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
-
-        *ws.sender.borrow_mut() = Some(self.sender);
+        let global = ws.global.root();
+        let sender = global.r().script_chan();
+        *ws.sender.borrow_mut() = Some(self.sender.clone());
 
         // Step 1: Protocols.
+        if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
+            ws.failed.set(true);
+            ws.ready_state.set(WebSocketRequestState::Closing);
+            let task = box CloseTask {
+                addr: self.addr,
+            };
+            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+            return;
+        }
 
         // Step 2.
         ws.ready_state.set(WebSocketRequestState::Open);
 
         // Step 3: Extensions.
+        //TODO: Set extensions to extensions in use
+
         // Step 4: Protocols.
+        let protocol_in_use = get_protocol_in_use(self.headers.get::<WebSocketProtocol>());
+        if let Some(protocol_name) = protocol_in_use {
+            *ws.protocol.borrow_mut() = protocol_name.to_owned();
+        };
+
         // Step 5: Cookies.
 
         // Step 6.
-        let global = ws.global.root();
         let event = Event::new(global.r(), DOMString::from("open"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
