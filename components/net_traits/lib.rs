@@ -23,6 +23,7 @@ extern crate serde;
 extern crate stb_image;
 extern crate url;
 extern crate util;
+extern crate websocket;
 
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
@@ -225,10 +226,43 @@ pub enum IncludeSubdomains {
     NotIncluded
 }
 
+#[derive(HeapSizeOf, Deserialize, Serialize)]
+pub enum MessageData {
+    Text(String),
+    Binary(Vec<u8>),
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebSocketDomAction {
+    SendMessage(MessageData),
+    Close(u16, String),
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebSocketNetworkEvent {
+    ConnectionEstablished,
+    MessageReceived(MessageData),
+    Close,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct WebSocketCommunicate {
+    pub action_sender: IpcSender<WebSocketDomAction>,
+    pub event_receiver: IpcReceiver<WebSocketNetworkEvent>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct WebSocketConnectData {
+    pub resource_url: Url,
+    pub origin: String,
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
+    /// Try to make a websocket connection to a URL.
+    WebsocketConnect(IpcSender<WebSocketCommunicate>, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
