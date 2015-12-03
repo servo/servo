@@ -137,6 +137,8 @@ pub struct LoadData {
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub pipeline_id: Option<PipelineId>,
+    // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
+    pub credentials_flag: bool,
 }
 
 impl LoadData {
@@ -149,6 +151,7 @@ impl LoadData {
             data: None,
             cors: None,
             pipeline_id: id,
+            credentials_flag: true,
         }
     }
 }

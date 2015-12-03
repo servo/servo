@@ -516,6 +516,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let global = self.global.root();
         let pipeline_id = global.r().pipeline();
         let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), Some(pipeline_id));
+        if load_data.url.origin().ne(&global.r().get_url().origin()) {
+            load_data.credentials_flag = self.WithCredentials();
+        }
         load_data.data = extracted;
 
         #[inline]
