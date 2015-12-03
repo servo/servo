@@ -56,7 +56,6 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::print_tree::PrintTree;
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
@@ -1054,7 +1053,7 @@ impl BaseFlow {
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
-            overflow: ZERO_RECT,
+            overflow: Rect::zero(),
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),

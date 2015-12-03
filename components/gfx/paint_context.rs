@@ -35,7 +35,7 @@ use std::{f32, mem, ptr};
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use text::TextRun;
 use text::glyph::CharIndex;
-use util::geometry::{self, MAX_RECT, PagePx, ScreenPx, ZERO_POINT, ZERO_RECT};
+use util::geometry::{self, MAX_RECT, PagePx, ScreenPx, ZERO_POINT};
 use util::opts;
 use util::range::Range;
 
@@ -1580,7 +1580,7 @@ impl<'a> PaintContext<'a> {
         let side_inflation = blur_radius * BLUR_INFLATION_FACTOR;
         let tile_box_bounds =
             geometry::f32_rect_to_au_rect(self.page_rect.to_untyped()).intersection(box_bounds)
-                                                         .unwrap_or(ZERO_RECT)
+                                                         .unwrap_or(Rect::zero())
                                                          .inflate(side_inflation, side_inflation);
         TemporaryDrawTarget::from_bounds(&self.draw_target, &tile_box_bounds)
     }

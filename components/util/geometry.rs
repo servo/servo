@@ -64,17 +64,6 @@ pub static ZERO_POINT: Point2D<Au> = Point2D {
     y: Au(0),
 };
 
-pub static ZERO_RECT: Rect<Au> = Rect {
-    origin: Point2D {
-        x: Au(0),
-        y: Au(0),
-    },
-    size: Size2D {
-        width: Au(0),
-        height: Au(0),
-    }
-};
-
 pub static MAX_RECT: Rect<Au> = Rect {
     origin: Point2D {
         x: Au(i32::MIN / 2),
