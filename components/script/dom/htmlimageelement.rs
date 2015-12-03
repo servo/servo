@@ -128,7 +128,7 @@ impl HTMLImageElement {
         }
     }
 
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
@@ -137,7 +137,7 @@ impl HTMLImageElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLImageElement> {
         let element = HTMLImageElement::new_inherited(localName, prefix, document);
@@ -148,7 +148,7 @@ impl HTMLImageElement {
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let image = HTMLImageElement::new(DOMString::from("img"), None, document.r());
+        let image = HTMLImageElement::new(atom!("img"), None, document.r());
         if let Some(w) = width {
             image.SetWidth(w);
         }

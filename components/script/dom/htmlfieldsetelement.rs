@@ -17,6 +17,7 @@ use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
+use string_cache::Atom;
 use util::str::{DOMString, StaticStringVec};
 
 #[dom_struct]
@@ -25,7 +26,7 @@ pub struct HTMLFieldSetElement {
 }
 
 impl HTMLFieldSetElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
@@ -36,7 +37,7 @@ impl HTMLFieldSetElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, prefix, document);

@@ -13,6 +13,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::htmlelement::HTMLElement;
 use dom::node::{CloneChildrenFlag, Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -24,7 +25,7 @@ pub struct HTMLTemplateElement {
 }
 
 impl HTMLTemplateElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
@@ -35,7 +36,7 @@ impl HTMLTemplateElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTemplateElement> {
         let element = HTMLTemplateElement::new_inherited(localName, prefix, document);

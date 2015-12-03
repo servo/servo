@@ -14,6 +14,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -22,7 +23,7 @@ pub struct HTMLOptGroupElement {
 }
 
 impl HTMLOptGroupElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
@@ -33,7 +34,7 @@ impl HTMLOptGroupElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptGroupElement> {
         let element = HTMLOptGroupElement::new_inherited(localName, prefix, document);

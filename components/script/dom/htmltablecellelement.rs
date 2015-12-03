@@ -27,7 +27,7 @@ pub struct HTMLTableCellElement {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(tag_name: DOMString,
+    pub fn new_inherited(tag_name: Atom,
                          prefix: Option<DOMString>,
                          document: &Document)
                          -> HTMLTableCellElement {

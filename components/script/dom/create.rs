@@ -87,16 +87,16 @@ pub fn create_element(name: QualName,
     let prefix = prefix.map(|p| DOMString::from(&*p));
 
     if name.ns != ns!(html) {
-        return Element::new(DOMString::from(&*name.local), name.ns, prefix, document);
+        return Element::new(name.local, name.ns, prefix, document);
     }
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(DOMString::from(&*name.local), prefix, document);
+            let obj = $ctor::new(name.local, prefix, document);
             Root::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(DOMString::from(&*name.local), prefix, document, $($arg),+);
+            let obj = $ctor::new(name.local, prefix, document, $($arg),+);
             Root::upcast(obj)
         })
     );

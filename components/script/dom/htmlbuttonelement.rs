@@ -23,6 +23,7 @@ use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
@@ -42,7 +43,7 @@ pub struct HTMLButtonElement {
 }
 
 impl HTMLButtonElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
@@ -55,7 +56,7 @@ impl HTMLButtonElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLButtonElement> {
         let element = HTMLButtonElement::new_inherited(localName, prefix, document);

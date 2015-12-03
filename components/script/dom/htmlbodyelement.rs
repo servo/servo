@@ -36,7 +36,7 @@ pub struct HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
@@ -45,7 +45,7 @@ impl HTMLBodyElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLBodyElement> {
         let element = HTMLBodyElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)

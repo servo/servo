@@ -40,6 +40,7 @@ use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
+use string_cache::Atom;
 use url::{Url, UrlParser};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
@@ -73,7 +74,7 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
@@ -89,7 +90,7 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
         let element = HTMLScriptElement::new_inherited(localName, prefix, document, creator);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)

@@ -15,6 +15,7 @@ use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
 use std::sync::Arc;
+use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
 use style::stylesheets::{Origin, Stylesheet};
 use util::str::DOMString;
@@ -26,7 +27,7 @@ pub struct HTMLStyleElement {
 }
 
 impl HTMLStyleElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLStyleElement {
         HTMLStyleElement {
@@ -36,7 +37,7 @@ impl HTMLStyleElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLStyleElement> {
         let element = HTMLStyleElement::new_inherited(localName, prefix, document);

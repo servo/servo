@@ -25,7 +25,7 @@ pub struct HTMLTableSectionElement {
 }
 
 impl HTMLTableSectionElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
@@ -33,7 +33,7 @@ impl HTMLTableSectionElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableSectionElement> {
         let element = HTMLTableSectionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableSectionElementBinding::Wrap)
@@ -61,7 +61,7 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new(DOMString::from("tr"), None, node.owner_doc().r()))
+            || HTMLTableRowElement::new(atom!("tr"), None, node.owner_doc().r()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow

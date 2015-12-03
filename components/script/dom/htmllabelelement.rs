@@ -25,7 +25,7 @@ pub struct HTMLLabelElement {
 }
 
 impl HTMLLabelElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
@@ -35,7 +35,7 @@ impl HTMLLabelElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLLabelElement> {
         let element = HTMLLabelElement::new_inherited(localName, prefix, document);
