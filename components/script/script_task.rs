@@ -1660,7 +1660,6 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
-
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
                 Some(DOMString::from("text/xml"))
             }
@@ -1675,28 +1674,20 @@ impl ScriptTask {
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
-    let document;
-    match metadata.content_type {
 
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
-                document = Document::new(window.r(),
+        let is_html_document = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
+                IsHTMLDocument::NonHTMLDocument,
+            _ => IsHTMLDocument::HTMLDocument,
+        };
+
+        let document = Document::new(window.r(),
                                      Some(final_url.clone()),
-                                     IsHTMLDocument::NonHTMLDocument,
-                                     content_type,
-                                     last_modified,
-                                     DocumentSource::NotFromParser,
-                                     loader);
-            }
-            _ => {
-                document = Document::new(window.r(),
-                                     Some(final_url.clone()),
-                                     IsHTMLDocument::HTMLDocument,
+                                     is_html_document,
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
                                      loader);
-            }
-    }
 
         let frame_element = frame_element.r().map(Castable::upcast);
         window.init_browsing_context(document.r(), frame_element);
@@ -1738,7 +1729,8 @@ impl ScriptTask {
             unsafe {
                 let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
                 window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
-                let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
+                let strval = DOMString::from_jsval(self.get_cx(),
+                                                   jsval.handle(),
                                                    StringificationBehavior::Empty);
                 strval.unwrap_or(DOMString::new())
             }
@@ -1746,8 +1738,7 @@ impl ScriptTask {
             DOMString::new()
         };
 
-    match metadata.content_type {
-
+        match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
                 parse_xml(document.r(),
                           parse_input,
@@ -1760,7 +1751,7 @@ impl ScriptTask {
                            final_url,
                            ParseContext::Owner(Some(incomplete.pipeline_id)));
             }
-    }
+        }
 
         page_remover.neuter();
 

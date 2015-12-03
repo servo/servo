@@ -268,7 +268,10 @@ impl AsyncResponseListener for ParserContext {
         let parser = parser.r();
         let win = parser.window();
         self.parser = Some(match parser {
-            ParserRef::HTML(parser) => TrustedParser::HTML(Trusted::new(win.get_cx(), parser, self.script_chan.clone())),
+            ParserRef::HTML(parser) => TrustedParser::HTML(
+                                        Trusted::new(win.get_cx(),
+                                        parser,
+                                        self.script_chan.clone())),
             ParserRef::XML(parser) => TrustedParser::XML(Trusted::new(win.get_cx(), parser, self.script_chan.clone())),
         });
 
@@ -288,6 +291,7 @@ impl AsyncResponseListener for ParserContext {
                 parser.set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {}, // Handle text/html
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {}, // Handle text/xml
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
                 if toplevel.as_str() == "application" && sublevel.as_str() == "xhtml+xml" {
                     // Handle xhtml (application/xhtml+xml).

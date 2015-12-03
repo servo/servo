@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, RootedReference};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
@@ -14,7 +14,10 @@ use dom::element::{Element, ElementCreator};
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servoxmlparser;
+use dom::servoxmlparser::ServoXMLParser;
+use dom::text::Text;
 use msg::constellation_msg::PipelineId;
+use parse::Parser;
 use std::borrow::Cow;
 use string_cache::QualName;
 use tendril::StrTendril;
@@ -61,8 +64,14 @@ impl<'a> TreeSink for servoxmlparser::Sink {
     }
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
-        let child = self.get_or_create(child);
-
+        let child = match child {
+            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
+            NodeOrText::AppendText(t) => {
+                let s: String = t.into();
+                let text = Text::new(DOMString::from(s), &self.document);
+                Root::upcast(text)
+            }
+        };
         assert!(parent.AppendChild(child.r()).is_ok());
     }
 
@@ -90,8 +99,14 @@ pub enum ParseContext {
 }
 
 
-pub fn parse_xml(_document: &Document,
-                 _input: DOMString,
-                 _url: Url,
-                 _context: ParseContext) {
+pub fn parse_xml(document: &Document,
+                 input: DOMString,
+                 url: Url,
+                 context: ParseContext) {
+    let parser = match context {
+        ParseContext::Owner(owner) =>
+            ServoXMLParser::new(Some(url), document, owner),
+    };
+    parser.parse_chunk(String::from(input));
 }
+
