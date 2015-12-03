@@ -48,6 +48,8 @@ ignored_files = [
 
 
 def should_check(file_name):
+    if os.path.basename(file_name) == "Cargo.lock":
+        return True
     if ".#" in file_name:
         return False
     if os.path.splitext(file_name)[1] not in filetypes_to_check:
@@ -181,12 +183,12 @@ def check_lock(file_name, contents):
                     packages[name] = (version, idx + 1, base_name)
                 elif all([packages[name][0] != version, name not in exceptions, base_name not in exceptions]):
                     line = idx + 1
-                    version_1 = tuple(map(int, packages[name][0].split('.')))
-                    version_2 = tuple(map(int, version.split('.')))
+                    version_1 = tuple(map(maybe_int, packages[name][0].split('.')))
+                    version_2 = tuple(map(maybe_int, version.split('.')))
                     if version_1 < version_2:       # get the line & base package containing the older version
                         packages[name], (version, line, base_name) = (version, line, base_name), packages[name]
 
-                    message = 'conflicting versions for package "%s"' % name
+                    message = 'duplicate versions for package "%s"' % name
                     error = '\n\t\033[93mexpected maximum version "{}"\033[0m'.format(packages[name][0]) + \
                             '\n\t\033[91mbut, "{}" demands "{}"\033[0m' \
                             .format(base_name, version)
@@ -196,6 +198,13 @@ def check_lock(file_name, contents):
                     yield (line, message + error + suggest)
                 idx += 1
         idx += 1
+
+
+def maybe_int(value):
+    try:
+        return int(value)
+    except ValueError:
+        return value
 
 
 def check_toml(file_name, contents):
