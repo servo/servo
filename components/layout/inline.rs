@@ -31,7 +31,6 @@ use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
 use util;
-use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::print_tree::PrintTree;
 use util::range::{Range, RangeIndex};
@@ -1749,7 +1748,7 @@ impl Flow for InlineFlow {
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Rect<Au> {
-        let mut overflow = ZERO_RECT;
+        let mut overflow = Rect::zero();
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
         let relative_containing_block_size =
             &self.base.early_absolute_position_info.relative_containing_block_size;

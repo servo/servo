@@ -17,7 +17,6 @@ use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
-use util::geometry::ZERO_RECT;
 use util::logical_geometry::LogicalSize;
 
 /// A table formatting context.
@@ -96,7 +95,7 @@ impl Flow for TableColGroupFlow {
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Rect<Au> {
-        ZERO_RECT
+        Rect::zero()
     }
 
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {

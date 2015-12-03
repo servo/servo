@@ -43,7 +43,7 @@ use style::properties::ComputedValues;
 use text::TextRun;
 use text::glyph::CharIndex;
 use util::cursor::Cursor;
-use util::geometry::{self, MAX_RECT, ZERO_RECT};
+use util::geometry::{self, MAX_RECT};
 use util::linked_list::prepend_from;
 use util::mem::HeapSizeOf;
 use util::opts;
@@ -1043,7 +1043,7 @@ impl ClippingRegion {
     #[inline]
     pub fn empty() -> ClippingRegion {
         ClippingRegion {
-            main: ZERO_RECT,
+            main: Rect::zero(),
             complex: Vec::new(),
         }
     }
@@ -1073,7 +1073,7 @@ impl ClippingRegion {
     #[inline]
     pub fn intersect_rect(self, rect: &Rect<Au>) -> ClippingRegion {
         ClippingRegion {
-            main: self.main.intersection(rect).unwrap_or(ZERO_RECT),
+            main: self.main.intersection(rect).unwrap_or(Rect::zero()),
             complex: self.complex,
         }
     }
