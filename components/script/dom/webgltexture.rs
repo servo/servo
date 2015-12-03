@@ -70,7 +70,7 @@ impl WebGLTexture {
             self.target.set(Some(target));
         }
 
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(self.id, target))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(target, self.id))).unwrap();
 
         Ok(())
     }

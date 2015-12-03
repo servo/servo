@@ -257,7 +257,7 @@ impl WebGLPaintTask {
     }
 
     fn create_texture(&self, chan: IpcSender<Option<NonZero<u32>>>) {
-        let texture = gl::gen_framebuffers(1)[0];
+        let texture = gl::gen_textures(1)[0];
         let texture = if texture == 0 {
             None
         } else {
