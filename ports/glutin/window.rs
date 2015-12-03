@@ -645,7 +645,7 @@ impl WindowMethods for Window {
  			NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
 		},
 		RenderApi::ES2 => {
- 			NativeDisplay::from_es2(self.window.platform_display() as *mut xlib::Display)
+ 			NativeDisplay::from_es2()
 		}
 	}
 
