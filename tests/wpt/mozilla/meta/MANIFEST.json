@@ -4375,6 +4375,18 @@
             "url": "/_mozilla/css/text_decoration_cached.html"
           }
         ],
+        "css/text_decoration_propagation_a.html": [
+          {
+            "path": "css/text_decoration_propagation_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_propagation_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_propagation_a.html"
+          }
+        ],
         "css/text_decoration_smoke_a.html": [
           {
             "path": "css/text_decoration_smoke_a.html",
@@ -4421,6 +4433,18 @@
               ]
             ],
             "url": "/_mozilla/css/text_justify_none_a.html"
+          }
+        ],
+        "css/text_overflow_a.html": [
+          {
+            "path": "css/text_overflow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_a.html"
           }
         ],
         "css/text_overflow_basic_a.html": [
@@ -4625,6 +4649,18 @@
               ]
             ],
             "url": "/_mozilla/css/upper_id_attr.html"
+          }
+        ],
+        "css/vertical-lr-blocks.html": [
+          {
+            "path": "css/vertical-lr-blocks.html",
+            "references": [
+              [
+                "/_mozilla/css/vertical-lr-blocks_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/vertical-lr-blocks.html"
           }
         ],
         "css/vertical_align_bottom_a.html": [
@@ -10146,6 +10182,18 @@
           "url": "/_mozilla/css/text_decoration_cached.html"
         }
       ],
+      "css/text_decoration_propagation_a.html": [
+        {
+          "path": "css/text_decoration_propagation_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_propagation_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_propagation_a.html"
+        }
+      ],
       "css/text_decoration_smoke_a.html": [
         {
           "path": "css/text_decoration_smoke_a.html",
@@ -10192,6 +10240,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_justify_none_a.html"
+        }
+      ],
+      "css/text_overflow_a.html": [
+        {
+          "path": "css/text_overflow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_a.html"
         }
       ],
       "css/text_overflow_basic_a.html": [
@@ -10396,6 +10456,18 @@
             ]
           ],
           "url": "/_mozilla/css/upper_id_attr.html"
+        }
+      ],
+      "css/vertical-lr-blocks.html": [
+        {
+          "path": "css/vertical-lr-blocks.html",
+          "references": [
+            [
+              "/_mozilla/css/vertical-lr-blocks_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/vertical-lr-blocks.html"
         }
       ],
       "css/vertical_align_bottom_a.html": [
