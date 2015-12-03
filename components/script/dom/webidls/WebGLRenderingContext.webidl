@@ -492,10 +492,11 @@ interface WebGLRenderingContextBase
     //void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     // FIXME(dmarcos) The function below is the original function in the webIdl:
     // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
-    // The Code genearator doesn't handle BufferDataSource so we're using 'optional object'
+    // The Code generator doesn't handle BufferDataSource so we're using 'optional object'
     // in the meantime
     void bufferData(GLenum target, optional object data, GLenum usage);
     //void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
+    void bufferSubData(GLenum target, GLintptr offset, optional object data);
 
     //[WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
@@ -505,13 +506,22 @@ interface WebGLRenderingContextBase
     void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     void compileShader(WebGLShader? shader);
 
-    //void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                          GLsizei width, GLsizei height, GLint border,
-    //                          ArrayBufferView data);
-    //void compressedTexSubImage2D(GLenum target, GLint level,
-    //                             GLint xoffset, GLint yoffset,
-    //                             GLsizei width, GLsizei height, GLenum format,
-    //                             ArrayBufferView data);
+    // FIXME(simartin) The Code generator doesn't handle ArrayBufferView so we're
+    // using 'object' in the meantime
+    // void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
+    //                           GLsizei width, GLsizei height, GLint border,
+    //                           ArrayBufferView data);
+    void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                              GLsizei width, GLsizei height, GLint border,
+                              object data);
+    // void compressedTexSubImage2D(GLenum target, GLint level,
+    //                              GLint xoffset, GLint yoffset,
+    //                              GLsizei width, GLsizei height, GLenum format,
+    //                              ArrayBufferView data);
+    void compressedTexSubImage2D(GLenum target, GLint level,
+                                 GLint xoffset, GLint yoffset,
+                                 GLsizei width, GLsizei height, GLenum format,
+                                 object data);
 
     //void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
     //                    GLint x, GLint y, GLsizei width, GLsizei height,

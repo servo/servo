@@ -128,6 +128,7 @@ pub enum CanvasWebGLMsg {
     BlendFuncSeparate(u32, u32, u32, u32),
     AttachShader(u32, u32),
     BufferData(u32, Vec<f32>, u32),
+    BufferSubData(u32, isize, Vec<f32>),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     ClearDepth(f64),

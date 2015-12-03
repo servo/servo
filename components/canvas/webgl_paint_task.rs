@@ -72,6 +72,8 @@ impl WebGLPaintTask {
                 gl::attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) =>
                 gl::buffer_data(buffer_type, &data, usage),
+            CanvasWebGLMsg::BufferSubData(buffer_type, offset, data) =>
+                gl::buffer_sub_data(buffer_type, offset, &data),
             CanvasWebGLMsg::Clear(mask) =>
                 gl::clear(mask),
             CanvasWebGLMsg::ClearColor(r, g, b, a) =>
