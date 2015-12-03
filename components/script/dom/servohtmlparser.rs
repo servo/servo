@@ -15,6 +15,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
+use dom::servoxmlparser::ServoXMLParser;
 use dom::text::Text;
 use dom::window::Window;
 use encoding::all::UTF_8;
@@ -31,7 +32,9 @@ use network_listener::PreInvoke;
 use parse::Parser;
 use script_task::{ScriptChan, ScriptTask};
 use std::cell::Cell;
+use std::cell::UnsafeCell;
 use std::default::Default;
+use std::ptr;
 use url::Url;
 use util::str::DOMString;
 
@@ -67,10 +70,164 @@ pub struct FragmentContext<'a> {
 
 pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 
+#[must_root]
+#[derive(JSTraceable, HeapSizeOf)]
+pub enum ParserField {
+    HTML(JS<ServoHTMLParser>),
+    XML(JS<ServoXMLParser>),
+}
+
+#[must_root]
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct MutNullableParserField {
+    #[ignore_heap_size_of = "XXXjdm"]
+    ptr: UnsafeCell<Option<ParserField>>,
+}
+
+impl Default for MutNullableParserField {
+    #[allow(unrooted_must_root)]
+    fn default() -> MutNullableParserField {
+        MutNullableParserField {
+            ptr: UnsafeCell::new(None),
+        }
+    }
+}
+
+impl MutNullableParserField {
+    #[allow(unsafe_code)]
+    pub fn set(&self, val: Option<ParserRef>) {
+        unsafe {
+            *self.ptr.get() = val.map(|val| {
+                match val {
+                    ParserRef::HTML(parser) => ParserField::HTML(JS::from_ref(parser)),
+                    ParserRef::XML(parser) => ParserField::XML(JS::from_ref(parser)),
+                }
+            });
+        }
+    }
+
+    #[allow(unsafe_code, unrooted_must_root)]
+    pub fn get(&self) -> Option<ParserRoot> {
+        unsafe {
+            ptr::read(self.ptr.get()).map(|o| {
+                match o {
+                    ParserField::HTML(parser) => ParserRoot::HTML(Root::from_ref(&*parser)),
+                    ParserField::XML(parser) => ParserRoot::XML(Root::from_ref(&*parser)),
+                }
+            })
+        }
+    }
+}
+
+pub enum ParserRoot {
+    HTML(Root<ServoHTMLParser>),
+    XML(Root<ServoXMLParser>),
+}
+
+impl ParserRoot {
+    pub fn r(&self) -> ParserRef {
+        match *self {
+            ParserRoot::HTML(ref parser) => ParserRef::HTML(parser.r()),
+            ParserRoot::XML(ref parser) => ParserRef::XML(parser.r()),
+        }
+    }
+}
+
+enum TrustedParser {
+    HTML(Trusted<ServoHTMLParser>),
+    XML(Trusted<ServoXMLParser>),
+}
+
+impl TrustedParser {
+    pub fn root(&self) -> ParserRoot {
+        match *self {
+            TrustedParser::HTML(ref parser) => ParserRoot::HTML(parser.root()),
+            TrustedParser::XML(ref parser) => ParserRoot::XML(parser.root()),
+        }
+    }
+}
+
+pub enum ParserRef<'a> {
+    HTML(&'a ServoHTMLParser),
+    XML(&'a ServoXMLParser),
+}
+
+impl<'a> ParserRef<'a> {
+    fn parse_chunk(&self, input: String) {
+        match *self {
+            ParserRef::HTML(parser) => parser.parse_chunk(input),
+            ParserRef::XML(parser) => parser.parse_chunk(input),
+        }
+    }
+
+    pub fn window(&self) -> &Window {
+        match *self {
+            ParserRef::HTML(parser) => parser.window(),
+            ParserRef::XML(parser) => parser.window(),
+        }
+    }
+
+    pub fn resume(&self) {
+        match *self {
+            ParserRef::HTML(parser) => parser.resume(),
+            ParserRef::XML(parser) => parser.resume(),
+        }
+    }
+
+    pub fn suspend(&self) {
+        match *self {
+            ParserRef::HTML(parser) => parser.suspend(),
+            ParserRef::XML(parser) => parser.suspend(),
+        }
+    }
+
+    pub fn is_suspended(&self) -> bool {
+        match *self {
+            ParserRef::HTML(parser) => parser.is_suspended(),
+            ParserRef::XML(parser) => parser.is_suspended(),
+        }
+    }
+
+    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
+        match *self {
+            ParserRef::HTML(parser) => parser.pending_input(),
+            ParserRef::XML(parser) => parser.pending_input(),
+        }
+    }
+
+    pub fn set_plaintext_state(&self) {
+        match *self {
+            ParserRef::HTML(parser) => parser.set_plaintext_state(),
+            ParserRef::XML(parser) => parser.set_plaintext_state(),
+        }
+    }
+
+    pub fn parse_sync(&self) {
+        match *self {
+            ParserRef::HTML(parser) => parser.parse_sync(),
+            ParserRef::XML(parser) => parser.parse_sync(),
+        }
+    }
+
+    pub fn document(&self) -> &Document {
+        match *self {
+            ParserRef::HTML(parser) => parser.document(),
+            ParserRef::XML(parser) => parser.document(),
+        }
+    }
+
+    pub fn last_chunk_received(&self) -> &Cell<bool> {
+        match *self {
+            ParserRef::HTML(parser) => parser.last_chunk_received(),
+            ParserRef::XML(parser) => parser.last_chunk_received(),
+        }
+    }
+}
+
 /// The context required for asynchronously fetching a document and parsing it progressively.
 pub struct ParserContext {
     /// The parser that initiated the request.
-    parser: Option<Trusted<ServoHTMLParser>>,
+    parser: Option<TrustedParser>,
     /// Is this a synthesized document
     is_synthesized_document: bool,
     /// The pipeline associated with this document.
@@ -110,22 +267,25 @@ impl AsyncResponseListener for ParserContext {
 
         let parser = parser.r();
         let win = parser.window();
-        self.parser = Some(Trusted::new(win.get_cx(), parser, self.script_chan.clone()));
+        self.parser = Some(match parser {
+            ParserRef::HTML(parser) => TrustedParser::HTML(Trusted::new(win.get_cx(), parser, self.script_chan.clone())),
+            ParserRef::XML(parser) => TrustedParser::XML(Trusted::new(win.get_cx(), parser, self.script_chan.clone())),
+        });
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
                 let page = format!("<html><body><img src='{}' /></body></html>",
                                    self.url.serialize());
-                parser.pending_input.borrow_mut().push(page);
+                parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = format!("<pre>\n");
-                parser.pending_input.borrow_mut().push(page);
+                parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
-                parser.tokenizer().borrow_mut().set_plaintext_state();
+                parser.set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {}, // Handle text/html
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
@@ -138,7 +298,7 @@ impl AsyncResponseListener for ParserContext {
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
                     toplevel.as_str(), sublevel.as_str());
                 self.is_synthesized_document = true;
-                parser.pending_input.borrow_mut().push(page);
+                parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
             },
             None => {
@@ -156,7 +316,7 @@ impl AsyncResponseListener for ParserContext {
                 Some(parser) => parser.root(),
                 None => return,
             };
-            parser.parse_chunk(data);
+            parser.r().parse_chunk(data);
         }
     }
 
@@ -165,16 +325,16 @@ impl AsyncResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
-        parser.document.finish_load(LoadType::PageSource(self.url.clone()));
+        parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
             debug!("Failed to load page URL {}, error: {}", self.url.serialize(), err);
             // TODO(Savago): we should send a notification to callers #5463.
         }
 
-        parser.last_chunk_received.set(true);
-        if !parser.is_suspended() {
-            parser.parse_sync();
+        parser.r().last_chunk_received().set(true);
+        if !parser.r().is_suspended() {
+            parser.r().parse_sync();
         }
     }
 }
@@ -202,7 +362,7 @@ pub struct ServoHTMLParser {
 
 impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
-        self.document.set_current_parser(Some(self));
+        self.document.set_current_parser(Some(ParserRef::HTML(self)));
         self.pending_input.borrow_mut().push(input);
         if !self.is_suspended() {
             self.parse_sync();
@@ -213,7 +373,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
         assert!(!self.suspended.get());
         assert!(self.pending_input.borrow().is_empty());
 
-        self.tokenizer().borrow_mut().end();
+        self.tokenizer.borrow_mut().end();
         debug!("finished parsing");
 
         self.document.set_current_parser(None);
@@ -295,6 +455,19 @@ impl ServoHTMLParser {
     pub fn tokenizer(&self) -> &DOMRefCell<Tokenizer> {
         &self.tokenizer
     }
+
+    pub fn set_plaintext_state(&self) {
+        self.tokenizer.borrow_mut().set_plaintext_state()
+    }
+
+    pub fn end_tokenizer(&self) {
+        self.tokenizer.borrow_mut().end()
+    }
+
+    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
+        &self.pending_input
+    }
+
 }
 
 
@@ -330,23 +503,28 @@ impl ServoHTMLParser {
     fn window(&self) -> &Window {
         self.document.window()
     }
-}
 
-
-impl ServoHTMLParser {
-    pub fn suspend(&self) {
+    fn suspend(&self) {
         assert!(!self.suspended.get());
         self.suspended.set(true);
     }
 
-    pub fn resume(&self) {
+    fn resume(&self) {
         assert!(self.suspended.get());
         self.suspended.set(false);
         self.parse_sync();
     }
 
-    pub fn is_suspended(&self) -> bool {
+    fn is_suspended(&self) -> bool {
         self.suspended.get()
+    }
+
+    fn document(&self) -> &Document {
+        &self.document
+    }
+
+    fn last_chunk_received(&self) -> &Cell<bool> {
+        &self.last_chunk_received
     }
 }
 
