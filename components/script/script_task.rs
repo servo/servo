@@ -31,8 +31,7 @@ use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
-use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
-use dom::document::{DocumentSource, MouseEventType};
+use dom::document::{Document, DocumentProgressHandler, DocumentSource, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -65,7 +64,7 @@ use mem::heap_size_of_self_and_children;
 use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
-use msg::constellation_msg::{MozBrowserEvent, PipelineId};
+use msg::constellation_msg::{MouseButton, MouseEventType, MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
@@ -78,11 +77,9 @@ use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::CompositorEvent::{ClickEvent, ResizeEvent};
-use script_traits::CompositorEvent::{KeyEvent, MouseMoveEvent};
-use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent, TouchEvent};
-use script_traits::{CompositorEvent, ConstellationControlMsg};
-use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
+use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
+use script_traits::CompositorEvent::{TouchEvent};
+use script_traits::{CompositorEvent, ConstellationControlMsg, InitialScriptState, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
 use script_traits::{TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
@@ -1786,16 +1783,8 @@ impl ScriptTask {
                 self.handle_resize_event(pipeline_id, new_size);
             }
 
-            ClickEvent(button, point) => {
-                self.handle_mouse_event(pipeline_id, MouseEventType::Click, button, point);
-            }
-
-            MouseDownEvent(button, point) => {
-                self.handle_mouse_event(pipeline_id, MouseEventType::MouseDown, button, point);
-            }
-
-            MouseUpEvent(button, point) => {
-                self.handle_mouse_event(pipeline_id, MouseEventType::MouseUp, button, point);
+            MouseButtonEvent(event_type, button, point) => {
+                self.handle_mouse_event(pipeline_id, event_type, button, point);
             }
 
             MouseMoveEvent(point) => {

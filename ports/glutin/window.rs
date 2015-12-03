@@ -253,7 +253,7 @@ impl Window {
 
     /// Helper function to handle a click
     fn handle_mouse(&self, button: glutin::MouseButton, action: glutin::ElementState, x: i32, y: i32) {
-        use script_traits::MouseButton;
+        use msg::constellation_msg::MouseButton;
 
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f64;
