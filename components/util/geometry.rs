@@ -75,16 +75,6 @@ pub static MAX_RECT: Rect<Au> = Rect {
     }
 };
 
-/// Returns true if the rect contains the given point. Points on the top or left sides of the rect
-/// are considered inside the rectangle, while points on the right or bottom sides of the rect are
-/// not considered inside the rectangle.
-pub fn rect_contains_point<T>(rect: Rect<T>, point: Point2D<T>) -> bool
-    where T: PartialOrd + Add<T, Output=T>
-{
-    point.x >= rect.origin.x && point.x < rect.origin.x + rect.size.width &&
-        point.y >= rect.origin.y && point.y < rect.origin.y + rect.size.height
-}
-
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
 pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
     Rect::new(Point2D::new(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),

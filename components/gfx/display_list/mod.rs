@@ -397,7 +397,7 @@ impl DisplayList {
                     // Clipped out.
                     return;
                 }
-                if !geometry::rect_contains_point(item.bounds(), point) {
+                if !item.bounds().contains(&point) {
                     // Can't possibly hit.
                     return;
                 }
@@ -420,7 +420,7 @@ impl DisplayList {
                                         border.base.bounds.size.height -
                                             (border.border_widths.top +
                                              border.border_widths.bottom)));
-                    if geometry::rect_contains_point(interior_rect, point) {
+                    if interior_rect.contains(&point) {
                         return;
                     }
                 }
@@ -1089,8 +1089,8 @@ impl ClippingRegion {
     /// This is a quick, not a precise, test; it can yield false positives.
     #[inline]
     pub fn might_intersect_point(&self, point: &Point2D<Au>) -> bool {
-        geometry::rect_contains_point(self.main, *point) &&
-            self.complex.iter().all(|complex| geometry::rect_contains_point(complex.rect, *point))
+        self.main.contains(point) &&
+            self.complex.iter().all(|complex| complex.rect.contains(point))
     }
 
     /// Returns true if this clipping region might intersect the given rectangle and false
