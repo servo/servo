@@ -37,6 +37,7 @@ use std::rc::Rc;
 use std::thread;
 use url::Url;
 use util::mem::HeapSizeOf;
+use websocket::header;
 
 pub mod hosts;
 pub mod image_cache_task;
@@ -239,7 +240,7 @@ pub enum WebSocketDomAction {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished,
+    ConnectionEstablished(header::Headers, Vec<String>),
     MessageReceived(MessageData),
     Close,
 }
@@ -254,6 +255,7 @@ pub struct WebSocketCommunicate {
 pub struct WebSocketConnectData {
     pub resource_url: Url,
     pub origin: String,
+    pub protocols: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -427,6 +429,17 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: 
             ProgressMsg::Done(Err(e)) => return Err(e)
         }
     }
+}
+
+///Defensively unwraps the protocol string from the response object's protocol
+pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Option<&str> {
+    if let Some(protocol) = wsp {
+        let protocol_list = &protocol;
+        if let Some(ref p) = protocol_list.get(0) {
+            return Some(p);
+        };
+    };
+    return None;
 }
 
 /// An unique identifier to keep track of each load message in the resource handler

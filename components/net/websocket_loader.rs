@@ -5,16 +5,18 @@
 use hyper::header::Host;
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
+use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
+use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use util::task::spawn_named;
 use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
-use websocket::header::Origin;
+use websocket::header::{Headers, Origin, WebSocketProtocol};
 use websocket::message::Type;
-use websocket::result::WebSocketResult;
+use websocket::result::{WebSocketError, WebSocketResult};
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
@@ -23,8 +25,8 @@ use websocket::{Client, Message};
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
 fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),
-                                    origin: String)
-    -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
+                                    origin: String, protocols: Vec<String>)
+    -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
 
     let host = Host {
         hostname: resource_url.serialize_host().unwrap(),
@@ -34,11 +36,26 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     let mut request = try!(Client::connect(net_url));
     request.headers.set(Origin(origin));
     request.headers.set(host);
+    if !protocols.is_empty() {
+        request.headers.set(WebSocketProtocol(protocols.clone()));
+    };
 
     let response = try!(request.send());
     try!(response.validate());
 
-    Ok(response.begin().split())
+    {
+       let protocol_in_use = unwrap_websocket_protocol(response.protocol());
+        if let Some(protocol_name) = protocol_in_use {
+                if !protocols.is_empty() && !protocols.iter().any(|p| p.eq_ignore_ascii_case(protocol_name)) {
+                    return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
+            };
+        };
+    }
+
+    let headers = response.headers.clone();
+    let (sender, receiver) = response.begin().split();
+    Ok((headers, sender, receiver))
+
 }
 
 pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
@@ -60,10 +77,11 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
         };
         let channel = establish_a_websocket_connection(&connect_data.resource_url,
                                                        net_url,
-                                                       connect_data.origin);
-        let (ws_sender, mut receiver) = match channel {
+                                                       connect_data.origin,
+                                                       connect_data.protocols.clone());
+        let (_, ws_sender, mut receiver) = match channel {
             Ok(channel) => {
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished);
+                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished(channel.0.clone(), connect_data.protocols));
                 channel
             },
             Err(e) => {
