@@ -137,6 +137,7 @@ pub struct LoadData {
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub pipeline_id: Option<PipelineId>,
+    pub include_third_party_credentials: bool,
 }
 
 impl LoadData {
@@ -149,6 +150,7 @@ impl LoadData {
             data: None,
             cors: None,
             pipeline_id: id,
+            include_third_party_credentials: true,
         }
     }
 }

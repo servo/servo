@@ -504,7 +504,8 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool
 pub fn modify_request_headers(headers: &mut Headers,
                               doc_url: &Url,
                               user_agent: &str,
-                              cookie_jar: &Arc<RwLock<CookieStorage>>) {
+                              cookie_jar: &Arc<RwLock<CookieStorage>>,
+                              load_data: LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: doc_url.serialize_host().unwrap(),
@@ -515,7 +516,9 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     set_default_accept(headers);
     set_default_accept_encoding(headers);
-    set_request_cookies(doc_url.clone(), headers, cookie_jar);
+    if load_data.include_third_party_credentials {
+        set_request_cookies(doc_url.clone(), headers, cookie_jar);
+    }
 }
 
 pub fn process_response_headers(response: &HttpResponse,
@@ -604,7 +607,7 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar);
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, load_data.clone());
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
