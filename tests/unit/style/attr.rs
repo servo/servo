@@ -26,7 +26,7 @@ fn test_from_limited_i32_should_parse_a_uint_when_value_is_0_or_greater() {
 fn test_from_limited_i32_should_keep_parsed_value_when_not_an_int() {
     match AttrValue::from_limited_i32(DOMString::from("parsed-value"), 0) {
         AttrValue::Int(p, 0) => {
-            assert_eq!(p, DOMString::from("parsed_value"))
+            assert_eq!(p, DOMString::from("parsed-value"))
         },
         _ => panic!("expected an successful parsing")
     }
