@@ -34,7 +34,7 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
-use util::geometry::{ExpandToPixelBoundaries, ZERO_POINT};
+use util::geometry::{ExpandToPixelBoundaries};
 use util::opts;
 use util::task;
 use util::task_state;
@@ -454,7 +454,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         let mut properties = Vec::new();
         build_from_paint_layer(&mut properties,
                                root_paint_layer,
-                               &ZERO_POINT,
+                               &Point2D::zero(),
                                &Matrix4::identity(),
                                &Matrix4::identity(),
                                None);

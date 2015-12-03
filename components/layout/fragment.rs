@@ -46,7 +46,6 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::slice_chars;
@@ -2053,7 +2052,7 @@ impl Fragment {
             relative_containing_block_size.to_physical(relative_containing_block_mode);
         let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
         if coordinate_system == CoordinateSystem::Own && self.establishes_stacking_context() {
-            return Rect::new(ZERO_POINT, border_box.size)
+            return Rect::new(Point2D::zero(), border_box.size)
         }
 
         // FIXME(pcwalton): This can double-count relative position sometimes for inlines (e.g.
