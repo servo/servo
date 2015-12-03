@@ -27,6 +27,42 @@ macro_rules! make_bool_getter(
 );
 
 #[macro_export]
+macro_rules! make_limited_int_setter(
+    ($attr:ident, $htmlname:tt, $default:expr) => (
+        fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+
+            let value = if value < 0 {
+                return Err($crate::dom::bindings::error::Error::IndexSize);
+            } else {
+                value
+            };
+
+            let element = self.upcast::<Element>();
+            element.set_int_attribute(&atom!($htmlname), value);
+            Ok(())
+        }
+    );
+);
+
+#[macro_export]
+macro_rules! make_int_getter(
+    ($attr:ident, $htmlname:tt, $default:expr) => (
+        fn $attr(&self) -> i32 {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.get_int_attribute(&atom!($htmlname), $default)
+        }
+    );
+
+    ($attr:ident, $htmlname:tt) => {
+        make_int_getter!($attr, $htmlname, 0);
+    };
+);
+
+#[macro_export]
 macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self) -> u32 {

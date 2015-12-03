@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use util::str::{DOMString, LengthOrPercentageOrAuto, parse_unsigned_integer, parse_legacy_color, parse_length};
-use util::str::{split_html_space_chars, str_join};
+use util::str::{split_html_space_chars, str_join, parse_integer};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -17,6 +17,7 @@ pub enum AttrValue {
     String(DOMString),
     TokenList(DOMString, Vec<Atom>),
     UInt(DOMString, u32),
+    Int(DOMString, i32),
     Atom(Atom),
     Length(DOMString, Option<Length>),
     Color(DOMString, Option<RGBA>),
@@ -50,6 +51,22 @@ impl AttrValue {
             result
         };
         AttrValue::UInt(string, result)
+    }
+
+    pub fn from_i32(string: DOMString, default: i32) -> AttrValue {
+        let result = parse_integer(string.chars()).unwrap_or(default);
+        AttrValue::Int(string, result)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers
+    pub fn from_limited_i32(string: DOMString, default: i32) -> AttrValue {
+        let result = parse_integer(string.chars()).unwrap_or(default);
+
+        if result < 0 {
+            AttrValue::Int(string, default)
+        } else {
+            AttrValue::Int(string, result)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers-greater-than-zero
@@ -165,6 +182,7 @@ impl Deref for AttrValue {
                 AttrValue::UInt(ref value, _) |
                 AttrValue::Length(ref value, _) |
                 AttrValue::Color(ref value, _) |
+                AttrValue::Int(ref value, _) |
                 AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }

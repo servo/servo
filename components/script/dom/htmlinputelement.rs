@@ -64,6 +64,7 @@ pub struct HTMLInputElement {
     placeholder: DOMRefCell<DOMString>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
+    maxlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
@@ -103,6 +104,7 @@ impl InputActivationState {
 }
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
+static DEFAULT_MAX_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
@@ -115,8 +117,9 @@ impl HTMLInputElement {
             placeholder: DOMRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
+            maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan)),
+            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None)),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
@@ -337,6 +340,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
+    // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
+    make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
+    make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
+
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
         self.upcast::<Element>().get_state().contains(IN_INDETERMINATE_STATE)
@@ -511,6 +520,7 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
+
         match attr.local_name() {
             &atom!("disabled") => {
                 let disabled_state = match mutation {
@@ -581,6 +591,18 @@ impl VirtualMethods for HTMLInputElement {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
+            &atom!("maxlength") => {
+                match *attr.value() {
+                    AttrValue::Int(_, value) => {
+                        if value < 0 {
+                            self.textinput.borrow_mut().max_length = None
+                        } else {
+                            self.textinput.borrow_mut().max_length = Some(value as usize)
+                        }
+                    },
+                    _ => panic!("Expected an AttrValue::Int"),
+                }
+            }
             &atom!("placeholder") => {
                 // FIXME(ajeffrey): Should we do in-place mutation of the placeholder?
                 let mut placeholder = self.placeholder.borrow_mut();
@@ -599,6 +621,7 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("name") => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
             &atom!("type") => AttrValue::from_atomic(value),
+            &atom!("maxlength") => AttrValue::from_limited_i32(value, DEFAULT_MAX_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

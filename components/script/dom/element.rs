@@ -1090,6 +1090,30 @@ impl Element {
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
+    pub fn get_int_attribute(&self, local_name: &Atom, default: i32) -> i32 {
+        // TODO: Is this assert necessary?
+        assert!(local_name.chars().all(|ch| {
+            !ch.is_ascii() || ch.to_ascii_lowercase() == ch
+        }));
+        let attribute = self.get_attribute(&ns!(), local_name);
+
+        match attribute {
+            Some(ref attribute) => {
+                match *attribute.r().value() {
+                    AttrValue::Int(_, value) => value,
+                    _ => panic!("Expected an AttrValue::Int: \
+                                 implement parse_plain_attribute"),
+                }
+            }
+            None => default,
+        }
+    }
+
+    pub fn set_int_attribute(&self, local_name: &Atom, value: i32) {
+        assert!(&**local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::Int(DOMString::from(value.to_string()), value));
+    }
+
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));
         let attribute = self.get_attribute(&ns!(), local_name);
