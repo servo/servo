@@ -64,15 +64,22 @@ impl CORSRequest {
                      destination: Url,
                      mode: RequestMode,
                      method: Method,
-                     headers: Headers)
+                     headers: Headers,
+                     same_origin_data_url_flag: bool)
                      -> Result<Option<CORSRequest>, ()> {
         if referer.scheme == destination.scheme && referer.host() == destination.host() &&
            referer.port() == destination.port() {
             return Ok(None); // Not cross-origin, proceed with a normal fetch
         }
         match &*destination.scheme {
-            // TODO: If the request's same origin data url flag is set (which isn't the case for XHR)
-            // we can fetch a data URL normally. about:blank can also be fetched by XHR
+            // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), about URLs can be fetched
+            // the same as a basic request.
+	    // TODO: (security-sensitive) restrict the available pages to about:blank and
+	    // about:unicorn (See https://fetch.spec.whatwg.org/#concept-basic-fetch).
+            "about" => Ok(None),
+            // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), data URLs can be fetched
+            // the same as a basic request if the request's same-origin data-URL flag is set.
+            "data" if same_origin_data_url_flag => Ok(None),
             "http" | "https" => {
                 let mut req = CORSRequest::new(referer, destination, mode, method, headers);
                 req.preflight_flag = !is_simple_method(&req.method) ||
