@@ -57,12 +57,12 @@ pub use constellation::Constellation;
 
 mod compositor;
 mod compositor_layer;
+pub mod compositor_task;
+pub mod constellation;
 mod headless;
+pub mod pipeline;
+pub mod sandboxing;
 mod scrolling;
 mod surface_map;
 mod timer_scheduler;
-pub mod compositor_task;
-pub mod constellation;
-pub mod pipeline;
-pub mod sandboxing;
 pub mod windowing;

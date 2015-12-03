@@ -229,26 +229,18 @@ def check_rust(file_name, contents):
     import_block = False
     whitespace = False
 
-    uses = []
+    prev_use = None
+    current_indent = 0
     prev_crate = {}
-    mods = []
+    prev_mod = {}
+
+    decl_message = "{} is not in alphabetical order"
+    decl_expected = "\n\t\033[93mexpected: {}\033[0m"
+    decl_found = "\n\t\033[91mfound: {}\033[0m"
 
     for idx, original_line in enumerate(contents):
         # simplify the analysis
         line = original_line.strip()
-
-        # check extern crates
-        if line.startswith("extern crate"):
-            crate_name = line.replace("extern crate ", "").replace(";", "")
-            indent = len(original_line) - len(line)
-            if indent not in prev_crate:
-                prev_crate[indent] = ""
-            if prev_crate[indent] > crate_name:
-                message = "extern crate statement is not in alphabetical order"
-                expected = "\n\t\033[93mexpected: {}\033[0m".format(prev_crate[indent])
-                found = "\n\t\033[91mfound: {}\033[0m".format(crate_name)
-                yield(idx + 1, message + expected + found)
-            prev_crate[indent] = crate_name
 
         # Simple heuristic to avoid common case of no comments.
         if '/' in line:
@@ -342,23 +334,36 @@ def check_rust(file_name, contents):
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space after {")
 
+        # check extern crates
+        if line.startswith("extern crate "):
+            crate_name = line[len("extern crate "):-1]
+            indent = len(original_line) - len(line)
+            if indent not in prev_crate:
+                prev_crate[indent] = ""
+            if prev_crate[indent] > crate_name:
+                yield(idx + 1, decl_message.format("extern crate declaration")
+                      + decl_expected.format(prev_crate[indent])
+                      + decl_found.format(crate_name))
+            prev_crate[indent] = crate_name
+
         # imports must be in the same line, alphabetically sorted, and merged
         # into a single import block
-        if line.startswith("use "):
+        elif line.startswith("use "):
             import_block = True
             use = line[4:]
+            indent = len(original_line) - len(line)
             if not use.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
-            uses.append((use[:len(use) - 1], idx + 1))
-        elif len(uses) > 0 and whitespace or not import_block:
-            sorted_uses = sorted(uses)
-            for i in range(len(uses)):
-                if sorted_uses[i][0] != uses[i][0]:
-                    message = "use statement is not in alphabetical order"
-                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_uses[i][0])
-                    found = "\n\t\033[91mfound: {}\033[0m".format(uses[i][0])
-                    yield(uses[i][1], message + expected + found)
-            uses = []
+            current_use = use[:len(use) - 1]
+            if indent == current_indent and prev_use and current_use < prev_use:
+                yield(idx + 1, decl_message.format("use statement")
+                      + decl_expected.format(prev_use)
+                      + decl_found.format(current_use))
+            prev_use = current_use
+            current_indent = indent
+
+        if whitespace or not import_block:
+            current_indent = 0
 
         if import_block and whitespace and line.startswith("use "):
             whitespace = False
@@ -366,26 +371,24 @@ def check_rust(file_name, contents):
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
-            mod = ""
-            if line.startswith("mod "):
-                mod = line[4:]
-            else:
-                mod = line[8:]
+            indent = len(original_line) - len(line)
+            mod = line[4:] if line.startswith("mod ") else line[8:]
 
-            match = line.find(" {")
-            if match == -1:
-                if not mod.endswith(";"):
-                    yield (idx + 1, "mod statement spans multiple lines")
-                mods.append(mod[:len(mod) - 1])
-        elif len(mods) > 0:
-            sorted_mods = sorted(mods)
-            for i in range(len(mods)):
-                if sorted_mods[i] != mods[i]:
-                    message = "mod statement is not in alphabetical order"
-                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_mods[i])
-                    found = "\n\t\033[91mfound: {}\033[0m".format(mods[i])
-                    yield (idx + 1 - len(mods) + i, message + expected + found)
-            mods = []
+            if idx < 0 or "#[macro_use]" not in contents[idx - 1]:
+                match = line.find(" {")
+                if indent not in prev_mod:
+                    prev_mod[indent] = ""
+                if match == -1 and not mod.endswith(";"):
+                    yield (idx + 1, "mod declaration spans multiple lines")
+                mod = mod[:len(mod) - 1]
+                if len(prev_mod[indent]) > 0 and mod < prev_mod[indent]:
+                    yield(idx + 1, decl_message.format("mod declaration")
+                          + decl_expected.format(prev_mod[indent])
+                          + decl_found.format(mod))
+                prev_mod[indent] = mod
+        else:
+            # we now erase previous entries
+            prev_mod = {}
 
         # There should not be any extra pointer dereferencing
         if ": &Vec<" in line:
@@ -553,16 +556,6 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
-def check_wpt_lint_errors():
-    import subprocess
-    wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
-    lint_cmd = os.path.join(wpt_working_dir, "lint")
-    try:
-        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
-    except subprocess.CalledProcessError as e:
-        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
-
-
 def scan():
     all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
@@ -575,9 +568,9 @@ def scan():
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
-    wpt_lint_errors = check_wpt_lint_errors()
 
-    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors))
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
+
     if errors:
         for error in errors:
             print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
