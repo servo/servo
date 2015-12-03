@@ -166,14 +166,19 @@ def check_lock(file_name, contents):
     packages = {}
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["libc"]
+    exceptions = ["libc", "byteorder", "cocoa"]
 
     while idx < len(contents):
         content = contents[idx].strip()
         if 'name' in content:
             base_name = content.split('"')[1]
             # we need the base package because some other package might demand a new version in the following lines
-            packages[base_name] = contents[idx + 1].split('"')[1], idx + 2, base_name
+            if base_name not in packages:
+                packages[base_name] = contents[idx + 1].split('"')[1], idx + 2, base_name
+            elif all([packages[base_name][0] != contents[idx + 1].split('"')[1], base_name not in exceptions]):
+                message = 'duplicate package "%s"' % base_name
+                error = '\n\t\033[93mPrevious occurrence is at line %d\033[0m' % packages[base_name][1]
+                yield (idx + 1, message + error)
         if 'dependencies' in content:
             idx += 1
             while contents[idx].strip() != ']':
