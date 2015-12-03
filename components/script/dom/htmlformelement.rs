@@ -209,7 +209,8 @@ impl HTMLFormElement {
                 load_data.data = Some(parsed_data.into_bytes());
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
-            ("ftp", _) | ("javascript", _) | ("data", FormMethod::FormGet) => (),
+            ("file", _) | ("about", _) | ("data", FormMethod::FormGet) |
+            ("ftp", _) | ("javascript", _) => (),
             _ => return // Unimplemented (data and mailto)
         }
 

@@ -5535,6 +5535,12 @@
             "url": "/_mozilla/mozilla/follow-hyperlink.html"
           }
         ],
+        "mozilla/form_submit_about.html": [
+          {
+            "path": "mozilla/form_submit_about.html",
+            "url": "/_mozilla/mozilla/form_submit_about.html"
+          }
+        ],
         "mozilla/getBoundingClientRect.html": [
           {
             "path": "mozilla/getBoundingClientRect.html",

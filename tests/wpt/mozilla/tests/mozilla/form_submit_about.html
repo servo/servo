@@ -1,0 +1,15 @@
+<html>
+    <head>
+        <script src=/resources/testharness.js></script>
+        <script src=/resources/testharnessreport.js></script>
+    </head>
+    <body>
+        <iframe src="form_submit_about_frame.html" id="foo"></iframe>
+        <script>
+            var numOnLoads = 0
+            var t = async_test("about:blank as form target")
+            var iframe = document.getElementById('foo')
+            iframe.onload = t.step_func(function(e) { if (++numOnLoads == 2) t.done() })
+        </script>
+    </body>
+</html>
