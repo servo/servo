@@ -20,6 +20,7 @@ use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
+use net_traits::{WebSocketCommunicate, WebSocketConnectData};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -29,6 +30,7 @@ use std::sync::{Arc, RwLock};
 use url::Url;
 use util::opts;
 use util::task::spawn_named;
+use websocket_loader;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
@@ -174,6 +176,8 @@ impl ResourceChannelManager {
             match self.from_client.recv().unwrap() {
                 ControlMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
+                ControlMsg::WebsocketConnect(connect, connect_data) =>
+                    self.resource_manager.websocket_connect(connect, connect_data),
                 ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source),
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
@@ -349,5 +353,11 @@ impl ResourceManager {
                          consumer,
                          self.mime_classifier.clone(),
                          cancel_listener));
+    }
+
+    fn websocket_connect(&self,
+                         connect: WebSocketCommunicate,
+                         connect_data: WebSocketConnectData) {
+        websocket_loader::init(connect, connect_data);
     }
 }
