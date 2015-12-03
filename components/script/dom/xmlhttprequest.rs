@@ -626,7 +626,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                                                   load_data.url.clone(),
                                                   mode,
                                                   load_data.method.clone(),
-                                                  combined_headers);
+                                                  combined_headers,
+                                                  true);
         match cors_request {
             Ok(None) => {
                 let mut buf = String::new();
@@ -1301,7 +1302,8 @@ impl XMLHttpRequest {
               global: GlobalRef) -> ErrorResult {
         let cors_request = match cors_request {
             Err(_) => {
-                // Happens in case of cross-origin non-http URIs
+                // Happens in case of unsupported cross-origin URI schemes.
+                // Supported schemes are http, https, data, and about.
                 self.process_partial_response(XHRProgress::Errored(
                     self.generation_id.get(), Error::Network));
                 return Err(Error::Network);
