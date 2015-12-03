@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::ServoXMLParserBinding;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
@@ -87,7 +89,30 @@ impl<'a> Parser for &'a ServoXMLParser {
 }
 
 impl ServoXMLParser {
-    pub fn new() {
+    #[allow(unrooted_must_root)]
+    pub fn new(base_url: Option<Url>, document: &Document, pipeline: Option<PipelineId>)
+               -> Root<ServoXMLParser> {
+        let sink = Sink {
+            base_url: base_url,
+            document: JS::from_ref(document),
+        };
+
+        let tb = XmlTreeBuilder::new(sink);
+
+        let tok = tokenizer::XmlTokenizer::new(tb, Default::default());
+
+        let parser = ServoXMLParser {
+            reflector_: Reflector::new(),
+            tokenizer: DOMRefCell::new(tok),
+            pending_input: DOMRefCell::new(vec!()),
+            document: JS::from_ref(document),
+            suspended: Cell::new(false),
+            last_chunk_received: Cell::new(false),
+            pipeline: pipeline,
+        };
+
+        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
+                           ServoXMLParserBinding::Wrap)
     }
 
     pub fn window(&self) -> &Window {
