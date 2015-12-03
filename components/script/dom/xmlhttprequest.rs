@@ -995,20 +995,9 @@ impl XMLHttpRequest {
         }
     }
 
-    //FIXME: add support for override_mime_type and override_charset
+    //FIXME: add support for XML encoding guess stuff using XML spec
     fn text_response(&self) -> String {
-        let mut encoding = UTF_8 as EncodingRef;
-        match self.response_headers.borrow().get() {
-            Some(&ContentType(mime::Mime(_, _, ref params))) => {
-                for &(ref name, ref value) in params {
-                    if name == &mime::Attr::Charset {
-                        encoding = encoding_from_whatwg_label(&value.to_string()).unwrap_or(encoding);
-                    }
-                }
-            },
-            None => {}
-        }
-
+        let encoding = self.final_charset().unwrap_or(UTF_8);
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
@@ -1101,6 +1090,34 @@ impl XMLHttpRequest {
             }
         }
         Ok(())
+    }
+
+    fn final_charset(&self) -> Option<EncodingRef> {
+        if self.override_charset.borrow().is_some() {
+            self.override_charset.borrow().clone()
+        } else {
+            match self.response_headers.borrow().get() {
+                Some(&ContentType(ref mime)) => {
+                    let value = mime.get_param(mime::Attr::Charset);
+                    value.and_then(|value|{
+                        encoding_from_whatwg_label(value)
+                    })
+                }
+                None => { None }
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    fn final_mime_type(&self) -> Option<Mime> {
+        if self.override_mime_type.borrow().is_some() {
+            self.override_mime_type.borrow().clone()
+        } else {
+            match self.response_headers.borrow().get() {
+                Some(&ContentType(ref mime)) => { Some(mime.clone()) },
+                None => { None }
+            }
+        }
     }
 }
 

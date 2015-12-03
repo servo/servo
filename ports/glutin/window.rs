@@ -18,13 +18,13 @@ use glutin;
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-use libc::c_void;
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
 #[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
+use std::os::raw::c_void;
 #[cfg(all(feature = "headless", target_os = "linux"))]
 use std::ptr;
 use std::rc::Rc;
@@ -86,17 +86,21 @@ impl Window {
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
-        let mut glutin_window = glutin::WindowBuilder::new()
-                            .with_title("Servo".to_string())
-                            .with_decorations(!opts::get().no_native_titlebar)
-                            .with_vsync()
-                            .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
-                            .with_gl(Window::gl_version())
-                            .with_visibility(is_foreground)
-                            .with_parent(parent)
-                            .with_multitouch()
-                            .build()
-                            .unwrap();
+        let width = window_size.to_untyped().width;
+        let height = window_size.to_untyped().height;
+        let mut builder = glutin::WindowBuilder::new().with_title("Servo".to_string())
+                                                      .with_decorations(!opts::get().no_native_titlebar)
+                                                      .with_dimensions(width, height)
+                                                      .with_gl(Window::gl_version())
+                                                      .with_visibility(is_foreground)
+                                                      .with_parent(parent)
+                                                      .with_multitouch();
+
+        if opts::get().enable_vsync {
+            builder = builder.with_vsync();
+        }
+
+        let mut glutin_window = builder.build().unwrap();
 
         unsafe { glutin_window.make_current().expect("Failed to make context current!") }
 

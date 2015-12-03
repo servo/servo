@@ -9,6 +9,7 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -18,7 +19,7 @@ pub struct HTMLDialogElement {
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
@@ -29,7 +30,7 @@ impl HTMLDialogElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDialogElement> {
         let element = HTMLDialogElement::new_inherited(localName, prefix, document);

@@ -78,10 +78,9 @@ impl GlobalStaticData {
     }
 }
 
-// NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
-// LSetDOMProperty. Those constants need to be changed accordingly if this value
-// changes.
-const DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
+/// The index of the slot where the object holder of that interface's
+/// unforgeable members are defined.
+pub const DOM_PROTO_UNFORGEABLE_HOLDER_SLOT: u32 = 0;
 
 /// The index of the slot that contains a reference to the ProtoOrIfaceArray.
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
@@ -186,8 +185,12 @@ pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray
 pub struct NativeProperties {
     /// Instance methods for the interface.
     pub methods: Option<&'static [JSFunctionSpec]>,
+    /// Unforgeable instance methods for the interface.
+    pub unforgeable_methods: Option<&'static [JSFunctionSpec]>,
     /// Instance attributes for the interface.
     pub attrs: Option<&'static [JSPropertySpec]>,
+    /// Unforgeable instance attributes for the interface.
+    pub unforgeable_attrs: Option<&'static [JSPropertySpec]>,
     /// Constants for the interface.
     pub consts: Option<&'static [ConstantSpec]>,
     /// Static methods for the interface.
@@ -210,25 +213,11 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
                                    named_constructors: &[(NonNullJSNative, &'static str, u32)],
-                                   dom_class: Option<&'static DOMClass>,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
     assert!(rval.get().is_null());
     if let Some(proto_class) = proto_class {
         create_interface_prototype_object(cx, proto_proto, proto_class, members, rval);
-
-        if !rval.get().is_null() {
-            let dom_class_ptr = match dom_class {
-                Some(dom_class) => dom_class as *const DOMClass as *const libc::c_void,
-                None => ptr::null() as *const libc::c_void,
-            };
-
-            unsafe {
-                JS_SetReservedSlot(rval.get(),
-                                   DOM_PROTO_INSTANCE_CLASS_SLOT,
-                                   PrivateValue(dom_class_ptr));
-            }
-        }
     }
 
     if let Some((native, name, nargs)) = constructor {

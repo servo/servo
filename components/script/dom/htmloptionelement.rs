@@ -20,6 +20,7 @@ use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
 use std::cell::Cell;
+use string_cache::Atom;
 use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[dom_struct]
@@ -34,7 +35,7 @@ pub struct HTMLOptionElement {
 }
 
 impl HTMLOptionElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
@@ -47,7 +48,7 @@ impl HTMLOptionElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, prefix, document);

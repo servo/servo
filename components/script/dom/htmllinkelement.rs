@@ -53,7 +53,7 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
@@ -64,7 +64,7 @@ impl HTMLLinkElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {

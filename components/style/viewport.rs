@@ -271,7 +271,7 @@ impl ViewportRule {
             let pos = range.start;
             let message = format!("Unsupported @viewport descriptor declaration: '{}'",
                                   input.slice(range));
-            log_css_error(input, pos, &*message);
+            log_css_error(input, pos, &*message, &context);
         }
 
         Ok(ViewportRule { declarations: valid_declarations.iter().cascade() })

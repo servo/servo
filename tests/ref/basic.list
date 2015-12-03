@@ -13,20 +13,8 @@ fragment=top != ../html/acid2.html acid2_ref.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
-# inline_border_a.html inline_border_b.html
-flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
-# Fails intermittently (#3636)
-# == link_style_dynamic_addition.html link_style_dynamic_addition_ref.html
-# Should be == with expected failure. See #2797
-!= overconstrained_block.html overconstrained_block_ref.html
-# Should be ==?
-!= overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html
-# commented out because multiple layers don't work with reftests --pcwalton
-# == position_fixed_a.html position_fixed_b.html
-# == position_fixed_simple_a.html position_fixed_simple_b.html
-# == position_fixed_static_y_a.html position_fixed_static_y_b.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_overflow_a.html text_overflow_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html

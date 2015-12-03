@@ -4290,6 +4290,66 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-supported.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-supported.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.xhtml"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-roman.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-alpha.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-supported.html",
         "references": [
           [
@@ -4398,6 +4458,76 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-upper-roman.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-roman.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-alpha.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-roman.html"
       },
       {
         "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html",
@@ -16362,6 +16492,10 @@
         "url": "/html/semantics/document-metadata/the-link-element/link-style-error-01.html"
       },
       {
+        "path": "html/semantics/document-metadata/the-meta-element/pragma-directives/attr-meta-http-equiv-refresh/parsing.html",
+        "url": "/html/semantics/document-metadata/the-meta-element/pragma-directives/attr-meta-http-equiv-refresh/parsing.html"
+      },
+      {
         "path": "html/semantics/document-metadata/the-meta-element/the-lang-attribute-012.html",
         "url": "/html/semantics/document-metadata/the-meta-element/the-lang-attribute-012.html"
       },
@@ -17876,6 +18010,10 @@
       {
         "path": "html/semantics/forms/the-input-element/input-type-checkbox.html",
         "url": "/html/semantics/forms/the-input-element/input-type-checkbox.html"
+      },
+      {
+        "path": "html/semantics/forms/the-input-element/maxlength.html",
+        "url": "/html/semantics/forms/the-input-element/maxlength.html"
       },
       {
         "path": "html/semantics/forms/the-input-element/month.html",
@@ -26306,6 +26444,14 @@
         "url": "/url/a-element.xhtml"
       },
       {
+        "path": "url/historical.html",
+        "url": "/url/historical.html"
+      },
+      {
+        "path": "url/historical.worker.js",
+        "url": "/url/historical.worker"
+      },
+      {
         "path": "url/interfaces.html",
         "url": "/url/interfaces.html"
       },
@@ -29987,7 +30133,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "manual": {
+        "html/semantics/forms/the-input-element/maxlength-manual.html": [
+          {
+            "path": "html/semantics/forms/the-input-element/maxlength-manual.html",
+            "url": "/html/semantics/forms/the-input-element/maxlength-manual.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -31743,6 +31898,78 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       }
     ],
+    "html/rendering/non-replaced-elements/lists/li-type-supported.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-supported.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/li-type-supported.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-supported.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.xhtml"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-roman.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-roman.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-alpha.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-alpha.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html"
+      }
+    ],
     "html/rendering/non-replaced-elements/lists/ol-type-supported.html": [
       {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-supported.html",
@@ -31873,6 +32100,90 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-upper-roman.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-supported.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-roman.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-roman.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-alpha.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-alpha.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-alpha.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-roman.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-roman.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-upper-roman.html"
       }
     ],
     "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html": [
@@ -35548,7 +35859,7 @@
       }
     ]
   },
-  "rev": "ee40b886c701ffa25a673240cabdedd59ee3ace4",
+  "rev": "a3b0fadc7f5001bbe52c65e0a354c454981423a3",
   "url_base": "/",
   "version": 2
 }

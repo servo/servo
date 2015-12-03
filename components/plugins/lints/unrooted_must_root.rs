@@ -4,6 +4,7 @@
 
 use rustc::front::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
+use rustc::middle::pat_util::pat_is_binding;
 use rustc::middle::ty;
 use rustc_front::hir;
 use rustc_front::intravisit as visit;
@@ -206,11 +207,13 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
         let cx = self.cx;
 
         if let hir::PatIdent(hir::BindByValue(_), _, _) = pat.node {
-            let ty = cx.tcx.pat_ty(pat);
-            if is_unrooted_ty(cx, ty, self.in_new_function) {
-                cx.span_lint(UNROOTED_MUST_ROOT,
-                            pat.span,
-                            &format!("Expression of type {:?} must be rooted", ty))
+            if pat_is_binding(&cx.tcx.def_map.borrow(), pat) {
+                let ty = cx.tcx.pat_ty(pat);
+                if is_unrooted_ty(cx, ty, self.in_new_function) {
+                    cx.span_lint(UNROOTED_MUST_ROOT,
+                                pat.span,
+                                &format!("Expression of type {:?} must be rooted", ty))
+                }
             }
         }
 

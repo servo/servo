@@ -4,6 +4,7 @@
 
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -12,7 +13,7 @@ pub struct HTMLMediaElement {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(tag_name: DOMString,
+    pub fn new_inherited(tag_name: Atom,
                          prefix: Option<DOMString>, document: &Document)
                          -> HTMLMediaElement {
         HTMLMediaElement {

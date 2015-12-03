@@ -20,7 +20,6 @@
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
 #![feature(plugin)]
-#![feature(ref_slice)]
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
 #![feature(unicode)]
@@ -61,6 +60,7 @@ extern crate offscreen_gl_context;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;
+extern crate ref_slice;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
 extern crate script_traits;

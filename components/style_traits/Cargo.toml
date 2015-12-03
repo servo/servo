@@ -15,7 +15,7 @@ path = "../plugins"
 
 [dependencies]
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }
-euclid = {version = "0.3", features = ["plugins"]}
+euclid = {version = "0.4", features = ["plugins"]}
 log = "0.3"
 lazy_static = "0.1.10"
 num = "0.1.24"

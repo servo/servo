@@ -109,3 +109,7 @@ PARSE-FAILED:content-security-policy/svg/including.sub.svg
 #Helper files that aren't valid XML
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xml
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
+
+# Git submodules are not currently scanned
+*:tools/*
+*:resources/*

@@ -29,7 +29,7 @@ pub struct HTMLTableElement {
 }
 
 impl HTMLTableElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
@@ -40,7 +40,7 @@ impl HTMLTableElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
@@ -75,7 +75,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
         let caption = match self.GetCaption() {
             Some(caption) => caption,
             None => {
-                let caption = HTMLTableCaptionElement::new(DOMString::from("caption"),
+                let caption = HTMLTableCaptionElement::new(atom!("caption"),
                                                            None,
                                                            document_from_node(self).r());
                 self.SetCaption(Some(caption.r()));
@@ -94,7 +94,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
-        let tbody = HTMLTableSectionElement::new(DOMString::from("tbody"),
+        let tbody = HTMLTableSectionElement::new(atom!("tbody"),
                                                  None,
                                                  document_from_node(self).r());
         let node = self.upcast::<Node>();

@@ -132,14 +132,14 @@ impl DOMImplementationMethods for DOMImplementation {
         {
             // Step 4.
             let doc_node = doc.upcast::<Node>();
-            let doc_html = Root::upcast::<Node>(HTMLHtmlElement::new(DOMString::from("html"),
+            let doc_html = Root::upcast::<Node>(HTMLHtmlElement::new(atom!("html"),
                                                                      None,
                                                                      doc.r()));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
-                let doc_head = Root::upcast::<Node>(HTMLHeadElement::new(DOMString::from("head"),
+                let doc_head = Root::upcast::<Node>(HTMLHeadElement::new(atom!("head"),
                                                                          None,
                                                                          doc.r()));
                 doc_html.AppendChild(&doc_head).unwrap();
@@ -150,7 +150,7 @@ impl DOMImplementationMethods for DOMImplementation {
                     Some(title_str) => {
                         // Step 6.1.
                         let doc_title =
-                            Root::upcast::<Node>(HTMLTitleElement::new(DOMString::from("title"),
+                            Root::upcast::<Node>(HTMLTitleElement::new(atom!("title"),
                                                                        None,
                                                                        doc.r()));
                         doc_head.AppendChild(&doc_title).unwrap();
@@ -163,7 +163,7 @@ impl DOMImplementationMethods for DOMImplementation {
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(DOMString::from("body"), None, doc.r());
+            let doc_body = HTMLBodyElement::new(atom!("body"), None, doc.r());
             doc_html.AppendChild(doc_body.upcast()).unwrap();
         }
 

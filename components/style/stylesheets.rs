@@ -108,7 +108,7 @@ impl Stylesheet {
     pub fn from_str(css: &str, base_url: Url, origin: Origin,
                     error_reporter: Box<ParseErrorReporter + Send>) -> Stylesheet {
         let rule_parser = TopLevelRuleParser {
-            context: ParserContext::new(origin, &base_url, error_reporter),
+            context: ParserContext::new(origin, &base_url, error_reporter.clone()),
             state: Cell::new(State::Start),
         };
         let mut input = Parser::new(css);
@@ -131,7 +131,8 @@ impl Stylesheet {
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message);
+                    let context = ParserContext::new(origin, &base_url, error_reporter.clone());
+                    log_css_error(iter.input, pos, &*message, &context);
                 }
             }
         }
@@ -329,7 +330,7 @@ fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRul
             Err(range) => {
                 let pos = range.start;
                 let message = format!("Unsupported rule: '{}'", iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message);
+                log_css_error(iter.input, pos, &*message, &context);
             }
         }
     }

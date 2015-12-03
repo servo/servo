@@ -7,6 +7,7 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::Node;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -15,7 +16,7 @@ pub struct HTMLTableDataCellElement {
 }
 
 impl HTMLTableDataCellElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
@@ -25,7 +26,7 @@ impl HTMLTableDataCellElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableDataCellElement> {
         Node::reflect_node(box HTMLTableDataCellElement::new_inherited(localName,
                                                                        prefix,

@@ -27,12 +27,13 @@ use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
 use net_traits::hosts::replace_hosts;
+use ref_slice::ref_slice;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::ptr;
 use std::sync::{Arc, Mutex};
-use std::{ptr, slice};
 use util::str::DOMString;
 use util::task::spawn_named;
 use websocket::client::receiver::Receiver;
@@ -126,6 +127,24 @@ const BLOCKED_PORTS_LIST: &'static [u16] = &[
     6000, // x11
 ];
 
+// Close codes defined in https://tools.ietf.org/html/rfc6455#section-7.4.1
+// Names are from https://github.com/mozilla/gecko-dev/blob/master/netwerk/protocol/websocket/nsIWebSocketChannel.idl
+#[allow(dead_code)]
+mod close_code {
+    pub const NORMAL: u16 = 1000;
+    pub const GOING_AWAY: u16 = 1001;
+    pub const PROTOCOL_ERROR: u16 = 1002;
+    pub const UNSUPPORTED_DATATYPE: u16 = 1003;
+    pub const NO_STATUS: u16 = 1005;
+    pub const ABNORMAL: u16 = 1006;
+    pub const INVALID_PAYLOAD: u16 = 1007;
+    pub const POLICY_VIOLATION: u16 = 1008;
+    pub const TOO_LARGE: u16 = 1009;
+    pub const EXTENSION_MISSING: u16 = 1010;
+    pub const INTERNAL_ERROR: u16 = 1011;
+    pub const TLS_FAILED: u16 = 1015;
+}
+
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
@@ -212,7 +231,7 @@ impl WebSocket {
         // Step 4.
         let protocols: &[DOMString] = protocols
                                       .as_ref()
-                                      .map_or(&[], |ref string| slice::ref_slice(string));
+                                      .map_or(&[], |ref string| ref_slice(string));
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
@@ -430,8 +449,8 @@ impl WebSocketMethods for WebSocket {
 
 
         if let Some(code) = code {
-            //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
-            if  code != 1000 && (code < 3000 || code > 4999) {
+            //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
+            if code != close_code::NORMAL && (code < 3000 || code > 4999) {
                 return Err(Error::InvalidAccess);
             }
         }
@@ -454,9 +473,7 @@ impl WebSocketMethods for WebSocket {
             WebSocketRequestState::Open => {
                 //Closing handshake not started - still in open
                 //Start the closing by setting the code and reason if they exist
-                if let Some(code) = code {
-                    self.code.set(code);
-                }
+                self.code.set(code.unwrap_or(close_code::NO_STATUS));
                 if let Some(reason) = reason {
                     *self.reason.borrow_mut() = reason.0;
                 }

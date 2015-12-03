@@ -48,6 +48,8 @@ ignored_files = [
 
 
 def should_check(file_name):
+    if os.path.basename(file_name) == "Cargo.lock":
+        return True
     if ".#" in file_name:
         return False
     if os.path.splitext(file_name)[1] not in filetypes_to_check:
@@ -181,12 +183,12 @@ def check_lock(file_name, contents):
                     packages[name] = (version, idx + 1, base_name)
                 elif all([packages[name][0] != version, name not in exceptions, base_name not in exceptions]):
                     line = idx + 1
-                    version_1 = tuple(map(int, packages[name][0].split('.')))
-                    version_2 = tuple(map(int, version.split('.')))
+                    version_1 = tuple(map(maybe_int, packages[name][0].split('.')))
+                    version_2 = tuple(map(maybe_int, version.split('.')))
                     if version_1 < version_2:       # get the line & base package containing the older version
                         packages[name], (version, line, base_name) = (version, line, base_name), packages[name]
 
-                    message = 'conflicting versions for package "%s"' % name
+                    message = 'duplicate versions for package "%s"' % name
                     error = '\n\t\033[93mexpected maximum version "{}"\033[0m'.format(packages[name][0]) + \
                             '\n\t\033[91mbut, "{}" demands "{}"\033[0m' \
                             .format(base_name, version)
@@ -196,6 +198,13 @@ def check_lock(file_name, contents):
                     yield (line, message + error + suggest)
                 idx += 1
         idx += 1
+
+
+def maybe_int(value):
+    try:
+        return int(value)
+    except ValueError:
+        return value
 
 
 def check_toml(file_name, contents):
@@ -544,6 +553,16 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
+def check_wpt_lint_errors():
+    import subprocess
+    wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
+    lint_cmd = os.path.join(wpt_working_dir, "lint")
+    try:
+        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
+    except subprocess.CalledProcessError as e:
+        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
+
+
 def scan():
     all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
@@ -556,9 +575,9 @@ def scan():
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
+    wpt_lint_errors = check_wpt_lint_errors()
 
-    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
-
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors))
     if errors:
         for error in errors:
             print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)

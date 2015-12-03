@@ -21,14 +21,14 @@ pub struct HTMLHRElement {
 }
 
 impl HTMLHRElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHRElement> {
         let element = HTMLHRElement::new_inherited(localName, prefix, document);

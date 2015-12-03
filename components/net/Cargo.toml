@@ -38,5 +38,5 @@ cookie = "0.2"
 mime_guess = "1.1.1"
 flate2 = "0.2.0"
 uuid = "0.1.16"
-euclid = {version = "0.3", features = ["plugins"]}
+euclid = {version = "0.4", features = ["plugins"]}
 url = "0.5"

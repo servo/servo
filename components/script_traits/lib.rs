@@ -137,6 +137,13 @@ pub enum ConstellationControlMsg {
     WebFontLoaded(PipelineId),
     /// Get the current state of the script task for a given pipeline.
     GetCurrentState(IpcSender<ScriptState>, PipelineId),
+    /// Cause a `load` event to be dispatched at the appropriate frame element.
+    DispatchFrameLoadEvent {
+        /// The pipeline that has been marked as loaded.
+        target: PipelineId,
+        /// The pipeline that contains a frame loading the target pipeline.
+        parent: PipelineId
+    },
 }
 
 /// The mouse button involved in the event.

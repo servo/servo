@@ -37,7 +37,7 @@ pub struct HTMLTableRowElement {
 }
 
 impl HTMLTableRowElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
@@ -46,7 +46,7 @@ impl HTMLTableRowElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableRowElement> {
         Node::reflect_node(box HTMLTableRowElement::new_inherited(localName, prefix, document),
                            document,
@@ -76,7 +76,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableDataCellElement::new(DOMString::from("td"), None, node.owner_doc().r()))
+            || HTMLTableDataCellElement::new(atom!("td"), None, node.owner_doc().r()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell

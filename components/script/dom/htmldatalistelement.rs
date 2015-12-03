@@ -12,6 +12,7 @@ use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -20,7 +21,7 @@ pub struct HTMLDataListElement {
 }
 
 impl HTMLDataListElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDataListElement {
         HTMLDataListElement {
@@ -30,7 +31,7 @@ impl HTMLDataListElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, prefix, document);

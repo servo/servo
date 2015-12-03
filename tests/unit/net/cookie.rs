@@ -26,6 +26,23 @@ fn test_domain_match() {
 }
 
 #[test]
+fn test_path_match() {
+    assert!(Cookie::path_match("/", "/"));
+    assert!(Cookie::path_match("/index.html", "/"));
+    assert!(Cookie::path_match("/w/index.html", "/"));
+    assert!(Cookie::path_match("/w/index.html", "/w/index.html"));
+    assert!(Cookie::path_match("/w/index.html", "/w/"));
+    assert!(Cookie::path_match("/w/index.html", "/w"));
+
+    assert!(!Cookie::path_match("/", "/w/"));
+    assert!(!Cookie::path_match("/a", "/w/"));
+    assert!(!Cookie::path_match("/", "/w"));
+    assert!(!Cookie::path_match("/w/index.html", "/w/index"));
+    assert!(!Cookie::path_match("/windex.html", "/w/"));
+    assert!(!Cookie::path_match("/windex.html", "/w"));
+}
+
+#[test]
 fn test_default_path() {
     assert!(&*Cookie::default_path("/foo/bar/baz/") == "/foo/bar/baz");
     assert!(&*Cookie::default_path("/foo/bar/baz") == "/foo/bar");
