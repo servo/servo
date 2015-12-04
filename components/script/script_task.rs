@@ -1676,9 +1676,9 @@ impl ScriptTask {
                                                    Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>  IsHTMLDocument::NonHTMLDocument,
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>  IsHTMLDocument::NonHTMLDocument,
 
-        _ => IsHTMLDocument::HTMLDocument,
+            _ => IsHTMLDocument::HTMLDocument,
         };
 
         let document = Document::new(window.r(),

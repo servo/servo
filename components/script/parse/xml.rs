@@ -65,11 +65,11 @@ impl<'a> TreeSink for servoxmlparser::Sink {
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
         let child = match child {
-                        NodeOrText::AppendNode(n) => Root::from_ref(&*n),
-                        NodeOrText::AppendText(t) => {
-                            let s: String = t.into();
-                            let text = Text::new(DOMString::from(s), &self.document);
-                            Root::upcast(text)
+            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
+            NodeOrText::AppendText(t) => {
+                let s: String = t.into();
+                let text = Text::new(DOMString::from(s), &self.document);
+                Root::upcast(text)
             }
         };
         assert!(parent.AppendChild(child.r()).is_ok());
