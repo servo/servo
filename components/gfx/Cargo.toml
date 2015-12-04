@@ -84,7 +84,7 @@ servo-fontconfig = "0.2"
 [target.arm-linux-androideabi.dependencies]
 servo-fontconfig = "0.2"
 
-[target.x86_64-pc-windows-gnu.dependencies.fontconfig]
+[target.x86_64-pc-windows-gnu.dependencies.servo-fontconfig]
 git = "https://github.com/servo/rust-fontconfig"
 
 [target.i686-unknown-linux-gnu.dependencies.freetype]

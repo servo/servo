@@ -11,9 +11,8 @@
 extern crate kernel32;
 
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
-use libc::usleep;
 #[cfg(not(windows))]
-use libc::funcs::posix88::unistd::usleep;
+use libc::usleep;
 use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
