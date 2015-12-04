@@ -37,7 +37,7 @@ use net_traits::image_cache_task::ImageResponse;
 use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
 use std::sync::mpsc::channel;
-use std::{mem, ptr, slice};
+use std::{ptr, slice};
 use util::str::DOMString;
 use util::vec::byte_swap;
 
@@ -400,9 +400,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             if buffer_data.is_null() {
                 return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
             }
-            let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
-            let data_vec_length = length / mem::size_of::<f32>() as u32;
-            slice::from_raw_parts(data_f32, data_vec_length as usize).to_vec()
+            slice::from_raw_parts(ptr, length as usize).to_vec()
         };
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
@@ -431,9 +429,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             if buffer_data.is_null() {
                 return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
             }
-            let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
-            let data_vec_length = length / mem::size_of::<f32>() as u32;
-            slice::from_raw_parts(data_f32, data_vec_length as usize).to_vec()
+            slice::from_raw_parts(ptr, length as usize).to_vec()
         };
         // FIXME(simartin) Check that the defined region is inside the allocated one
         // https://github.com/servo/servo/issues/8738
