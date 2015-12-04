@@ -291,7 +291,7 @@ impl AsyncResponseListener for ParserContext {
                 parser.set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {}, // Handle text/html
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {}, // Handle text/xtml
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {}, // Handle text/xml
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
                 if toplevel.as_str() == "application" && sublevel.as_str() == "xhtml+xml" {
                     // Handle xhtml (application/xhtml+xml).

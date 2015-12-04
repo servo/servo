@@ -120,19 +120,44 @@ impl ServoXMLParser {
     }
 
     pub fn resume(&self) {
-        panic!()
+        assert!(self.suspended.get());
+        self.suspended.set(false);
+        self.parse_sync();
     }
 
     pub fn suspend(&self) {
-        panic!()
+        assert!(!self.suspended.get());
+        self.suspended.set(true);
     }
 
     pub fn is_suspended(&self) -> bool {
-        panic!()
+        self.suspended.get()
     }
 
     pub fn parse_sync(&self) {
-        panic!()
+        // This parser will continue to parse while there is either pending input or
+        // the parser remains unsuspended.
+        loop {
+           self.document.reflow_if_reflow_timer_expired();
+            let mut pending_input = self.pending_input.borrow_mut();
+            if !pending_input.is_empty() {
+                let chunk = pending_input.remove(0);
+                self.tokenizer.borrow_mut().feed(chunk.into());
+            }
+
+            // Document parsing is blocked on an external resource.
+            if self.suspended.get() {
+                return;
+            }
+
+            if pending_input.is_empty() {
+                break;
+            }
+        }
+
+        if self.last_chunk_received.get() {
+            self.finish();
+        }
     }
 
     pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
