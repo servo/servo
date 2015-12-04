@@ -1415,9 +1415,8 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[allow(unrooted_must_root)]
     unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementSnapshot)> {
         let mut elements = (*self.unsafe_get()).modified_elements.borrow_mut_for_layout();
-        let drain = elements.drain();
-        let layout_drain = drain.map(|(k, v)| (k.to_layout(), v));
-        Vec::from_iter(layout_drain)
+        let result = elements.drain().map(|(k, v)| (k.to_layout(), v)).collect();
+        result
     }
 }
 
