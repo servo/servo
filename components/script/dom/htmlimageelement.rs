@@ -117,8 +117,8 @@ impl HTMLImageElement {
                     let runnable = ImageResponseHandlerRunnable::new(
                         trusted_node.clone(), image_response);
                     let runnable = wrapper.wrap_runnable(runnable);
-                    script_chan.send(CommonScriptMsg::RunnableMsg(
-                        UpdateReplacedElement, runnable)).unwrap();
+                    let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
+                        UpdateReplacedElement, runnable));
                 });
 
                 image_cache.request_image(img_url,
