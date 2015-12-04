@@ -29,7 +29,6 @@ use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
-use util::geometry::ZERO_POINT;
 use util::logical_geometry::WritingMode;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
@@ -487,9 +486,9 @@ pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
                     flow::base(flow_ref.deref()).stacking_relative_position,
                 // TODO(dzbarsky) search parents until we find node with a flow ref.
                 // https://github.com/servo/servo/issues/8307
-                _ => ZERO_POINT
+                _ => Point2D::zero()
             }
-        }).unwrap_or(ZERO_POINT);
+        }).unwrap_or(Point2D::zero());
         let property = match *property {
             atom!("bottom") => PositionProperty::Bottom,
             atom!("top") => PositionProperty::Top,

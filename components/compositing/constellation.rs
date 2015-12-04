@@ -617,13 +617,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     pipeline_id, event_type, button, point)) => {
                 if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
                     pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline_id,
-                        CompositorEvent::MouseButtonEvent(event_type, button, point)));
+                        CompositorEvent::MouseButtonEvent(event_type, button, point))).unwrap();
                 }
             }
             Request::Script(FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point)) => {
                 if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
                     pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline_id,
-                        CompositorEvent::MouseMoveEvent(Some(point))));
+                        CompositorEvent::MouseMoveEvent(Some(point)))).unwrap();
                 }
             }
             Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {

@@ -7,7 +7,6 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use std::i32;
-use std::ops::Add;
 
 // Units for use with euclid::length and euclid::scale_factor.
 
@@ -58,11 +57,6 @@ pub enum PagePx {}
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
-
-pub static ZERO_POINT: Point2D<Au> = Point2D {
-    x: Au(0),
-    y: Au(0),
-};
 
 pub static MAX_RECT: Rect<Au> = Rect {
     origin: Point2D {

@@ -17,7 +17,6 @@ use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, ConstructFlows, RecalcStyleForNode};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
-use util::geometry::ZERO_POINT;
 use util::opts;
 use wrapper::LayoutNode;
 
@@ -151,5 +150,5 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
         }
     }
 
-    doit(flow_ref::deref_mut(root), 0, iterator, &ZERO_POINT);
+    doit(flow_ref::deref_mut(root), 0, iterator, &Point2D::zero());
 }

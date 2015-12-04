@@ -35,7 +35,7 @@ use std::{f32, mem, ptr};
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use text::TextRun;
 use text::glyph::CharIndex;
-use util::geometry::{self, MAX_RECT, PagePx, ScreenPx, ZERO_POINT};
+use util::geometry::{self, MAX_RECT, PagePx, ScreenPx};
 use util::opts;
 use util::range::Range;
 
@@ -1351,7 +1351,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., -1.,
                                                                                          1., 0.,
                                                                                          x, y)));
-                ZERO_POINT
+                Point2D::zero()
             }
             SidewaysRight => {
                 let x = text.baseline_origin.x.to_f32_px();
@@ -1359,7 +1359,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., 1.,
                                                                                          -1., 0.,
                                                                                          x, y)));
-                ZERO_POINT
+                Point2D::zero()
             }
         };
 

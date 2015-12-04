@@ -143,10 +143,18 @@ impl CanvasRenderingContext2D {
                            CanvasRenderingContext2DBinding::Wrap)
     }
 
-    pub fn recreate(&self, size: Size2D<i32>) {
+    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
+    pub fn set_bitmap_dimensions(&self, size: Size2D<i32>) {
+        self.reset_to_initial_state();
         self.ipc_renderer
             .send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size)))
             .unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
+    fn reset_to_initial_state(&self) {
+        self.saved_states.borrow_mut().clear();
+        *self.state.borrow_mut() = CanvasContextState::new();
     }
 
     pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
