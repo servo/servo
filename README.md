@@ -8,7 +8,7 @@ Servo welcomes contribution from everyone.  See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md)
 for help getting started.
 
-Visit the [Servo Project page](http://servo.org/) for news and guides.
+Visit the [Servo Project page](https://servo.org/) for news and guides.
 
 ## Prerequisites
 
@@ -62,7 +62,7 @@ sudo emerge net-misc/curl media-libs/freeglut \
 Cross-compilation for Android:
 
 Pre-installed Android tools are needed. See wiki for
-[details](https://github.com/mozilla/servo/wiki/Building-for-Android)
+[details](https://github.com/servo/servo/wiki/Building-for-Android)
 
 Using Virtualbox:
 
