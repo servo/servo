@@ -382,12 +382,9 @@ impl WebGLPaintTask {
             gl::STENCIL_VALUE_MASK |
             gl::STENCIL_WRITEMASK |
             gl::SUBPIXEL_BITS |
-            gl::UNPACK_ALIGNMENT => {
+            gl::UNPACK_ALIGNMENT =>
             //gl::UNPACK_COLORSPACE_CONVERSION_WEBGL =>
-                let mut result = 0i32;
-                gl::get_integer_v(param_id, &mut result);
-                Ok(WebGLParameter::Int(result))
-            },
+                Ok(WebGLParameter::Int(gl::get_integer_v(param_id))),
 
             gl::BLEND |
             gl::CULL_FACE |
@@ -396,23 +393,17 @@ impl WebGLPaintTask {
             gl::DITHER |
             gl::POLYGON_OFFSET_FILL |
             gl::SAMPLE_COVERAGE_INVERT |
-            gl::STENCIL_TEST => {
+            gl::STENCIL_TEST =>
             //gl::UNPACK_FLIP_Y_WEBGL |
             //gl::UNPACK_PREMULTIPLY_ALPHA_WEBGL =>
-                let mut result = 0u8;
-                gl::get_boolean_v(param_id, &mut result);
-                Ok(WebGLParameter::Bool(result != 0))
-            },
+                Ok(WebGLParameter::Bool(gl::get_boolean_v(param_id) != 0)),
 
             gl::DEPTH_CLEAR_VALUE |
             gl::LINE_WIDTH |
             gl::POLYGON_OFFSET_FACTOR |
             gl::POLYGON_OFFSET_UNITS |
-            gl::SAMPLE_COVERAGE_VALUE => {
-                let mut result = 0f32;
-                gl::get_float_v(param_id, &mut result);
-                Ok(WebGLParameter::Float(result))
-            },
+            gl::SAMPLE_COVERAGE_VALUE =>
+                Ok(WebGLParameter::Float(gl::get_float_v(param_id))),
 
             gl::VERSION => Ok(WebGLParameter::String("WebGL 1.0".to_owned())),
             gl::RENDERER |
