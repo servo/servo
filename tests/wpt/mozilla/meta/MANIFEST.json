@@ -5271,6 +5271,12 @@
             "url": "/_mozilla/mozilla/calc.html"
           }
         ],
+        "mozilla/canvas.initial.reset.2dstate.html": [
+          {
+            "path": "mozilla/canvas.initial.reset.2dstate.html",
+            "url": "/_mozilla/mozilla/canvas.initial.reset.2dstate.html"
+          }
+        ],
         "mozilla/caption.html": [
           {
             "path": "mozilla/caption.html",
