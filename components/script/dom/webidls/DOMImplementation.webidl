@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://dom.spec.whatwg.org/#interface=domimplementation
+ * https://dom.spec.whatwg.org/#interface-domimplementation
  *
  * Copyright:
  * To the extent possible under law, the editors have waived all copyright and
