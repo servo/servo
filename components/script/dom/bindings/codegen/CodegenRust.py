@@ -2291,10 +2291,8 @@ assert!(!scope.get().is_null());
 assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 let mut proto = RootedObject::new(cx, ptr::null_mut());
-{
-    let _ac = JSAutoCompartment::new(cx, scope.get());
-    GetProtoObject(cx, scope, scope, proto.handle_mut())
-}
+let _ac = JSAutoCompartment::new(cx, scope.get());
+GetProtoObject(cx, scope, scope, proto.handle_mut());
 assert!(!proto.ptr.is_null());
 
 %(createObject)s
