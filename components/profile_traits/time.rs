@@ -65,6 +65,7 @@ pub enum ProfilerCategory {
     ScriptImageCacheMsg,
     ScriptInputEvent,
     ScriptNetworkEvent,
+    ScriptPlannedNavigation,
     ScriptResize,
     ScriptSetViewport,
     ScriptTimerEvent,

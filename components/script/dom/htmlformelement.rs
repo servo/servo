@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
@@ -31,22 +32,29 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::Window;
 use hyper::header::ContentType;
 use hyper::method::Method;
 use hyper::mime;
-use msg::constellation_msg::LoadData;
-use script_thread::{MainThreadScriptMsg, ScriptChan};
+use msg::constellation_msg::{LoadData, PipelineId};
+use script_thread::ScriptThreadEventCategory::FormPlannedNavigation;
+use script_thread::{CommonScriptMsg, MainThreadScriptMsg, Runnable, ScriptChan};
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use url::form_urlencoded::serialize;
 use util::str::DOMString;
+
+#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+pub struct GenerationId(u32);
 
 #[dom_struct]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
     elements: MutNullableHeap<JS<HTMLFormControlsCollection>>,
+    generation_id: Cell<GenerationId>
 }
 
 impl HTMLFormElement {
@@ -57,6 +65,7 @@ impl HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             marked_for_reset: Cell::new(false),
             elements: Default::default(),
+            generation_id: Cell::new(GenerationId(0))
         }
     }
 
@@ -282,25 +291,48 @@ impl HTMLFormElement {
         };
 
         // Step 18
+        let win = window_from_node(self);
         match (&*scheme, method) {
+            // https://html.spec.whatwg.org/multipage/#submit-dialog
             (_, FormMethod::FormDialog) => return, // Unimplemented
+            // https://html.spec.whatwg.org/multipage/#submit-mutate-action
             ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) => {
                 load_data.url.query = Some(parsed_data);
-            },
+                self.plan_to_navigate(load_data, &win);
+            }
+            // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::Post;
                 load_data.data = Some(parsed_data.into_bytes());
-            },
+            }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) | ("about", _) | ("data", FormMethod::FormGet) |
-            ("ftp", _) | ("javascript", _) => (),
+            ("ftp", _) | ("javascript", _) => {
+                self.plan_to_navigate(load_data, &win);
+            }
             _ => return // Unimplemented (data and mailto)
         }
+    }
 
-        // This is wrong. https://html.spec.whatwg.org/multipage/#planned-navigation
-        let win = window_from_node(self);
-        win.main_thread_script_chan().send(MainThreadScriptMsg::Navigate(
-            win.pipeline(), load_data)).unwrap();
+    /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
+    fn plan_to_navigate(&self, load_data: LoadData, window: &Window) {
+        // Step 1
+        // Each planned navigation runnable is tagged with a generation ID, and
+        // before the runnable is handled, it first checks whether the HTMLFormElement's
+        // generation ID is the same as its own generation ID.
+        let GenerationId(prev_id) = self.generation_id.get();
+        self.generation_id.set(GenerationId(prev_id + 1));
+        // Step 2
+        let nav = box PlannedNavigation {
+            load_data: load_data,
+            pipeline_id: window.pipeline(),
+            script_chan: window.main_thread_script_chan().clone(),
+            generation_id: self.generation_id.get(),
+            form: Trusted::new(self, window.dom_manipulation_task_source())
+        };
+        // Step 3
+        window.dom_manipulation_task_source().send(
+            CommonScriptMsg::RunnableMsg(FormPlannedNavigation, nav)).unwrap();
     }
 
     /// Interactively validate the constraints of form elements
@@ -718,6 +750,23 @@ impl VirtualMethods for HTMLFormElement {
         match name {
             &atom!("name") => AttrValue::from_atomic(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+}
+
+struct PlannedNavigation {
+    load_data: LoadData,
+    pipeline_id: PipelineId,
+    script_chan: Sender<MainThreadScriptMsg>,
+    generation_id: GenerationId,
+    form: Trusted<HTMLFormElement>
+}
+
+impl Runnable for PlannedNavigation {
+    fn handler(self: Box<PlannedNavigation>) {
+        if self.generation_id == self.form.root().generation_id.get() {
+            let script_chan = self.script_chan.clone();
+            script_chan.send(MainThreadScriptMsg::Navigate(self.pipeline_id, self.load_data)).unwrap();
         }
     }
 }
