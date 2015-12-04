@@ -4,6 +4,7 @@
 
 use cors::CORSResponse;
 use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_origin_request};
+use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
@@ -21,9 +22,10 @@ use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::ByteString;
-use dom::document::Document;
+use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::node::window_from_node;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -45,6 +47,8 @@ use net_traits::ControlMsg::Load;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use net_traits::{LoadConsumer, LoadData, ResourceCORSData, ResourceTask};
 use network_listener::{NetworkListener, PreInvoke};
+use parse::html::{ParseContext, parse_html};
+use parse::xml::{self, parse_xml};
 use script_task::{ScriptChan, ScriptPort};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -711,7 +715,45 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
-                }
+                },
+                XMLHttpRequestResponseType::Document => {
+                    self.response_xml.get().to_jsval(cx, rval.handle_mut());
+                    let content_type;
+                    let document_type;
+                    match self.response_headers.borrow().get() {
+                        Some(&ContentType(mime::Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _))) => {
+                             content_type = DOMString::from("text/xml");
+                             document_type = IsHTMLDocument::NonHTMLDocument;
+                        },
+                        _ => {
+                                content_type = DOMString::from("text/html");
+                                document_type = IsHTMLDocument::HTMLDocument;
+                        }
+                    }
+                    let url = self.global.root().r().get_url();
+                    let doc = self.response_xml.get().unwrap();
+                    let loader = DocumentLoader::new(&*doc.loader());
+                    let window = window_from_node(doc.r());
+
+                    // FIXME: this should probably be FromParser when we actually parse the string (#3756).
+                    let document = Document::new(&window,
+                                   Some(url.clone()),
+                                    IsHTMLDocument::NonHTMLDocument,
+                                    Some(content_type),
+                                    None,
+                                    DocumentSource::FromParser,
+                                    loader);
+                    let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
+                    let b_string = DOMString::from(decoded);
+                    if document_type == IsHTMLDocument::NonHTMLDocument {
+                        // TODO: call parser with scripting disabled
+                        parse_xml(document.r(), b_string, url, xml::ParseContext::Owner(None));
+                    }
+                    else {
+                        //TODO: call parser with scripting disabled
+                        parse_html(document.r(), b_string, url, ParseContext::Owner(None));
+                    }
+                },
                 _ => {
                     // XXXManishearth handle other response types
                     self.response.borrow().to_jsval(cx, rval.handle_mut());
