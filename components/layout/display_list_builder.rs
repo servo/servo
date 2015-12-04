@@ -1795,7 +1795,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         // We iterate using an index here, because we want to avoid doing a doing
         // a double-borrow of self (one mutable for the method call and one immutable
         // for the self.fragments.fragment iterator itself).
-        for index in (0..self.fragments.fragments.len()) {
+        for index in 0..self.fragments.fragments.len() {
             let establishes_stacking_context = {
                 let fragment = self.fragments.fragments.get(index).unwrap();
                 match fragment.specific {

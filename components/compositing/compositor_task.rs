@@ -229,7 +229,7 @@ impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Msg::Exit(..) => write!(f, "Exit"),
-            Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
+            Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
