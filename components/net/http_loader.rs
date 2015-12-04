@@ -504,7 +504,8 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool
 pub fn modify_request_headers(headers: &mut Headers,
                               doc_url: &Url,
                               user_agent: &str,
-                              cookie_jar: &Arc<RwLock<CookieStorage>>) {
+                              cookie_jar: &Arc<RwLock<CookieStorage>>,
+                              load_data: &LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: doc_url.serialize_host().unwrap(),
@@ -515,14 +516,18 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     set_default_accept(headers);
     set_default_accept_encoding(headers);
-    set_request_cookies(doc_url.clone(), headers, cookie_jar);
+    // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
+    if load_data.credentials_flag {
+        set_request_cookies(doc_url.clone(), headers, cookie_jar);
+    }
 }
 
 pub fn process_response_headers(response: &HttpResponse,
                                 url: &Url,
                                 doc_url: &Url,
                                 cookie_jar: &Arc<RwLock<CookieStorage>>,
-                                hsts_list: &Arc<RwLock<HSTSList>>) {
+                                hsts_list: &Arc<RwLock<HSTSList>>,
+                                load_data: &LoadData) {
     info!("got HTTP response {}, headers:", response.status());
     if log_enabled!(log::LogLevel::Info) {
         for header in response.headers().iter() {
@@ -530,7 +535,10 @@ pub fn process_response_headers(response: &HttpResponse,
         }
     }
 
-    set_cookies_from_response(doc_url.clone(), response, cookie_jar);
+    // https://fetch.spec.whatwg.org/#concept-http-network-fetch step 9
+    if load_data.credentials_flag {
+        set_cookies_from_response(doc_url.clone(), response, cookie_jar);
+    }
     update_sts_list_from_response(url, response, hsts_list);
 }
 
@@ -604,7 +612,7 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar);
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
@@ -674,7 +682,7 @@ pub fn load<A>(load_data: LoadData,
             break;
         }
 
-        process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list);
+        process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
