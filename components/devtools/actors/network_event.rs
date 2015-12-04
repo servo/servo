@@ -12,7 +12,7 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use hyper::header::Headers;
-use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{Accept, AcceptEncoding, Cookie, ContentLength, ContentType, Host};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
@@ -49,6 +49,11 @@ pub struct EventActor {
 }
 
 #[derive(RustcEncodable)]
+pub struct ResponseCookiesMsg {
+    pub cookies: u32,
+}
+
+#[derive(RustcEncodable)]
 pub struct ResponseStartMsg {
     pub httpVersion: String,
     pub remoteAddress: String,
@@ -61,15 +66,24 @@ pub struct ResponseStartMsg {
 
 #[derive(RustcEncodable)]
 pub struct ResponseContentMsg {
-   // pub mimeType: String,
-   // pub contentSize: u32,
-   // pub transferredSize: u32,
-   // pub discardResponseBody: bool,
-	pub content: Option<Vec<u8>>,
-	pub contentDiscarded: bool,
-	
+    pub mimeType: String,
+    pub contentSize: u32,
+    pub transferredSize: u32,
+    pub discardResponseBody: bool,
 }
 
+
+#[derive(RustcEncodable)]
+pub struct ResponseHeadersMsg {
+    pub headers: u32,
+    pub headersSize: u32,
+}
+
+
+#[derive(RustcEncodable)]
+pub struct RequestCookiesMsg {
+    pub cookies: u32,
+}
 
 #[derive(RustcEncodable)]
 struct GetRequestHeadersReply {
@@ -380,27 +394,79 @@ impl NetworkEventActor {
     }
 	
 	pub fn response_content(&self) -> ResponseContentMsg {
-			
-			let msg=	ResponseContentMsg {
-						content: self.response.body.clone(),
-						contentDiscarded: false,
-					};
-				return msg;
-			-----------------------------
+				let mut mString = "".to_owned();
 				if let Some(list) = self.response.headers.clone() {
-            	let mimetype = match list.get() {
-								Some(&ContentType(ref mime)) => Some(mime),
-								None => None
-							};
-				ResponseContentMsg {
-				mimeType: mimetype,
-				contentSize: 0,
-				transferredSize: 0,
-				discardResponseBody: false,
-			}
+            		let mimetype = match list.get() {
+						Some(&ContentType(ref mime)) =>  Some(mime),
+						None => None
+					};
+				if let Some(mtype)= mimetype {
+					mString = mtype.to_string();
+
+				}				
+				}
+			// TODO: Set correct values when response's body is sent to the devtools in http_loader.
+		ResponseContentMsg {
+			mimeType: mString,
+			contentSize: 0,
+			transferredSize: 0,
+			discardResponseBody: false,
+		}
+	}
+
+	pub fn response_cookies(&self) -> ResponseCookiesMsg {
+		
+		let mut cookies_size =0;		
+		if let Some(list) = self.response.headers.clone() {
+    		let cookietype = match list.get() {
+				Some(&Cookie(ref cookie)) =>  Some(cookie),
+				None => None
+			};
+			if let Some(cookie)= cookietype {
+						cookies_size  = cookie.len();
 
 			}
+		
+		}
 
+		ResponseCookiesMsg {
+			cookies: cookies_size as u32,
+		}
+	}
+
+	pub fn response_headers(&self) -> ResponseHeadersMsg {
+		
+		let mut headers_size=0;
+		if let Some(res_headers) = self.response.headers.clone() {
+				headers_size = res_headers.len() as u32;
+				
+		}
+		// TODO: Set correct value for headersSize.
+		ResponseHeadersMsg {
+			headers: headers_size,
+			headersSize: headers_size,
+		}
+
+	}
+
+	pub fn request_cookies(&self) -> RequestCookiesMsg {
+		
+		let mut cookies_size =0;		
+		 let list = self.request.headers.clone(); 
+    		let cookietype = match list.get() {
+				Some(&Cookie(ref cookie)) =>  Some(cookie),
+				None => None
+			};
+			if let Some(cookie)= cookietype {
+						cookies_size  = cookie.len();
+
+			}
+		
+		
+
+		RequestCookiesMsg {
+			cookies: cookies_size as u32,
+		}
 	}
 
 }

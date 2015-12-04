@@ -35,7 +35,7 @@ use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
-use actors::network_event::{EventActor, NetworkEventActor, ResponseContentMsg, ResponseStartMsg};
+use actors::network_event::{EventActor, NetworkEventActor, RequestCookiesMsg, ResponseCookiesMsg, ResponseContentMsg, ResponseHeadersMsg, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
@@ -119,11 +119,27 @@ struct ResponseContentUpdateMsg {
 }
 
 #[derive(RustcEncodable)]
+struct ResponseCookiesUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    responseCookies: ResponseCookiesMsg,
+}
+
+#[derive(RustcEncodable)]
+struct ResponseHeadersUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    responseHeaders: ResponseHeadersMsg,
+}
+
+#[derive(RustcEncodable)]
 struct RequestCookiesUpdateMsg {
     from: String,
     __type__: String,
     updateType: String,
-    cookies: ResponseStartMsg,
+    requestcookies: RequestCookiesMsg,
 }
 
 #[derive(RustcEncodable)]
@@ -381,10 +397,21 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
+
             }
             NetworkEvent::HttpResponse(httpresponse) => {
                 //Store the response information in the actor
                 actor.add_response(httpresponse);
+
+				let msg7 = RequestCookiesUpdateMsg {
+								from: netevent_actor_name.clone(),
+								__type__: "networkEventUpdate".to_owned(),
+								updateType: "requestCookies".to_owned(),
+								requestcookies: actor.request_cookies(),
+							};
+				for stream in &mut connections {
+                    stream.write_json_packet(&msg7);
+                }
 
                 //Send a networkEventUpdate (responseStart) to the client
                 let msg = ResponseStartUpdateMsg {
@@ -427,8 +454,30 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     responseContent: actor.response_content(),
                 };
 
-                for stream in &mut connections {
+				for stream in &mut connections {
                     stream.write_json_packet(&msg4);
+                }
+
+				let msg5 =ResponseCookiesUpdateMsg {
+							from: netevent_actor_name.clone(),
+							__type__: "networkEventUpdate".to_owned(),
+							updateType: "responseCookies".to_owned(),
+							responseCookies: actor.response_cookies(),
+						};
+
+                for stream in &mut connections {
+                    stream.write_json_packet(&msg5);
+                }
+
+				let msg6 =	ResponseHeadersUpdateMsg {
+								from: netevent_actor_name.clone(),
+								__type__: "networkEventUpdate".to_owned(),
+								updateType: "responseHeaders".to_owned(),
+								responseHeaders: actor.response_headers(),
+							};
+
+				for stream in &mut connections {
+                    stream.write_json_packet(&msg6);
                 }
 
             }

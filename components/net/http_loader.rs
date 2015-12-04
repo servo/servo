@@ -147,6 +147,10 @@ pub trait HttpResponse: Read {
     fn headers(&self) -> &Headers;
     fn status(&self) -> StatusCode;
     fn status_raw(&self) -> &RawStatus;
+	
+	fn http_version(&self) -> String { 
+		return "HTTP/1.1".to_owned() 
+	}
 
     fn content_encoding(&self) -> Option<Encoding> {
         self.headers().get::<ContentEncoding>().and_then(|h| {
@@ -165,6 +169,7 @@ pub trait HttpResponse: Read {
     }
 }
 
+
 struct WrappedHttpResponse {
     response: Response
 }
@@ -175,6 +180,8 @@ impl Read for WrappedHttpResponse {
         self.response.read(buf)
     }
 }
+
+
 
 impl HttpResponse for WrappedHttpResponse {
     fn headers(&self) -> &Headers {
@@ -188,6 +195,10 @@ impl HttpResponse for WrappedHttpResponse {
     fn status_raw(&self) -> &RawStatus {
         self.response.status_raw()
     }
+
+	fn http_version(&self) -> String { 
+		self.response.version.to_string() 
+	}
 }
 
 pub trait HttpRequestFactory {
