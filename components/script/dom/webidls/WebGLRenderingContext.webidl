@@ -689,17 +689,23 @@ interface WebGLRenderingContextBase
     void useProgram(WebGLProgram? program);
     //void validateProgram(WebGLProgram? program);
 
-    //void vertexAttrib1f(GLuint indx, GLfloat x);
+    // FIXME(dmarcos)
+    // The code generator doesn't handle Float32Array so we're using 'object'
+    void vertexAttrib1f(GLuint indx, GLfloat x);
     //void vertexAttrib1fv(GLuint indx, Float32Array values);
+    void vertexAttrib1fv(GLuint indx, object values);
     //void vertexAttrib1fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
+    void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
     //void vertexAttrib2fv(GLuint indx, Float32Array values);
+    void vertexAttrib2fv(GLuint indx, object values);
     //void vertexAttrib2fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
+    void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
     //void vertexAttrib3fv(GLuint indx, Float32Array values);
+    void vertexAttrib3fv(GLuint indx, object values);
     //void vertexAttrib3fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+    void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     //void vertexAttrib4fv(GLuint indx, Float32Array values);
+    void vertexAttrib4fv(GLuint indx, object values);
     //void vertexAttrib4fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttribPointer(GLuint indx, GLint size, GLenum type,
                              GLboolean normalized, GLsizei stride, GLintptr offset);

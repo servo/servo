@@ -182,6 +182,7 @@ pub enum CanvasWebGLMsg {
     LinkProgram(u32),
     Uniform4fv(i32, Vec<f32>),
     UseProgram(u32),
+    VertexAttrib(u32, f32, f32, f32, f32),
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     Viewport(i32, i32, i32, i32),
     TexImage2D(u32, i32, i32, i32, i32, u32, u32, Vec<u8>),
