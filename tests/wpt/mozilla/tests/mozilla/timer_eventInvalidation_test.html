@@ -1,0 +1,14 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <script>
+    setTimeout(function() {
+        setTimeout(function() {
+            var e = new Event('test_done');
+            window.parent.dispatchEvent(e);
+        }, 0);
+    }, 0);
+    </script>
+  </body>
+</html>

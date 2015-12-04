@@ -5757,6 +5757,12 @@
             "url": "/_mozilla/mozilla/textcontent.html"
           }
         ],
+        "mozilla/timer_eventInvalidation.html": [
+          {
+            "path": "mozilla/timer_eventInvalidation.html",
+            "url": "/_mozilla/mozilla/timer_eventInvalidation.html"
+          }
+        ],
         "mozilla/title.html": [
           {
             "path": "mozilla/title.html",
