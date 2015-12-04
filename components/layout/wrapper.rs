@@ -947,7 +947,7 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
     fn is_content(&self) -> bool {
         match self.type_id() {
-            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text(..))) => true,
+            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => true,
             _ => false
         }
     }

@@ -4,7 +4,6 @@
 
 
 use cssparser::{Parser, SourcePosition};
-use log;
 use selectors::parser::ParserContext as SelectorParserContext;
 use style_traits::ParseErrorReporter;
 use stylesheets::Origin;

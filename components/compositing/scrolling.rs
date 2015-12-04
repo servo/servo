@@ -7,7 +7,6 @@
 use compositor_task::{CompositorProxy, Msg};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::{self, Builder};
-use std::u32;
 use time;
 use util::time::duration_from_nanoseconds;
 

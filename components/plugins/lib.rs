@@ -20,13 +20,14 @@ extern crate clippy;
 #[macro_use]
 extern crate rustc;
 extern crate rustc_front;
+extern crate rustc_plugin;
 #[macro_use]
 extern crate syntax;
 extern crate tenacious;
 
 extern crate url;
 
-use rustc::plugin::Registry;
+use rustc_plugin::Registry;
 use syntax::ext::base::*;
 use syntax::feature_gate::AttributeType::Whitelisted;
 use syntax::parse::token::intern;

@@ -694,7 +694,7 @@ fn crop_image(image_data: Vec<u8>,
 
     let mut new_image_data = Vec::new();
     let mut src = (crop_rect.origin.y * stride + crop_rect.origin.x * 4) as usize;
-    for _ in (0..crop_rect.size.height) {
+    for _ in 0..crop_rect.size.height {
         let row = &image_data[src .. src + (4 * crop_rect.size.width) as usize];
         new_image_data.push_all(row);
         src += stride as usize;
