@@ -65,7 +65,7 @@ use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
-use dom::servohtmlparser::ServoHTMLParser;
+use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -184,7 +184,7 @@ pub struct Document {
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
-    current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
+    current_parser: MutNullableParserField,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
     /// The cached first `base` element with an `href` attribute.
@@ -1224,9 +1224,9 @@ impl Document {
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
         // parser so its loop can find out.
-        if let Some(parser) = self.current_parser.get() {
-            if parser.is_suspended() {
-                parser.resume();
+        if let Some(parser) = self.get_current_parser() {
+            if parser.r().is_suspended() {
+                parser.r().resume();
             }
         } else if self.reflow_timeout.get().is_none() {
             // If we don't have a parser, and the reflow timer has been reset, explicitly
@@ -1347,11 +1347,11 @@ impl Document {
 
     }
 
-    pub fn set_current_parser(&self, script: Option<&ServoHTMLParser>) {
+    pub fn set_current_parser(&self, script: Option<ParserRef>) {
         self.current_parser.set(script);
     }
 
-    pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
+    pub fn get_current_parser(&self) -> Option<ParserRoot> {
         self.current_parser.get()
     }
 

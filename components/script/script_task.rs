@@ -27,7 +27,7 @@ use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
-use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
+use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
@@ -36,7 +36,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
-use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
+use dom::servohtmlparser::{ParserContext, ParserRoot};
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
 use dom::worker::TrustedWorkerAddress;
@@ -75,6 +75,7 @@ use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, Metadata, Resour
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
+use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
@@ -594,7 +595,7 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 
 impl ScriptTask {
     pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
-                               -> Option<Root<ServoHTMLParser>> {
+                               -> Option<ParserRoot> {
         SCRIPT_TASK_ROOT.with(|root| {
             let script_task = unsafe { &*root.borrow().unwrap() };
             script_task.handle_page_fetch_complete(id, subpage, metadata)
@@ -1450,7 +1451,7 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  metadata: Metadata) -> Option<Root<ServoHTMLParser>> {
+                                  metadata: Metadata) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         });
@@ -1546,7 +1547,7 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoHTMLParser> {
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> ParserRoot {
         let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
@@ -1659,18 +1660,30 @@ impl ScriptTask {
         });
 
         let content_type = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                Some(DOMString::from("text/xml"))
+            }
+
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 Some(DOMString::from("text/plain"))
             }
+
             _ => None
         };
 
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
+
+        let is_html_document = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
+                IsHTMLDocument::NonHTMLDocument,
+            _ => IsHTMLDocument::HTMLDocument,
+        };
+
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),
-                                     IsHTMLDocument::HTMLDocument,
+                                     is_html_document,
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
@@ -1716,7 +1729,8 @@ impl ScriptTask {
             unsafe {
                 let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
                 window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
-                let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
+                let strval = DOMString::from_jsval(self.get_cx(),
+                                                   jsval.handle(),
                                                    StringificationBehavior::Empty);
                 strval.unwrap_or(DOMString::new())
             }
@@ -1724,8 +1738,20 @@ impl ScriptTask {
             DOMString::new()
         };
 
-        parse_html(document.r(), parse_input, final_url,
-                   ParseContext::Owner(Some(incomplete.pipeline_id)));
+        match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                parse_xml(document.r(),
+                          parse_input,
+                          final_url,
+                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+            _ => {
+                parse_html(document.r(),
+                           parse_input,
+                           final_url,
+                           ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+        }
 
         page_remover.neuter();
 
