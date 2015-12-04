@@ -58,7 +58,6 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use util::range::Range;
@@ -1208,7 +1207,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   CoordinateSystem::Parent)
             }
             StackingContextCreationMode::InnerScrollWrapper => {
-                Rect::new(ZERO_POINT, base_flow.overflow.size)
+                Rect::new(Point2D::zero(), base_flow.overflow.size)
             }
         };
         let overflow = match mode {
@@ -1222,7 +1221,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             StackingContextCreationMode::InnerScrollWrapper |
             StackingContextCreationMode::OuterScrollWrapper => {
-                Rect::new(ZERO_POINT, border_box.size)
+                Rect::new(Point2D::zero(), border_box.size)
             }
         };
 
@@ -1498,7 +1497,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                        (*clip).clone()),
             box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
-            offset: ZERO_POINT,
+            offset: Point2D::zero(),
             blur_radius: blur_radius,
             spread_radius: Au(0),
             border_radius: Au(0),
