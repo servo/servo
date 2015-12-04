@@ -43,7 +43,7 @@ use style::properties::ComputedValues;
 use text::TextRun;
 use text::glyph::CharIndex;
 use util::cursor::Cursor;
-use util::geometry::{self, MAX_RECT};
+use util::geometry::MAX_RECT;
 use util::linked_list::prepend_from;
 use util::mem::HeapSizeOf;
 use util::opts;

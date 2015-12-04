@@ -7,7 +7,6 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use std::i32;
-use std::ops::Add;
 
 // Units for use with euclid::length and euclid::scale_factor.
 
