@@ -161,43 +161,31 @@ def check_flake8(file_name, contents):
 def check_lock(file_name, contents):
     if not file_name.endswith(".lock"):
         raise StopIteration
-    contents = contents.splitlines(True)
-    idx = 1
-    packages = {}
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["libc"]
+    exceptions = ["libc", "byteorder", "cocoa"]
 
-    while idx < len(contents):
-        content = contents[idx].strip()
-        if 'name' in content:
-            base_name = content.split('"')[1]
-            # we need the base package because some other package might demand a new version in the following lines
-            packages[base_name] = contents[idx + 1].split('"')[1], idx + 2, base_name
-        if 'dependencies' in content:
-            idx += 1
-            while contents[idx].strip() != ']':
-                package = contents[idx].strip().strip('",').split()
-                name, version = package[0], package[1]
-                if name not in packages:    # store the line number & base package name for future comparison
-                    packages[name] = (version, idx + 1, base_name)
-                elif all([packages[name][0] != version, name not in exceptions, base_name not in exceptions]):
-                    line = idx + 1
-                    version_1 = tuple(map(maybe_int, packages[name][0].split('.')))
-                    version_2 = tuple(map(maybe_int, version.split('.')))
-                    if version_1 < version_2:       # get the line & base package containing the older version
-                        packages[name], (version, line, base_name) = (version, line, base_name), packages[name]
+    import toml
+    content = toml.loads(contents)
 
-                    message = 'duplicate versions for package "%s"' % name
-                    error = '\n\t\033[93mexpected maximum version "{}"\033[0m'.format(packages[name][0]) + \
-                            '\n\t\033[91mbut, "{}" demands "{}"\033[0m' \
-                            .format(base_name, version)
-                    suggest = "\n\t\033[93mtry upgrading with\033[0m " + \
-                              "\033[96m./mach cargo-update -p {}:{}\033[0m" \
-                              .format(name, version)
-                    yield (line, message + error + suggest)
-                idx += 1
-        idx += 1
+    packages = {}
+    for package in content.get("package", []):
+        packages.setdefault(package["name"], []).append(package["version"])
+
+    for (name, versions) in packages.iteritems():
+        if name in exceptions or len(versions) <= 1:
+            continue
+
+        highest = max(versions)
+        for version in versions:
+            if version != highest:
+                message = """
+duplicate versions for package "{}"
+\t\033[93mfound dependency on version {}\033[0m
+\t\033[91mbut highest version is {}\033[0m
+\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p {}:{}\033[0m
+""".format(name, version, highest, name, version).strip()
+                yield (1, message)
 
 
 def maybe_int(value):
