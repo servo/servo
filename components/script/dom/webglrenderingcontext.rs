@@ -157,6 +157,12 @@ impl WebGLRenderingContext {
     fn mark_as_dirty(&self) {
         self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
+
+    fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::VertexAttrib(indx, x, y, z, w)))
+            .unwrap();
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -884,6 +890,66 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if let Some(program) = program {
             program.use_program()
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib1f(&self, indx: u32, x: f32) {
+        self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        let data_vec = unsafe {
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
+            slice::from_raw_parts(data_f32, 1).to_vec()
+        };
+        self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib2f(&self, indx: u32, x: f32, y: f32) {
+        self.vertex_attrib(indx, x, y, 0f32, 1f32)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        let data_vec = unsafe {
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
+            slice::from_raw_parts(data_f32, 2).to_vec()
+        };
+        self.vertex_attrib(indx, data_vec[0], data_vec[1], 0f32, 1f32)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib3f(&self, indx: u32, x: f32, y: f32, z: f32) {
+        self.vertex_attrib(indx, x, y, z, 1f32)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        let data_vec = unsafe {
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
+            slice::from_raw_parts(data_f32, 3).to_vec()
+        };
+        self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], 1f32)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib4f(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+        self.vertex_attrib(indx, x, y, z, w)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+        let data_vec = unsafe {
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
+            slice::from_raw_parts(data_f32, 4).to_vec()
+        };
+        self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], data_vec[3])
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10

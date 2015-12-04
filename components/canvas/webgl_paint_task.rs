@@ -164,6 +164,8 @@ impl WebGLPaintTask {
                 gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]),
             CanvasWebGLMsg::UseProgram(program_id) =>
                 gl::use_program(program_id),
+            CanvasWebGLMsg::VertexAttrib(attrib_id, x, y, z, w) =>
+                gl::vertex_attrib_4f(attrib_id, x, y, z, w),
             CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) =>
                 gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32),
             CanvasWebGLMsg::Viewport(x, y, width, height) =>
