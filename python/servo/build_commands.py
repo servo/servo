@@ -13,6 +13,7 @@ import os
 import os.path as path
 import subprocess
 import sys
+import shutil
 
 from time import time
 
@@ -234,14 +235,20 @@ class MachCommands(CommandBase):
             make_cmd = ["make"]
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
-            with cd(self.android_support_dir()):
+            android_dir = self.android_build_dir(dev)
+            openssl_dir = path.join(android_dir, "native", "openssl")
+            if not path.exists(openssl_dir):
+                os.makedirs(openssl_dir)
+            shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
+            shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
+            with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
                     env=self.build_env(),
                     verbose=verbose)
                 if status:
                     return status
-            openssl_dir = path.join(self.android_support_dir(), "openssl-1.0.1k")
+            openssl_dir = path.join(openssl_dir, "openssl-1.0.1k")
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
