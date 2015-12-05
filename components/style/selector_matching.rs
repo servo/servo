@@ -16,7 +16,8 @@ use selectors::parser::PseudoElement;
 use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
-use style_traits::ParseErrorReporter;
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
@@ -27,7 +28,9 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
-struct StdoutErrorReporter;
+pub struct StdoutErrorReporter {
+  pub pipelineid: PipelineId,
+}
 
 impl ParseErrorReporter for StdoutErrorReporter {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
@@ -38,8 +41,13 @@ impl ParseErrorReporter for StdoutErrorReporter {
     }
 
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        box StdoutErrorReporter
+        let error_reporter = box StdoutErrorReporter { pipelineid: self.pipelineid, };
+        return error_reporter;
     }
+    
+    fn return_pipelineid(&self) -> PipelineId {
+         return self.pipelineid;
+     }
 }
 
 lazy_static! {
@@ -56,7 +64,7 @@ lazy_static! {
                         None,
                         None,
                         Origin::UserAgent,
-                        box StdoutErrorReporter);
+                        box StdoutErrorReporter { pipelineid: PipelineId::fake_root_pipeline_id() } );
                     stylesheets.push(ua_stylesheet);
                 }
                 Err(..) => {
@@ -67,7 +75,7 @@ lazy_static! {
         }
         for &(ref contents, ref url) in &opts::get().user_stylesheets {
             stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter));
+                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter { pipelineid: PipelineId::fake_root_pipeline_id() }));
         }
         stylesheets
     };
@@ -83,7 +91,7 @@ lazy_static! {
                     None,
                     None,
                     Origin::UserAgent,
-                    box StdoutErrorReporter)
+                    box StdoutErrorReporter { pipelineid: PipelineId::fake_root_pipeline_id() })
             },
             Err(..) => {
                 error!("Stylist failed to load 'quirks-mode.css'!");

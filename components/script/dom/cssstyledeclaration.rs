@@ -18,7 +18,7 @@ use std::cell::Ref;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
-use style_traits::ParseErrorReporter;
+use msg::ParseErrorReporter;
 use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

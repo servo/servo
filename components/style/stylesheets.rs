@@ -16,7 +16,7 @@ use std::cell::Cell;
 use std::iter::Iterator;
 use std::slice;
 use string_cache::{Atom, Namespace};
-use style_traits::ParseErrorReporter;
+use msg::ParseErrorReporter;
 use url::Url;
 use util::mem::HeapSizeOf;
 use viewport::ViewportRule;

@@ -45,6 +45,7 @@ use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
+use msg::ParseErrorReporter;
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -71,7 +72,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
-use style_traits::ParseErrorReporter;
 use time;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::Url;
@@ -1251,7 +1251,7 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-        let error_reporter = CSSErrorReporter;
+        let error_reporter = CSSErrorReporter { pipelineid:  PipelineId::fake_root_pipeline_id() };
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
