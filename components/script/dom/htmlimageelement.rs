@@ -106,9 +106,9 @@ impl HTMLImageElement {
                 let img_url = img_url.unwrap();
                 *self.url.borrow_mut() = Some(img_url.clone());
 
-                let trusted_node = Trusted::new(window.get_cx(), self, window.script_chan());
+                let trusted_node = Trusted::new(window.get_cx(), self, window.networking_task_source());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-                let script_chan = window.script_chan();
+                let script_chan = window.networking_task_source();
                 let wrapper = window.get_runnable_wrapper();
                 ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                     // Return the image via a message to the script task, which marks the element
