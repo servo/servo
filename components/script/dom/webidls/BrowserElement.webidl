@@ -30,6 +30,14 @@ dictionary BrowserElementIconChangeEventDetail {
   DOMString sizes;
 };
 
+dictionary BrowserShowModalPromptEventDetail {
+  DOMString promptType;
+  DOMString title;
+  DOMString message;
+  DOMString returnValue;
+  // TODO(simartin) unblock() callback
+};
+
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 

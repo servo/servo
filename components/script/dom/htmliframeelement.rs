@@ -4,6 +4,7 @@
 
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -272,7 +273,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
             MozBrowserEvent::OpenWindow | MozBrowserEvent::SecurityChange | MozBrowserEvent::OpenSearch  |
-            MozBrowserEvent::ShowModalPrompt | MozBrowserEvent::UsernameAndPasswordRequired => {
+            MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
             }
             MozBrowserEvent::LocationChange(ref string) | MozBrowserEvent::TitleChange(ref string) => {
@@ -284,6 +285,14 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     href: Some(DOMString::from(href)),
                     sizes: Some(DOMString::from(sizes)),
                 }.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::ShowModalPrompt(prompt_type, title, message, return_value) => {
+                BrowserShowModalPromptEventDetail {
+                    promptType: Some(DOMString::from(prompt_type)),
+                    title: Some(DOMString::from(title)),
+                    message: Some(DOMString::from(message)),
+                    returnValue: Some(DOMString::from(return_value)),
+                }.to_jsval(cx, rval)
             }
         }
     }
