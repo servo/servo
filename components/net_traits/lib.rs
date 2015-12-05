@@ -167,7 +167,7 @@ pub trait AsyncResponseListener {
     fn data_available(&mut self, payload: Vec<u8>);
     /// The response is complete. If the provided status is an Err value, there is no guarantee
     /// that the response body was completely read.
-    fn response_complete(&mut self, status: Result<(), String>);
+    fn response_complete(&mut self, status: Result<(), LoadError>);
 }
 
 /// Data for passing between threads/processes to indicate a particular action to
@@ -179,7 +179,7 @@ pub enum ResponseAction {
     /// Invoke data_available
     DataAvailable(Vec<u8>),
     /// Invoke response_complete
-    ResponseComplete(Result<(), String>)
+    ResponseComplete(Result<(), LoadError>)
 }
 
 impl ResponseAction {
@@ -286,7 +286,7 @@ impl PendingAsyncLoad {
     }
 }
 
-/// Message sent in response to `Load`.  Contains metadata, and a port
+/// Message sent in response to `Load`. Contains metadata, and a port
 /// for receiving the data.
 ///
 /// Even if loading fails immediately, we send one of these and the
@@ -372,12 +372,12 @@ pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(Result<(), String>)
+    Done(Result<(), LoadError>)
 }
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: Option<PipelineId>)
-        -> Result<(Metadata, Vec<u8>), String> {
+        -> Result<(Metadata, Vec<u8>), LoadError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
     resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
                        LoadConsumer::Channel(start_chan), None)).unwrap();
@@ -396,3 +396,35 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: 
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
+
+/// The errors encountered while loading an URL in `ResourceTask`
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, HeapSizeOf)]
+pub enum LoadError {
+    About(Url),
+    Cancelled(Url),
+    Connection(Url, String),
+    ConnectionAborted(String),
+    Cors(Url, String),
+    DataURI(Url, String),
+    Decoding(Url, String),
+    File(Url, String),
+    InvalidRedirect(Url, String),
+    MaxRedirects(Url),
+    Ssl(Url, String),
+    UnsupportedScheme(Url, String),
+}
+
+impl LoadError {
+    pub fn get_url(&self) -> Url {
+        match *self {
+            LoadError::About(ref url) | LoadError::Cancelled(ref url) | LoadError::Connection(ref url, _) |
+            LoadError::Cors(ref url, _) | LoadError::DataURI(ref url, _) | LoadError::Decoding(ref url, _) |
+            LoadError::File(ref url, _) | LoadError::InvalidRedirect(ref url, _) |
+            LoadError::MaxRedirects(ref url) | LoadError::Ssl(ref url, _) |
+            LoadError::UnsupportedScheme(ref url, _) => {
+                url.clone()
+            },
+            LoadError::ConnectionAborted(_) => unreachable!(),
+        }
+    }
+}

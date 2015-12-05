@@ -18,7 +18,7 @@ use hyper::header::{HeaderView, Headers};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusClass::Success;
-use net_traits::{AsyncResponseListener, Metadata, ResponseAction};
+use net_traits::{AsyncResponseListener, LoadError, Metadata, ResponseAction};
 use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptChan;
 use std::ascii::AsciiExt;
@@ -125,11 +125,12 @@ impl CORSRequest {
             fn data_available(&mut self, _payload: Vec<u8>) {
             }
 
-            fn response_complete(&mut self, _status: Result<(), String>) {
+            fn response_complete(&mut self, _status: Result<(), LoadError>) {
                 let response = self.response.take().unwrap();
                 self.listener.response_available(response);
             }
         }
+
         impl PreInvoke for CORSContext {}
 
         let context = CORSContext {

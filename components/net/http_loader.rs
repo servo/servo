@@ -8,7 +8,6 @@ use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
-use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HSTSEntry, HSTSList, secure_url};
 use hyper::Error as HttpError;
@@ -26,7 +25,7 @@ use mime_classifier::MIMEClassifier;
 use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
-use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, LoadError, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
@@ -137,36 +136,20 @@ fn load_for_consumer(load_data: LoadData,
                                      cookie_jar, devtools_chan,
                                      &factory, user_agent,
                                      &cancel_listener) {
-        Err(LoadError::UnsupportedScheme(url)) => {
-            let s = format!("{} request, but we don't support that scheme", &*url.scheme);
-            send_error(url, s, start_chan)
-        }
-        Err(LoadError::Connection(url, e)) => {
-            send_error(url, e, start_chan)
-        }
-        Err(LoadError::MaxRedirects(url)) => {
-            send_error(url, "too many redirects".to_owned(), start_chan)
-        }
-        Err(LoadError::Cors(url, msg)) |
-        Err(LoadError::Cancelled(url, msg)) |
-        Err(LoadError::InvalidRedirect(url, msg)) |
-        Err(LoadError::Decoding(url, msg)) => {
-            send_error(url, msg, start_chan)
-        }
-        Err(LoadError::Ssl(url, msg)) => {
-            info!("ssl validation error {}, '{}'", url.serialize(), msg);
-
-            let mut image = resources_dir_path();
-            image.push("badcert.html");
-            let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
-
-            file_loader::factory(load_data, start_chan, classifier, cancel_listener)
-        }
-        Err(LoadError::ConnectionAborted(_)) => unreachable!(),
+        // Err(LoadError::Ssl(url, msg)) => {
+        //     info!("ssl validation error {}, '{}'", url.serialize(), msg);
+        //
+        //     let mut image = resources_dir_path();
+        //     image.push("badcert.html");
+        //     let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+        //
+        //     file_loader::factory(load_data, start_chan, classifier, cancel_listener)
+        // }
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
             send_data(&mut load_response, start_chan, metadata, classifier, &cancel_listener)
-        }
+        },
+        Err(load_error) => send_error(load_error, start_chan)
     }
 }
 
@@ -301,19 +284,6 @@ impl HttpRequest for WrappedHttpRequest {
 
         Ok(WrappedHttpResponse { response: response })
     }
-}
-
-#[derive(Debug)]
-pub enum LoadError {
-    UnsupportedScheme(Url),
-    Connection(Url, String),
-    Cors(Url, String),
-    Ssl(Url, String),
-    InvalidRedirect(Url, String),
-    Decoding(Url, String),
-    MaxRedirects(Url),
-    ConnectionAborted(String),
-    Cancelled(Url, String),
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -556,7 +526,7 @@ pub fn load<A>(load_data: LoadData,
     let mut method = load_data.method.clone();
 
     if cancel_listener.is_cancelled() {
-        return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+        return Err(LoadError::Cancelled(url));
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -583,11 +553,12 @@ pub fn load<A>(load_data: LoadData,
         }
 
         if &*url.scheme != "http" && &*url.scheme != "https" {
-            return Err(LoadError::UnsupportedScheme(url));
+            let s = format!("{} request, but we don't support that scheme", &*url.scheme);
+            return Err(LoadError::UnsupportedScheme(url, s));
         }
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+            return Err(LoadError::Cancelled(url));
         }
 
         info!("requesting {}", url.serialize());
@@ -619,7 +590,7 @@ pub fn load<A>(load_data: LoadData,
             *req.headers_mut() = request_headers.clone();
 
             if cancel_listener.is_cancelled() {
-                return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+                return Err(LoadError::Cancelled(url));
             }
 
             if log_enabled!(log::LogLevel::Info) {
@@ -752,6 +723,7 @@ fn send_data<R: Read>(reader: &mut R,
                       metadata: Metadata,
                       classifier: Arc<MIMEClassifier>,
                       cancel_listener: &CancellationListener) {
+    let url = metadata.final_url.clone();
     let (progress_chan, mut chunk) = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
@@ -766,7 +738,7 @@ fn send_data<R: Read>(reader: &mut R,
 
     loop {
         if cancel_listener.is_cancelled() {
-            let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+            let _ = progress_chan.send(Done(Err(LoadError::Cancelled(url))));
             return;
         }
 
