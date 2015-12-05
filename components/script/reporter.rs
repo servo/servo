@@ -25,8 +25,7 @@ impl ParseErrorReporter for CSSErrorReporter {
          let error_reporter = box CSSErrorReporter { pipelineid: self.pipelineid, } ;
          return error_reporter;
      }
-     
-     fn return_pipelineid(&self) -> PipelineId {
+     fn pipeline(&self) -> PipelineId {
          return self.pipelineid;
      }
 }

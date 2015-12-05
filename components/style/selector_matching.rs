@@ -5,6 +5,8 @@
 use cssparser::{Parser, SourcePosition};
 use log;
 use media_queries::{Device, MediaType};
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
@@ -16,8 +18,6 @@ use selectors::parser::PseudoElement;
 use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
-use msg::ParseErrorReporter;
-use msg::constellation_msg::PipelineId;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
@@ -29,7 +29,7 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
 pub struct StdoutErrorReporter {
-  pub pipelineid: PipelineId,
+  pipelineid: PipelineId,
 }
 
 impl ParseErrorReporter for StdoutErrorReporter {
@@ -41,12 +41,11 @@ impl ParseErrorReporter for StdoutErrorReporter {
     }
 
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        let error_reporter = box StdoutErrorReporter { pipelineid: self.pipelineid, };
-        return error_reporter;
+        box StdoutErrorReporter { pipelineid: self.pipelineid, }
     }
-    
-    fn return_pipelineid(&self) -> PipelineId {
-         return self.pipelineid;
+
+    fn pipeline(&self) -> PipelineId {
+       return self.pipelineid;
      }
 }
 
@@ -75,7 +74,8 @@ lazy_static! {
         }
         for &(ref contents, ref url) in &opts::get().user_stylesheets {
             stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter { pipelineid: PipelineId::fake_root_pipeline_id() }));
+                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter
+                { pipelineid: PipelineId::fake_root_pipeline_id() }));
         }
         stylesheets
     };

@@ -34,10 +34,10 @@ use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::LayoutTaskFactory;
 use log;
+use msg::ParseErrorReporter;
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
-use msg::ParseErrorReporter;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
 use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -444,7 +444,7 @@ impl LayoutTask {
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
               })),
-              error_reporter: CSSErrorReporter {pipelineid: PipelineId::fake_root_pipeline_id()},
+              error_reporter: CSSErrorReporter { pipelineid: id },
         }
     }
 

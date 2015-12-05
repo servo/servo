@@ -30,11 +30,11 @@ pub mod compositor_msg;
 pub mod constellation_msg;
 pub mod webdriver_msg;
 
-use cssparser::{Parser, SourcePosition};
 use constellation_msg::PipelineId;
+use cssparser::{Parser, SourcePosition};
 
 pub trait ParseErrorReporter {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str);
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync>;
-    fn return_pipelineid(&self) -> PipelineId;
+    fn pipeline(&self) -> PipelineId;
 }

@@ -42,10 +42,10 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
+use msg::ParseErrorReporter;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
-use msg::ParseErrorReporter;
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -1251,7 +1251,7 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-        let error_reporter = CSSErrorReporter { pipelineid:  PipelineId::fake_root_pipeline_id() };
+        let error_reporter = CSSErrorReporter { pipelineid: id };
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
