@@ -91,8 +91,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "azure"
-version = "0.2.0"
-source = "git+https://github.com/servo/rust-azure#a835f8578737034d48762b379f19a92bb2882cc0"
+version = "0.2.1"
+source = "git+https://github.com/servo/rust-azure#b8a761c2d4bc6ee1fa62e1c34763c2f5a7650779"
 dependencies = [
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -153,7 +153,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "canvas"
 version = "0.0.1"
 dependencies = [
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
  "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -172,7 +172,7 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
@@ -260,7 +260,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "app_units 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "clipboard 0.1.0 (git+https://github.com/aweinstock314/rust-clipboard)",
@@ -623,7 +623,7 @@ name = "gfx"
 version = "0.0.1"
 dependencies = [
  "app_units 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -671,7 +671,7 @@ dependencies = [
 name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
 ]
 
 [[package]]
@@ -929,7 +929,7 @@ name = "layers"
 version = "0.2.0"
 source = "git+https://github.com/servo/rust-layers#c4efb24deb170908a534ae916d23890f85725b17"
 dependencies = [
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -949,7 +949,7 @@ name = "layout"
 version = "0.0.1"
 dependencies = [
  "app_units 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
@@ -1127,7 +1127,7 @@ name = "msg"
 version = "0.0.1"
 dependencies = [
  "app_units 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1952,7 +1952,7 @@ name = "util"
 version = "0.0.1"
 dependencies = [
  "app_units 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "azure 0.2.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
