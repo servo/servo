@@ -1172,8 +1172,15 @@ class CGArgumentConverter(CGThing):
                 else:
                     assert not default
                     declType = CGWrapper(declType, pre="Option<", post=">")
+
+                    # Treat `undefined` passed to an optional argument as "missing"
+                    undefined_condition = "args.get({index}).is_undefined()".format(index=index)
+                    template = CGIfElseWrapper(undefined_condition,
+                                               CGGeneric("None"),
+                                               CGGeneric("Some(%s)" % template)).define()
+
                     template = CGIfElseWrapper(condition,
-                                               CGGeneric("Some(%s)" % template),
+                                               CGGeneric(template),
                                                CGGeneric("None")).define()
             else:
                 assert not default
