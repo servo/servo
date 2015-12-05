@@ -26,7 +26,7 @@ use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, MozBrowserEvent};
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, LoadError, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -274,7 +274,7 @@ impl AsyncResponseListener for StylesheetContext {
         self.data.append(&mut payload);
     }
 
-    fn response_complete(&mut self, _status: Result<(), String>) {
+    fn response_complete(&mut self, _status: Result<(), LoadError>) {
         let data = mem::replace(&mut self.data, vec!());
         let metadata = self.metadata.take().unwrap();
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding

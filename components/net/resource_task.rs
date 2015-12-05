@@ -20,6 +20,7 @@ use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
+use net_traits::{LoadError, LoadErrorType};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -52,7 +53,8 @@ impl ProgressSender {
     }
 }
 
-pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+pub fn send_error(err: LoadError, start_chan: LoadConsumer) {
+    let url = err.url.clone();
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
@@ -339,7 +341,8 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                send_error(load_data.url, "no loader for scheme".to_owned(), consumer);
+                send_error(LoadError::new(load_data.url, LoadErrorType::UnsupportedScheme,
+                                          "no loader for scheme".to_owned()), consumer);
                 return
             }
         };

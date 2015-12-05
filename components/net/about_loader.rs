@@ -8,7 +8,7 @@ use hyper::http::RawStatus;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::{LoadConsumer, LoadData, LoadError, LoadErrorType, Metadata};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::sync::Arc;
 use url::Url;
@@ -42,10 +42,8 @@ pub fn factory(mut load_data: LoadData,
             assert!(path.exists());
             load_data.url = Url::from_file_path(&*path).unwrap();
         }
-        _ => {
-            send_error(load_data.url, "Unknown about: URL.".to_owned(), start_chan);
-            return
-        }
+        _ => return send_error(LoadError::new(load_data.url, LoadErrorType::About, "Unknown about: URL".to_owned()),
+                               start_chan),
     };
     file_loader::factory(load_data, start_chan, classifier, cancel_listener)
 }

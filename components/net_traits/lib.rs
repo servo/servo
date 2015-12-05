@@ -170,7 +170,7 @@ pub trait AsyncResponseListener {
     fn data_available(&mut self, payload: Vec<u8>);
     /// The response is complete. If the provided status is an Err value, there is no guarantee
     /// that the response body was completely read.
-    fn response_complete(&mut self, status: Result<(), String>);
+    fn response_complete(&mut self, status: Result<(), LoadError>);
 }
 
 /// Data for passing between threads/processes to indicate a particular action to
@@ -182,7 +182,7 @@ pub enum ResponseAction {
     /// Invoke data_available
     DataAvailable(Vec<u8>),
     /// Invoke response_complete
-    ResponseComplete(Result<(), String>)
+    ResponseComplete(Result<(), LoadError>)
 }
 
 impl ResponseAction {
@@ -198,7 +198,7 @@ impl ResponseAction {
 
 /// A target for async networking events. Commonly used to dispatch a runnable event to another
 /// thread storing the wrapped closure for later execution.
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AsyncResponseTarget {
     pub sender: IpcSender<ResponseAction>,
 }
@@ -210,7 +210,7 @@ impl AsyncResponseTarget {
 }
 
 /// A wrapper for a network load that can either be channel or event-based.
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum LoadConsumer {
     Channel(IpcSender<LoadResponse>),
     Listener(AsyncResponseTarget),
@@ -289,7 +289,7 @@ impl PendingAsyncLoad {
     }
 }
 
-/// Message sent in response to `Load`.  Contains metadata, and a port
+/// Message sent in response to `Load`. Contains metadata, and a port
 /// for receiving the data.
 ///
 /// Even if loading fails immediately, we send one of these and the
@@ -375,12 +375,12 @@ pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(Result<(), String>)
+    Done(Result<(), LoadError>)
 }
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: Option<PipelineId>)
-        -> Result<(Metadata, Vec<u8>), String> {
+        -> Result<(Metadata, Vec<u8>), LoadError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
     resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
                        LoadConsumer::Channel(start_chan), None)).unwrap();
@@ -399,3 +399,38 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: 
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
+
+/// This type propagates to the network receivers for later handling
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, HeapSizeOf)]
+pub struct LoadError {
+    pub url: Url,
+    pub error_type: LoadErrorType,
+    pub reason: String,
+}
+
+impl LoadError {
+    pub fn new(url: Url, error_type: LoadErrorType, reason: String) -> LoadError {
+        LoadError {
+            url: url,
+            error_type: error_type,
+            reason: reason,
+        }
+    }
+}
+
+/// The different kinds of errors encountered while loading an URL in `ResourceTask`
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, HeapSizeOf)]
+pub enum LoadErrorType {
+    About,
+    Cancelled,
+    Connection,
+    ConnectionAborted,
+    Cors,
+    DataURI,
+    Decoding,
+    File,
+    InvalidRedirect,
+    MaxRedirects,
+    Ssl,
+    UnsupportedScheme,
+}

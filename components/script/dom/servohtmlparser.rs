@@ -27,7 +27,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
 use msg::constellation_msg::{PipelineId, SubpageId};
-use net_traits::{AsyncResponseListener, Metadata};
+use net_traits::{AsyncResponseListener, LoadError, Metadata};
 use network_listener::PreInvoke;
 use parse::Parser;
 use script_task::{ScriptChan, ScriptTask};
@@ -324,7 +324,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), LoadError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
@@ -332,7 +332,7 @@ impl AsyncResponseListener for ParserContext {
         parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
-            debug!("Failed to load page URL {}, error: {}", self.url.serialize(), err);
+            debug!("Failed to load page URL {}, error: {:?}", self.url.serialize(), err);
             // TODO(Savago): we should send a notification to callers #5463.
         }
 
@@ -343,8 +343,7 @@ impl AsyncResponseListener for ParserContext {
     }
 }
 
-impl PreInvoke for ParserContext {
-}
+impl PreInvoke for ParserContext {}
 
 #[dom_struct]
 pub struct ServoHTMLParser {

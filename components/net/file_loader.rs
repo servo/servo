@@ -6,7 +6,7 @@ use about_loader;
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::{LoadConsumer, LoadData, LoadError, LoadErrorType, Metadata};
 use resource_task::{CancellationListener, ProgressSender};
 use resource_task::{send_error, start_sending_sniffed, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -61,6 +61,7 @@ pub fn factory(load_data: LoadData,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url;
+    let start_chan = senders.clone();
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
         let file_path: Result<PathBuf, ()> = url.to_file_path();
@@ -73,7 +74,7 @@ pub fn factory(load_data: LoadData,
                         }
                         match read_block(reader) {
                             Ok(ReadStatus::Partial(buf)) => {
-                                let mut metadata = Metadata::default(url);
+                                let mut metadata = Metadata::default(url.clone());
                                 let mime_type = guess_mime_type(file_path.as_path());
                                 metadata.set_content_type(Some(&mime_type));
                                 let progress_chan = start_sending_sniffed(senders, metadata,
@@ -82,7 +83,11 @@ pub fn factory(load_data: LoadData,
                                 let read_result = read_all(reader, &progress_chan, &cancel_listener);
                                 if let Ok(load_result) = read_result {
                                     match load_result {
-                                        LoadResult::Cancelled => return,
+                                        LoadResult::Cancelled => {
+                                            return send_error(LoadError::new(url, LoadErrorType::Cancelled,
+                                                                             "file loading cancelled".to_owned()),
+                                                              start_chan);
+                                        },
                                         LoadResult::Finished => progress_chan.send(Done(Ok(()))).unwrap(),
                                     }
                                 }
@@ -98,9 +103,7 @@ pub fn factory(load_data: LoadData,
                                     let _ = chan.send(Done(Ok(())));
                                 }
                             }
-                            Err(e) => {
-                                send_error(url, e, senders);
-                            }
+                            Err(e) => send_error(LoadError::new(url, LoadErrorType::File, e), senders),
                         };
                     }
                     Err(_) => {
@@ -113,9 +116,8 @@ pub fn factory(load_data: LoadData,
                     }
                 }
             }
-            Err(_) => {
-                send_error(url, "Could not parse path".to_owned(), senders);
-            }
+            Err(_) => send_error(LoadError::new(url, LoadErrorType::File,
+                                                "Could not parse path".to_owned()), senders),
         }
     });
 }
