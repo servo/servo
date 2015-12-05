@@ -1698,6 +1698,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 
     #[inline]
     fn is_visited_link(&self) -> bool {
+        // https://github.com/servo/servo/issues/8718
         false
     }
 
