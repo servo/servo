@@ -43,7 +43,7 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{ConstellationChan, LoadData, MozBrowserEvent, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -393,7 +393,7 @@ impl WindowMethods for Window {
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
-        // communicate test results.
+        // communicate test results (see executorservo.py).
         let stderr = stderr();
         let mut stderr = stderr.lock();
         let stdout = stdout();
@@ -401,6 +401,11 @@ impl WindowMethods for Window {
         writeln!(&mut stdout, "ALERT: {}", s).unwrap();
         stdout.flush().unwrap();
         stderr.flush().unwrap();
+
+        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+        let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                     String::from(s), "".to_owned());
+        self.Document().trigger_mozbrowser_event(event);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close

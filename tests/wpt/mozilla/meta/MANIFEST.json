@@ -5679,6 +5679,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/mozbrowsericonchange_event.html"
           }
         ],
+        "mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html": [
+          {
+            "path": "mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html",
+            "url": "/_mozilla/mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html"
+          }
+        ],
         "mozilla/navigator.html": [
           {
             "path": "mozilla/navigator.html",
