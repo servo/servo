@@ -151,6 +151,8 @@ pub enum ConstellationControlMsg {
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId
     },
+    /// Report an error from a CSS parser for the given pipeline
+    ReportCSSError(PipelineId, String, usize, usize, String),
 }
 
 /// The type of input represented by a multi-touch event.

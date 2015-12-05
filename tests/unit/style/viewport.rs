@@ -6,6 +6,7 @@ use cssparser::Parser;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use media_queries::CSSErrorReporterTest;
+use msg::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
@@ -13,7 +14,6 @@ use style::values::specified::Length::{self, ViewportPercentage};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
-use style_traits::ParseErrorReporter;
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {

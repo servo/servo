@@ -42,6 +42,7 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
+use msg::ParseErrorReporter;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
@@ -71,7 +72,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
-use style_traits::ParseErrorReporter;
 use time;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::Url;
@@ -1272,7 +1272,7 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-        let error_reporter = CSSErrorReporter;
+        let error_reporter = CSSErrorReporter { pipelineid: id };
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,

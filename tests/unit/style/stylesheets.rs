@@ -21,7 +21,8 @@ fn test_parse_stylesheet() {
         #d1 > .ok { background: blue; }
     ";
     let url = url!("about::test");
-    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent, Box::new(CSSErrorReporterTest));
+    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
+                                          Box::new(CSSErrorReporterTest));
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,

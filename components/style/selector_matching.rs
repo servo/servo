@@ -5,6 +5,8 @@
 use cssparser::{Parser, SourcePosition};
 use log;
 use media_queries::{Device, MediaType};
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
@@ -16,7 +18,6 @@ use selectors::parser::PseudoElement;
 use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
-use style_traits::ParseErrorReporter;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
@@ -27,7 +28,7 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
-struct StdoutErrorReporter;
+pub struct StdoutErrorReporter;
 
 impl ParseErrorReporter for StdoutErrorReporter {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
@@ -40,6 +41,10 @@ impl ParseErrorReporter for StdoutErrorReporter {
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
         box StdoutErrorReporter
     }
+
+    fn pipeline(&self) -> PipelineId {
+       return PipelineId::fake_root_pipeline_id();
+     }
 }
 
 lazy_static! {
