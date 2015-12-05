@@ -12,18 +12,21 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use hyper::header::Headers;
-use hyper::header::{Accept, AcceptEncoding, Cookie, ContentLength, ContentType, Host};
+use hyper::header::{ ContentType, Cookie };
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
 use rustc_serialize::json;
 use std::net::TcpStream;
+use time;
+use time::Tm;
 
 struct HttpRequest {
     url: String,
     method: Method,
     headers: Headers,
     body: Option<Vec<u8>>,
+	startedDateTime: Tm
 }
 
 struct HttpResponse {
@@ -169,8 +172,6 @@ impl Actor for NetworkEventActor {
 				let mut headerNames = Vec::new();				
 				let mut rawHeadersString = "".to_owned();
 				for i in 0..headersSize {
-					//let item = headersIter.next();
-					
 					if let Some(item) = headersIter.next() {
                 		let name = item.name();
 						let value = item.value_string();
@@ -209,7 +210,6 @@ impl Actor for NetworkEventActor {
             "getRequestPostData" => {
 				
 				if let Some(list) = self.request.body.clone() {
-					//let mut newVec = list.clone();
                 	let msg = GetRequestPostDataReply {
                     	from: self.name(),
     					postData: Some(list),
@@ -269,6 +269,8 @@ impl Actor for NetworkEventActor {
                		 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
+
+
             }
             "getResponseContent" => {
                 if let Some(list) = self.response.body.clone() {
@@ -330,7 +332,8 @@ impl NetworkEventActor {
                 url: String::new(),
                 method: Method::Get,
                 headers: Headers::new(),
-                body: None
+                body: None,
+				startedDateTime: time::now(),
             },
             response: HttpResponse {
                 headers: None,
@@ -345,6 +348,7 @@ impl NetworkEventActor {
         self.request.method = request.method.clone();
         self.request.headers = request.headers.clone();
         self.request.body = request.body;
+		self.request.startedDateTime = request.startedDateTime;
     }
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
@@ -355,6 +359,7 @@ impl NetworkEventActor {
 
     pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private
+		// TODO:  For startedDateTime convert value from Tm to String
         EventActor {
             actor: self.name(),
             url: self.request.url.clone(),
@@ -382,6 +387,7 @@ impl NetworkEventActor {
 			status_code = code;
 			status_message = text_Res.into_owned();
 		}
+		// TODO: Send the correct values for remoteAddress and remotePort and http_version.
         ResponseStartMsg {
             httpVersion: "HTTP/1.1".to_owned(),
             remoteAddress: "63.245.217.43".to_owned(),
@@ -424,11 +430,8 @@ impl NetworkEventActor {
 			};
 			if let Some(cookie)= cookietype {
 						cookies_size  = cookie.len();
-
-			}
-		
+			}		
 		}
-
 		ResponseCookiesMsg {
 			cookies: cookies_size as u32,
 		}
@@ -446,7 +449,6 @@ impl NetworkEventActor {
 			headers: headers_size,
 			headersSize: headers_size,
 		}
-
 	}
 
 	pub fn request_cookies(&self) -> RequestCookiesMsg {
@@ -460,9 +462,7 @@ impl NetworkEventActor {
 			if let Some(cookie)= cookietype {
 						cookies_size  = cookie.len();
 
-			}
-		
-		
+			}		
 
 		RequestCookiesMsg {
 			cookies: cookies_size as u32,
