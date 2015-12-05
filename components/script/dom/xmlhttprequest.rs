@@ -7,6 +7,7 @@ use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_orig
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
@@ -17,15 +18,15 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap};
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::ByteString;
-use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::document::DocumentSource;
+use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::node::window_from_node;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -705,6 +706,14 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 _ if self.ready_state.get() != XMLHttpRequestState::Done => {
                     return NullValue()
                 },
+                XMLHttpRequestResponseType::Document => {
+                    let op_doc = self.GetResponseXML();
+                    if let Ok(Some(doc)) = op_doc {
+                        doc.to_jsval(cx, rval.handle_mut());
+                    } else {
+                        return NullValue();
+                    }
+                },
                 Json => {
                     let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                     let decoded: Vec<u16> = decoded.utf16_units().collect();
@@ -715,45 +724,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
-                },
-                XMLHttpRequestResponseType::Document => {
-                    self.response_xml.get().to_jsval(cx, rval.handle_mut());
-                    let content_type;
-                    let document_type;
-                    match self.response_headers.borrow().get() {
-                        Some(&ContentType(mime::Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _))) => {
-                             content_type = DOMString::from("text/xml");
-                             document_type = IsHTMLDocument::NonHTMLDocument;
-                        },
-                        _ => {
-                                content_type = DOMString::from("text/html");
-                                document_type = IsHTMLDocument::HTMLDocument;
-                        }
-                    }
-                    let url = self.global.root().r().get_url();
-                    let doc = self.response_xml.get().unwrap();
-                    let loader = DocumentLoader::new(&*doc.loader());
-                    let window = window_from_node(doc.r());
-
-                    // FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                    let document = Document::new(&window,
-                                   Some(url.clone()),
-                                    IsHTMLDocument::NonHTMLDocument,
-                                    Some(content_type),
-                                    None,
-                                    DocumentSource::FromParser,
-                                    loader);
-                    let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
-                    let b_string = DOMString::from(decoded);
-                    if document_type == IsHTMLDocument::NonHTMLDocument {
-                        // TODO: call parser with scripting disabled
-                        parse_xml(document.r(), b_string, url, xml::ParseContext::Owner(None));
-                    }
-                    else {
-                        //TODO: call parser with scripting disabled
-                        parse_html(document.r(), b_string, url, ParseContext::Owner(None));
-                    }
-                },
+                }
                 _ => {
                     // XXXManishearth handle other response types
                     self.response.borrow().to_jsval(cx, rval.handle_mut());
@@ -777,8 +748,25 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
-    fn GetResponseXML(&self) -> Option<Root<Document>> {
-        self.response_xml.get()
+    fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
+        match self.response_type.get() {
+        _empty | XMLHttpRequestResponseType::Document => {
+            Ok( match self.ready_state.get() {
+                XMLHttpRequestState::Done => {
+                    match self.response_xml.get() {
+                        Some(response) => Some(response),
+                        None => {
+                            let response = self.document_response();
+                            self.response_xml.set(response.r());
+                            response
+                        }
+                    }
+                },
+                _ => None
+            })
+        },
+        _ => { Err(Error::InvalidState) }
+        }
     }
 }
 
@@ -1048,6 +1036,87 @@ impl XMLHttpRequest {
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
     }
+
+    fn document_response(&self) -> Option<Root<Document>> {
+        let mime_type = self.final_mime_type();
+        //TODO: prescan the response to determine encoding if final charset is null
+        let charset = self.final_charset().unwrap_or(UTF_8);
+        let temp_doc: Root<Document>;
+        match mime_type {
+            Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
+                if self.response_type.get() == XMLHttpRequestResponseType::_empty {
+                    return None;
+                }
+                else {
+                    temp_doc = self.document_text_html();
+                }
+            },
+            Some(Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _)) |
+            Some(Mime(mime::TopLevel::Application, mime::SubLevel::Xml, _)) |
+            None => {
+                temp_doc = self.handle_xml();
+            },
+            Some(Mime(_, mime::SubLevel::Ext(sub), _)) => {
+                if sub.ends_with("+xml") {
+                    temp_doc = self.handle_xml();
+                }
+                else {
+                    return None;
+                }
+            },
+            _ => { return None; }
+        }
+        temp_doc.set_encoding_name(DOMString::from(charset.name()));
+        Some(temp_doc)
+    }
+
+    fn document_text_html(&self) -> Root<Document>{
+        let charset = self.final_charset().unwrap_or(UTF_8);
+        let wr = self.global.root();
+        let wr = wr.r();
+        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+        let document = self.new_doc(IsHTMLDocument::HTMLDocument);
+        // TODO: Disable scripting while parsing
+        parse_html(document.r(), DOMString::from(decoded), wr.get_url(), ParseContext::Owner(Some(wr.pipeline())));
+        document
+    }
+
+    fn handle_xml(&self) -> Root<Document> {
+        let charset = self.final_charset().unwrap_or(UTF_8);
+        let wr = self.global.root();
+        let wr = wr.r();
+        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
+        // TODO: Disable scripting while parsing
+        parse_xml(document.r(), DOMString::from(decoded), wr.get_url(), xml::ParseContext::Owner(Some(wr.pipeline())));
+        document
+    }
+
+    fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
+        let wr = self.global.root();
+        let wr = wr.r();
+        let win = wr.as_window();
+        let doc = win.Document();
+        let doc = doc.r();
+        let docloader = DocumentLoader::new(&*doc.loader());
+        let base = self.global.root().r().get_url();
+        let parsed_url = match UrlParser::new().base_url(&base).parse(&self.ResponseURL()) {
+            Ok(parsed) => Some(parsed),
+            Err(_) => None // Step 7
+        };
+        let mime_type = self.final_mime_type();
+        let content_type = mime_type.map(|mime|{
+            DOMString::from(format!("{}", mime))
+        });
+        let document = Document::new(win,
+                                     parsed_url,
+                                     is_html_document,
+                                     content_type,
+                                     None,
+                                     DocumentSource::FromParser, docloader);
+       document
+    }
+
     fn filter_response_headers(&self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
         use hyper::error::Result;
