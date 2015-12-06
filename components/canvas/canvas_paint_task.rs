@@ -136,6 +136,9 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::Fill => painter.fill(),
                             Canvas2dMsg::Stroke => painter.stroke(),
                             Canvas2dMsg::Clip => painter.clip(),
+                            Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => {
+                                painter.is_point_in_path(x, y, fill_rule, chan)
+                            },
                             Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect,
                                                    smoothing_enabled) => {
                                 painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
@@ -316,6 +319,14 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn clip(&self) {
         self.drawtarget.push_clip(&self.path_builder.finish());
+    }
+
+    fn is_point_in_path(&mut self, x: f64, y: f64,
+                        _fill_rule: FillRule, chan: IpcSender<bool>) {
+        let path = self.path_builder.finish();
+        let result = path.contains_point(x, y, &self.state.transform);
+        self.path_builder = path.copy_to_builder();
+        chan.send(result).unwrap();
     }
 
     fn draw_image(&self, image_data: Vec<u8>, image_size: Size2D<f64>,

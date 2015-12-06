@@ -94,13 +94,12 @@ interface CanvasRenderingContext2D {
   void clip(optional CanvasFillRule fillRule = "nonzero");
   //void clip(Path2D path, optional CanvasFillRule fillRule = "nonzero");
   //void resetClip();
-  //boolean isPointInPath(unrestricted double x, unrestricted double y,
+  boolean isPointInPath(unrestricted double x, unrestricted double y,
+                        optional CanvasFillRule fillRule = "nonzero");
+  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
   //                      optional CanvasFillRule fillRule = "nonzero");
-  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted
-  //                      double y, optional CanvasFillRule fillRule = "nonzero");
   //boolean isPointInStroke(unrestricted double x, unrestricted double y);
-  //                        boolean isPointInStroke(Path2D path, unrestricted double x,
-  //                        unrestricted double y);
+  //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 
   // text (see also the CanvasDrawingStyles interface)
   //void fillText(DOMString text, unrestricted double x, unrestricted double y,
