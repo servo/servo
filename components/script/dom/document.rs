@@ -84,7 +84,7 @@ use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{AnimationState, PipelineId};
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{MouseButton, MouseEventType, MozBrowserEvent, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
@@ -2492,4 +2492,11 @@ impl Runnable for DocumentProgressHandler {
             self.dispatch_load();
         }
     }
+}
+
+/// Specifies the type of focus event that is sent to a pipeline
+#[derive(Copy, Clone, PartialEq)]
+pub enum FocusType {
+    Element,    // The first focus message - focus the element itself
+    Parent,     // Focusing a parent element (an iframe)
 }
