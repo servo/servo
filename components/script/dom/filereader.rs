@@ -12,7 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::blob::Blob;
+use dom::blob::{Blob, DataSlice};
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -162,7 +162,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId,
-                            data: ReadMetaData, blob_contents: Vec<u8>) {
+                            data: ReadMetaData, blob_contents: DataSlice) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -177,11 +177,13 @@ impl FileReader {
         // Step 8.1
         fr.change_ready_state(FileReaderReadyState::Done);
         // Step 8.2
+
+        let bytes = blob_contents.get_bytes();
         let output = match data.function {
             FileReaderFunction::ReadAsDataUrl =>
-                FileReader::perform_readasdataurl(data, blob_contents),
+                FileReader::perform_readasdataurl(data, bytes),
             FileReaderFunction::ReadAsText =>
-                FileReader::perform_readastext(data, blob_contents),
+                FileReader::perform_readastext(data, bytes),
         };
 
         *fr.result.borrow_mut() = Some(output);
@@ -199,12 +201,11 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn perform_readastext(data: ReadMetaData, blob_contents: Vec<u8>)
+    fn perform_readastext(data: ReadMetaData, blob_bytes: &[u8])
         -> DOMString {
 
         let blob_label = &data.label;
         let blob_type = &data.blobtype;
-        let blob_bytes = &blob_contents[..];
 
         //https://w3c.github.io/FileAPI/#encoding-determination
         // Steps 1 & 2 & 3
@@ -232,7 +233,7 @@ impl FileReader {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(data: ReadMetaData, blob_contents: Vec<u8>)
+    fn perform_readasdataurl(data: ReadMetaData, bytes: &[u8])
         -> DOMString {
         let config = Config {
             char_set: CharacterSet::UrlSafe,
@@ -240,7 +241,7 @@ impl FileReader {
             pad: true,
             line_length: None
         };
-        let base64 = blob_contents.to_base64(config);
+        let base64 = bytes.to_base64(config);
 
         let output = if data.blobtype.is_empty() {
             format!("data:base64,{}", base64)
@@ -354,8 +355,9 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 4
-        let (send, bytes) = mpsc::channel();
-        blob.read_out_buffer(send);
+        let (bytes_sender, bytes_receiver) = mpsc::channel();
+        bytes_sender.send(blob.get_data().clone()).unwrap();
+
         let type_ = blob.Type();
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
@@ -366,7 +368,7 @@ impl FileReader {
         let script_chan = global.file_reading_task_source();
 
         spawn_named("file reader async operation".to_owned(), move || {
-            perform_annotated_read_operation(gen_id, load_data, bytes, fr, script_chan)
+            perform_annotated_read_operation(gen_id, load_data, bytes_receiver, fr, script_chan)
         });
         Ok(())
     }
@@ -381,7 +383,7 @@ pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>)
+    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, DataSlice)
 }
 
 impl Runnable for FileReaderEvent {
@@ -405,7 +407,7 @@ impl Runnable for FileReaderEvent {
 }
 
 // https://w3c.github.io/FileAPI/#task-read-operation
-fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, blob_contents: Receiver<Vec<u8>>,
+fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, blob_contents: Receiver<DataSlice>,
     filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
     let chan = &script_chan;
     // Step 4
