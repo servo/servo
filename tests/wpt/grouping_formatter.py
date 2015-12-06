@@ -57,7 +57,7 @@ class GroupingFormatter(base.BaseFormatter):
 
         try:
             self.terminal = blessings.Terminal()
-            return self.terminal.clear_eol, self.terminal.move_up
+            return self.terminal.move_up, self.terminal.clear_eol
         except Exception as exception:
             sys.stderr.write("GroupingFormatter: Could not get terminal "
                              "control characters: %s\n" % exception)
