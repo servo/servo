@@ -450,9 +450,6 @@ pub enum NavigationDirection {
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct FrameId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct WorkerId(pub u32);
-
 /// Each pipeline ID needs to be unique. However, it also needs to be possible to
 /// generate the pipeline ID from an iframe element (this simplifies a lot of other
 /// code that makes use of pipeline IDs).

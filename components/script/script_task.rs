@@ -18,8 +18,8 @@
 //! loop.
 
 use devtools;
-use devtools_traits::ScriptToDevtoolsControlMsg;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -66,7 +66,7 @@ use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{MouseButton, MouseEventType, MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
+use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};

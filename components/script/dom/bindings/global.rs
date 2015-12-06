@@ -7,7 +7,7 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::js::{JS, Root};
@@ -19,7 +19,7 @@ use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
