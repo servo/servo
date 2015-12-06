@@ -213,13 +213,6 @@ bitflags! {
     }
 }
 
-/// Specifies the type of focus event that is sent to a pipeline
-#[derive(Copy, Clone, PartialEq)]
-pub enum FocusType {
-    Element,    // The first focus message - focus the element itself
-    Parent,     // Focusing a parent element (an iframe)
-}
-
 /// Specifies the information required to load a URL in an iframe.
 #[derive(Deserialize, Serialize)]
 pub struct IframeLoadInfo {
