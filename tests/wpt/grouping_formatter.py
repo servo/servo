@@ -67,7 +67,7 @@ class GroupingFormatter(base.BaseFormatter):
         if not self.interactive or not self.current_display:
             return ""
         return ((self.move_up + self.clear_eol) *
-                len(self.current_display.splitlines()))
+                self.current_display.count('\n'))
 
     def generate_output(self, text=None, new_display=None):
         if not self.interactive:
