@@ -10,6 +10,7 @@ matrix:
       dist: trusty
       script:
          - ./mach build -d --verbose
+         - ./mach test-unit
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh          
       cache:
