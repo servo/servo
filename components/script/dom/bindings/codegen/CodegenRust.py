@@ -1164,6 +1164,9 @@ class CGArgumentConverter(CGThing):
 
         if not argument.variadic:
             if argument.optional:
+                # Treat undefined arguments as missing
+                undefined_condition = string.Template("!${args}.get(${index}).is_undefined()").substitute(replacer)
+                condition = "%s && %s" % (condition, undefined_condition)
                 if argument.defaultValue:
                     assert default
                     template = CGIfElseWrapper(condition,
