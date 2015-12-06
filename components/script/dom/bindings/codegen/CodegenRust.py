@@ -1142,7 +1142,6 @@ class CGArgumentConverter(CGThing):
             "argc": argc,
             "args": args
         }
-        condition = string.Template("${index} < ${argc}").substitute(replacer)
 
         replacementVariables = {
             "val": string.Template("${args}.get(${index})").substitute(replacer),
@@ -1164,6 +1163,7 @@ class CGArgumentConverter(CGThing):
 
         if not argument.variadic:
             if argument.optional:
+                condition = "!{args}.get({index}).is_undefined()".format(**replacer)
                 if argument.defaultValue:
                     assert default
                     template = CGIfElseWrapper(condition,
