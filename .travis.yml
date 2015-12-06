@@ -9,7 +9,7 @@ matrix:
     - sudo: 9000
       dist: trusty
       script:
-         - ./mach build -d --verbose
+         - ./mach build -r --verbose
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh          
       cache:
