@@ -5787,6 +5787,12 @@
             "url": "/_mozilla/mozilla/variadic-interface.html"
           }
         ],
+        "mozilla/webgl/bufferData.html": [
+          {
+            "path": "mozilla/webgl/bufferData.html",
+            "url": "/_mozilla/mozilla/webgl/bufferData.html"
+          }
+        ],
         "mozilla/webgl/context_creation_error.html": [
           {
             "path": "mozilla/webgl/context_creation_error.html",
