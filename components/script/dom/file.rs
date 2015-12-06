@@ -21,7 +21,7 @@ impl File {
                      _file_bits: &Blob, name: DOMString) -> File {
         File {
             //TODO: get type from the underlying filesystem instead of "".to_string()
-            blob: Blob::new_inherited(global, None, ""),
+            blob: Blob::new_inherited(global, Vec::new(), ""),
             name: name,
         }
         // XXXManishearth Once Blob is able to store data

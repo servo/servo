@@ -427,7 +427,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.lock().unwrap().send_message(&Message::binary(data.clone_bytes()));
+            let _ = my_sender.lock().unwrap().send_message(&Message::binary(data.get_bytes()));
         }
 
         Ok(())
@@ -602,7 +602,7 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let blob = Blob::new(global.r(), Some(data), "");
+                            let blob = Blob::new(global.r(), data, "");
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {

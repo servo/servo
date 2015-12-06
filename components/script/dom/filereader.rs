@@ -354,8 +354,9 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 4
-        let (send, bytes) = mpsc::channel();
-        blob.read_out_buffer(send);
+        let (bytes_sender, bytes_receiver) = mpsc::channel();
+        bytes_sender.send(blob.get_bytes()).unwrap();
+
         let type_ = blob.Type();
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
@@ -366,7 +367,7 @@ impl FileReader {
         let script_chan = global.script_chan();
 
         spawn_named("file reader async operation".to_owned(), move || {
-            perform_annotated_read_operation(gen_id, load_data, bytes, fr, script_chan)
+            perform_annotated_read_operation(gen_id, load_data, bytes_receiver, fr, script_chan)
         });
         Ok(())
     }
