@@ -4,8 +4,8 @@
 
 
 use cssparser::{Parser, SourcePosition};
+use msg::ParseErrorReporter;
 use selectors::parser::ParserContext as SelectorParserContext;
-use style_traits::ParseErrorReporter;
 use stylesheets::Origin;
 use url::{Url, UrlParser};
 
@@ -13,7 +13,7 @@ pub struct ParserContext<'a> {
     pub stylesheet_origin: Origin,
     pub base_url: &'a Url,
     pub selector_context: SelectorParserContext,
-    pub error_reporter: Box<ParseErrorReporter + Send>
+    pub error_reporter: Box<ParseErrorReporter + Send>,
 }
 
 impl<'a> ParserContext<'a> {

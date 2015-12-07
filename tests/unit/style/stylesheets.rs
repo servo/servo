@@ -4,6 +4,7 @@
 
 use cssparser;
 use media_queries::CSSErrorReporterTest;
+use msg::constellation_msg::PipelineId;
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
@@ -21,7 +22,8 @@ fn test_parse_stylesheet() {
         #d1 > .ok { background: blue; }
     ";
     let url = url!("about::test");
-    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent, Box::new(CSSErrorReporterTest));
+    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
+    Box::new(CSSErrorReporterTest { pipelineid: PipelineId::fake_root_pipeline_id()}));
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,

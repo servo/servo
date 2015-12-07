@@ -12,6 +12,7 @@ extern crate bitflags;
 extern crate canvas_traits;
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
+extern crate cssparser;
 extern crate euclid;
 extern crate hyper;
 #[cfg(target_os = "macos")]
@@ -28,3 +29,12 @@ extern crate util;
 pub mod compositor_msg;
 pub mod constellation_msg;
 pub mod webdriver_msg;
+
+use constellation_msg::PipelineId;
+use cssparser::{Parser, SourcePosition};
+
+pub trait ParseErrorReporter {
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str);
+    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync>;
+    fn pipeline(&self) -> PipelineId;
+}

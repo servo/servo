@@ -5,26 +5,32 @@
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::Size2D;
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 use std::borrow::ToOwned;
 use style::media_queries::*;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
-use style_traits::ParseErrorReporter;
 
-pub struct CSSErrorReporterTest;
+pub struct CSSErrorReporterTest {
+    pub pipelineid: PipelineId,
+}
 
 impl ParseErrorReporter for CSSErrorReporterTest {
      fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
      }
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-         let error_reporter = Box::new(CSSErrorReporterTest);
-         return error_reporter;
+        Box::new(CSSErrorReporterTest { pipelineid: self.pipelineid, })
      }
+     fn pipeline(&self) -> PipelineId {
+        return self.pipelineid;
+      }
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
     let url = url!("http://localhost");
-    let stylesheet = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest));
+    let stylesheet = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest
+    { pipelineid: PipelineId::fake_root_pipeline_id() }));
     let mut rule_count = 0;
     for rule in stylesheet.rules().media() {
         rule_count += 1;
@@ -35,7 +41,8 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str)
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = url!("http://localhost");
-    let ss = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest));
+    let ss = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest
+    { pipelineid: PipelineId::fake_root_pipeline_id() }));
     let rule_count = ss.effective_rules(device).style().count();
     assert!(rule_count == expected_rule_count, css.to_owned());
 }
