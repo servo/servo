@@ -20,10 +20,3 @@ interface DOMPointReadOnly {
     readonly attribute unrestricted double z;
     readonly attribute unrestricted double w;
 };
-
-dictionary DOMPointInit {
-    unrestricted double x = 0;
-    unrestricted double y = 0;
-    unrestricted double z = 0;
-    unrestricted double w = 1;
-};
