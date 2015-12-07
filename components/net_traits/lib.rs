@@ -241,6 +241,7 @@ pub enum WebSocketDomAction {
 pub enum WebSocketNetworkEvent {
     ConnectionEstablished,
     MessageReceived(MessageData),
+    Fail,
     Close,
 }
 
