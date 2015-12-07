@@ -66,6 +66,10 @@ impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     fn W(&self) -> f64 {
         self.w.get()
     }
+
+    pub fn FromDOMPointInit(other: DOMPointInit) -> DOMPointReadOnly {
+        DOMPointReadOnly::new_inherited(other.x, other.y, other.w, other.z)
+    }
 }
 
 pub trait DOMPointWriteMethods {
