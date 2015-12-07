@@ -30,7 +30,7 @@ use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{PipelineId, WorkerId};
+use msg::constellation_msg::PipelineId;
 use rustc_serialize::{Decodable, Decoder};
 use std::net::TcpStream;
 use time::Duration;
@@ -319,3 +319,6 @@ impl PreciseTime {
         Duration::nanoseconds((later.0 - self.0) as i64)
     }
 }
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct WorkerId(pub u32);
