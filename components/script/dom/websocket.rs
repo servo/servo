@@ -254,10 +254,10 @@ impl WebSocket {
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
-        let address = Trusted::new(global.get_cx(), ws.r(), global.script_chan());
+        let address = Trusted::new(global.get_cx(), ws.r(), global.networking_task_source());
 
         let origin = global.get_url().serialize();
-        let sender = global.script_chan();
+        let sender = global.networking_task_source();
         spawn_named(format!("WebSocket connection to {}", ws.Url()), move || {
             // Step 8: Protocols.
 
@@ -328,7 +328,7 @@ impl WebSocket {
         };
 
         let global = self.global.root();
-        let chan = global.r().script_chan();
+        let chan = global.r().networking_task_source();
         let address = Trusted::new(global.r().get_cx(), self, chan.clone());
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;

@@ -343,7 +343,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         if event.IsTrusted() {
                             let window = window_from_node(self);
                             let window = window.r();
-                            let chan = window.script_chan();
+                            let chan = window.user_interaction_task_source();
                             let handler = Trusted::new(window.get_cx(), self, chan.clone());
                             let dispatcher = ChangeEventRunnable {
                                 element: handler,

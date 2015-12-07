@@ -237,7 +237,28 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
         self.script_chan.clone()
     }
 
