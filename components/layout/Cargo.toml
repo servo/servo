@@ -53,9 +53,6 @@ path = "../profile_traits"
 [dependencies.util]
 path = "../util"
 
-[dependencies.clock_ticks]
-git = "https://github.com/tomaka/clock_ticks"
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
@@ -75,6 +72,7 @@ euclid = {version = "0.4", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 serde_json = "0.5"
+time = "0.1"
 unicode-bidi = "0.2"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
 url = "0.5"
