@@ -274,10 +274,7 @@ impl WebSocket {
                 Ok(channel) => channel,
                 Err(e) => {
                     debug!("Failed to establish a WebSocket connection: {:?}", e);
-                    let task = box CloseTask {
-                        address: address,
-                    };
-                    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+                    fail_the_websocket_connection(address.clone(), sender);
                     return;
                 }
             };
@@ -292,7 +289,8 @@ impl WebSocket {
             for message in receiver.incoming_messages() {
                 let message: Message = match message {
                     Ok(m) => m,
-                    Err(_) => {
+                    Err(e) => {
+                        debug!("Error receiving incoming WebSocket message: {:?}", e);
                         fail_the_websocket_connection(address.clone(), sender);
                         break;
                     },
