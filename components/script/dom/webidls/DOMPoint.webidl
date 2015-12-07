@@ -20,3 +20,10 @@ interface DOMPoint : DOMPointReadOnly {
     inherit attribute unrestricted double z;
     inherit attribute unrestricted double w;
 };
+
+dictionary DOMPointInit {
+    unrestricted double x = 0;
+    unrestricted double y = 0;
+    unrestricted double z = 0;
+    unrestricted double w = 1;
+};
