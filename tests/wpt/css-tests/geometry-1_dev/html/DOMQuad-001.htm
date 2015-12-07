@@ -138,33 +138,6 @@
         }, initial, 'boundsAttribute1');
 
         function checkDOMQuad(createQuad, exp, name) {
-            test(function() {
-                var q = createQuad();
-                assert_equals(q.p1.x, exp.p1.x, "Expected value for p1.x is " + exp.p1.x);
-                assert_equals(q.p1.y, exp.p1.y, "Expected value for p1.y is " + exp.p1.y);
-                assert_equals(q.p1.z, exp.p1.z, "Expected value for p1.z is " + exp.p1.z);
-                assert_equals(q.p1.w, exp.p1.w, "Expected value for p1.w is " + exp.p1.w);
-                assert_equals(q.p2.x, exp.p2.x, "Expected value for p2.x is " + exp.p2.x);
-                assert_equals(q.p2.y, exp.p2.y, "Expected value for p2.y is " + exp.p2.y);
-                assert_equals(q.p2.z, exp.p2.z, "Expected value for p2.z is " + exp.p2.z);
-                assert_equals(q.p2.w, exp.p2.w, "Expected value for p2.w is " + exp.p2.w);
-                assert_equals(q.p3.x, exp.p3.x, "Expected value for p3.x is " + exp.p3.x);
-                assert_equals(q.p3.y, exp.p3.y, "Expected value for p3.y is " + exp.p3.y);
-                assert_equals(q.p3.z, exp.p3.z, "Expected value for p3.z is " + exp.p3.z);
-                assert_equals(q.p3.w, exp.p3.w, "Expected value for p3.w is " + exp.p3.w);
-                assert_equals(q.p4.x, exp.p4.x, "Expected value for p4.x is " + exp.p4.x);
-                assert_equals(q.p4.y, exp.p4.y, "Expected value for p4.y is " + exp.p4.y);
-                assert_equals(q.p4.z, exp.p4.z, "Expected value for p4.z is " + exp.p4.z);
-                assert_equals(q.p4.w, exp.p4.w, "Expected value for p4.w is " + exp.p4.w);
-            }, name + ": points");
-
-            test(function() {
-                var q = createQuad();
-                assert_equals(q.bounds.x, exp.bounds.x, "Expected value for bounds.x is " + exp.bounds.x);
-                assert_equals(q.bounds.y, exp.bounds.y, "Expected value for bounds.y is " + exp.bounds.y);
-                assert_equals(q.bounds.width, exp.bounds.width, "Expected value for bounds.width is " + exp.bounds.width);
-                assert_equals(q.bounds.height, exp.bounds.height, "Expected value for bounds.height is " + exp.bounds.height);
-            }, name + ": bounds");
         }
     </script>
 

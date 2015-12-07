@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointMethods, Wrap};
+use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods, Wrap};
 use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -34,6 +34,10 @@ impl DOMPoint {
                        w: f64)
                        -> Fallible<Root<DOMPoint>> {
         Ok(DOMPoint::new(global, x, y, z, w))
+    }
+
+    pub fn new_from_init(global: GlobalRef, p: &DOMPointInit) -> Root<DOMPoint> {
+        DOMPoint::new(global, p.x, p.y, p.z, p.w)
     }
 }
 
