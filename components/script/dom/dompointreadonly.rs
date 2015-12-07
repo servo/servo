@@ -44,6 +44,14 @@ impl DOMPointReadOnly {
                        -> Fallible<Root<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
     }
+
+    pub fn from_DOM_point_init(global: GlobalRef, other: DOMPointInit) -> Root<DOMPointReadOnly> {
+        DOMPointReadOnly::new(global, other.x, other.y, other.z, other.w)
+    }
+
+    pub fn from_DOM_point(global: GlobalRef, other: DOMPointReadOnly) -> Root<DOMPointReadOnly> {
+        DOMPointReadOnly::new(global, other.X(), other.Y(), other.Z(), other.W())
+    }
 }
 
 impl DOMPointReadOnlyMethods for DOMPointReadOnly {
