@@ -4915,6 +4915,18 @@
             "url": "/_mozilla/css/white-space-pre-wrap.htm"
           }
         ],
+        "css/white_space_intrinsic_sizes_a.html": [
+          {
+            "path": "css/white_space_intrinsic_sizes_a.html",
+            "references": [
+              [
+                "/_mozilla/css/white_space_intrinsic_sizes_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/white_space_intrinsic_sizes_a.html"
+          }
+        ],
         "css/whitespace_nowrap_a.html": [
           {
             "path": "css/whitespace_nowrap_a.html",
@@ -10768,6 +10780,18 @@
             ]
           ],
           "url": "/_mozilla/css/white-space-pre-wrap.htm"
+        }
+      ],
+      "css/white_space_intrinsic_sizes_a.html": [
+        {
+          "path": "css/white_space_intrinsic_sizes_a.html",
+          "references": [
+            [
+              "/_mozilla/css/white_space_intrinsic_sizes_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/white_space_intrinsic_sizes_a.html"
         }
       ],
       "css/whitespace_nowrap_a.html": [

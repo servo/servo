@@ -11,8 +11,5 @@ resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmi
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 # resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 
-flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
-
-
 # This file must be sorted alphabetically.
 # Please run `./mach test-tidy` to check your changes.
