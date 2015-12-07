@@ -57,7 +57,7 @@ class GroupingFormatter(base.BaseFormatter):
 
         try:
             self.terminal = blessings.Terminal()
-            return self.terminal.clear_eol, self.terminal.move_up
+            return self.terminal.move_up, self.terminal.clear_eol
         except Exception as exception:
             sys.stderr.write("GroupingFormatter: Could not get terminal "
                              "control characters: %s\n" % exception)
@@ -67,7 +67,7 @@ class GroupingFormatter(base.BaseFormatter):
         if not self.interactive or not self.current_display:
             return ""
         return ((self.move_up + self.clear_eol) *
-                len(self.current_display.splitlines()))
+                self.current_display.count('\n'))
 
     def generate_output(self, text=None, new_display=None):
         if not self.interactive:
