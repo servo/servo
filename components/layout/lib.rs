@@ -23,7 +23,6 @@ extern crate azure;
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
-extern crate clock_ticks;
 extern crate cssparser;
 extern crate encoding;
 extern crate euclid;
@@ -52,6 +51,7 @@ extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
 extern crate style_traits;
+extern crate time;
 extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate url;

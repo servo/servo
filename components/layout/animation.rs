@@ -4,7 +4,6 @@
 
 //! CSS transitions and animations.
 
-use clock_ticks;
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
@@ -17,6 +16,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use style::animation::{GetMod, PropertyAnimation};
 use style::properties::ComputedValues;
+use time;
 
 /// Inserts transitions into the queue of running animations as applicable for the given style
 /// difference. This is called from the layout worker threads. Returns true if any animations were
@@ -35,7 +35,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Mutex<Sender<Anim
             property_animation.update(new_style, 0.0);
 
             // Kick off the animation.
-            let now = clock_ticks::precise_time_s();
+            let now = time::precise_time_s();
             let animation_style = new_style.get_animation();
             let start_time =
                 now + (animation_style.transition_delay.0.get_mod(i).seconds() as f64);
@@ -73,7 +73,7 @@ pub fn update_animation_state(constellation_chan: &ConstellationChan<Constellati
     }
 
     // Expire old running animations.
-    let now = clock_ticks::precise_time_s();
+    let now = time::precise_time_s();
     let mut keys_to_remove = Vec::new();
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
@@ -145,7 +145,7 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
 pub fn update_style_for_animation(animation: &Animation,
                                   style: &mut Arc<ComputedValues>,
                                   damage: Option<&mut RestyleDamage>) {
-    let now = clock_ticks::precise_time_s();
+    let now = time::precise_time_s();
     let mut progress = (now - animation.start_time) / animation.duration();
     if progress > 1.0 {
         progress = 1.0
