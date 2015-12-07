@@ -6,6 +6,8 @@ use cssparser::Parser;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use media_queries::CSSErrorReporterTest;
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
@@ -13,7 +15,6 @@ use style::values::specified::Length::{self, ViewportPercentage};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
-use style_traits::ParseErrorReporter;
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {
@@ -29,7 +30,8 @@ fn test_viewport_rule<F>(css: &str,
 {
     ::util::prefs::set_pref("layout.viewport.enabled",
                             ::util::prefs::PrefValue::Boolean(true));
-    let stylesheet = stylesheet!(css, Author, Box::new(CSSErrorReporterTest));
+    let stylesheet = stylesheet!(css, Author, Box::new(CSSErrorReporterTest
+    { pipelineid: PipelineId::fake_root_pipeline_id() }));
     let mut rule_count = 0;
     for rule in stylesheet.effective_rules(&device).viewport() {
         rule_count += 1;
@@ -245,7 +247,7 @@ fn multiple_stylesheets_cascading() {
     ::util::prefs::set_pref("layout.viewport.enabled",
                             ::util::prefs::PrefValue::Boolean(true));
     let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
-    let error_reporter = CSSErrorReporterTest;
+    let error_reporter = CSSErrorReporterTest { pipelineid: PipelineId::fake_root_pipeline_id() };
     let stylesheets = vec![
         stylesheet!("@viewport { min-width: 100px; min-height: 100px; zoom: 1; }", UserAgent, error_reporter.clone()),
         stylesheet!("@viewport { min-width: 200px; min-height: 200px; }", User, error_reporter.clone()),
@@ -279,7 +281,8 @@ fn multiple_stylesheets_cascading() {
 #[test]
 fn constrain_viewport() {
     let url = url!("http://localhost");
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest
+    { pipelineid: PipelineId::fake_root_pipeline_id() }));
 
     macro_rules! from_css {
         ($css:expr) => {
