@@ -68,7 +68,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
             },
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Close);
+                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
                 return;
             }
 
@@ -82,7 +82,11 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
             for message in receiver.incoming_messages() {
                 let message: Message = match message {
                     Ok(m) => m,
-                    Err(_) => break,
+                    Err(e) => {
+                        debug!("Error receiving incoming WebSocket message: {:?}", e);
+                        resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                        break;
+                    }
                 };
                 let message = match message.opcode {
                     Type::Text => MessageData::Text(String::from_utf8_lossy(&message.payload).into_owned()),
