@@ -53,8 +53,9 @@ use page::Page;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_task::{DOMManipulationTaskSource, UserInteractionTaskSource, NetworkingTaskSource};
+use script_task::{HistoryTraversalTaskSource, FileReadingTaskSource, SendableMainThreadScriptChan};
+use script_task::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
@@ -114,6 +115,16 @@ pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
+    #[ignore_heap_size_of = "task sources are hard"]
+    dom_manipulation_task_source: DOMManipulationTaskSource,
+    #[ignore_heap_size_of = "task sources are hard"]
+    user_interaction_task_source: UserInteractionTaskSource,
+    #[ignore_heap_size_of = "task sources are hard"]
+    networking_task_source: NetworkingTaskSource,
+    #[ignore_heap_size_of = "task sources are hard"]
+    history_traversal_task_source: HistoryTraversalTaskSource,
+    #[ignore_heap_size_of = "task sources are hard"]
+    file_reading_task_source: FileReadingTaskSource,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -238,28 +249,23 @@ impl Window {
     }
 
     pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
-        // FIXME: Use a different channel instead of the generic script_chan
-        self.script_chan.clone()
+        self.dom_manipulation_task_source.clone()
     }
 
     pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
-        // FIXME: Use a different channel instead of the generic script_chan
-        self.script_chan.clone()
+        self.user_interaction_task_source.clone()
     }
 
     pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
-        // FIXME: Use a different channel instead of the generic script_chan
-        self.script_chan.clone()
+        self.networking_task_source.clone()
     }
 
     pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
-        // FIXME: Use a different channel instead of the generic script_chan
-        self.script_chan.clone()
+        self.history_traversal_task_source.clone()
     }
 
     pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
-        // FIXME: Use a different channel instead of the generic script_chan
-        self.script_chan.clone()
+        self.file_reading_task_source.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1251,6 +1257,11 @@ impl Window {
     pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
+               dom_task_source: DOMManipulationTaskSource,
+               user_task_source: UserInteractionTaskSource,
+               network_task_source: NetworkingTaskSource,
+               history_task_source: HistoryTraversalTaskSource,
+               file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
@@ -1276,6 +1287,11 @@ impl Window {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
+            dom_manipulation_task_source: dom_task_source,
+            user_interaction_task_source: user_task_source,
+            networking_task_source: network_task_source,
+            history_traversal_task_source: history_task_source,
+            file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
             console: Default::default(),
             crypto: Default::default(),
