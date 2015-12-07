@@ -1016,8 +1016,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         declType = CGGeneric(typeName)
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(dictionary) => dictionary,\n"
-                    "    Err(_) => return false,\n"
-                    "}" % typeName)
+                    "    Err(_) => { %s },\n"
+                    "}" % (typeName, exceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 

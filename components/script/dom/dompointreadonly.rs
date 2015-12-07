@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{DOMPointReadOnlyMethods, Wrap};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -43,6 +44,19 @@ impl DOMPointReadOnly {
                        w: f64)
                        -> Fallible<Root<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
+    }
+
+    pub fn from_init(other: &DOMPointInit) -> DOMPointReadOnly {
+        DOMPointReadOnly::new_inherited(other.x, other.y, other.z, other.w)
+    }
+
+    pub fn to_init(&self) -> DOMPointInit {
+        DOMPointInit {
+            x: self.x.get(),
+            y: self.y.get(),
+            z: self.z.get(),
+            w: self.w.get(),
+        }
     }
 }
 
