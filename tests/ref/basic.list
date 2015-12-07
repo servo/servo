@@ -1,15 +1,9 @@
 # This file must be sorted alphabetically.
 # Please run `./mach test-tidy` to check your changes.
 
-
-# Should be != with expected failure:
-# FIXME: use the real test when pixel-snapping for scrolling is fixed.
-#fragment=top == ../html/acid2.html acid2_ref_broken.html
-
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-== acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 

@@ -151,6 +151,18 @@
             "url": "/_mozilla/css/acid1_a.html"
           }
         ],
+        "css/acid2_noscroll.html": [
+          {
+            "path": "css/acid2_noscroll.html",
+            "references": [
+              [
+                "/_mozilla/css/acid2_ref_broken.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/acid2_noscroll.html"
+          }
+        ],
         "css/after_block_iteration.html": [
           {
             "path": "css/after_block_iteration.html",
@@ -5980,6 +5992,18 @@
             ]
           ],
           "url": "/_mozilla/css/acid1_a.html"
+        }
+      ],
+      "css/acid2_noscroll.html": [
+        {
+          "path": "css/acid2_noscroll.html",
+          "references": [
+            [
+              "/_mozilla/css/acid2_ref_broken.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/acid2_noscroll.html"
         }
       ],
       "css/after_block_iteration.html": [
