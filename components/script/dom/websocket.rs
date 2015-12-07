@@ -141,7 +141,7 @@ pub fn close_the_websocket_connection(address: Trusted<WebSocket>,
                                       code: Option<u16>,
                                       reason: String) {
     let close_task = box CloseTask {
-        addr: address,
+        address: address,
         failed: false,
         code: code,
         reason: Some(reason),
@@ -151,7 +151,7 @@ pub fn close_the_websocket_connection(address: Trusted<WebSocket>,
 
 pub fn fail_the_websocket_connection(address: Trusted<WebSocket>, sender: Box<ScriptChan>) {
     let close_task = box CloseTask {
-        addr: address,
+        address: address,
         failed: true,
         code: Some(close_code::ABNORMAL),
         reason: None,
@@ -271,7 +271,7 @@ impl WebSocket {
                 match event {
                     WebSocketNetworkEvent::ConnectionEstablished(headers, protocols) => {
                         let open_thread = box ConnectionEstablishedTask {
-                            addr: moved_address.clone(),
+                            address: moved_address.clone(),
                             headers: headers,
                             protocols: protocols,
                         };
@@ -324,7 +324,7 @@ impl WebSocket {
             self.clearing_buffer.set(true);
 
             let task = box BufferedAmountTask {
-                addr: address,
+                address: address,
             };
 
             chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
@@ -456,20 +456,20 @@ impl WebSocketMethods for WebSocket {
 
 /// Task queued when *the WebSocket connection is established*.
 struct ConnectionEstablishedTask {
-    addr: Trusted<WebSocket>,
+    address: Trusted<WebSocket>,
     protocols: Vec<String>,
     headers: Headers,
 }
 
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
-        let ws = self.addr.root();
+        let ws = self.address.root();
         let global = ws.r().global();
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
             let sender = global.r().networking_task_source();
-            fail_the_websocket_connection(self.addr, sender);
+            fail_the_websocket_connection(self.address, sender);
             return;
         }
 
@@ -502,7 +502,7 @@ impl Runnable for ConnectionEstablishedTask {
 }
 
 struct BufferedAmountTask {
-    addr: Trusted<WebSocket>,
+    address: Trusted<WebSocket>,
 }
 
 impl Runnable for BufferedAmountTask {
@@ -512,7 +512,7 @@ impl Runnable for BufferedAmountTask {
     // reaches step 1.  In our implementation, the bytes will already have been sent on a background
     // thread.
     fn handler(self: Box<Self>) {
-        let ws = self.addr.root();
+        let ws = self.address.root();
 
         ws.buffered_amount.set(0);
         ws.clearing_buffer.set(false);
@@ -520,7 +520,7 @@ impl Runnable for BufferedAmountTask {
 }
 
 struct CloseTask {
-    addr: Trusted<WebSocket>,
+    address: Trusted<WebSocket>,
     failed: bool,
     code: Option<u16>,
     reason: Option<String>,
@@ -528,7 +528,7 @@ struct CloseTask {
 
 impl Runnable for CloseTask {
     fn handler(self: Box<Self>) {
-        let ws = self.addr.root();
+        let ws = self.address.root();
         let ws = ws.r();
         let global = ws.global();
 
@@ -545,9 +545,7 @@ impl Runnable for CloseTask {
 
         // Step 2.
         if self.failed {
-            ws.upcast().fire_event("error",
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable);
+            ws.upcast().fire_simple_event("error");
         }
 
         // Step 3.
