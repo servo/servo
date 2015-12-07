@@ -176,9 +176,8 @@ impl ResourceChannelManager {
             match self.from_client.recv().unwrap() {
                 ControlMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
-                ControlMsg::WebsocketConnect(connection_sender, connect_data) =>
-                    //TODO: what parameters to pass?
-                    self.resource_manager.websocket_connect(connection_sender, connect_data),
+                ControlMsg::WebsocketConnect(communicator, connect_data) =>
+                    self.resource_manager.websocket_connect(communicator, connect_data),
                 ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source),
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
@@ -356,9 +355,9 @@ impl ResourceManager {
                          cancel_listener));
     }
 
-    fn websocket_connect(&mut self,
-                         connection_sender: IpcSender<WebSocketCommunicate>,
+    fn websocket_connect(&self,
+                         communicator: WebSocketCommunicate,
                          connect_data: WebSocketConnectData) {
-        websocket_loader::init(connection_sender, connect_data);
+        websocket_loader::init(communicator, connect_data);
     }
 }

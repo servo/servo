@@ -247,8 +247,8 @@ pub enum WebSocketNetworkEvent {
 
 #[derive(Deserialize, Serialize)]
 pub struct WebSocketCommunicate {
-    pub action_sender: IpcSender<WebSocketDomAction>,
-    pub event_receiver: IpcReceiver<WebSocketNetworkEvent>,
+    pub event_sender: IpcSender<WebSocketNetworkEvent>,
+    pub action_receiver: IpcReceiver<WebSocketDomAction>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -262,7 +262,7 @@ pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     /// Try to make a websocket connection to a URL.
-    WebsocketConnect(IpcSender<WebSocketCommunicate>, WebSocketConnectData),
+    WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL

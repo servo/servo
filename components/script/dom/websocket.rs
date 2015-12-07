@@ -36,7 +36,6 @@ use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use util::str::DOMString;
 use websocket::client::request::Url;
@@ -140,7 +139,7 @@ pub struct WebSocket {
     buffered_amount: Cell<u32>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
-    sender: DOMRefCell<Option<Arc<Mutex<IpcSender<WebSocketDomAction>>>>>,
+    sender: DOMRefCell<Option<IpcSender<WebSocketDomAction>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
     full: Cell<bool>, //Flag to tell if websocket queue is full
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
@@ -226,29 +225,34 @@ impl WebSocket {
             resource_url: resource_url.clone(),
             origin: origin,
         };
-        let (connection_sender, connection_receiver):
-                (IpcSender<WebSocketCommunicate>,
-                IpcReceiver<WebSocketCommunicate>) = ipc::channel().unwrap();
+
+        // Create the interface for communication with the resource task
+        let (dom_action_sender, resource_action_receiver):
+                (IpcSender<WebSocketDomAction>,
+                IpcReceiver<WebSocketDomAction>) = ipc::channel().unwrap();
+        let (resource_event_sender, dom_event_receiver):
+                (IpcSender<WebSocketNetworkEvent>,
+                IpcReceiver<WebSocketNetworkEvent>) = ipc::channel().unwrap();
+
+        let communicator = WebSocketCommunicate {
+            event_sender: resource_event_sender,
+            action_receiver: resource_action_receiver,
+        };
 
         let resource_task = global.resource_task();
-        let _ = resource_task.send(WebsocketConnect(connection_sender, connect_data));
+        let _ = resource_task.send(WebsocketConnect(communicator, connect_data));
 
-        // Blocks until connection is established
-        //TODO: better error handling?
-        let communicator: WebSocketCommunicate = connection_receiver.recv().unwrap();
-        let action_sender = Arc::new(Mutex::new(communicator.action_sender)).clone();
-        let event_receiver = Arc::new(Mutex::new(communicator.event_receiver)).clone();
+        *ws.sender.borrow_mut() = Some(dom_action_sender);
+
         let moved_address = address.clone();
         let sender = global.networking_task_source();
 
         thread::spawn(move || {
-            loop {
-                let event = event_receiver.lock().unwrap().recv().unwrap();
+            while let Ok(event) = dom_event_receiver.recv() {
                 match event {
                     WebSocketNetworkEvent::ConnectionEstablished => {
                         let open_task = box ConnectionEstablishedTask {
                             addr: moved_address.clone(),
-                            sender: action_sender.clone(),
                         };
                         sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
                     },
@@ -363,8 +367,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.lock().unwrap()
-                .send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
+            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
         }
 
         Ok(())
@@ -383,8 +386,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.lock().unwrap()
-                .send(WebSocketDomAction::SendMessage(MessageData::Binary(data.clone_bytes())));
+            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(data.clone_bytes())));
         }
 
         Ok(())
@@ -400,7 +402,7 @@ impl WebSocketMethods for WebSocket {
             if let Some(sender) = sender.as_mut() {
                 let code: u16 = this.code.get();
                 let reason = this.reason.borrow().clone();
-                let _ = sender.lock().unwrap().send(WebSocketDomAction::Close(code, reason));
+                let _ = sender.send(WebSocketDomAction::Close(code, reason));
             }
         }
 
@@ -446,15 +448,11 @@ impl WebSocketMethods for WebSocket {
 /// Task queued when *the WebSocket connection is established*.
 struct ConnectionEstablishedTask {
     addr: Trusted<WebSocket>,
-    sender: Arc<Mutex<IpcSender<WebSocketDomAction>>>,
 }
 
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
-
-        *ws.sender.borrow_mut() = Some(self.sender);
-
         // Step 1: Protocols.
 
         // Step 2.

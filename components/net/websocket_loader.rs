@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::header::Host;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
@@ -42,22 +41,11 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     Ok(response.begin().split())
 }
 
-pub fn init(connection_sender: IpcSender<WebSocketCommunicate>, connect_data: WebSocketConnectData) {
+pub fn init(communicator: WebSocketCommunicate, connect_data: WebSocketConnectData) {
     spawn_named(format!("WebSocket connection to {}", connect_data.resource_url), move || {
         // Step 8: Protocols.
 
         // Step 9.
-        let (dom_action_sender, resource_action_receiver):
-                (IpcSender<WebSocketDomAction>,
-                IpcReceiver<WebSocketDomAction>) = ipc::channel().unwrap();
-        let (resource_event_sender, dom_event_receiver):
-                (IpcSender<WebSocketNetworkEvent>,
-                IpcReceiver<WebSocketNetworkEvent>) = ipc::channel().unwrap();
-        //give the DOM task these IPC endpoints to communicate back with this task
-        let _ = connection_sender.send(WebSocketCommunicate {
-            action_sender: dom_action_sender,
-            event_receiver: dom_event_receiver
-        });
 
         // URL that we actually fetch from the network, after applying the replacements
         // specified in the hosts file.
@@ -66,7 +54,7 @@ pub fn init(connection_sender: IpcSender<WebSocketCommunicate>, connect_data: We
             Ok(net_url) => net_url,
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::Close);
+                let _ = communicator.event_sender.send(WebSocketNetworkEvent::Close);
                 return;
             }
         };
@@ -75,12 +63,12 @@ pub fn init(connection_sender: IpcSender<WebSocketCommunicate>, connect_data: We
                                                        connect_data.origin);
         let (ws_sender, mut receiver) = match channel {
             Ok(channel) => {
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::ConnectionEstablished);
+                let _ = communicator.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished);
                 channel
             },
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::Close);
+                let _ = communicator.event_sender.send(WebSocketNetworkEvent::Close);
                 return;
             }
 
@@ -89,6 +77,7 @@ pub fn init(connection_sender: IpcSender<WebSocketCommunicate>, connect_data: We
         let ws_sender = Arc::new(Mutex::new(ws_sender));
 
         let ws_sender_incoming = ws_sender.clone();
+        let resource_event_sender = communicator.event_sender;
         thread::spawn(move || {
             for message in receiver.incoming_messages() {
                 let message: Message = match message {
@@ -115,9 +104,9 @@ pub fn init(connection_sender: IpcSender<WebSocketCommunicate>, connect_data: We
         });
 
         let ws_sender_outgoing = ws_sender.clone();
+        let resource_action_receiver = communicator.action_receiver;
         thread::spawn(move || {
-            loop {
-                let dom_action = resource_action_receiver.recv().unwrap();
+            while let Ok(dom_action) = resource_action_receiver.recv() {
                 match dom_action {
                     WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
                         ws_sender_outgoing.lock().unwrap().send_message(&Message::text(data)).unwrap();
