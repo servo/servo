@@ -417,7 +417,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
         let data = match data {
             Some(data) => data,
-            None => return,
+            None => return self.webgl_error(InvalidValue),
         };
         if offset < 0 {
             return self.webgl_error(InvalidValue);
