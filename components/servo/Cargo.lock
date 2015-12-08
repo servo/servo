@@ -1156,6 +1156,7 @@ dependencies = [
  "url 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "websocket 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1204,6 +1205,7 @@ dependencies = [
  "stb_image 0.2.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+ "websocket 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
