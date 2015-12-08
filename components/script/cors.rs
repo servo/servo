@@ -74,7 +74,7 @@ impl CORSRequest {
         match &*destination.scheme {
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), about URLs can be fetched
             // the same as a basic request.
-            "about" if destination.path == Some("blank") => Ok(None),
+            "about" if destination.path() == Some(&["blank".to_owned()]) => Ok(None),
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), data URLs can be fetched
             // the same as a basic request if the request's method is GET and the
 	    // same-origin data-URL flag is set.
