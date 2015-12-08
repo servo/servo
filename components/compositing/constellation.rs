@@ -790,6 +790,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     // containing_page_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IframeLoadInfo) {
+        let old_pipeline_id = load_info.old_subpage_id.map(|old_subpage_id| {
+            self.find_subpage(load_info.containing_pipeline_id, old_subpage_id).id
+        });
+
+        // If no url is specified, reload.
+        let new_url = match (old_pipeline_id, load_info.url) {
+            (_, Some(ref url)) => url.clone(),
+            (Some(old_pipeline_id), None) => self.pipeline(old_pipeline_id).url.clone(),
+            (None, None) => url!("about:blank"),
+        };
+
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
         let script_chan = {
@@ -797,27 +808,24 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
             let source_url = source_pipeline.url.clone();
 
-            let same_script = (source_url.host() == load_info.url.host() &&
-                               source_url.port() == load_info.url.port()) &&
+            let same_script = (source_url.host() == new_url.host() &&
+                               source_url.port() == new_url.port()) &&
                                load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
             // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
             // Reuse the script task if the URL is same-origin
             if same_script {
                 debug!("Constellation: loading same-origin iframe, \
-                        parent url {:?}, iframe url {:?}", source_url, load_info.url);
+                        parent url {:?}, iframe url {:?}", source_url, new_url);
                 Some(source_pipeline.script_chan.clone())
             } else {
                 debug!("Constellation: loading cross-origin iframe, \
-                        parent url {:?}, iframe url {:?}", source_url, load_info.url);
+                        parent url {:?}, iframe url {:?}", source_url, new_url);
                 None
             }
         };
 
         // Create the new pipeline, attached to the parent and push to pending frames
-        let old_pipeline_id = load_info.old_subpage_id.map(|old_subpage_id| {
-            self.find_subpage(load_info.containing_pipeline_id, old_subpage_id).id
-        });
         let window_size = old_pipeline_id.and_then(|old_pipeline_id| {
             self.pipeline(old_pipeline_id).size
         });
@@ -825,7 +833,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
                           window_size,
                           script_chan,
-                          LoadData::new(load_info.url));
+                          LoadData::new(new_url));
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);

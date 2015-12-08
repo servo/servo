@@ -217,7 +217,7 @@ bitflags! {
 #[derive(Deserialize, Serialize)]
 pub struct IframeLoadInfo {
     /// Url to load
-    pub url: Url,
+    pub url: Option<Url>,
     /// Pipeline ID of the parent of this iframe
     pub containing_pipeline_id: PipelineId,
     /// The new subpage ID for this load
