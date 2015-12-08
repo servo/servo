@@ -750,22 +750,22 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         match self.response_type.get() {
-        _empty | XMLHttpRequestResponseType::Document => {
-            Ok( match self.ready_state.get() {
-                XMLHttpRequestState::Done => {
-                    match self.response_xml.get() {
-                        Some(response) => Some(response),
-                        None => {
-                            let response = self.document_response();
-                            self.response_xml.set(response.r());
-                            response
+            _empty | XMLHttpRequestResponseType::Document => {
+                match self.ready_state.get() {
+                    XMLHttpRequestState::Done => {
+                        match self.response_xml.get() {
+                            Some(response) => Ok(Some(response)),
+                            None => {
+                                let response = self.document_response();
+                                self.response_xml.set(response.r());
+                                Ok(response)
+                            }
                         }
-                    }
-                },
-                _ => None
-            })
-        },
-        _ => { Err(Error::InvalidState) }
+                    },
+                    _ => Ok(None)
+                }
+            },
+            _ => { Err(Error::InvalidState) }
         }
     }
 }
