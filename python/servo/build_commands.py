@@ -235,6 +235,9 @@ class MachCommands(CommandBase):
             make_cmd = ["make"]
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
+            else:
+                import multiprocessing
+                make_cmd += ["-j" + str(multiprocessing.cpu_count())]
             android_dir = self.android_build_dir(dev)
             openssl_dir = path.join(android_dir, "native", "openssl")
             if not path.exists(openssl_dir):

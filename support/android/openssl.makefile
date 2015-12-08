@@ -8,6 +8,8 @@ openssl: openssl-1.0.1k/libssl.so
 
 openssl-1.0.1k/libssl.so: openssl-1.0.1k/Configure
 	./openssl.sh ${ANDROID_NDK}
+	$(MAKE) -C openssl-1.0.1k depend
+	$(MAKE) -C openssl-1.0.1k all
 
 openssl-1.0.1k/Configure:
 	wget https://www.openssl.org/source/openssl-1.0.1k.tar.gz
