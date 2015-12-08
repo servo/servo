@@ -81,7 +81,8 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
                                                        connect_data.protocols.clone());
         let (_, ws_sender, mut receiver) = match channel {
             Ok(channel) => {
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished(channel.0.clone(), connect_data.protocols));
+                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished(channel.0.clone(),
+                                                                                               connect_data.protocols));
                 channel
             },
             Err(e) => {

@@ -226,7 +226,7 @@ impl WebSocket {
         let address = Trusted::new(global.get_cx(), ws.r(), global.networking_task_source());
 
         let origin = global.get_url().serialize();
-        let protocols: Vec<String> = protocols.iter().map(|x| String::from(x.clone())).collect(); 
+        let protocols: Vec<String> = protocols.iter().map(|x| String::from(x.clone())).collect();
 
         let connect_data = WebSocketConnectData {
             resource_url: resource_url.clone(),
