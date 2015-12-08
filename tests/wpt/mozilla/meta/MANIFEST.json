@@ -5637,6 +5637,12 @@
             "url": "/_mozilla/mozilla/load_event.html"
           }
         ],
+        "mozilla/mozbrowser/iframe_goback.html": [
+          {
+            "path": "mozilla/mozbrowser/iframe_goback.html",
+            "url": "/_mozilla/mozilla/mozbrowser/iframe_goback.html"
+          }
+        ],
         "mozilla/mozbrowser/mozbrowsericonchange_event.html": [
           {
             "path": "mozilla/mozbrowser/mozbrowsericonchange_event.html",
