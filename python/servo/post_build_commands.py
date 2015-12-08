@@ -215,3 +215,26 @@ class PostBuildCommands(CommandBase):
         except subprocess.CalledProcessError as e:
             print("Packaging Android exited with return value %d" % e.returncode)
             return e.returncode
+
+    @Command('install',
+             description='Install Servo (currently, Android only)',
+             category='post-build')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Package the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Package the dev build')
+    def install(self, release=False, dev=False):
+        binary_path = self.get_binary_path(release, dev, android=True)
+        if not path.exists(binary_path):
+            # TODO: Run the build command automatically?
+            print("Servo build not found. Please run `./mach build` to compile Servo.")
+            return 1
+
+        apk_path = binary_path + ".apk"
+        if not path.exists(apk_path):
+            result = Registrar.dispatch("package", context=self.context, release=release, dev=dev)
+            if result is not 0:
+                return result
+
+        print(["adb", "install", "-r", apk_path])
+        return subprocess.call(["adb", "install", "-r", apk_path], env=self.build_env())
