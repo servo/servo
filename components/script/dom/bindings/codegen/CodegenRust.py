@@ -2164,13 +2164,10 @@ def CreateBindingJSObject(descriptor, parent=None):
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as usize];
 let private = RootedValue::new(cx, PrivateValue(raw as *const libc::c_void));
-let obj = {
-    let _ac = JSAutoCompartment::new(cx, proto.ptr);
-    NewProxyObject(cx, handler,
-                   private.handle(),
-                   proto.ptr, %s.get(),
-                   ptr::null_mut(), ptr::null_mut())
-};
+let obj = NewProxyObject(cx, handler,
+                         private.handle(),
+                         proto.ptr, %s.get(),
+                         ptr::null_mut(), ptr::null_mut());
 assert!(!obj.is_null());
 let obj = RootedObject::new(cx, obj);\
 """ % (descriptor.name, parent)
@@ -2185,12 +2182,8 @@ let obj = RootedObject::new(cx, obj);\
                    ");\n"
                    "assert!(!obj.ptr.is_null());" % TRACE_HOOK_NAME)
     else:
-        create += ("let obj = {\n"
-                   "    let _ac = JSAutoCompartment::new(cx, proto.ptr);\n"
-                   "    JS_NewObjectWithGivenProto(\n"
-                   "        cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle())\n"
-                   "};\n"
-                   "let obj = RootedObject::new(cx, obj);\n"
+        create += ("let obj = RootedObject::new(cx, JS_NewObjectWithGivenProto(\n"
+                   "    cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle()));\n"
                    "assert!(!obj.ptr.is_null());\n"
                    "\n"
                    "JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,\n"
@@ -2236,11 +2229,7 @@ def CopyUnforgeablePropertiesToInstance(descriptor):
     # reflector, so we can make sure we don't get confused by named getters.
     if descriptor.proxy:
         copyCode += """\
-let mut expando = RootedObject::new(cx, ptr::null_mut());
-{
-    let _ac = JSAutoCompartment::new(cx, scope.get());
-    expando.handle_mut().set(ensure_expando_object(cx, obj.handle()));
-}
+let expando = RootedObject::new(cx, ensure_expando_object(cx, obj.handle()));
 """
         obj = "expando"
     else:
@@ -2291,10 +2280,8 @@ assert!(!scope.get().is_null());
 assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 let mut proto = RootedObject::new(cx, ptr::null_mut());
-{
-    let _ac = JSAutoCompartment::new(cx, scope.get());
-    GetProtoObject(cx, scope, scope, proto.handle_mut())
-}
+let _ac = JSAutoCompartment::new(cx, scope.get());
+GetProtoObject(cx, scope, scope, proto.handle_mut());
 assert!(!proto.ptr.is_null());
 
 %(createObject)s
