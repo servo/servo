@@ -18,6 +18,7 @@ pub struct WebGLBuffer {
     id: u32,
     /// The target to which this buffer was bound the first time
     target: Cell<Option<u32>>,
+    length: Cell<usize>,
     is_deleted: Cell<bool>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -29,6 +30,7 @@ impl WebGLBuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             target: Cell::new(None),
+            length: Cell::new(0),
             is_deleted: Cell::new(false),
             renderer: renderer,
         }
@@ -66,6 +68,20 @@ impl WebGLBuffer {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(target, self.id))).unwrap();
 
         Ok(())
+    }
+
+    pub fn buffer_data(&self, target: u32, data: &[u8]) -> WebGLResult<()> {
+        if let Some(previous_target) = self.target.get() {
+            if target != previous_target {
+                return Err(WebGLError::InvalidOperation);
+            }
+        }
+        self.length.set(data.len());
+        Ok(())
+    }
+
+    pub fn len(&self) -> usize {
+        self.length.get()
     }
 
     pub fn delete(&self) {
