@@ -113,9 +113,9 @@ dependencies = [
 [[package]]
 name = "bincode"
 version = "0.4.0"
-source = "git+https://github.com/TyOverby/bincode#c1d94fe8590a91c1f5f163d7d3f23df2c84f0d21"
+source = "git+https://github.com/TyOverby/bincode#590a862b4368910a5285ca8e970163f21a752b8d"
 dependencies = [
- "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -135,11 +135,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "brotli"
 version = "0.3.17"
 source = "git+https://github.com/ende76/brotli-rs#4a8c42cce771ded65fe64d6816f5d7303006b2ea"
-
-[[package]]
-name = "byteorder"
-version = "0.3.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "byteorder"

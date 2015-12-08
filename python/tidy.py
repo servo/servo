@@ -170,7 +170,7 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["libc", "byteorder", "cocoa"]
+    exceptions = ["libc", "cocoa"]
 
     import toml
     content = toml.loads(contents)
