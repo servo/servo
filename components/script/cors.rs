@@ -77,7 +77,7 @@ impl CORSRequest {
             "about" if destination.path() == Some(&["blank".to_owned()]) => Ok(None),
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), data URLs can be fetched
             // the same as a basic request if the request's method is GET and the
-	    // same-origin data-URL flag is set.
+            // same-origin data-URL flag is set.
             "data" if same_origin_data_url_flag && method == Method::Get => Ok(None),
             "http" | "https" => {
                 let mut req = CORSRequest::new(referer, destination, mode, method, headers);
