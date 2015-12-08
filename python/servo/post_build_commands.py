@@ -194,10 +194,7 @@ class PostBuildCommands(CommandBase):
                      help='Package the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Package the dev build')
-    @CommandArgument(
-        'params', nargs='...',
-        help="Command-line arguments to be passed through to Servo")
-    def package(self, params, release=False, dev=False, debug=False, debugger=None):
+    def package(self, release=False, dev=False, debug=False, debugger=None):
         env = self.build_env()
         binary_path = self.get_binary_path(release, dev, android=True)
 
