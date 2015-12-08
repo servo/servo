@@ -145,12 +145,16 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
-        match target {
+    fn tex_parameter(&self, target: u32, name: u32, value: TexParameterValue) {
+        let texture = match target {
             constants::TEXTURE_2D => self.bound_texture_2d.get(),
             constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
-
-            _ => unreachable!(),
+            _ => return self.webgl_error(InvalidEnum),
+        };
+        if let Some(texture) = texture {
+            handle_potential_webgl_error!(self, texture.tex_parameter(target, name, value));
+        } else {
+            return self.webgl_error(InvalidOperation);
         }
     }
 
@@ -158,16 +162,19 @@ impl WebGLRenderingContext {
         self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn float32_array_to_slice(data: JSObject, usage: u32) -> [f32] {
-        let data_vec = unsafe {
+    #[allow(unsafe_code)]
+    fn float32_array_to_slice(&self, data: *mut JSObject) -> Option<Vec<f32>> {
+        unsafe {
             let mut length = 0;
             let mut ptr = ptr::null_mut();
             let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
             if buffer_data.is_null() {
-                return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
+                self.webgl_error(InvalidValue); // https://github.com/servo/servo/issues/5014
+                return None;
             }
-            slice::from_raw_parts(ptr, length as usize).to_vec()
-        };
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
+            Some(slice::from_raw_parts(data_f32, length as usize).to_vec())
+        }
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -209,7 +216,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn GetBufferParameter(&self, cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+    fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetBufferParameter(target, parameter, sender)))
@@ -439,10 +446,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
-        let data_vec = float32_array_to_slice(data);
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
-            .unwrap()
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
+                .unwrap()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -937,14 +945,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return,
         };
 
-        let data_vec = float32_array_to_slice(data);
-        if data_vec.len() < 4 {
-            return self.webgl_error(InvalidOperation);
-        }
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
 
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
-            .unwrap()
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -962,11 +971,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        let data_vec = float32_array_to_slice(data);
-        if data_vec.len() < 4 {
-            return self.webgl_error(InvalidOperation);
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
         }
-        self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -977,11 +987,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        let data_vec = float32_array_to_slice(data);
-        if data_vec.len() < 2 {
-            return self.webgl_error(InvalidOperation);
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 2 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], data_vec[1], 0f32, 1f32)
         }
-        self.vertex_attrib(indx, data_vec[0], data_vec[1], 0f32, 1f32)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -992,11 +1003,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        let data_vec = float32_array_to_slice(data);
-        if data_vec.len() < 3 {
-            return self.webgl_error(InvalidOperation);
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 3 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], 1f32)
         }
-        self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], 1f32)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1007,11 +1019,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        let data_vec = float32_array_to_slice(data);
-        if data_vec.len() < 4 {
-            return self.webgl_error(InvalidOperation);
+        if let Some(data_vec) = self.float32_array_to_slice(data) {
+            if data_vec.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], data_vec[3])
         }
-        self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], data_vec[3])
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1112,36 +1125,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexParameterf(&self, target: u32, name: u32, value: f32) {
-        match target {
-            constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => {
-                if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.tex_parameter(target, name, TexParameterValue::Float(value));
-                    handle_potential_webgl_error!(self, result);
-                } else {
-                    return self.webgl_error(InvalidOperation);
-                }
-            },
-
-            _ => self.webgl_error(InvalidEnum),
-        }
+        self.tex_parameter(target, name, TexParameterValue::Float(value))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexParameteri(&self, target: u32, name: u32, value: i32) {
-        match target {
-            constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => {
-                if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.tex_parameter(target, name, TexParameterValue::Int(value));
-                    handle_potential_webgl_error!(self, result);
-                } else {
-                    return self.webgl_error(InvalidOperation);
-                }
-            },
-
-            _ => self.webgl_error(InvalidEnum),
-        }
+        self.tex_parameter(target, name, TexParameterValue::Int(value))
     }
 }
 
