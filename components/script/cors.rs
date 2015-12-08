@@ -74,8 +74,8 @@ impl CORSRequest {
         match &*destination.scheme {
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), about URLs can be fetched
             // the same as a basic request.
-	    // TODO: (security-sensitive) restrict the available pages to about:blank and
-	    // about:unicorn (See https://fetch.spec.whatwg.org/#concept-basic-fetch).
+            // TODO: (security-sensitive) restrict the available pages to about:blank and
+            // about:unicorn (See https://fetch.spec.whatwg.org/#concept-basic-fetch).
             "about" => Ok(None),
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), data URLs can be fetched
             // the same as a basic request if the request's same-origin data-URL flag is set.
