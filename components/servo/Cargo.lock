@@ -477,29 +477,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "energymon"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-rust.git?rev=eba1d8a#eba1d8a7256b710230ea2c1b26525b88bfcb529d"
+source = "git+https://github.com/energymon/energymon-rust.git?rev=eba1d8a#637e537934cdfc2142011a910490a408ea135af2"
 dependencies = [
  "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "energymon-default-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "energymon-default-sys"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-sys.git#82756eee725db3ccb658f14857947a0260743d4d"
+source = "git+https://github.com/energymon/energymon-sys.git#92eaa056a7b7098ff8b0516da184bc94253de132"
 dependencies = [
  "energymon-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "energymon-sys"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-sys.git#82756eee725db3ccb658f14857947a0260743d4d"
+source = "git+https://github.com/energymon/energymon-sys.git#92eaa056a7b7098ff8b0516da184bc94253de132"
 dependencies = [
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
