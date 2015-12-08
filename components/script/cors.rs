@@ -74,12 +74,11 @@ impl CORSRequest {
         match &*destination.scheme {
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), about URLs can be fetched
             // the same as a basic request.
-            // TODO: (security-sensitive) restrict the available pages to about:blank and
-            // about:unicorn (See https://fetch.spec.whatwg.org/#concept-basic-fetch).
-            "about" => Ok(None),
+            "about" if destination.path == Some("blank") => Ok(None),
             // As per (https://fetch.spec.whatwg.org/#main-fetch 5.1.9), data URLs can be fetched
-            // the same as a basic request if the request's same-origin data-URL flag is set.
-            "data" if same_origin_data_url_flag => Ok(None),
+            // the same as a basic request if the request's method is GET and the
+	    // same-origin data-URL flag is set.
+            "data" if same_origin_data_url_flag && method == Method::Get => Ok(None),
             "http" | "https" => {
                 let mut req = CORSRequest::new(referer, destination, mode, method, headers);
                 req.preflight_flag = !is_simple_method(&req.method) ||
