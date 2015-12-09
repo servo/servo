@@ -47,6 +47,7 @@
 <p id='n50'><span>text content</span></p>
 <p id='n51'><span>text content</span></p>
 <p id='n52'><span>NO </span><span>CHANGED</span></p>
+<p id='n53'><span>text content</span></p>
 
 <p id='n60'><span>text content</span></p>
 
@@ -284,6 +285,16 @@
                     addedNodes: [n52.lastChild]}],
                   function() { n52.replaceChild(n52.lastChild, n52.firstChild); },
                   "childList Node.replaceChild: internal replacement mutation");
+
+  var n53 = document.getElementById('n53');
+  runMutationTest(n53,
+                  {"childList":true},
+                  [{type: "childList",
+                    removedNodes: [n53.firstChild]},
+                   {type: "childList",
+                    addedNodes: [n53.firstChild]}],
+                  function() { n53.replaceChild(n53.firstChild, n53.firstChild); },
+                  "childList Node.replaceChild: self internal replacement mutation");
 
   var n60 = document.getElementById('n60');
   runMutationTest(n60,
