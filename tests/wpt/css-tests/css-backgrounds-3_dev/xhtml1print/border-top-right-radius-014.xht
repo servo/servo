@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"> 
+<html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <title>CSS Test: Borders. Border-top-right-radius using two length values: 50px -25px</title>
   <style type="text/css">
@@ -21,22 +21,22 @@
         <meta name="assert" content="To verify if one length value is negative for border-top-right-radius, then the element is not rounded." />
         <style type="text/css">
         /* <![CDATA[ */
-        	div 
+        	div
           {
-        		border:2px solid #a1a1a1;        		
+        		border:2px solid #a1a1a1;
         		background:#dddddd;
         		width:200px;
         		height: 100px;
         	}
         	#test
         	{
-        		border-top-right-radius: 50px -25px; 
+        		border-top-right-radius: 50px -25px;
         	}
         /* ]]> */
         </style>
-<!--        
+<!--
         <script type="text/javascript" src="js/css3_test_helper.js"></script>
--->        
+-->
     </head>
     <body>
     	<p>
@@ -47,27 +47,27 @@
 					<li>PASS if the two boxes below are the same.</li>
 					<li>FAIL if the output is not as expected.</li>
 				</ul>
-		  
+
         <!-- PLACE TEST CONTENT FROM HERE -->
     	<div id="test"></div>
 		<p><br /></p>
     	<div id="reference"></div>
-<!--    	
+<!--
     	<script type="text/javascript">
-         /* <![CDATA[ */       	
+         /* <![CDATA[ */
         	var expectedBorderRadius = "0px";
-        	
+
         	var testResult = check_CSS_property("border-top-right-radius", expectedBorderRadius);
-        	
+
         	/* if (testResult.pass)
-        	  // This portion of the code has been removed to ensure that the test case is not automated 
+        	  // This portion of the code has been removed to ensure that the test case is not automated
         	else {
-        		// This portion of the code has been removed to ensure that the test case is not automated 
+        		// This portion of the code has been removed to ensure that the test case is not automated
           } */
-          
+
           if (top.FrameEnabled)	top.fnLog(testResult);
          /* ]]> */
         </script>
--->        
+-->
     </body>
 </html>

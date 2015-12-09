@@ -1,6 +1,6 @@
-// 
+//
 // Simple Helper Functions For Testing CSS
-// 
+//
 
 (function(root) {
 'use strict';
@@ -17,7 +17,7 @@ root.setStyle = function(selector, styles) {
         target.type = "text/css";
         document.getElementsByTagName('head')[0].appendChild(target);
     }
-    
+
     var data = [];
     // single selector/styles
     if (typeof selector === 'string' && styles !== undefined) {
@@ -44,7 +44,7 @@ function serializeStyles(styles) {
             data.push(prefixedProperty + ":" + styles[property] + ";");
         }
     }
-    
+
     return data.join('\n');
 }
 

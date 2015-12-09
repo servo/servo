@@ -21,7 +21,7 @@
                 width: 60px;
                 height: 25px;
                 background: blue;
-            }    
+            }
             #content {
                 width: 400px;
                 line-height: 12px;
@@ -38,14 +38,15 @@
             <span id="lineLeft2">sed</span>
             <span id="linesBelow">Vegan<br />cliche<br />retro</span>
         </div>
-        
+
         <div id="log"></div>
-        
-        <script type="text/javascript">       
+
+        <script type="text/javascript">
             test(function() {assert_equals(checkLinePos("lineLeft1",36,"top"), true)}, "Verify top of the 'lineLeft1' span is positioned correctly");
             test(function() {assert_equals(checkLinePos("lineLeft2",48,"top"), true)}, "Verify top of the 'lineLeft2' span is positioned correctly");
             test(function() {assert_equals(checkLinePos("lineLeft2",36,"right"), true)}, "Verify right of the 'lineLeft2' span is positioned correctly");
             test(function() {assert_equals(checkLinePos("linesBelow",65,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
         </script>
     
+
 </body></html>

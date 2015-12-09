@@ -41,8 +41,8 @@
     test(function() {
         assert_regexp_match(declaration.cssText, /margin-left: 5px;\s*/);
         assert_equals(declaration.getPropertyValue("margin-left"), "5px");
-    }, "read", { 
-        assert: "initial property values are correct" 
+    }, "read", {
+        assert: "initial property values are correct"
     });
 
     test(function() {
@@ -53,14 +53,14 @@
         assert_equals(declaration.item(1), "padding-left");
         assert_equals(declaration.getPropertyValue("margin-left"), "10px");
         assert_equals(declaration.getPropertyValue("padding-left"), "10px");
-        
+
         var computedStyle = window.getComputedStyle(document.getElementById("test"));
         assert_equals(computedStyle.getPropertyValue("margin-left"), "10px");
         assert_equals(computedStyle.getPropertyValue("padding-left"), "10px");
-    }, "csstext_write", { 
+    }, "csstext_write", {
         assert: [ "setting cssText adds new properties",
                 "setting cssText removes existing properties",
-                "properties set through cssText are reflected in the computed style"] 
+                "properties set through cssText are reflected in the computed style"]
     });
 
     test(function() {
@@ -68,19 +68,19 @@
             declaration.removeProperty(declaration.item(0));
         declaration.setProperty("margin-left", "15px");
         declaration.setProperty("padding-left", "15px");
-        
+
         assert_equals(declaration.length, 2);
         assert_equals(declaration.item(0), "margin-left");
         assert_equals(declaration.item(1), "padding-left");
         assert_equals(declaration.getPropertyValue("margin-left"), "15px");
         assert_equals(declaration.getPropertyValue("padding-left"), "15px");
-        
+
         var computedStyle = window.getComputedStyle(document.getElementById("test"));
         assert_equals(computedStyle.getPropertyValue("margin-left"), "15px");
         assert_equals(computedStyle.getPropertyValue("padding-left"), "15px");
-    }, "property_write", { 
-        assert: [ "setProperty adds new properties", 
-                "properties set through setProperty are reflected in the computed style"] 
+    }, "property_write", {
+        assert: [ "setProperty adds new properties",
+                "properties set through setProperty are reflected in the computed style"]
     });
 
     test(function() {
@@ -96,4 +96,5 @@
     });
  </script>
  
+
 </body></html>

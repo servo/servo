@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Abstract Box Layout (522 tests)</h2>
+  <h2>Abstract Box Layout (538 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,7 +37,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout">7.1 Principles of Layout in Vertical Writing Modes</a></th></tr>
-      <!-- 358 tests -->
+      <!-- 360 tests -->
       <tr id="abs-pos-non-replaced-icb-vlr-003-7.1" class="primary">
         <td><strong>
             <a href="abs-pos-non-replaced-icb-vlr-003.xht">abs-pos-non-replaced-icb-vlr-003</a></strong></td>
@@ -3745,6 +3745,28 @@
           </ul>
         </td>
       </tr>
+      <tr id="table-column-order-slr-007-7.1" class="ahem">
+        <td>
+            <a href="table-column-order-slr-007.xht">table-column-order-slr-007</a></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and sideways-lr
+          <ul class="assert">
+            <li>This test checks that a table with 'writing-mode' set to 'sideways-lr' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-srl-006-7.1" class="ahem">
+        <td>
+            <a href="table-column-order-srl-006.xht">table-column-order-srl-006</a></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and sideways-rl
+          <ul class="assert">
+            <li>This test checks that a table with 'writing-mode' set to 'sideways-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-align-vlr-003-7.1" class="primary ahem image">
         <td><strong>
             <a href="text-align-vlr-003.xht">text-align-vlr-003</a></strong></td>
@@ -4869,7 +4891,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.5">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings">7.5 Line-Relative Mappings</a></th></tr>
-      <!-- 44 tests -->
+      <!-- 58 tests -->
       <tr id="text-decoration-sideways-vlr-003-7.5" class="primary">
         <td><strong>
             <a href="text-decoration-sideways-vlr-003.xht">text-decoration-sideways-vlr-003</a></strong></td>
@@ -5153,6 +5175,160 @@
         <td>vertical-align - 'bottom' and vertical-lr writing-mode
           <ul class="assert">
             <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'vertical-lr', 'vertical-align' is 'bottom', the physical left (logical bottom) edge of an inline non-replaced box is aligned with the physical left (logical bottom) edge of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-029-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-029.xht">vertical-alignment-slr-029</a></strong></td>
+        <td><a href="reference/vertical-alignment-008-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'top' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr', 'vertical-align' is 'top', the physical left (logical top) edge of an inline non-replaced box is aligned with the physical left (logical top) edge of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-031-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-031.xht">vertical-alignment-slr-031</a></strong></td>
+        <td><a href="reference/vertical-alignment-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'text-top' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of an inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr', 'vertical-align' is 'text-top', the physical left (logical top) edge of an inline non-replaced box is aligned with the left side (logical top) of parent's content area.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-033-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-033.xht">vertical-alignment-slr-033</a></strong></td>
+        <td><a href="reference/vertical-alignment-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'text-bottom' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of an inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr', 'vertical-align' is 'text-bottom', the physical right (logical bottom) edge of an inline non-replaced box is aligned with the right side (logical bottom) of parent's content area.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-035-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-035.xht">vertical-alignment-slr-035</a></strong></td>
+        <td><a href="reference/vertical-alignment-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'bottom' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr', 'vertical-align' is 'bottom', the physical right (logical bottom) edge of an inline non-replaced box is aligned with the physical right (logical bottom) edge of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-037-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-037.xht">vertical-alignment-slr-037</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'super' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr' and 'vertical-align' is 'super', the baseline of the box is shifted to the left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-039-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-039.xht">vertical-alignment-slr-039</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'sub' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr' and 'vertical-align' is 'sub', the baseline of the box is shifted to the right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-slr-041-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-slr-041.xht">vertical-alignment-slr-041</a></strong></td>
+        <td><a href="reference/vertical-alignment-slr-049-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'middle' and sideways-lr writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr', 'text-orientation' is 'mixed', 'vertical-align' is 'middle', the vertical midpoint of the box is aligned with the alphabetic baseline of the parent box plus half the x-height of the parent.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-028-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-028.xht">vertical-alignment-srl-028</a></strong></td>
+        <td><a href="reference/vertical-alignment-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'top' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl', 'vertical-align' is 'top', the physical right (logical top) edge of an inline non-replaced box is aligned with the physical right (logical top) edge of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-030-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-030.xht">vertical-alignment-srl-030</a></strong></td>
+        <td><a href="reference/vertical-alignment-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'text-top' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of an inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl', 'vertical-align' is 'text-top', the physical right (logical top) edge of an inline non-replaced box is aligned with the right side (logical top) of parent's content area.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-032-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-032.xht">vertical-alignment-srl-032</a></strong></td>
+        <td><a href="reference/vertical-alignment-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'text-bottom' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of an inline non-replaced box with vertical align property. When 'writing-mode' is 'vertical-rl', 'vertical-align' is 'text-bottom', the physical left (logical bottom) edge of an inline non-replaced box is aligned with the left side (logical bottom) of parent's content area.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-034-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-034.xht">vertical-alignment-srl-034</a></strong></td>
+        <td><a href="reference/vertical-alignment-008-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'bottom' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl', 'vertical-align' is 'bottom', the physical left (logical bottom) edge of an inline non-replaced box is aligned with the physical left (logical bottom) edge of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-036-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-036.xht">vertical-alignment-srl-036</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'super' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl' and 'vertical-align' is 'super', the baseline of the box is shifted to the right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-038-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-038.xht">vertical-alignment-srl-038</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'sub' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl' and 'vertical-align' is 'sub', the baseline of the box is shifted to the left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-srl-040-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-srl-040.xht">vertical-alignment-srl-040</a></strong></td>
+        <td><a href="reference/vertical-alignment-vrl-026-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-align - 'middle' and sideways-rl writing-mode
+          <ul class="assert">
+            <li>This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl' and 'vertical-align' is 'middle', the vertical midpoint of the box is aligned with the alphabetic baseline of the parent box plus half the x-height of the parent.</li>
           </ul>
         </td>
       </tr>

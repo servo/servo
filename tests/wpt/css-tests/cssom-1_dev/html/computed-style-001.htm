@@ -39,10 +39,10 @@
     var outer = document.getElementById("outside");
     var inner = document.getElementById("inside");
     var innerStyle;
-    
+
     test(function() {
         innerStyle = window.getComputedStyle(inner);
-        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR", 
+        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
                         function() { innerStyle.cssText = "color: blue;"; },
                         "do not allow setting cssText on a readonly CSSStyleDeclaration");
         assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
@@ -51,10 +51,10 @@
         assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
                         function() { innerStyle.color = "blue"; },
                         "do not allow setting a property on a readonly CSSStyleDeclaration");
-    }, "read_only", { 
+    }, "read_only", {
         assert: "do not allow modifications to a computed CSSStyleDeclaration"
     });
-    
+
     test(function() {
         assert_equals(innerStyle.getPropertyValue("height"), "100px");
     }, "property_values", {
@@ -66,7 +66,7 @@
     }, "inherited_property_values", {
         assert: "Inherited properties are resolved"
     });
-    
+
     test(function() {
         assert_equals(innerStyle.getPropertyValue("width"), "100px");
     }, "relative_property_values", {

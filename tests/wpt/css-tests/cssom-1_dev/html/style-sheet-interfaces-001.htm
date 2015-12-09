@@ -65,7 +65,7 @@
         assert_own_property(styleSheet, "cssRules");
         assert_inherits(styleSheet, "insertRule");
         assert_inherits(styleSheet, "deleteRule");
-        
+
         assert_readonly(styleSheet, "ownerRule");
         assert_readonly(styleSheet, "cssRules");
     }, "CSSStyleSheet_properties",
@@ -113,7 +113,7 @@
         assert_equals(styleSheet.href, null);
         assert_regexp_match(linkSheet.href, /support\/b-green.css$/);
         assert_regexp_match(importSheet.href, /support\/a-green.css$/);
-        
+
         assert_equals(styleSheet.parentStyleSheet, null);
         assert_equals(linkSheet.parentStyleSheet, null);
         assert_equals(importSheet.parentStyleSheet, styleSheet);
@@ -124,4 +124,5 @@
     { assert: "StyleSheet initial property values are correct" });
   </script>
  
+
 </body></html>

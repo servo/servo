@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
- <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /> 
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <title>CSS Test: Empty inlines being displaced by floats</title>
   <style type="text/css">
     @page { font: italic 8pt sans-serif; color: gray;
@@ -21,14 +21,14 @@
     .block { display: block; background: green; }
     .inline { display: inline; margin-left: 40px; }
     span { float: left; width: 50%; background: white; }
-  </style> 
- </head> 
- <body> 
+  </style>
+ </head>
+ <body>
   <div class="block">
-   <div class="inline"> 
+   <div class="inline">
     <span>There should be a green bar to the right: ⇨</span>
     <span></span> <!-- this float should be on the second "line" -->
-   </div> 
+   </div>
   </div>
  </body>
 </html>

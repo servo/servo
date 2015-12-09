@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"> 
+<html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <title>CSS Test: Borders. border&ndash;radius using "inherit"</title>
   <style type="text/css">
@@ -23,15 +23,15 @@
         /* <![CDATA[ */
         	body
         	{
-        		border-radius: 20% 25px; 
+        		border-radius: 20% 25px;
         	}
-        	div 
+        	div
             {
         		border:2px solid #a1a1a1;
         		background:#dddddd;
         		width:200px;
         		height: 100px;
-        		border-radius: inherit; 
+        		border-radius: inherit;
         	}
 			#reference
 			{
@@ -42,9 +42,9 @@
 			}
         /* ]]> */
         </style>
-<!--        
+<!--
         <script type="text/javascript" src="js/css3_test_helper.js"></script>
--->       
+-->
     </head>
     <body>
         <p>
@@ -54,24 +54,24 @@
             <li>PASS if the two boxes below are the same and all 4 corners are rounded.</li>
             <li>FAIL if the output is not as expected.</li>
         </ul>
-    	  	
+
         <!-- PLACE TEST CONTENT FROM HERE -->
-    	<div id="test"></div>   	
+    	<div id="test"></div>
     	<p><br /></p>
 		<div id="reference"></div>
 <!--
-    	<script type="text/javascript">      
-        /* <![CDATA[ */         	
+    	<script type="text/javascript">
+        /* <![CDATA[ */
         	var borders = new Array("border-top-left-radius", "border-top-right-radius",
     		                          "border-bottom-right-radius", "border-bottom-left-radius");
         	var expectedValues = new Array("20%", "25px", "20%", "25px");
-        	var testResult = check_Multiple_CSS_property(borders, expectedValues);  
+        	var testResult = check_Multiple_CSS_property(borders, expectedValues);
         	/* if (testResult.pass)
-				  // This portion of the code has been removed to ensure that the test case is not automated 
+				  // This portion of the code has been removed to ensure that the test case is not automated
 				else {
-					// This portion of the code has been removed to ensure that the test case is not automated 
+					// This portion of the code has been removed to ensure that the test case is not automated
 			  } */
-          
+
           if (top.FrameEnabled)	top.fnLog(testResult);
           /* ]]> */
         </script>

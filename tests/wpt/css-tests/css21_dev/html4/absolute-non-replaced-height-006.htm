@@ -3,7 +3,7 @@
     <head>
         <title>CSS Test: Absolutely positioned, non-replaced elements, over-constrained</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
-        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-08-27 --> 
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-08-27 -->
         <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height">
 		<link rel="match" href="reference/absolute-non-replaced-height-006-ref.htm">
 
@@ -36,31 +36,31 @@
 		/*
 
 		50px : top
-	+ 
+	+
 		50px : margin-top
-	+ 
+	+
 		0 : border-top-width
-	+ 
+	+
 		0 : padding-top
-	+ 
+	+
 		150px : height
 	+
 		0 : padding-bottom
-	+ 
+	+
 		0 : border-bottom-width
-	+ 
+	+
 		50px : margin-bottom
 	+
 		50px : bottom
 	=============
-		350px  while the height of containing block is only 300px. 
-		
-		So, here we definitely have an overconstrained situation. In which 
+		350px  while the height of containing block is only 300px.
+
+		So, here we definitely have an overconstrained situation. In which
 		case the spec clearly states
-		"If the values are over-constrained, ignore the value for 'bottom' 
+		"If the values are over-constrained, ignore the value for 'bottom'
 		and solve for that value."
 		http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height
-		
+
 		So, here, the used value for bottom will be 0px so that the equation
 		gets balanced.
 
