@@ -57,6 +57,7 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use compositing::CompositorEventListener;
+use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_task::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
 use compositing::pipeline::UnprivilegedPipelineContent;
@@ -67,7 +68,6 @@ use compositing::{CompositorProxy, CompositorTask, Constellation};
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use net::image_cache_task::new_image_cache_task;
 use net::resource_task::new_resource_task;
 use net::storage_task::StorageTaskFactory;

@@ -9,6 +9,7 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptTask`,
 //! `LayoutTask`, and `PaintTask`.
 
+use CompositorMsg as FromCompositorMsg;
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
@@ -26,7 +27,6 @@ use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::AnimationState;
-use msg::constellation_msg::CompositorMsg as FromCompositorMsg;
 use msg::constellation_msg::PaintMsg as FromPaintMsg;
 use msg::constellation_msg::ScriptMsg as FromScriptMsg;
 use msg::constellation_msg::WebDriverCommandMsg;

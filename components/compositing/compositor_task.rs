@@ -4,6 +4,7 @@
 
 //! Communication with the compositor task.
 
+use CompositorMsg as ConstellationMsg;
 use compositor;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
@@ -13,7 +14,6 @@ use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
-use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, PipelineId};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState};
 use profile_traits::mem;
