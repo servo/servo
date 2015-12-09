@@ -6,10 +6,10 @@
         <link href="http://www.w3.org/TR/css3-transitions/#starting" rel="help" title="3. Starting of transitions">
         <link href="http://rodneyrehm.de/en/" rel="author" title="Rodney Rehm">
         <meta content="dom " name="flags">
-        
+
         <script src="/resources/testharness.js" type="text/javascript"></script>
         <script src="/resources/testharnessreport.js" type="text/javascript"></script>
-        
+
         <script src="./support/vendorPrefix.js" type="text/javascript"></script>
         <script src="./support/helper.js" type="text/javascript"></script>
         <script src="./support/runParallelAsyncHarness.js" type="text/javascript"></script>
@@ -25,7 +25,7 @@
                 height: 100000px;
             }
         </style>
-        
+
         <script id="metadata_cache">/*
         {
           "background-color color(rgba) / values": {},
@@ -603,7 +603,7 @@
             </div>
         </div>
         <div id="offscreen"></div>
-        
+
         <!--
             SEE ./support/README.md for an abstract explanation of the test procedure
             http://test.csswg.org/source/contributors/rodneyrehm/submitted/css3-transitions/README.md
@@ -611,14 +611,14 @@
 
         <script>
             // http://www.w3.org/TR/css3-transitions/#starting
-            // Implementations also must not start a transition when the computed value changes because 
+            // Implementations also must not start a transition when the computed value changes because
             // it is inherited (directly or indirectly) from another element that is transitioning the same property.
             // Note: Parent element doesn't transition, so above quote doesn't apply!
-            
+
             // this test takes its time, give it a minute to run
             var timeout = 60000;
             setup({timeout: timeout});
-            
+
             var tests = getPropertyTests();
             // for testing, limit to a couple of iterations
             // tests = tests.slice(10, 30);
@@ -626,7 +626,7 @@
             // tests = filterPropertyTests(tests, "background-color color(rgba)");
             // tests = filterPropertyTests(tests, ["background-color color(rgba)", ...]);
             // tests = filterPropertyTests(tests, /^background-color/);
-            
+
             // general transition-duration
             var duration = '0.5s';
 
@@ -645,7 +645,7 @@
                     // applied to #transition
                     var inherited = extend({}, data.from);
                     inherited[data.property] = 'inherit';
-                    
+
                     var styles = {
                         // as we're testing inheritance, #fixture is our new parent
                         '.fixture': data.parentStyle,
@@ -682,7 +682,7 @@
                             assert_not_equals(data.transition.from, data.transition.to, "initial and target values may not match");
                             // kick off the transition
                             generalParallelTest.startTransition(data);
-                            
+
                             // make sure we didn't get the target value immediately.
                             // If we did, there wouldn't be a transition!
                             var current = data.transition.computedStyle(data.property);
@@ -708,4 +708,5 @@
             });
         </script>
     
+
 </body></html>

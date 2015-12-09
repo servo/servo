@@ -130,7 +130,20 @@ font-style-applies-to-002.xht == reference/font-style-applies-to-001-ref.xht
 font-style-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-style-applies-to-017.xht == reference/font-style-applies-to-001-ref.xht
 font-variant-001.xht == reference/font-variant-001-ref.xht
+font-variant-applies-to-001.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-002.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-004.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-005.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-006.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-007.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-008.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-009.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-010.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-011.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-014.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-015.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
 font-variant-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
+font-variant-applies-to-017.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
 font-variant-caps.xht == reference/font-variant-caps-ref.xht
 font-variant-east-asian.xht == reference/font-variant-east-asian-ref.xht
 font-variant-ligatures.xht == reference/font-variant-ligatures-ref.xht
@@ -138,6 +151,16 @@ font-variant-numeric.xht == reference/font-variant-numeric-ref.xht
 font-variant-position.xht == reference/font-variant-position-ref.xht
 font-weight-applies-to-001.xht == reference/font-weight-bold-ref.xht
 font-weight-applies-to-002.xht == reference/font-weight-bold-ref.xht
+font-weight-applies-to-004.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-005.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-006.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-007.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-008.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-009.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-010.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-011.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-014.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-015.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
 font-weight-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-weight-applies-to-017.xht == reference/font-weight-bold-ref.xht
 font-weight-rule-001.xht == reference/font-weight-normal-ref.xht

@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-  <head> 
+  <head>
     <title>CSS Test: :first-letter in the middle of the line because of bidi reordering</title>
   <style type="text/css">
     @page { font: italic 8pt sans-serif; color: gray;
@@ -10,7 +10,7 @@
             @top-right { content: "Test bidi-first-letter-006"; }
             @bottom-right { content: counter(page); }
           }
-</style> 
+</style>
     <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
     <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter"/>
     <meta name="flags" content=""/>
@@ -18,9 +18,9 @@
     <style type="text/css"><![CDATA[
     .test {font-size: 2em;}
     .test:first-letter {color:blue;}
-    ]]></style> 
-  </head> 
-  <body> 
+    ]]></style>
+  </head>
+  <body>
 
     <p>If anything below is blue, it should be the א. No blue at all is also pass. Any other blue letter is fail.</p>
 

@@ -18,12 +18,12 @@
     <div id="test"></div>
     <script>
         var cs = getComputedStyle(document.getElementById("test"), null);
-        
+
         test(function() {
             assert_equals(cs.getPropertyValue("background-origin"),
                 "border-box", "background specified value for background-origin");
         }, "background_specified_box_two_origin");
-        
+
         test(function() {
             assert_equals(cs.getPropertyValue("background-clip"),
                 "padding-box", "background specified value for background-clip");

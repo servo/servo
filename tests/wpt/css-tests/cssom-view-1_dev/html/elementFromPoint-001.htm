@@ -4,16 +4,16 @@
     <link href="mailto:neils.christoffersen@gmail.com" rel="author" title="Neils Christoffersen">
 	<link href="http://www.w3.org/TR/cssom-view/#extensions-to-the-document-interface" rel="help">
     <meta content="dom" name="flags">
-    <meta content="elementFromPoint returns correct element" name="assert"> 
+    <meta content="elementFromPoint returns correct element" name="assert">
     <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>    
+    <script src="/resources/testharnessreport.js"></script>
 	<style>
 	#targetDiv {
 		position: absolute;
 		top: 10;
 		left: 10;
 		height: 100px;
-		width: 100px;		
+		width: 100px;
 	}
 	</style>
 </head>
@@ -24,10 +24,11 @@
 	</div>
 	<script>
 		var element = document.elementFromPoint(15, 15);
-		
+
 		test ( function() {
 			assert_equals(element.id, "targetDiv", "elementFromPoint didn't return the correct element");
-		});    
-    </script>    
+		});
+    </script>
+
 
 </body></html>

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
  <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
- 
+
   <title>CSS Test: line-height - line box height calculations</title>
   <style type="text/css">
     @page { font: italic 8pt sans-serif; color: gray;
@@ -26,20 +26,20 @@
   body
   {
   background: white url("support/ruler-v-100px-200px.png") no-repeat;
-  margin: 8px 8px 8px 55px; 
-  /* 
- 
-    16px : margin collapsing between body's margin-top and p's margin-top == max(8px, 16px) 
+  margin: 8px 8px 8px 55px;
+  /*
+
+    16px : margin collapsing between body's margin-top and p's margin-top == max(8px, 16px)
   +
     20px : first line of p
   +
     20px : second line box of p
   +
     20px : third line box of p
-  +  
+  +
     24px : margin-bottom of p
   =======
-   100px 
+   100px
 
   */
   }
@@ -88,7 +88,7 @@
     collectionOfCheckboxes.item(iterator).checked = false;
     };
   }
-  
+
   function updateLinebox(chkbox)
   {
   if(chkbox.checked)

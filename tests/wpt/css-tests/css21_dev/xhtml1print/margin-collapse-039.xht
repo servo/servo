@@ -29,7 +29,7 @@
   <meta name="assert" content="An element on which 'clear' is set to a value other than 'none' can have its own margin-top collapse with its first inflow block-level child as long as no line boxes, no clearance, no padding and no border separate them." />
 
   <style type="text/css"><![CDATA[
-  body {margin: 8px;}  
+  body {margin: 8px;}
 
   p {margin: 1em 0em;}
 
@@ -49,22 +49,22 @@
   float: left;
   font: 1em/1.25 serif;
   padding: 15px;
-  /* 
-    
-    15px : padding-top  
+  /*
+
+    15px : padding-top
   +
     20px : line box height
-  + 
+  +
     15px : padding-bottom
    =====
-    50px   
+    50px
 
   */
   width: 70px;
   }
 
   div#cleared-left {clear: left;}
-  
+
   div#child-of-cleared-left
   {
   background-color: green;
@@ -73,10 +73,10 @@
   margin-top: 50px;
   width: 100px;
   }
-  
-  /* 
-  The idea is to have div#cleared-left's margin-top collapse 
-  with div#child-of-cleared-left's margin-top. The margin collapsing 
+
+  /*
+  The idea is to have div#cleared-left's margin-top collapse
+  with div#child-of-cleared-left's margin-top. The margin collapsing
   should occur before calculating clearance.
   */
   ]]></style>
@@ -90,7 +90,7 @@
   <div id="overlapped-red"></div>
 
   <div id="floated-left">flt lef</div>
-  
+
   <div id="cleared-left">
     <div id="child-of-cleared-left">chld clr</div>
   </div>

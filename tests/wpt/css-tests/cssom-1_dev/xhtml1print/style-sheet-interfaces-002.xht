@@ -36,7 +36,7 @@
     assert: [   "Initial rule list is of size 1",
                 "Can add a rule at first index" ]
   });
-  
+
   test(function() {
     sheet.deleteRule(0);
     assert_equals(sheet.cssRules.length, 1);

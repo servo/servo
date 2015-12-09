@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html> 
+<html>
     <head>
         <title>CSS Test: Borders. Border-top-right-radius using "inherit"</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -14,21 +14,21 @@
         /*  */
         	body
         	{
-        		border-top-right-radius: 20% 25px; 
+        		border-top-right-radius: 20% 25px;
         	}
-        	div 
+        	div
           {
-        		border:2px solid #a1a1a1;        		
+        		border:2px solid #a1a1a1;
         		background:#dddddd;
         		width:200px;
         		height: 100px;
-        		border-top-right-radius: inherit; 
+        		border-top-right-radius: inherit;
         	}
          /*  */
         </style>
-<!--        
+<!--
         <script type="text/javascript" src="js/css3_test_helper.js"></script>
--->        
+-->
     </head>
     <body>
 		<p>
@@ -39,27 +39,27 @@
             <li>PASS if only top left corner is rounded.</li>
             <li>FAIL if the output is not as expected.</li>
         </ul>
-		  
+
          <!-- PLACE TEST CONTENT FROM HERE -->
-    	
+
     	<div id="test"></div>
     	<p><br></p>
 <!--
-    	<script type="text/javascript">      
-         /* <![CDATA[ */  	
+    	<script type="text/javascript">
+         /* <![CDATA[ */
         	var expectedBorderRadius = "20% 25px";
-        	
+
         	var testResult = check_CSS_property("border-top-right-radius", expectedBorderRadius);
-        	
+
         	/* if (testResult.pass)
-        	  // This portion of the code has been removed to ensure that the test case is not automated 
+        	  // This portion of the code has been removed to ensure that the test case is not automated
         	else {
-        		// This portion of the code has been removed to ensure that the test case is not automated 
+        		// This portion of the code has been removed to ensure that the test case is not automated
           } */
-          
+
           if (top.FrameEnabled)	top.fnLog(testResult);
         /* ]]> */
         </script>
--->        
+-->
     </body>
 </html>

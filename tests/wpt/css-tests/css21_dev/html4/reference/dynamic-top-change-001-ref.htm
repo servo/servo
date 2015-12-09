@@ -11,11 +11,11 @@
   p
   {
   line-height: 1.25;
-  margin: 1em 0;  
+  margin: 1em 0;
   }
 
   strong {line-height: 1;}
-  
+
   div
   {
   background-color: green;
@@ -24,17 +24,17 @@
   /*
   The red square appears 96px below the p margin box:
     2em : grandparent's top (dynamically set)
-  + 
+  +
     2em : parent's top (inherited)
   +
     2em : #red's top (inherited)
   =======
     96px
-  max(margin-bottom of p, margin-top of div) 
-  max(16px, margin-top of div) == 16px + 96px; 
+  max(margin-bottom of p, margin-top of div)
+  max(16px, margin-top of div) == 16px + 96px;
   therefore, margin-top of div == 16px + 96px
   */
-  width: 100px;  
+  width: 100px;
   }
   </style>
 
@@ -44,7 +44,7 @@
 
   <p>Test passes if there is <strong>no red</strong>.</p>
 
-  <div></div> 
+  <div></div>
 
  </body>
 </html>
