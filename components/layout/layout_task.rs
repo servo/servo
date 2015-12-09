@@ -54,7 +54,7 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayou
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
@@ -627,8 +627,7 @@ impl LayoutTask {
                 self.create_layout_task(info)
             }
             Msg::SetFinalUrl(final_url) => {
-                let mut url_ref_cell = self.url.borrow_mut();
-                *url_ref_cell = final_url;
+                *self.url.borrow_mut() = final_url;
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -918,7 +917,7 @@ impl LayoutTask {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        debug!("layout: received layout request for: {}", self.url.serialize());
+        debug!("layout: received layout request for: {}", self.url.borrow().serialize());
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1128,7 +1127,7 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  url_clone,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
@@ -1183,7 +1182,7 @@ impl LayoutTask {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         // No need to do a style recalc here.
@@ -1307,7 +1306,7 @@ impl LayoutTask {
     /// Returns profiling information which is passed to the time profiler.
     fn profiler_metadata(&self) -> Option<TimerMetadata> {
         Some(TimerMetadata {
-            url: self.url.serialize(),
+            url: self.url.borrow().serialize(),
             iframe: if self.is_iframe {
                 TimerMetadataFrameType::IFrame
             } else {
