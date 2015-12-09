@@ -10,12 +10,6 @@ path = "lib.rs"
 [dependencies.util]
 path = "../util"
 
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.style_traits]
-path = "../style_traits"
-
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 features = ["plugins"]
@@ -26,10 +20,6 @@ features = ["plugins"]
 
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
-
-[dependencies.offscreen_gl_context]
-git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
-features = ["texture_surface"]
 
 [dependencies.plugins]
 path = "../plugins"

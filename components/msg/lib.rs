@@ -9,7 +9,6 @@ extern crate app_units;
 extern crate azure;
 #[macro_use]
 extern crate bitflags;
-extern crate canvas_traits;
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
 extern crate euclid;
@@ -18,10 +17,8 @@ extern crate hyper;
 extern crate io_surface;
 extern crate ipc_channel;
 extern crate layers;
-extern crate offscreen_gl_context;
 extern crate rustc_serialize;
 extern crate serde;
-extern crate style_traits;
 extern crate url;
 extern crate util;
 

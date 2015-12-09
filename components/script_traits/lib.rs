@@ -8,20 +8,25 @@
 
 #![feature(custom_derive, plugin)]
 #![plugin(plugins, serde_macros)]
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 
 extern crate app_units;
+extern crate canvas_traits;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
+extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate serde;
+extern crate style_traits;
 extern crate time;
 extern crate url;
 extern crate util;
+
+mod script_msg;
 
 use app_units::Au;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -31,7 +36,6 @@ use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
 use msg::constellation_msg::{MouseButton, MouseEventType};
@@ -44,6 +48,8 @@ use profile_traits::mem;
 use std::any::Any;
 use util::ipc::OptionalOpaqueIpcSender;
 use util::mem::HeapSizeOf;
+
+pub use script_msg::ScriptMsg;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -249,7 +255,7 @@ pub struct InitialScriptState {
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    pub constellation_chan: ConstellationChan<ScriptMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// Information that script sends out when it panics.
