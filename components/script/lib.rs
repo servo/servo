@@ -19,6 +19,7 @@
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
+#![feature(peekable_is_empty)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
