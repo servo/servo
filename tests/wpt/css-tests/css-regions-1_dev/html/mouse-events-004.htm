@@ -82,13 +82,13 @@
 	</div>
 	<div id="result"></div>
 	<script type="text/javascript">
-	var events = [ { 
+	var events = [ {
 				name: "mouseover",
 				hit: false
-			}, { 
+			}, {
 				name: "click",
 				hit: false
-			}, { 
+			}, {
 				name: "mouseout",
 				hit: false
 			} ],
@@ -106,7 +106,7 @@
 			testRunner.notifyDone();
 		}
 	}
-	
+
 	function handlerForEvent(eventName, index) {
 		return function(evt) {
 			if ((evt.target === evt.currentTarget) || (events[index].hit))
@@ -147,12 +147,13 @@
 			eventSender.mouseUp();
 		}
 	}
-	
+
 	events.forEach(function(item, index) {
 		target.addEventListener(item.name, handlerForEvent(item, index));
 	});
 
 	runScript();
 	</script>
+
 
 </body></html>

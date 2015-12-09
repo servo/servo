@@ -50,7 +50,7 @@
   margin-left: 100px;
 
   /*
-  
+
   "
   In the fixed table layout algorithm, the width of each column is determined as follows:
 
@@ -68,52 +68,52 @@
  +
    80px : width of cell in the middle column
  +
-   30px : half of border-right since such border must be split with cell in 3rd column 
- 
+   30px : half of border-right since such border must be split with cell in 3rd column
+
   =======
   140px : width of the middle column
 
-  
-  So, 
-      400px : table set width 
-    - 
+
+  So,
+      400px : table set width
+    -
       140px : width of the middle column
-      ====== 
-      260px  
-      
-      So, each of the 2 remaining columns must be 
-      half of such extra horizontal table space, 
+      ======
+      260px
+
+      So, each of the 2 remaining columns must be
+      half of such extra horizontal table space,
       which is 260px divided by 2 == 130px.
-  
+
   1st column width calculations
   -----------------------------
-  
+
     (solve) : width of cell in 1st column
   +
     30px    : border-right of cell in 1st column
    ======
    130px    : width of 1st column
-  
+
   So, the width of the cell in first column must be exactly 100px.
 
-  
+
   3rd column width calculations
   -----------------------------
-  
+
     30px    : border-left of cell in 3rd column
   +
     (solve) : width of cell in 3rd column
    =======
    130px    : width of 3rd column
-   
+
    So, the width of the cell in 3rd column must be exactly 100px.
-  
-  
+
+
   Finally, the precise horizontal point where the border-right of cell
   in first column begins to be drawn, painted is:
-  
+
    100px    : width of cell in 1st column
-  
+
   Therefore the margin-left: 100px value of the div#reference.
 
   */

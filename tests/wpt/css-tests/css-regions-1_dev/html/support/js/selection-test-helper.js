@@ -1,5 +1,5 @@
 var testTimeout = 10000;
-  
+
 setup({timeout: testTimeout});
 
 // This block is excecuted if running in WebKit's harness
@@ -14,7 +14,7 @@ var DEFAULT_MOUSE_VALUE = true;
 /*
  * Main test function that defines the testharness test() functions
  */
-function runSelectionTest(inSelectionTests, useMouse) 
+function runSelectionTest(inSelectionTests, useMouse)
 {
 	var selectionTests = inSelectionTests || [];
 	var useMouse = (useMouse === undefined) ? DEFAULT_MOUSE_VALUE : useMouse;
@@ -22,18 +22,18 @@ function runSelectionTest(inSelectionTests, useMouse)
 	if( isRegionsEnabled() )
 	{
 		var selectionTest = async_test("Text was selected", {timeout: testTimeout});
-		selectionTest.step( function() 
+		selectionTest.step( function()
 		{
 			var endSelect = document.getElementById("end-select");
 			endSelect.onmouseup = selectionTest.step_func( function(evt)
 			{
 				/* Verify something got selected */
-				var selectedText = getCurrentSelectedText(); 
+				var selectedText = getCurrentSelectedText();
 				assert_not_equals(selectedText, "");
 
 				/* Verify the selected text is everything between the start and end points */
 				test( function() { verifySelectedText() }, "Selected text is correct" );
-				
+
 				/* Check for specific things in the selection */
 				for(var i=0; i < selectionTests.length; i++)
 				{
@@ -52,7 +52,7 @@ function runSelectionTest(inSelectionTests, useMouse)
 						test( function(){ assert_equals(isStringInSelection(strToCheck), strExp) }, msg);
 					}
 				}
-				
+
 				// Update the message stating the tests are complete
 				var msg = document.getElementById("msg");
 
@@ -76,7 +76,7 @@ function runSelectionTest(inSelectionTests, useMouse)
 /*
  * Set the document selection in an automated way
  * If running in Webkit's testRunner, uses internal WebKit APIs to simulate mouse movement.
- * Has option to bypass the mouse movement and set the selection range object directly 
+ * Has option to bypass the mouse movement and set the selection range object directly
  * If not running in Webkit, the function exits, leaving the selection to be done manually.
  */
 function setSelection(start, end, useMouse)
@@ -85,7 +85,7 @@ function setSelection(start, end, useMouse)
 	{
 		// This block is executed if running in the Webkit harness
 		var startNode = document.getElementById(start);
-		var endNode = document.getElementById(end); 
+		var endNode = document.getElementById(end);
 
 		var xStartPosition = startNode.getBoundingClientRect().left
 		var yStartPosition = startNode.getBoundingClientRect().top
@@ -112,8 +112,8 @@ function setSelection(start, end, useMouse)
 
 			eventSender.mouseMoveTo(xEndPosition, yEndPosition);
 			eventSender.mouseUp();
-			
-			// Need to manually dispatch this event - it doesn't get 
+
+			// Need to manually dispatch this event - it doesn't get
 			// sent otherwise when running in testRunner
 			var mouseUpEvt = document.createEvent('MouseEvents');
 			mouseUpEvt.initMouseEvent(	'mouseup',true,true,window,1,0,0,
@@ -140,7 +140,7 @@ function isRegionsEnabled()
 {
 	var style = document.getElementById("region").style
 
-	if (typeof style["flow-from"] == 'string') 
+	if (typeof style["flow-from"] == 'string')
 		return true;
 	else
 		return false;
@@ -162,7 +162,7 @@ function isTopToBottom(startPoint, endPoint)
 
 	if( start.compareBoundaryPoints(Range.START_TO_END, end) < 0)
 		return true;
-	else 
+	else
 		return false;
 }
 
@@ -191,21 +191,21 @@ function getTextRange(start, end)
 
 /*
  * Returns just the text that is currently selected in the document, with newlines removed
- */    
+ */
 function getCurrentSelectedText()
 {
 	var currentSelection = "";
 
 	var sel = window.getSelection();
-	if (sel.rangeCount) 
+	if (sel.rangeCount)
 	{
-		for (var i = 0, len = sel.rangeCount; i < len; ++i) 
+		for (var i = 0, len = sel.rangeCount; i < len; ++i)
 		{
 			currRange = sel.getRangeAt(i);
 			currentSelection += sel.getRangeAt(i).toString();
 		}
 	}
-        
+
 	return currentSelection.replace(/\n/g,"");
 }
 
@@ -239,21 +239,21 @@ function isStringInSelection(strToCheck)
 function isNodeInSelection(toCheck)
 {
 	var sel = window.getSelection().getRangeAt(0);
-	
+
 	// If it's a node in the document, check the start & end points
 	var nodeToCheck = document.getElementById(toCheck);
 	var range = document.createRange()
 	range.setStart(nodeToCheck, 0);
 	range.setEnd(nodeToCheck, nodeToCheck.childNodes.length);
-	
+
 	var startToStart = sel.compareBoundaryPoints(Range.START_TO_START, range);
-	var startToEnd = sel.compareBoundaryPoints(Range.START_TO_END, range);	
+	var startToEnd = sel.compareBoundaryPoints(Range.START_TO_END, range);
 	var endToEnd = sel.compareBoundaryPoints(Range.END_TO_END, range);
 	var endToStart = sel.compareBoundaryPoints(Range.END_TO_START, range);
 
 	if(startToStart == startToEnd == endToEnd == endToStart)
 		return false;
-	else 
+	else
 		return true;
 }
 

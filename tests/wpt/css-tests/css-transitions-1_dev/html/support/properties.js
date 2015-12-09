@@ -114,7 +114,7 @@ var values = {
             data: ['url(data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=)', 'url(data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==)'],
             // A hunch, as from the spec:
             // http://www.w3.org/TR/css3-transitions/#animatable-types
-            // gradient: interpolated via the positions and colors of each stop. They must have the same type (radial or linear) and same number of stops in order to be animated. Note: [CSS3-IMAGES] may extend this definition. 
+            // gradient: interpolated via the positions and colors of each stop. They must have the same type (radial or linear) and same number of stops in order to be animated. Note: [CSS3-IMAGES] may extend this definition.
             gradient: [prefix + 'linear-gradient(top, hsl(0, 80%, 70%), #bada55)', prefix + 'linear-gradient(top, #bada55, hsl(0, 80%, 70%))']
         };
     },
@@ -171,39 +171,39 @@ var values = {
 var properties = {
     'background-color': ['color'],
     'background-position': ['length', 'percentage'],
-    
+
     'border-top-width': ['length'],
     'border-right-width': ['length'],
     'border-bottom-width': ['length'],
     'border-left-width': ['length'],
-    
+
     'border-top-color': ['color'],
     'border-right-color': ['color'],
     'border-bottom-color': ['color'],
     'border-left-color': ['color'],
-    
+
     'padding-bottom': ['length'],
     'padding-left': ['length'],
     'padding-right': ['length'],
     'padding-top': ['length'],
-    
+
     'margin-bottom': ['length'],
     'margin-left': ['length'],
     'margin-right': ['length'],
     'margin-top': ['length'],
-    
+
     'height': ['length', 'percentage'],
     'width': ['length', 'percentage'],
     'min-height': ['length', 'percentage'],
     'min-width': ['length', 'percentage'],
     'max-height': ['length', 'percentage'],
     'max-width': ['length', 'percentage'],
-    
+
     'top': ['length', 'percentage'],
     'right': ['length', 'percentage'],
     'bottom': ['length', 'percentage'],
     'left': ['length', 'percentage'],
-    
+
     'color': ['color'],
     'font-size': ['length', 'percentage'],
     'font-weight': ['font-weight'],
@@ -214,16 +214,16 @@ var properties = {
     'word-spacing': ['length', 'percentage'],
     'text-indent': ['length', 'percentage'],
     'text-shadow': ['shadow'],
-    
+
     'outline-color': ['color'],
     // outline-offset <integer> used to be an error in the spec
     'outline-offset': ['length'],
     'outline-width': ['length'],
-    
+
     'clip': ['rectangle'],
     // Note: doesn't seem implemented anywhere
     'crop': ['rectangle'],
-    
+
     'vertical-align': ['length', 'percentage'],
     'opacity': ['number[0,1]'],
     'visibility': ['visibility'],
@@ -279,7 +279,7 @@ var unspecified_properties = {
     'background-image': ['image'],
     'background-size': ['background-size'],
     // https://drafts.csswg.org/css3-background/#the-box-shadow
-    // Animatable:   yes, except between inner and outer shadows (Transition to/from an absent shadow is a transition to/from ‘0 0 transparent’ or ‘0 0 transparent inset’, as appropriate.) 
+    // Animatable:   yes, except between inner and outer shadows (Transition to/from an absent shadow is a transition to/from ‘0 0 transparent’ or ‘0 0 transparent inset’, as appropriate.)
     'box-shadow': ['box-shadow'],
     'font-size-adjust': ['number'],
     'font-stretch': ['font-stretch'],
@@ -342,7 +342,7 @@ var parent_styles = {
     // unspecified properties
     'position': {'position': 'relative', 'width': '100px', 'height': '100px'},
     // inheritance tests
-    'top': {'width': '100px', 'height': '100px', 'position': 'relative'},    
+    'top': {'width': '100px', 'height': '100px', 'position': 'relative'},
     'right': {'width': '100px', 'height': '100px', 'position': 'relative'},
     'bottom': {'width': '100px', 'height': '100px', 'position': 'relative'},
     'left': {'width': '100px', 'height': '100px', 'position': 'relative'}
@@ -375,7 +375,7 @@ function assemble(props) {
             });
         });
     }
-    
+
     return tests;
 }
 
@@ -393,23 +393,23 @@ root.getUnspecifiedPropertyTests = function() {
 
 root.getFontSizeRelativePropertyTests = function() {
     var accepted = {};
-    
+
     for (var key in properties) {
         if (!Object.prototype.hasOwnProperty.call(properties, key) || key === "font-size") {
             continue;
         }
-        
+
         if (properties[key].indexOf('length') > -1) {
             accepted[key] = ['length-em'];
         }
     }
-    
+
     return assemble(accepted);
 };
 
 root.getAutoPropertyTests = function() {
     var accepted = {};
-    
+
     for (var i = 0, key; key = properties_auto[i]; i++) {
         accepted[key] = ['auto'];
     }
@@ -420,17 +420,17 @@ root.getAutoPropertyTests = function() {
 root.filterPropertyTests = function(tests, names) {
     var allowed = {};
     var accepted = [];
-    
+
     if (typeof names === "string") {
         names = [names];
     }
-    
+
     if (!(names instanceof RegExp)) {
         names.forEach(function(name) {
             allowed[name] = true;
         });
     }
-    
+
     tests.forEach(function(test) {
         if (names instanceof RegExp) {
             if (!test.name.match(names)) {
@@ -439,10 +439,10 @@ root.filterPropertyTests = function(tests, names) {
         } else if (!allowed[test.name]) {
             return;
         }
-        
+
         accepted.push(test);
     });
-    
+
     return accepted;
 };
 

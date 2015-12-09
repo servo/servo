@@ -30,11 +30,11 @@
   }
 
   div#child
-  {  
+  {
   border-right: green solid 200px;
   margin-right: -400px;
   }
-  
+
   /*
   Calculation of used width for div#child:
 
@@ -43,15 +43,15 @@
   + padding-left            :    0px
   + width                   :    auto
   + padding-right           :    0px
-  + border-right-width      :  200px 
-  + margin-right            : -400px 
+  + border-right-width      :  200px
+  + margin-right            : -400px
   ====================================
   width of containing block :    0px
-  
+
   Therefore 'width: auto' must be resolved as 'width: 200px'.
-  Therefore div#child's green border-right should overlap perfectly 
+  Therefore div#child's green border-right should overlap perfectly
   div#containing-block's red border-right.
-  */  
+  */
   ]]></style>
 
  </head>

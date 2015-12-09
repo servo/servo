@@ -6,18 +6,18 @@
     <link href="reference/css-transforms-transformlist-ref.xht" rel="match" />
     <meta content="This test verifies that the CSS transform ends up in the list of SVG transforms" name="assert" />
     <style type="text/css">
-   
+
        #rect {
 		   fill: green;
 		   transform: translate(10px, 10px);
 	   }
-	   
+
 	   #result {
 		   width:100px;
 		   height:100px;
 		   background-color: red;
 	   }
-   
+
     </style>
     <script>
 	window.addEventListener('load', function(){
@@ -25,13 +25,13 @@
 		var result = document.getElementById("result");
 		if(r.transform.baseVal.length&gt;0)
 			result.style.backgroundColor = "rgb(0, 255, 0)";
-			
+
 		document.getElementById("svgelement").style.display="none";
 	}, false);
 	</script>
 </head>
 <body>
-    <p>The test passes if there is a green square and no red.</p>    
+    <p>The test passes if there is a green square and no red.</p>
     <svg id="svgelement" xmlns="http://www.w3.org/2000/svg">
 		<rect width="100" id="rect" height="100"></rect>
 	</svg>

@@ -29,11 +29,11 @@
         }
 
         var zeroAttributes = [
-            ["div", "offsetTop"], 
+            ["div", "offsetTop"],
             ["div", "offsetLeft"],
             ["div", "offsetWidth"],
             ["div", "offsetHeight"],
-            ["img", "offsetTop"], 
+            ["img", "offsetTop"],
             ["img", "offsetLeft"],
             ["img", "offsetWidth"],
             ["img", "offsetHeight"],
@@ -56,7 +56,7 @@
             element.style.setProperty("flow-into", "named-flow");
             var clientRectList = element.getClientRects();
             document.body.removeChild(element);
-            return clientRectList;            
+            return clientRectList;
         }
 
         function testGetBoundingClientRect() {
@@ -68,26 +68,26 @@
             var domRect = element.getBoundingClientRect();
             document.body.removeChild(element);
             return [
-                domRect.x, 
-                domRect.y, 
-                domRect.width, 
+                domRect.x,
+                domRect.y,
+                domRect.width,
                 domRect.height
-                ];            
+                ];
         }
 
         zeroAttributes.forEach(function(name) {
-            test (function() { assert_equals(testZeroAttribute(name[0], name[1]), 0)}, 
-                "test " + name[1] + " for " + name[0]) 
+            test (function() { assert_equals(testZeroAttribute(name[0], name[1]), 0)},
+                "test " + name[1] + " for " + name[0])
             }
         );
 
-        test (function() { assert_equals(testOffsetParent(), null)}, 
+        test (function() { assert_equals(testOffsetParent(), null)},
                 "test that offsetParent is null");
 
-        test (function() { assert_equals(testGetClientRects().length, 0)}, 
+        test (function() { assert_equals(testGetClientRects().length, 0)},
                 "test that getClientRects() returns an empty list");
 
-        test (function() { assert_equals(testGetBoundingClientRect(), [0,0,0,0])}, 
+        test (function() { assert_equals(testGetBoundingClientRect(), [0,0,0,0])},
                 "test that getBoundingClientRect() returns a zeroed-out DOMRect");
 
         </script>

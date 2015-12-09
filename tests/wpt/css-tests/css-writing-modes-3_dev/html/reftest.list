@@ -579,6 +579,8 @@ inline-block-alignment-orthogonal-vlr-003.htm == reference/inline-block-alignmen
 inline-block-alignment-orthogonal-vlr-005.htm == reference/inline-block-alignment-orthogonal-vrl-002-ref.htm
 inline-block-alignment-orthogonal-vrl-002.htm == reference/inline-block-alignment-orthogonal-vrl-002-ref.htm
 inline-block-alignment-orthogonal-vrl-004.htm == reference/inline-block-alignment-orthogonal-vrl-002-ref.htm
+inline-block-alignment-slr-009.htm == reference/inline-block-alignment-slr-009-ref.htm
+inline-block-alignment-srl-008.htm == reference/inline-block-alignment-006-ref.htm
 inline-replaced-vlr-003.htm == reference/inline-replaced-vrl-002-ref.htm
 inline-replaced-vlr-005.htm == reference/inline-replaced-vrl-004-ref.htm
 inline-replaced-vrl-002.htm == reference/inline-replaced-vrl-002-ref.htm
@@ -689,6 +691,8 @@ table-column-order-002.htm == reference/block-flow-direction-001-ref.htm
 table-column-order-003.htm == reference/block-flow-direction-001-ref.htm
 table-column-order-004.htm == reference/block-flow-direction-001-ref.htm
 table-column-order-005.htm == reference/block-flow-direction-001-ref.htm
+table-column-order-slr-007.htm == reference/block-flow-direction-001-ref.htm
+table-column-order-srl-006.htm == reference/block-flow-direction-001-ref.htm
 table-progression-slr-001.htm == reference/table-progression-slr-001-ref.htm
 table-progression-slr-002.htm == reference/table-progression-002-ref.htm
 table-progression-srl-001.htm == reference/table-progression-001-ref.htm
@@ -720,11 +724,7 @@ text-align-vrl-014.htm == reference/direction-vrl-002-ref.htm
 text-align-vrl-016.htm == reference/direction-vrl-002-ref.htm
 text-align-vrl-018.htm == reference/direction-vrl-002-ref.htm
 text-baseline-slr-009.htm == reference/text-baseline-slr-009-ref.htm
-text-baseline-slr-011.htm == reference/text-baseline-slr-009-ref.htm
-text-baseline-slr-013.htm == reference/text-baseline-slr-009-ref.htm
 text-baseline-srl-008.htm == reference/text-baseline-vrl-006-ref.htm
-text-baseline-srl-010.htm == reference/text-baseline-vrl-006-ref.htm
-text-baseline-srl-012.htm == reference/text-baseline-vrl-006-ref.htm
 text-baseline-vlr-003.htm == reference/text-baseline-vrl-002-ref.htm
 text-baseline-vlr-005.htm == reference/text-baseline-vrl-002-ref.htm
 text-baseline-vlr-007.htm == reference/text-baseline-vrl-006-ref.htm
@@ -791,6 +791,16 @@ vertical-alignment-006.htm == reference/vertical-alignment-006-ref.htm
 vertical-alignment-007.htm == reference/vertical-alignment-006-ref.htm
 vertical-alignment-008.htm == reference/vertical-alignment-008-ref.htm
 vertical-alignment-009.htm == reference/vertical-alignment-008-ref.htm
+vertical-alignment-slr-029.htm == reference/vertical-alignment-008-ref.htm
+vertical-alignment-slr-031.htm == reference/vertical-alignment-006-ref.htm
+vertical-alignment-slr-033.htm == reference/vertical-alignment-004-ref.htm
+vertical-alignment-slr-035.htm == reference/vertical-alignment-002-ref.htm
+vertical-alignment-slr-041.htm == reference/vertical-alignment-slr-049-ref.htm
+vertical-alignment-srl-028.htm == reference/vertical-alignment-002-ref.htm
+vertical-alignment-srl-030.htm == reference/vertical-alignment-004-ref.htm
+vertical-alignment-srl-032.htm == reference/vertical-alignment-006-ref.htm
+vertical-alignment-srl-034.htm == reference/vertical-alignment-008-ref.htm
+vertical-alignment-srl-040.htm == reference/vertical-alignment-vrl-026-ref.htm
 vertical-alignment-vlr-023.htm == reference/vertical-alignment-vrl-022-ref.htm
 vertical-alignment-vlr-025.htm == reference/vertical-alignment-vrl-022-ref.htm
 vertical-alignment-vlr-027.htm == reference/vertical-alignment-vrl-026-ref.htm

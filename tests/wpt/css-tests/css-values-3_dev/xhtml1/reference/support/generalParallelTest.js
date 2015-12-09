@@ -14,7 +14,7 @@ var suite = root.generalParallelTest = {
         data.fixture = document.getElementById('fixture').cloneNode(true);
         data.fixture.id = 'test-' + (index++);
         (document.getElementById('offscreen') || document.body).appendChild(data.fixture);
-        
+
         // data container for #fixture > .container > .transition
         data.transition = {
             node: data.fixture.querySelector('.transition'),
@@ -34,7 +34,7 @@ var suite = root.generalParallelTest = {
                 return computedStyle(data.container.node, property);
             }
         };
-        
+
         // data container for #fixture > .container > .transition[:before | :after]
         if (data.pseudo) {
             data.pseudo = {
@@ -92,13 +92,13 @@ var suite = root.generalParallelTest = {
         if (!options.styles) {
             options.styles = {};
         }
-        
+
         Object.keys(styles).forEach(function(key) {
             var selector = '#' + data.fixture.id
                 // fixture must become #fixture.fixture rather than a child selector
                 + (key.substring(0, 8) === '.fixture' ? '' : ' ')
                 + key;
-            
+
             options.styles[selector] = styles[key];
         });
     },
@@ -109,7 +109,7 @@ var suite = root.generalParallelTest = {
         suite._getStyleFor(data, 'from');
         // apply target state
         suite._addClass(data, 'to', true);
-        // grab current styles: "target state"        
+        // grab current styles: "target state"
         suite._getStyleFor(data, 'to');
         // remove target state
         suite._removeClass(data, 'to', true);
@@ -157,7 +157,7 @@ var suite = root.generalParallelTest = {
         var raf = window.requestAnimationFrame || function(callback){
             setTimeout(callback, 20);
         };
-        
+
         // flag denoting if the runLoop should continue (true) or exit (false)
         options._collectValues = true;
 
@@ -166,19 +166,19 @@ var suite = root.generalParallelTest = {
                 // test's are done, stop annoying the CPU
                 return;
             }
-            
+
             // collect current style for test's elements
             options.tests.forEach(function(data) {
                 if (!data.property) {
                     return;
                 }
-                
+
                 ['transition', 'container', 'pseudo'].forEach(function(elem) {
                     var pseudo = null;
                     if (!data[elem] || (elem === 'pseudo' && !data.pseudo)) {
                         return;
                     }
-                
+
                     var current = data[elem].computedStyle(data.property);
                     var values = data[elem].values;
                     var length = values.length;
@@ -187,11 +187,11 @@ var suite = root.generalParallelTest = {
                     }
                 });
             });
-            
+
             // rinse and repeat
             raf(runLoop);
         }
-        
+
         runLoop();
     },
     // stop requestAnimationFrame runLoop collecting computed values
@@ -222,7 +222,7 @@ var suite = root.generalParallelTest = {
                 assert_not_equals(values[1], data[elem].from, "may not be initial value while transitioning on ." + elem);
                 assert_not_equals(values[1], data[elem].to, "may not be target value while transitioning on ." + elem);
             }
-            
+
             // TODO: first value must be initial, last value must be target
         };
     }

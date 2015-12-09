@@ -3,9 +3,9 @@
 # http://test.csswg.org/suites/css-pseudo-4_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
 testname	revision	result	comment
-html/first-letter-001.htm	c24641384eb63b2c0aa812b52a527edfbb9055ec	?
-xhtml1/first-letter-001.xht	c24641384eb63b2c0aa812b52a527edfbb9055ec	?
-html/first-letter-002.htm	ac116d66971ad3a1f90b755f2e1f787dc438ed3d	?
-xhtml1/first-letter-002.xht	ac116d66971ad3a1f90b755f2e1f787dc438ed3d	?
-html/first-letter-003.htm	b88afcc7f30607a8d64f92e9cec01ba9f549fffe	?
-xhtml1/first-letter-003.xht	b88afcc7f30607a8d64f92e9cec01ba9f549fffe	?
+html/first-letter-001.htm	92027e2acf10553759ba0e7085d451659440203f	?
+xhtml1/first-letter-001.xht	92027e2acf10553759ba0e7085d451659440203f	?
+html/first-letter-002.htm	0a45907454b41d8d5bce9a59ffd52030ef516fa7	?
+xhtml1/first-letter-002.xht	0a45907454b41d8d5bce9a59ffd52030ef516fa7	?
+html/first-letter-003.htm	aee283d99e17be11f97901cfeb6c114c40977a56	?
+xhtml1/first-letter-003.xht	aee283d99e17be11f97901cfeb6c114c40977a56	?
