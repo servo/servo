@@ -12,22 +12,22 @@
     <meta name="assert" content="Border sides should be unaffected by directionality"/>
     <style type="text/css"><![CDATA[
       div {
-      border: 5px solid gray; 
+      border: 5px solid gray;
       border-color: orange purple teal yellow;
       text-align: left;
       width: 10em;
       margin-bottom: 1em;
       }
-      
+
       .rtol {
       direction: rtl;
       unicode-bidi: normal;
       }
-      
+
       p {text-align: left;}
     ]]></style>
   </head>
-  
+
   <body>
     <p>Test passes if the 2 lines are <strong>identical</strong>.</p>
     <div>

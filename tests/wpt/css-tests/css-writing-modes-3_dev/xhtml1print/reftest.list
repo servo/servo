@@ -579,6 +579,8 @@ inline-block-alignment-orthogonal-vlr-003.xht == reference/inline-block-alignmen
 inline-block-alignment-orthogonal-vlr-005.xht == reference/inline-block-alignment-orthogonal-vrl-002-ref.xht
 inline-block-alignment-orthogonal-vrl-002.xht == reference/inline-block-alignment-orthogonal-vrl-002-ref.xht
 inline-block-alignment-orthogonal-vrl-004.xht == reference/inline-block-alignment-orthogonal-vrl-002-ref.xht
+inline-block-alignment-slr-009.xht == reference/inline-block-alignment-slr-009-ref.xht
+inline-block-alignment-srl-008.xht == reference/inline-block-alignment-006-ref.xht
 inline-replaced-vlr-003.xht == reference/inline-replaced-vrl-002-ref.xht
 inline-replaced-vlr-005.xht == reference/inline-replaced-vrl-004-ref.xht
 inline-replaced-vrl-002.xht == reference/inline-replaced-vrl-002-ref.xht
@@ -689,6 +691,8 @@ table-column-order-002.xht == reference/block-flow-direction-001-ref.xht
 table-column-order-003.xht == reference/block-flow-direction-001-ref.xht
 table-column-order-004.xht == reference/block-flow-direction-001-ref.xht
 table-column-order-005.xht == reference/block-flow-direction-001-ref.xht
+table-column-order-slr-007.xht == reference/block-flow-direction-001-ref.xht
+table-column-order-srl-006.xht == reference/block-flow-direction-001-ref.xht
 table-progression-slr-001.xht == reference/table-progression-slr-001-ref.xht
 table-progression-slr-002.xht == reference/table-progression-002-ref.xht
 table-progression-srl-001.xht == reference/table-progression-001-ref.xht
@@ -720,11 +724,7 @@ text-align-vrl-014.xht == reference/direction-vrl-002-ref.xht
 text-align-vrl-016.xht == reference/direction-vrl-002-ref.xht
 text-align-vrl-018.xht == reference/direction-vrl-002-ref.xht
 text-baseline-slr-009.xht == reference/text-baseline-slr-009-ref.xht
-text-baseline-slr-011.xht == reference/text-baseline-slr-009-ref.xht
-text-baseline-slr-013.xht == reference/text-baseline-slr-009-ref.xht
 text-baseline-srl-008.xht == reference/text-baseline-vrl-006-ref.xht
-text-baseline-srl-010.xht == reference/text-baseline-vrl-006-ref.xht
-text-baseline-srl-012.xht == reference/text-baseline-vrl-006-ref.xht
 text-baseline-vlr-003.xht == reference/text-baseline-vrl-002-ref.xht
 text-baseline-vlr-005.xht == reference/text-baseline-vrl-002-ref.xht
 text-baseline-vlr-007.xht == reference/text-baseline-vrl-006-ref.xht
@@ -791,6 +791,16 @@ vertical-alignment-006.xht == reference/vertical-alignment-006-ref.xht
 vertical-alignment-007.xht == reference/vertical-alignment-006-ref.xht
 vertical-alignment-008.xht == reference/vertical-alignment-008-ref.xht
 vertical-alignment-009.xht == reference/vertical-alignment-008-ref.xht
+vertical-alignment-slr-029.xht == reference/vertical-alignment-008-ref.xht
+vertical-alignment-slr-031.xht == reference/vertical-alignment-006-ref.xht
+vertical-alignment-slr-033.xht == reference/vertical-alignment-004-ref.xht
+vertical-alignment-slr-035.xht == reference/vertical-alignment-002-ref.xht
+vertical-alignment-slr-041.xht == reference/vertical-alignment-slr-049-ref.xht
+vertical-alignment-srl-028.xht == reference/vertical-alignment-002-ref.xht
+vertical-alignment-srl-030.xht == reference/vertical-alignment-004-ref.xht
+vertical-alignment-srl-032.xht == reference/vertical-alignment-006-ref.xht
+vertical-alignment-srl-034.xht == reference/vertical-alignment-008-ref.xht
+vertical-alignment-srl-040.xht == reference/vertical-alignment-vrl-026-ref.xht
 vertical-alignment-vlr-023.xht == reference/vertical-alignment-vrl-022-ref.xht
 vertical-alignment-vlr-025.xht == reference/vertical-alignment-vrl-022-ref.xht
 vertical-alignment-vlr-027.xht == reference/vertical-alignment-vrl-026-ref.xht

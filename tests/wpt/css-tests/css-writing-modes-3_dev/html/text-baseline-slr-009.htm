@@ -3,17 +3,17 @@
   <head>
     <title>CSS Writing Modes Test: text baseline alignment - alphabetical alignment with vertical layout</title>
     <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com">
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2015-12-05 -->
     <link rel="help" title="4.2. Text Baseline" href="http://www.w3.org/TR/css-writing-modes-3/#text-baselines">
     <link rel="match" href="reference/text-baseline-slr-009-ref.htm">
-    <meta name="assert" content="This test checks the generation of text baseline. When 'writing-mode' is 'sideways-lr' and when 'text-orientation' is 'mixed', then the alphabetical baseline is used as the dominant baseline.">
+    <meta name="assert" content="When 'writing-mode' is 'sideways-lr', then the alphabetic baseline is used as the dominant baseline.">
     <meta name="flags" content="ahem">
     <style type="text/css">
-    div#slr-mixed
+    div#slr
     {
       color: fuchsia;
       font: 60px/1.5 Ahem; /* computes to 60px/90px */
       writing-mode: sideways-lr;
-      text-orientation: mixed;
     }
 
     span#fuchsia120
@@ -33,7 +33,7 @@
 
   <p>Test passes if the <strong>right edge</strong> of an irregular polygon is straight and unbroken.</p>
 
-  <div id="slr-mixed"><span id="fuchsia30">É</span><span id="fuchsia120">É</span>É</div>
+  <div id="slr"><span id="fuchsia30">É</span><span id="fuchsia120">É</span>É</div>
 
   </body>
 </html>

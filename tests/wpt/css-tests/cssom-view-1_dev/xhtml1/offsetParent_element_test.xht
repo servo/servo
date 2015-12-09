@@ -47,7 +47,7 @@
     <caption>
         <div id="caption-element-child"></div>
     </caption>
-    
+
     <tbody>
     <tr id="table-element-tr">
         <td id="table-element-td">
@@ -112,7 +112,7 @@ test(function() {
 { assert: "The offsetParent attribute algorithm rule checking passed!" }
 );
 
-test(function() {    
+test(function() {
     assert_equals(body_element_child.offsetParent,body);
     assert_equals(window.getComputedStyle(relative_element).position,'relative');
     assert_equals(relative_element_child.offsetParent,relative_element);
@@ -123,9 +123,9 @@ test(function() {
     assert_equals(window.getComputedStyle(table_element_tr).position,'static');
     assert_equals(table_element_tr.offsetParent,table_element);
     assert_equals(window.getComputedStyle(caption_element_child).position,'static');
-    assert_equals(caption_element_child.offsetParent,table_element);   
+    assert_equals(caption_element_child.offsetParent,table_element);
     assert_equals(window.getComputedStyle(td_element).position,'static');
-    assert_equals(td_element.offsetParent,table_element);    
+    assert_equals(td_element.offsetParent,table_element);
 }, "Valid the algorithm rule of offsetParent check step 2",
 { assert: "The offsetParent attribute algorithm rule checking passed!" }
 );

@@ -25,23 +25,23 @@
   width: 533px;
 
   /*
-  "With this (fast) algorithm, the horizontal layout of 
-  the table does not depend on the contents of the cells; 
-  it only depends on the table's width, the width of 
+  "With this (fast) algorithm, the horizontal layout of
+  the table does not depend on the contents of the cells;
+  it only depends on the table's width, the width of
   the columns, and borders or cell spacing."
   http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout
-  
+
   So,
 
     533px : total table width
-  -  
+  -
      58px : total horizontal border width
   -
      75px : total horizontal border-spacing width
   ========
-    400px : total to split among the 4 columns      
+    400px : total to split among the 4 columns
   */
-  
+
   }
 
   col#first
@@ -57,7 +57,7 @@
   width: 22%;
   /* 400px multiplied by 22% = 88px */
   }
-  
+
   col#third
   {
   background-color: orange;
@@ -68,7 +68,7 @@
   100% - (13% + 22% + 31%) == 34% for last column
   */
   }
-  
+
   td {padding: 1px 10px;}
 
   td#first-cell {color: fuchsia;}
@@ -76,16 +76,16 @@
   td#second-cell {color: olive;}
 
   td#third-cell {color: orange;}
-  
+
   div {padding: 1px 0px;}
-  
+
   div#reference1st
   {
   background-color: fuchsia;
   color: fuchsia;
   left: 44px; /* 29px border-left of table + 15px border-spacing == 44px */
   position: relative;
-  width: 52px;  
+  width: 52px;
   }
 
   div#reference2nd
@@ -93,20 +93,20 @@
   background-color: olive;
   bottom: 1.1em;
   color: olive;
-  left: 111px; 
-  /* 
-    29px : border-left of table 
-  + 
-    15px : 1st border-spacing 
-  + 
+  left: 111px;
+  /*
+    29px : border-left of table
+  +
+    15px : 1st border-spacing
+  +
     52px : width of first column
-  + 
-    15px : 2nd border-spacing 
-  ======= 
-   111px 
+  +
+    15px : 2nd border-spacing
+  =======
+   111px
   */
   position: relative;
-  width: 88px;  
+  width: 88px;
   }
 
   div#reference3rd
@@ -114,24 +114,24 @@
   background-color: orange;
   bottom: 2.2em;
   color: orange;
-  left: 214px; 
-  /* 
-    29px : border-left of table 
-  + 
-    15px : 1st border-spacing 
-  + 
+  left: 214px;
+  /*
+    29px : border-left of table
+  +
+    15px : 1st border-spacing
+  +
     52px : width of first column
-  + 
-    15px : 2nd border-spacing 
-  + 
+  +
+    15px : 2nd border-spacing
+  +
     88px : width of second column
-  + 
-    15px : 3rd border-spacing 
-  ======= 
-   214px 
+  +
+    15px : 3rd border-spacing
+  =======
+   214px
   */
   position: relative;
-  width: 124px;  
+  width: 124px;
   }
   </style>
 
@@ -158,7 +158,7 @@
   </table>
 
   <div id="reference1st">ref</div>
-  
+
   <div id="reference2nd">ref</div>
 
   <div id="reference3rd">ref</div>

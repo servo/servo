@@ -5,14 +5,14 @@ function resizeViewportTo(viewportSelector, width, height) {
 
 	iframe.width = width;
 	iframe.height = height;
-	
+
 	iframe.contentWindow.document.body.offsetTop;
 }
 
 function injectStylesInIFrame(styleSelector, frameSelector) {
 	var style = document.querySelector(styleSelector),
 		frame = document.querySelector(frameSelector);
-	
+
 	frame.contentWindow.addNewStyles(style.textContent);
 }
 

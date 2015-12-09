@@ -95,8 +95,8 @@
             ];
             var i = 0, len = wrap.length, item;
             for ( ; i &amp;lt; len; i++ ) {
-                item = wrap[ i ];  
-                test( function () {                    
+                item = wrap[ i ];
+                test( function () {
                     assert_equals( document.elementFromPoint( item.x, item.y).id == 'dom-1', true );
                 }, 'test some point of the element: ' + item.r);
             }

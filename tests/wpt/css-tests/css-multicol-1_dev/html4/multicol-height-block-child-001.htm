@@ -54,22 +54,22 @@
   </div>
 
   <!--
-  Both column boxes of div#inner start in the 1st 
-  column box of div#outer multi-column element. 
+  Both column boxes of div#inner start in the 1st
+  column box of div#outer multi-column element.
   The first 3 lines boxes of 1st
   column box of div#inner will be rendered inside the
   1st column box of div#outer but not its 2nd.
   Because 1st column box of div#outer is
   6em wide while the div#inner multi-column element
-  is 14em wide, this makes the first 3 line boxes 
-  (with the 'z' trios) of 2nd column box of div#inner 
+  is 14em wide, this makes the first 3 line boxes
+  (with the 'z' trios) of 2nd column box of div#inner
   clipped.
-  
-  Then, at this point, the div#inner multi-column 
-  element should be fragmented in order to continue to 
+
+  Then, at this point, the div#inner multi-column
+  element should be fragmented in order to continue to
   render the 5 empty line boxes it has into the
   2nd column box of div#outer. Since those 5 line
-  boxes are empty, we only see the extension it 
+  boxes are empty, we only see the extension it
   creates horizontally, which is
   14em - 6em == 8em horizontally and
   5 lines boxes == 5em tall

@@ -29,19 +29,19 @@
   p
   {
   font: 1em/1.25 serif;
-  margin: 1em 0em;  
+  margin: 1em 0em;
   }
-  
+
   div#grand-parent {width: 600px;}
 
   div#parent
   {
   background-color: green;
   border: white solid 6px;
-  /* 
-  Such border prevents margin collapsing between 
-  #parent's vertical margins and #child's vertical margins 
-  */  
+  /*
+  Such border prevents margin collapsing between
+  #parent's vertical margins and #child's vertical margins
+  */
   font-size: 28px;
   margin: 2em 3em 1em 4em; /* 56px 84px 28px 112px */
   }
@@ -49,10 +49,10 @@
   div#child
   {
   font-size: 40px;
-  margin: inherit; 
-  /* 
-  What is inherited is a computed length value: so 
-  it is 56px 84px 28px 112px and not 80px 120px 40px 160px 
+  margin: inherit;
+  /*
+  What is inherited is a computed length value: so
+  it is 56px 84px 28px 112px and not 80px 120px 40px 160px
   */
   }
 
@@ -65,22 +65,22 @@
 
   /*
        8px (body's margin-left)
-   + 112px (#parent's margin-left) 
-   +   6px (#parent's border-left) 
-   + 112px (#child's margin-left) 
+   + 112px (#parent's margin-left)
+   +   6px (#parent's border-left)
+   + 112px (#child's margin-left)
   ==================
      238px
   */
 
-  /* 
-      16px (max(8px, 16px): body's margin-top collapses with p's margin-top) 
-   +  20px (first line) 
-   +  20px (second line) 
-   +  56px (max(16px, 56px): p's margin-bottom collapses with #parent's margin-top) 
-   +   6px (#parent's border-top) 
-   +  56px (#child's margin-top) 
+  /*
+      16px (max(8px, 16px): body's margin-top collapses with p's margin-top)
+   +  20px (first line)
+   +  20px (second line)
+   +  56px (max(16px, 56px): p's margin-bottom collapses with #parent's margin-top)
+   +   6px (#parent's border-top)
+   +  56px (#child's margin-top)
   ==================
-     174px 
+     174px
   */
   ]]></style>
 

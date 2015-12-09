@@ -30,7 +30,7 @@ def filesystem_path(base_path, request, url_base="/"):
     if base_path is None:
         base_path = request.doc_root
 
-    path = request.url_parts.path
+    path = urllib.unquote(request.url_parts.path)
 
     if path.startswith(url_base):
         path = path[len(url_base):]
@@ -70,7 +70,7 @@ class DirectoryHandler(object):
 <h1>Directory listing for %(path)s</h1>
 <ul>
 %(items)s
-</li>
+</ul>
 """ % {"path": cgi.escape(request.url_parts.path),
        "items": "\n".join(self.list_items(request, path))}
 
@@ -86,7 +86,7 @@ class DirectoryHandler(object):
             base_path += "/"
         if base_path != "/":
             link = urlparse.urljoin(base_path, "..")
-            yield ("""<li class="dir"><a href="%(link)s">%(name)s</a>""" %
+            yield ("""<li class="dir"><a href="%(link)s">%(name)s</a></li>""" %
                    {"link": link, "name": ".."})
         for item in sorted(os.listdir(path)):
             link = cgi.escape(urllib.quote(item))
@@ -95,7 +95,7 @@ class DirectoryHandler(object):
                 class_ = "dir"
             else:
                 class_ = "file"
-            yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a>""" %
+            yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a></li>""" %
                    {"link": link, "name": cgi.escape(item), "class": class_})
 
 

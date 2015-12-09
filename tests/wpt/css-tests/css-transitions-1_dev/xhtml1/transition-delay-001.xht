@@ -7,13 +7,13 @@
         <link href="http://www.w3.org/TR/css3-values/#time" rel="help" title="CSS Values and Units Module Level 3 - 6.2. Times: the ‘&lt;time>’ type and ‘s’, ‘ms’ units" />
         <link href="http://rodneyrehm.de/en/" rel="author" title="Rodney Rehm" />
         <meta content="dom" name="flags" />
-        
+
         <script src="/resources/testharness.js" type="text/javascript"></script>
         <script src="/resources/testharnessreport.js" type="text/javascript"></script>
-        
+
         <script src="./support/vendorPrefix.js" type="text/javascript"></script>
         <script src="./support/helper.js" type="text/javascript"></script>
-        
+
         <script id="metadata_cache">/*
         {
           "parse '10.2s'": {},
@@ -50,7 +50,7 @@
 
         <script>
             var transition = document.getElementById('transition');
-            // &lt;time&gt; [, &lt;time&gt;]* 
+            // &lt;time&gt; [, &lt;time&gt;]*
             var values = {
                 // seconds
                 '10.2s': '10.2s',
@@ -79,13 +79,13 @@
                 // invalid
                 'foobar': '0s'
             };
-            
+
             // these tests are supposed to fail and
             // possibly make the engine issue a parser warning
             var invalidTests = {
                 'foobar': true
             };
-            
+
             for (var key in values) {
                 if (Object.prototype.hasOwnProperty.call(values, key)) {
                     test(function() {
@@ -103,4 +103,5 @@
             }
         </script>
     
+
 </body></html>

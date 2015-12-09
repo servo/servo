@@ -13,20 +13,20 @@
     <div id="log"></div>
     <script>
         initial = {
-            m11: 1, m21: 0, m31: 0, m41: 0, 
-            m12: 0, m22: 1, m32: 0, m42: 0, 
-            m13: 0, m23: 0, m33: 1, m43: 0, 
+            m11: 1, m21: 0, m31: 0, m41: 0,
+            m12: 0, m22: 1, m32: 0, m42: 0,
+            m13: 0, m23: 0, m33: 1, m43: 0,
             m14: 0, m24: 0, m34: 0, m44: 1,
             is2D: true,
-            isIdentity: true 
+            isIdentity: true
         };
         scaleTranslate2D = {
-            m11: 2, m21: 0, m31: 0, m41: 10, 
-            m12: 0, m22: 2, m32: 0, m42: 10, 
-            m13: 0, m23: 0, m33: 1, m43: 0, 
+            m11: 2, m21: 0, m31: 0, m41: 10,
+            m12: 0, m22: 2, m32: 0, m42: 10,
+            m13: 0, m23: 0, m33: 1, m43: 0,
             m14: 0, m24: 0, m34: 0, m44: 1,
             is2D: true,
-            isIdentity: true 
+            isIdentity: true
         };
 
         test(function() {
@@ -103,12 +103,12 @@
                 0.0, 0.0, 1.0, 0.0,
                 10.0, 10.0, 0.0, 1.0];
             checkDOMMatrix(new DOMMatrix(sequence), {
-                m11: 2, m21: 1, m31: 0, m41: 10, 
-                m12: 1, m22: 2, m32: 0, m42: 10, 
-                m13: 0, m23: 0, m33: 1, m43: 0, 
+                m11: 2, m21: 1, m31: 0, m41: 10,
+                m12: 1, m22: 2, m32: 0, m42: 10,
+                m13: 0, m23: 0, m33: 1, m43: 0,
                 m14: 0, m24: 0, m34: 0, m44: 1,
                 is2D: false,
-                isIdentity: false 
+                isIdentity: false
             });
         },'testConstructor12');
         test(function() {
@@ -118,12 +118,12 @@
                 0.0, 0.0, 1.0, 0.0,
                 10.0, 10.0, 0.0, 1.0]);
             checkDOMMatrix(new DOMMatrix(matrix), {
-                m11: 2, m21: 1, m31: 0, m41: 10, 
-                m12: 1, m22: 2, m32: 0, m42: 10, 
-                m13: 0, m23: 0, m33: 1, m43: 0, 
+                m11: 2, m21: 1, m31: 0, m41: 10,
+                m12: 1, m22: 2, m32: 0, m42: 10,
+                m13: 0, m23: 0, m33: 1, m43: 0,
                 m14: 0, m24: 0, m34: 0, m44: 1,
                 is2D: false,
-                isIdentity: false 
+                isIdentity: false
             });
         },'testConstructor13');
         test(function() {

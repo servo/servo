@@ -6,13 +6,13 @@
         <link href="http://www.w3.org/TR/css3-transitions/#transition-timing-function-property" rel="help" title="2.3. The 'transition-timing-function' Property">
         <link href="http://rodneyrehm.de/en/" rel="author" title="Rodney Rehm">
         <meta content="dom" name="flags">
-        
+
         <script src="/resources/testharness.js" type="text/javascript"></script>
         <script src="/resources/testharnessreport.js" type="text/javascript"></script>
-        
+
         <script src="./support/vendorPrefix.js" type="text/javascript"></script>
         <script src="./support/helper.js" type="text/javascript"></script>
-        
+
         <script id="metadata_cache">/*
         {
           "parse 'ease'": {},
@@ -77,7 +77,7 @@
                 'cubic-bezier(-0.1, -0.2, -0.3, -0.4)': defaultValue,
                 'cubic-bezier(1.1, 1.2, 1.3, 1.4)': defaultValue
             };
-            
+
             // these tests are supposed to fail and
             // possibly make the engine issue a parser warning
             var invalidTests = {
@@ -90,7 +90,7 @@
                 'cubic-bezier(-0.1, -0.2, -0.3, -0.4)': true,
                 'cubic-bezier(1.1, 1.2, 1.3, 1.4)': true
             };
-            
+
             for (var key in values) {
                 if (Object.prototype.hasOwnProperty.call(values, key)) {
                     test(function() {
@@ -108,4 +108,5 @@
             }
         </script>
     
+
 </body></html>

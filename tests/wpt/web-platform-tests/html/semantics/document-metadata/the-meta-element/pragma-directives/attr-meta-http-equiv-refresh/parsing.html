@@ -90,8 +90,9 @@ tests_arr.forEach(function(test_obj) {
     var loadCount = 0;
     iframe.onload = t.step_func(function() {
       loadCount++;
+      var got = iframe.contentDocument.body.textContent.trim();
       if (test_obj.expected.length === 0) {
-        assert_equals(iframe.contentDocument.body.textContent, 'no redirect\n');
+        assert_equals(got, 'refresh.sub.html');
         if (loadCount === 1) {
           setTimeout(function() {
             t.done();
@@ -101,8 +102,7 @@ tests_arr.forEach(function(test_obj) {
         }
       } else {
         if (loadCount === 2) {
-          var path = iframe.contentWindow.location.pathname;
-          assert_equals(decodeURIComponent(path.substr(path.lastIndexOf('/') + 1)), test_obj.expected[1]);
+          assert_equals(got, test_obj.expected[1]);
           t.done();
         }
       }

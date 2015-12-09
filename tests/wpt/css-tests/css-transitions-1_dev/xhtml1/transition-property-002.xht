@@ -9,10 +9,10 @@
 
         <script src="/resources/testharness.js" type="text/javascript"></script>
         <script src="/resources/testharnessreport.js" type="text/javascript"></script>
-        
+
         <script src="./support/vendorPrefix.js" type="text/javascript"></script>
         <script src="./support/helper.js" type="text/javascript"></script>
-        
+
         <script id="metadata_cache">/*
         {
           "parse 'none, all'": {},
@@ -35,18 +35,18 @@
 
         <script>
             var transition = document.getElementById('transition');
-            
-            // syntax: none | [ all | &lt;IDENT&gt; ] [ ‘,’ [ all | &lt;IDENT&gt; ] ]* 
+
+            // syntax: none | [ all | &lt;IDENT&gt; ] [ ‘,’ [ all | &lt;IDENT&gt; ] ]*
             var values = {
-                'none, all' : 'none, all', 
-                'all, none' : 'all, none', 
-                'foobar' : 'foobar', 
-                'all, foobar' : 'all, foobar', 
-                'foobar, all' : 'foobar, all', 
-                'inherit' : 'padding', 
+                'none, all' : 'none, all',
+                'all, none' : 'all, none',
+                'foobar' : 'foobar',
+                'all, foobar' : 'all, foobar',
+                'foobar, all' : 'foobar, all',
+                'inherit' : 'padding',
                 'initial' : 'all'
             };
-            
+
             for (var key in values) {
                 test(function() {
                     setStyle({
@@ -59,4 +59,5 @@
             }
         </script>
     
+
 </body></html>

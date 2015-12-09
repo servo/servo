@@ -102,10 +102,6 @@
         "url": "/battery-status/battery-charging-manual.html"
       },
       {
-        "path": "battery-status/battery-created-manual.html",
-        "url": "/battery-status/battery-created-manual.html"
-      },
-      {
         "path": "battery-status/battery-discharging-manual.html",
         "url": "/battery-status/battery-discharging-manual.html"
       },
@@ -776,6 +772,10 @@
       {
         "path": "html/semantics/forms/the-input-element/file-manual.html",
         "url": "/html/semantics/forms/the-input-element/file-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/the-input-element/maxlength-manual.html",
+        "url": "/html/semantics/forms/the-input-element/maxlength-manual.html"
       },
       {
         "path": "html/semantics/forms/the-optgroup-element/optgroup-disabled-manual.html",
@@ -13092,6 +13092,10 @@
         "url": "/content-security-policy/media-src/media-src-7_3_2.html"
       },
       {
+        "path": "content-security-policy/media-src/media-src-redir-bug.sub.html",
+        "url": "/content-security-policy/media-src/media-src-redir-bug.sub.html"
+      },
+      {
         "path": "content-security-policy/meta/meta-img-src.html",
         "url": "/content-security-policy/meta/meta-img-src.html"
       },
@@ -13740,12 +13744,12 @@
         "url": "/dom/nodes/Document-createEvent.html"
       },
       {
-        "path": "dom/nodes/Document-createProcessingInstruction.html",
-        "url": "/dom/nodes/Document-createProcessingInstruction.html"
+        "path": "dom/nodes/Document-createProcessingInstruction-xhtml.xhtml",
+        "url": "/dom/nodes/Document-createProcessingInstruction-xhtml.xhtml"
       },
       {
-        "path": "dom/nodes/Document-createProcessingInstruction.xhtml",
-        "url": "/dom/nodes/Document-createProcessingInstruction.xhtml"
+        "path": "dom/nodes/Document-createProcessingInstruction.html",
+        "url": "/dom/nodes/Document-createProcessingInstruction.html"
       },
       {
         "path": "dom/nodes/Document-createTextNode.html",
@@ -13764,12 +13768,12 @@
         "url": "/dom/nodes/Document-getElementById.html"
       },
       {
-        "path": "dom/nodes/Document-getElementsByTagName.html",
-        "url": "/dom/nodes/Document-getElementsByTagName.html"
+        "path": "dom/nodes/Document-getElementsByTagName-xhtml.xhtml",
+        "url": "/dom/nodes/Document-getElementsByTagName-xhtml.xhtml"
       },
       {
-        "path": "dom/nodes/Document-getElementsByTagName.xhtml",
-        "url": "/dom/nodes/Document-getElementsByTagName.xhtml"
+        "path": "dom/nodes/Document-getElementsByTagName.html",
+        "url": "/dom/nodes/Document-getElementsByTagName.html"
       },
       {
         "path": "dom/nodes/Document-getElementsByTagNameNS.html",
@@ -13784,76 +13788,76 @@
         "url": "/dom/nodes/Document-importNode.html"
       },
       {
-        "path": "dom/nodes/DocumentType-literal.html",
-        "url": "/dom/nodes/DocumentType-literal.html"
+        "path": "dom/nodes/DocumentType-literal-xhtml.xhtml",
+        "url": "/dom/nodes/DocumentType-literal-xhtml.xhtml"
       },
       {
-        "path": "dom/nodes/DocumentType-literal.xhtml",
-        "url": "/dom/nodes/DocumentType-literal.xhtml"
+        "path": "dom/nodes/DocumentType-literal.html",
+        "url": "/dom/nodes/DocumentType-literal.html"
       },
       {
         "path": "dom/nodes/DocumentType-remove.html",
         "url": "/dom/nodes/DocumentType-remove.html"
       },
       {
+        "path": "dom/nodes/Element-childElement-null-svg.svg",
+        "url": "/dom/nodes/Element-childElement-null-svg.svg"
+      },
+      {
+        "path": "dom/nodes/Element-childElement-null-xhtml.xhtml",
+        "url": "/dom/nodes/Element-childElement-null-xhtml.xhtml"
+      },
+      {
         "path": "dom/nodes/Element-childElement-null.html",
         "url": "/dom/nodes/Element-childElement-null.html"
       },
       {
-        "path": "dom/nodes/Element-childElement-null.svg",
-        "url": "/dom/nodes/Element-childElement-null.svg"
+        "path": "dom/nodes/Element-childElementCount-dynamic-add-svg.svg",
+        "url": "/dom/nodes/Element-childElementCount-dynamic-add-svg.svg"
       },
       {
-        "path": "dom/nodes/Element-childElement-null.xhtml",
-        "url": "/dom/nodes/Element-childElement-null.xhtml"
+        "path": "dom/nodes/Element-childElementCount-dynamic-add-xhtml.xhtml",
+        "url": "/dom/nodes/Element-childElementCount-dynamic-add-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-childElementCount-dynamic-add.html",
         "url": "/dom/nodes/Element-childElementCount-dynamic-add.html"
       },
       {
-        "path": "dom/nodes/Element-childElementCount-dynamic-add.svg",
-        "url": "/dom/nodes/Element-childElementCount-dynamic-add.svg"
+        "path": "dom/nodes/Element-childElementCount-dynamic-remove-svg.svg",
+        "url": "/dom/nodes/Element-childElementCount-dynamic-remove-svg.svg"
       },
       {
-        "path": "dom/nodes/Element-childElementCount-dynamic-add.xhtml",
-        "url": "/dom/nodes/Element-childElementCount-dynamic-add.xhtml"
+        "path": "dom/nodes/Element-childElementCount-dynamic-remove-xhtml.xhtml",
+        "url": "/dom/nodes/Element-childElementCount-dynamic-remove-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-childElementCount-dynamic-remove.html",
         "url": "/dom/nodes/Element-childElementCount-dynamic-remove.html"
       },
       {
-        "path": "dom/nodes/Element-childElementCount-dynamic-remove.svg",
-        "url": "/dom/nodes/Element-childElementCount-dynamic-remove.svg"
+        "path": "dom/nodes/Element-childElementCount-nochild-svg.svg",
+        "url": "/dom/nodes/Element-childElementCount-nochild-svg.svg"
       },
       {
-        "path": "dom/nodes/Element-childElementCount-dynamic-remove.xhtml",
-        "url": "/dom/nodes/Element-childElementCount-dynamic-remove.xhtml"
+        "path": "dom/nodes/Element-childElementCount-nochild-xhtml.xhtml",
+        "url": "/dom/nodes/Element-childElementCount-nochild-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-childElementCount-nochild.html",
         "url": "/dom/nodes/Element-childElementCount-nochild.html"
       },
       {
-        "path": "dom/nodes/Element-childElementCount-nochild.svg",
-        "url": "/dom/nodes/Element-childElementCount-nochild.svg"
+        "path": "dom/nodes/Element-childElementCount-svg.svg",
+        "url": "/dom/nodes/Element-childElementCount-svg.svg"
       },
       {
-        "path": "dom/nodes/Element-childElementCount-nochild.xhtml",
-        "url": "/dom/nodes/Element-childElementCount-nochild.xhtml"
+        "path": "dom/nodes/Element-childElementCount-xhtml.xhtml",
+        "url": "/dom/nodes/Element-childElementCount-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-childElementCount.html",
         "url": "/dom/nodes/Element-childElementCount.html"
-      },
-      {
-        "path": "dom/nodes/Element-childElementCount.svg",
-        "url": "/dom/nodes/Element-childElementCount.svg"
-      },
-      {
-        "path": "dom/nodes/Element-childElementCount.xhtml",
-        "url": "/dom/nodes/Element-childElementCount.xhtml"
       },
       {
         "path": "dom/nodes/Element-children.html",
@@ -13868,36 +13872,36 @@
         "url": "/dom/nodes/Element-closest.html"
       },
       {
+        "path": "dom/nodes/Element-firstElementChild-entity-xhtml.xhtml",
+        "url": "/dom/nodes/Element-firstElementChild-entity-xhtml.xhtml"
+      },
+      {
         "path": "dom/nodes/Element-firstElementChild-entity.svg",
         "url": "/dom/nodes/Element-firstElementChild-entity.svg"
       },
       {
-        "path": "dom/nodes/Element-firstElementChild-entity.xhtml",
-        "url": "/dom/nodes/Element-firstElementChild-entity.xhtml"
+        "path": "dom/nodes/Element-firstElementChild-namespace-svg.svg",
+        "url": "/dom/nodes/Element-firstElementChild-namespace-svg.svg"
+      },
+      {
+        "path": "dom/nodes/Element-firstElementChild-namespace-xhtml.xhtml",
+        "url": "/dom/nodes/Element-firstElementChild-namespace-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-firstElementChild-namespace.html",
         "url": "/dom/nodes/Element-firstElementChild-namespace.html"
       },
       {
-        "path": "dom/nodes/Element-firstElementChild-namespace.svg",
-        "url": "/dom/nodes/Element-firstElementChild-namespace.svg"
+        "path": "dom/nodes/Element-firstElementChild-svg.svg",
+        "url": "/dom/nodes/Element-firstElementChild-svg.svg"
       },
       {
-        "path": "dom/nodes/Element-firstElementChild-namespace.xhtml",
-        "url": "/dom/nodes/Element-firstElementChild-namespace.xhtml"
+        "path": "dom/nodes/Element-firstElementChild-xhtml.xhtml",
+        "url": "/dom/nodes/Element-firstElementChild-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-firstElementChild.html",
         "url": "/dom/nodes/Element-firstElementChild.html"
-      },
-      {
-        "path": "dom/nodes/Element-firstElementChild.svg",
-        "url": "/dom/nodes/Element-firstElementChild.svg"
-      },
-      {
-        "path": "dom/nodes/Element-firstElementChild.xhtml",
-        "url": "/dom/nodes/Element-firstElementChild.xhtml"
       },
       {
         "path": "dom/nodes/Element-getElementsByClassName.html",
@@ -13916,44 +13920,44 @@
         "url": "/dom/nodes/Element-getElementsByTagNameNS.html"
       },
       {
+        "path": "dom/nodes/Element-lastElementChild-svg.svg",
+        "url": "/dom/nodes/Element-lastElementChild-svg.svg"
+      },
+      {
+        "path": "dom/nodes/Element-lastElementChild-xhtml.xhtml",
+        "url": "/dom/nodes/Element-lastElementChild-xhtml.xhtml"
+      },
+      {
         "path": "dom/nodes/Element-lastElementChild.html",
         "url": "/dom/nodes/Element-lastElementChild.html"
-      },
-      {
-        "path": "dom/nodes/Element-lastElementChild.svg",
-        "url": "/dom/nodes/Element-lastElementChild.svg"
-      },
-      {
-        "path": "dom/nodes/Element-lastElementChild.xhtml",
-        "url": "/dom/nodes/Element-lastElementChild.xhtml"
       },
       {
         "path": "dom/nodes/Element-matches.html",
         "url": "/dom/nodes/Element-matches.html"
       },
       {
+        "path": "dom/nodes/Element-nextElementSibling-svg.svg",
+        "url": "/dom/nodes/Element-nextElementSibling-svg.svg"
+      },
+      {
+        "path": "dom/nodes/Element-nextElementSibling-xhtml.xhtml",
+        "url": "/dom/nodes/Element-nextElementSibling-xhtml.xhtml"
+      },
+      {
         "path": "dom/nodes/Element-nextElementSibling.html",
         "url": "/dom/nodes/Element-nextElementSibling.html"
       },
       {
-        "path": "dom/nodes/Element-nextElementSibling.svg",
-        "url": "/dom/nodes/Element-nextElementSibling.svg"
+        "path": "dom/nodes/Element-previousElementSibling-svg.svg",
+        "url": "/dom/nodes/Element-previousElementSibling-svg.svg"
       },
       {
-        "path": "dom/nodes/Element-nextElementSibling.xhtml",
-        "url": "/dom/nodes/Element-nextElementSibling.xhtml"
+        "path": "dom/nodes/Element-previousElementSibling-xhtml.xhtml",
+        "url": "/dom/nodes/Element-previousElementSibling-xhtml.xhtml"
       },
       {
         "path": "dom/nodes/Element-previousElementSibling.html",
         "url": "/dom/nodes/Element-previousElementSibling.html"
-      },
-      {
-        "path": "dom/nodes/Element-previousElementSibling.svg",
-        "url": "/dom/nodes/Element-previousElementSibling.svg"
-      },
-      {
-        "path": "dom/nodes/Element-previousElementSibling.xhtml",
-        "url": "/dom/nodes/Element-previousElementSibling.xhtml"
       },
       {
         "path": "dom/nodes/Element-remove.html",
@@ -13964,16 +13968,16 @@
         "url": "/dom/nodes/Element-removeAttributeNS.html"
       },
       {
+        "path": "dom/nodes/Element-siblingElement-null-svg.svg",
+        "url": "/dom/nodes/Element-siblingElement-null-svg.svg"
+      },
+      {
+        "path": "dom/nodes/Element-siblingElement-null-xhtml.xhtml",
+        "url": "/dom/nodes/Element-siblingElement-null-xhtml.xhtml"
+      },
+      {
         "path": "dom/nodes/Element-siblingElement-null.html",
         "url": "/dom/nodes/Element-siblingElement-null.html"
-      },
-      {
-        "path": "dom/nodes/Element-siblingElement-null.svg",
-        "url": "/dom/nodes/Element-siblingElement-null.svg"
-      },
-      {
-        "path": "dom/nodes/Element-siblingElement-null.xhtml",
-        "url": "/dom/nodes/Element-siblingElement-null.xhtml"
       },
       {
         "path": "dom/nodes/Element-tagName.html",
@@ -14056,12 +14060,12 @@
         "url": "/dom/nodes/Node-lookupPrefix.xhtml"
       },
       {
-        "path": "dom/nodes/Node-nodeName.html",
-        "url": "/dom/nodes/Node-nodeName.html"
+        "path": "dom/nodes/Node-nodeName-xhtml.xhtml",
+        "url": "/dom/nodes/Node-nodeName-xhtml.xhtml"
       },
       {
-        "path": "dom/nodes/Node-nodeName.xhtml",
-        "url": "/dom/nodes/Node-nodeName.xhtml"
+        "path": "dom/nodes/Node-nodeName.html",
+        "url": "/dom/nodes/Node-nodeName.html"
       },
       {
         "path": "dom/nodes/Node-nodeValue.html",
@@ -14104,12 +14108,12 @@
         "url": "/dom/nodes/ParentNode-prepend.html"
       },
       {
-        "path": "dom/nodes/ParentNode-querySelector-All.html",
-        "url": "/dom/nodes/ParentNode-querySelector-All.html"
+        "path": "dom/nodes/ParentNode-querySelector-All-xht.xht",
+        "url": "/dom/nodes/ParentNode-querySelector-All-xht.xht"
       },
       {
-        "path": "dom/nodes/ParentNode-querySelector-All.xht",
-        "url": "/dom/nodes/ParentNode-querySelector-All.xht"
+        "path": "dom/nodes/ParentNode-querySelector-All.html",
+        "url": "/dom/nodes/ParentNode-querySelector-All.html"
       },
       {
         "path": "dom/nodes/ProcessingInstruction-literal-1.xhtml",
@@ -15632,56 +15636,56 @@
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByClassName-same.html"
       },
       {
+        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-case-xhtml.xhtml",
+        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-case-xhtml.xhtml"
+      },
+      {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-case.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-case.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-case.xhtml",
-        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-case.xhtml"
+        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-id-xhtml.xhtml",
+        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-id-xhtml.xhtml"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-id.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-id.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-id.xhtml",
-        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-id.xhtml"
-      },
-      {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-interface.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-interface.html"
+      },
+      {
+        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace-xhtml.xhtml",
+        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace-xhtml.xhtml"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace.xhtml",
-        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace.xhtml"
+        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-newelements-xhtml.xhtml",
+        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-newelements-xhtml.xhtml"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-newelements.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-newelements.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-newelements.xhtml",
-        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-newelements.xhtml"
+        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-null-undef-xhtml.xhtml",
+        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-null-undef-xhtml.xhtml"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-null-undef.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-null-undef.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-null-undef.xhtml",
-        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-null-undef.xhtml"
+        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-param-xhtml.xhtml",
+        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-param-xhtml.xhtml"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-param.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-param.html"
-      },
-      {
-        "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-param.xhtml",
-        "url": "/html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-param.xhtml"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-same.html",
@@ -16114,6 +16118,10 @@
       {
         "path": "html/dom/dynamic-markup-insertion/document-writeln/document.writeln-02.html",
         "url": "/html/dom/dynamic-markup-insertion/document-writeln/document.writeln-02.html"
+      },
+      {
+        "path": "html/dom/dynamic-markup-insertion/document-writeln/document.writeln-03.html",
+        "url": "/html/dom/dynamic-markup-insertion/document-writeln/document.writeln-03.html"
       },
       {
         "path": "html/dom/dynamic-markup-insertion/opening-the-input-stream/001.html",
@@ -18296,12 +18304,12 @@
         "url": "/html/semantics/scripting-1/the-script-element/script-before-after-events.html"
       },
       {
-        "path": "html/semantics/scripting-1/the-script-element/script-for-event.html",
-        "url": "/html/semantics/scripting-1/the-script-element/script-for-event.html"
+        "path": "html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml",
+        "url": "/html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml"
       },
       {
-        "path": "html/semantics/scripting-1/the-script-element/script-for-event.xhtml",
-        "url": "/html/semantics/scripting-1/the-script-element/script-for-event.xhtml"
+        "path": "html/semantics/scripting-1/the-script-element/script-for-event.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-for-event.html"
       },
       {
         "path": "html/semantics/scripting-1/the-script-element/script-language-type.html",
@@ -18324,12 +18332,12 @@
         "url": "/html/semantics/scripting-1/the-script-element/script-onload-string.html"
       },
       {
-        "path": "html/semantics/scripting-1/the-script-element/script-text.html",
-        "url": "/html/semantics/scripting-1/the-script-element/script-text.html"
+        "path": "html/semantics/scripting-1/the-script-element/script-text-xhtml.xhtml",
+        "url": "/html/semantics/scripting-1/the-script-element/script-text-xhtml.xhtml"
       },
       {
-        "path": "html/semantics/scripting-1/the-script-element/script-text.xhtml",
-        "url": "/html/semantics/scripting-1/the-script-element/script-text.xhtml"
+        "path": "html/semantics/scripting-1/the-script-element/script-text.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-text.html"
       },
       {
         "path": "html/semantics/scripting-1/the-template-element/additions-to-parsing-xhtml-documents/node-document.html",
@@ -19014,6 +19022,10 @@
       {
         "path": "js/builtins/Object.prototype.seal.html",
         "url": "/js/builtins/Object.prototype.seal.html"
+      },
+      {
+        "path": "js/builtins/Promise-subclassing.html",
+        "url": "/js/builtins/Promise-subclassing.html"
       },
       {
         "path": "js/builtins/WeakMap.prototype-properties.html",
@@ -26404,6 +26416,10 @@
         "url": "/shadow-dom/untriaged/user-interaction/ranges-and-selections/test-002.html"
       },
       {
+        "path": "svg/interfaces.html",
+        "url": "/svg/interfaces.html"
+      },
+      {
         "path": "touch-events/create-touch-touchlist.html",
         "url": "/touch-events/create-touch-touchlist.html"
       },
@@ -26436,12 +26452,12 @@
         "url": "/typedarrays/constructors.html"
       },
       {
-        "path": "url/a-element.html",
-        "url": "/url/a-element.html"
+        "path": "url/a-element-xhtml.xhtml",
+        "url": "/url/a-element-xhtml.xhtml"
       },
       {
-        "path": "url/a-element.xhtml",
-        "url": "/url/a-element.xhtml"
+        "path": "url/a-element.html",
+        "url": "/url/a-element.html"
       },
       {
         "path": "url/historical.html",
@@ -30133,16 +30149,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "manual": {
-        "html/semantics/forms/the-input-element/maxlength-manual.html": [
-          {
-            "path": "html/semantics/forms/the-input-element/maxlength-manual.html",
-            "url": "/html/semantics/forms/the-input-element/maxlength-manual.html"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -35859,7 +35866,7 @@
       }
     ]
   },
-  "rev": "a3b0fadc7f5001bbe52c65e0a354c454981423a3",
+  "rev": "5dbe45af3ad3a933c03187c72f1c12cbe2877703",
   "url_base": "/",
   "version": 2
 }
