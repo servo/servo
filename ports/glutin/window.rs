@@ -141,15 +141,15 @@ impl Window {
 
 #[cfg(any(target_os = "android",target_os = "linux"))]
     fn gl_version() -> GlRequest {
-	match opts::get().graphics_select {
-		RenderApi::GL => {
- 			GlRequest::Specific(Api::OpenGl, (2, 1))
-		},
-		RenderApi::ES2 => {
- 			GlRequest::Specific(Api::OpenGlEs, (2, 0))
-		}
-	}
-}
+        match opts::get().graphics_select {
+    		RenderApi::GL => {
+     			GlRequest::Specific(Api::OpenGl, (2, 1))
+    		},
+    		RenderApi::ES2 => {
+     			GlRequest::Specific(Api::OpenGlEs, (2, 0))
+    		}
+    	}
+    }
 
 
 
@@ -640,16 +640,14 @@ impl WindowMethods for Window {
     fn native_display(&self) -> NativeDisplay {
         use x11::xlib;
         unsafe {
- 		 match opts::get().graphics_select {
-		RenderApi::GL => {
- 			NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
-		},
-		RenderApi::ES2 => {
- 			NativeDisplay::from_es2()
-		}
-	}
-
-            
+            match opts::get().graphics_select {
+            	RenderApi::GL => {
+            			NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
+            	},
+            	RenderApi::ES2 => {
+            			NativeDisplay::from_es2()
+            	}
+            }
         }
     }
 
