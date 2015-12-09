@@ -12,6 +12,7 @@ use std::hash::{Hash, Hasher, SipHasher};
 use std::slice::Iter;
 
 
+#[derive(Debug)]
 pub struct HashCache<K, V>
     where K: Clone + PartialEq + Eq + Hash,
           V: Clone,

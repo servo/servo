@@ -4,7 +4,7 @@
 
 use util::mem::HeapSizeOf;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FontContextHandle {
     ctx: ()
 }
