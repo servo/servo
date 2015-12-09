@@ -7,17 +7,27 @@ authors = ["The Servo Project Developers"]
 name = "script_traits"
 path = "lib.rs"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
 [dependencies.msg]
 path = "../msg"
 
 [dependencies.net_traits]
 path = "../net_traits"
 
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
+
 [dependencies.plugins]
 path = "../plugins"
 
 [dependencies.profile_traits]
 path = "../profile_traits"
+
+[dependencies.style_traits]
+path = "../style_traits"
 
 [dependencies.util]
 path = "../util"

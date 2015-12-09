@@ -18,7 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::rc::Rc;
 use string_cache::Atom;
 use time;
