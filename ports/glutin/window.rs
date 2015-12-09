@@ -139,7 +139,7 @@ impl Window {
         }
     }
 
-#[cfg(any(target_os = "android",target_os = "linux"))]
+#[cfg(target_os = "linux")]
     fn gl_version() -> GlRequest {
         match opts::get().graphics_select {
     		RenderApi::GL => {
