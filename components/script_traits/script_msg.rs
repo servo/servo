@@ -32,6 +32,7 @@ pub enum ScriptMsg {
     /// Causes a `load` event to be dispatched to any enclosing frame context element
     /// for the given pipeline.
     DOMLoad(PipelineId),
+    /// Script task failure.
     Failure(Failure),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
@@ -43,10 +44,13 @@ pub enum ScriptMsg {
     GetClipboardContents(IpcSender<String>),
     /// <head> tag finished parsing
     HeadParsed,
+    /// All pending loads are complete.
     LoadComplete(PipelineId),
+    /// A new load has been requested.
     LoadUrl(PipelineId, LoadData),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
+    /// HTMLIFrameElement Forward or Back navigation.
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     /// Favicon detected
     NewFavicon(Url),
@@ -54,6 +58,7 @@ pub enum ScriptMsg {
     NodeStatus(Option<String>),
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId),
+    /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IframeLoadInfo),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),

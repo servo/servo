@@ -8,7 +8,7 @@
 
 #![feature(custom_derive, plugin)]
 #![plugin(plugins, serde_macros)]
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 
 extern crate app_units;
 extern crate canvas_traits;
