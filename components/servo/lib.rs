@@ -114,7 +114,6 @@ pub use export::url;
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-
 pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
 }
