@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Servo, the mighty web browser engine from the future.
-//
-// This is a very simple library that wires all of Servo's components
-// together as type `Browser`, along with a generic client
-// implementing the `WindowMethods` trait, to create a working web
-// browser.
-//
-// The `Browser` type is responsible for configuring a
-// `Constellation`, which does the heavy lifting of coordinating all
-// of Servo's internal subsystems, including the `ScriptTask` and the
-// `LayoutTask`, as well maintains the navigation context.
-//
-// The `Browser` is fed events from a generic type that implements the
-// `WindowMethods` trait.
+//! Servo, the mighty web browser engine from the future.
+//!
+//! This is a very simple library that wires all of Servo's components
+//! together as type `Browser`, along with a generic client
+//! implementing the `WindowMethods` trait, to create a working web
+//! browser.
+//!
+//! The `Browser` type is responsible for configuring a
+//! `Constellation`, which does the heavy lifting of coordinating all
+//! of Servo's internal subsystems, including the `ScriptTask` and the
+//! `LayoutTask`, as well maintains the navigation context.
+//!
+//! The `Browser` is fed events from a generic type that implements the
+//! `WindowMethods` trait.
 
 extern crate gaol;
 extern crate libc;
@@ -57,6 +57,7 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use compositing::CompositorEventListener;
+use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_task::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
 use compositing::pipeline::UnprivilegedPipelineContent;
@@ -67,7 +68,6 @@ use compositing::{CompositorProxy, CompositorTask, Constellation};
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use net::image_cache_task::new_image_cache_task;
 use net::resource_task::new_resource_task;
 use net::storage_task::StorageTaskFactory;
@@ -103,10 +103,6 @@ pub use export::script_traits;
 pub use export::style;
 pub use export::url;
 
-pub struct Browser {
-    compositor: Box<CompositorEventListener + 'static>,
-}
-
 /// The in-process interface to Servo.
 ///
 /// It does everything necessary to render the web, primarily
@@ -118,6 +114,10 @@ pub struct Browser {
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
+pub struct Browser {
+    compositor: Box<CompositorEventListener + 'static>,
+}
+
 impl Browser {
     pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
                        where Window: WindowMethods + 'static {

@@ -7,9 +7,9 @@
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use script::layout_interface::Animation;
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::{Sender, Receiver};
@@ -162,4 +162,3 @@ pub fn update_style_for_animation(animation: &Animation,
 
     *style = new_style
 }
-

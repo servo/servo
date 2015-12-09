@@ -4,7 +4,7 @@
 
 use ipc_channel::ipc;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 

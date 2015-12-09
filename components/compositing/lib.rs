@@ -54,6 +54,14 @@ extern crate util;
 
 pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
 pub use constellation::Constellation;
+use euclid::size::{Size2D};
+use ipc_channel::ipc::{IpcSender};
+use msg::compositor_msg::Epoch;
+use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData};
+use std::collections::HashMap;
+use url::Url;
 
 mod compositor;
 mod compositor_layer;
@@ -66,3 +74,30 @@ mod scrolling;
 mod surface_map;
 mod timer_scheduler;
 pub mod windowing;
+
+/// Messages from the compositor to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum CompositorMsg {
+    Exit,
+    FrameSize(PipelineId, Size2D<f32>),
+    /// Request that the constellation send the FrameId corresponding to the document
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
+    /// Request that the constellation send the current pipeline id for the provided frame
+    /// id, or for the root frame if this is None, over a provided channel
+    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
+    /// Requests that the constellation inform the compositor of the title of the pipeline
+    /// immediately.
+    GetPipelineTitle(PipelineId),
+    InitLoadUrl(Url),
+    /// Query the constellation to see if the current compositor output is stable
+    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    KeyEvent(Key, KeyState, KeyModifiers),
+    LoadUrl(PipelineId, LoadData),
+    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    ResizedWindow(WindowSizeData),
+    /// Requests that the constellation instruct layout to begin a new tick of the animation.
+    TickAnimation(PipelineId),
+    /// Dispatch a webdriver command
+    WebDriverCommand(WebDriverCommandMsg),
+}

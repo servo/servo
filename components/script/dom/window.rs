@@ -43,7 +43,6 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
@@ -56,6 +55,7 @@ use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
