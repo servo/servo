@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use CompositorMsg as ConstellationMsg;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy};
@@ -28,7 +29,6 @@ use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
 use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
-use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, MouseButton};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};

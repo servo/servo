@@ -5,7 +5,6 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use compositor_msg::Epoch;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
@@ -14,7 +13,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use layers::geometry::DevicePixel;
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::fmt;
 use std::sync::mpsc::channel;
 use url::Url;
@@ -223,33 +221,6 @@ pub struct IframeLoadInfo {
     pub new_pipeline_id: PipelineId,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
-}
-
-/// Messages from the compositor to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum CompositorMsg {
-    Exit,
-    FrameSize(PipelineId, Size2D<f32>),
-    /// Request that the constellation send the FrameId corresponding to the document
-    /// with the provided pipeline id
-    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
-    /// Request that the constellation send the current pipeline id for the provided frame
-    /// id, or for the root frame if this is None, over a provided channel
-    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
-    /// Requests that the constellation inform the compositor of the title of the pipeline
-    /// immediately.
-    GetPipelineTitle(PipelineId),
-    InitLoadUrl(Url),
-    /// Query the constellation to see if the current compositor output is stable
-    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
-    KeyEvent(Key, KeyState, KeyModifiers),
-    LoadUrl(PipelineId, LoadData),
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
-    ResizedWindow(WindowSizeData),
-    /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId),
-    /// Dispatch a webdriver command
-    WebDriverCommand(WebDriverCommandMsg),
 }
 
 #[derive(Deserialize, HeapSizeOf, Serialize)]
