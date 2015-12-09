@@ -1,0 +1,265 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+var theLog = [];
+var speciesGets = 0;
+var speciesCalls = 0;
+var constructorCalls = 0;
+var constructorGets = 0;
+var resolveCalls = 0;
+var rejectCalls = 0;
+var thenCalls = 0;
+var catchCalls = 0;
+var allCalls = 0;
+var raceCalls = 0;
+var nextCalls = 0;
+
+function takeLog() {
+  var oldLog = theLog;
+  theLog = [];
+  speciesGets = speciesCalls = constructorCalls = resolveCalls =
+    rejectCalls = thenCalls = catchCalls = allCalls = raceCalls =
+    nextCalls = constructorGets = 0;
+  return oldLog;
+}
+
+function clearLog() {
+  takeLog();
+}
+
+function log(str) {
+  theLog.push(str);
+}
+
+class LoggingPromise extends Promise {
+  constructor(func) {
+    super(func);
+    Object.defineProperty(this, "constructor",
+                          {
+                            get: function() {
+                              ++constructorGets;
+                              log(`Constructor get ${constructorGets}`);
+                              return Object.getPrototypeOf(this).constructor;
+                            }
+                          });
+    ++constructorCalls;
+    log(`Constructor ${constructorCalls}`);
+  }
+
+  static get [Symbol.species]() {
+    ++speciesGets;
+    log(`Species get ${speciesGets}`);
+    return LoggingSpecies;
+  }
+
+  static resolve(val) {
+    ++resolveCalls;
+    log(`Resolve ${resolveCalls}`);
+    return super.resolve(val);
+  }
+
+  static reject(val) {
+    ++rejectCalls;
+    log(`Reject ${rejectCalls}`);
+    return super.reject(val);
+  }
+
+  then(resolve, reject) {
+    ++thenCalls;
+    log(`Then ${thenCalls}`);
+    return super.then(resolve, reject);
+  }
+
+  catch(handler) {
+    ++catchCalls;
+    log(`Catch ${catchCalls}`);
+    return super.catch(handler);
+  }
+
+  static all(val) {
+    ++allCalls;
+    log(`All ${allCalls}`);
+    return super.all(val);
+  }
+
+  static race(val) {
+    ++raceCalls;
+    log(`Race ${raceCalls}`);
+    return super.race(val);
+  }
+}
+
+class LoggingIterable {
+  constructor(array) {
+    this.iter = array[Symbol.iterator]();
+  }
+
+  get [Symbol.iterator]() { return () => this }
+
+  next() {
+    ++nextCalls;
+    log(`Next ${nextCalls}`);
+    return this.iter.next();
+  }
+}
+
+class LoggingSpecies extends LoggingPromise {
+  constructor(func) {
+    ++speciesCalls;
+    log(`Species call ${speciesCalls}`);
+    super(func)
+  }
+}
+
+class SpeciesLessPromise extends LoggingPromise {
+  static get [Symbol.species]() {
+    return undefined;
+  }
+}
+
+promise_test(function testBasicConstructor() {
+  var p = new LoggingPromise((resolve) => resolve(5));
+  var log = takeLog();
+  assert_array_equals(log, ["Constructor 1"]);
+  assert_true(p instanceof LoggingPromise);
+  return p.then(function(arg) {
+    assert_equals(arg, 5);
+  });
+}, "Basic constructor behavior");
+
+promise_test(function testPromiseRace() {
+  clearLog();
+  var p = LoggingPromise.race(new LoggingIterable([1, 2]));
+  var log = takeLog();
+  assert_array_equals(log, ["Race 1", "Constructor 1",
+                            "Next 1", "Resolve 1", "Constructor 2",
+                            "Then 1", "Constructor get 1", "Species get 1", "Species call 1", "Constructor 3",
+                            "Next 2", "Resolve 2", "Constructor 4",
+                            "Then 2", "Constructor get 2", "Species get 2", "Species call 2", "Constructor 5",
+                            "Next 3"]);
+  assert_true(p instanceof LoggingPromise);
+  return p.then(function(arg) {
+    assert_true(arg == 1 || arg == 2);
+  });
+}, "Promise.race behavior");
+
+promise_test(function testPromiseRaceNoSpecies() {
+  clearLog();
+  var p = SpeciesLessPromise.race(new LoggingIterable([1, 2]));
+  var log = takeLog();
+  assert_array_equals(log, ["Race 1", "Constructor 1",
+                            "Next 1", "Resolve 1", "Constructor 2",
+                            "Then 1", "Constructor get 1",
+                            "Next 2", "Resolve 2", "Constructor 3",
+                            "Then 2", "Constructor get 2",
+                            "Next 3"]);
+  assert_true(p instanceof SpeciesLessPromise);
+  return p.then(function(arg) {
+    assert_true(arg == 1 || arg == 2);
+  });
+}, "Promise.race without species behavior");
+
+promise_test(function testPromiseAll() {
+  clearLog();
+  var p = LoggingPromise.all(new LoggingIterable([1, 2]));
+  var log = takeLog();
+  assert_array_equals(log, ["All 1", "Constructor 1",
+                            "Next 1", "Resolve 1", "Constructor 2",
+                            "Then 1", "Constructor get 1", "Species get 1", "Species call 1", "Constructor 3",
+                            "Next 2", "Resolve 2", "Constructor 4",
+                            "Then 2", "Constructor get 2", "Species get 2", "Species call 2", "Constructor 5",
+                            "Next 3"]);
+  assert_true(p instanceof LoggingPromise);
+  return p.then(function(arg) {
+    assert_array_equals(arg, [1, 2]);
+  });
+}, "Promise.all behavior");
+
+promise_test(function testPromiseResolve() {
+  clearLog();
+  var p = LoggingPromise.resolve(5);
+  var log = takeLog();
+  assert_array_equals(log, ["Resolve 1", "Constructor 1"]);
+  var q = LoggingPromise.resolve(p);
+  assert_equals(p, q,
+                "Promise.resolve with same constructor should preserve identity");
+  log = takeLog();
+  assert_array_equals(log, ["Resolve 1", "Constructor get 1"]);
+
+  var r = Promise.resolve(p);
+  log = takeLog();
+  assert_array_equals(log, ["Constructor get 1"]);
+  assert_not_equals(p, r,
+                    "Promise.resolve with different constructor should " +
+                    "create a new Promise instance (1)")
+  var s = Promise.resolve(6);
+  var u = LoggingPromise.resolve(s);
+  log = takeLog();
+  assert_array_equals(log, ["Resolve 1", "Constructor 1"]);
+  assert_not_equals(s, u,
+                    "Promise.resolve with different constructor should " +
+                    "create a new Promise instance (2)")
+
+  Object.defineProperty(s, "constructor", { value: LoggingPromise });
+  var v = LoggingPromise.resolve(s);
+  log = takeLog();
+  assert_array_equals(log, ["Resolve 1"]);
+  assert_equals(v, s, "Faking the .constructor should work");
+  assert_false(v instanceof LoggingPromise);
+
+  var results = Promise.all([p, q, r, s, u, v]);
+  return results.then(function(arg) {
+    assert_array_equals(arg, [5, 5, 5, 6, 6, 6]);
+  });
+}, "Promise.resolve behavior");
+
+promise_test(function testPromiseReject() {
+  clearLog();
+  var p = LoggingPromise.reject(5);
+  var log = takeLog();
+  assert_array_equals(log, ["Reject 1", "Constructor 1"]);
+
+  return p.catch(function(arg) {
+    assert_equals(arg, 5);
+  });
+}, "Promise.reject behavior");
+
+promise_test(function testPromiseThen() {
+  clearLog();
+  var p = LoggingPromise.resolve(5);
+  var log = takeLog();
+  assert_array_equals(log, ["Resolve 1", "Constructor 1"]);
+
+  var q = p.then((x) => x*x);
+  log = takeLog();
+  assert_array_equals(log, ["Then 1", "Constructor get 1", "Species get 1",
+                            "Species call 1", "Constructor 1"]);
+  assert_true(q instanceof LoggingPromise);
+
+  return q.then(function(arg) {
+    assert_equals(arg, 25);
+  });
+}, "Promise.then behavior");
+
+promise_test(function testPromiseCatch() {
+  clearLog();
+  var p = LoggingPromise.reject(5);
+  var log = takeLog();
+  assert_array_equals(log, ["Reject 1", "Constructor 1"]);
+
+  var q = p.catch((x) => x*x);
+  log = takeLog();
+  assert_array_equals(log, ["Catch 1", "Then 1", "Constructor get 1",
+                            "Species get 1", "Species call 1", "Constructor 1"]);
+  assert_true(q instanceof LoggingPromise);
+
+  return q.then(function(arg) {
+    assert_equals(arg, 25);
+  });
+}, "Promise.catch behavior");
+
+</script>

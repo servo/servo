@@ -772,6 +772,30 @@ IdlInterface.prototype.test_self = function()
         }.bind(this), this.name + " interface object length");
     }
 
+    if (!this.is_callback() || this.has_constants()) {
+        test(function() {
+            // This function tests WebIDL as of 2015-11-17.
+            // https://heycam.github.io/webidl/#interface-object
+
+            assert_own_property(self, this.name,
+                                "self does not have own property " + format_value(this.name));
+
+            // "All interface objects must have a property named “name” with
+            // attributes { [[Writable]]: false, [[Enumerable]]: false,
+            // [[Configurable]]: true } whose value is the identifier of the
+            // corresponding interface."
+
+            assert_own_property(self[this.name], "name");
+            var desc = Object.getOwnPropertyDescriptor(self[this.name], "name");
+            assert_false("get" in desc, this.name + ".name has getter");
+            assert_false("set" in desc, this.name + ".name has setter");
+            assert_false(desc.writable, this.name + ".name is writable");
+            assert_false(desc.enumerable, this.name + ".name is enumerable");
+            assert_true(desc.configurable, this.name + ".name is not configurable");
+            assert_equals(self[this.name].name, this.name, "wrong value for " + this.name + ".name");
+        }.bind(this), this.name + " interface object name");
+    }
+
     // TODO: Test named constructors if I find any interfaces that have them.
 
     test(function()

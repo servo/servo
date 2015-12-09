@@ -406,6 +406,8 @@ def template(request, content):
                      "query": "?%s" % request.url_parts.query}
         elif field == "uuid()":
             value = str(uuid.uuid4())
+        elif field == "url_base":
+            value = request.url_base
         else:
             raise Exception("Undefined template variable %s" % field)
 
@@ -419,7 +421,7 @@ def template(request, content):
 
         #Should possibly support escaping for other contexts e.g. script
         #TODO: read the encoding of the response
-        return escape(unicode(value)).encode("utf-8")
+        return escape(unicode(value), quote=True).encode("utf-8")
 
     template_regexp = re.compile(r"{{([^}]*)}}")
     new_content, count = template_regexp.subn(config_replacement, content)
