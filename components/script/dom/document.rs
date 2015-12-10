@@ -91,6 +91,7 @@ use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable, ScriptToCompositorMsg};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{ScriptToCompositorMsg};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;

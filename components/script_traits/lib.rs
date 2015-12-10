@@ -29,6 +29,7 @@ use euclid::Size2D;
 use euclid::length::Length;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId};
