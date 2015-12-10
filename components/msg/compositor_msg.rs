@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
-use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
-use euclid::{Matrix4, Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
+use constellation_msg::PipelineId;
+use euclid::{Matrix4, Rect};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
 use std::fmt::{self, Debug, Formatter};
@@ -151,22 +150,3 @@ pub trait PaintListener {
     // Notification that the paint task wants to exit.
     fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId);
 }
-
-#[derive(Deserialize, Serialize)]
-pub enum ScriptToCompositorMsg {
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
-    SetTitle(PipelineId, Option<String>),
-    SendKeyEvent(Key, KeyState, KeyModifiers),
-    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
-    MoveTo(Point2D<i32>),
-    ResizeTo(Size2D<u32>),
-    TouchEventProcessed(EventResult),
-    Exit,
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum EventResult {
-    DefaultAllowed,
-    DefaultPrevented,
-}
-
