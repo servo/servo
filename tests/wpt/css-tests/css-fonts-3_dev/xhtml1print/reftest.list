@@ -127,6 +127,15 @@ font-size-adjust-008.xht == reference/ref-filled-green-100px-square.xht
 font-size-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-style-applies-to-001.xht == reference/font-style-applies-to-001-ref.xht
 font-style-applies-to-002.xht == reference/font-style-applies-to-001-ref.xht
+font-style-applies-to-004.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-005.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-006.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-007.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-008.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-009.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-010.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-011.xht == reference/pass_if_filler_text_slanted.xht
+font-style-applies-to-014.xht == reference/pass_if_filler_text_slanted.xht
 font-style-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-style-applies-to-017.xht == reference/font-style-applies-to-001-ref.xht
 font-variant-001.xht == reference/font-variant-001-ref.xht
