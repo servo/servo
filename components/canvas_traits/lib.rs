@@ -4,7 +4,6 @@
 
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
-#![feature(core)]
 #![feature(custom_derive)]
 #![feature(nonzero)]
 #![feature(plugin)]
