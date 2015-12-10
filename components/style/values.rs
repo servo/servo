@@ -628,7 +628,7 @@ pub mod specified {
             let mut simplified = Vec::new();
             for product in &node.products {
                 match try!(CalcLengthOrPercentage::simplify_product(product)) {
-                    SimplifiedValueNode::Sum(box sum) => simplified.push_all(&sum.values),
+                    SimplifiedValueNode::Sum(box sum) => simplified.extend_from_slice(&sum.values),
                     val => simplified.push(val),
                 }
             }
@@ -681,7 +681,7 @@ pub mod specified {
             let mut simplified = Vec::new();
             for ref node in ast.products {
                 match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                    SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
+                    SimplifiedValueNode::Sum(sum) => simplified.extend_from_slice(&sum.values),
                     value => simplified.push(value),
                 }
             }
@@ -751,7 +751,7 @@ pub mod specified {
             let mut simplified = Vec::new();
             for ref node in ast.products {
                 match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                    SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
+                    SimplifiedValueNode::Sum(sum) => simplified.extend_from_slice(&sum.values),
                     value => simplified.push(value),
                 }
             }
@@ -778,7 +778,7 @@ pub mod specified {
             let mut simplified = Vec::new();
             for ref node in ast.products {
                 match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                    SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
+                    SimplifiedValueNode::Sum(sum) => simplified.extend_from_slice(&sum.values),
                     value => simplified.push(value),
                 }
             }

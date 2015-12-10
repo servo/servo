@@ -226,7 +226,7 @@ impl<'a> DetailedGlyphStore {
         */
 
         self.detail_lookup.push(entry);
-        self.detail_buffer.push_all(glyphs);
+        self.detail_buffer.extend_from_slice(glyphs);
         self.lookup_is_sorted = false;
     }
 
