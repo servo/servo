@@ -140,7 +140,7 @@ impl BlobMethods for Blob {
                 let start = relativeStart.to_usize().unwrap();
                 let end = (relativeStart + span).to_usize().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
-                bytes.push_all(&vec[start..end]);
+                bytes.extend_from_slice(&vec[start..end]);
                 Blob::new(global.r(), Some(bytes), &relativeContentType)
             }
         }

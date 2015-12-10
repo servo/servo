@@ -9,7 +9,6 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![feature(vec_push_all)]
 
 #![plugin(serde_macros)]
 #![plugin(serde_macros)]

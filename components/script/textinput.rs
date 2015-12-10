@@ -235,9 +235,9 @@ impl<T: ClipboardProvider> TextInput<T> {
                 insert_lines[last_insert_lines_index].push_str(suffix);
 
                 let mut new_lines = vec!();
-                new_lines.push_all(lines_prefix);
-                new_lines.push_all(&insert_lines);
-                new_lines.push_all(lines_suffix);
+                new_lines.extend_from_slice(lines_prefix);
+                new_lines.extend_from_slice(&insert_lines);
+                new_lines.extend_from_slice(lines_suffix);
                 new_lines
             };
 

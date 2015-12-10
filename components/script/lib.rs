@@ -22,7 +22,6 @@
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
 #![feature(unicode)]
-#![feature(vec_push_all)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]

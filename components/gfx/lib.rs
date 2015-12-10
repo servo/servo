@@ -15,7 +15,6 @@
 #![feature(plugin)]
 #![feature(str_char)]
 #![feature(unique)]
-#![feature(vec_push_all)]
 
 #![plugin(plugins)]
 #![plugin(serde_macros)]

@@ -253,7 +253,7 @@ impl XMLHttpRequest {
             }
 
             fn data_available(&mut self, payload: Vec<u8>) {
-                self.buf.borrow_mut().push_all(&payload);
+                self.buf.borrow_mut().extend_from_slice(&payload);
                 self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
@@ -403,8 +403,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some(raw) => {
                 debug!("SetRequestHeader: old value = {:?}", raw[0]);
                 let mut buf = raw[0].clone();
-                buf.push_all(b", ");
-                buf.push_all(&value);
+                buf.extend_from_slice(b", ");
+                buf.extend_from_slice(&value);
                 debug!("SetRequestHeader: new value = {:?}", buf);
                 value = ByteString::new(buf);
             },
@@ -530,8 +530,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         fn join_raw(a: &str, b: &str) -> Vec<u8> {
             let len = a.len() + b.len();
             let mut vec = Vec::with_capacity(len);
-            vec.push_all(a.as_bytes());
-            vec.push_all(b.as_bytes());
+            vec.extend_from_slice(a.as_bytes());
+            vec.extend_from_slice(b.as_bytes());
             vec
         }
 

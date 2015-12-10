@@ -177,7 +177,7 @@ impl IntermediateInlineFragments {
         self.fragments.is_empty() && self.absolute_descendants.is_empty()
     }
 
-    fn push_all(&mut self, mut other: IntermediateInlineFragments) {
+    fn extend_from_slice(&mut self, mut other: IntermediateInlineFragments) {
         self.fragments.append(&mut other.fragments);
         self.absolute_descendants.push_descendants(other.absolute_descendants);
     }
@@ -228,7 +228,7 @@ impl InlineFragmentsAccumulator {
         self.fragments.fragments.push_back(fragment)
     }
 
-    fn push_all(&mut self, mut fragments: IntermediateInlineFragments) {
+    fn extend_from_slice(&mut self, mut fragments: IntermediateInlineFragments) {
         self.fragments.fragments.append(&mut fragments.fragments);
         self.fragments.absolute_descendants.push_descendants(fragments.absolute_descendants);
     }
@@ -545,7 +545,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
                         predecessors,
                         flow: kid_flow
                     } = split;
-                    inline_fragment_accumulator.push_all(predecessors);
+                    inline_fragment_accumulator.extend_from_slice(predecessors);
 
                     // Flush any inline fragments that we were gathering up.
                     debug!("flushing {} inline box(es) to flow A",
@@ -570,7 +570,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
                 }
 
                 // Add the fragments to the list we're maintaining.
-                inline_fragment_accumulator.push_all(successor_fragments);
+                inline_fragment_accumulator.extend_from_slice(successor_fragments);
             }
             ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                     whitespace_node,
@@ -610,7 +610,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
         let mut inline_fragment_accumulator = InlineFragmentsAccumulator::new();
         let mut consecutive_siblings = vec!();
 
-        inline_fragment_accumulator.fragments.push_all(initial_fragments);
+        inline_fragment_accumulator.fragments.extend_from_slice(initial_fragments);
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
@@ -774,7 +774,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
                 predecessors,
                 flow: kid_flow
             } = split;
-            fragment_accumulator.push_all(predecessors);
+            fragment_accumulator.extend_from_slice(predecessors);
 
             let split = InlineBlockSplit {
                 predecessors: mem::replace(
@@ -852,7 +852,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
                                                         &mut opt_inline_block_splits);
 
                     // Push residual fragments.
-                    fragment_accumulator.push_all(successors);
+                    fragment_accumulator.extend_from_slice(successors);
                 }
                 ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                         whitespace_node,
