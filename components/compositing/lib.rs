@@ -7,7 +7,6 @@
 #![feature(iter_cmp)]
 #![feature(plugin)]
 #![feature(slice_bytes)]
-#![feature(vec_push_all)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]

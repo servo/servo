@@ -343,7 +343,7 @@ impl ImageCache {
             (ResponseAction::HeadersAvailable(_), _) => {}
             (ResponseAction::DataAvailable(data), _) => {
                 let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
-                pending_load.bytes.push_all(&data);
+                pending_load.bytes.extend_from_slice(&data);
             }
             (ResponseAction::ResponseComplete(result), key) => {
                 match result {

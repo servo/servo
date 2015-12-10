@@ -87,7 +87,7 @@ impl Stylesheet {
         let mut bytes = vec![];
         // TODO: incremental decoding and tokenization/parsing
         for chunk in input {
-            bytes.push_all(&chunk)
+            bytes.extend_from_slice(&chunk)
         }
         Stylesheet::from_bytes(&bytes, base_url, protocol_encoding_label,
                                environment_encoding, origin, error_reporter)

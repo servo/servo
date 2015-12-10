@@ -1433,9 +1433,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let mut pipelines_to_close = vec!();
 
             let frame = self.frame(frame_id);
-            pipelines_to_close.push_all(&frame.next);
+            pipelines_to_close.extend_from_slice(&frame.next);
             pipelines_to_close.push(frame.current);
-            pipelines_to_close.push_all(&frame.prev);
+            pipelines_to_close.extend_from_slice(&frame.prev);
 
             pipelines_to_close
         };
@@ -1462,7 +1462,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let mut frames_to_close = vec!();
 
             let pipeline = self.pipeline(pipeline_id);
-            frames_to_close.push_all(&pipeline.children);
+            frames_to_close.extend_from_slice(&pipeline.children);
 
             frames_to_close
         };
