@@ -850,15 +850,22 @@ impl Element {
 
 
 impl Element {
+    fn push_new_attr(&self, attr: Root<Attr>) {
+        self.will_mutate_attr();
+        let in_empty_ns = *attr.namespace() == ns!();
+        self.attrs.borrow_mut().push(JS::from_rooted(&attr));
+        if in_empty_ns {
+            vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Set(None));
+        }
+    }
+
     pub fn push_new_attribute(&self,
                               local_name: Atom,
                               value: AttrValue,
                               name: Atom,
                               namespace: Namespace,
                               prefix: Option<Atom>) {
-        self.will_mutate_attr();
         let window = window_from_node(self);
-        let in_empty_ns = namespace == ns!();
         let attr = Attr::new(&window,
                              local_name,
                              value,
@@ -866,10 +873,7 @@ impl Element {
                              namespace,
                              prefix,
                              Some(self));
-        self.attrs.borrow_mut().push(JS::from_rooted(&attr));
-        if in_empty_ns {
-            vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Set(None));
-        }
+        self.push_new_attr(attr);
     }
 
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
@@ -941,6 +945,16 @@ impl Element {
                                               *attr.name() == name && *attr.namespace() == ns!()
                                           });
         Ok(())
+    }
+
+    fn get_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
+        where F: Fn(&Attr) -> bool
+    {
+        self.attrs
+            .borrow()
+            .iter()
+            .find(|attr| find(&attr))
+            .map(|js| Root::from_ref(&**js))
     }
 
     fn set_first_matching_attribute<F>(&self,
@@ -1264,6 +1278,49 @@ impl ElementMethods for Element {
         Ok(())
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-setattributenode
+    fn SetAttributeNode(&self, new_attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        // Step 1.
+        if let Some(elem) = new_attr.owner() {
+            if *elem != *self {
+                return Err(Error::InUseAttribute);
+            }
+        }
+
+        // Step 2.
+        let old_attr = self.get_first_matching_attribute(
+            |attr| attr.namespace() == new_attr.namespace()
+                && attr.local_name() == new_attr.local_name());
+
+        let old_attr = if let Some(old_attr) = old_attr {
+            debug_assert!(*old_attr.owner().unwrap() == *self);
+
+            // Step 3.
+            if *old_attr == *new_attr {
+                return Ok(Some(old_attr));
+            }
+
+            // Step 4.
+            self.remove_first_matching_attribute(|attr| *attr == *old_attr);
+
+            Some(old_attr)
+        } else {
+            old_attr
+        };
+
+        // Step 5.
+        self.push_new_attr(Root::from_ref(new_attr));
+        new_attr.set_owner(Some(self));
+
+        // Step 6.
+        Ok(old_attr)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-setattributenodens
+    fn SetAttributeNodeNS(&self, new_attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        self.SetAttributeNode(new_attr)
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(&self, name: DOMString) {
         let name = self.parsed_name(name);
@@ -1275,6 +1332,12 @@ impl ElementMethods for Element {
         let namespace = namespace_from_domstring(namespace);
         let local_name = Atom::from(&*local_name);
         self.remove_attribute(&namespace, &local_name);
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-removeattributenode
+    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<Root<Attr>> {
+        self.remove_first_matching_attribute(|a| a == attr)
+            .ok_or(Error::NotFound)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattribute
