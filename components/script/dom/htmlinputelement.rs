@@ -28,7 +28,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg as ConstellationMsg;
 use selectors::states::*;
 use std::borrow::ToOwned;
 use std::cell::Cell;

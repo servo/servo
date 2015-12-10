@@ -62,7 +62,6 @@ use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLa
 use libc;
 use mem::heap_size_of_self_and_children;
 use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{MouseButton, MouseEventType, MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{PipelineNamespace};
@@ -81,8 +80,8 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, InitialScriptState, NewLayoutInfo};
-use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
-use script_traits::{TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg, ScriptState};
+use script_traits::{ScriptTaskFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
 use std::any::Any;
 use std::borrow::ToOwned;
