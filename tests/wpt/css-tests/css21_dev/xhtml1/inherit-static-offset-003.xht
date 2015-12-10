@@ -12,7 +12,7 @@
 
   <meta content="image" name="flags" />
   <meta content="When using the 'inherit' reserved keyword value, the property takes the same specified value as the property for the element's parent, even in cases where such property does not apply. This test covers the case where the parent has relative value lengths for left and top." name="assert" />
-  
+
   <style type="text/css"><![CDATA[
   div#parent
   {
@@ -22,7 +22,7 @@
   position: static;
   top: 3.125em;
   /*
-  The 'top', 'right', 'bottom', and 'left' properties 
+  The 'top', 'right', 'bottom', and 'left' properties
   do not apply on a statically positioned element
   */
   width: 100px;
@@ -37,13 +37,13 @@
   position: relative;
   top: inherit;
   /*
-  What is inherited is a computed value 
-  (which is, in this test, 3.125em mult by 16px == 50px), 
+  What is inherited is a computed value
+  (which is, in this test, 3.125em mult by 16px == 50px),
   not the specified value (6.25em) of parent.
   */
   width: 50px;
   }
-  
+
   /*
   In this test, left and top offset values will be inherited
   */

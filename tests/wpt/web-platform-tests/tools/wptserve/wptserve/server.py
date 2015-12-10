@@ -237,6 +237,8 @@ class WebTestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # set update the doc_root of the request to reflect this
             if hasattr(handler, "base_path") and handler.base_path:
                 request.doc_root = handler.base_path
+            if hasattr(handler, "url_base") and handler.url_base != "/":
+                request.url_base = handler.url_base
 
             if self.server.latency is not None:
                 if callable(self.server.latency):

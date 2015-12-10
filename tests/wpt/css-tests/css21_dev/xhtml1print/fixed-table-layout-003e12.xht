@@ -50,7 +50,7 @@
   margin-left: 58px;
 
   /*
-  
+
   "
   In the fixed table layout algorithm, the width of each column is determined as follows:
 
@@ -65,33 +65,33 @@
   --------------------------------
 
    10px : half of border-left since such border must be split with cell in 1st column
-  
+
    38px : padding-left of cell in the middle column
  +
    80px : width of cell in the middle column
  +
    10px : padding-right of cell in the middle column
  +
-   26px : half of border-right since such border must be split with cell in 3rd column 
- 
+   26px : half of border-right since such border must be split with cell in 3rd column
+
   =======
   164px : width of the middle column
 
-  
-  So, 
-      300px : table set width 
-    - 
+
+  So,
+      300px : table set width
+    -
       164px : width of the middle column
-      ====== 
-      136px  
-      
-      So, each of the 2 remaining columns must be 
-      half of such extra horizontal table space, 
+      ======
+      136px
+
+      So, each of the 2 remaining columns must be
+      half of such extra horizontal table space,
       which is 136px divided by 2 == 68px.
-  
+
   1st column width calculations
   -----------------------------
-  
+
     38px    : padding-left of cell in 1st column
   +
     (solve) : width of cell in 1st column
@@ -101,37 +101,37 @@
     10px    : border-right of cell in 1st column
    ======
     68px    : width of 1st column
-  
+
   So, the width of the cell in first column must be exactly 10px.
 
-  
+
   3rd column width calculations
   -----------------------------
-  
+
     26px    : border-left of cell in 3rd column
   +
-    38px    : padding-left of cell in 3rd column 
+    38px    : padding-left of cell in 3rd column
   +
     (solve) : width of cell in 3rd column
-  + 
+  +
     10px    : padding-right of cell in 3rd column
    =======
     68px    : width of 3rd column
-   
+
    So, the width of the cell in 3rd column must be exactly -6px !
-  
-  
+
+
   Finally, the precise horizontal point where the border-right of cell
   in first column begins to be drawn, painted is:
-  
+
     38px    : padding left of cell in 1st column
   +
     10px    : width of cell in 1st column
   +
     10px    : padding right of cell in 1st column
-  ======= 
-    58px  
-  
+  =======
+    58px
+
   Therefore the margin-left: 58px value of the div#reference.
 
   */

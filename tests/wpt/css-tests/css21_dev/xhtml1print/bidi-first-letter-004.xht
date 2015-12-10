@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-  <head> 
+  <head>
     <title>CSS Test: :first-letter and bidi-override - inherent ltr text</title>
   <style type="text/css">
     @page { font: italic 8pt sans-serif; color: gray;
@@ -10,7 +10,7 @@
             @top-right { content: "Test bidi-first-letter-004"; }
             @bottom-right { content: counter(page); }
           }
-</style> 
+</style>
     <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
     <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter"/>
     <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-unicode-bidi"/>
@@ -19,16 +19,16 @@
     <style type="text/css"><![CDATA[
     p.test {
     font-size: 2em;
-    unicode-bidi: bidi-override; 
+    unicode-bidi: bidi-override;
     direction:rtl;
     }
     p.test:first-letter {
     color:blue;
     }
-    ]]></style> 
-  </head> 
-  <body> 
-   
+    ]]></style>
+  </head>
+  <body>
+
     <p>The rightmost letter (a) in the line below should be blue.</p>
 
     <p class="test">axx xxx xxx</p>

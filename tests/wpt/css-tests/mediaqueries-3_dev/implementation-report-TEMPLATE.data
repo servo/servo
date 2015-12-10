@@ -3,18 +3,18 @@
 # http://test.csswg.org/suites/mediaqueries-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
 testname	revision	result	comment
-html/aspect-ratio-001.htm	02ea281e8d5e82a324ae879127747de52ba74f36	?
-xhtml1/aspect-ratio-001.xht	02ea281e8d5e82a324ae879127747de52ba74f36	?
-html/aspect-ratio-002.htm	fb4e6afaa646bc6e427ad90ca4954fa4af531276	?
-xhtml1/aspect-ratio-002.xht	fb4e6afaa646bc6e427ad90ca4954fa4af531276	?
-html/aspect-ratio-003.htm	bdd11c8297b2de2aab720a9819cba34a474a64f4	?
-xhtml1/aspect-ratio-003.xht	bdd11c8297b2de2aab720a9819cba34a474a64f4	?
-html/aspect-ratio-004.htm	2d29dde79c0ce756ec04ec3dd74749b27a350c58	?
-xhtml1/aspect-ratio-004.xht	2d29dde79c0ce756ec04ec3dd74749b27a350c58	?
-html/calc-in-media-queries-001.htm	4dbdaf4a19ce6c32853e5384f14bb0a9ed77360b	?
-xhtml1/calc-in-media-queries-001.xht	4dbdaf4a19ce6c32853e5384f14bb0a9ed77360b	?
-html/calc-in-media-queries-002.htm	9a9949bf31ece680a8d54659d18517483a919d2d	?
-xhtml1/calc-in-media-queries-002.xht	9a9949bf31ece680a8d54659d18517483a919d2d	?
+html/aspect-ratio-001.htm	5b2bb6cb44fa2fbf29a5127aa4ad7f53f64d57ad	?
+xhtml1/aspect-ratio-001.xht	5b2bb6cb44fa2fbf29a5127aa4ad7f53f64d57ad	?
+html/aspect-ratio-002.htm	a9b122ecc9325b313cf315e955c47124ed1dbf5b	?
+xhtml1/aspect-ratio-002.xht	a9b122ecc9325b313cf315e955c47124ed1dbf5b	?
+html/aspect-ratio-003.htm	c056067d01072894fa0176f00bede949c47ef044	?
+xhtml1/aspect-ratio-003.xht	c056067d01072894fa0176f00bede949c47ef044	?
+html/aspect-ratio-004.htm	578b1707ab85f44167043f28ec6a823a9a412c2a	?
+xhtml1/aspect-ratio-004.xht	578b1707ab85f44167043f28ec6a823a9a412c2a	?
+html/calc-in-media-queries-001.htm	19716233220fa1ac70f6299dde69dbe73ae3f08c	?
+xhtml1/calc-in-media-queries-001.xht	19716233220fa1ac70f6299dde69dbe73ae3f08c	?
+html/calc-in-media-queries-002.htm	ba99058dbb02f00c6ce8a9a1a99b906fe0d65ab4	?
+xhtml1/calc-in-media-queries-002.xht	ba99058dbb02f00c6ce8a9a1a99b906fe0d65ab4	?
 html/device-aspect-ratio-001.htm	34de25dd08103101c8c0f4411d5b19e1edb3d3ed	?
 xhtml1/device-aspect-ratio-001.xht	34de25dd08103101c8c0f4411d5b19e1edb3d3ed	?
 html/device-aspect-ratio-002.htm	8dcba4ea99941d945034a6167eba446e830a6b9b	?

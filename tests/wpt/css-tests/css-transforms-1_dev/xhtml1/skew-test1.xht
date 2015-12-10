@@ -9,31 +9,31 @@
     <meta content="svg" name="flags" />
     <meta content="The lime square in this test has a skew method applied : 30deg on x and 20deg on y. The red polygon should be totally hidden by the lime skewed square. Both start at 0,0" name="assert" />
   <style>
-  
+
   h4 {clear:both;}
-  
+
   /* Test 1 - skew on block types */
-  
+
   svg {
     position:absolute;
   }
-  
+
   div {
     width:150px;
     height:150px;
     background-color:lime;
   }
-  
+
   .skew_div {
 
     transform: skew(30deg,20deg);
     transform-origin:0 0;
   }
-  
+
   </style>
 </head>
 <body>
-  
+
   <h3>
     Test 1 - Tests with degrees on block elements.
     </h3>
@@ -43,7 +43,7 @@
     <svg version="1.1" xmlns:xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
       <polygon style="fill:red" points="0,0 150,55 235,205 88,150"></polygon>
     </svg>
-    
+
   <div class="skew_div">
   </div>
 

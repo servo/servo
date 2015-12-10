@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html><head>
         <title>
-            CSS Regions: Selection is upward, begins inside and ends outside a region - both the region 
+            CSS Regions: Selection is upward, begins inside and ends outside a region - both the region
             and the before after it have child elements
         </title>
         <link href="mailto:rhauck@adobe.com" rel="author" title="Rebecca Hauck">
@@ -20,30 +20,30 @@
     </head>
     <body>
         <p id="msg">
-            Click on the orange square, keep the mouse button down and drag it to the blue square, 
+            Click on the orange square, keep the mouse button down and drag it to the blue square,
             release the mouse over the blue square.
         </p>
         <div id="beforeRegion">
-            before region 
-            <div class="select-point" id="end-select"></div> 
-            before region before region before region 
+            before region
+            <div class="select-point" id="end-select"></div>
+            before region before region before region
             <div id="nestedDiv">
-                nested div <img src="support/img/cat.png" id="nestedImgBeforeRegion"> 
+                nested div <img src="support/img/cat.png" id="nestedImgBeforeRegion">
                 nested div nested div nested div nested div
-            </div> 
+            </div>
             before region before region before region before region before region before region before region
-            before region before region before region before region before region before region before region 
+            before region before region before region before region before region before region before region
         </div>
         <div id="region"></div>
         <div id="source">
             in region in region in region in region in region in region in region in region in region in region in
-            region in region in region in region in region in region in region in region in region in region in 
-            region in 
-            <div id="nestedDiv"> 
-                nested div <img src="support/img/cat.png" id="nestedImgInRegion"> nested div 
-            </div>  
-            region in region in region in region in region in region in region in region in region in 
-            region in region in region in region in region in region in region in region in region 
+            region in region in region in region in region in region in region in region in region in region in
+            region in
+            <div id="nestedDiv">
+                nested div <img src="support/img/cat.png" id="nestedImgInRegion"> nested div
+            </div>
+            region in region in region in region in region in region in region in region in region in
+            region in region in region in region in region in region in region in region in region
             <div class="select-point" id="start-select"></div> in region
         </div>
         <div id="afterRegion">

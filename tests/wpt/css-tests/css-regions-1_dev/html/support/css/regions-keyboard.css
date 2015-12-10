@@ -6,7 +6,7 @@ body {
     color: blue;
 }
 /* Set the width of the content div so that the blocks will wrap downward when they're not flowing into a region */
-#content { 
+#content {
 	flow-into: content;
 	width: 125px;
 }
@@ -22,7 +22,7 @@ body {
 	background-color: gray;
 	display: inline-block;
     width: 100px;
-    height: 100px; 
+    height: 100px;
 }
 /* Set color on the target to be different than the others */
 #target-block {
