@@ -20,6 +20,7 @@ interface Document : Node {
   readonly attribute DOMString documentURI;
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
+  readonly attribute DOMString charset; // legacy alias of .characterSet
   readonly attribute DOMString inputEncoding; // legacy alias of .characterSet
   [Constant]
   readonly attribute DOMString contentType;
