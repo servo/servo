@@ -423,11 +423,11 @@ test(function() {
   assert_equals(attrNode.ownerElement, el2);
   assert_equals(attrNode.value, "bar");
 
-   var el3 = document.createElement("div");
-   el2.removeAttribute("foo");
-   el3.setAttribute("foo", "baz");
-   el3.setAttributeNode(attrNode);
-   assert_equals(el3.getAttribute("foo"), "bar");
+  var el3 = document.createElement("div");
+  el2.removeAttribute("foo");
+  el3.setAttribute("foo", "baz");
+  el3.setAttributeNode(attrNode);
+  assert_equals(el3.getAttribute("foo"), "bar");
 }, "Basic functionality of setAttributeNode")
 
 test(function() {

@@ -45,6 +45,10 @@ interface Element : Node {
   void setAttribute(DOMString name, DOMString value);
   [Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
+  [Throws]
+  Attr? setAttributeNode(Attr newAttr);
+  [Throws]
+  Attr? setAttributeNodeNS(Attr newAttr);
   void removeAttribute(DOMString name);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
   boolean hasAttribute(DOMString name);
