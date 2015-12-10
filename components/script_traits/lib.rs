@@ -25,12 +25,13 @@ extern crate util;
 
 use app_units::Au;
 use devtools_traits::ScriptToDevtoolsControlMsg;
+use euclid::Size2D;
 use euclid::length::Length;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
+use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
@@ -291,4 +292,34 @@ pub trait ScriptTaskFactory {
     /// Clone the `Sender` in `pair`.
     fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
                             -> Box<Any + Send>;
+}
+
+/// Messages sent from the script thread to the compositor
+#[derive(Deserialize, Serialize)]
+pub enum ScriptToCompositorMsg {
+    /// Scroll a page in a window
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
+    /// Sends this document's title to the compositor.
+    SetTitle(PipelineId, Option<String>),
+    /// Sends an unconsumed key event back to the compositor.
+    SendKeyEvent(Key, KeyState, KeyModifiers),
+    /// Get Window Informations size and position
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    /// Move the window to a point
+    MoveTo(Point2D<i32>),
+    /// Resize the window to size
+    ResizeTo(Size2D<u32>),
+    /// Script has handled a touch event, and either prevented or allowed default actions.
+    TouchEventProcessed(EventResult),
+    /// Requests that the compositor shut down.
+    Exit,
+}
+
+/// Whether a DOM event was prevented by web content
+#[derive(Deserialize, Serialize)]
+pub enum EventResult {
+    /// Allowed
+    DefaultAllowed,
+    /// Prevented
+    DefaultPrevented,
 }
