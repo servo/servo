@@ -112,7 +112,7 @@
 	<div class="region smallbox" id="region3">
 		<p></p>
 	</div>
-	
+
 	<div class="" id="result"></div>
 	<script type="text/javascript">
 	var calls = { totalCalls: 0, individualCalls: {} },
@@ -128,7 +128,7 @@
 		return function(evt) {
 			calls.totalCalls++;
 			calls.individualCalls[item].calls++;
-			
+
 			if (calls.totalCalls == 9) {
 				var pass = true;
 				for (var c in calls.individualCalls) {
@@ -171,7 +171,7 @@
 		if (window.testRunner) {
 			testRunner.dumpAsText();
 			testRunner.waitUntilDone();
-			
+
 			contentSelectors.forEach(function(item) {
 				testRegion(item);
 			})
@@ -195,5 +195,6 @@
 
 	runScriptedTest(contents);
 	</script>
+
 
 </body></html>

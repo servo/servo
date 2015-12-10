@@ -41,7 +41,7 @@
   W == max(0, (3em) / 3);
   W == max(0, 1em);
   W == 1em;
-  
+
   So, the used column-width in this test is 1em.
   */
 
@@ -53,20 +53,20 @@
   /*
   Since
   "
-  Content in the normal flow that extends into 
-  column gaps (e.g., long words or images) is 
-  clipped in the middle of the column gap. 
+  Content in the normal flow that extends into
+  column gaps (e.g., long words or images) is
+  clipped in the middle of the column gap.
   "
   http://www.w3.org/TR/css3-multicol/#overflow-inside-multicol-elements
-  this causes the right-half (0.5em) of the 'K' glyph to 
-  be overlapped by the right-half (0.75em) of the 1st blue column-rule. 
+  this causes the right-half (0.5em) of the 'K' glyph to
+  be overlapped by the right-half (0.75em) of the 1st blue column-rule.
   Same thing should happen to the 'N' glyph of 'ORAN'.
-  
-  Because no inline content should be rendered into the 
-  3rd column box, this causes the 2nd column rule not 
+
+  Because no inline content should be rendered into the
+  3rd column box, this causes the 2nd column rule not
   been rendered because
   "
-  Column rules are only drawn between two columns that 
+  Column rules are only drawn between two columns that
   both have content.
   "
   http://www.w3.org/TR/css3-multicol/#column-gaps-and-rules

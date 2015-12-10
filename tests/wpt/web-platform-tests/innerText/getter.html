@@ -13,13 +13,25 @@
 .first-letter-float::first-letter { float:left; }
 </style>
 <div id="container"></div>
+<svg id="svgContainer"></svg>
 <script>
 function testText(html, expectedPlain, msg) {
+  textTextInContainer(container, html, expectedPlain, msg);
+}
+function testTextInSVG(html, expectedPlain, msg) {
+  textTextInContainer(svgContainer, html, expectedPlain, msg);
+}
+function textTextInContainer(cont, html, expectedPlain, msg) {
   test(function() {
     container.innerHTML = html;
+    if (cont != container) {
+      while (container.firstChild) {
+        cont.appendChild(container.firstChild);
+      }
+    }
     var e = document.getElementById('target');
     if (!e) {
-      e = container.firstChild;
+      e = cont.firstChild;
     }
     var pokes = document.getElementsByClassName('poke');
     for (var i = 0; i < pokes.length; ++i) {
@@ -40,6 +52,7 @@ function testText(html, expectedPlain, msg) {
       e = e.nextSibling;
     }
     assert_equals(e.innerText, expectedPlain);
+    cont.textContent = '';
   }, msg);
 }
 </script>

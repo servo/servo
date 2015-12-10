@@ -7,10 +7,10 @@
   <meta content="Testing Serialization of Shorthand Values" name="assert">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-</head>         
+</head>
 <body>
     <div id="cssomtestElm"></div>
-    <div id="log"></div>    
+    <div id="log"></div>
     <script>
     var tests = {
       'border': [
@@ -56,26 +56,26 @@
 
     var testElm = document.getElementById('cssomtestElm');
     for (var test in tests) {
-      
+
       console.log(test);
 
       if(tests.hasOwnProperty(test)) {
-        results[test] = [];        
+        results[test] = [];
         var propertyTests = tests[test];
-        
+
         for (i = 0; i < propertyTests.length; i++) {
           document.getElementById('cssomtestElm').setAttribute('style', propertyTests[i][0]);
           results[test].push([
-            test + ' is expected to be ' + propertyTests[i][1], 
+            test + ' is expected to be ' + propertyTests[i][1],
             document.getElementById('cssomtestElm').style.cssText,
             propertyTests[i][1]
           ]);
         }
 
         generate_tests(assert_equals, results[test]);
-      }      
+      }
     }
-    
+
     </script>
  
  

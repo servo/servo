@@ -6,51 +6,33 @@
     <link href="http://www.w3.org/TR/cssom/#the-cssrule-interface" rel="help" />
     <link href="http://www.w3.org/TR/cssom/#the-cssimportrule-interface" rel="help" />
     <meta content="dom" name="flags" />
-    <meta content="All properties for this CSSImportRule instance of CSSRule are initialized correctly" name="assert" /> 
+    <meta content="All properties for this CSSImportRule instance of CSSRule are initialized correctly" name="assert" />
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    
+
     <style type="text/css" id="styleElement">
     	@import url("support/a-green.css");
     	@import url("support/a-green.css") screen;
     </style>
-
-    <script id="metadata_cache">/*
-{
-  "CSSRule and CSSImportRule types": { "assert": "rule is an instance of CSSRule and CSSImportRule" },
-  "Rule_type_property": { "assert": "CSSRule type property has correct type and constants" },
-  "CSSRule_properties": {
-    "assert": ["cssText, parentRule, parentStyleSheet properties exist on CSSRule",
-               "type, parentRule, parentStyleSheet properties on CSSRule are readonly"]
-  },
-  "CSSRule_properties_values": { "assert": "type, parentRule, parentStyleSheet initial property values on CSSRule are correct" },
-  "CSSImportRule_properties": {
-    "assert": ["href, media, styleSheet properties exist on CSSImportsRule",
-               "href, media, styleSheet properties are readonly"]
-  },
-  "CSSImportRule_properties_values": { "assert": "Initial values of href, media, styleSheet properties on CSSImportRule are correct" }
-}
-*/</script>
 </head>
 <body>
-	<noscript>Test not run -- JavaScript required.</noscript>
 	<div id="log"></div>
 
 	<script type="text/javascript">
-		var styleSheet = document.getElementById("styleElement").sheet;
-		var ruleList = styleSheet.cssRules;
-
-		var rule = ruleList[0];
-		var ruleWithMedia = ruleList[1];
+		var rule, ruleWithMedia;
+		setup(function() {
+			var styleSheet = document.getElementById("styleElement").sheet;
+			var ruleList = styleSheet.cssRules;
+			rule = ruleList[0];
+			ruleWithMedia = ruleList[1];
+		});
 
 		test(function() {
 			assert_true(rule instanceof CSSRule);
 			assert_true(rule instanceof CSSImportRule);
 			assert_true(ruleWithMedia instanceof CSSRule);
 			assert_true(ruleWithMedia instanceof CSSImportRule);
-		}, "CSSRule and CSSImportRule types",
-		{ assert: "rule is an instance of CSSRule and CSSImportRule" }
-		);
+		}, "CSSRule and CSSImportRule types");
 
 		test(function() {
 			assert_equals(rule.STYLE_RULE, 1);
@@ -59,47 +41,39 @@
 			assert_equals(rule.FONT_FACE_RULE, 5);
 			assert_equals(rule.PAGE_RULE, 6);
 			assert_equals(rule.NAMESPACE_RULE, 10);
-			assert_own_property(rule, "type");
-			assert_true(typeof rule.type === "number");
-		}, "Rule_type_property",
-		{ assert: "CSSRule type property has correct type and constants" }
-		);
+			assert_idl_attribute(rule, "type");
+			assert_equals(typeof rule.type, "number");
+		}, "Type of CSSRule#type and constant values");
 
 		test(function() {
 			assert_true(rule instanceof CSSRule);
-			assert_own_property(rule, "cssText");
-			assert_own_property(rule, "parentRule");
-			assert_own_property(rule, "parentStyleSheet");
+			assert_idl_attribute(rule, "cssText");
+			assert_idl_attribute(rule, "parentRule");
+			assert_idl_attribute(rule, "parentStyleSheet");
 
 			assert_readonly(rule, "type");
 			assert_readonly(rule, "parentRule");
 			assert_readonly(rule, "parentStyleSheet");
-		}, "CSSRule_properties",
-		{ assert: ["cssText, parentRule, parentStyleSheet properties exist on CSSRule", "type, parentRule, parentStyleSheet properties on CSSRule are readonly"] }
-		);
+		}, "Existence and writability of CSSRule attributes");
 
 		test(function() {
 			assert_equals(rule.type, rule.IMPORT_RULE);
 			assert_equals(typeof rule.cssText, "string");
-			assert_equals(rule.cssText, "@import url(\"cssimportrule.css\");");
-			assert_equals(ruleWithMedia.cssText, "@import url(\"cssimportrule.css\") screen;");
+			assert_equals(rule.cssText, '@import url("support/a-green.css");');
+			assert_equals(ruleWithMedia.cssText, '@import url("support/a-green.css") screen;');
 			assert_equals(rule.parentRule, null);
 			assert_true(rule.parentStyleSheet instanceof CSSStyleSheet);
-		}, "CSSRule_properties_values",
-		{ assert: "type, parentRule, parentStyleSheet initial property values on CSSRule are correct" }
-		);
+		}, "Values of CSSRule attributes");
 
 		test(function() {
-			assert_own_property(rule, "href");
-			assert_own_property(rule, "media");
-			assert_own_property(rule, "styleSheet");
+			assert_idl_attribute(rule, "href");
+			assert_idl_attribute(rule, "media");
+			assert_idl_attribute(rule, "styleSheet");
 
 			assert_readonly(rule, "href");
 			assert_readonly(rule, "media");
 			assert_readonly(rule, "styleSheet");
-		}, "CSSImportRule_properties",
-		{ assert: ["href, media, styleSheet properties exist on CSSImportsRule", "href, media, styleSheet properties are readonly"] }
-		);
+		}, "Existence and writability of CSSImportRule attributes");
 
 		test(function() {
 			assert_equals(typeof rule.href, "string");
@@ -107,10 +81,7 @@
 			assert_true(rule.styleSheet instanceof CSSStyleSheet);
 			assert_true(ruleWithMedia.media.length &gt; 0);
 			assert_equals(ruleWithMedia.media.mediaText, "screen");
-		}, "CSSImportRule_properties_values",
-		{ assert: "Initial values of href, media, styleSheet properties on CSSImportRule are correct" }
-		);
-
+		}, "Values of CSSImportRule attributes");
 	</script>
 
 

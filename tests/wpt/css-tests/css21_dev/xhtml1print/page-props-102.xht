@@ -16,7 +16,7 @@
   <meta name="flags" content="paged"/>
   <meta name="assert" content="The right and left pages of a document may use differing margin styles that yield different page area widths, but the UA may adjust the margins such that the page area widths are the same. "/>
   <style type="text/css">
-   
+
     @page :first {
         margin: 7%;
     }
@@ -38,11 +38,11 @@
         padding: 1%;
         page-break-after: always;
     }
- 
+
   .style1 {
     background-color: #ececff;
 }
- 
+
   </style>
  </head>
  <body>
@@ -53,12 +53,12 @@
    This page should have typical right and left margins.  This content is completely enclosed by a blue border and has a pale blue background. A page break follows.
    </div>
    <div class="edged">
-   This content should be entirely on the right side of the page (but might instead 
+   This content should be entirely on the right side of the page (but might instead
    have margins like the first page). It is completely enclosed by a blue border and has a pale blue background. A page break follows.
    </div>
    <div class="edged">
-   This page should have a wide right margin and narrow left margin (but might 
-   instead have margins like the first page). This content has a blue border on all sides and a pale blue background.    
+   This page should have a wide right margin and narrow left margin (but might
+   instead have margins like the first page). This content has a blue border on all sides and a pale blue background.
    </div>
  </body>
 </html>

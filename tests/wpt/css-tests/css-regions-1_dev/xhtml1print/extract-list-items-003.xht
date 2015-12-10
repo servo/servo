@@ -8,14 +8,14 @@
 		<meta content="The flow-into property can be applied to individual list items. List items extracted in named flows and flowed into regions must preserve their numbering, even when extracting items from multiple and nested lists into the same named flow." name="assert" />
 		<link href="reference/extract-list-items-003-ref.xht" rel="match" />
 		<style>
-		#outer-ordered-1 ol, 
+		#outer-ordered-1 ol,
 		#outer-ordered-2 ol {
 			color: blue;
 		}
 		#outer-ordered-2 ol ol {
 			color: green;
 		}
-		
+
 		#outer-ordered-1 &gt; li {
 			flow-into: f1;
 		}
@@ -29,7 +29,7 @@
 		#r2 {
 			flow-from: f2;
 		}
-		
+
 		.region {
 			margin: 2em;
 			background-color: lightgray;
@@ -78,4 +78,5 @@
 		</ol>
 		<div id="r2" class="region"></div>
 	
+
 </body></html>

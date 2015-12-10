@@ -3,8 +3,8 @@
 <title>Woolly le Mouton</title>
 
 <desc>
-Woolly is a sheep, originally drawn by Coralie Mercier on 2 March 2000 
-and scanned and converted to SVG by Bert Bos, between 3 March 2000 and 
+Woolly is a sheep, originally drawn by Coralie Mercier on 2 March 2000
+and scanned and converted to SVG by Bert Bos, between 3 March 2000 and
 5 July 2000.
 </desc>
 
@@ -36,7 +36,7 @@ and scanned and converted to SVG by Bert Bos, between 3 March 2000 and
       Attribution-NonCommercial-NoDerivs 3.0 Unported License. Please,
       contact bert@w3.org or coralie@w3.org for licenses for other
       usages.
-     
+
      </rdf:li>
      <rdf:li xml:lang="zxx" rdf:resource="http://creativecommons.org/licenses/by-nc-nd/3.0/"/>
     </rdf:Bag>

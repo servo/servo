@@ -1,10 +1,10 @@
-#source 
+#source
 {
     flow-into: content;
 }
-#region 
-{ 
-    flow-from: content; 
+#region
+{
+    flow-from: content;
 }
 #start-select
 {
@@ -18,5 +18,5 @@
 {
     width: 15px;
     height: 15px;
-    display: inline-block; 
+    display: inline-block;
 }

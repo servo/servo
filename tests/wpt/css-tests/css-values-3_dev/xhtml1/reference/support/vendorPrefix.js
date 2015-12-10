@@ -1,6 +1,6 @@
-// 
+//
 // Vendor-Prefix Helper Functions For Testing CSS
-// 
+//
 
 (function(root) {
 'use strict';
@@ -21,7 +21,7 @@ root.addVendorPrefix = function (name) {
         // property unknown to browser
         return name;
     }
-    
+
     return prefix + name;
 };
 
@@ -32,7 +32,7 @@ root.addValueVendorPrefix = function (property, value) {
         // property unknown to browser
         return name;
     }
-    
+
     return prefix + value;
 };
 
@@ -41,7 +41,7 @@ root.getVendorPrefix = function(name) {
     if (prefixCache[name] !== undefined) {
         return prefixCache[name];
     }
-    
+
     var elem = document.createElement("div");
     name = camelCase(name);
 
@@ -78,7 +78,7 @@ root.getValueVendorPrefix = function(property, value) {
             return styles[i];
         }
     }
-    document.body.removeChild(elem);    
+    document.body.removeChild(elem);
     return false;
 };
 

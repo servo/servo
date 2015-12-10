@@ -37,8 +37,8 @@ html4/t421-rgb-func-no-mixed-f.htm	58d8f8962ca7202112a6bceefc16b8d321dc98e6	?
 xhtml1/t421-rgb-func-no-mixed-f.xht	58d8f8962ca7202112a6bceefc16b8d321dc98e6	?
 html4/t421-rgb-func-pct-a.htm	5add0103eba682f70d93b79b1ed3747c0b4af646	?
 xhtml1/t421-rgb-func-pct-a.xht	5add0103eba682f70d93b79b1ed3747c0b4af646	?
-html4/t421-rgb-func-whitespace-b.htm	3e366a45ef9a3e743b2492292e432169150d21ee	?
-xhtml1/t421-rgb-func-whitespace-b.xht	3e366a45ef9a3e743b2492292e432169150d21ee	?
+html4/t421-rgb-func-whitespace-b.htm	1868e7beb59b7241d6a6f4390e2d5ccdc3884203	?
+xhtml1/t421-rgb-func-whitespace-b.xht	1868e7beb59b7241d6a6f4390e2d5ccdc3884203	?
 html4/t421-rgb-hex-parsing-f.htm	ffa01da21d7b1904019fba4d6d0d80f71d3225c7	?
 xhtml1/t421-rgb-hex-parsing-f.xht	ffa01da21d7b1904019fba4d6d0d80f71d3225c7	?
 html4/t421-rgb-hex3-a.htm	fd3bc49a6a605d0cb7612a6ea11f47ba46d0ac71	?
@@ -67,8 +67,8 @@ html4/t422-rgba-func-no-mixed-f.htm	5bbf7a4022a4dc5cbeb5f547bcdef0e2d219aa5d	?
 xhtml1/t422-rgba-func-no-mixed-f.xht	5bbf7a4022a4dc5cbeb5f547bcdef0e2d219aa5d	?
 html4/t422-rgba-func-pct-a.htm	77a7a0635ea9dde798b68b7e038701e5a48b4f98	?
 xhtml1/t422-rgba-func-pct-a.xht	77a7a0635ea9dde798b68b7e038701e5a48b4f98	?
-html4/t422-rgba-func-whitespace-b.htm	021b588bed4dfb5b9b70ccda0b8d1873ea2f7a9f	?
-xhtml1/t422-rgba-func-whitespace-b.xht	021b588bed4dfb5b9b70ccda0b8d1873ea2f7a9f	?
+html4/t422-rgba-func-whitespace-b.htm	15b094b524ae8ffa9c73e9f2f91cc6d622823cd8	?
+xhtml1/t422-rgba-func-whitespace-b.xht	15b094b524ae8ffa9c73e9f2f91cc6d622823cd8	?
 html4/t422-rgba-onscreen-b.htm	4087bf377ee761d5ff280ba198a34b8817374b5e	?
 xhtml1/t422-rgba-onscreen-b.xht	4087bf377ee761d5ff280ba198a34b8817374b5e	?
 html4/t422-rgba-onscreen-multiple-boxes-c.htm	b2ce21a8ae7e86d68ba68b8fd6dc88de43493cbc	?
@@ -135,8 +135,8 @@ html4/t43-svg-keywords-a.htm	c830e1735dca8a77c20f0731d615f3dfd6ce364f	?
 xhtml1/t43-svg-keywords-a.xht	c830e1735dca8a77c20f0731d615f3dfd6ce364f	?
 html4/t44-currentcolor-background-b.htm	fc1433549485db7f06b9df4ca4c3d30b53e1eca0	?
 xhtml1/t44-currentcolor-background-b.xht	fc1433549485db7f06b9df4ca4c3d30b53e1eca0	?
-html4/t44-currentcolor-border-b.htm	5fada0ace6d1b60ad6afe5fd28ceed608beef7de	?
-xhtml1/t44-currentcolor-border-b.xht	5fada0ace6d1b60ad6afe5fd28ceed608beef7de	?
+html4/t44-currentcolor-border-b.htm	b6e904eb2f3856b7c07c5e3c70c97a46435c5b40	?
+xhtml1/t44-currentcolor-border-b.xht	b6e904eb2f3856b7c07c5e3c70c97a46435c5b40	?
 html4/t44-currentcolor-inherited-c.htm	90e6c9ee589dfa206bedd1632ab2e50350368bc9	?
 xhtml1/t44-currentcolor-inherited-c.xht	90e6c9ee589dfa206bedd1632ab2e50350368bc9	?
 html4/t451-system-colors-a.htm	e5e856d0b4ae3369297b075aef01bd1fae655c84	?

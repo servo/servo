@@ -72,6 +72,10 @@ testText("<div style='display:none'>abc", "abc", "display:none container");
 testText("<div style='display:none'>abc  def", "abc  def", "No whitespace compression in display:none container");
 testText("<div style='display:none'> abc def ", " abc def ", "No removal of leading/trailing whitespace in display:none container");
 testText("<div>123<span style='display:none'>abc", "123", "display:none child not rendered");
+testText("<div style='display:none'><span id='target'>abc", "abc", "display:none container with non-display-none target child");
+testTextInSVG("<div id='target'>abc", "", "non-display-none child of svg");
+testTextInSVG("<div style='display:none' id='target'>abc", "abc", "display:none child of svg");
+testTextInSVG("<div style='display:none'><div id='target'>abc", "abc", "child of display:none child of svg");
 
 /**** display:contents ****/
 

@@ -3014,6 +3014,18 @@ core-syntax-006.xht == reference/core-syntax-006-ref.xht
 core-syntax-007.xht == reference/core-syntax-007-ref.xht
 core-syntax-008.xht == reference/ref-this-text-should-be-green.xht
 core-syntax-009.xht == reference/ref-this-text-should-be-green.xht
+counter-increment-005.xht == reference/pass-if-number-0-30px.xht
+counter-increment-006.xht == reference/pass-if-number-0-30px.xht
+counter-increment-007.xht == reference/pass-if-number-0-30px.xht
+counter-increment-018.xht == reference/pass-if-number-0-30px.xht
+counter-increment-019.xht == reference/pass-if-number-0-30px.xht
+counter-increment-020.xht == reference/pass-if-number-0-30px.xht
+counter-increment-031.xht == reference/pass-if-number-0-30px.xht
+counter-increment-032.xht == reference/pass-if-number-0-30px.xht
+counter-increment-033.xht == reference/pass-if-number-0-30px.xht
+counter-increment-044.xht == reference/pass-if-number-0-30px.xht
+counter-increment-045.xht == reference/pass-if-number-0-30px.xht
+counter-increment-046.xht == reference/pass-if-number-0-30px.xht
 counter-increment-applies-to-001.xht == reference/pass_if_number_5.xht
 counter-increment-applies-to-002.xht == reference/pass_if_number_5.xht
 counter-increment-applies-to-003.xht == reference/pass_if_number_5.xht
@@ -3029,6 +3041,22 @@ counter-increment-applies-to-013.xht == reference/pass_if_number_5.xht
 counter-increment-applies-to-014.xht == reference/pass_if_number_5.xht
 counter-increment-applies-to-015.xht == reference/pass_if_number_5.xht
 counter-increment-visibility-001.xht == reference/pass_if_number_5.xht
+counter-reset-005.xht == reference/pass-if-number-0-30px.xht
+counter-reset-006.xht == reference/pass-if-number-0-30px.xht
+counter-reset-007.xht == reference/pass-if-number-0-30px.xht
+counter-reset-014.xht == reference/pass-if-number-0-30px.xht
+counter-reset-018.xht == reference/pass-if-number-0-30px.xht
+counter-reset-019.xht == reference/pass-if-number-0-30px.xht
+counter-reset-020.xht == reference/pass-if-number-0-30px.xht
+counter-reset-027.xht == reference/pass-if-number-0-30px.xht
+counter-reset-031.xht == reference/pass-if-number-0-30px.xht
+counter-reset-032.xht == reference/pass-if-number-0-30px.xht
+counter-reset-033.xht == reference/pass-if-number-0-30px.xht
+counter-reset-040.xht == reference/pass-if-number-0-30px.xht
+counter-reset-044.xht == reference/pass-if-number-0-30px.xht
+counter-reset-045.xht == reference/pass-if-number-0-30px.xht
+counter-reset-046.xht == reference/pass-if-number-0-30px.xht
+counter-reset-055.xht == reference/pass-if-number-0-30px.xht
 counter-reset-applies-to-001.xht == reference/pass_if_number_5.xht
 counter-reset-applies-to-002.xht == reference/pass_if_number_5.xht
 counter-reset-applies-to-003.xht == reference/pass_if_number_5.xht
@@ -3567,9 +3595,32 @@ font-style-applies-to-002.xht == reference/font-style-applies-to-001-ref.xht
 font-style-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-style-applies-to-017.xht == reference/font-style-applies-to-001-ref.xht
 font-variant-001.xht == reference/font-variant-001-ref.xht
+font-variant-applies-to-001.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-002.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-004.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-005.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-006.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-007.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-008.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-009.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-010.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-011.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-014.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
+font-variant-applies-to-015.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
 font-variant-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
+font-variant-applies-to-017.xht == reference/pass_if_filler_text_match_smallcaps.xht != reference/pass_if_filler_text_match.xht
 font-weight-applies-to-001.xht == reference/font-weight-bold-ref.xht
 font-weight-applies-to-002.xht == reference/font-weight-bold-ref.xht
+font-weight-applies-to-004.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-005.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-006.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-007.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-008.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-009.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-010.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-011.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-014.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
+font-weight-applies-to-015.xht == reference/pass_if_filler_text_match_bold.xht != reference/pass_if_filler_text_match.xht
 font-weight-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-weight-applies-to-017.xht == reference/font-weight-bold-ref.xht
 font-weight-bolder-001.xht == reference/font-weight-bolder-001-ref.xht
@@ -3745,6 +3796,8 @@ inline-block-alignment-004.xht == reference/inline-block-alignment-002-ref.xht
 inline-block-alignment-005.xht == reference/inline-block-alignment-003-ref.xht
 inline-block-alignment-006.xht == reference/inline-block-alignment-006-ref.xht
 inline-block-alignment-007.xht == reference/inline-block-alignment-006-ref.xht
+inline-block-alignment-slr-009.xht == reference/inline-block-alignment-slr-009-ref.xht
+inline-block-alignment-srl-008.xht == reference/inline-block-alignment-006-ref.xht
 inline-block-height-001.xht == reference/inline-block-height-001-ref.xht
 inline-block-height-002.xht == reference/inline-block-height-002-ref.xht
 inline-block-non-replaced-height-001.xht == reference/height-percentage-001-ref.xht
@@ -4050,10 +4103,36 @@ line-height-bleed-002.xht == reference/line-height-bleed-002-ref.xht
 list-style-019.xht == reference/list-style-019-ref.xht
 list-style-020.xht == reference/list-style-020-ref.xht
 list-style-021.xht == reference/list-style-021-ref.xht
+list-style-applies-to-001.xht == reference/single_square_list_marker.xht
+list-style-applies-to-002.xht == reference/single_square_list_marker.xht
+list-style-applies-to-003.xht == reference/single_square_list_marker.xht
+list-style-applies-to-004.xht == reference/single_square_list_marker.xht
+list-style-applies-to-007.xht == reference/single_square_list_marker.xht
+list-style-applies-to-008.xht == reference/single_square_list_marker.xht
+list-style-applies-to-009.xht == reference/single_square_list_marker.xht
+list-style-applies-to-010.xht == reference/single_square_list_marker.xht
+list-style-applies-to-011.xht == reference/single_square_list_marker.xht
+list-style-applies-to-012.xht == reference/single_square_list_marker.xht
+list-style-applies-to-013.xht == reference/single_square_list_marker.xht
+list-style-applies-to-014.xht == reference/single_square_list_marker.xht
+list-style-applies-to-015.xht == reference/single_square_list_marker.xht
 list-style-image-004.xht == reference/list-style-image-004-ref.xht
 list-style-image-005.xht == reference/list-style-image-005-ref.xht
 list-style-position-023.xht == reference/list-style-position-023-ref.xht
 list-style-position-024.xht == reference/list-style-position-024-ref.xht
+list-style-type-applies-to-001.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-002.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-003.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-004.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-007.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-008.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-009.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-010.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-011.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-012.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-013.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-014.xht == reference/single_square_list_marker.xht
+list-style-type-applies-to-015.xht == reference/single_square_list_marker.xht
 ltr-basic.xht == reference/left-ltr-ref.xht
 ltr-ib.xht == reference/left-ltr-ref.xht
 ltr-span-only.xht == reference/right-ltr-ref.xht

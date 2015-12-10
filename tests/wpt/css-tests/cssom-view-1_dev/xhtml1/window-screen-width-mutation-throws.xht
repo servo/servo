@@ -4,9 +4,9 @@
     <link href="mailto:neils.christoffersen@gmail.com" rel="author" title="Neils Christoffersen" />
     <link href="http://www.w3.org/TR/cssom-view/#the-screen-interface" rel="help" />
     <meta content="dom" name="flags" />
-    <meta content="screen.width mutation throws exception" name="assert" /> 
+    <meta content="screen.width mutation throws exception" name="assert" />
     <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script> 
+    <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
     <div id="myDiv"></div>
@@ -14,10 +14,10 @@
     <script>
 		test(function() {
 			assert_throws(null, function() {
-				window.screen.width = 0 
+				window.screen.width = 0
 			}), "chaning window.screen.width should throw exception"
-		}, "mutation exception test");		
-    </script>    
+		}, "mutation exception test");
+    </script>
 
 
 </body></html>

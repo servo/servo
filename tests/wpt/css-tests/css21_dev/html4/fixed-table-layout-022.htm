@@ -25,22 +25,22 @@
   width: 533px;
 
   /*
-  "With this (fast) algorithm, the horizontal layout of 
-  the table does not depend on the contents of the cells; 
-  it only depends on the table's width, the width of 
+  "With this (fast) algorithm, the horizontal layout of
+  the table does not depend on the contents of the cells;
+  it only depends on the table's width, the width of
   the columns, and [table] borders or cell spacing."
-  
+
   So,
 
     533px : total table width
-  -  
+  -
      58px : total horizontal border-spacing width
   -
      75px : total horizontal border-spacing width
   ========
-    400px : total to split among the 4 columns      
+    400px : total to split among the 4 columns
   */
-  
+
   }
 
   col#first
@@ -55,7 +55,7 @@
   background-color: olive;
   width: 100px;
   }
-  
+
   col#third
   {
   background-color: orange;
@@ -66,11 +66,11 @@
   300px - (52px + 124px) = 124px for last column
   */
   }
-  
-  col#fourth {background-color: lime;}  
-  
+
+  col#fourth {background-color: lime;}
+
   td {padding: 1px 10px;}
-  
+
   td#first-cell {color: fuchsia;}
 
   td#second-cell {color: olive;}
@@ -80,14 +80,14 @@
   td#fourth-cell {color: lime;}
 
   div {padding: 1px 0px;}
-  
+
   div#reference1st
   {
   background-color: fuchsia;
   color: fuchsia;
   left: 44px; /* 29px border-left of table + 15px border-spacing == 44px */
   position: relative;
-  width: 52px;  
+  width: 52px;
   }
 
   div#reference2nd
@@ -95,20 +95,20 @@
   background-color: olive;
   bottom: 1.1em;
   color: olive;
-  left: 111px; 
-  /* 
-    29px : border-left of table 
-  + 
-    15px : 1st border-spacing 
-  + 
+  left: 111px;
+  /*
+    29px : border-left of table
+  +
+    15px : 1st border-spacing
+  +
     52px : width of first column
-  + 
-    15px border-spacing 
-  ====== 
-   111px 
+  +
+    15px border-spacing
+  ======
+   111px
   */
   position: relative;
-  width: 100px;  
+  width: 100px;
   }
 
   div#reference3rd
@@ -116,24 +116,24 @@
   background-color: orange;
   bottom: 2.2em;
   color: orange;
-  left: 226px; 
-  /* 
-    29px : border-left of table 
-  + 
-    15px : 1st border-spacing 
-  + 
+  left: 226px;
+  /*
+    29px : border-left of table
+  +
+    15px : 1st border-spacing
+  +
     52px : width of first column
-  + 
-    15px : 2nd border-spacing 
-  + 
+  +
+    15px : 2nd border-spacing
+  +
    100px : width of second column
-  + 
-    15px : 3rd border-spacing 
-  ======= 
-   226px 
+  +
+    15px : 3rd border-spacing
+  =======
+   226px
   */
   position: relative;
-  width: 124px;  
+  width: 124px;
   }
 
   div#reference4th
@@ -141,28 +141,28 @@
   background-color: lime;
   bottom: 3.3em;
   color: lime;
-  left: 365px; 
-  /* 
-    29px : border-left of table 
-  + 
-    15px : 1st border-spacing 
-  + 
+  left: 365px;
+  /*
+    29px : border-left of table
+  +
+    15px : 1st border-spacing
+  +
     52px : width of first column
-  + 
-    15px : 2nd border-spacing 
-  + 
+  +
+    15px : 2nd border-spacing
+  +
    100px : width of second column
-  + 
-    15px : 3rd border-spacing 
-  + 
+  +
+    15px : 3rd border-spacing
+  +
    124px : width of third column
-  + 
-    15px : 4th border-spacing 
-  ======= 
-   365px 
+  +
+    15px : 4th border-spacing
+  =======
+   365px
   */
   position: relative;
-  width: 124px;  
+  width: 124px;
   }
   </style>
 
@@ -189,7 +189,7 @@
   </table>
 
   <div id="reference1st">ref</div>
-  
+
   <div id="reference2nd">ref</div>
 
   <div id="reference3rd">ref</div>
