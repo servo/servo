@@ -5,7 +5,6 @@
 #![feature(core)]
 #![feature(nonzero)]
 #![feature(slice_bytes)]
-#![feature(vec_push_all)]
 #![feature(plugin)]
 #![plugin(plugins)]
 

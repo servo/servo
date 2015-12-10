@@ -8,7 +8,6 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![feature(vec_push_all)]
 #![feature(custom_attribute)]
 #![plugin(serde_macros, plugins)]
 
@@ -423,7 +422,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: 
     let mut buf = vec!();
     loop {
         match response.progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => buf.push_all(&data),
+            ProgressMsg::Payload(data) => buf.extend_from_slice(&data),
             ProgressMsg::Done(Ok(())) => return Ok((response.metadata, buf)),
             ProgressMsg::Done(Err(e)) => return Err(e)
         }

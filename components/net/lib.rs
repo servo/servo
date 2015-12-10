@@ -6,7 +6,6 @@
 #![feature(fnbox)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(vec_push_all)]
 #![feature(plugin)]
 #![plugin(plugins)]
 
