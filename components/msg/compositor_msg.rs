@@ -5,6 +5,7 @@
 use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use euclid::{Matrix4, Point2D, Rect, Size2D};
+use gfx_traits::ScrollPolicy;
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
@@ -82,21 +83,6 @@ impl LayerId {
         let LayerId(layer_type, id, companion) = *self;
         LayerId(layer_type, id, companion + 1)
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum LayerKind {
-    NoTransform,
-    HasTransform,
-}
-
-/// The scrolling policy of a layer.
-#[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize, Debug, HeapSizeOf)]
-pub enum ScrollPolicy {
-    /// These layers scroll when the parent receives a scrolling message.
-    Scrollable,
-    /// These layers do not scroll when the parent receives a scrolling message.
-    FixedPosition,
 }
 
 /// All layer-specific information that the painting task sends to the compositor other than the

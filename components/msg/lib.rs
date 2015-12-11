@@ -12,6 +12,7 @@ extern crate bitflags;
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
 extern crate euclid;
+extern crate gfx_traits;
 extern crate hyper;
 #[cfg(target_os = "macos")]
 extern crate io_surface;

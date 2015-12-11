@@ -655,6 +655,10 @@ name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
  "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
+ "plugins 0.0.1",
+ "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
 ]
 
 [[package]]
@@ -1114,6 +1118,7 @@ dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gfx_traits 0.0.1",
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "io-surface 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",

@@ -24,6 +24,9 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies.plugins]
 path = "../plugins"
 
+[dependencies.gfx_traits]
+path = "../gfx_traits"
+
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 bitflags = "0.3"

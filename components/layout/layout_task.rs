@@ -27,14 +27,14 @@ use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, Stac
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
-use gfx_traits::color;
+use gfx_traits::{color, ScrollPolicy};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::LayoutTaskFactory;
 use log;
-use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
+use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
 use parallel::{self, WorkQueueData};
