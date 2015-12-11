@@ -379,20 +379,6 @@ pub unsafe extern "C" fn throwing_constructor(cx: *mut JSContext,
 /// An array of *mut JSObject of size PrototypeList::ID::Count
 pub type ProtoOrIfaceArray = [*mut JSObject; PrototypeList::ID::Count as usize];
 
-/// Construct and cache the ProtoOrIfaceArray for the given global.
-/// Fails if the argument is not a DOM global.
-pub fn initialize_global(global: *mut JSObject) {
-    let proto_array: Box<ProtoOrIfaceArray> =
-        box [0 as *mut JSObject; PrototypeList::ID::Count as usize];
-    unsafe {
-        assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = Box::into_raw(proto_array);
-        JS_SetReservedSlot(global,
-                           DOM_PROTOTYPE_SLOT,
-                           PrivateValue(box_ as *const libc::c_void));
-    }
-}
-
 /// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
@@ -583,10 +569,18 @@ pub fn create_dom_global(cx: *mut JSContext,
         if obj.ptr.is_null() {
             return ptr::null_mut();
         }
-        let _ac = JSAutoCompartment::new(cx, obj.ptr);
+
+        // Initialize the reserved slots before doing amything that can GC, to
+        // avoid getting trace hooks called on a partially initialized object.
         JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT, PrivateValue(private));
+        let proto_array: Box<ProtoOrIfaceArray> =
+            box [0 as *mut JSObject; PrototypeList::ID::Count as usize];
+        JS_SetReservedSlot(obj.ptr,
+                           DOM_PROTOTYPE_SLOT,
+                           PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
+
+        let _ac = JSAutoCompartment::new(cx, obj.ptr);
         JS_InitStandardClasses(cx, obj.handle());
-        initialize_global(obj.ptr);
         JS_FireOnNewGlobalObject(cx, obj.handle());
         obj.ptr
     }
