@@ -44,7 +44,6 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::mem as std_mem;
 use std::rc::Rc;
-use std::slice::bytes::copy_memory;
 use std::sync::mpsc::Sender;
 use style_traits::viewport::ViewportConstraints;
 use surface_map::SurfaceMap;
@@ -1913,8 +1912,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let dst_start = y * stride;
             let src_start = (height - y - 1) * stride;
             let src_slice = &orig_pixels[src_start .. src_start + stride];
-            copy_memory(&src_slice[..stride],
-                        &mut pixels[dst_start .. dst_start + stride]);
+            (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
         RgbImage::from_raw(width as u32, height as u32, pixels).unwrap()
     }

@@ -5,7 +5,7 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 
-#![feature(ip_addr, plugin)]
+#![feature(plugin)]
 #![plugin(plugins)]
 
 extern crate compositing;
@@ -37,7 +37,7 @@ use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, SocketAddrV4};
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
@@ -63,7 +63,8 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
 pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
     spawn_named("WebdriverHttpServer".to_owned(), move || {
-        server::start(SocketAddr::new("0.0.0.0".parse().unwrap(), port), handler,
+        let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
+        server::start(SocketAddr::V4(address), handler,
                       extension_routes());
     });
 }
