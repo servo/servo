@@ -16,13 +16,12 @@ use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
 use dom::servoxmlparser::ServoXMLParser;
-use dom::text::Text;
 use dom::window::Window;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer;
 use html5ever::tree_builder;
-use html5ever::tree_builder::{NodeOrText, TreeBuilder, TreeBuilderOpts};
+use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
@@ -36,28 +35,12 @@ use std::cell::UnsafeCell;
 use std::default::Default;
 use std::ptr;
 use url::Url;
-use util::str::DOMString;
 
 #[must_root]
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct Sink {
     pub base_url: Option<Url>,
     pub document: JS<Document>,
-}
-
-impl Sink {
-    #[allow(unrooted_must_root)] // method is only run at parse time
-    pub fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node> {
-        match child {
-            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
-            NodeOrText::AppendText(t) => {
-                // FIXME(ajeffrey): convert directly from tendrils to DOMStrings
-                let s: String = t.into();
-                let text = Text::new(DOMString::from(s), &self.document);
-                Root::upcast(text)
-            }
-        }
-    }
 }
 
 /// FragmentContext is used only to pass this group of related values
