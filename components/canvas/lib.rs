@@ -4,7 +4,6 @@
 
 #![feature(clone_from_slice)]
 #![feature(nonzero)]
-#![feature(slice_bytes)]
 #![feature(plugin)]
 #![plugin(plugins)]
 

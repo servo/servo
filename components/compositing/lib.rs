@@ -6,7 +6,6 @@
 #![feature(clone_from_slice)]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![feature(slice_bytes)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]
