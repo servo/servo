@@ -577,12 +577,20 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let mut buf = String::new();
                 buf.push_str(&referer_url.scheme);
                 buf.push_str("://");
-                referer_url.serialize_host().map(|ref h| buf.push_str(h));
-                referer_url.port().as_ref().map(|&p| {
+
+                if let Some(ref h) = referer_url.serialize_host() {
+                    buf.push_str(h);
+                }
+
+                if let Some(ref p) = referer_url.port().as_ref() {
                     buf.push_str(":");
                     buf.push_str(&p.to_string());
-                });
-                referer_url.serialize_path().map(|ref h| buf.push_str(h));
+                }
+
+                if let Some(ref h) = referer_url.serialize_path() {
+                    buf.push_str(h);
+                }
+
                 self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![buf.into_bytes()]);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
