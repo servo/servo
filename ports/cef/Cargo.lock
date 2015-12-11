@@ -316,7 +316,7 @@ dependencies = [
 [[package]]
 name = "core-text"
 version = "0.1.0"
-source = "git+https://github.com/servo/core-text-rs#d97cd4ae33509857f956e64c71f43cc71c98430f"
+source = "git+https://github.com/servo/core-text-rs#1f4f3756bb053688fe3ac8b80a2d13dc875caeef"
 dependencies = [
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
