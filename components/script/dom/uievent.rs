@@ -15,6 +15,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
+use string_cache::Atom;
 use util::str::DOMString;
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
@@ -91,7 +92,7 @@ impl UIEventMethods for UIEvent {
             return;
         }
 
-        event.InitEvent(type_, can_bubble, cancelable);
+        event.init_event(Atom::from(&*type_), can_bubble, cancelable);
         self.view.set(view);
         self.detail.set(detail);
     }

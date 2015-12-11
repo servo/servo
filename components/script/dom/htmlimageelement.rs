@@ -78,7 +78,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Fire image.onload
         let window = window_from_node(document.r());
         let event = Event::new(GlobalRef::Window(window.r()),
-                               DOMString::from("load"),
+                               atom!("load"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(element.upcast());

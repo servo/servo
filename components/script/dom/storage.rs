@@ -189,7 +189,7 @@ impl MainThreadRunnable for StorageEventRunnable {
 
         let storage_event = StorageEvent::new(
             global_ref,
-            DOMString::from("storage"),
+            atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
             DOMString::from(ev_url.to_string()),

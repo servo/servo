@@ -27,6 +27,7 @@ use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
 use std::cell::Cell;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
+use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -119,10 +120,10 @@ impl FileReader {
         let exception = DOMException::new(global.r(), error);
         fr.error.set(Some(&exception));
 
-        fr.dispatch_progress_event("error".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("error"), 0, None);
         return_on_abort!();
         // Step 3
-        fr.dispatch_progress_event("loadend".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("loadend"), 0, None);
         return_on_abort!();
         // Step 4
         fr.terminate_ongoing_reading();
@@ -141,7 +142,7 @@ impl FileReader {
         );
         return_on_abort!();
         //FIXME Step 7 send current progress
-        fr.dispatch_progress_event("progress".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("progress"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -157,7 +158,7 @@ impl FileReader {
         );
         return_on_abort!();
         // Step 6
-        fr.dispatch_progress_event("loadstart".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("loadstart"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -187,11 +188,11 @@ impl FileReader {
         *fr.result.borrow_mut() = Some(output);
 
         // Step 8.3
-        fr.dispatch_progress_event("load".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("load"), 0, None);
         return_on_abort!();
         // Step 8.4
         if fr.ready_state.get() != FileReaderReadyState::Loading {
-            fr.dispatch_progress_event("loadend".to_owned(), 0, None);
+            fr.dispatch_progress_event(atom!("loadend"), 0, None);
         }
         return_on_abort!();
         // Step 9
@@ -297,8 +298,8 @@ impl FileReaderMethods for FileReader {
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
-        self.dispatch_progress_event("abort".to_owned(), 0, None);
-        self.dispatch_progress_event("loadend".to_owned(), 0, None);
+        self.dispatch_progress_event(atom!("abort"), 0, None);
+        self.dispatch_progress_event(atom!("loadend"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
@@ -319,11 +320,11 @@ impl FileReaderMethods for FileReader {
 
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: String, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-            DOMString::from(type_), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
     }
@@ -346,7 +347,7 @@ impl FileReader {
             let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
             self.error.set(Some(&exception));
 
-            self.dispatch_progress_event("error".to_owned(), 0, None);
+            self.dispatch_progress_event(atom!("error"), 0, None);
             return Ok(());
         }
 

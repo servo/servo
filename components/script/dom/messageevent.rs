@@ -15,6 +15,7 @@ use dom::eventtarget::EventTarget;
 use js::jsapi::{RootedValue, HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::default::Default;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -47,14 +48,14 @@ impl MessageEvent {
         reflect_dom_object(ev, global, MessageEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef, type_: DOMString,
+    pub fn new(global: GlobalRef, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
             let event = ev.upcast::<Event>();
-            event.InitEvent(type_, bubbles, cancelable);
+            event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
@@ -66,7 +67,7 @@ impl MessageEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         let data = RootedValue::new(global.get_cx(), init.data);
-        let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(global, Atom::from(&*type_), init.parent.bubbles, init.parent.cancelable,
                                    data.handle(),
                                    init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
@@ -78,7 +79,7 @@ impl MessageEvent {
                           scope: GlobalRef,
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
-            scope, DOMString::from("message"), false, false, message,
+            scope, atom!("message"), false, false, message,
             DOMString::new(), DOMString::new());
         messageevent.upcast::<Event>().fire(target);
     }

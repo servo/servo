@@ -83,11 +83,11 @@ impl Event {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<Event> {
         let event = Event::new_uninitialized(global);
-        event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         event
     }
 
@@ -96,7 +96,23 @@ impl Event {
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
         let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-        Ok(Event::new(global, type_, bubbles, cancelable))
+        Ok(Event::new(global, Atom::from(&*type_), bubbles, cancelable))
+    }
+
+    pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
+        if self.dispatching.get() {
+            return;
+        }
+
+        self.initialized.set(true);
+        self.stop_propagation.set(false);
+        self.stop_immediate.set(false);
+        self.canceled.set(false);
+        self.trusted.set(false);
+        self.target.set(None);
+        *self.type_.borrow_mut() = type_;
+        self.bubbles.set(bubbles);
+        self.cancelable.set(cancelable);
     }
 
     #[inline]
@@ -224,19 +240,7 @@ impl EventMethods for Event {
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
-        if self.dispatching.get() {
-            return;
-        }
-
-        self.initialized.set(true);
-        self.stop_propagation.set(false);
-        self.stop_immediate.set(false);
-        self.canceled.set(false);
-        self.trusted.set(false);
-        self.target.set(None);
-        *self.type_.borrow_mut() = Atom::from(&*type_);
-        self.bubbles.set(bubbles);
-        self.cancelable.set(cancelable);
+         self.init_event(Atom::from(&*type_), bubbles, cancelable)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

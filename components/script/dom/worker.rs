@@ -128,7 +128,7 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let event = Event::new(global.r(),
-                               DOMString::from("error"),
+                               atom!("error"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(worker.upcast());
@@ -139,7 +139,7 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
-        let errorevent = ErrorEvent::new(global.r(), DOMString::from("error"),
+        let errorevent = ErrorEvent::new(global.r(), atom!("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());
         errorevent.upcast::<Event>().fire(worker.upcast());

@@ -12,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -36,7 +37,7 @@ impl WebGLContextEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                status_message: DOMString) -> Root<WebGLContextEvent> {
@@ -47,7 +48,7 @@ impl WebGLContextEvent {
 
         {
             let parent = event.upcast::<Event>();
-            parent.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            parent.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
 
         event
@@ -73,7 +74,7 @@ impl WebGLContextEvent {
             EventCancelable::NotCancelable
         };
 
-        Ok(WebGLContextEvent::new(global, type_,
+        Ok(WebGLContextEvent::new(global, Atom::from(&*type_),
                                   bubbles,
                                   cancelable,
                                   status_message))

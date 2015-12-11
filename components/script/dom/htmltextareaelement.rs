@@ -238,7 +238,7 @@ impl HTMLTextAreaElement {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               DOMString::from("input"),
+                               atom!("input"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
 

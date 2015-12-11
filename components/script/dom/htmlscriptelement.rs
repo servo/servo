@@ -478,25 +478,25 @@ impl HTMLScriptElement {
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
-        self.dispatch_event("beforescriptexecute".to_owned(),
+        self.dispatch_event(atom!("beforescriptexecute"),
                             EventBubbles::Bubbles,
                             EventCancelable::Cancelable)
     }
 
     pub fn dispatch_after_script_execute_event(&self) {
-        self.dispatch_event("afterscriptexecute".to_owned(),
+        self.dispatch_event(atom!("afterscriptexecute"),
                             EventBubbles::Bubbles,
                             EventCancelable::NotCancelable);
     }
 
     pub fn dispatch_load_event(&self) {
-        self.dispatch_event("load".to_owned(),
+        self.dispatch_event(atom!("load"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
     }
 
     pub fn dispatch_error_event(&self) {
-        self.dispatch_event("error".to_owned(),
+        self.dispatch_event(atom!("error"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
     }
@@ -546,15 +546,12 @@ impl HTMLScriptElement {
     }
 
     fn dispatch_event(&self,
-                      type_: String,
+                      type_: Atom,
                       bubbles: EventBubbles,
                       cancelable: EventCancelable) -> bool {
         let window = window_from_node(self);
         let window = window.r();
-        let event = Event::new(GlobalRef::Window(window),
-                               DOMString::from(type_),
-                               bubbles,
-                               cancelable);
+        let event = Event::new(GlobalRef::Window(window), type_, bubbles, cancelable);
         event.fire(self.upcast())
     }
 }

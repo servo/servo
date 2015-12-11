@@ -16,6 +16,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::cell::Cell;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -48,7 +49,7 @@ impl ErrorEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                message: DOMString,
@@ -59,8 +60,8 @@ impl ErrorEvent {
         let ev = ErrorEvent::new_uninitialized(global);
         {
             let event = ev.upcast::<Event>();
-            event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
-                            cancelable == EventCancelable::Cancelable);
+            event.init_event(type_, bubbles == EventBubbles::Bubbles,
+                             cancelable == EventCancelable::Cancelable);
             *ev.message.borrow_mut() = message;
             *ev.filename.borrow_mut() = filename;
             ev.lineno.set(lineno);
@@ -98,7 +99,7 @@ impl ErrorEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         let error = RootedValue::new(global.get_cx(), init.error);
-        let event = ErrorEvent::new(global, type_,
+        let event = ErrorEvent::new(global, Atom::from(&*type_),
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num,

@@ -850,13 +850,13 @@ impl Activatable for HTMLInputElement {
                     let target = self.upcast();
 
                     let event = Event::new(GlobalRef::Window(win.r()),
-                                           DOMString::from("input"),
+                                           atom!("input"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
                     event.fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
-                                           DOMString::from("change"),
+                                           atom!("change"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
                     event.fire(target);
