@@ -613,6 +613,8 @@ name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
  "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
+ "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
 ]
 
 [[package]]

@@ -10,3 +10,10 @@ path = "lib.rs"
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 features = ["plugins"]
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
+
+[dependencies.msg]
+path = "../msg"
