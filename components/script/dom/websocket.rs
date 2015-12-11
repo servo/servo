@@ -464,7 +464,7 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(), DOMString::from("open"),
+        let event = Event::new(global.r(), atom!("open"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(ws.upcast());
@@ -506,7 +506,7 @@ impl Runnable for CloseTask {
             //A Bad close
             ws.clean_close.set(false);
             let event = Event::new(global.r(),
-                                   DOMString::from("error"),
+                                   atom!("error"),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
             event.fire(ws.upcast());
@@ -516,7 +516,7 @@ impl Runnable for CloseTask {
          https://html.spec.whatwg.org/multipage/#closeWebSocket
         */
         let close_event = CloseEvent::new(global.r(),
-                                          DOMString::from("close"),
+                                          atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
                                           ws.clean_close.get(),

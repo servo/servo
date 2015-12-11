@@ -57,6 +57,7 @@ use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
+use string_cache::Atom;
 use time;
 use timers::{ScheduledCallback, TimerHandle};
 use url::{Url, UrlParser};
@@ -505,12 +506,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
             let gen_id = self.generation_id.get();
-            self.dispatch_response_progress_event("loadstart".to_owned());
+            self.dispatch_response_progress_event(atom!("loadstart"));
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
             if !self.upload_complete.get() {
-                self.dispatch_upload_progress_event("loadstart".to_owned(), Some(0));
+                self.dispatch_upload_progress_event(atom!("loadstart"), Some(0));
                 if self.generation_id.get() != gen_id {
                     return Ok(());
                 }
@@ -783,11 +784,12 @@ pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
+        use string_cache::Atom;
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
-                               DOMString::from("readystatechange"),
+                               atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -863,11 +865,11 @@ impl XMLHttpRequest {
                 self.upload_complete.set(true);
                 // Substeps 2-4
                 if !self.sync.get() {
-                    self.dispatch_upload_progress_event("progress".to_owned(), None);
+                    self.dispatch_upload_progress_event(atom!("progress"), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("load".to_owned(), None);
+                    self.dispatch_upload_progress_event(atom!("load"), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("loadend".to_owned(), None);
+                    self.dispatch_upload_progress_event(atom!("loadend"), None);
                     return_if_fetch_was_terminated!();
                 }
                 // Part of step 13, send() (processing response)
@@ -895,7 +897,7 @@ impl XMLHttpRequest {
                         self.change_ready_state(XMLHttpRequestState::Loading);
                         return_if_fetch_was_terminated!();
                     }
-                    self.dispatch_response_progress_event("progress".to_owned());
+                    self.dispatch_response_progress_event(atom!("progress"));
                 }
             },
             XHRProgress::Done(_) => {
@@ -913,11 +915,11 @@ impl XMLHttpRequest {
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12
-                self.dispatch_response_progress_event("progress".to_owned());
+                self.dispatch_response_progress_event(atom!("progress"));
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("load".to_owned());
+                self.dispatch_response_progress_event(atom!("load"));
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("loadend".to_owned());
+                self.dispatch_response_progress_event(atom!("loadend"));
             },
             XHRProgress::Errored(_, e) => {
                 self.cancel_timeout();
@@ -937,18 +939,18 @@ impl XMLHttpRequest {
                 let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event("progress".to_owned(), None);
+                    self.dispatch_upload_progress_event(atom!("progress"), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(errormsg.to_owned(), None);
+                    self.dispatch_upload_progress_event(Atom::from(errormsg), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("loadend".to_owned(), None);
+                    self.dispatch_upload_progress_event(atom!("loadend"), None);
                     return_if_fetch_was_terminated!();
                 }
-                self.dispatch_response_progress_event("progress".to_owned());
+                self.dispatch_response_progress_event(atom!("progress"));
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event(errormsg.to_owned());
+                self.dispatch_response_progress_event(Atom::from(errormsg));
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("loadend".to_owned());
+                self.dispatch_response_progress_event(atom!("loadend"));
             }
         }
     }
@@ -965,10 +967,10 @@ impl XMLHttpRequest {
         self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
     }
 
-    fn dispatch_progress_event(&self, upload: bool, type_: String, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-                                               DOMString::from(type_),
+                                               type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
                                                total.is_some(), loaded,
@@ -981,14 +983,14 @@ impl XMLHttpRequest {
         progressevent.upcast::<Event>().fire(target);
     }
 
-    fn dispatch_upload_progress_event(&self, type_: String, partial_load: Option<u64>) {
+    fn dispatch_upload_progress_event(&self, type_: Atom, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
         let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
-    fn dispatch_response_progress_event(&self, type_: String) {
+    fn dispatch_response_progress_event(&self, type_: Atom) {
         let len = self.response.borrow().len() as u64;
         let total = self.response_headers.borrow().get::<ContentLength>().map(|x| { **x as u64 });
         self.dispatch_progress_event(false, type_, len, total);

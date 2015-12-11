@@ -12,6 +12,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -42,7 +43,7 @@ impl StorageEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                key: Option<DOMString>,
@@ -56,7 +57,7 @@ impl StorageEvent {
                                     StorageEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
-            event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
         ev
     }
@@ -75,7 +76,7 @@ impl StorageEvent {
         } else {
             EventCancelable::NotCancelable
         };
-        let event = StorageEvent::new(global, type_,
+        let event = StorageEvent::new(global, Atom::from(&*type_),
                                       bubbles, cancelable,
                                       key, oldValue, newValue,
                                       url, storageArea);

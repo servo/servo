@@ -144,7 +144,7 @@ impl HTMLIFrameElement {
                 let _ar = JSAutoRequest::new(cx);
                 let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
                 let mut detail = RootedValue::new(cx, UndefinedValue());
-                let event_name = DOMString::from(event.name().to_owned());
+                let event_name = Atom::from(event.name());
                 self.build_mozbrowser_event_detail(event, cx, detail.handle_mut());
                 CustomEvent::new(GlobalRef::Window(window.r()),
                                  event_name,
@@ -210,7 +210,7 @@ impl HTMLIFrameElement {
         // Step 4
         let window = window_from_node(self);
         let event = Event::new(GlobalRef::Window(window.r()),
-                               DOMString::from("load".to_owned()),
+                               atom!("load"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(self.upcast());

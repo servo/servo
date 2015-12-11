@@ -119,7 +119,7 @@ impl WebGLRenderingContext {
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(global,
-                                                   DOMString::from("webglcontextcreationerror"),
+                                                   atom!("webglcontextcreationerror"),
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
                                                    DOMString::from(msg));

@@ -12,6 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use script_task::ScriptChan;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -33,7 +34,7 @@ impl CloseEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                wasClean: bool,
@@ -44,9 +45,9 @@ impl CloseEvent {
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
-            event.InitEvent(type_,
-                            bubbles == EventBubbles::Bubbles,
-                            cancelable == EventCancelable::Cancelable);
+            event.init_event(type_,
+                             bubbles == EventBubbles::Bubbles,
+                             cancelable == EventCancelable::Cancelable);
         }
         ev
     }
@@ -66,7 +67,7 @@ impl CloseEvent {
             EventCancelable::NotCancelable
         };
         Ok(CloseEvent::new(global,
-                           type_,
+                           Atom::from(&*type_),
                            bubbles,
                            cancelable,
                            init.wasClean,

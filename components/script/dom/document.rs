@@ -524,7 +524,7 @@ impl Document {
         self.ready_state.set(state);
 
         let event = Event::new(GlobalRef::Window(&self.window),
-                               DOMString::from("readystatechange"),
+                               atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let target = self.upcast::<EventTarget>();
@@ -1326,7 +1326,7 @@ impl Document {
         update_with_current_time(&self.dom_content_loaded_event_start);
 
         let event = Event::new(GlobalRef::Window(self.window()),
-                               DOMString::from("DOMContentLoaded"),
+                               atom!("DOMContentLoaded"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let doctarget = self.upcast::<EventTarget>();
@@ -2464,7 +2464,7 @@ impl DocumentProgressHandler {
         let document = self.addr.root();
         let window = document.window();
         let event = Event::new(GlobalRef::Window(window),
-                               DOMString::from("load"),
+                               atom!("load"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let wintarget = window.upcast::<EventTarget>();
