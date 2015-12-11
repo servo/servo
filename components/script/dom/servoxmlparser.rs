@@ -11,7 +11,6 @@ use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
 use dom::servohtmlparser::ParserRef;
-use dom::text::Text;
 use dom::window::Window;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
@@ -19,9 +18,8 @@ use parse::Parser;
 use script_task::ScriptTask;
 use std::cell::Cell;
 use url::Url;
-use util::str::DOMString;
 use xml5ever::tokenizer;
-use xml5ever::tree_builder::{self, NodeOrText, XmlTreeBuilder};
+use xml5ever::tree_builder::{self, XmlTreeBuilder};
 
 pub type Tokenizer = tokenizer::XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>>;
 
@@ -32,19 +30,6 @@ pub struct Sink {
     pub document: JS<Document>,
 }
 
-impl Sink {
-    #[allow(unrooted_must_root)] // method is only run at parse time
-    pub fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node> {
-        match child {
-            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
-            NodeOrText::AppendText(t) => {
-                let s: String = t.into();
-                let text = Text::new(DOMString::from(s), &self.document);
-                Root::upcast(text)
-            }
-        }
-    }
-}
 #[must_root]
 #[dom_struct]
 pub struct ServoXMLParser {

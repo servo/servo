@@ -24,6 +24,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{FragmentContext, ServoHTMLParser};
+use dom::text::Text;
 use encoding::types::Encoding;
 use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
@@ -38,6 +39,20 @@ use string_cache::QualName;
 use tendril::StrTendril;
 use url::Url;
 use util::str::DOMString;
+
+fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<Node>>) {
+    match child {
+        NodeOrText::AppendNode(n) => {
+            assert!(parent.InsertBefore(&n, reference_child).is_ok());
+        },
+        NodeOrText::AppendText(t) => {
+            // FIXME(ajeffrey): convert directly from tendrils to DOMStrings
+            let s: String = t.into();
+            let text = Text::new(DOMString::from(s), &parent.owner_doc());
+            assert!(parent.InsertBefore(text.upcast(), reference_child).is_ok());
+        }
+    }
+}
 
 impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;
@@ -91,8 +106,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             None => return Err(new_node),
         };
 
-        let child = self.get_or_create(new_node);
-        assert!(parent.InsertBefore(child.r(), Some(&*sibling)).is_ok());
+        insert(&parent, Some(&*sibling), new_node);
         Ok(())
     }
 
@@ -105,10 +119,8 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
-        let child = self.get_or_create(child);
-
         // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
-        assert!(parent.AppendChild(child.r()).is_ok());
+        insert(&parent, None, child);
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
