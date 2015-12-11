@@ -4,7 +4,6 @@
 
 #![feature(box_syntax)]
 #![feature(custom_derive)]
-#![feature(iter_cmp)]
 #![feature(plugin)]
 #![feature(slice_bytes)]
 #![feature(mpsc_select)]
