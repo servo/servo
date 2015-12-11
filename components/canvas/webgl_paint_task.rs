@@ -13,7 +13,6 @@ use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes};
 use std::borrow::ToOwned;
-use std::slice::bytes::copy_memory;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::vec::byte_swap;
@@ -365,7 +364,7 @@ impl WebGLPaintTask {
             let dst_start = y * stride;
             let src_start = (height - y - 1) * stride;
             let src_slice = &orig_pixels[src_start .. src_start + stride];
-            copy_memory(&src_slice[..stride], &mut pixels[dst_start .. dst_start + stride]);
+            (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
 
         // rgba -> bgra
