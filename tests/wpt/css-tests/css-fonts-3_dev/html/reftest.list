@@ -127,6 +127,15 @@ font-size-adjust-008.htm == reference/ref-filled-green-100px-square.htm
 font-size-applies-to-016.htm == reference/no-red-on-blank-page-ref.htm
 font-style-applies-to-001.htm == reference/font-style-applies-to-001-ref.htm
 font-style-applies-to-002.htm == reference/font-style-applies-to-001-ref.htm
+font-style-applies-to-004.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-005.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-006.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-007.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-008.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-009.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-010.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-011.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-014.htm == reference/pass_if_filler_text_slanted.htm
 font-style-applies-to-016.htm == reference/no-red-on-blank-page-ref.htm
 font-style-applies-to-017.htm == reference/font-style-applies-to-001-ref.htm
 font-variant-001.htm == reference/font-variant-001-ref.htm

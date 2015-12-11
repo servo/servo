@@ -62,7 +62,7 @@
             checkDOMPoint(new DOMPoint({x:1, z:3}), {x:1, y:0, z:3, w:1});
         },'testConstructorDOMPoint');
         test(function() {
-            checkDOMPoint(new DOMPoint(1, undefined), {x:1, y:NaN, z:0, w:1});
+            checkDOMPoint(new DOMPoint(1, undefined), {x:1, y:0, z:0, w:1});
         },'testConstructor2undefined');
         test(function() {
             checkDOMPoint(new DOMPoint("a", "b"), {x:NaN, y:NaN, z:0, w:1});
