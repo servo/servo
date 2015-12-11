@@ -6,8 +6,6 @@ use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use euclid::{Matrix4, Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
-use layers::layers::{BufferRequest, LayerBufferSet};
-use layers::platform::surface::NativeDisplay;
 use std::fmt::{self, Debug, Formatter};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
@@ -126,32 +124,6 @@ pub struct LayerProperties {
     pub scrolls_overflow_area: bool,
 }
 
-/// The interface used by the painter to acquire draw targets for each paint frame and
-/// submit them to be drawn to the display.
-pub trait PaintListener {
-    fn native_display(&mut self) -> Option<NativeDisplay>;
-
-    /// Informs the compositor of the layers for the given pipeline. The compositor responds by
-    /// creating and/or destroying paint layers as necessary.
-    fn initialize_layers_for_pipeline(&mut self,
-                                      pipeline_id: PipelineId,
-                                      properties: Vec<LayerProperties>,
-                                      epoch: Epoch);
-
-    /// Sends new buffers for the given layers to the compositor.
-    fn assign_painted_buffers(&mut self,
-                              pipeline_id: PipelineId,
-                              epoch: Epoch,
-                              replies: Vec<(LayerId, Box<LayerBufferSet>)>,
-                              frame_tree_id: FrameTreeId);
-
-    /// Inform the compositor that these buffer requests will be ignored.
-    fn ignore_buffer_requests(&mut self, buffer_requests: Vec<BufferRequest>);
-
-    // Notification that the paint task wants to exit.
-    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId);
-}
-
 #[derive(Deserialize, Serialize)]
 pub enum ScriptToCompositorMsg {
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
@@ -169,4 +141,3 @@ pub enum EventResult {
     DefaultAllowed,
     DefaultPrevented,
 }
-
