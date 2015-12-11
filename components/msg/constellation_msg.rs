@@ -6,7 +6,7 @@
 //! reduce coupling between these two components.
 
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
