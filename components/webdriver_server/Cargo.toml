@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "webdriver_server"
 path = "lib.rs"
 
+[dependencies.compositing]
+path = "../compositing"
+
 [dependencies.msg]
 path = "../msg"
 

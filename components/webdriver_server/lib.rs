@@ -8,6 +8,7 @@
 #![feature(ip_addr, plugin)]
 #![plugin(plugins)]
 
+extern crate compositing;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
@@ -23,11 +24,11 @@ extern crate webdriver;
 
 mod keys;
 
+use compositing::CompositorMsg as ConstellationMsg;
 use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
-use msg::constellation_msg::CompositorMsg as ConstellationMsg;
 use msg::constellation_msg::{FrameId, LoadData, PipelineId};
 use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
 use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
