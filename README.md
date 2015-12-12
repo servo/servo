@@ -34,6 +34,8 @@ sudo apt-get install curl freeglut3-dev \
     libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev libglu1-mesa-dev
 ```
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
+If you failed compiling `harfbuzz-sys`, see [#8890](https://github.com/servo/servo/issues/8890) for a workaround.
+
 
 On Fedora:
 
