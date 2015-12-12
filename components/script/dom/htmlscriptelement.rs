@@ -277,7 +277,7 @@ impl HTMLScriptElement {
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
                         let script_chan = window.networking_task_source();
-                        let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
+                        let elem = Trusted::new(self, script_chan.clone());
 
                         let context = Arc::new(Mutex::new(ScriptContext {
                             elem: elem,
@@ -456,7 +456,7 @@ impl HTMLScriptElement {
             self.dispatch_load_event();
         } else {
             let chan = window.dom_manipulation_task_source();
-            let handler = Trusted::new(window.get_cx(), self, chan.clone());
+            let handler = Trusted::new(self, chan.clone());
             let dispatcher = box EventDispatcher {
                 element: handler,
                 is_error: false,
@@ -469,7 +469,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         let window = window.r();
         let chan = window.dom_manipulation_task_source();
-        let handler = Trusted::new(window.get_cx(), self, chan.clone());
+        let handler = Trusted::new(self, chan.clone());
         let dispatcher = box EventDispatcher {
             element: handler,
             is_error: true,

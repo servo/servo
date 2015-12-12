@@ -1260,7 +1260,7 @@ impl ScriptTask {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), doc, self.chan.clone());
+        let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
         let handler = box DocumentProgressHandler::new(addr.clone());
         self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
 

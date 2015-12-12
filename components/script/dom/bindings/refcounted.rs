@@ -26,7 +26,7 @@ use core::nonzero::NonZero;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::trace_reflector;
-use js::jsapi::{JSContext, JSTracer};
+use js::jsapi::JSTracer;
 use libc;
 use script_task::{CommonScriptMsg, ScriptChan};
 use std::cell::RefCell;
@@ -72,7 +72,7 @@ impl<T: Reflectable> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub fn new(_cx: *mut JSContext, ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
+    pub fn new(ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();

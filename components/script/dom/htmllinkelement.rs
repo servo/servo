@@ -198,7 +198,7 @@ impl HTMLLinkElement {
                 // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
                 let doc = window.Document();
                 let script_chan = window.networking_task_source();
-                let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
+                let elem = Trusted::new(self, script_chan.clone());
 
                 let context = Arc::new(Mutex::new(StylesheetContext {
                     elem: elem,
