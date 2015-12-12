@@ -82,6 +82,4 @@ url = "0.5"
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.2"
-
-[target.x86_64-apple-darwin.dependencies.core-text]
-git = "https://github.com/servo/core-text-rs"
+core-text = "1.0"

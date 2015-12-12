@@ -70,10 +70,8 @@ objc = "0.1"
 cocoa = "0.1"
 core-foundation = "0.2"
 core-graphics = "0.2"
+core-text = "1.0"
 cgl = "0.1"
-
-[target.x86_64-apple-darwin.dependencies.core-text]
-git = "https://github.com/servo/core-text-rs"
 
 [target.i686-unknown-linux-gnu.dependencies]
 x11 = "2.3"

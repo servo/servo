@@ -69,6 +69,7 @@ git = "https://github.com/servo/ipc-channel"
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.2"
 core-graphics = "0.2"
+core-text = "1.0"
 
 [target.i686-unknown-linux-gnu.dependencies]
 servo-fontconfig = "0.2"
@@ -99,9 +100,6 @@ git = "https://github.com/servo/rust-freetype"
 
 [target.arm-linux-androideabi.dependencies.freetype]
 git = "https://github.com/servo/rust-freetype"
-
-[target.x86_64-apple-darwin.dependencies.core-text]
-git = "https://github.com/servo/core-text-rs"
 
 [target.x86_64-unknown-linux-gnu.dependencies.simd]
 git = "https://github.com/huonw/simd"
