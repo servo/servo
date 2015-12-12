@@ -17,7 +17,6 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;
-use std::borrow::{self, ToOwned};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;

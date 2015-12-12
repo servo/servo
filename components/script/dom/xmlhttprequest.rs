@@ -784,7 +784,6 @@ pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
-        use string_cache::Atom;
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global.root();
