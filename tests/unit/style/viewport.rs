@@ -7,7 +7,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use media_queries::CSSErrorReporterTest;
 use msg::ParseErrorReporter;
-use msg::constellation_msg::PipelineId;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};

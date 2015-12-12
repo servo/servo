@@ -4,7 +4,6 @@
 
 use cssparser;
 use media_queries::CSSErrorReporterTest;
-use msg::constellation_msg::PipelineId;
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;

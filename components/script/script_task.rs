@@ -594,12 +594,11 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct CSSError {
-    pipeline_id: PipelineId,
     filename: String,
     line: usize,
     column: usize,
     msg: String
-    }
+}
 
 impl ScriptTask {
     pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
@@ -1019,8 +1018,8 @@ impl ScriptTask {
                 let state = self.handle_get_current_state(pipeline_id);
                 sender.send(state).unwrap();
             },
-            ConstellationControlMsg::CSSErrorReporting(pipeline_id, filename, line, column, msg) =>
-            self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
+                self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
         }
     }
 
@@ -2040,19 +2039,24 @@ impl ScriptTask {
         self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
     }
 
-fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
-    line: usize, column: usize, msg: String) {
+    fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
+                                  line: usize, column: usize, msg: String) {
         let parent_page = self.root_page();
         let page = match parent_page.find(pipeline_id) {
             Some(page) => page,
             None => return,
         };
+        
         let document = page.document();
-        let css_error = CSSError { pipeline_id: pipeline_id, filename: filename,
-        line: line, column: column, msg: msg };
+        let css_error = CSSError {
+            filename: filename,
+            line: line,
+            column: column,
+            msg: msg
+        };
         document.report_css_error(css_error);
-        }
     }
+}
 
 impl Drop for ScriptTask {
     fn drop(&mut self) {

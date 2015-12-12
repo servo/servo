@@ -207,7 +207,7 @@ pub struct Document {
     dom_complete: Cell<u64>,
     /// Vector to store CSS errors
     css_errors_store: DOMRefCell<Vec<CSSError>>,
-    }
+}
 
 impl PartialEq for Document {
     fn eq(&self, other: &Document) -> bool {
@@ -297,7 +297,7 @@ impl Document {
     pub fn is_html_document(&self) -> bool {
         self.is_html_document
     }
-    #[inline]
+    
     pub fn report_css_error(&self, css_error: CSSError) {
         self.css_errors_store.borrow_mut().push(css_error);
     }

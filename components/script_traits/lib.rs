@@ -11,7 +11,6 @@
 #![deny(missing_docs)]
 
 extern crate app_units;
-extern crate cssparser;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate ipc_channel;
@@ -25,7 +24,6 @@ extern crate url;
 extern crate util;
 
 use app_units::Au;
-use cssparser::SourceLocation;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use euclid::length::Length;
 use euclid::point::Point2D;
@@ -147,8 +145,8 @@ pub enum ConstellationControlMsg {
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId
     },
-    /// Report CSS errors
-    CSSErrorReporting(PipelineId, String, usize, usize, String),
+    /// Report an error from a CSS parser for the given pipeline
+    ReportCSSError(PipelineId, String, usize, usize, String),
 }
 
 /// The type of input represented by a multi-touch event.

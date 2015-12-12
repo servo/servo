@@ -13,7 +13,6 @@ use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
 
 pub struct CSSErrorReporterTest {
-    pub pipelineid: PipelineId,
 }
 
 impl ParseErrorReporter for CSSErrorReporterTest {
@@ -23,7 +22,7 @@ impl ParseErrorReporter for CSSErrorReporterTest {
         Box::new(CSSErrorReporterTest { pipelineid: self.pipelineid, })
      }
      fn pipeline(&self) -> PipelineId {
-        return self.pipelineid;
+        return PipelineId::fake_root_pipeline_id();
       }
 }
 
