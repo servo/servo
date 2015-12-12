@@ -75,7 +75,7 @@ impl Worker {
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
-        let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.dom_manipulation_task_source());
+        let worker_ref = Trusted::new(worker.r(), global.dom_manipulation_task_source());
         let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -150,7 +150,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(cx, self, self.global.root().r().dom_manipulation_task_source().clone());
+        let address = Trusted::new(self, self.global.root().r().dom_manipulation_task_source());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }

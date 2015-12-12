@@ -156,8 +156,7 @@ impl Storage {
         let global_ref = global_root.r();
         let main_script_chan = global_ref.as_window().main_thread_script_chan();
         let script_chan = global_ref.dom_manipulation_task_source();
-        let trusted_storage = Trusted::new(global_ref.get_cx(), self,
-                                           script_chan.clone());
+        let trusted_storage = Trusted::new(self, script_chan);
         main_script_chan.send(MainThreadScriptMsg::MainThreadRunnableMsg(
             box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }

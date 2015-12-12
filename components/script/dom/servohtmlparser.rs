@@ -249,13 +249,13 @@ impl AsyncResponseListener for ParserContext {
         };
 
         let parser = parser.r();
-        let win = parser.window();
         self.parser = Some(match parser {
             ParserRef::HTML(parser) => TrustedParser::HTML(
-                                        Trusted::new(win.get_cx(),
-                                        parser,
-                                        self.script_chan.clone())),
-            ParserRef::XML(parser) => TrustedParser::XML(Trusted::new(win.get_cx(), parser, self.script_chan.clone())),
+                                        Trusted::new(parser,
+                                                     self.script_chan.clone())),
+            ParserRef::XML(parser) => TrustedParser::XML(
+                                        Trusted::new(parser,
+                                                     self.script_chan.clone())),
         });
 
         match content_type {

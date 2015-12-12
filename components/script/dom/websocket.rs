@@ -217,7 +217,7 @@ impl WebSocket {
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
-        let address = Trusted::new(global.get_cx(), ws.r(), global.networking_task_source());
+        let address = Trusted::new(ws.r(), global.networking_task_source());
 
         let origin = global.get_url().serialize();
 
@@ -288,7 +288,7 @@ impl WebSocket {
 
         let global = self.global.root();
         let chan = global.r().networking_task_source();
-        let address = Trusted::new(global.r().get_cx(), self, chan.clone());
+        let address = Trusted::new(self, chan.clone());
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
         if new_buffer_amount > (u32::max_value() as u64) {
