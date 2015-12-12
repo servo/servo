@@ -72,11 +72,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.2.1"
-source = "git+https://github.com/servo/rust-azure#b8a761c2d4bc6ee1fa62e1c34763c2f5a7650779"
+source = "git+https://github.com/servo/rust-azure#b05ba4bb70aefb319c7f168fc83a9fd04a1aa1ef"
 dependencies = [
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
+ "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "heapsize 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -228,7 +228,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "clipboard 0.1.0 (git+https://github.com/aweinstock314/rust-clipboard)",
  "core-graphics 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
+ "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gaol 0.0.1 (git+https://github.com/pcwalton/gaol)",
@@ -295,8 +295,8 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "0.1.0"
-source = "git+https://github.com/servo/core-text-rs#d97cd4ae33509857f956e64c71f43cc71c98430f"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -576,7 +576,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
+ "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
