@@ -215,7 +215,7 @@ mod create;
 #[deny(missing_docs, non_snake_case)]
 pub mod bindings;
 pub mod blob;
-pub mod browsercontext;
+pub mod browsingcontext;
 pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;

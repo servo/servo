@@ -19,7 +19,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
-use dom::browsercontext::BrowsingContext;
+use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};

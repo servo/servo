@@ -11,7 +11,7 @@ use dom::bindings::conversions::{private_from_proto_check, root_from_handleobjec
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::trace::trace_object;
-use dom::browsercontext;
+use dom::browsingcontext;
 use dom::window;
 use js;
 use js::error::throw_type_error;
@@ -73,7 +73,7 @@ impl GlobalStaticData {
     /// Creates a new GlobalStaticData.
     pub fn new() -> GlobalStaticData {
         GlobalStaticData {
-            windowproxy_handler: browsercontext::new_window_proxy_handler(),
+            windowproxy_handler: browsingcontext::new_window_proxy_handler(),
         }
     }
 }
