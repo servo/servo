@@ -49,7 +49,7 @@ use std::any::Any;
 use util::ipc::OptionalOpaqueIpcSender;
 use util::mem::HeapSizeOf;
 
-pub use script_msg::ScriptMsg;
+pub use script_msg::{LayoutMsg, ScriptMsg};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -256,6 +256,8 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: ConstellationChan<ScriptMsg>,
+    /// A channel on which messages can be sent to the constellation from script.
+    pub layout_constellation_chan: ConstellationChan<LayoutMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// Information that script sends out when it panics.

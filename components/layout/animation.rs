@@ -9,7 +9,7 @@ use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use script::layout_interface::Animation;
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::LayoutMsg as ConstellationMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::{Sender, Receiver};

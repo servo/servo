@@ -27,7 +27,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::{mem, time};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{LayoutControlMsg, ConstellationControlMsg, OpaqueScriptLayoutChannel};
 use url::Url;
 use util::ipc::OptionalIpcSender;

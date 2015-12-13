@@ -45,7 +45,8 @@ use profile_traits::mem;
 use profile_traits::time;
 use sandboxing;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{ScriptMsg as FromScriptMsg, ScriptState, ScriptTaskFactory};
+use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg};
+use script_traits::{ScriptState, ScriptTaskFactory};
 use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -86,6 +87,9 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which compositor messages can be sent to this object.
     pub compositor_sender: Sender<FromCompositorMsg>,
 
+    /// A channel through which layout task messages can be sent to this object.
+    pub layout_sender: ConstellationChan<FromLayoutMsg>,
+
     /// A channel through which paint task messages can be sent to this object.
     pub painter_sender: ConstellationChan<FromPaintMsg>,
 
@@ -94,6 +98,9 @@ pub struct Constellation<LTF, STF> {
 
     /// Receives messages from the compositor
     pub compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// A channel through which layout task messages can be sent to this object.
+    pub layout_receiver: Receiver<FromLayoutMsg>,
 
     /// Receives messages from paint task.
     pub painter_receiver: Receiver<FromPaintMsg>,
@@ -283,6 +290,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let (ipc_script_receiver, ipc_script_sender) = ConstellationChan::<FromScriptMsg>::new();
         let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
         let (compositor_sender, compositor_receiver) = channel();
+        let (ipc_layout_receiver, ipc_layout_sender) = ConstellationChan::<FromLayoutMsg>::new();
+        let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
         let (ipc_painter_receiver, ipc_painter_sender) = ConstellationChan::<FromPaintMsg>::new();
         let painter_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_painter_receiver);
         let compositor_sender_clone = compositor_sender.clone();
@@ -290,9 +299,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
                 compositor_sender: compositor_sender_clone,
+                layout_sender: ipc_layout_sender,
                 painter_sender: ipc_painter_sender,
                 script_receiver: script_receiver,
                 compositor_receiver: compositor_receiver,
+                layout_receiver: layout_receiver,
                 painter_receiver: painter_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
@@ -366,6 +377,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 id: pipeline_id,
                 parent_info: parent_info,
                 constellation_chan: self.script_sender.clone(),
+                layout_constellation_chan: self.layout_sender.clone(),
                 painter_chan: self.painter_sender.clone(),
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
@@ -469,18 +481,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         enum Request {
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
+            Layout(FromLayoutMsg),
             Paint(FromPaintMsg)
         }
 
         let request = {
             let receiver_from_script = &self.script_receiver;
             let receiver_from_compositor = &self.compositor_receiver;
+            let receiver_from_layout = &self.layout_receiver;
             let receiver_from_paint = &self.painter_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.unwrap()),
                 msg = receiver_from_compositor.recv() =>
                     Request::Compositor(msg.unwrap()),
+                msg = receiver_from_layout.recv() =>
+                    Request::Layout(msg.unwrap()),
                 msg = receiver_from_paint.recv() =>
                     Request::Paint(msg.unwrap())
             }
@@ -572,12 +588,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                        load_info.new_subpage_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            Request::Script(FromScriptMsg::SetCursor(cursor)) => {
-                self.handle_set_cursor_msg(cursor)
-            }
-            Request::Script(FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state)) => {
-                self.handle_change_running_animations_state(pipeline_id, animation_state)
-            }
             // Load a new page from a mouse click
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -642,10 +652,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     }
                 }
             }
-            Request::Script(FromScriptMsg::ViewportConstrained(pipeline_id, constraints)) => {
-                debug!("constellation got viewport-constrained event message");
-                self.handle_viewport_constrained_msg(pipeline_id, constraints);
-            }
             Request::Script(FromScriptMsg::RemoveIFrame(pipeline_id)) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
@@ -669,6 +675,24 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Request::Script(FromScriptMsg::NodeStatus(message)) => {
                 debug!("constellation got NodeStatus message");
                 self.compositor_proxy.send(ToCompositorMsg::Status(message));
+            }
+
+
+            // Messages from layout task
+
+            Request::Layout(FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state)) => {
+                self.handle_change_running_animations_state(pipeline_id, animation_state)
+            }
+            Request::Layout(FromLayoutMsg::Failure(Failure { pipeline_id, parent_info })) => {
+                debug!("handling paint failure message from pipeline {:?}, {:?}", pipeline_id, parent_info);
+                self.handle_failure_msg(pipeline_id, parent_info);
+            }
+            Request::Layout(FromLayoutMsg::SetCursor(cursor)) => {
+                self.handle_set_cursor_msg(cursor)
+            }
+            Request::Layout(FromLayoutMsg::ViewportConstrained(pipeline_id, constraints)) => {
+                debug!("constellation got viewport-constrained event message");
+                self.handle_viewport_constrained_msg(pipeline_id, constraints);
             }
 
 

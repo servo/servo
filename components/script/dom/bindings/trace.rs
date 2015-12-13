@@ -63,6 +63,7 @@ use net_traits::storage_task::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
+use script_traits::LayoutMsg;
 use script_traits::{ScriptMsg, TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use selectors::states::*;
@@ -300,6 +301,13 @@ no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
 
 impl JSTraceable for ConstellationChan<ScriptMsg> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for ConstellationChan<LayoutMsg> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
