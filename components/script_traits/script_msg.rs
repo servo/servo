@@ -15,11 +15,22 @@ use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 
+/// Messages from the layout to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum LayoutMsg {
+    /// Indicates whether this pipeline is currently running animations.
+    ChangeRunningAnimationsState(PipelineId, AnimationState),
+    /// Layout task failure.
+    Failure(Failure),
+    /// Requests that the constellation inform the compositor of the a cursor change.
+    SetCursor(Cursor),
+    /// Notifies the constellation that the viewport has been constrained in some manner
+    ViewportConstrained(PipelineId, ViewportConstraints),
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
-    /// Indicates whether this pipeline is currently running animations.
-    ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintTask(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
@@ -62,8 +73,4 @@ pub enum ScriptMsg {
     ScriptLoadedURLInIFrame(IframeLoadInfo),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
-    /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(Cursor),
-    /// Notifies the constellation that the viewport has been constrained in some manner
-    ViewportConstrained(PipelineId, ViewportConstraints),
 }

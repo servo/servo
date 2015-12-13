@@ -91,6 +91,7 @@ use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::CSSError;
 use script_task::{MainThreadScriptMsg, Runnable};
+use script_traits::LayoutMsg;
 use script_traits::{ScriptMsg as ConstellationMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -1158,9 +1159,9 @@ impl Document {
         self.animation_frame_list.borrow_mut().insert(ident, callback);
 
         // TODO: Should tick animation only when document is visible
-        let ConstellationChan(ref chan) = self.window.constellation_chan();
-        let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                   AnimationState::AnimationCallbacksPresent);
+        let ConstellationChan(ref chan) = self.window.layout_constellation_chan();
+        let event = LayoutMsg::ChangeRunningAnimationsState(self.window.pipeline(),
+                                                            AnimationState::AnimationCallbacksPresent);
         chan.send(event).unwrap();
 
         ident
@@ -1170,9 +1171,9 @@ impl Document {
     pub fn cancel_animation_frame(&self, ident: u32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
+            let ConstellationChan(ref chan) = self.window.layout_constellation_chan();
+            let event = LayoutMsg::ChangeRunningAnimationsState(self.window.pipeline(),
+                                                                AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
         }
     }
@@ -1184,9 +1185,9 @@ impl Document {
             let mut list = self.animation_frame_list.borrow_mut();
             animation_frame_list = Vec::from_iter(list.drain());
 
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
+            let ConstellationChan(ref chan) = self.window.layout_constellation_chan();
+            let event = LayoutMsg::ChangeRunningAnimationsState(self.window.pipeline(),
+                                                                AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
         }
         let performance = self.window.Performance();

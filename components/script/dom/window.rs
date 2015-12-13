@@ -56,7 +56,7 @@ use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::{LayoutMsg, ScriptMsg as ConstellationMsg};
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
@@ -195,6 +195,10 @@ pub struct Window {
     /// A handle for communicating messages to the constellation task.
     #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: ConstellationChan<ConstellationMsg>,
+
+    /// A handle for communicating messages to the layout task within constellation.
+    #[ignore_heap_size_of = "channels are hard"]
+    layout_constellation_chan: ConstellationChan<LayoutMsg>,
 
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
@@ -1109,6 +1113,10 @@ impl Window {
         self.constellation_chan.clone()
     }
 
+    pub fn layout_constellation_chan(&self) -> ConstellationChan<LayoutMsg> {
+        self.layout_constellation_chan.clone()
+    }
+
     pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
         self.scheduler_chan.clone()
     }
@@ -1259,6 +1267,7 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan<ConstellationMsg>,
+               layout_constellation_chan: ConstellationChan<LayoutMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,
@@ -1302,6 +1311,7 @@ impl Window {
             resource_task: resource_task,
             storage_task: storage_task,
             constellation_chan: constellation_chan,
+            layout_constellation_chan: layout_constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),

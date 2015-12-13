@@ -25,8 +25,8 @@ use net_traits::storage_task::StorageTask;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState};
-use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptMsg as ConstellationMsg};
-use script_traits::{ScriptTaskFactory, TimerEventRequest};
+use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo};
+use script_traits::{ScriptMsg as ConstellationMsg, ScriptTaskFactory, TimerEventRequest};
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -81,6 +81,8 @@ pub struct InitialPipelineState {
     pub parent_info: Option<(PipelineId, SubpageId)>,
     /// A channel to the associated constellation.
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    /// A channel to the associated layout task.
+    pub layout_constellation_chan: ConstellationChan<LayoutMsg>,
     /// A channel to the associated paint task.
     pub painter_chan: ConstellationChan<PaintMsg>,
     /// A channel to schedule timer events.
@@ -208,6 +210,7 @@ impl Pipeline {
             time_profiler_chan: state.time_profiler_chan.clone(),
             mem_profiler_chan: state.mem_profiler_chan.clone(),
             window_size: window_size,
+            layout_constellation_chan: state.layout_constellation_chan,
             script_chan: script_chan,
             load_data: state.load_data.clone(),
             failure: failure,
@@ -349,6 +352,7 @@ pub struct UnprivilegedPipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
     constellation_chan: ConstellationChan<ConstellationMsg>,
+    layout_constellation_chan: ConstellationChan<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     script_to_compositor_chan: IpcSender<ScriptToCompositorMsg>,
@@ -387,6 +391,7 @@ impl UnprivilegedPipelineContent {
             control_chan: self.script_chan.clone(),
             control_port: mem::replace(&mut self.script_port, None).unwrap(),
             constellation_chan: self.constellation_chan.clone(),
+            layout_constellation_chan: self.layout_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             failure_info: self.failure.clone(),
             resource_task: self.resource_task,
@@ -406,7 +411,7 @@ impl UnprivilegedPipelineContent {
                                   self.parent_info.is_some(),
                                   layout_pair,
                                   self.pipeline_port.unwrap(),
-                                  self.constellation_chan,
+                                  self.layout_constellation_chan,
                                   self.failure,
                                   self.script_chan.clone(),
                                   self.layout_to_paint_chan.clone(),

@@ -48,6 +48,7 @@ extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
 extern crate js;
+extern crate layout_traits;
 extern crate libc;
 #[macro_use]
 extern crate log;

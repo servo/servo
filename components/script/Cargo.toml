@@ -27,6 +27,9 @@ path = "../net_traits"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
+[dependencies.layout_traits]
+path = "../layout_traits"
+
 [dependencies.script_traits]
 path = "../script_traits"
 
