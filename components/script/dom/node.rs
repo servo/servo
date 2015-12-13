@@ -666,19 +666,25 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
     pub fn replace_with(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        match self.parent_node.get() {
-            None => {
-                // Step 1.
-                Ok(())
-            },
-            Some(ref parent_node) => {
-                // Step 2.
-                let doc = self.owner_doc();
-                let node = try!(doc.node_from_nodes_and_strings(nodes));
-                // Step 3.
-                parent_node.ReplaceChild(node.r(), self).map(|_| ())
-            },
+        // Step 1.
+        let parent = if let Some(parent) = self.GetParentNode() {
+            parent
+        } else {
+            // Step 2.
+            return Ok(());
+        };
+        // Step 3.
+        let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
+        // Step 4.
+        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+        if self.parent_node == Some(&*parent) {
+            // Step 5.
+            try!(parent.ReplaceChild(&node, self));
+        } else {
+            // Step 6.
+            try!(Node::pre_insert(&node, &parent, viable_next_sibling.r()));
         }
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
