@@ -423,8 +423,12 @@ impl HTMLInputElement {
         }
     }
 
+    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// Steps range from 3.1 to 3.7 which related to the HTMLInputElement
     pub fn get_form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+        // Step 3.2
         let ty = self.type_();
+        // Step 3.4
         let name = self.Name();
         let is_submitter = match submitter {
             Some(FormSubmitter::InputElement(s)) => {
@@ -434,14 +438,21 @@ impl HTMLInputElement {
         };
 
         match ty {
-            atom!("submit") | atom!("button") | atom!("reset") if !is_submitter => return None,
+            atom!("submit") | atom!("button") | atom!("reset") => {
+                // Step 3.1: it's a button but it is not submitter.
+                if !is_submitter {
+                    return None;
+                }
+            },
             atom!("radio") | atom!("checkbox") => {
+                // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
                 if !self.Checked() || name.is_empty() {
                     return None;
                 }
             },
             atom!("image") | atom!("file") => return None, // Unimplemented
             _ => {
+                // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
                 if name.is_empty() {
                     return None;
                 }
@@ -449,6 +460,7 @@ impl HTMLInputElement {
         }
 
         let mut value = self.Value();
+        // Step 3.6
         if ty == atom!("radio") || ty == atom!("checkbox") {
             if value.is_empty() {
                 value = DOMString::from("on");
