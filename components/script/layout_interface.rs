@@ -18,8 +18,8 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::mem::ReportsChan;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptMsg as ConstellationMsg, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg, ScriptMsg};
+use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use std::any::Any;
 use std::sync::Arc;
@@ -256,7 +256,8 @@ pub struct NewLayoutTaskInfo {
     pub is_parent: bool,
     pub layout_pair: OpaqueScriptLayoutChannel,
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    pub constellation_chan: ConstellationChan<ScriptMsg>,
+    pub layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
     pub failure: Failure,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_task: ImageCacheTask,

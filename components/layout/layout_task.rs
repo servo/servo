@@ -51,8 +51,8 @@ use script::layout_interface::{LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
 use script::reporter::CSSErrorReporter;
-use script_traits::ScriptMsg as ConstellationMsg;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::ConstellationControlMsg;
+use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg, OpaqueScriptLayoutChannel};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
@@ -689,7 +689,7 @@ impl LayoutTask {
                                   info.is_parent,
                                   info.layout_pair,
                                   info.pipeline_port,
-                                  info.constellation_chan,
+                                  info.layout_to_constellation_chan,
                                   info.failure,
                                   info.script_chan.clone(),
                                   info.paint_chan.to::<LayoutToPaintMsg>(),

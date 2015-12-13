@@ -18,7 +18,7 @@ use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::LayoutMsg as ConstellationMsg;
 use selectors::parser::PseudoElement;
 use sequential;
 use std::ops::Deref;

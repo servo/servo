@@ -15,6 +15,19 @@ use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 
+/// Messages from the layout to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum LayoutMsg {
+    /// Indicates whether this pipeline is currently running animations.
+    ChangeRunningAnimationsState(PipelineId, AnimationState),
+    /// Layout task failure.
+    Failure(Failure),
+    /// Requests that the constellation inform the compositor of the a cursor change.
+    SetCursor(Cursor),
+    /// Notifies the constellation that the viewport has been constrained in some manner
+    ViewportConstrained(PipelineId, ViewportConstraints),
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
@@ -62,10 +75,6 @@ pub enum ScriptMsg {
     ScriptLoadedURLInIFrame(IframeLoadInfo),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
-    /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(Cursor),
-    /// Notifies the constellation that the viewport has been constrained in some manner
-    ViewportConstrained(PipelineId, ViewportConstraints),
     /// Mark a new document as active
     ActivateDocument(PipelineId),
     /// Set the document state for a pipeline (used by screenshot / reftests)
