@@ -26,12 +26,14 @@ use num::ToPrimitive;
 use std::default::Default;
 use string_cache::Atom;
 use url::UrlParser;
+use url::Url;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
+    url: Url,
 }
 
 impl HTMLAnchorElement {
@@ -108,6 +110,86 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
     make_setter!(SetShape, "shape");
+
+    fn Hash(&self) -> USVString {
+        UrlHelper::Hash(&self.url.borrow())
+    }
+
+    fn SetHash(&self, value: USVString) {
+        UrlHelper::SetHash(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Host(&self) -> USVString {
+        UrlHelper::Host(&self.url.borrow())
+    }
+
+    fn SetHost(&self, value: USVString) {
+        UrlHelper::SetHost(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Hostname(&self) -> USVString {
+        UrlHelper::Hostname(&self.url.borrow())
+    }
+
+    fn SetHostname(&self, value: USVString) {
+        UrlHelper::SetHostname(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Href(&self) -> USVString {
+        UrlHelper::Href(&self.url.borrow())
+    }
+
+    fn Password(&self) -> USVString {
+        UrlHelper::Password(&self.url.borrow())
+    }
+
+    fn SetPassword(&self, value: USVString) {
+        UrlHelper::SetPassword(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Pathname(&self) -> USVString {
+        UrlHelper::Pathname(&self.url.borrow())
+    }
+
+    fn SetPathname(&self, value: USVString) {
+        UrlHelper::SetPathname(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Port(&self) -> USVString {
+        UrlHelper::Port(&self.url.borrow())
+    }
+
+    fn SetPort(&self, value: USVString) {
+        UrlHelper::SetPort(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Protocol(&self) -> USVString {
+        UrlHelper::Protocol(&self.url.borrow())
+    }
+
+    fn SetProtocol(&self, value: USVString) {
+        UrlHelper::SetProtocol(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Search(&self) -> USVString {
+        UrlHelper::Search(&self.url.borrow())
+    }
+
+    fn SetSearch(&self, value: USVString) {
+        UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
+    }
+
+    fn Stringifier(&self) -> DOMString {
+        DOMString::from(self.Href().0)
+    }
+
+    fn Username(&self) -> USVString {
+        UrlHelper::Username(&self.url.borrow())
+    }
+
+    fn SetUsername(&self, value: USVString) {
+        UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
+    }
 }
 
 impl Activatable for HTMLAnchorElement {

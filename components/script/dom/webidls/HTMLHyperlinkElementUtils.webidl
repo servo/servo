@@ -5,16 +5,16 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils
 //[NoInterfaceObject/*, Exposed=Window*/]
-//interface HTMLHyperlinkElementUtils {
-//  stringifier attribute USVString href;
+interface HTMLHyperlinkElementUtils {
+  stringifier attribute USVString href;
 //           attribute USVString origin;
-//           attribute USVString protocol;
-//           attribute USVString username;
-//           attribute USVString password;
-//           attribute USVString host;
-//           attribute USVString hostname;
-//           attribute USVString port;
-//           attribute USVString pathname;
-//           attribute USVString search;
-//           attribute USVString hash;
-//};
+           attribute USVString protocol;
+           attribute USVString username;
+           attribute USVString password;
+           attribute USVString host;
+           attribute USVString hostname;
+           attribute USVString port;
+           attribute USVString pathname;
+           attribute USVString search;
+           attribute USVString hash;
+};
