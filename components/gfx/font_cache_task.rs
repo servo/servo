@@ -100,7 +100,7 @@ struct FontCache {
     channel_to_self: IpcSender<Command>,
     generic_fonts: HashMap<FontFamily, LowercaseString>,
     local_families: HashMap<LowercaseString, FontTemplates>,
-    web_families: HashMap<FontFamily, FontTemplates>,
+    web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
     resource_task: ResourceTask,
 }
@@ -147,9 +147,10 @@ impl FontCache {
                     result.send(Reply::GetFontTemplateReply(Some(font_template))).unwrap();
                 }
                 Command::AddWebFont(family, src, result) => {
-                    if !self.web_families.contains_key(&family) {
+                    let family_name = LowercaseString::new(family.name());
+                    if !self.web_families.contains_key(&family_name) {
                         let templates = FontTemplates::new();
-                        self.web_families.insert(family.clone(), templates);
+                        self.web_families.insert(family_name, templates);
                     }
 
                     match src {
@@ -188,8 +189,8 @@ impl FontCache {
                             });
                         }
                         Source::Local(ref family) => {
-                            let family_name = self.transform_family(&family);
-                            let templates = &mut self.web_families.get_mut(&family).unwrap();
+                            let family_name = LowercaseString::new(family.name());
+                            let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                             for_each_variation(&family_name, |path| {
                                 templates.add_template(Atom::from(&*path), None);
                             });
@@ -198,7 +199,9 @@ impl FontCache {
                     }
                 }
                 Command::AddDownloadedWebFont(family, url, bytes, result) => {
-                    let templates = &mut self.web_families.get_mut(&family).unwrap();
+                    let family_name = LowercaseString::new(family.name());
+
+                    let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                     templates.add_template(Atom::from(&*url.to_string()), Some(bytes));
                     drop(result.send(()));
                 }
@@ -254,8 +257,10 @@ impl FontCache {
 
     fn find_font_in_web_family<'a>(&'a mut self, family: &FontFamily, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
-        if self.web_families.contains_key(family) {
-            let templates = self.web_families.get_mut(family).unwrap();
+        let family_name = LowercaseString::new(family.name());
+
+        if self.web_families.contains_key(&family_name) {
+            let templates = self.web_families.get_mut(&family_name).unwrap();
             let maybe_font = templates.find_font_for_style(desc, &self.font_context);
             maybe_font
         } else {
