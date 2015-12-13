@@ -62,9 +62,9 @@ test(function () {
   assert_equals( elem.className, ' ' );
 }, 'className should contain initial markup whitespace');
 test(function () {
-  assert_equals( elem.classList + '', '', 'implicit' );
-  assert_equals( elem.classList.toString(), '', 'explicit' );
-}, 'empty classList should return the empty string since the ordered set parser skip the whitespaces');
+  assert_equals( elem.classList + '', ' ', 'implicit' );
+  assert_equals( elem.classList.toString(), ' ', 'explicit' );
+}, 'classList should contain initial markup whitespace');
 test(function () {
   assert_throws( 'SYNTAX_ERR', function () { elem.classList.contains(''); } );
 }, '.contains(empty_string) must throw a SYNTAX_ERR');
