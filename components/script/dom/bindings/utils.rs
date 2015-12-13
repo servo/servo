@@ -5,7 +5,7 @@
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
 use dom::bindings::codegen::PrototypeList;
-use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
 use dom::bindings::conversions::{private_from_proto_check, root_from_handleobject};
 use dom::bindings::error::throw_invalid_this;
@@ -186,8 +186,8 @@ pub unsafe extern "C" fn throwing_constructor(cx: *mut JSContext,
     false
 }
 
-/// An array of *mut JSObject of size PrototypeList::ID::Count
-pub type ProtoOrIfaceArray = [*mut JSObject; PrototypeList::ID::Count as usize];
+/// An array of *mut JSObject of size PROTO_OR_IFACE_LENGTH.
+pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 
 /// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
@@ -384,7 +384,7 @@ pub fn create_dom_global(cx: *mut JSContext,
         // avoid getting trace hooks called on a partially initialized object.
         JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT, PrivateValue(private));
         let proto_array: Box<ProtoOrIfaceArray> =
-            box [0 as *mut JSObject; PrototypeList::ID::Count as usize];
+            box [0 as *mut JSObject; PROTO_OR_IFACE_LENGTH];
         JS_SetReservedSlot(obj.ptr,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
@@ -400,7 +400,7 @@ pub fn create_dom_global(cx: *mut JSContext,
 pub unsafe fn finalize_global(obj: *mut JSObject) {
     let protolist = get_proto_or_iface_array(obj);
     let list = (*protolist).as_mut_ptr();
-    for idx in 0..(PrototypeList::ID::Count as isize) {
+    for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
         let entry = list.offset(idx);
         let value = *entry;
         if <*mut JSObject>::needs_post_barrier(value) {

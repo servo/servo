@@ -144,20 +144,19 @@ pub unsafe fn create_noncallback_interface_object(
         constants: &'static [ConstantSpec],
         interface_prototype_object: HandleObject,
         name: &'static [u8],
-        length: u32) {
-    let mut interface_object = RootedObject::new(cx, ptr::null_mut());
+        length: u32,
+        rval: MutableHandleObject) {
     create_object(cx,
                   proto,
                   &*(class as *const _ as *const JSClass),
                   static_methods,
                   static_properties,
                   constants,
-                  interface_object.handle_mut());
-    assert!(JS_LinkConstructorAndPrototype(cx, interface_object.handle(),
-                                           interface_prototype_object));
-    define_name(cx, interface_object.handle(), name);
-    define_length(cx, interface_object.handle(), length);
-    define_on_global_object(cx, receiver, name, interface_object.handle());
+                  rval);
+    assert!(JS_LinkConstructorAndPrototype(cx, rval.handle(), interface_prototype_object));
+    define_name(cx, rval.handle(), name);
+    define_length(cx, rval.handle(), length);
+    define_on_global_object(cx, receiver, name, rval.handle());
 }
 
 /// Create and define the named constructors of a non-callback interface.
