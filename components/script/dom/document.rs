@@ -89,6 +89,7 @@ use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
+use script_task::CSSError;
 use script_task::{MainThreadScriptMsg, Runnable};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
@@ -203,6 +204,8 @@ pub struct Document {
     dom_content_loaded_event_start: Cell<u64>,
     dom_content_loaded_event_end: Cell<u64>,
     dom_complete: Cell<u64>,
+    /// Vector to store CSS errors
+    css_errors_store: DOMRefCell<Vec<CSSError>>,
 }
 
 impl PartialEq for Document {
@@ -292,6 +295,10 @@ impl Document {
     #[inline]
     pub fn is_html_document(&self) -> bool {
         self.is_html_document
+    }
+
+    pub fn report_css_error(&self, css_error: CSSError) {
+        self.css_errors_store.borrow_mut().push(css_error);
     }
 
     // https://html.spec.whatwg.org/multipage/#fully-active
@@ -1495,6 +1502,7 @@ impl Document {
             dom_content_loaded_event_start: Cell::new(Default::default()),
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
+            css_errors_store: DOMRefCell::new(vec![]),
         }
     }
 

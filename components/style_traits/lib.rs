@@ -25,8 +25,3 @@ extern crate util;
 pub mod values;
 pub mod viewport;
 
-use cssparser::{Parser, SourcePosition};
-pub trait ParseErrorReporter {
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str);
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync>;
-}

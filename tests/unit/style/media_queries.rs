@@ -5,11 +5,12 @@
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::Size2D;
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 use std::borrow::ToOwned;
 use style::media_queries::*;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
-use style_traits::ParseErrorReporter;
 
 pub struct CSSErrorReporterTest;
 
@@ -17,9 +18,11 @@ impl ParseErrorReporter for CSSErrorReporterTest {
      fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
      }
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-         let error_reporter = Box::new(CSSErrorReporterTest);
-         return error_reporter;
+        Box::new(CSSErrorReporterTest)
      }
+     fn pipeline(&self) -> PipelineId {
+        return PipelineId::fake_root_pipeline_id();
+      }
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {

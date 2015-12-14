@@ -63,6 +63,7 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
+use msg::ParseErrorReporter;
 use selectors::matching::{DeclarationBlock, matches};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
@@ -80,7 +81,6 @@ use style::properties::longhands::{self, background_image, border_spacing, font_
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
-use style_traits::ParseErrorReporter;
 use url::UrlParser;
 use util::mem::HeapSizeOf;
 use util::str::{DOMString, LengthOrPercentageOrAuto};

@@ -8,6 +8,9 @@ name = "style_tests"
 path = "lib.rs"
 doctest = false
 
+[dependencies.msg]
+path = "../../../components/msg"
+
 [dependencies.plugins]
 path = "../../../components/plugins"
 

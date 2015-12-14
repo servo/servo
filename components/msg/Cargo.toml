@@ -25,6 +25,7 @@ git = "https://github.com/servo/ipc-channel"
 path = "../plugins"
 
 [dependencies]
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 app_units = {version = "0.1", features = ["plugins"]}
 bitflags = "0.3"
 hyper = { version = "0.7", features = [ "serde-serialization" ] }

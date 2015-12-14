@@ -28,6 +28,7 @@ extern crate lazy_static;
 extern crate log;
 #[macro_use]
 extern crate matches;
+extern crate msg;
 extern crate num;
 extern crate rustc_serialize;
 #[macro_use(state_pseudo_classes)] extern crate selectors;

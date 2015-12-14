@@ -4,10 +4,13 @@
 
 use cssparser::{Parser, SourcePosition};
 use log;
-use style_traits::ParseErrorReporter;
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 
 #[derive(JSTraceable, HeapSizeOf)]
-pub struct CSSErrorReporter;
+pub struct CSSErrorReporter {
+    pub pipelineid: PipelineId,
+}
 
 impl ParseErrorReporter for CSSErrorReporter {
      fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
@@ -19,7 +22,10 @@ impl ParseErrorReporter for CSSErrorReporter {
      }
 
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-         let error_reporter = box CSSErrorReporter;
+         let error_reporter = box CSSErrorReporter { pipelineid: self.pipelineid, } ;
          return error_reporter;
+     }
+     fn pipeline(&self) -> PipelineId {
+         return self.pipelineid;
      }
 }

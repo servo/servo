@@ -9,6 +9,7 @@
 extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
+extern crate msg;
 extern crate selectors;
 #[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;

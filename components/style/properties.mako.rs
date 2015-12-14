@@ -21,8 +21,8 @@ use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
+use msg::ParseErrorReporter;
 use string_cache::Atom;
-use style_traits::ParseErrorReporter;
 use computed_values;
 use parser::{ParserContext, log_css_error};
 use selectors::matching::DeclarationBlock;
@@ -130,12 +130,12 @@ pub mod longhands {
                 use parser::ParserContext;
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
             % endif
+            use msg::ParseErrorReporter;
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, PropertyDeclaration};
             use std::collections::HashMap;
             use std::sync::Arc;
-            use style_traits::ParseErrorReporter;
             use values::computed::ToComputedValue;
             use values::{computed, specified};
             use string_cache::Atom;

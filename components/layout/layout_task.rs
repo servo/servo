@@ -34,6 +34,7 @@ use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::LayoutTaskFactory;
 use log;
+use msg::ParseErrorReporter;
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
@@ -65,7 +66,6 @@ use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{Device, MediaType};
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
-use style_traits::ParseErrorReporter;
 use url::Url;
 use util::geometry::MAX_RECT;
 use util::ipc::OptionalIpcSender;
@@ -444,7 +444,7 @@ impl LayoutTask {
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
               })),
-              error_reporter: CSSErrorReporter,
+              error_reporter: CSSErrorReporter { pipelineid: id },
         }
     }
 
