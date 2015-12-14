@@ -841,4 +841,9 @@ impl KeyboardEventMethods for KeyboardEvent {
     fn Which(&self) -> u32 {
         self.char_code.get().unwrap_or(self.KeyCode())
     }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.uievent.IsTrusted()
+    }
 }
