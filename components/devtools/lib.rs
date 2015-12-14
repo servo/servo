@@ -536,6 +536,19 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         worker_id)) =>
                 handle_console_message(actors.clone(), id, worker_id, console_message,
                                        &actor_pipelines, &actor_workers),
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
+                        id,
+                        css_error)) => {
+                let console_message =  ConsoleMessage {
+                    message: css_error.msg,
+                    logLevel: LogLevel::Warn,
+                    filename: css_error.filename,
+                    lineNumber: css_error.line,
+                    columnNumber: css_error.column,
+                };
+                handle_console_message(actors.clone(), id, None, console_message,
+                                       &actor_pipelines, &actor_workers)
+            },
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                         request_id, network_event)) => {
                 // copy the accepted_connections vector
