@@ -114,4 +114,9 @@ impl<'a> TouchEventMethods for &'a TouchEvent {
     fn ChangedTouches(&self) -> Root<TouchList> {
         self.changed_touches.get()
     }
+
+    /// https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.uievent.IsTrusted()
+    }
 }

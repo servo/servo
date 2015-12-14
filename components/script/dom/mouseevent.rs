@@ -206,4 +206,9 @@ impl MouseEventMethods for MouseEvent {
         self.button.set(buttonArg);
         self.related_target.set(relatedTargetArg);
     }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.uievent.IsTrusted()
+    }
 }

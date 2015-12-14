@@ -34,6 +34,7 @@ interface Event {
   [Pure]
   readonly attribute boolean defaultPrevented;
 
+  [Unforgeable]
   readonly attribute boolean isTrusted;
   [Constant]
   readonly attribute DOMTimeStamp timeStamp;

@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -88,5 +89,10 @@ impl CustomEventMethods for CustomEvent {
                        cancelable: bool,
                        detail: HandleValue) {
         self.init_custom_event(_cx, Atom::from(&*type_), can_bubble, cancelable, detail)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
     }
 }
