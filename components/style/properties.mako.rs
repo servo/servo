@@ -1705,6 +1705,12 @@ pub mod longhands {
         use values::computed::ComputedValueAsSpecified;
         pub use self::computed_value::T as SpecifiedValue;
 
+        const SERIF: &'static str = "serif";
+        const SANS_SERIF: &'static str = "sans-serif";
+        const CURSIVE: &'static str = "cursive";
+        const FANTASY: &'static str = "fantasy";
+        const MONOSPACE: &'static str = "monospace";
+
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub mod computed_value {
             use cssparser::ToCss;
@@ -1726,11 +1732,22 @@ pub mod longhands {
                 pub fn name(&self) -> &str {
                     match *self {
                         FontFamily::FamilyName(ref name) => &*name,
-                        FontFamily::Serif => "serif",
-                        FontFamily::SansSerif => "sans-serif",
-                        FontFamily::Cursive => "cursive",
-                        FontFamily::Fantasy => "fantasy",
-                        FontFamily::Monospace => "monospace"
+                        FontFamily::Serif => super::SERIF,
+                        FontFamily::SansSerif => super::SANS_SERIF,
+                        FontFamily::Cursive => super::CURSIVE,
+                        FontFamily::Fantasy => super::FANTASY,
+                        FontFamily::Monospace => super::MONOSPACE
+                    }
+                }
+
+                pub fn from_atom(input: Atom) -> FontFamily {
+                    match_ignore_ascii_case! { &input,
+                        super::SERIF => FontFamily::Serif,
+                        super::SANS_SERIF => FontFamily::SansSerif,
+                        super::CURSIVE => FontFamily::Cursive,
+                        super::FANTASY => FontFamily::Fantasy,
+                        super::MONOSPACE => FontFamily::Monospace
+                        _ => FontFamily::FamilyName(input.clone())
                     }
                 }
             }
@@ -1771,11 +1788,11 @@ pub mod longhands {
             let first_ident = try!(input.expect_ident());
 
             match_ignore_ascii_case! { first_ident,
-                "serif" => return Ok(FontFamily::Serif),
-                "sans-serif" => return Ok(FontFamily::SansSerif),
-                "cursive" => return Ok(FontFamily::Cursive),
-                "fantasy" => return Ok(FontFamily::Fantasy),
-                "monospace" => return Ok(FontFamily::Monospace)
+                SERIF => return Ok(FontFamily::Serif),
+                SANS_SERIF => return Ok(FontFamily::SansSerif),
+                CURSIVE => return Ok(FontFamily::Cursive),
+                FANTASY => return Ok(FontFamily::Fantasy),
+                MONOSPACE => return Ok(FontFamily::Monospace)
                 _ => {}
             }
             let mut value = first_ident.into_owned();
