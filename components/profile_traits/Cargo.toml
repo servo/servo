@@ -15,7 +15,6 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies.energymon]
 git = "https://github.com/energymon/energymon-rust.git"
-rev = "eba1d8a"
 optional = true
 
 [dependencies.energy-monitor]
