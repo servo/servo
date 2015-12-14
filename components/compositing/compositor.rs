@@ -179,8 +179,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Touch input state machine
     touch_handler: TouchHandler,
 
-    /// Pending scroll events.
-    pending_scroll_events: Vec<ScrollEvent>,
+    /// Pending scroll/zoom events.
+    pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
 
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
@@ -197,8 +197,12 @@ pub struct IOCompositor<Window: WindowMethods> {
     last_mouse_move_recipient: Option<PipelineId>,
 }
 
-pub struct ScrollEvent {
+pub struct ScrollZoomEvent {
+    /// Change the pinch zoom level by this factor
+    magnification: f32,
+    /// Scroll by this offset
     delta: TypedPoint2D<DevicePixel, f32>,
+    /// Apply changes to the frame at this location
     cursor: TypedPoint2D<DevicePixel, i32>,
 }
 
@@ -324,7 +328,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scrolling_timer: ScrollingTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
-            pending_scroll_events: Vec::new(),
+            pending_scroll_zoom_events: Vec::new(),
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: ScaleFactor::new(1.0),
@@ -1198,8 +1202,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
             TouchAction::Zoom(magnification, scroll_delta) => {
                 let cursor = Point2D::typed(-1, -1);  // Make sure this hits the base layer.
-                self.on_pinch_zoom_window_event(magnification);
-                self.on_scroll_window_event(scroll_delta, cursor);
+                self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+                    magnification: magnification,
+                    delta: scroll_delta,
+                    cursor: cursor,
+                });
+                self.composite_if_necessary(CompositingReason::Zoom);
             }
             TouchAction::DispatchEvent => {
                 if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
@@ -1250,7 +1258,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<DevicePixel, f32>,
                               cursor: TypedPoint2D<DevicePixel, i32>) {
-        self.pending_scroll_events.push(ScrollEvent {
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: 1.0,
             delta: delta,
             cursor: cursor,
         });
@@ -1259,20 +1268,30 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
-        let had_scroll_events = self.pending_scroll_events.len() > 0;
-        for scroll_event in std_mem::replace(&mut self.pending_scroll_events,
+        let had_events = self.pending_scroll_zoom_events.len() > 0;
+        for event in std_mem::replace(&mut self.pending_scroll_zoom_events,
                                              Vec::new()) {
-            let delta = scroll_event.delta / self.scene.scale;
-            let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
+            let delta = event.delta / self.scene.scale;
+            let cursor = event.cursor.as_f32() / self.scene.scale;
 
             if let Some(ref mut layer) = self.scene.root {
                 layer.handle_scroll_event(delta, cursor);
             }
 
+            if event.magnification != 1.0 {
+                self.zoom_action = true;
+                self.zoom_time = precise_time_s();
+                self.viewport_zoom = ScaleFactor::new(
+                    (self.viewport_zoom.get() * event.magnification)
+                    .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
+                    .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
+                self.update_zoom_transform();
+            }
+
             self.perform_updates_after_scroll();
         }
 
-        if had_scroll_events {
+        if had_events {
             self.send_viewport_rects_for_all_layers();
         }
     }
@@ -1400,36 +1419,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size();
     }
 
-    // TODO(pcwalton): I think this should go through the same queuing as scroll events do.
+    /// Simulate a pinch zoom
     fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
-        use num::Float;
-
-        self.zoom_action = true;
-        self.zoom_time = precise_time_s();
-        let old_viewport_zoom = self.viewport_zoom;
-
-        let viewport_zoom = ScaleFactor::new((self.viewport_zoom.get() * magnification)
-            .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
-            .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
-        self.viewport_zoom = viewport_zoom;
-
-        self.update_zoom_transform();
-
-        // Scroll as needed
-        let window_size = self.window_size.as_f32();
-        let page_delta: TypedPoint2D<LayerPixel, f32> = Point2D::typed(
-            window_size.width.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5,
-            window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
-
-        let cursor = Point2D::typed(-1f32, -1f32);  // Make sure this hits the base layer.
-        match self.scene.root {
-            Some(ref mut layer) => {
-                layer.handle_scroll_event(page_delta, cursor);
-            }
-            None => { }
-        }
-
-        self.send_viewport_rects_for_all_layers();
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: magnification,
+            delta: Point2D::typed(0.0, 0.0), // TODO: Scroll to keep the center in view?
+            cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
+        });
         self.composite_if_necessary(CompositingReason::Zoom);
     }
 
