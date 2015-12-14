@@ -66,4 +66,6 @@ pub enum ScriptMsg {
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+    /// Mark a new document as active
+    ActivateDocument(PipelineId),
 }
