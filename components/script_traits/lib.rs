@@ -152,7 +152,7 @@ pub enum ConstellationControlMsg {
         parent: PipelineId
     },
     /// Report an error from a CSS parser for the given pipeline
-    ReportCSSError(PipelineId, String, usize, usize, String),
+    ReportCSSError(PipelineId, String, u32, u32, String),
 }
 
 /// The type of input represented by a multi-touch event.

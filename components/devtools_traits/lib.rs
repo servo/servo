@@ -35,6 +35,7 @@ use rustc_serialize::{Decodable, Decoder};
 use std::net::TcpStream;
 use time::Duration;
 use url::Url;
+use util::mem::HeapSizeOf;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
@@ -42,6 +43,14 @@ use url::Url;
 pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: Url
+}
+
+#[derive(Deserialize, HeapSizeOf, Serialize, Clone)]
+pub struct CSSError {
+    pub filename: String,
+    pub line: u32,
+    pub column: u32,
+    pub msg: String
 }
 
 /// Messages to instruct the devtools server to update its known actors/state
@@ -77,6 +86,8 @@ pub enum ScriptToDevtoolsControlMsg {
     /// An animation frame with the given timestamp was processed in a script task.
     /// The actor with the provided name should be notified.
     FramerateTick(String, f64),
+
+    ReportCSSError(PipelineId, CSSError),
 }
 
 /// Serialized JS return values

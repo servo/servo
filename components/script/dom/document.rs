@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::CSSError;
 use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
@@ -89,7 +90,6 @@ use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
-use script_task::CSSError;
 use script_task::{MainThreadScriptMsg, Runnable};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;

@@ -18,6 +18,7 @@
 //! loop.
 
 use devtools;
+use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use document_loader::DocumentLoader;
@@ -590,14 +591,6 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
     _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
     // XXX implement me
     DOMProxyShadowsResult::ShadowCheckFailed
-}
-
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct CSSError {
-    filename: String,
-    line: usize,
-    column: usize,
-    msg: String
 }
 
 impl ScriptTask {
@@ -2066,7 +2059,7 @@ impl ScriptTask {
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
-                                  line: usize, column: usize, msg: String) {
+                                  line: u32, column: u32, msg: String) {
         let parent_page = self.root_page();
         let page = match parent_page.find(pipeline_id) {
             Some(page) => page,
@@ -2080,7 +2073,17 @@ impl ScriptTask {
             column: column,
             msg: msg
         };
-        document.report_css_error(css_error);
+
+        document.report_css_error(css_error.clone());
+        let window = page.window();
+
+        if window.return_devtools_flag() {
+            if let Some(ref chan) = self.devtools_chan {
+                chan.send(ScriptToDevtoolsControlMsg::ReportCSSError(
+                        pipeline_id,
+                        css_error)).unwrap();
+           }
+        }
     }
 }
 
