@@ -219,16 +219,21 @@ impl HTMLFormElement {
             win.pipeline(), load_data)).unwrap();
     }
 
+    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// Steps range from 1 to 3
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         let node = self.upcast::<Node>();
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
+        // Step 1-2
         node.traverse_preorder().filter_map(|child| {
+            // Step 3.1: The field element is disabled.
             match child.downcast::<Element>() {
                 Some(el) if !el.get_disabled_state() => (),
                 _ => return None,
             }
 
+            // Step 3.1: The field element has a datalist element ancestor.
             if child.ancestors()
                     .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
                 return None;
@@ -238,6 +243,7 @@ impl HTMLFormElement {
                     match element {
                         HTMLElementTypeId::HTMLInputElement => {
                             let input = child.downcast::<HTMLInputElement>().unwrap();
+                            // Step 3.2-3.7
                             input.get_form_datum(submitter)
                         }
                         HTMLElementTypeId::HTMLButtonElement |
@@ -257,9 +263,9 @@ impl HTMLFormElement {
         //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
 
+    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
     pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
-            // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
             // Step 4
             let mut buf = "".to_owned();
             let mut prev = ' ';
@@ -290,8 +296,8 @@ impl HTMLFormElement {
             DOMString::from(buf)
         }
 
+        // Step 1-3
         let mut ret = self.get_unclean_dataset(submitter);
-        // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
         // Step 4
         for datum in &mut ret {
             match &*datum.ty {
@@ -302,6 +308,7 @@ impl HTMLFormElement {
                 }
             }
         };
+        // Step 5
         ret
     }
 
