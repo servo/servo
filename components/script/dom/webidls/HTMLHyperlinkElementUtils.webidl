@@ -6,7 +6,8 @@
 // https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils
 //[NoInterfaceObject/*, Exposed=Window*/]
 interface HTMLHyperlinkElementUtils {
-  stringifier attribute USVString href;
+// stringifier attribute USVString href;
+           attribute USVString href;
 //           attribute USVString origin;
            attribute USVString protocol;
            attribute USVString username;
