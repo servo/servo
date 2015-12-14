@@ -44,7 +44,8 @@ use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQue
 use libc;
 use msg::ParseErrorReporter;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{ConstellationChan, DocumentState, LoadData};
+use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -981,6 +982,19 @@ impl Window {
 
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
+        }
+
+        if opts::get().output_file.is_some() {
+            // Checks if the html element has reftest-wait attribute present.
+            // See http://testthewebforward.org/docs/reftests.html
+            let html_element = document.GetDocumentElement();
+            let reftest_wait = html_element.map_or(false, |elem| {
+                elem.has_class(&Atom::from("reftest-wait"))
+            });
+            if !reftest_wait {
+                let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
+                self.constellation_chan().0.send(event).unwrap();
+            }
         }
     }
 

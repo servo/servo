@@ -29,7 +29,7 @@ use msg::compositor_msg::Epoch;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::PaintMsg as FromPaintMsg;
 use msg::constellation_msg::WebDriverCommandMsg;
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{DocumentState, FrameId, PipelineId};
 use msg::constellation_msg::{IframeLoadInfo, IFrameSandboxState, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
@@ -45,7 +45,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use sandboxing;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{ScriptMsg as FromScriptMsg, ScriptState, ScriptTaskFactory};
+use script_traits::{ScriptMsg as FromScriptMsg, ScriptTaskFactory};
 use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -171,6 +171,9 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of child content processes.
     child_processes: Vec<ChildProcess>,
+
+    /// Document states for loaded pipelines (used only when writing screenshots).
+    document_states: HashMap<PipelineId, DocumentState>,
 }
 
 /// State needed to construct a constellation.
@@ -331,6 +334,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webgl_paint_tasks: Vec::new(),
                 scheduler_chan: TimerScheduler::start(),
                 child_processes: Vec::new(),
+                document_states: HashMap::new(),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -675,6 +679,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Request::Script(FromScriptMsg::NodeStatus(message)) => {
                 debug!("constellation got NodeStatus message");
                 self.compositor_proxy.send(ToCompositorMsg::Status(message));
+            }
+            Request::Script(FromScriptMsg::SetDocumentState(pipeline_id, state)) => {
+                debug!("constellation got SetDocumentState message");
+                self.document_states.insert(pipeline_id, state);
             }
 
 
@@ -1375,14 +1383,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 return ReadyToSave::WebFontNotLoaded;
             }
 
-            // Synchronously query the script task for this pipeline
-            // to see if it is idle.
-            let (sender, receiver) = ipc::channel().unwrap();
-            let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
-            pipeline.script_chan.send(msg).unwrap();
-            let result = receiver.recv().unwrap();
-            if result == ScriptState::DocumentLoading {
-                return ReadyToSave::DocumentLoading;
+            // See if this pipeline has reached idle script state yet.
+            match self.document_states.get(&frame.current) {
+                Some(&DocumentState::Idle) => {}
+                Some(&DocumentState::Pending) | None => {
+                    return ReadyToSave::DocumentLoading;
+                }
             }
 
             // Check the visible rectangle for this pipeline. If the constellation has received a
