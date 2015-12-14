@@ -587,12 +587,14 @@ def scan():
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
     wpt_lint_errors = check_wpt_lint_errors()
 
-    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors))
+    errors = itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors)
 
-    if errors:
-        for error in errors:
-            print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
-        return 1
-    else:
+    error = None
+    for error in errors:
+        print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+
+    if error is None:
         print "\033[92mtidy reported no errors.\033[0m"
         return 0
+    else:
+        return 1
