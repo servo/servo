@@ -149,10 +149,7 @@ pub struct WebSocket {
 }
 
 fn fail_the_websocket_connection(address: Trusted<WebSocket>, script_chan: Box<ScriptChan>) {
-    let close_task = box CloseTask { address: address.clone(), };
-    script_chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, close_task)).unwrap();
-
-    let error_task = box ErrorTask { address: address.clone() };
+    let error_task = box FailedTask { address: address.clone() };
     script_chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, error_task)).unwrap();
 }
 
@@ -501,6 +498,36 @@ impl Runnable for BufferedAmountTask {
     }
 }
 
+fn close_websocket(ws: &WebSocket) {
+    let global = ws.global.root();
+    let reason = ws.reason.borrow().clone();
+
+    let close_event = CloseEvent::new(global.r(),
+                                      atom!("close"),
+                                      EventBubbles::DoesNotBubble,
+                                      EventCancelable::NotCancelable,
+                                      ws.clean_close.get(),
+                                      ws.code.get(),
+                                      DOMString::from(reason));
+    close_event.upcast::<Event>().fire(ws.upcast());
+}
+
+fn close_websocket_with_error(ws: &WebSocket) {
+    let global = ws.global.root();
+
+    ws.failed.set(false);
+    ws.full.set(false);
+    ws.clean_close.set(false);
+
+    let event = Event::new(global.r(),
+                           atom!("error"),
+                           EventBubbles::DoesNotBubble,
+                           EventCancelable::NotCancelable);
+    event.fire(ws.upcast());
+
+    close_websocket(ws);
+}
+
 struct CloseTask {
     address: Trusted<WebSocket>,
 }
@@ -509,51 +536,28 @@ impl Runnable for CloseTask {
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
         let ws = ws.r();
-        let global = ws.global.root();
         ws.ready_state.set(WebSocketRequestState::Closed);
-        //If failed or full, fire error event
+
         if ws.failed.get() || ws.full.get() {
-            ws.failed.set(false);
-            ws.full.set(false);
-            //A Bad close
-            ws.clean_close.set(false);
-            let event = Event::new(global.r(),
-                                   atom!("error"),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable);
-            event.fire(ws.upcast());
+            close_websocket_with_error(ws);
+        } else {
+            close_websocket(ws);
         }
-        let reason = ws.reason.borrow().clone();
-        /*In addition, we also have to fire a close even if error event fired
-         https://html.spec.whatwg.org/multipage/#closeWebSocket
-        */
-        let close_event = CloseEvent::new(global.r(),
-                                          atom!("close"),
-                                          EventBubbles::DoesNotBubble,
-                                          EventCancelable::NotCancelable,
-                                          ws.clean_close.get(),
-                                          ws.code.get(),
-                                          DOMString::from(reason));
-        close_event.upcast::<Event>().fire(ws.upcast());
     }
 }
 
-struct ErrorTask {
+struct FailedTask {
     address: Trusted<WebSocket>
 }
 
-impl Runnable for ErrorTask {
+impl Runnable for FailedTask {
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
-        debug!("ErrorTask::handler({:p}): readyState={:?}", &*ws,
-               ws.ready_state.get());
+        let ws = ws.r();
+        ws.ready_state.set(WebSocketRequestState::Closed);
 
-        let global = ws.global.root();
-        let event = Event::new(global.r(),
-                               atom!("error"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        event.fire(ws.upcast());
+        debug!("FailedTask::handler({:p}): readyState={:?}", &*ws, ws.ready_state.get());
+        close_websocket_with_error(ws);
     }
 }
 
