@@ -5637,6 +5637,12 @@
             "url": "/_mozilla/mozilla/iframe_contentDocument.html"
           }
         ],
+        "mozilla/iframe_hierarchy.html": [
+          {
+            "path": "mozilla/iframe_hierarchy.html",
+            "url": "/_mozilla/mozilla/iframe_hierarchy.html"
+          }
+        ],
         "mozilla/img_width_height.html": [
           {
             "path": "mozilla/img_width_height.html",

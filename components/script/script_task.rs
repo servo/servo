@@ -1594,7 +1594,8 @@ impl ScriptTask {
             let parent_page = self.root_page();
             // TODO(gw): This find will fail when we are sharing script tasks
             // between cross origin iframes in the same TLD.
-            parent_page.find(parent).expect("received load for subpage with missing parent");
+            let parent_page = parent_page.find(parent)
+                                         .expect("received load for subpage with missing parent");
             parent_page.children.borrow_mut().push(page.clone());
         }
 
