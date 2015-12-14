@@ -1011,7 +1011,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         # There are no nullable dictionaries
         assert not type.nullable()
 
-        typeName = CGDictionary.makeDictionaryName(type.inner)
+        typeName = "%s::%s" % (CGDictionary.makeModuleName(type.inner),
+                               CGDictionary.makeDictionaryName(type.inner))
         declType = CGGeneric(typeName)
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(dictionary) => dictionary,\n"
