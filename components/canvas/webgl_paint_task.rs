@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, FromLayoutMsg, FromPaintMsg};
-use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
+use canvas_traits::{WebGLError, WebGLFramebufferBindingRequest, WebGLParameter, WebGLResult};
 use core::nonzero::NonZero;
 use euclid::size::Size2D;
 use gleam::gl;
@@ -57,6 +57,10 @@ impl WebGLPaintTask {
                 self.context_attributes(sender),
             CanvasWebGLMsg::ActiveTexture(target) =>
                 gl::active_texture(target),
+            CanvasWebGLMsg::AttachShader(program_id, shader_id) =>
+                gl::attach_shader(program_id, shader_id),
+            CanvasWebGLMsg::BindAttribLocation(program_id, index, name) =>
+                gl::bind_attrib_location(program_id, index, &name),
             CanvasWebGLMsg::BlendColor(r, g, b, a) =>
                 gl::blend_color(r, g, b, a),
             CanvasWebGLMsg::BlendEquation(mode) =>
@@ -67,8 +71,6 @@ impl WebGLPaintTask {
                 gl::blend_func(src, dest),
             CanvasWebGLMsg::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) =>
                 gl::blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha),
-            CanvasWebGLMsg::AttachShader(program_id, shader_id) =>
-                gl::attach_shader(program_id, shader_id),
             CanvasWebGLMsg::BufferData(buffer_type, data, usage) =>
                 gl::buffer_data(buffer_type, &data, usage),
             CanvasWebGLMsg::BufferSubData(buffer_type, offset, data) =>
@@ -99,6 +101,8 @@ impl WebGLPaintTask {
                 gl::front_face(mode),
             CanvasWebGLMsg::DrawArrays(mode, first, count) =>
                 gl::draw_arrays(mode, first, count),
+            CanvasWebGLMsg::DrawElements(mode, count, type_, offset) =>
+                gl::draw_elements(mode, count, type_, offset as u32),
             CanvasWebGLMsg::Hint(name, val) =>
                 gl::hint(name, val),
             CanvasWebGLMsg::LineWidth(width) =>
@@ -111,6 +115,12 @@ impl WebGLPaintTask {
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.attrib_location(program_id, name, chan),
+            CanvasWebGLMsg::GetBufferParameter(target, param_id, chan) =>
+                self.buffer_parameter(target, param_id, chan),
+            CanvasWebGLMsg::GetParameter(param_id, chan) =>
+                self.parameter(param_id, chan),
+            CanvasWebGLMsg::GetProgramParameter(program_id, param_id, chan) =>
+                self.program_parameter(program_id, param_id, chan),
             CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
                 self.shader_parameter(shader_id, param_id, chan),
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
@@ -155,6 +165,8 @@ impl WebGLPaintTask {
                 gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]),
             CanvasWebGLMsg::UseProgram(program_id) =>
                 gl::use_program(program_id),
+            CanvasWebGLMsg::VertexAttrib(attrib_id, x, y, z, w) =>
+                gl::vertex_attrib_4f(attrib_id, x, y, z, w),
             CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) =>
                 gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32),
             CanvasWebGLMsg::Viewport(x, y, width, height) =>
@@ -319,16 +331,173 @@ impl WebGLPaintTask {
         chan.send(attrib_location).unwrap();
     }
 
+    fn parameter(&self,
+                 param_id: u32,
+                 chan: IpcSender<WebGLResult<WebGLParameter>>) {
+        let result = match param_id {
+            gl::ACTIVE_TEXTURE |
+            gl::ALPHA_BITS |
+            gl::BLEND_DST_ALPHA |
+            gl::BLEND_DST_RGB |
+            gl::BLEND_EQUATION_ALPHA |
+            gl::BLEND_EQUATION_RGB |
+            gl::BLEND_SRC_ALPHA |
+            gl::BLEND_SRC_RGB |
+            gl::BLUE_BITS |
+            gl::CULL_FACE_MODE |
+            gl::DEPTH_BITS |
+            gl::DEPTH_FUNC |
+            gl::FRONT_FACE |
+            gl::GENERATE_MIPMAP_HINT |
+            gl::GREEN_BITS |
+            //gl::IMPLEMENTATION_COLOR_READ_FORMAT |
+            //gl::IMPLEMENTATION_COLOR_READ_TYPE |
+            gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS |
+            gl::MAX_CUBE_MAP_TEXTURE_SIZE |
+            //gl::MAX_FRAGMENT_UNIFORM_VECTORS |
+            gl::MAX_RENDERBUFFER_SIZE |
+            gl::MAX_TEXTURE_IMAGE_UNITS |
+            gl::MAX_TEXTURE_SIZE |
+            //gl::MAX_VARYING_VECTORS |
+            gl::MAX_VERTEX_ATTRIBS |
+            gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS |
+            //gl::MAX_VERTEX_UNIFORM_VECTORS |
+            gl::PACK_ALIGNMENT |
+            gl::RED_BITS |
+            gl::SAMPLE_BUFFERS |
+            gl::SAMPLES |
+            gl::STENCIL_BACK_FAIL |
+            gl::STENCIL_BACK_FUNC |
+            gl::STENCIL_BACK_PASS_DEPTH_FAIL |
+            gl::STENCIL_BACK_PASS_DEPTH_PASS |
+            gl::STENCIL_BACK_REF |
+            gl::STENCIL_BACK_VALUE_MASK |
+            gl::STENCIL_BACK_WRITEMASK |
+            gl::STENCIL_BITS |
+            gl::STENCIL_CLEAR_VALUE |
+            gl::STENCIL_FAIL |
+            gl::STENCIL_FUNC |
+            gl::STENCIL_PASS_DEPTH_FAIL |
+            gl::STENCIL_PASS_DEPTH_PASS |
+            gl::STENCIL_REF |
+            gl::STENCIL_VALUE_MASK |
+            gl::STENCIL_WRITEMASK |
+            gl::SUBPIXEL_BITS |
+            gl::UNPACK_ALIGNMENT =>
+            //gl::UNPACK_COLORSPACE_CONVERSION_WEBGL =>
+                Ok(WebGLParameter::Int(gl::get_integer_v(param_id))),
+
+            gl::BLEND |
+            gl::CULL_FACE |
+            gl::DEPTH_TEST |
+            gl::DEPTH_WRITEMASK |
+            gl::DITHER |
+            gl::POLYGON_OFFSET_FILL |
+            gl::SAMPLE_COVERAGE_INVERT |
+            gl::STENCIL_TEST =>
+            //gl::UNPACK_FLIP_Y_WEBGL |
+            //gl::UNPACK_PREMULTIPLY_ALPHA_WEBGL =>
+                Ok(WebGLParameter::Bool(gl::get_boolean_v(param_id) != 0)),
+
+            gl::DEPTH_CLEAR_VALUE |
+            gl::LINE_WIDTH |
+            gl::POLYGON_OFFSET_FACTOR |
+            gl::POLYGON_OFFSET_UNITS |
+            gl::SAMPLE_COVERAGE_VALUE =>
+                Ok(WebGLParameter::Float(gl::get_float_v(param_id))),
+
+            gl::VERSION => Ok(WebGLParameter::String("WebGL 1.0".to_owned())),
+            gl::RENDERER |
+            gl::VENDOR => Ok(WebGLParameter::String("Mozilla/Servo".to_owned())),
+            gl::SHADING_LANGUAGE_VERSION => Ok(WebGLParameter::String("WebGL GLSL ES 1.0".to_owned())),
+
+            // TODO(zbarsky, ecoal95): Implement support for the following valid parameters
+            // Float32Array
+            gl::ALIASED_LINE_WIDTH_RANGE |
+            gl::ALIASED_POINT_SIZE_RANGE |
+            //gl::BLEND_COLOR |
+            gl::COLOR_CLEAR_VALUE |
+            gl::DEPTH_RANGE |
+
+            // WebGLBuffer
+            gl::ARRAY_BUFFER_BINDING |
+            gl::ELEMENT_ARRAY_BUFFER_BINDING |
+
+            // WebGLFrameBuffer
+            gl::FRAMEBUFFER_BINDING |
+
+            // WebGLRenderBuffer
+            gl::RENDERBUFFER_BINDING |
+
+            // WebGLProgram
+            gl::CURRENT_PROGRAM |
+
+            // WebGLTexture
+            gl::TEXTURE_BINDING_2D |
+            gl::TEXTURE_BINDING_CUBE_MAP |
+
+            // sequence<GlBoolean>
+            gl::COLOR_WRITEMASK |
+
+            // Uint32Array
+            gl::COMPRESSED_TEXTURE_FORMATS |
+
+            // Int32Array
+            gl::MAX_VIEWPORT_DIMS |
+            gl::SCISSOR_BOX |
+            gl::VIEWPORT => Err(WebGLError::InvalidEnum),
+
+            // Invalid parameters
+            _ => Err(WebGLError::InvalidEnum)
+        };
+
+        chan.send(result).unwrap();
+    }
+
+    fn buffer_parameter(&self,
+                        target: u32,
+                        param_id: u32,
+                        chan: IpcSender<WebGLResult<WebGLParameter>>) {
+        let result = match param_id {
+            gl::BUFFER_SIZE |
+            gl::BUFFER_USAGE =>
+                Ok(WebGLParameter::Int(gl::get_buffer_parameter_iv(target, param_id))),
+            _ => Err(WebGLError::InvalidEnum),
+        };
+
+        chan.send(result).unwrap();
+    }
+
+    fn program_parameter(&self,
+                         program_id: u32,
+                         param_id: u32,
+                         chan: IpcSender<WebGLResult<WebGLParameter>>) {
+        let result = match param_id {
+            gl::DELETE_STATUS |
+            gl::LINK_STATUS |
+            gl::VALIDATE_STATUS =>
+                Ok(WebGLParameter::Bool(gl::get_program_iv(program_id, param_id) != 0)),
+            gl::ATTACHED_SHADERS |
+            gl::ACTIVE_ATTRIBUTES |
+            gl::ACTIVE_UNIFORMS =>
+                Ok(WebGLParameter::Int(gl::get_program_iv(program_id, param_id))),
+            _ => Err(WebGLError::InvalidEnum),
+        };
+
+        chan.send(result).unwrap();
+    }
+
     fn shader_parameter(&self,
-                            shader_id: u32,
-                            param_id: u32,
-                            chan: IpcSender<WebGLShaderParameter>) {
+                        shader_id: u32,
+                        param_id: u32,
+                        chan: IpcSender<WebGLResult<WebGLParameter>>) {
         let result = match param_id {
             gl::SHADER_TYPE =>
-                WebGLShaderParameter::Int(gl::get_shader_iv(shader_id, param_id)),
-            gl::DELETE_STATUS | gl::COMPILE_STATUS =>
-                WebGLShaderParameter::Bool(gl::get_shader_iv(shader_id, param_id) != 0),
-            _ => panic!("Unexpected shader parameter type"),
+                Ok(WebGLParameter::Int(gl::get_shader_iv(shader_id, param_id))),
+            gl::DELETE_STATUS |
+            gl::COMPILE_STATUS =>
+                Ok(WebGLParameter::Bool(gl::get_shader_iv(shader_id, param_id) != 0)),
+            _ => Err(WebGLError::InvalidEnum),
         };
 
         chan.send(result).unwrap();

@@ -135,7 +135,7 @@ git = "https://github.com/servo/rust-layers"
 features = ["plugins"]
 
 [dependencies.gleam]
-version = "0.1"
+version = "0.2"
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"

@@ -50,4 +50,4 @@ time = "0.1.17"
 errno = "0.1"
 libc = "0.2"
 euclid = {version = "0.4", features = ["plugins"]}
-gleam = "0.1"
+gleam = "0.2"
