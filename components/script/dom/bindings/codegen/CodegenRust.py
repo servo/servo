@@ -4986,7 +4986,8 @@ class CGDescriptor(CGThing):
             cgThings.append(CGWrapMethod(descriptor))
 
         if not descriptor.interface.isCallback():
-            cgThings.append(CGIDLInterface(descriptor))
+            if descriptor.concrete or descriptor.hasDescendants():
+                cgThings.append(CGIDLInterface(descriptor))
             cgThings.append(CGInterfaceTrait(descriptor))
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))

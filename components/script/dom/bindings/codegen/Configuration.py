@@ -180,7 +180,7 @@ class Descriptor(DescriptorProvider):
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
         self.concrete = (not self.interface.isCallback() and
-                         desc.get('concrete', True))
+                         not self.interface.getExtendedAttribute("Abstract"))
         self.hasUnforgeableMembers = (self.concrete and
                                       any(MemberIsUnforgeable(m, self) for m in
                                           self.interface.members))
