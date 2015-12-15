@@ -6,12 +6,18 @@ use app_units::Au;
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
+use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
 use util::range::Range;
 use util::vec::{Comparator, FullBinarySearchMethods};
+
+thread_local! {
+    static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, CharIndex, usize)>> = 
+        Cell::new(None)
+}
 
 /// A single "paragraph" of text in one font size and style.
 #[derive(Clone, Deserialize, Serialize)]
@@ -24,6 +30,19 @@ pub struct TextRun {
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
     pub bidi_level: u8,
+}
+
+impl Drop for TextRun {
+    fn drop(&mut self) {
+        // Invalidate the glyph run cache if it was our text run that got freed.
+        INDEX_OF_FIRST_GLYPH_RUN_CACHE.with(|index_of_first_glyph_run_cache| {
+            if let Some((text_run_ptr, _, _)) = index_of_first_glyph_run_cache.get() {
+                if text_run_ptr == (self as *const TextRun) {
+                    index_of_first_glyph_run_cache.set(None);
+                }
+            }
+        })
+    }
 }
 
 /// A single series of glyphs within a text run.
@@ -248,6 +267,10 @@ impl<'a> TextRun {
     }
 
     pub fn advance_for_range(&self, range: &Range<CharIndex>) -> Au {
+        if range.is_empty() {
+            return Au(0)
+        }
+
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings when measuring text
         self.natural_word_slices_in_range(range)
@@ -279,7 +302,21 @@ impl<'a> TextRun {
 
     /// Returns the index of the first glyph run containing the given character index.
     fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<usize> {
-        (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator)
+        let self_ptr = self as *const TextRun;
+        INDEX_OF_FIRST_GLYPH_RUN_CACHE.with(|index_of_first_glyph_run_cache| {
+            if let Some((last_text_run, last_index, last_result)) =
+                    index_of_first_glyph_run_cache.get() {
+                if last_text_run == self_ptr && last_index == index {
+                    return Some(last_result)
+                }
+            }
+
+            let result = (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator);
+            if let Some(result) = result {
+                index_of_first_glyph_run_cache.set(Some((self_ptr, index, result)));
+            }
+            result
+        })
     }
 
     /// Returns an iterator that will iterate over all slices of glyphs that represent natural
