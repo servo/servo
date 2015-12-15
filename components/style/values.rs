@@ -1518,10 +1518,12 @@ pub mod computed {
     }
 
     impl CalcLengthOrPercentage {
+        #[inline]
         pub fn length(&self) -> Au {
             self.length.unwrap_or(Au(0))
         }
 
+        #[inline]
         pub fn percentage(&self) -> CSSFloat {
             self.percentage.unwrap_or(0.)
         }
