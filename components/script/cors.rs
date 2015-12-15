@@ -198,10 +198,6 @@ impl CORSRequest {
         preflight.headers
                  .set(AccessControlRequestHeaders(header_names.into_iter().map(UniCase).collect()));
 
-        // Step 6: Unnecessary, we don't use the request body
-
-        // Step 7: We don't perform a CORS check here
-        // FYI, fn allow_cross_origin_request() performs the CORS check
         let preflight_request = Request::new(preflight.method, preflight.destination);
         let mut req = match preflight_request {
             Ok(req) => req,
@@ -215,11 +211,14 @@ impl CORSRequest {
             Ok(s) => s,
             Err(_) => return error,
         };
+        // Step 6
         let response = match stream.send() {
             Ok(r) => r,
             Err(_) => return error,
         };
 
+        // Step 7: We don't perform a CORS check here
+        // FYI, fn allow_cross_origin_request() performs the CORS check
         match response.status.class() {
             Success => {}
             _ => return error,
