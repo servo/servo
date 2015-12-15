@@ -45,7 +45,7 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String;
     #[allow(unsafe_code)]
-    unsafe fn get_absolute_insertion_point_for_layout(self) -> usize;
+    unsafe fn get_absolute_insertion_point_for_layout(self) -> Option<usize>;
     #[allow(unsafe_code)]
     fn get_cols(self) -> u32;
     #[allow(unsafe_code)]
@@ -61,8 +61,13 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_absolute_insertion_point_for_layout(self) -> usize {
-        (*self.unsafe_get()).textinput.borrow_for_layout().get_absolute_insertion_point()
+    unsafe fn get_absolute_insertion_point_for_layout(self) -> Option<usize> {
+        if (*self.unsafe_get()).upcast::<Element>().get_focus_state() {
+            Some((*self.unsafe_get()).textinput.borrow_for_layout()
+                                      .get_absolute_insertion_point())
+        } else {
+            None
+        }
     }
 
     #[allow(unsafe_code)]

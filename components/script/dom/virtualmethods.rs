@@ -102,6 +102,14 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when a previously focused element is no longer focused.
+    /// Use this to trigger relayouts
+    fn handle_blur(&self) {
+        if let Some(s) = self.super_type() {
+            s.handle_blur();
+        }
+    }
+
     /// https://dom.spec.whatwg.org/#concept-node-adopt-ext
     fn adopting_steps(&self, old_doc: &Document) {
         if let Some(ref s) = self.super_type() {
