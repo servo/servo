@@ -57,6 +57,7 @@ use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_traits::ConstellationControlMsg;
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
@@ -68,10 +69,10 @@ use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
@@ -1292,6 +1293,7 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan<ConstellationMsg>,
+               control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,
@@ -1305,7 +1307,10 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-        let error_reporter = CSSErrorReporter { pipelineid: id };
+        let error_reporter = CSSErrorReporter {
+            pipelineid: id,
+            script_chan: Arc::new(Mutex::new(control_chan)),
+        };
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,

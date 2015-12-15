@@ -1638,6 +1638,7 @@ impl ScriptTask {
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
+                                 self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
