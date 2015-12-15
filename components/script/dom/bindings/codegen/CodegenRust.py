@@ -4722,50 +4722,26 @@ class CGClassConstructHook(CGAbstractExternMethod):
     """
     JS-visible constructor for our objects
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, constructor=None):
         args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
-        CGAbstractExternMethod.__init__(self, descriptor, CONSTRUCT_HOOK_NAME,
-                                        'bool', args)
-        self._ctor = self.descriptor.interface.ctor()
-
-    def define(self):
-        if not self._ctor:
-            return ""
-        return CGAbstractExternMethod.define(self)
+        name = CONSTRUCT_HOOK_NAME
+        if constructor:
+            name += "_" + constructor.identifier.name
+        else:
+            constructor = descriptor.interface.ctor()
+            assert constructor
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        self.constructor = constructor
 
     def definition_body(self):
         preamble = CGGeneric("""\
 let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
-        name = self._ctor.identifier.name
+        name = self.constructor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
         callGenerator = CGMethodCall(["global.r()"], nativeName, True,
-                                     self.descriptor, self._ctor)
-        return CGList([preamble, callGenerator])
-
-
-class CGClassNameConstructHook(CGAbstractExternMethod):
-    """
-    JS-visible named constructor for our objects
-    """
-    def __init__(self, descriptor, ctor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
-        self._ctor = ctor
-        CGAbstractExternMethod.__init__(self, descriptor,
-                                        CONSTRUCT_HOOK_NAME + "_" +
-                                        self._ctor.identifier.name,
-                                        'bool', args)
-
-    def definition_body(self):
-        preamble = CGGeneric("""\
-let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
-let args = CallArgs::from_vp(vp, argc);
-""")
-        name = self._ctor.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-        callGenerator = CGMethodCall(["global.r()"], nativeName, True,
-                                     self.descriptor, self._ctor)
+                                     self.descriptor, self.constructor)
         return CGList([preamble, callGenerator])
 
 
@@ -4932,9 +4908,10 @@ class CGDescriptor(CGThing):
             cgThings.append(CGClassTraceHook(descriptor))
 
         if descriptor.interface.hasInterfaceObject():
-            cgThings.append(CGClassConstructHook(descriptor))
+            if descriptor.interface.ctor():
+                cgThings.append(CGClassConstructHook(descriptor))
             for ctor in descriptor.interface.namedConstructors:
-                cgThings.append(CGClassNameConstructHook(descriptor, ctor))
+                cgThings.append(CGClassConstructHook(descriptor, ctor))
             cgThings.append(CGInterfaceObjectJSClass(descriptor))
 
         if not descriptor.interface.isCallback():
