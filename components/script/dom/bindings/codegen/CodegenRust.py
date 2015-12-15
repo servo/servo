@@ -2576,7 +2576,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
-                                         "PrototypeList::", pub=True)
+                                         "PrototypeList::", pub=descriptor.hasDescendants())
 
     def definition_body(self):
         return CGList([
@@ -2593,7 +2593,7 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject",
-                                         "constructors::")
+                                         "constructors::", pub=descriptor.hasDescendants())
 
     def definition_body(self):
         return CGList([
