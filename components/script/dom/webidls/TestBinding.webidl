@@ -28,6 +28,7 @@ dictionary TestDictionary {
   Blob interfaceValue;
   any anyValue;
   object objectValue;
+  TestDictionaryDefaults dict;
 };
 
 dictionary TestDictionaryDefaults {
