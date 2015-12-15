@@ -768,7 +768,7 @@ dependencies = [
 
 [[package]]
 name = "httparse"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -777,7 +777,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cookie 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "httparse 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "httparse 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "language-tags 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
