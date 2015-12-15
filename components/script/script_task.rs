@@ -1694,6 +1694,9 @@ impl ScriptTask {
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id)).unwrap();
 
+        // Notify devtools that a new script global exists.
+        self.notify_devtools(document.Title(), final_url.clone(), (page.pipeline(), None));
+
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
             use url::percent_encoding::percent_decode_to;
@@ -2047,11 +2050,6 @@ impl ScriptTask {
         document.process_deferred_scripts();
 
         window.set_fragment_name(final_url.fragment.clone());
-
-        // Notify devtools that a new script global exists.
-        //TODO: should this happen as soon as the global is created, or at least once the first
-        // script runs?
-        self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
