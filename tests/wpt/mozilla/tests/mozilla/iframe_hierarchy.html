@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="iframe_parent1.html"></iframe>
+<script>
+var t = async_test("iframe content hierarchy is correct");
+function do_test() {
+console.log("whee");
+  t.step(function() {
+    var doc = document.getElementsByTagName("iframe")[0].contentDocument;
+    doc = doc.getElementsByTagName("iframe")[0].contentDocument;
+    assert_equals(doc.body.firstChild.textContent, "foo");
+    t.done();
+  });
+}
+</script>
