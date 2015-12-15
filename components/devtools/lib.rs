@@ -89,8 +89,8 @@ struct ConsoleMsg {
     timeStamp: u64,
     arguments: Vec<String>,
     filename: String,
-    lineNumber: u32,
-    columnNumber: u32,
+    lineNumber: usize,
+    columnNumber: usize,
 }
 
 #[derive(RustcEncodable)]

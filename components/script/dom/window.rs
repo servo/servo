@@ -56,6 +56,7 @@ use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_thread::{DOMManipulationThreadSource, UserInteractionThreadSource, NetworkingThreadSource};
 use script_thread::{HistoryTraversalThreadSource, FileReadingThreadSource, SendableMainThreadScriptChan};
 use script_thread::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
+use script_traits::ConstellationControlMsg;
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
@@ -66,10 +67,10 @@ use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
@@ -1304,6 +1305,7 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan<ConstellationMsg>,
+               control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,
@@ -1317,7 +1319,10 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-        let error_reporter = CSSErrorReporter { pipelineid: id };
+        let error_reporter = CSSErrorReporter {
+            pipelineid: id,
+            script_chan: Arc::new(Mutex::new(control_chan)),
+        };
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,

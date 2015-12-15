@@ -49,8 +49,8 @@ pub struct DevtoolsPageInfo {
 #[derive(Deserialize, HeapSizeOf, Serialize, Clone)]
 pub struct CSSError {
     pub filename: String,
-    pub line: u32,
-    pub column: u32,
+    pub line: usize,
+    pub column: usize,
     pub msg: String
 }
 
@@ -223,8 +223,8 @@ pub struct ConsoleMessage {
     pub message: String,
     pub logLevel: LogLevel,
     pub filename: String,
-    pub lineNumber: u32,
-    pub columnNumber: u32,
+    pub lineNumber: usize,
+    pub columnNumber: usize,
 }
 
 bitflags! {

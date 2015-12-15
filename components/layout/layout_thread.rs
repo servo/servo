@@ -410,7 +410,7 @@ impl LayoutThread {
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
-            script_chan: script_chan,
+            script_chan: script_chan.clone(),
             constellation_chan: constellation_chan.clone(),
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
@@ -446,7 +446,10 @@ impl LayoutThread {
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
               })),
-              error_reporter: CSSErrorReporter { pipelineid: id },
+              error_reporter: CSSErrorReporter {
+                  pipelineid: id,
+                  script_chan: Arc::new(Mutex::new(script_chan)),
+              },
         }
     }
 

@@ -147,7 +147,7 @@ pub enum ConstellationControlMsg {
     /// Notifies a parent frame that one of its child frames is now active.
     FramedContentChanged(PipelineId, SubpageId),
     /// Report an error from a CSS parser for the given pipeline
-    ReportCSSError(PipelineId, String, u32, u32, String),
+    ReportCSSError(PipelineId, String, usize, usize, String),
 }
 
 /// Used to determine if a script has any pending asynchronous activity.

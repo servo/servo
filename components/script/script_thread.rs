@@ -1785,6 +1785,7 @@ impl ScriptThread {
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
+                                 self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
@@ -2207,7 +2208,7 @@ impl ScriptThread {
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
-                                  line: u32, column: u32, msg: String) {
+                                  line: usize, column: usize, msg: String) {
         let parent_page = self.root_page();
         let page = match parent_page.find(pipeline_id) {
             Some(page) => page,
