@@ -60,19 +60,20 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutGeneratedContent |
             ProfilerCategory::LayoutMain |
             ProfilerCategory::LayoutDispListBuild |
-            ProfilerCategory::LayoutShaping |
             ProfilerCategory::LayoutDamagePropagate |
             ProfilerCategory::PaintingPerTile |
             ProfilerCategory::PaintingPrepBuff => "+ ",
             ProfilerCategory::LayoutParallelWarmup |
             ProfilerCategory::LayoutSelectorMatch |
-            ProfilerCategory::LayoutTreeBuilder => "| + ",
+            ProfilerCategory::LayoutTreeBuilder |
+            ProfilerCategory::LayoutTextShaping => "| + ",
             _ => ""
         };
         let name = match *self {
             ProfilerCategory::Compositing => "Compositing",
             ProfilerCategory::LayoutPerform => "Layout",
             ProfilerCategory::LayoutStyleRecalc => "Style Recalc",
+            ProfilerCategory::LayoutTextShaping => "Text Shaping",
             ProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
             ProfilerCategory::LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
             ProfilerCategory::LayoutSelectorMatch => "Selector Matching",
@@ -81,7 +82,6 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
             ProfilerCategory::LayoutMain => "Primary Layout Pass",
             ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
-            ProfilerCategory::LayoutShaping => "Shaping",
             ProfilerCategory::LayoutDispListBuild => "Display List Construction",
             ProfilerCategory::PaintingPerTile => "Painting Per Tile",
             ProfilerCategory::PaintingPrepBuff => "Buffer Prep",

@@ -41,6 +41,7 @@ pub enum ProfilerCategory {
     Compositing,
     LayoutPerform,
     LayoutStyleRecalc,
+    LayoutTextShaping,
     LayoutRestyleDamagePropagation,
     LayoutNonIncrementalReset,
     LayoutSelectorMatch,
@@ -49,7 +50,6 @@ pub enum ProfilerCategory {
     LayoutGeneratedContent,
     LayoutMain,
     LayoutParallelWarmup,
-    LayoutShaping,
     LayoutDispListBuild,
     PaintingPerTile,
     PaintingPrepBuff,
@@ -99,8 +99,25 @@ pub fn profile<T, F>(category: ProfilerCategory,
     let val = callback();
     let end_time = precise_time_ns();
     let end_energy = read_energy_uj();
+    send_profile_data(category,
+                      meta,
+                      profiler_chan,
+                      start_time,
+                      end_time,
+                      start_energy,
+                      end_energy);
+    val
+}
+
+pub fn send_profile_data(category: ProfilerCategory,
+                         meta: Option<TimerMetadata>,
+                         profiler_chan: ProfilerChan,
+                         start_time: u64,
+                         end_time: u64,
+                         start_energy: u64,
+                         end_energy: u64) {
     profiler_chan.send(ProfilerMsg::Time((category, meta),
                                          (start_time, end_time),
                                          (start_energy, end_energy)));
-    val
 }
+

@@ -23,6 +23,7 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::Compositing);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutPerform);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutStyleRecalc);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutTextShaping);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutRestyleDamagePropagation);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutNonIncrementalReset);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutSelectorMatch);
@@ -31,7 +32,6 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutGeneratedContent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutMain);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutParallelWarmup);
-    maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutShaping);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::LayoutDispListBuild);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::PaintingPerTile);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::PaintingPrepBuff);
