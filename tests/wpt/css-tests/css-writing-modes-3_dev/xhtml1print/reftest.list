@@ -426,6 +426,7 @@ block-flow-direction-vrl-019.xht == reference/block-flow-direction-001-ref.xht
 block-flow-direction-vrl-021.xht == reference/block-flow-direction-002-ref.xht
 block-flow-direction-vrl-024.xht == reference/block-flow-direction-002-ref.xht
 block-flow-direction-vrl-025.xht == reference/block-flow-direction-025-ref.xht
+block-flow-direction-vrl-026.xht == reference/block-flow-direction-vrl-026-ref.xht
 block-override-001.xht == reference/block-override-001.xht
 block-override-002.xht == reference/block-override-002.xht
 block-override-003.xht == reference/block-override-003.xht
@@ -766,6 +767,8 @@ text-indent-vrl-012.xht == reference/text-indent-vrl-012-ref.xht
 text-indent-vrl-014.xht == reference/text-indent-vrl-010-ref.xht
 text-indent-vrl-016.xht == reference/text-indent-vrl-012-ref.xht
 text-orientation-014.xht == reference/text-orientation-014-ref.xht
+text-orientation-mixed-srl-016.xht == reference/text-orientation-upright-srl-016-ref.xht
+text-orientation-upright-srl-018.xht == reference/text-orientation-mixed-srl-016-ref.xht
 unicode-bidi-001.xht == reference/direction-002-ref.xht
 unicode-bidi-002.xht == reference/unicode-bidi-002-ref.xht
 unicode-bidi-003.xht == reference/direction-002-ref.xht

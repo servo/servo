@@ -3,6 +3,7 @@
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <title>CSS Writing Modes Test: inline block alignment - alphabetical alignment with vertical layout</title>
   <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-12-12 -->
   <link rel="help" title="CSS3 Writing modes: 4.3. Atomic Inline Baseline" href="http://www.w3.org/TR/css-writing-modes-3/#replaced-baselines" />
   <link rel="help" title="CSS2.1 9.2.2 Inline-level elements and inline boxes" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
   <link rel="match" href="reference/inline-block-alignment-slr-009-ref.xht" />
@@ -13,7 +14,6 @@
   {
     color: teal;
     font: 60px/1 Ahem; /* computes to 60px/60px */
-    height: 4em;
     writing-mode: sideways-lr;
   }
 
@@ -48,12 +48,12 @@
 
 <body>
 
-<p>Test passes if the <strong>left edge</strong> of an irregular polygon is straight and unbroken.</p>
+<p>Test passes if the <strong>right edge</strong> of an irregular polygon is straight and unbroken.</p>
 
-<div id="slr">p<div id="inline-block">
+<div id="slr">É<div id="inline-block">
   <span class="block-descendant">B</span>
-  <span class="block-descendant last-line-box">p</span>
-</div><span id="fuchsia30">p</span></div>
+  <span class="block-descendant last-line-box">É</span>
+</div><span id="fuchsia30">É</span></div>
 
 </body>
 </html>

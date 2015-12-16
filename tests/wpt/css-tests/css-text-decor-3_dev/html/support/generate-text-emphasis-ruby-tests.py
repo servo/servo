@@ -17,7 +17,7 @@ TEST_TEMPLATE = '''<!DOCTYPE html>
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-position-property">
 <meta name="assert" content="emphasis marks are drawn outside the ruby">
-<link rel="match" href="reference/text-emphasis-ruby-{index:03}-ref.html">
+<link rel="match" href="text-emphasis-ruby-{index:03}-ref.html">
 <p>Pass if the emphasis marks are outside the ruby:</p>
 <div style="line-height: 5; writing-mode: {wm}; ruby-position: {ruby_pos}; text-emphasis-position: {posval}">ルビ<span style="text-emphasis: circle">と<ruby>圏<rt>けん</rt>点<rt>てん</rt></ruby>を</span>同時</div>
 '''

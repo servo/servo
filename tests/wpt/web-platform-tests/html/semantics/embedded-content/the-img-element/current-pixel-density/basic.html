@@ -14,6 +14,10 @@
 <img srcset="/images/green-256x256.png 256w" sizes="512px" data-expect="512">
 <img srcset="/images/green-256x256.png 256w" sizes="1px" data-expect="1">
 <img srcset="/images/green-256x256.png 256w" sizes="0px" data-expect="0">
+<!-- SVG -->
+<img srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='-1%20-1%202%202'%20width='20'%20height='20'><circle%20r='1'/></svg> 2x" data-expect="10">
+<img srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='-1%20-1%202%202'%20width='20'><circle%20r='1'/></svg> 2x" data-expect="10">
+<img srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='-1%20-1%202%202'%20height='20'><circle%20r='1'/></svg> 2x" data-expect="10">
 <script>
 setup({explicit_done:true});
 onload = function() {
@@ -24,8 +28,8 @@ onload = function() {
       assert_equals(img.height, expected, 'height');
       assert_equals(img.clientWidth, expected, 'clientWidth');
       assert_equals(img.clientHeight, expected, 'clientHeight');
-      assert_equals(img.naturalWidth, 256, 'naturalWidth');
-      assert_equals(img.naturalHeight, 256, 'naturalHeight');
+      assert_equals(img.naturalWidth, expected, 'naturalWidth');
+      assert_equals(img.naturalHeight, expected, 'naturalHeight');
     }, img.outerHTML);
   });
   done();
