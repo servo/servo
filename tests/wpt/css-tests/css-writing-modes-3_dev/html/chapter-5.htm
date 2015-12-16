@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Vertical Text Layout (28 tests)</h2>
+  <h2>Introduction to Vertical Text Layout (33 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -36,7 +36,7 @@
     <tbody id="s5.#bi-orientational">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#bi-orientational----transform">
+    <tbody id="s5.#bi-orientational-transform">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.#horizontal-only">
@@ -55,7 +55,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">5.1 Orienting Text: the text-orientation property</a></th></tr>
-      <!-- 28 tests -->
+      <!-- 33 tests -->
       <tr id="table-progression-vlr-003-5.1" class="">
         <td>
             <a href="table-progression-vlr-003.htm">table-progression-vlr-003</a></td>
@@ -100,14 +100,14 @@
           </ul>
         </td>
       </tr>
-      <tr id="text-orientation-010-5.1" class="primary ahem font">
+      <tr id="text-orientation-010-5.1" class="primary image">
         <td><strong>
             <a href="text-orientation-010.htm">text-orientation-010</a></strong></td>
         <td></td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="font" title="Requires a special font">Font</abbr></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - mixed
           <ul class="assert">
-            <li>This test checks that 'text-orientation: mixed' causes characters from horizontal-only scripts are set sideways, i.e. 90&amp;deg;clockwise from their standard orientation in horizontal text. Characters from vertical scripts are set with their intrinsic orientation. This is effective to verify 1.block flow direction, 2.inline direction and 3.glyph orientation.</li>
+            <li>This test checks that 'text-orientation: mixed' causes characters from horizontal-only scripts are set sideways, i.e. rotated 90 clockwise from their standard orientation in horizontal text. Characters from vertical scripts are set according to their intrinsic orientation (Vertical Orientation Property as given by UTR50).</li>
           </ul>
         </td>
       </tr>
@@ -133,14 +133,36 @@
           </ul>
         </td>
       </tr>
-      <tr id="text-orientation-mixed-001-5.1" class="primary font image">
+      <tr id="text-orientation-mixed-001-5.1" class="primary image">
         <td><strong>
             <a href="text-orientation-mixed-001.htm">text-orientation-mixed-001</a></strong></td>
         <td></td>
-        <td><abbr class="font" title="Requires a special font">Font</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>text-orientation - mixed in vertical-rl writing mode
           <ul class="assert">
-            <li>This test checks that the alphabet is displayed on sideways, and it is verified whether the characters are aligned in the vertical direction including vertical writing characters (Japanese, Mongolian, Hangul, etc).</li>
+            <li>This test checks that when 'text-orientation' is set to 'mixed', then latin alphabet characters are displayed sideways (rotated 90 degrees clockwise) and characters from vertical scripts (Japanese, Mongolian, Hangul, etc) are displayed according to their intrinsic orientation property (Vertical Orientation Property as given by UTR50). In this test, the 'FULLWIDTH LATIN CAPITAL LETTER T' must be typeset upright.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-mixed-slr-015-5.1" class="primary image">
+        <td><strong>
+            <a href="text-orientation-mixed-slr-015.htm">text-orientation-mixed-slr-015</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'writing-mode: sideways-lr' - 'text-orientation: mixed' has no effect
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set to 'sideways-lr', then a 'text-orientation: mixed' declaration has no effect: the alphabetical baseline is used as the dominant baseline and all the glyphs remain rotated 90 degrees counter-clockwise. The typographic mode for 'sideways-lr' is horizontal and 'text-orientation' has no effect on boxes in horizontal typographic modes.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-mixed-srl-016-5.1" class="primary">
+        <td><strong>
+            <a href="text-orientation-mixed-srl-016.htm">text-orientation-mixed-srl-016</a></strong></td>
+        <td><a href="reference/text-orientation-upright-srl-016-ref.htm">=</a> </td>
+        <td></td>
+        <td>'writing-mode: sideways-rl' - 'text-orientation: mixed' has no effect
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set to 'sideways-rl', then a 'text-orientation: mixed' declaration has no effect: the alphabetical baseline is used as the dominant baseline because the typographic mode for 'sideways-rl' is horizontal and 'text-orientation' has no effect on boxes in horizontal typographic modes.</li>
           </ul>
         </td>
       </tr>
@@ -353,6 +375,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="text-orientation-sideways-slr-019-5.1" class="primary image">
+        <td><strong>
+            <a href="text-orientation-sideways-slr-019.htm">text-orientation-sideways-slr-019</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'writing-mode: sideways-lr' - 'text-orientation: sideways' has no effect
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set to 'sideways-lr', then a 'text-orientation: sideways' declaration has no effect: the alphabetical baseline is used as the dominant baseline and all the glyphs remain rotated 90 degrees counter-clockwise. The typographic mode for 'sideways-lr' is horizontal and 'text-orientation' has no effect on boxes in horizontal typographic modes.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-orientation-upright-001-5.1" class="primary font image">
         <td><strong>
             <a href="text-orientation-upright-001.htm">text-orientation-upright-001</a></strong></td>
@@ -364,6 +397,28 @@
           </ul>
         </td>
       </tr>
+      <tr id="text-orientation-upright-slr-017-5.1" class="primary image">
+        <td><strong>
+            <a href="text-orientation-upright-slr-017.htm">text-orientation-upright-slr-017</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'writing-mode: sideways-lr' - 'text-orientation: upright' has no effect
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set to 'sideways-lr', then a 'text-orientation: upright' declaration has no effect: the alphabetical baseline is used as the dominant baseline and all the glyphs remain rotated 90 degrees counter-clockwise. The typographic mode for 'sideways-lr' is horizontal and 'text-orientation' has no effect on boxes in horizontal typographic modes.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-orientation-upright-srl-018-5.1" class="primary">
+        <td><strong>
+            <a href="text-orientation-upright-srl-018.htm">text-orientation-upright-srl-018</a></strong></td>
+        <td><a href="reference/text-orientation-mixed-srl-016-ref.htm">=</a> </td>
+        <td></td>
+        <td>'writing-mode: sideways-rl' - 'text-orientation: upright' has no effect
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set to 'sideways-rl', then a 'text-orientation: upright' declaration has no effect: the alphabetical baseline is used as the dominant baseline and all the glyphs remain rotated 90 degrees clockwise. The typographic mode for 'sideways-rl' is horizontal and 'text-orientation' has no effect on boxes in horizontal typographic modes.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s5.1.#fig-text-orientation">
       <!-- 0 tests -->
@@ -371,22 +426,16 @@
     <tbody id="s5.1.#propdef-text-orientation">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#valuedef-mixed">
+    <tbody id="s5.1.#valdef-text-orientation-mixed">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#valuedef-sideways">
+    <tbody id="s5.1.#valdef-text-orientation-sideways">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#valuedef-sideways-left">
+    <tbody id="s5.1.#valdef-text-orientation-sideways-right">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#valuedef-sideways-right">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s5.1.#valuedef-upright">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s5.1.#valuedef-use-glyph-orientation">
+    <tbody id="s5.1.#valdef-text-orientation-upright">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.1.1">
@@ -405,6 +454,15 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#vertical-orientations">5.1.2 Mixed Vertical Orientations</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s5.1.3">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#glyph-orientation">5.1.3 Obsolete: the SVG1.1 glyph-orientation-vertical property</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.3.#propdef-glyph-orientation-vertical">
       <!-- 0 tests -->
     </tbody>
   </table>
