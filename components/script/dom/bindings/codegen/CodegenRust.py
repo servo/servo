@@ -5280,17 +5280,23 @@ class CGBindingRoot(CGThing):
         descriptors.extend(config.getDescriptors(webIDLFile=webIDLFile,
                                                  hasInterfaceObject=False,
                                                  isCallback=False))
-        dictionaries = config.getDictionaries(webIDLFile=webIDLFile)
 
-        cgthings = []
+        dictionaries = config.getDictionaries(webIDLFile=webIDLFile)
 
         mainCallbacks = config.getCallbacks(webIDLFile=webIDLFile)
         callbackDescriptors = config.getDescriptors(webIDLFile=webIDLFile,
                                                     isCallback=True)
 
-        # Do codegen for all the enums
-        cgthings = [CGEnum(e) for e in config.getEnums(webIDLFile)]
+        enums = config.getEnums(webIDLFile)
 
+        if not (descriptors or dictionaries or mainCallbacks or callbackDescriptors or enums):
+            self.root = None
+            return
+
+        # Do codegen for all the enums.
+        cgthings = [CGEnum(e) for e in enums]
+
+        # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
                          for d in dictionaries])
 
@@ -5309,10 +5315,6 @@ class CGBindingRoot(CGThing):
 
         # And make sure we have the right number of newlines at the end
         curr = CGWrapper(CGList(cgthings, "\n\n"), post="\n\n")
-
-        # Wrap all of that in our namespaces.
-        # curr = CGNamespace.build(['dom'],
-        #                          CGWrapper(curr, pre="\n"))
 
         # Add imports
         curr = CGImports(curr, descriptors + callbackDescriptors, mainCallbacks, [
@@ -5412,6 +5414,8 @@ class CGBindingRoot(CGThing):
         self.root = curr
 
     def define(self):
+        if not self.root:
+            return None
         return stripTrailingWhitespace(self.root.define())
 
 
