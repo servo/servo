@@ -6,7 +6,7 @@ use app_units::Au;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType, WorkerId};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnErrorEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
@@ -983,19 +983,6 @@ impl Window {
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
-
-        if opts::get().output_file.is_some() {
-            // Checks if the html element has reftest-wait attribute present.
-            // See http://testthewebforward.org/docs/reftests.html
-            let html_element = document.GetDocumentElement();
-            let reftest_wait = html_element.map_or(false, |elem| {
-                elem.has_class(&Atom::from("reftest-wait"))
-            });
-            if !reftest_wait {
-                let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
-                self.constellation_chan().0.send(event).unwrap();
-            }
-        }
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
@@ -1004,16 +991,33 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        if query_type == ReflowQueryType::NoQuery && !self.Document().needs_reflow() {
+        if query_type != ReflowQueryType::NoQuery || self.Document().needs_reflow() {
+            self.force_reflow(goal, query_type, reason);
+
+            // If window_size is `None`, we don't reflow, so the document stays dirty.
+            // Otherwise, we shouldn't need a reflow immediately after a reflow.
+            assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
+        } else {
             debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
-            return
         }
 
-        self.force_reflow(goal, query_type, reason);
+        if opts::get().output_file.is_some() {
+            let document = self.Document();
 
-        // If window_size is `None`, we don't reflow, so the document stays dirty.
-        // Otherwise, we shouldn't need a reflow immediately after a reflow.
-        assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
+            // Checks if the html element has reftest-wait attribute present.
+            // See http://testthewebforward.org/docs/reftests.html
+            let html_element = document.GetDocumentElement();
+            let reftest_wait = html_element.map_or(false, |elem| {
+                elem.has_class(&Atom::from("reftest-wait"))
+            });
+
+            let ready_state = document.ReadyState();
+
+            if ready_state == DocumentReadyState::Complete && !reftest_wait {
+                let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
+                self.constellation_chan().0.send(event).unwrap();
+            }
+        }
     }
 
     pub fn layout(&self) -> &LayoutRPC {
