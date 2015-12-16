@@ -127,18 +127,23 @@ function get_type() {
   return run_type;
 };
 
-var test_in_data_uri = get_test_func(function (iframe, uri_encoded_input) {
-                                       iframe.src = "data:text/html;charset=utf8," + uri_encoded_input;
+var test_in_blob_uri = get_test_func(function (iframe, uri_encoded_input, t) {
+                                       var b = new Blob([decodeURIComponent(uri_encoded_input)], { type: "text/html" });
+                                       var blobURL = URL.createObjectURL(b);
+                                       iframe.src = blobURL;
+                                       t.add_cleanup(function() {
+                                         URL.revokeObjectURL(blobURL);
+                                       });
                                      });
 
-var test_document_write = get_test_func(function(iframe, uri_encoded_input) {
+var test_document_write = get_test_func(function(iframe, uri_encoded_input, t) {
                                           iframe.contentDocument.open();
                                           var input = decodeURIComponent(uri_encoded_input);
                                           iframe.contentDocument.write(input);
                                           iframe.contentDocument.close();
                                         });
 
-var test_document_write_single = get_test_func(function(iframe, uri_encoded_input) {
+var test_document_write_single = get_test_func(function(iframe, uri_encoded_input, t) {
                                                  iframe.contentDocument.open();
                                                  var input = decodeURIComponent(uri_encoded_input);
                                                  for (var i=0; i< input.length; i++) {
@@ -166,7 +171,7 @@ function get_test_func(inject_func) {
              }
             );
     };
-    inject_func(iframe, uri_encoded_input);
+    inject_func(iframe, uri_encoded_input, t);
   }
   return test_func;
 }
@@ -248,7 +253,7 @@ function init_tests(test_type) {
   var test_funcs = {
     "write":test_document_write,
     "write_single":test_document_write_single,
-    "uri":test_in_data_uri,
+    "uri":test_in_blob_uri,
     "innerHTML":test_fragment
   };
   var tests_started = 0;
