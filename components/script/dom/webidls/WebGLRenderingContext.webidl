@@ -618,7 +618,7 @@ interface WebGLRenderingContextBase
     //void renderbufferStorage(GLenum target, GLenum internalformat,
     //                         GLsizei width, GLsizei height);
     //void sampleCoverage(GLclampf value, GLboolean invert);
-    //void scissor(GLint x, GLint y, GLsizei width, GLsizei height);
+    void scissor(GLint x, GLint y, GLsizei width, GLsizei height);
 
     void shaderSource(WebGLShader? shader, DOMString source);
 

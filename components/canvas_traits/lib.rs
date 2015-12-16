@@ -175,6 +175,7 @@ pub enum CanvasWebGLMsg {
     GetAttribLocation(u32, String, IpcSender<Option<i32>>),
     GetUniformLocation(u32, String, IpcSender<Option<i32>>),
     PolygonOffset(f32, f32),
+    Scissor(i32, i32, i32, i32),
     Hint(u32, u32),
     LineWidth(f32),
     PixelStorei(u32, i32),

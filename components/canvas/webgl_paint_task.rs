@@ -111,6 +111,8 @@ impl WebGLPaintTask {
                 gl::pixel_store_i(name, val),
             CanvasWebGLMsg::PolygonOffset(factor, units) =>
                 gl::polygon_offset(factor, units),
+            CanvasWebGLMsg::Scissor(x, y, width, height) =>
+                gl::scissor(x, y, width, height),
             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) =>
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
