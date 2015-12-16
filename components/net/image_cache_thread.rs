@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::image::base::{Image, load_from_memory};
+use net_traits::image::base::{Image, ImageMetadata, load_from_memory};
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
-use net_traits::image_cache_thread::{ImageCacheResult, ImageResponse, UsePlaceholder};
+use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
 use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
 use net_traits::{ResponseAction, LoadContext};
 use std::borrow::ToOwned;
@@ -38,6 +39,9 @@ struct PendingLoad {
     // is complete and the buffer has been transmitted to the decoder.
     bytes: Vec<u8>,
 
+    // Image metadata, if available.
+    metadata: Option<ImageMetadata>,
+
     // Once loading is complete, the result of the operation.
     result: Option<Result<(), String>>,
     listeners: Vec<ImageListener>,
@@ -51,6 +55,7 @@ impl PendingLoad {
     fn new(url: Arc<Url>) -> PendingLoad {
         PendingLoad {
             bytes: vec!(),
+            metadata: None,
             result: None,
             listeners: vec!(),
             url: url,
@@ -165,6 +170,7 @@ impl CompletedLoad {
 struct ImageListener {
     sender: ImageCacheChan,
     responder: Option<ImageResponder>,
+    send_metadata_msg: bool,
 }
 
 // A key used to communicate during loading.
@@ -188,17 +194,24 @@ impl LoadKeyGenerator {
 }
 
 impl ImageListener {
-    fn new(sender: ImageCacheChan, responder: Option<ImageResponder>) -> ImageListener {
+    fn new(sender: ImageCacheChan, responder: Option<ImageResponder>, send_metadata_msg: bool) -> ImageListener {
         ImageListener {
             sender: sender,
             responder: responder,
+            send_metadata_msg: send_metadata_msg,
         }
     }
 
-    fn notify(self, image_response: ImageResponse) {
+    fn notify(&self, image_response: ImageResponse) {
+        if !self.send_metadata_msg {
+            if let ImageResponse::MetadataLoaded(_) = image_response {
+                return;
+            }
+        }
+
         let ImageCacheChan(ref sender) = self.sender;
         let msg = ImageCacheResult {
-            responder: self.responder,
+            responder: self.responder.clone(),
             image_response: image_response,
         };
         sender.send(msg).ok();
@@ -310,27 +323,17 @@ impl ImageCache {
                 return Some(sender);
             }
             ImageCacheCommand::RequestImage(url, result_chan, responder) => {
-                self.request_image(url, result_chan, responder);
+                self.request_image(url, result_chan, responder, false);
+            }
+            ImageCacheCommand::RequestImageAndMetadata(url, result_chan, responder) => {
+                self.request_image(url, result_chan, responder, true);
             }
             ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, consumer) => {
-                let result = match self.completed_loads.get(&url) {
-                    Some(completed_load) => {
-                        match (completed_load.image_response.clone(), use_placeholder) {
-                            (ImageResponse::Loaded(image), _) |
-                            (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
-                                Ok(image)
-                            }
-                            (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
-                            (ImageResponse::None, _) => {
-                                Err(ImageState::LoadError)
-                            }
-                        }
-                    }
-                    None => {
-                        self.pending_loads.get_by_url(&url).
-                            map_or(Err(ImageState::NotRequested), |_| Err(ImageState::Pending))
-                    }
-                };
+                let result = self.get_image_if_available(url, use_placeholder);
+                consumer.send(result).unwrap();
+            }
+            ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, consumer) => {
+                let result = self.get_image_or_meta_if_available(url, use_placeholder);
                 consumer.send(result).unwrap();
             }
         };
@@ -345,13 +348,24 @@ impl ImageCache {
             (ResponseAction::DataAvailable(data), _) => {
                 let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
+                //jmr0 TODO: possibly move to another task?
+                if let None = pending_load.metadata {
+                    if let Ok(metadata) = load_from_buf(&pending_load.bytes) {
+                        let dimensions = metadata.dimensions();
+                        let img_metadata = ImageMetadata { width: dimensions.width,
+                                                         height: dimensions.height };
+                        pending_load.metadata = Some(img_metadata.clone());
+                        for listener in &pending_load.listeners {
+                            listener.notify(ImageResponse::MetadataLoaded(img_metadata.clone()).clone());
+                        }
+                    }
+                }
             }
             (ResponseAction::ResponseComplete(result), key) => {
                 match result {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                         pending_load.result = Some(result);
-
                         let bytes = mem::replace(&mut pending_load.bytes, vec!());
                         let sender = self.decoder_sender.clone();
 
@@ -401,12 +415,15 @@ impl ImageCache {
 
     // Request an image from the cache.  If the image hasn't been
     // loaded/decoded yet, it will be loaded/decoded in the
-    // background.
+    // background. If send_metadata_msg is set, the channel will be notified
+    // that image metadata is available, possibly before the image has finished
+    // loading.
     fn request_image(&mut self,
                      url: Url,
                      result_chan: ImageCacheChan,
-                     responder: Option<ImageResponder>) {
-        let image_listener = ImageListener::new(result_chan, responder);
+                     responder: Option<ImageResponder>,
+                     send_metadata_msg: bool) {
+        let image_listener = ImageListener::new(result_chan, responder, send_metadata_msg);
         // Let's avoid copying url everywhere.
         let ref_url = Arc::new(url);
 
@@ -446,6 +463,47 @@ impl ImageCache {
                         // Request is already on its way.
                     }
                 }
+            }
+        }
+    }
+
+    fn get_image_if_available(&mut self,
+                                   url: Url,
+                                   placeholder: UsePlaceholder, )
+                                   -> Result<Arc<Image>, ImageState> {
+       let img_or_metadata = self.get_image_or_meta_if_available(url, placeholder);
+       match img_or_metadata {
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => Ok(image),
+            Ok(ImageOrMetadataAvailable::MetadataAvailable(_)) => Err(ImageState::Pending),
+            Err(err) => Err(err),
+       }
+    }
+
+    fn get_image_or_meta_if_available(&mut self,
+                                      url: Url,
+                                      placeholder: UsePlaceholder)
+                                      -> Result<ImageOrMetadataAvailable, ImageState> {
+        match self.completed_loads.get(&url) {
+            Some(completed_load) => {
+                match (completed_load.image_response.clone(), placeholder) {
+                    (ImageResponse::Loaded(image), _) |
+                    (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
+                        Ok(ImageOrMetadataAvailable::ImageAvailable(image))
+                    }
+                    (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
+                    (ImageResponse::None, _) |
+                    (ImageResponse::MetadataLoaded(_), _) => {
+                        Err(ImageState::LoadError)
+                    }
+                }
+            }
+            None => {
+                self.pending_loads.get_by_url(&url).as_ref().
+                    map_or(Err(ImageState::NotRequested), |pl| pl.metadata.as_ref().
+                    map_or(Err(ImageState::Pending), |meta|
+                           Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
+                          )
+                    )
             }
         }
     }

@@ -1138,7 +1138,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
                 let img = match canvas_utils::request_image_from_cache(window.r(), img_url) {
                     ImageResponse::Loaded(img) => img,
-                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None
+                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None |
+                    ImageResponse::MetadataLoaded(_)
                         => return,
                 };
 
