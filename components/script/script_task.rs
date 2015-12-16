@@ -1558,6 +1558,11 @@ impl ScriptTask {
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> ParserRoot {
         let final_url = metadata.final_url.clone();
+        {
+            // send the final url to the layout task.
+            let LayoutChan(ref chan) = incomplete.layout_chan;
+            chan.send(layout_interface::Msg::SetFinalUrl(final_url.clone())).unwrap();
+        }
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
