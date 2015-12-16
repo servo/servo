@@ -2211,12 +2211,9 @@ impl Fragment {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
                 let mut leading_whitespace_character_count = 0;
                 {
-                    let text = slice_chars(
-                        &*scanned_text_fragment_info.run.text,
-                        scanned_text_fragment_info.range.begin().to_usize(),
-                        scanned_text_fragment_info.range.end().to_usize());
-                    for character in text.chars() {
-                        if util::str::char_is_whitespace(character) {
+                    for slice in scanned_text_fragment_info.run.character_slices_in_range(
+                            &scanned_text_fragment_info.range) {
+                        if slice.glyphs.range_is_whitespace(&slice.range) {
                             leading_whitespace_character_count += 1
                         } else {
                             break
@@ -2272,18 +2269,15 @@ impl Fragment {
 
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
-                // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
                 debug!("stripping trailing whitespace: range={:?}, len={}",
                        scanned_text_fragment_info.range,
                        scanned_text_fragment_info.run.text.chars().count());
                 let mut trailing_whitespace_character_count = 0;
                 let text_bounds;
                 {
-                    let text = slice_chars(&*scanned_text_fragment_info.run.text,
-                                           scanned_text_fragment_info.range.begin().to_usize(),
-                                           scanned_text_fragment_info.range.end().to_usize());
-                    for ch in text.chars().rev() {
-                        if util::str::char_is_whitespace(ch) {
+                    for slice in scanned_text_fragment_info.run.character_slices_in_range(
+                            &scanned_text_fragment_info.range).rev() {
+                        if slice.glyphs.range_is_whitespace(&slice.range) {
                             trailing_whitespace_character_count += 1
                         } else {
                             break
