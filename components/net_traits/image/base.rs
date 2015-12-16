@@ -7,7 +7,7 @@ use piston_image::{self, DynamicImage, GenericImage, ImageFormat};
 use stb_image::image as stb_image2;
 use util::vec::byte_swap;
 
-pub use msg::constellation_msg::{Image, PixelFormat};
+pub use msg::constellation_msg::{Image, ImageMetadata, PixelFormat};
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.

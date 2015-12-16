@@ -41,3 +41,4 @@ uuid = "0.1.16"
 euclid = {version = "0.4", features = ["plugins"]}
 url = "0.5.2"
 websocket = "0.14.0"
+immeta = "0.2"

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::Image;
+use msg::constellation_msg::{Image, ImageMetadata};
 use std::sync::Arc;
 use url::Url;
 use util::mem::HeapSizeOf;
@@ -12,7 +12,7 @@ use util::mem::HeapSizeOf;
 /// and image, and returned to the specified event loop when the
 /// image load completes. It is typically used to trigger a reflow
 /// and/or repaint.
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImageResponder {
     sender: IpcSender<ImageResponse>,
 }
@@ -42,13 +42,22 @@ pub enum ImageState {
 pub enum ImageResponse {
     /// The requested image was loaded.
     Loaded(Arc<Image>),
+    /// The request image metadata was loaded.
+    MetadataLoaded(ImageMetadata),
     /// The requested image failed to load, so a placeholder was loaded instead.
     PlaceholderLoaded(Arc<Image>),
     /// Neither the requested image nor the placeholder could be loaded.
     None
 }
 
-/// Channel for sending commands to the image cache.
+/// Indicating either entire image or just metadata availability
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub enum ImageOrMetadataAvailable {
+    ImageAvailable(Arc<Image>),
+    MetadataAvailable(ImageMetadata),
+}
+
+/// Channel used by the image cache to send results.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ImageCacheChan(pub IpcSender<ImageCacheResult>);
 
@@ -68,11 +77,21 @@ pub enum ImageCacheCommand {
     /// that is passed to the result channel.
     RequestImage(Url, ImageCacheChan, Option<ImageResponder>),
 
+    /// Requests an image and a "metadata-ready" notification message asynchronously from the
+    /// cache. The cache will make an effort to send metadata before the image is completely
+    /// loaded. Supply a channel to receive the results, and optionally an image responder
+    /// that is passed to the result channel.
+    RequestImageAndMetadata(Url, ImageCacheChan, Option<ImageResponder>),
+
     /// Synchronously check the state of an image in the cache.
     /// TODO(gw): Profile this on some real world sites and see
     /// if it's worth caching the results of this locally in each
     /// layout / paint thread.
     GetImageIfAvailable(Url, UsePlaceholder, IpcSender<Result<Arc<Image>, ImageState>>),
+
+    /// Synchronously check the state of an image in the cache. If the image is in a loading
+    /// state and but its metadata has been made available, it will be sent as a response.
+    GetImageOrMetadataIfAvailable(Url, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
 
     /// Clients must wait for a response before shutting down the ResourceThread
     Exit(IpcSender<()>),
@@ -101,7 +120,7 @@ impl ImageCacheThread {
         }
     }
 
-    /// Asynchronously request and image. See ImageCacheCommand::RequestImage.
+    /// Asynchronously request an image. See ImageCacheCommand::RequestImage.
     pub fn request_image(&self,
                          url: Url,
                          result_chan: ImageCacheChan,
@@ -110,11 +129,31 @@ impl ImageCacheThread {
         self.chan.send(msg).unwrap();
     }
 
+    /// Asynchronously request an image and metadata.
+    /// See ImageCacheCommand::RequestImageAndMetadata
+    pub fn request_image_and_metadata(&self,
+                                      url: Url,
+                                      result_chan: ImageCacheChan,
+                                      responder: Option<ImageResponder>) {
+        let msg = ImageCacheCommand::RequestImageAndMetadata(url, result_chan, responder);
+        self.chan.send(msg).unwrap();
+    }
+
     /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
     pub fn find_image(&self, url: Url, use_placeholder: UsePlaceholder)
                                   -> Result<Arc<Image>, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);
+        self.chan.send(msg).unwrap();
+        receiver.recv().unwrap()
+    }
+
+    /// Get the current state of an image, returning its metadata if available.
+    /// See ImageCacheCommand::GetImageOrMetadataIfAvailable.
+    pub fn find_image_or_metadata(&self, url: Url, use_placeholder: UsePlaceholder)
+                                  -> Result<ImageOrMetadataAvailable, ImageState> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, sender);
         self.chan.send(msg).unwrap();
         receiver.recv().unwrap()
     }

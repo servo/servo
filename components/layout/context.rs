@@ -16,7 +16,7 @@ use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
-use net_traits::image_cache_thread::{UsePlaceholder};
+use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
@@ -154,7 +154,7 @@ impl<'a> LayoutContext<'a> {
                         match sync_rx.recv().unwrap().image_response {
                             ImageResponse::Loaded(image) |
                             ImageResponse::PlaceholderLoaded(image) => Some(image),
-                            ImageResponse::None => None,
+                            ImageResponse::None | ImageResponse::MetadataLoaded(_) => None,
                         }
                     }
                     // Not yet requested, async mode - request image from the cache
@@ -171,4 +171,51 @@ impl<'a> LayoutContext<'a> {
             }
         }
     }
+
+    pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
+                                -> Option<ImageOrMetadataAvailable> {
+        // See if the image is already available
+        let result = self.shared.image_cache_task.find_image_or_metadata(url.clone(),
+                                                                         use_placeholder);
+
+        match result {
+            Ok(image_or_metadata) => Some(image_or_metadata),
+            Err(state) => {
+                // If we are emitting an output file, then we need to block on
+                // image load or we risk emitting an output file missing the image.
+                let is_sync = opts::get().output_file.is_some() ||
+                              opts::get().exit_after_load;
+
+                match (state, is_sync) {
+                    // Image failed to load, so just return nothing
+                    (ImageState::LoadError, _) => None,
+                    // Not loaded, test mode - load the image synchronously
+                    (_, true) => {
+                        let (sync_tx, sync_rx) = ipc::channel().unwrap();
+                        self.shared.image_cache_task.request_image(url,
+                                                                   ImageCacheChan(sync_tx),
+                                                                   None);
+                        match sync_rx.recv().unwrap().image_response {
+                            ImageResponse::Loaded(image) |
+                            ImageResponse::PlaceholderLoaded(image) =>
+                                Some(ImageOrMetadataAvailable::ImageAvailable(image)),
+                            ImageResponse::None | ImageResponse::MetadataLoaded(_) =>
+                                None,
+                        }
+                    }
+                    // Not yet requested, async mode - request image or metadata from the cache
+                    (ImageState::NotRequested, false) => {
+                        let sender = self.shared.image_cache_sender.lock().unwrap().clone();
+                        self.shared.image_cache_task.request_image_and_metadata(url, sender, None);
+                        None
+                    }
+                    // Image has been requested, is still pending. Return no image
+                    // for this paint loop. When the image loads it will trigger
+                    // a reflow and/or repaint.
+                    (ImageState::Pending, false) => None,
+                }
+            }
+        }
+    }
+
 }

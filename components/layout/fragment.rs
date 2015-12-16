@@ -26,8 +26,8 @@ use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use msg::compositor_msg::LayerType;
 use msg::constellation_msg::PipelineId;
-use net_traits::image::base::Image;
-use net_traits::image_cache_thread::UsePlaceholder;
+use net_traits::image::base::{Image, ImageMetadata};
+use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use rustc_serialize::{Encodable, Encoder};
 use script::dom::htmlcanvaselement::HTMLCanvasData;
 use std::borrow::ToOwned;
@@ -339,6 +339,7 @@ pub struct ImageFragmentInfo {
     /// The image held within this fragment.
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub image: Option<Arc<Image>>,
+    pub metadata: Option<ImageMetadata>,
 }
 
 impl ImageFragmentInfo {
@@ -356,26 +357,39 @@ impl ImageFragmentInfo {
                    .map(Au::from_px)
         }
 
-        let image = url.and_then(|url| {
-            layout_context.get_or_request_image(url, UsePlaceholder::Yes)
+        let image_or_metadata = url.and_then(|url| {
+            layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
         });
+
+        let (image, metadata) = match image_or_metadata {
+            Some(ImageOrMetadataAvailable::ImageAvailable(i)) => {
+                (Some(i.clone()), Some(ImageMetadata { height: i.height, width: i.width } ))
+            }
+            Some(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                (None, Some(m))
+            }
+            None => {
+                (None, None)
+            }
+        };
 
         ImageFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 convert_length(node, &atom!("width")),
                 convert_length(node, &atom!("height"))),
             image: image,
+            metadata: metadata,
         }
     }
 
     /// Returns the original inline-size of the image.
     pub fn image_inline_size(&mut self) -> Au {
-        match self.image {
-            Some(ref image) => {
+        match self.metadata {
+            Some(ref metadata) => {
                 Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-                    image.height
+                    metadata.height
                 } else {
-                    image.width
+                    metadata.width
                 } as i32)
             }
             None => Au(0)
@@ -384,12 +398,12 @@ impl ImageFragmentInfo {
 
     /// Returns the original block-size of the image.
     pub fn image_block_size(&mut self) -> Au {
-        match self.image {
-            Some(ref image) => {
+        match self.metadata {
+            Some(ref metadata) => {
                 Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-                    image.width
+                    metadata.width
                 } else {
-                    image.height
+                    metadata.height
                 } as i32)
             }
             None => Au(0)

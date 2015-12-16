@@ -15,6 +15,7 @@ extern crate devtools_traits;
 extern crate euclid;
 extern crate flate2;
 extern crate hyper;
+extern crate immeta;
 extern crate ipc_channel;
 #[macro_use]
 extern crate log;

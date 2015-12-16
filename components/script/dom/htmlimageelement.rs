@@ -21,7 +21,7 @@ use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::image::base::Image;
+use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use script_thread::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
@@ -35,6 +35,7 @@ pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
+    metadata: DOMRefCell<Option<ImageMetadata>>,
 }
 
 impl HTMLImageElement {
@@ -64,12 +65,17 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Update the image field
         let element = self.element.root();
         let element_ref = element.r();
-        *element_ref.image.borrow_mut() = match self.image {
+        let (image, metadata, trigger_image_load) = match self.image {
             ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
-                Some(image)
+                (Some(image.clone()), Some(ImageMetadata { height: image.height, width: image.width } ), true)
             }
-            ImageResponse::None => None,
+            ImageResponse::MetadataLoaded(meta) => {
+                (None, Some(meta), false)
+            }
+            ImageResponse::None => (None, None, true)
         };
+        *element_ref.image.borrow_mut() = image;
+        *element_ref.metadata.borrow_mut() = metadata;
 
         // Mark the node dirty
         let document = document_from_node(&*element);
@@ -77,7 +83,9 @@ impl Runnable for ImageResponseHandlerRunnable {
 
         // Fire image.onload
         let window = window_from_node(document.r());
-        element.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
+        if trigger_image_load {
+            element.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
+        }
         // Trigger reflow
         window.add_pending_reflow();
     }
@@ -116,7 +124,7 @@ impl HTMLImageElement {
                         UpdateReplacedElement, runnable));
                 });
 
-                image_cache.request_image(img_url,
+                image_cache.request_image_and_metadata(img_url,
                                           window.image_cache_chan(),
                                           Some(ImageResponder::new(responder_sender)));
             }
@@ -128,6 +136,7 @@ impl HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
+            metadata: DOMRefCell::new(None),
         }
     }
 
@@ -218,20 +227,20 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
-        let image = self.image.borrow();
+        let metadata = self.metadata.borrow();
 
-        match *image {
-            Some(ref image) => image.width,
+        match *metadata {
+            Some(ref metadata) => metadata.width,
             None => 0,
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
-        let image = self.image.borrow();
+        let metadata = self.metadata.borrow();
 
-        match *image {
-            Some(ref image) => image.height,
+        match *metadata {
+            Some(ref metadata) => metadata.height,
             None => 0,
         }
     }
