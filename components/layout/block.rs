@@ -45,7 +45,7 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER}
 use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use gfx_traits::LayerId;
-use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
+use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
@@ -982,6 +982,7 @@ impl BlockFlow {
                 self.formatting_context_type() == FormattingContextType::None) &&
                 !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+            self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
     }
 
@@ -1201,6 +1202,7 @@ impl BlockFlow {
         self.base.position.size.block = block_size;
 
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+        self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     /// Compute inline size based using the `block_container_inline_size` set by the parent flow.
@@ -1429,6 +1431,7 @@ impl BlockFlow {
         // earlier, lay it out again.
 
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+        self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     fn is_inline_block(&self) -> bool {
@@ -1575,7 +1578,8 @@ impl Flow for BlockFlow {
             LengthOrPercentageOrAuto::Length(_) => false,
             _ => true,
         };
-        self.bubble_inline_sizes_for_block(consult_children)
+        self.bubble_inline_sizes_for_block(consult_children);
+        self.fragment.restyle_damage.remove(BUBBLE_ISIZES);
     }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
@@ -1994,6 +1998,7 @@ impl Flow for BlockFlow {
         self.build_display_list_for_block(box DisplayList::new(),
                                           layout_context,
                                           BorderPaintingMode::Separate);
+        self.fragment.restyle_damage.remove(REPAINT);
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();
         }
