@@ -906,6 +906,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
+    fn Scissor(&self, x: i32, y: i32, width: i32, height: i32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Scissor(x, y, width, height)))
+            .unwrap()
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
