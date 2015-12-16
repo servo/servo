@@ -270,71 +270,9 @@ impl HTMLFormElement {
             if let Some(el) = field.downcast::<Element>() {
                 None // Remove this line if you decide to refactor
 
-                // XXXKiChjang: Refactor the following commented up code so that form control elements
-                //              each have a candidate_for_validation and satisfies_constraints methods
+                // XXXKiChjang: Form control elements should each have a candidate_for_validation
+                //              and satisfies_constraints methods
 
-                // XXXKiChjang: This should go into candidate_for_validation
-
-                // if field.ancestors()
-                //         .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some())
-                //     // XXXKiChjang this may be wrong, this is not checking the ancestor
-                //     // elements to find whether an HTMLFieldSetElement exists and is disabled
-                //    || el.get_disabled_state() {
-                //     return None;
-                // }
-
-
-                // XXXKiChjang: This should go into satisfies_constraints for each individual form element
-
-                // match field.type_id() {
-                //     NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
-                //         match element {
-                //             HTMLElementTypeId::HTMLButtonElement => {
-                //                 let button = field.downcast::<HTMLButtonElement>().unwrap();
-                //                 // Substep 1
-                //     // https://html.spec.whatwg.org/multipage/#the-button-element:barred-from-constraint-validation
-                //                 if button.Type() != "submit" { return None; }
-                //                 // Substep 2
-                //                 // TODO: Check constraints on HTMLButtonElement
-                //                 // Substep 3
-                //                 Some(FormSubmittableElement::ButtonElement(Root::from_ref(&*button)))
-                //             }
-                //             HTMLElementTypeId::HTMLInputElement => {
-                //                 let input = field.downcast::<HTMLInputElement>().unwrap();
-                //                 // Substep 1
-                //                 // https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation
-                //                 if input.type_() == atom!("hidden")
-                //                    || input.type_() == atom!("reset")
-                //                    || input.type_() == atom!("button")
-                //                    || input.ReadOnly() { return None; }
-                //                 // Substep 2
-                //                 // TODO: Check constraints on HTMLInputElement
-                //                 // Substep 3
-                //                 Some(FormSubmittableElement::InputElement(Root::from_ref(&*input)))
-                //             }
-                //             HTMLElementTypeId::HTMLSelectElement => {
-                //                 let select = field.downcast::<HTMLSelectElement>().unwrap();
-                //         // Substep 1 not necessary, HTMLSelectElements are not barred from constraint validation
-                //                 // Substep 2
-                //                 // TODO: Check constraints on HTMLSelectElement
-                //                 // Substep 3
-                //                 Some(FormSubmittableElement::SelectElement(Root::from_ref(&*select)))
-                //             }
-                //             HTMLElementTypeId::HTMLTextAreaElement => {
-                //                 let textarea = field.downcast::<HTMLTextAreaElement>().unwrap();
-                //                 // Substep 1
-                // // https://html.spec.whatwg.org/multipage/#the-textarea-element:barred-from-constraint-validation
-                //                 if textarea.ReadOnly() { return None; }
-                //                 // Substep 2
-                //                 // TODO: Check constraints on HTMLTextAreaElement
-                //                 // Substep 3
-                //                 Some(FormSubmittableElement::TextAreaElement(Root::from_ref(&*textarea)))
-                //             }
-                //             _ => None
-                //         }
-                //     }
-                //     _ => None
-                // }
             } else {
                 None
             }
