@@ -7,6 +7,7 @@ use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, Run
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
 use std::cmp::{Ordering, max};
+use std::mem;
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
@@ -115,7 +116,8 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
 }
 
 pub struct CharacterSliceIterator<'a> {
-    glyph_run: Option<&'a GlyphRun>,
+    next_glyph_run: Option<&'a GlyphRun>,
+    prev_glyph_run: Option<&'a GlyphRun>,
     glyph_run_iter: Iter<'a, GlyphRun>,
     range: Range<CharIndex>,
 }
@@ -126,9 +128,9 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
-        let glyph_run = match self.glyph_run {
+        let next_glyph_run = match self.next_glyph_run {
             None => return None,
-            Some(glyph_run) => glyph_run,
+            Some(next_glyph_run) => next_glyph_run,
         };
 
         debug_assert!(!self.range.is_empty());
@@ -136,16 +138,53 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
         self.range.adjust_by(CharIndex(1), CharIndex(-1));
         if self.range.is_empty() {
             // We're done.
-            self.glyph_run = None
-        } else if self.range.intersect(&glyph_run.range).is_empty() {
+            self.next_glyph_run = None
+        } else if self.range.intersect(&next_glyph_run.range).is_empty() {
             // Move on to the next glyph run.
-            self.glyph_run = self.glyph_run_iter.next();
+            self.next_glyph_run = match self.glyph_run_iter.next() {
+                Some(next_glyph_run) => Some(next_glyph_run),
+                None => mem::replace(&mut self.prev_glyph_run, None),
+            }
         }
 
-        let index_within_glyph_run = index_to_return - glyph_run.range.begin();
+        let index_within_glyph_run = index_to_return - next_glyph_run.range.begin();
         Some(TextRunSlice {
-            glyphs: &*glyph_run.glyph_store,
-            offset: glyph_run.range.begin(),
+            glyphs: &*next_glyph_run.glyph_store,
+            offset: next_glyph_run.range.begin(),
+            range: Range::new(index_within_glyph_run, CharIndex(1)),
+        })
+    }
+}
+
+impl<'a> DoubleEndedIterator for CharacterSliceIterator<'a> {
+    fn next_back(&mut self) -> Option<TextRunSlice<'a>> {
+        let prev_glyph_run = match self.prev_glyph_run {
+            None => return None,
+            Some(prev_glyph_run) => prev_glyph_run,
+        };
+
+        debug_assert!(!self.range.is_empty());
+        let index_to_return = self.range.end() - CharIndex(1);
+        self.range.adjust_by(CharIndex(0), CharIndex(-1));
+        if self.range.is_empty() {
+            // We're done.
+            self.prev_glyph_run = None
+        } else if self.range.intersect(&prev_glyph_run.range).is_empty() {
+            // Move back to the previous glyph run.
+            self.prev_glyph_run = match self.glyph_run_iter.next_back() {
+                Some(prev_glyph_run) => Some(prev_glyph_run),
+                None => mem::replace(&mut self.next_glyph_run, None),
+            }
+        }
+
+        let index_within_glyph_run = index_to_return - prev_glyph_run.range.begin();
+        /*println!("index_to_return={:?} range={:?} prev_glyph_run.range={:?}",
+                 index_to_return,
+                 self.range,
+                 prev_glyph_run.range);*/
+        Some(TextRunSlice {
+            glyphs: &*prev_glyph_run.glyph_store,
+            offset: prev_glyph_run.range.begin(),
             range: Range::new(index_within_glyph_run, CharIndex(1)),
         })
     }
@@ -328,14 +367,30 @@ impl<'a> TextRun {
     /// characters in the given range.
     pub fn character_slices_in_range(&'a self, range: &Range<CharIndex>)
                                      -> CharacterSliceIterator<'a> {
-        let index = match self.index_of_first_glyph_run_containing(range.begin()) {
+        if range.is_empty() {
+            return CharacterSliceIterator {
+                next_glyph_run: None,
+                prev_glyph_run: None,
+                glyph_run_iter: self.glyphs.iter(),
+                range: *range,
+            }
+        }
+
+        let first_index = match self.index_of_first_glyph_run_containing(range.begin()) {
             None => self.glyphs.len(),
             Some(index) => index,
         };
-        let mut glyph_run_iter = self.glyphs[index..].iter();
+        let last_index =
+            match self.index_of_first_glyph_run_containing(range.end() - CharIndex(1)) {
+                None => 0,
+                Some(index) => index,
+            };
+        let mut glyph_run_iter = self.glyphs[first_index..(last_index + 1)].iter();
         let first_glyph_run = glyph_run_iter.next();
+        let last_glyph_run = glyph_run_iter.next_back();
         CharacterSliceIterator {
-            glyph_run: first_glyph_run,
+            next_glyph_run: first_glyph_run,
+            prev_glyph_run: last_glyph_run,
             glyph_run_iter: glyph_run_iter,
             range: *range,
         }

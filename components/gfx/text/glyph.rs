@@ -604,6 +604,10 @@ impl<'a> GlyphStore {
         spaces
     }
 
+    pub fn range_is_whitespace(&self, range: &Range<CharIndex>) -> bool {
+        range.each_index().all(|index| self.char_is_space(index))
+    }
+
     pub fn distribute_extra_space_in_range(&mut self, range: &Range<CharIndex>, space: f64) {
         debug_assert!(space >= 0.0);
         if range.is_empty() {
