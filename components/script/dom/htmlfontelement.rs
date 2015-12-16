@@ -3,41 +3,35 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::{Attr, AttrValue};
-use dom::bindings::cell::DOMRefCell;
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::Root;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
-use dom::element::{AttributeMutation, RawLayoutElementHelpers};
+use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use std::cell::Cell;
 use string_cache::Atom;
 use style::values::specified;
-use util::str::{self, DOMString, parse_legacy_font_size};
+use util::str::{DOMString, parse_legacy_font_size};
 
 #[dom_struct]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
-    color: Cell<Option<RGBA>>,
-    face: DOMRefCell<Option<Atom>>,
 }
 
 
 impl HTMLFontElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            color: Cell::new(None),
-            face: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFontElement> {
         let element = HTMLFontElement::new_inherited(localName, prefix, document);
@@ -50,51 +44,34 @@ impl HTMLFontElementMethods for HTMLFontElement {
     make_getter!(Color, "color");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-color
-    make_setter!(SetColor, "color");
+    make_legacy_color_setter!(SetColor, "color");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_getter!(Face);
+    make_getter!(Face, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
     make_atomic_setter!(SetFace, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
-    make_getter!(Size);
+    make_getter!(Size, "size");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let length = parse_length(&value);
-        element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
+        element.set_attribute(&atom!("size"), AttrValue::Length(value, length));
     }
 }
 
 impl VirtualMethods for HTMLFontElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
-    }
-
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(color) => {
-                self.color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
-            &atom!(face) => {
-                *self.face.borrow_mut() =
-                    mutation.new_value(attr)
-                            .map(|value| value.as_atom().clone())
-            },
-            _ => {},
-        }
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("face") => AttrValue::from_atomic(value),
+            &atom!("color") => AttrValue::from_legacy_color(value),
             &atom!("size") => {
                 let length = parse_length(&value);
                 AttrValue::Length(value, length)
@@ -104,26 +81,38 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
+pub trait HTMLFontElementLayoutHelpers {
+    fn get_color(&self) -> Option<RGBA>;
+    fn get_face(&self) -> Option<Atom>;
+    fn get_size(&self) -> Option<specified::Length>;
+}
 
-impl HTMLFontElement {
-    pub fn get_color(&self) -> Option<RGBA> {
-        self.color.get()
-    }
-
+impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     #[allow(unsafe_code)]
-    pub fn get_face(&self) -> Option<Atom> {
-        let face = unsafe { self.face.borrow_for_layout() };
-        match *face {
-            Some(ref s) => Some(s.clone()),
-            None => None,
+    fn get_color(&self) -> Option<RGBA> {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("color"))
+                .and_then(AttrValue::as_color)
+                .cloned()
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn get_size(&self) -> Option<specified::Length> {
+    fn get_face(&self) -> Option<Atom> {
         unsafe {
-            ElementCast::from_ref(self)
-                .get_attr_for_layout(&ns!(""), &atom!("size"))
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("face"))
+                .map(AttrValue::as_atom)
+                .cloned()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_size(&self) -> Option<specified::Length> {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("size"))
                 .and_then(AttrValue::as_length)
                 .cloned()
         }

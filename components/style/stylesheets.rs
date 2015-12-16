@@ -16,13 +16,16 @@ use std::cell::Cell;
 use std::iter::Iterator;
 use std::slice;
 use string_cache::{Atom, Namespace};
+use style_traits::ParseErrorReporter;
 use url::Url;
+use util::mem::HeapSizeOf;
 use viewport::ViewportRule;
+
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
 /// http://dev.w3.org/csswg/css-cascade/#cascading-origins
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
 pub enum Origin {
     /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-ua
     UserAgent,
@@ -35,16 +38,18 @@ pub enum Origin {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Vec<CSSRule>,
+    /// List of media associated with the Stylesheet, if any.
+    pub media: Option<MediaQueryList>,
     pub origin: Origin,
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub enum CSSRule {
     Charset(String),
     Namespace(Option<String>, Namespace),
@@ -54,7 +59,7 @@ pub enum CSSRule {
     Viewport(ViewportRule),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule>,
@@ -67,7 +72,7 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct StyleRule {
     pub selectors: Vec<Selector>,
     pub declarations: PropertyDeclarationBlock,
@@ -77,31 +82,33 @@ pub struct StyleRule {
 impl Stylesheet {
     pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
             input: I, base_url: Url, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingRef>, origin: Origin) -> Stylesheet {
+            environment_encoding: Option<EncodingRef>, origin: Origin,
+            error_reporter: Box<ParseErrorReporter + Send>) -> Stylesheet {
         let mut bytes = vec![];
         // TODO: incremental decoding and tokenization/parsing
         for chunk in input {
-            bytes.push_all(&chunk)
+            bytes.extend_from_slice(&chunk)
         }
         Stylesheet::from_bytes(&bytes, base_url, protocol_encoding_label,
-                               environment_encoding, origin)
+                               environment_encoding, origin, error_reporter)
     }
 
     pub fn from_bytes(bytes: &[u8],
                       base_url: Url,
                       protocol_encoding_label: Option<&str>,
                       environment_encoding: Option<EncodingRef>,
-                      origin: Origin)
+                      origin: Origin, error_reporter: Box<ParseErrorReporter + Send>)
                       -> Stylesheet {
         // TODO: bytes.as_slice could be bytes.container_as_bytes()
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string, base_url, origin)
+        Stylesheet::from_str(&string, base_url, origin, error_reporter)
     }
 
-    pub fn from_str(css: &str, base_url: Url, origin: Origin) -> Stylesheet {
+    pub fn from_str(css: &str, base_url: Url, origin: Origin,
+                    error_reporter: Box<ParseErrorReporter + Send>) -> Stylesheet {
         let rule_parser = TopLevelRuleParser {
-            context: ParserContext::new(origin, &base_url),
+            context: ParserContext::new(origin, &base_url, error_reporter.clone()),
             state: Cell::new(State::Start),
         };
         let mut input = Parser::new(css);
@@ -124,14 +131,29 @@ impl Stylesheet {
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message);
+                    let context = ParserContext::new(origin, &base_url, error_reporter.clone());
+                    log_css_error(iter.input, pos, &*message, &context);
                 }
             }
         }
         Stylesheet {
             origin: origin,
             rules: rules,
+            media: None,
         }
+    }
+
+    /// Set the MediaQueryList associated with the style-sheet.
+    pub fn set_media(&mut self, media: Option<MediaQueryList>) {
+        self.media = media;
+    }
+
+    /// Returns whether the style-sheet applies for the current device depending
+    /// on the associated MediaQueryList.
+    ///
+    /// Always true if no associated MediaQueryList exists.
+    pub fn is_effective_for_device(&self, device: &Device) -> bool {
+        self.media.as_ref().map_or(true, |ref media| media.evaluate(device))
     }
 
     /// Return an iterator over all the rules within the style-sheet.
@@ -308,7 +330,7 @@ fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRul
             Err(range) => {
                 let pos = range.start;
                 let message = format!("Unsupported rule: '{}'", iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message);
+                log_css_error(iter.input, pos, &*message, &context);
             }
         }
     }
@@ -368,7 +390,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     self.state.set(State::Namespaces);
 
                     let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into_owned());
-                    let url = Namespace(Atom::from_slice(&*try!(input.expect_url_or_string())));
+                    let url = Namespace(Atom::from(&*try!(input.expect_url_or_string())));
                     return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(prefix, url)))
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"

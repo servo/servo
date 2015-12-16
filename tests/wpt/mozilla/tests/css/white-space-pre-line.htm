@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>whitespace pre-line basic functionality test</title>
+    <link rel=match href=white-space-pre-line-ref.htm>
+    <style>
+      div { white-space: pre-line; font: 1.25em/1 Ahem; width: 6em }
+    </style>
+  </head>
+<body>
+<div>X<!--newline in pre-line-->
+  XX<!--whitespace at start of line-->
+XX       XX XX<!-- wrapping -->
+</div>
+</body>
+</html>

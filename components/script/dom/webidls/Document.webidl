@@ -79,9 +79,9 @@ enum DocumentReadyState { "loading", "interactive", "complete" };
 // [OverrideBuiltins]
 partial /*sealed*/ interface Document {
   // resource metadata management
-  // [PutForwards=href, Unforgeable]
+  [/*PutForwards=href, */Unforgeable]
   readonly attribute Location/*?*/ location;
-  // attribute DOMString domain;
+  readonly attribute DOMString domain;
   // readonly attribute DOMString referrer;
   [Throws]
   attribute DOMString cookie;
@@ -141,10 +141,17 @@ Document implements GlobalEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
-  // [TreatNullAs=EmptyString] attribute DOMString fgColor;
+  [TreatNullAs=EmptyString] attribute DOMString fgColor;
+
+  // https://github.com/servo/servo/issues/8715
   // [TreatNullAs=EmptyString] attribute DOMString linkColor;
+
+  // https://github.com/servo/servo/issues/8716
   // [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
+
+  // https://github.com/servo/servo/issues/8717
   // [TreatNullAs=EmptyString] attribute DOMString alinkColor;
+
   [TreatNullAs=EmptyString] attribute DOMString bgColor;
 
   [SameObject]
@@ -158,4 +165,17 @@ partial interface Document {
 
   // Tracking issue for document.all: https://github.com/servo/servo/issues/7396
   // readonly attribute HTMLAllCollection all;
+};
+
+// http://w3c.github.io/touch-events/#idl-def-Document
+partial interface Document {
+      Touch createTouch(Window/*Proxy*/ view,
+                        EventTarget target,
+                        long identifier,
+                        double pageX,
+                        double pageY,
+                        double screenX,
+                        double screenY);
+      // FIXME (#8159):
+      // TouchList createTouchList(Touch... touches);
 };

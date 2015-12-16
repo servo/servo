@@ -22,6 +22,7 @@ use style::properties::ComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row::{self, CollapsedBordersForRow};
 use util::logical_geometry::{LogicalSize, WritingMode};
+use util::print_tree::PrintTree;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -76,10 +77,6 @@ impl TableRowGroupFlow {
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
         }
-    }
-
-    pub fn fragment(&mut self) -> &Fragment {
-        &self.block_flow.fragment
     }
 
     pub fn populate_collapsed_border_spacing<'a, I>(
@@ -194,10 +191,9 @@ impl Flow for TableRowGroupFlow {
         });
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
-        self.block_flow.assign_block_size_for_table_like_flow(layout_context,
-                                                              self.spacing.vertical)
+        self.block_flow.assign_block_size_for_table_like_flow(self.spacing.vertical)
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
@@ -239,10 +235,14 @@ impl Flow for TableRowGroupFlow {
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
+    }
 }
 
 impl fmt::Debug for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableRowGroupFlow: {:?}", self.block_flow.fragment)
+        write!(f, "TableRowGroupFlow: {:?}", self.block_flow)
     }
 }

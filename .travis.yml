@@ -8,11 +8,17 @@ matrix:
       cache: false
     - sudo: 9000
       dist: trusty
-      script: ./mach build -d --verbose
+      script:
+         - ./mach build -d --verbose
+         - ./mach test-unit
+         - bash etc/ci/lockfile_changed.sh
+         - bash etc/ci/manifest_changed.sh          
       cache:
         directories:
           - .cargo
           - .servo
+          - $HOME/.ccache
+      env: CCACHE=/usr/bin/ccache
       addons:
         apt:
           packages:
@@ -22,6 +28,7 @@ matrix:
             - libosmesa6-dev
             - python-virtualenv
             - xorg-dev
+            - ccache
 
 branches:
   only:

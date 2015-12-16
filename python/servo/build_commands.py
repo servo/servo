@@ -13,6 +13,7 @@ import os
 import os.path as path
 import subprocess
 import sys
+import shutil
 
 from time import time
 
@@ -27,6 +28,16 @@ from servo.command_base import CommandBase, cd
 
 def is_headless_build():
     return int(os.getenv('SERVO_HEADLESS', 0)) == 1
+
+
+def headless_supported():
+    supported = sys.platform.startswith("linux")
+
+    if not supported:
+        print("Headless mode (OSMesa) is not supported on your platform.")
+        print("Building without headless mode.")
+
+    return supported
 
 
 def notify_linux(title, text):
@@ -134,9 +145,17 @@ class MachCommands(CommandBase):
     @CommandArgument('--dev', '-d',
                      action='store_true',
                      help='Build in development mode')
+    @CommandArgument('--headless',
+                     default=None,
+                     action='store_true',
+                     help='Enable headless mode (OSMesa)')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
+    @CommandArgument('--features',
+                     default=None,
+                     help='Space-separated list of features to also build',
+                     nargs='+')
     @CommandArgument('--android',
                      default=None,
                      action='store_true',
@@ -151,12 +170,12 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, dev=False, jobs=None,
-              android=None, verbose=False, debug_mozjs=False, params=None):
+              features=None, headless=False, android=None, verbose=False, debug_mozjs=False, params=None):
         if android is None:
             android = self.config["build"]["android"]
+        features = features or []
 
         opts = params or []
-        features = []
 
         base_path = self.get_target_dir()
         release_path = path.join(base_path, "release", "servo")
@@ -194,19 +213,12 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
         if android:
-            # Ensure the APK builder submodule has been built first
-            apk_builder_dir = "support/android-rs-glue"
-            with cd(path.join(apk_builder_dir, "apk-builder")):
-                status = call(["cargo", "build"], env=self.build_env(), verbose=verbose)
-                if status:
-                    return status
-
-            opts += ["--target", "arm-linux-androideabi"]
+            opts += ["--target", self.config["android"]["target"]]
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
-        if is_headless_build():
+        if (headless or is_headless_build()) and headless_supported():
             opts += ["--no-default-features"]
             features += ["headless"]
 
@@ -223,17 +235,26 @@ class MachCommands(CommandBase):
             make_cmd = ["make"]
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
-            with cd(self.android_support_dir()):
+            android_dir = self.android_build_dir(dev)
+            openssl_dir = path.join(android_dir, "native", "openssl")
+            if not path.exists(openssl_dir):
+                os.makedirs(openssl_dir)
+            shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
+            shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
+            with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
                     env=self.build_env(),
                     verbose=verbose)
                 if status:
                     return status
-            openssl_dir = path.join(self.android_support_dir(), "openssl-1.0.1k")
+            openssl_dir = path.join(openssl_dir, "openssl-1.0.1k")
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
+
+        if not (self.config["build"]["ccache"] == ""):
+            env['CCACHE'] = self.config["build"]["ccache"]
 
         status = call(
             ["cargo", "build"] + opts,
@@ -298,7 +319,6 @@ class MachCommands(CommandBase):
     def build_gonk(self, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
 
-        ret = None
         opts = []
         if jobs is not None:
             opts += ["-j", jobs]
@@ -307,7 +327,7 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
-        opts += ["--target", "arm-linux-androideabi"]
+        opts += ["--target", self.config["android"]["target"]]
         env = self.build_env(gonk=True)
         build_start = time()
         with cd(path.join("ports", "gonk")):
@@ -324,15 +344,19 @@ class MachCommands(CommandBase):
     @Command('build-tests',
              description='Build the Servo test suites',
              category='build')
+    @CommandArgument('--headless',
+                     default=None,
+                     action='store_true',
+                     help='Enable headless mode (OSMesa)')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
     @CommandArgument('--release', default=False, action="store_true",
                      help="Build tests with release mode")
-    def build_tests(self, jobs=None, verbose=False, release=False):
+    def build_tests(self, headless=False, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
         args = ["cargo", "test", "--no-run"]
-        if is_headless_build():
+        if (headless or is_headless_build()) and headless_supported():
             args += ["--no-default-features", "--features", "headless"]
         if release:
             args += ["--release"]

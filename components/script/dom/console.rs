@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
@@ -26,7 +26,9 @@ impl Console {
     }
 
     pub fn new(global: GlobalRef) -> Root<Console> {
-        reflect_dom_object(box Console::new_inherited(global), global, ConsoleBinding::Wrap)
+        reflect_dom_object(box Console::new_inherited(global),
+                           global,
+                           ConsoleBinding::Wrap)
     }
 }
 
@@ -74,24 +76,21 @@ impl ConsoleMethods for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(&self, condition: bool, message: Option<DOMString>) {
         if !condition {
-            let message = match message {
-                Some(ref message) => &**message,
-                None => "no message",
-            };
+            let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Error, message.to_owned()));
+            propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
         }
     }
 }
 
-fn prepare_message(logLevel: LogLevel, message: String) -> ConsoleMessage {
-    //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
+fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
+    // TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
-        message: message,
+        message: String::from(message),
         logLevel: logLevel,
         filename: "test".to_owned(),
         lineNumber: 1,
-        columnNumber: 1
+        columnNumber: 1,
     }
 }
 
@@ -99,7 +98,9 @@ fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
     let global = console.global.root();
     let pipelineId = global.r().pipeline();
     global.r().devtools_chan().as_ref().map(|chan| {
-        chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(
-            pipelineId, console_message.clone(), global.r().get_worker_id())).unwrap();
+        chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(pipelineId,
+                                                         console_message.clone(),
+                                                         global.r().get_worker_id()))
+            .unwrap();
     });
 }

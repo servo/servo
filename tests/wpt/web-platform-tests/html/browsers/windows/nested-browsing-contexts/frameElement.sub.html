@@ -7,7 +7,8 @@
 <script>
 
 var t1 = async_test("The window's frameElement attribute must return its container element if it is a nested browsing context");
-var t2 = async_test("The SecurityError must be thrown if the container's document does not have the same effective script origin");
+var t2 = async_test("The SecurityError must be thrown if the window accesses to frameElement attribute of a Window which does not have the same effective script origin");
+var t3 = async_test("The window's frameElement attribute must return null if the container's document does not have the same effective script origin");
 
 function on_load() {
   t1.step(function () {
@@ -17,9 +18,9 @@ function on_load() {
                   "The frameElement attribute should be the object element.");
     assert_equals(window["win3"].frameElement, document.getElementById("emb"),
                   "The frameElement attribute should be the embed element.");
-    assert_equals(document.getElementById("fr3").contentWindow[0].frameElement,
-                  document.getElementById("fr3").contentDocument.getElementById("f1"),
-                 "The frameElement attribute should be the frame element in 'test.html'.");
+    assert_equals(document.getElementById("fr4").contentWindow[0].frameElement,
+                  document.getElementById("fr4").contentDocument.getElementById("f1"),
+                  "The frameElement attribute should be the frame element in 'test.html'.");
   });
   t1.done();
 
@@ -28,23 +29,39 @@ function on_load() {
                   "The SecurityError exception should be thrown.");
   });
   t2.done();
+
+  t3.step(function () {
+    document.getElementById("fr5").contentWindow.postMessage(null, "*");
+  });
+  window.addEventListener("message", function (event) {
+    var data = JSON.parse(event.data);
+    if (data.name == "testcase3") {
+      t3.step(function () {
+        assert_equals(data.result, "window.frameElement = null",
+                      "The frameElement attribute should be null.");
+      });
+      t3.done();
+    }
+  }, false);
 }
 
 </script>
 <body onload="on_load()">
   <div id="log"></div>
   <iframe id="fr1"></iframe>
-  <iframe id="fr2" src="test.html"></iframe>
+  <iframe id="fr2" src="test.html"></iframe> <!-- cross origin -->
   <iframe id="fr3" src="" style="display:none"></iframe>
   <object id="obj" name="win2" type="text/html" data="about:blank"></object>
   <embed id="emb" name="win3" type="image/svg+xml" src="/images/green.svg" />
+  <iframe id="fr4" src="test.html"></iframe> <!-- same origin -->
+  <iframe id="fr5" src="testcase3.html"></iframe> <!-- cross origin -->
   <script>
 
   setup(function () {
-    var src = "http://{{domains[www1]}}:{{ports[http][0]}}";
-    src += document.location.pathname.substring(0, document.location.pathname.lastIndexOf("/") + 1);
-    src += "test.html";
-    document.getElementById("fr2").src = src;
+    var src_base = "http://{{domains[www1]}}:{{ports[http][0]}}";
+    src_base += document.location.pathname.substring(0, document.location.pathname.lastIndexOf("/") + 1);
+    document.getElementById("fr2").src = src_base + "test.html";
+    document.getElementById("fr5").src = src_base + "testcase3.html";
   });
 
   test(function () {

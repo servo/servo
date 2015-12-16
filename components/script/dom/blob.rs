@@ -7,11 +7,11 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell};
+use std::cell::Cell;
 use std::cmp::{max, min};
 use std::sync::mpsc::Sender;
 use util::str::DOMString;
@@ -21,31 +21,29 @@ use util::str::DOMString;
 pub struct Blob {
     reflector_: Reflector,
     bytes: Option<Vec<u8>>,
-    typeString: DOMString,
+    typeString: String,
     global: GlobalField,
-    isClosed_: Cell<bool>
+    isClosed_: Cell<bool>,
 }
 
-fn is_ascii_printable(string: &DOMString) -> bool {
+fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
-    string.chars().all(|c| { c >= '\x20' && c <= '\x7E' })
+    string.chars().all(|c| c >= '\x20' && c <= '\x7E')
 }
 
 impl Blob {
-    pub fn new_inherited(global: GlobalRef,
-                         bytes: Option<Vec<u8>>, typeString: &str) -> Blob {
+    pub fn new_inherited(global: GlobalRef, bytes: Option<Vec<u8>>, typeString: &str) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             bytes: bytes,
             typeString: typeString.to_owned(),
             global: GlobalField::from_rooted(&global),
-            isClosed_: Cell::new(false)
+            isClosed_: Cell::new(false),
         }
     }
 
-    pub fn new(global: GlobalRef, bytes: Option<Vec<u8>>,
-               typeString: &str) -> Root<Blob> {
+    pub fn new(global: GlobalRef, bytes: Option<Vec<u8>>, typeString: &str) -> Root<Blob> {
         reflect_dom_object(box Blob::new_inherited(global, bytes, typeString),
                            global,
                            BlobBinding::Wrap)
@@ -57,10 +55,13 @@ impl Blob {
     }
 
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
-    pub fn Constructor_(global: GlobalRef, blobParts: DOMString,
-                        blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Root<Blob>> {
-        //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
-        let bytes: Option<Vec<u8>> = Some(blobParts.into_bytes());
+    pub fn Constructor_(global: GlobalRef,
+                        blobParts: DOMString,
+                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
+                        -> Fallible<Root<Blob>> {
+        // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
+        // FIXME(ajeffrey): convert directly from a DOMString to a Vec<u8>
+        let bytes: Option<Vec<u8>> = Some(String::from(blobParts).into_bytes());
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
@@ -72,6 +73,11 @@ impl Blob {
     pub fn read_out_buffer(&self, send: Sender<Vec<u8>>) {
         send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
     }
+
+    // simpler to use version of read_out_buffer
+    pub fn clone_bytes(&self) -> Vec<u8> {
+        self.bytes.clone().unwrap_or(vec![])
+    }
 }
 
 impl BlobMethods for Blob {
@@ -79,18 +85,21 @@ impl BlobMethods for Blob {
     fn Size(&self) -> u64 {
         match self.bytes {
             None => 0,
-            Some(ref bytes) => bytes.len() as u64
+            Some(ref bytes) => bytes.len() as u64,
         }
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-type
     fn Type(&self) -> DOMString {
-        self.typeString.clone()
+        DOMString::from(self.typeString.clone())
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
-    fn Slice(&self, start: Option<i64>, end: Option<i64>,
-             contentType: Option<DOMString>) -> Root<Blob> {
+    fn Slice(&self,
+             start: Option<i64>,
+             end: Option<i64>,
+             contentType: Option<DOMString>)
+             -> Root<Blob> {
         let size: i64 = self.Size().to_i64().unwrap();
         let relativeStart: i64 = match start {
             None => 0,
@@ -113,13 +122,13 @@ impl BlobMethods for Blob {
             }
         };
         let relativeContentType = match contentType {
-            None => "".to_owned(),
+            None => DOMString::new(),
             Some(mut str) => {
                 if is_ascii_printable(&str) {
                     str.make_ascii_lowercase();
                     str
                 } else {
-                    "".to_owned()
+                    DOMString::new()
                 }
             }
         };
@@ -131,7 +140,7 @@ impl BlobMethods for Blob {
                 let start = relativeStart.to_usize().unwrap();
                 let end = (relativeStart + span).to_usize().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
-                bytes.push_all(&vec[start..end]);
+                bytes.extend_from_slice(&vec[start..end]);
                 Blob::new(global.r(), Some(bytes), &relativeContentType)
             }
         }

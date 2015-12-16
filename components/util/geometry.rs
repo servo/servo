@@ -7,7 +7,6 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use std::i32;
-use std::ops::Add;
 
 // Units for use with euclid::length and euclid::scale_factor.
 
@@ -59,22 +58,6 @@ pub enum PagePx {}
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 
-pub static ZERO_POINT: Point2D<Au> = Point2D {
-    x: Au(0),
-    y: Au(0),
-};
-
-pub static ZERO_RECT: Rect<Au> = Rect {
-    origin: Point2D {
-        x: Au(0),
-        y: Au(0),
-    },
-    size: Size2D {
-        width: Au(0),
-        height: Au(0),
-    }
-};
-
 pub static MAX_RECT: Rect<Au> = Rect {
     origin: Point2D {
         x: Au(i32::MIN / 2),
@@ -86,14 +69,6 @@ pub static MAX_RECT: Rect<Au> = Rect {
     }
 };
 
-/// Returns true if the rect contains the given point. Points on the top or left sides of the rect
-/// are considered inside the rectangle, while points on the right or bottom sides of the rect are
-/// not considered inside the rectangle.
-pub fn rect_contains_point<T: PartialOrd + Add<T, Output=T>>(rect: Rect<T>, point: Point2D<T>) -> bool {
-    point.x >= rect.origin.x && point.x < rect.origin.x + rect.size.width &&
-        point.y >= rect.origin.y && point.y < rect.origin.y + rect.size.height
-}
-
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
 pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
     Rect::new(Point2D::new(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),
@@ -104,4 +79,21 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
 pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
     Rect::new(Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
               Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()))
+}
+
+pub trait ExpandToPixelBoundaries {
+    fn expand_to_px_boundaries(&self) -> Self;
+}
+
+impl ExpandToPixelBoundaries for Rect<Au> {
+    fn expand_to_px_boundaries(&self) -> Rect<Au> {
+        let bottom_right = self.bottom_right();
+        let bottom_right = Point2D::new(Au::from_px(bottom_right.x.ceil_to_px()),
+                                       Au::from_px(bottom_right.y.ceil_to_px()));
+        let new_origin = Point2D::new(Au::from_px(self.origin.x.to_px()),
+                                      Au::from_px(self.origin.y.to_px()));
+        Rect::new(new_origin,
+                  Size2D::new(bottom_right.x - new_origin.x,
+                              bottom_right.y - new_origin.y))
+    }
 }

@@ -4,11 +4,13 @@
 
 use rustc::front::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
+use rustc::middle::pat_util::pat_is_binding;
 use rustc::middle::ty;
-use rustc_front::{hir, visit};
+use rustc_front::hir;
+use rustc_front::intravisit as visit;
 use syntax::attr::AttrMetaMethods;
 use syntax::{ast, codemap};
-use utils::{match_def_path, unsafe_context, in_derive_expn};
+use utils::{match_def_path, in_derive_expn};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects");
@@ -30,15 +32,11 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 /// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptTask`)
 /// can be marked as `#[allow(unrooted_must_root)]`. Smart pointers which root their interior type
 /// can be marked as `#[allow_unrooted_interior]`
-pub struct UnrootedPass {
-    in_new_function: bool
-}
+pub struct UnrootedPass;
 
 impl UnrootedPass {
     pub fn new() -> UnrootedPass {
-        UnrootedPass {
-            in_new_function: true
-        }
+        UnrootedPass
     }
 }
 
@@ -55,9 +53,11 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                 } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                     false
                 } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
-                        || match_def_path(cx, did.did, &["core", "cell", "RefMut"]) {
-                        // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
-                        // since it will be rooted elsewhere
+                        || match_def_path(cx, did.did, &["core", "cell", "RefMut"])
+                        || match_def_path(cx, did.did, &["core", "slice", "Iter"])
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "OccupiedEntry"])
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"]) {
+                    // Structures which are semantically similar to an &ptr.
                     false
                 } else {
                     true
@@ -82,7 +82,7 @@ impl LateLintPass for UnrootedPass {
     /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(&mut self,
                         cx: &LateContext,
-                        def: &hir::StructDef,
+                        def: &hir::VariantData,
                         _n: ast::Name,
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
@@ -91,7 +91,7 @@ impl LateLintPass for UnrootedPass {
             _ => cx.tcx.map.expect_item(cx.tcx.map.get_parent(id)),
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
-            for ref field in &def.fields {
+            for ref field in def.fields() {
                 if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.node.id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
@@ -99,16 +99,17 @@ impl LateLintPass for UnrootedPass {
             }
         }
     }
+
     /// All enums containing #[must_root] types must be #[must_root] themselves
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
         let ref map = cx.tcx.map;
-        if map.expect_item(map.get_parent(var.node.id)).attrs.iter().all(|a| !a.check_name("must_root")) {
-            match var.node.kind {
-                hir::TupleVariantKind(ref vec) => {
+        if map.expect_item(map.get_parent(var.node.data.id())).attrs.iter().all(|a| !a.check_name("must_root")) {
+            match var.node.data {
+                hir::VariantData::Tuple(ref vec, _) => {
                     for ty in vec {
-                        cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
+                        cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.node.id).map(|t| {
                             if is_unrooted_ty(cx, t, false) {
-                                cx.span_lint(UNROOTED_MUST_ROOT, ty.ty.span,
+                                cx.span_lint(UNROOTED_MUST_ROOT, ty.node.ty.span,
                                              "Type must be rooted, use #[must_root] on \
                                               the enum definition to propagate")
                             }
@@ -121,55 +122,56 @@ impl LateLintPass for UnrootedPass {
     }
     /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
-                block: &hir::Block, span: codemap::Span, id: ast::NodeId) {
-        match kind {
+                block: &hir::Block, span: codemap::Span, _id: ast::NodeId) {
+        let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _) |
-            visit::FnKind::Method(n, _, _) if n.as_str() == "new"
-                                           || n.as_str().starts_with("new_") => {
-                self.in_new_function = true;
-                return;
-            },
-            visit::FnKind::ItemFn(_, _, style, _, _, _) => match style {
-                hir::Unsafety::Unsafe => return,
-                _ => ()
-            },
-            _ => ()
-        }
-        self.in_new_function = false;
-
-        if unsafe_context(&cx.tcx.map, id) {
-            return;
-        }
-
-        match block.rules {
-            hir::DefaultBlock => {
-                for arg in &decl.inputs {
-                    cx.tcx.ast_ty_to_ty_cache.borrow().get(&arg.ty.id).map(|t| {
-                        if is_unrooted_ty(cx, t, false) {
-                            if in_derive_expn(cx, span) {
-                                return;
-                            }
-                            cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
-                        }
-                    });
-                }
-                if let hir::Return(ref ty) = decl.output {
-                    cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
-                        if is_unrooted_ty(cx, t, false) {
-                            if in_derive_expn(cx, span) {
-                                return;
-                            }
-                            cx.span_lint(UNROOTED_MUST_ROOT, ty.span, "Type must be rooted")
-                        }
-                    });
-                }
+            visit::FnKind::Method(n, _, _) => {
+                n.as_str() == "new" || n.as_str().starts_with("new_")
             }
-            _ => () // fn is `unsafe`
-        }
-    }
+            visit::FnKind::Closure => return,
+        };
 
-    /// Trait casts from #[must_root] types are not allowed
-    fn check_expr(&mut self, cx: &LateContext, expr: &hir::Expr) {
+        for arg in &decl.inputs {
+            cx.tcx.ast_ty_to_ty_cache.borrow().get(&arg.ty.id).map(|t| {
+                if is_unrooted_ty(cx, t, false) {
+                    if in_derive_expn(cx, span) {
+                        return;
+                    }
+                    cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
+                }
+            });
+        }
+
+        if !in_new_function {
+            if let hir::Return(ref ty) = decl.output {
+                cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
+                    if is_unrooted_ty(cx, t, false) {
+                        if in_derive_expn(cx, span) {
+                            return;
+                        }
+                        cx.span_lint(UNROOTED_MUST_ROOT, ty.span, "Type must be rooted")
+                    }
+                });
+            }
+        }
+
+        let mut visitor = FnDefVisitor {
+            cx: cx,
+            in_new_function: in_new_function,
+        };
+        visit::walk_block(&mut visitor, block);
+    }
+}
+
+struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a+'b> {
+    cx: &'a LateContext<'b, 'tcx>,
+    in_new_function: bool,
+}
+
+impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> {
+    fn visit_expr(&mut self, expr: &'a hir::Expr) {
+        let cx = self.cx;
+
         fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
             let ty = cx.tcx.expr_ty(&*subexpr);
             if is_unrooted_ty(cx, ty, in_new_function) {
@@ -177,56 +179,54 @@ impl LateLintPass for UnrootedPass {
                              subexpr.span,
                              &format!("Expression of type {:?} must be rooted", ty))
             }
-        };
+        }
 
         match expr.node {
+            /// Trait casts from #[must_root] types are not allowed
             hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            // This catches assignments... the main point of this would be to catch mutable
+            // references to `JS<T>`.
+            // FIXME: Enable this? Triggers on certain kinds of uses of DOMRefCell.
+            // hir::ExprAssign(_, ref rhs) => require_rooted(cx, self.in_new_function, &*rhs),
+            // This catches calls; basically, this enforces the constraint that only constructors
+            // can call other constructors.
+            // FIXME: Enable this? Currently triggers with constructs involving DOMRefCell, and
+            // constructs like Vec<JS<T>> and RootedVec<JS<T>>.
+            // hir::ExprCall(..) if !self.in_new_function => {
+            //     require_rooted(cx, self.in_new_function, expr);
+            // }
             _ => {
                 // TODO(pcwalton): Check generics with a whitelist of allowed generics.
             }
         }
+
+        visit::walk_expr(self, expr);
     }
 
-    // Partially copied from rustc::middle::lint::builtin
-    // Catches `let` statements and assignments which store a #[must_root] value
-    // Expressions which return out of blocks eventually end up in a `let` or assignment
-    // statement or a function return (which will be caught when it is used elsewhere)
-    fn check_stmt(&mut self, cx: &LateContext, s: &hir::Stmt) {
-        match s.node {
-            hir::StmtDecl(_, id) |
-            hir::StmtExpr(_, id) |
-            hir::StmtSemi(_, id) if unsafe_context(&cx.tcx.map, id) => {
-                return
-            },
-            _ => ()
-        };
+    fn visit_pat(&mut self, pat: &'a hir::Pat) {
+        let cx = self.cx;
 
-        let expr = match s.node {
-            // Catch a `let` binding
-            hir::StmtDecl(ref decl, _) => match decl.node {
-                hir::DeclLocal(ref loc) => match loc.init {
-                    Some(ref e) => &**e,
-                    _ => return
-                },
-                _ => return
-            },
-            hir::StmtExpr(ref expr, _) => match expr.node {
-                // This catches deferred `let` statements
-                hir::ExprAssign(_, ref e) |
-                // Match statements allow you to bind onto the variable later in an arm
-                // We need not check arms individually since enum/struct fields are already
-                // linted in `check_struct_def` and `check_variant`
-                // (so there is no way of destructuring out a `#[must_root]` field)
-                hir::ExprMatch(ref e, _, _) => &**e,
-                _ => return
-            },
-            _ => return
-        };
+        if let hir::PatIdent(hir::BindByValue(_), _, _) = pat.node {
+            if pat_is_binding(&cx.tcx.def_map.borrow(), pat) {
+                let ty = cx.tcx.pat_ty(pat);
+                if is_unrooted_ty(cx, ty, self.in_new_function) {
+                    cx.span_lint(UNROOTED_MUST_ROOT,
+                                pat.span,
+                                &format!("Expression of type {:?} must be rooted", ty))
+                }
+            }
+        }
 
-        let ty = cx.tcx.expr_ty(&*expr);
-        if is_unrooted_ty(cx, ty, self.in_new_function) {
-            cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                     &format!("Expression of type {:?} must be rooted", ty))
+        visit::walk_pat(self, pat);
+    }
+
+    fn visit_fn(&mut self, kind: visit::FnKind<'a>, decl: &'a hir::FnDecl,
+                block: &'a hir::Block, span: codemap::Span, _id: ast::NodeId) {
+        if kind == visit::FnKind::Closure {
+            visit::walk_fn(self, kind, decl, block, span);
         }
     }
+
+    fn visit_foreign_item(&mut self, _: &'a hir::ForeignItem) {}
+    fn visit_ty(&mut self, _: &'a hir::Ty) { }
 }

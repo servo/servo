@@ -9,7 +9,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
-<body>
+<body id="tags">
 <img src="../../../../images/green.png" name="picture">
 <script>
 test(function(){ assert_equals(document.all.length,12)}, "Test for HTMLAllCollection size");
@@ -18,8 +18,6 @@ test(function(){ assert_equals(document.all.item(0).tagName,"HTML")}, "Test look
 
 test(function(){ assert_equals(document.all[0].tagName,"HTML")}, "Test lookup by index using []");
 
-test(function(){ assert_equals(document.all.tags("script").length,3)}, "Test for multiple occurence 3 <script> found");
-
 test(function(){ assert_equals(document.all.item("picture").nodeName,"IMG")}, "Test lookup IMG by name");
 
 test(function(){ assert_equals(document.all.namedItem("picture").nodeName,"IMG")}, "Test lookup IMG by namedItem ");
@@ -27,6 +25,10 @@ test(function(){ assert_equals(document.all.namedItem("picture").nodeName,"IMG")
 test(function(){ assert_equals(document.all("picture").nodeName,"IMG")}, "Test lookup IMG in collection using ()");
 
 test(function(){ assert_equals(document.all["picture"].nodeName,"IMG")}, "Test lookup IMG in collection using []");
+
+test(function(){ assert_equals(document.all.picture.nodeName,"IMG")}, "Test lookup IMG in collection using .");
+
+test(function(){ assert_equals(document.all.tags.id,"tags")}, "Test lookup tags in collection using .");
 </script>
 <div id="log"></div>
 </body>

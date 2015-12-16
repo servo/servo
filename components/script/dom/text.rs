@@ -7,9 +7,9 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextDerived};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::js::{RootedReference};
 use dom::characterdata::CharacterData;
@@ -44,7 +44,7 @@ impl Text {
 impl TextMethods for Text {
     // https://dom.spec.whatwg.org/#dom-text-splittextoffset
     fn SplitText(&self, offset: u32) -> Fallible<Root<Text>> {
-        let cdata = CharacterDataCast::from_ref(self);
+        let cdata = self.upcast::<CharacterData>();
         // Step 1.
         let length = cdata.Length();
         if offset > length {
@@ -56,16 +56,14 @@ impl TextMethods for Text {
         // Step 4.
         let new_data = cdata.SubstringData(offset, count).unwrap();
         // Step 5.
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.r().CreateTextNode(new_data);
+        let new_node = owner_doc.CreateTextNode(new_data);
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.
-            parent.r().InsertBefore(NodeCast::from_ref(new_node.r()),
-                                    node.GetNextSibling().r())
-                  .unwrap();
+            parent.InsertBefore(new_node.upcast(), node.GetNextSibling().r()).unwrap();
             // TODO: Ranges.
         }
         // Step 8.
@@ -80,16 +78,16 @@ impl TextMethods for Text {
 
     // https://dom.spec.whatwg.org/#dom-text-wholetext
     fn WholeText(&self) -> DOMString {
-        let first = NodeCast::from_ref(self).inclusively_preceding_siblings()
-                                            .take_while(|node| node.r().is_text())
-                                            .last().unwrap();
-        let nodes = first.r().inclusively_following_siblings()
-                             .take_while(|node| node.r().is_text());
-        let mut text = DOMString::new();
+        let first = self.upcast::<Node>().inclusively_preceding_siblings()
+                                         .take_while(|node| node.is::<Text>())
+                                         .last().unwrap();
+        let nodes = first.inclusively_following_siblings()
+                         .take_while(|node| node.is::<Text>());
+        let mut text = String::new();
         for ref node in nodes {
-            let cdata = CharacterDataCast::to_ref(node.r()).unwrap();
+            let cdata = node.downcast::<CharacterData>().unwrap();
             text.push_str(&cdata.data());
         }
-        text
+        DOMString::from(text)
     }
 }

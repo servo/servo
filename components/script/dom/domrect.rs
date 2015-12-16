@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMet
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::domrectreadonly::DOMRectReadOnly;
 
 #[dom_struct]
@@ -24,11 +24,17 @@ impl DOMRect {
     }
 
     pub fn new(global: GlobalRef, x: f64, y: f64, width: f64, height: f64) -> Root<DOMRect> {
-        reflect_dom_object(box DOMRect::new_inherited(x, y, width, height), global, DOMRectBinding::Wrap)
+        reflect_dom_object(box DOMRect::new_inherited(x, y, width, height),
+                           global,
+                           DOMRectBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef,
-                        x: f64, y: f64, width: f64, height: f64) -> Fallible<Root<DOMRect>> {
+                       x: f64,
+                       y: f64,
+                       width: f64,
+                       height: f64)
+                       -> Fallible<Root<DOMRect>> {
         Ok(DOMRect::new(global, x, y, width, height))
     }
 }

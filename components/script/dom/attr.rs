@@ -2,222 +2,101 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
-use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::{AttributeMutation, Element};
-use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
-use std::ops::Deref;
 use string_cache::{Atom, Namespace};
-use style::values::specified::Length;
-use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
-
-#[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
-pub enum AttrValue {
-    String(DOMString),
-    TokenList(DOMString, Vec<Atom>),
-    UInt(DOMString, u32),
-    Atom(Atom),
-    Length(DOMString, Option<Length>),
-    Color(DOMString, Option<RGBA>),
-}
-
-impl AttrValue {
-    pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
-        let atoms =
-            split_html_space_chars(&tokens)
-            .map(Atom::from_slice)
-            .fold(vec![], |mut acc, atom| {
-                if !acc.contains(&atom) { acc.push(atom) }
-                acc
-            });
-        AttrValue::TokenList(tokens, atoms)
-    }
-
-    pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = str_join(&atoms, "\x20");
-        AttrValue::TokenList(tokens, atoms)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
-    pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
-        let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
-        let result = if result > UNSIGNED_LONG_MAX {
-            default
-        } else {
-            result
-        };
-        AttrValue::UInt(string, result)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers-greater-than-zero
-    pub fn from_limited_u32(string: DOMString, default: u32) -> AttrValue {
-        let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
-        let result = if result == 0 || result > UNSIGNED_LONG_MAX {
-            default
-        } else {
-            result
-        };
-        AttrValue::UInt(string, result)
-    }
-
-    pub fn from_atomic(string: DOMString) -> AttrValue {
-        let value = Atom::from_slice(&string);
-        AttrValue::Atom(value)
-    }
-
-    /// Assumes the `AttrValue` is a `TokenList` and returns its tokens
-    ///
-    /// ## Panics
-    ///
-    /// Panics if the `AttrValue` is not a `TokenList`
-    pub fn as_tokens(&self) -> &[Atom] {
-        match *self {
-            AttrValue::TokenList(_, ref tokens) => tokens,
-            _ => panic!("Tokens not found"),
-        }
-    }
-
-    /// Assumes the `AttrValue` is an `Atom` and returns its value
-    ///
-    /// ## Panics
-    ///
-    /// Panics if the `AttrValue` is not an `Atom`
-    pub fn as_atom(&self) -> &Atom {
-        match *self {
-            AttrValue::Atom(ref value) => value,
-            _ => panic!("Atom not found"),
-        }
-    }
-
-    /// Assumes the `AttrValue` is a `Color` and returns its value
-    ///
-    /// ## Panics
-    ///
-    /// Panics if the `AttrValue` is not a `Color`
-    pub fn as_color(&self) -> Option<&RGBA> {
-        match *self {
-            AttrValue::Color(_, ref color) => color.as_ref(),
-            _ => panic!("Color not found"),
-        }
-    }
-
-    /// Assumes the `AttrValue` is a `Length` and returns its value
-    ///
-    /// ## Panics
-    ///
-    /// Panics if the `AttrValue` is not a `Length`
-    pub fn as_length(&self) -> Option<&Length> {
-        match *self {
-            AttrValue::Length(_, ref length) => length.as_ref(),
-            _ => panic!("Length not found"),
-        }
-    }
-
-    /// Return the AttrValue as its integer representation, if any.
-    /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
-    /// by `VirtualMethods::parse_plain_attribute()`.
-    ///
-    /// ## Panics
-    ///
-    /// Panics if the `AttrValue` is not a `UInt`
-    pub fn as_uint(&self) -> u32 {
-        if let AttrValue::UInt(_, value) = *self {
-            value
-        } else {
-            panic!("Uint not found");
-        }
-    }
-}
-
-impl Deref for AttrValue {
-    type Target = str;
-
-    fn deref(&self) -> &str {
-        match *self {
-            AttrValue::String(ref value) |
-                AttrValue::TokenList(ref value, _) |
-                AttrValue::UInt(ref value, _) |
-                AttrValue::Length(ref value, _) |
-                AttrValue::Color(ref value, _) => &value,
-            AttrValue::Atom(ref value) => &value,
-        }
-    }
-}
+pub use style::attr::{AttrIdentifier, AttrValue};
+use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
 pub struct Attr {
     reflector_: Reflector,
-    local_name: Atom,
+    identifier: AttrIdentifier,
     value: DOMRefCell<AttrValue>,
-    name: Atom,
-    namespace: Namespace,
-    prefix: Option<Atom>,
 
     /// the element that owns this attribute.
     owner: MutNullableHeap<JS<Element>>,
 }
 
 impl Attr {
-    fn new_inherited(local_name: Atom, value: AttrValue, name: Atom, namespace: Namespace,
-                     prefix: Option<Atom>, owner: Option<&Element>) -> Attr {
+    fn new_inherited(local_name: Atom,
+                     value: AttrValue,
+                     name: Atom,
+                     namespace: Namespace,
+                     prefix: Option<Atom>,
+                     owner: Option<&Element>)
+                     -> Attr {
         Attr {
             reflector_: Reflector::new(),
-            local_name: local_name,
+            identifier: AttrIdentifier {
+                local_name: local_name,
+                name: name,
+                namespace: namespace,
+                prefix: prefix,
+            },
             value: DOMRefCell::new(value),
-            name: name,
-            namespace: namespace,
-            prefix: prefix,
             owner: MutNullableHeap::new(owner),
         }
     }
 
-    pub fn new(window: &Window, local_name: Atom, value: AttrValue,
-               name: Atom, namespace: Namespace,
-               prefix: Option<Atom>, owner: Option<&Element>) -> Root<Attr> {
-        reflect_dom_object(
-            box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
-            GlobalRef::Window(window),
-            AttrBinding::Wrap)
+    pub fn new(window: &Window,
+               local_name: Atom,
+               value: AttrValue,
+               name: Atom,
+               namespace: Namespace,
+               prefix: Option<Atom>,
+               owner: Option<&Element>)
+               -> Root<Attr> {
+        reflect_dom_object(box Attr::new_inherited(local_name,
+                                                   value,
+                                                   name,
+                                                   namespace,
+                                                   prefix,
+                                                   owner),
+                           GlobalRef::Window(window),
+                           AttrBinding::Wrap)
     }
 
     #[inline]
     pub fn name(&self) -> &Atom {
-        &self.name
+        &self.identifier.name
     }
 
     #[inline]
     pub fn namespace(&self) -> &Namespace {
-        &self.namespace
+        &self.identifier.namespace
     }
 
     #[inline]
     pub fn prefix(&self) -> &Option<Atom> {
-        &self.prefix
+        &self.identifier.prefix
     }
 }
 
 impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(&self) -> DOMString {
-        (**self.local_name()).to_owned()
+        // FIXME(ajeffrey): convert directly from Atom to DOMString
+        DOMString::from(&**self.local_name())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(&self) -> DOMString {
-        (**self.value()).to_owned()
+        // FIXME(ajeffrey): convert directly from AttrValue to DOMString
+        DOMString::from(&**self.value())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -225,7 +104,9 @@ impl AttrMethods for Attr {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
-                let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
+                let value = owner.parse_attribute(&self.identifier.namespace,
+                                                  self.local_name(),
+                                                  value);
                 self.set_value(value, owner.r());
             }
         }
@@ -253,21 +134,23 @@ impl AttrMethods for Attr {
 
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(&self) -> DOMString {
-        (*self.name).to_owned()
+        // FIXME(ajeffrey): convert directly from Atom to DOMString
+        DOMString::from(&*self.identifier.name)
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
-        let Namespace(ref atom) = self.namespace;
+        let Namespace(ref atom) = self.identifier.namespace;
         match &**atom {
             "" => None,
-            url => Some(url.to_owned()),
+            url => Some(DOMString::from(url)),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix().as_ref().map(|p| (**p).to_owned())
+        // FIXME(ajeffrey): convert directly from Atom to DOMString
+        self.prefix().as_ref().map(|p| DOMString::from(&**p))
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
@@ -285,11 +168,16 @@ impl AttrMethods for Attr {
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
+        owner.will_mutate_attr();
         mem::swap(&mut *self.value.borrow_mut(), &mut value);
-        if self.namespace == ns!("") {
-            vtable_for(NodeCast::from_ref(owner)).attribute_mutated(
-                self, AttributeMutation::Set(Some(&value)));
+        if self.identifier.namespace == ns!() {
+            vtable_for(owner.upcast())
+                .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
         }
+    }
+
+    pub fn identifier(&self) -> &AttrIdentifier {
+        &self.identifier
     }
 
     pub fn value(&self) -> Ref<AttrValue> {
@@ -297,37 +185,38 @@ impl Attr {
     }
 
     pub fn local_name(&self) -> &Atom {
-        &self.local_name
+        &self.identifier.local_name
     }
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
     pub fn set_owner(&self, owner: Option<&Element>) {
-        let ref ns = self.namespace;
+        let ref ns = self.identifier.namespace;
         match (self.owner().r(), owner) {
             (None, Some(new)) => {
                 // Already in the list of attributes of new owner.
-                assert!(new.get_attribute(&ns, &self.local_name) == Some(Root::from_ref(self)))
+                assert!(new.get_attribute(&ns, &self.identifier.local_name) ==
+                        Some(Root::from_ref(self)))
             }
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
-                assert!(old.get_attribute(&ns, &self.local_name).is_none())
+                assert!(old.get_attribute(&ns, &self.identifier.local_name).is_none())
             }
-            (old, new) => assert!(old == new)
+            (old, new) => assert!(old == new),
         }
         self.owner.set(owner);
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {
-        self.owner.get_rooted()
+        self.owner.get()
     }
 
     pub fn summarize(&self) -> AttrInfo {
-        let Namespace(ref ns) = self.namespace;
+        let Namespace(ref ns) = self.identifier.namespace;
         AttrInfo {
             namespace: (**ns).to_owned(),
-            name: self.Name(),
-            value: self.Value(),
+            name: String::from(self.Name()),
+            value: String::from(self.Value()),
         }
     }
 }
@@ -375,7 +264,7 @@ impl AttrHelpersForLayout for LayoutJS<Attr> {
 
     #[inline]
     unsafe fn local_name_atom_forever(&self) -> Atom {
-        (*self.unsafe_get()).local_name.clone()
+        (*self.unsafe_get()).identifier.local_name.clone()
     }
 
     #[inline]

@@ -23,7 +23,12 @@ reftest_filetype = ".list"
 ignored_files = [
     # Upstream
     os.path.join(".", "support", "*"),
-    os.path.join(".", "tests", "wpt", "*"),
+    os.path.join(".", "tests", "wpt", "css-tests", "*"),
+    os.path.join(".", "tests", "wpt", "harness", "*"),
+    os.path.join(".", "tests", "wpt", "sync", "*"),
+    os.path.join(".", "tests", "wpt", "sync_css", "*"),
+    os.path.join(".", "tests", "wpt", "update", "*"),
+    os.path.join(".", "tests", "wpt", "web-platform-tests", "*"),
     os.path.join(".", "python", "mach", "*"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser", "*"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply", "*"),
@@ -43,6 +48,8 @@ ignored_files = [
 
 
 def should_check(file_name):
+    if os.path.basename(file_name) == "Cargo.lock":
+        return True
     if ".#" in file_name:
         return False
     if os.path.splitext(file_name)[1] not in filetypes_to_check:
@@ -152,45 +159,59 @@ def check_flake8(file_name, contents):
 
 
 def check_lock(file_name, contents):
+    def find_reverse_dependencies(dependency, version, content):
+        dependency_prefix = "{} {}".format(dependency, version)
+        for package in itertools.chain([content["root"]], content["package"]):
+            for dependency in package.get("dependencies", []):
+                if dependency.startswith(dependency_prefix):
+                    yield package["name"]
+
     if not file_name.endswith(".lock"):
         raise StopIteration
-    contents = contents.splitlines(True)
-    idx = 1
-    packages = {}
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["glutin", "wayland-kbd"]
+    exceptions = ["libc", "cocoa"]
 
-    while idx < len(contents):
-        content = contents[idx].strip()
-        if 'name' in content:
-            base_name = content.split('"')[1]
-            # we need the base package because some other package might demand a new version in the following lines
-            packages[base_name] = contents[idx + 1].split('"')[1], idx + 2, base_name
-        if 'dependencies' in content:
-            idx += 1
-            while contents[idx].strip() != ']':
-                package = contents[idx].strip().strip('",').split()
-                name, version = package[0], package[1]
-                if name not in packages:    # store the line number & base package name for future comparison
-                    packages[name] = (version, idx + 1, base_name)
-                elif all([packages[name][0] != version, name not in exceptions, base_name not in exceptions]):
-                    line = idx + 1
-                    version_1 = tuple(map(int, packages[name][0].split('.')))
-                    version_2 = tuple(map(int, version.split('.')))
-                    if version_1 < version_2:       # get the line & base package containing the older version
-                        packages[name], (version, line, base_name) = (version, line, base_name), packages[name]
+    import toml
+    content = toml.loads(contents)
 
-                    message = 'conflicting versions for package "%s"' % name
-                    error = '\n\t\033[93mexpected maximum version "{}"\033[0m'.format(packages[name][0]) + \
-                            '\n\t\033[91mbut, "{}" demands "{}"\033[0m' \
-                            .format(base_name, version)
-                    suggest = "\n\t\033[93mtry upgrading with\033[0m " + \
-                              "\033[96m./mach cargo-update -p {}:{}\033[0m" \
-                              .format(name, version)
-                    yield (line, message + error + suggest)
-                idx += 1
-        idx += 1
+    packages = {}
+    for package in content.get("package", []):
+        packages.setdefault(package["name"], []).append(package["version"])
+
+    for (name, versions) in packages.iteritems():
+        if name in exceptions or len(versions) <= 1:
+            continue
+
+        highest = max(versions)
+        for version in versions:
+            if version != highest:
+                reverse_dependencies = "\n".join(
+                    "\t\t{}".format(n)
+                    for n in find_reverse_dependencies(name, version, content)
+                )
+                substitutions = {
+                    "package": name,
+                    "old_version": version,
+                    "new_version": highest,
+                    "reverse_dependencies": reverse_dependencies
+                }
+                message = """
+duplicate versions for package "{package}"
+\t\033[93mfound dependency on version {old_version}\033[0m
+\t\033[91mbut highest version is {new_version}\033[0m
+\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p {package}:{old_version}\033[0m
+\tThe following packages depend on version {old_version}:
+{reverse_dependencies}
+""".format(**substitutions).strip()
+                yield (1, message)
+
+
+def maybe_int(value):
+    try:
+        return int(value)
+    except ValueError:
+        return value
 
 
 def check_toml(file_name, contents):
@@ -215,13 +236,18 @@ def check_rust(file_name, contents):
     import_block = False
     whitespace = False
 
-    uses = []
+    prev_use = None
+    current_indent = 0
+    prev_crate = {}
+    prev_mod = {}
 
-    mods = []
+    decl_message = "{} is not in alphabetical order"
+    decl_expected = "\n\t\033[93mexpected: {}\033[0m"
+    decl_found = "\n\t\033[91mfound: {}\033[0m"
 
-    for idx, line in enumerate(contents):
+    for idx, original_line in enumerate(contents):
         # simplify the analysis
-        line = line.strip()
+        line = original_line.strip()
 
         # Simple heuristic to avoid common case of no comments.
         if '/' in line:
@@ -305,33 +331,46 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space before {")
 
-        # ignored cases like {} and }}
-        match = re.search(r"[^\s{}]}", line)
+        # ignored cases like {}, }` and }}
+        match = re.search(r"[^\s{}]}[^`]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space before }")
 
-        # ignored cases like {} and {{
-        match = re.search(r"{[^\s{}]", line)
+        # ignored cases like {}, `{ and {{
+        match = re.search(r"[^`]{[^\s{}]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space after {")
 
+        # check extern crates
+        if line.startswith("extern crate "):
+            crate_name = line[len("extern crate "):-1]
+            indent = len(original_line) - len(line)
+            if indent not in prev_crate:
+                prev_crate[indent] = ""
+            if prev_crate[indent] > crate_name:
+                yield(idx + 1, decl_message.format("extern crate declaration")
+                      + decl_expected.format(prev_crate[indent])
+                      + decl_found.format(crate_name))
+            prev_crate[indent] = crate_name
+
         # imports must be in the same line, alphabetically sorted, and merged
         # into a single import block
-        if line.startswith("use "):
+        elif line.startswith("use "):
             import_block = True
             use = line[4:]
+            indent = len(original_line) - len(line)
             if not use.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
-            uses.append((use[:len(use) - 1], idx + 1))
-        elif len(uses) > 0 and whitespace or not import_block:
-            sorted_uses = sorted(uses)
-            for i in range(len(uses)):
-                if sorted_uses[i][0] != uses[i][0]:
-                    message = "use statement is not in alphabetical order"
-                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_uses[i][0])
-                    found = "\n\t\033[91mfound: {}\033[0m".format(uses[i][0])
-                    yield(uses[i][1], message + expected + found)
-            uses = []
+            current_use = use[:len(use) - 1]
+            if indent == current_indent and prev_use and current_use < prev_use:
+                yield(idx + 1, decl_message.format("use statement")
+                      + decl_expected.format(prev_use)
+                      + decl_found.format(current_use))
+            prev_use = current_use
+            current_indent = indent
+
+        if whitespace or not import_block:
+            current_indent = 0
 
         if import_block and whitespace and line.startswith("use "):
             whitespace = False
@@ -339,30 +378,32 @@ def check_rust(file_name, contents):
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
-            mod = ""
-            if line.startswith("mod "):
-                mod = line[4:]
-            else:
-                mod = line[8:]
+            indent = len(original_line) - len(line)
+            mod = line[4:] if line.startswith("mod ") else line[8:]
 
-            match = line.find(" {")
-            if match == -1:
-                if not mod.endswith(";"):
-                    yield (idx + 1, "mod statement spans multiple lines")
-                mods.append(mod[:len(mod) - 1])
-        elif len(mods) > 0:
-            sorted_mods = sorted(mods)
-            for i in range(len(mods)):
-                if sorted_mods[i] != mods[i]:
-                    message = "mod statement is not in alphabetical order"
-                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_mods[i])
-                    found = "\n\t\033[91mfound: {}\033[0m".format(mods[i])
-                    yield (idx + 1 - len(mods) + i, message + expected + found)
-            mods = []
+            if idx < 0 or "#[macro_use]" not in contents[idx - 1]:
+                match = line.find(" {")
+                if indent not in prev_mod:
+                    prev_mod[indent] = ""
+                if match == -1 and not mod.endswith(";"):
+                    yield (idx + 1, "mod declaration spans multiple lines")
+                mod = mod[:len(mod) - 1]
+                if len(prev_mod[indent]) > 0 and mod < prev_mod[indent]:
+                    yield(idx + 1, decl_message.format("mod declaration")
+                          + decl_expected.format(prev_mod[indent])
+                          + decl_found.format(mod))
+                prev_mod[indent] = mod
+        else:
+            # we now erase previous entries
+            prev_mod = {}
 
         # There should not be any extra pointer dereferencing
         if ": &Vec<" in line:
             yield (idx + 1, "use &[T] instead of &Vec<T>")
+
+        # No benefit over using &str
+        if ": &String" in line:
+            yield (idx + 1, "use &str instead of &String")
 
 
 # Avoid flagging <Item=Foo> constructs
@@ -522,6 +563,16 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
+def check_wpt_lint_errors():
+    import subprocess
+    wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
+    lint_cmd = os.path.join(wpt_working_dir, "lint")
+    try:
+        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
+    except subprocess.CalledProcessError as e:
+        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
+
+
 def scan():
     all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
@@ -534,8 +585,9 @@ def scan():
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
+    wpt_lint_errors = check_wpt_lint_errors()
 
-    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors))
 
     if errors:
         for error in errors:

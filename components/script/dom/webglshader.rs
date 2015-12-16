@@ -4,16 +4,17 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use angle::hl::{BuiltInResources, Output, ShaderValidator};
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult, WebGLShaderParameter};
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLParameter};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
+use util::str::DOMString;
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
 pub enum ShaderCompilationStatus {
@@ -27,8 +28,8 @@ pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: u32,
     gl_type: u32,
-    source: RefCell<Option<String>>,
-    info_log: RefCell<Option<String>>,
+    source: DOMRefCell<Option<DOMString>>,
+    info_log: DOMRefCell<Option<String>>,
     is_deleted: Cell<bool>,
     compilation_status: Cell<ShaderCompilationStatus>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
@@ -50,8 +51,8 @@ impl WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             gl_type: shader_type,
-            source: RefCell::new(None),
-            info_log: RefCell::new(None),
+            source: DOMRefCell::new(None),
+            info_log: DOMRefCell::new(None),
             is_deleted: Cell::new(false),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
             renderer: renderer,
@@ -121,7 +122,7 @@ impl WebGLShader {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id))).unwrap()
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id)));
         }
     }
 
@@ -130,25 +131,26 @@ impl WebGLShader {
         self.info_log.borrow().clone()
     }
 
-    /// glGetShaderParameter
-    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLShaderParameter> {
-        match param_id {
-            constants::SHADER_TYPE | constants::DELETE_STATUS | constants::COMPILE_STATUS => {},
-            _ => return Err(WebGLError::InvalidEnum),
-        }
-
+    /// glGetParameter
+    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(self.id, param_id, sender))).unwrap();
-        Ok(receiver.recv().unwrap())
+        receiver.recv().unwrap()
     }
 
     /// Get the shader source
-    pub fn source(&self) -> Option<String> {
+    pub fn source(&self) -> Option<DOMString> {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
-    pub fn set_source(&self, source: String) {
+    pub fn set_source(&self, source: DOMString) {
         *self.source.borrow_mut() = Some(source);
+    }
+}
+
+impl Drop for WebGLShader {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

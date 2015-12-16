@@ -8,6 +8,9 @@ name = "style_tests"
 path = "lib.rs"
 doctest = false
 
+[dependencies.plugins]
+path = "../../../components/plugins"
+
 [dependencies.style]
 path = "../../../components/style"
 
@@ -17,13 +20,10 @@ path = "../../../components/style_traits"
 [dependencies.util]
 path = "../../../components/util"
 
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-
 [dependencies]
-app_units = "0.1"
-url = "0.2"
-cssparser = "0.3.1"
-string_cache = "0.1"
-string_cache_plugin = "0.1"
-euclid = "0.2"
+app_units = {version = "0.1", features = ["plugins"]}
+url = "0.5"
+cssparser = "0.4"
+selectors = "0.2"
+string_cache = "0.2"
+euclid = {version = "0.4", features = ["plugins"]}

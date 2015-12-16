@@ -11,15 +11,15 @@
         <meta name="flags" content="ahem" />
         <meta name="assert" content="The 'max-height' property sets a minimum plus one length value in 'em' units." />
         <style type="text/css">
-        div {font: 20px/1 Ahem;}        
-        
+        div {font: 20px/1 Ahem;}
+
         div#red-overlapped
         {
         background-color: red;
         height: 6em;
         max-height: 1em;
         }
-        
+
         div#black-overlapping
         {
         background-color: black;
@@ -27,11 +27,11 @@
         height: 1em;
         position: relative;
         }
-        </style> 
+        </style>
     </head>
     <body>
         <p>Test passes if there is a wide black bar and <strong>no red</strong>.</p>
         <div id="red-overlapped"></div>
-        <div id="black-overlapping"></div> 
+        <div id="black-overlapping"></div>
     </body>
 </html>

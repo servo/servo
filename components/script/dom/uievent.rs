@@ -5,16 +5,17 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
+use string_cache::Atom;
 use util::str::DOMString;
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
@@ -47,8 +48,8 @@ impl UIEvent {
                view: Option<&Window>,
                detail: i32) -> Root<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
-        ev.r().InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
-                           cancelable == EventCancelable::Cancelable, view, detail);
+        ev.InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
+                       cancelable == EventCancelable::Cancelable, view, detail);
         ev
     }
 
@@ -71,7 +72,7 @@ impl UIEvent {
 impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
     fn GetView(&self) -> Option<Root<Window>> {
-        self.view.get_rooted()
+        self.view.get()
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-detail
@@ -86,13 +87,18 @@ impl UIEventMethods for UIEvent {
                    cancelable: bool,
                    view: Option<&Window>,
                    detail: i32) {
-        let event: &Event = EventCast::from_ref(self);
+        let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
         }
 
-        event.InitEvent(type_, can_bubble, cancelable);
+        event.init_event(Atom::from(&*type_), can_bubble, cancelable);
         self.view.set(view);
         self.detail.set(detail);
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
     }
 }

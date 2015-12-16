@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
+use cssparser::Color as CSSColor;
+use cssparser::{Parser, RGBA};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
@@ -10,8 +12,8 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::canvasrenderingcontext2d::parse_color;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
@@ -38,20 +40,28 @@ impl CanvasGradient {
 
     pub fn new(global: GlobalRef, style: CanvasGradientStyle) -> Root<CanvasGradient> {
         reflect_dom_object(box CanvasGradient::new_inherited(style),
-                           global, CanvasGradientBinding::Wrap)
+                           global,
+                           CanvasGradientBinding::Wrap)
     }
 }
 
 impl CanvasGradientMethods for CanvasGradient {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
-    fn AddColorStop(&self, offset: Finite<f64>, color: String) -> ErrorResult {
+    fn AddColorStop(&self, offset: Finite<f64>, color: DOMString) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
             return Err(Error::IndexSize);
         }
 
-        let color = match parse_color(&color) {
-            Ok(color) => color,
-            _ => return Err(Error::Syntax)
+        let mut parser = Parser::new(&color);
+        let color = CSSColor::parse(&mut parser);
+        let color = if parser.is_exhausted() {
+            match color {
+                Ok(CSSColor::RGBA(rgba)) => rgba,
+                Ok(CSSColor::CurrentColor) => RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 },
+                _ => return Err(Error::Syntax)
+            }
+        } else {
+            return Err(Error::Syntax)
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {
@@ -70,17 +80,21 @@ impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {
-            CanvasGradientStyle::Linear(ref gradient) =>  {
-                FillOrStrokeStyle::LinearGradient(
-                    LinearGradientStyle::new(gradient.x0, gradient.y0,
-                                             gradient.x1, gradient.y1,
-                                             gradient_stops))
-            },
+            CanvasGradientStyle::Linear(ref gradient) => {
+                FillOrStrokeStyle::LinearGradient(LinearGradientStyle::new(gradient.x0,
+                                                                           gradient.y0,
+                                                                           gradient.x1,
+                                                                           gradient.y1,
+                                                                           gradient_stops))
+            }
             CanvasGradientStyle::Radial(ref gradient) => {
-                FillOrStrokeStyle::RadialGradient(
-                    RadialGradientStyle::new(gradient.x0, gradient.y0, gradient.r0,
-                                             gradient.x1, gradient.y1, gradient.r1,
-                                             gradient_stops))
+                FillOrStrokeStyle::RadialGradient(RadialGradientStyle::new(gradient.x0,
+                                                                           gradient.y0,
+                                                                           gradient.r0,
+                                                                           gradient.x1,
+                                                                           gradient.y1,
+                                                                           gradient.r1,
+                                                                           gradient_stops))
             }
         }
     }

@@ -4,13 +4,13 @@
 
 #![deny(unsafe_code)]
 
-use app_units::{Au, MAX_AU};
-use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
+use app_units::Au;
+use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{EarlyAbsolutePositionInfo, LAYERS_NEEDED_FOR_DESCENDANTS, MutableFlowUtils, OpaqueFlow};
+use flow::{EarlyAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
@@ -27,11 +27,12 @@ use std::{fmt, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::properties::ComputedValues;
+use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
 use util;
-use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use util::print_tree::PrintTree;
 use util::range::{Range, RangeIndex};
 use wrapper::PseudoElementType;
 
@@ -179,15 +180,6 @@ int_range_index! {
     struct FragmentIndex(isize)
 }
 
-bitflags! {
-    flags InlineReflowFlags: u8 {
-        #[doc = "The `white-space: nowrap` property from CSS 2.1 § 16.6 is in effect."]
-        const NO_WRAP_INLINE_REFLOW_FLAG = 0x01,
-        #[doc = "The `white-space: pre` property from CSS 2.1 § 16.6 is in effect."]
-        const WRAP_ON_NEWLINE_INLINE_REFLOW_FLAG = 0x02
-    }
-}
-
 /// Arranges fragments into lines, splitting them up as necessary.
 struct LineBreaker {
     /// The floats we need to flow around.
@@ -321,17 +313,8 @@ impl LineBreaker {
                 Some(fragment) => fragment,
             };
 
-            // Set up our reflow flags.
-            let flags = match fragment.style().get_inheritedtext().white_space {
-                white_space::T::normal => InlineReflowFlags::empty(),
-                white_space::T::nowrap => NO_WRAP_INLINE_REFLOW_FLAG,
-                white_space::T::pre => {
-                    WRAP_ON_NEWLINE_INLINE_REFLOW_FLAG | NO_WRAP_INLINE_REFLOW_FLAG
-                }
-            };
-
             // Try to append the fragment.
-            self.reflow_fragment(fragment, flow, layout_context, flags);
+            self.reflow_fragment(fragment, flow, layout_context);
         }
 
         if !self.pending_line_is_empty() {
@@ -540,8 +523,7 @@ impl LineBreaker {
     fn reflow_fragment(&mut self,
                        mut fragment: Fragment,
                        flow: &InlineFlow,
-                       layout_context: &LayoutContext,
-                       flags: InlineReflowFlags) {
+                       layout_context: &LayoutContext) {
         // Determine initial placement for the fragment if we need to.
         //
         // Also, determine whether we can legally break the line before, or inside, this fragment.
@@ -552,7 +534,7 @@ impl LineBreaker {
             self.pending_line.green_zone = line_bounds.size;
             false
         } else {
-            !flags.contains(NO_WRAP_INLINE_REFLOW_FLAG)
+            fragment.white_space().allow_wrap()
         };
 
         debug!("LineBreaker: trying to append to line {} (fragment size: {:?}, green zone: {:?}): \
@@ -582,13 +564,15 @@ impl LineBreaker {
 
         // If we must flush the line after finishing this fragment due to `white-space: pre`,
         // detect that.
-        let line_flush_mode =
-            if flags.contains(WRAP_ON_NEWLINE_INLINE_REFLOW_FLAG) &&
-                    fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
+        let line_flush_mode = if fragment.white_space().preserve_newlines() {
+            if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
                 LineFlushMode::Flush
             } else {
                 LineFlushMode::No
-            };
+            }
+        } else {
+            LineFlushMode::No
+        };
 
         // If we're not going to overflow the green zone vertically, we might still do so
         // horizontally. We'll try to place the whole fragment on this line and break somewhere if
@@ -602,35 +586,23 @@ impl LineBreaker {
             return
         }
 
-        // If we can't split the fragment and we're at the start of the line, then just overflow.
-        if !fragment.can_split() && self.pending_line_is_empty() {
-            debug!("LineBreaker: fragment can't split and line {} is empty, so overflowing",
-                    self.lines.len());
-            self.push_fragment_to_line(layout_context, fragment, LineFlushMode::No);
-            return
-        }
-
         // If the wrapping mode prevents us from splitting, then back up and split at the last
         // known good split point.
-        if flags.contains(NO_WRAP_INLINE_REFLOW_FLAG) &&
-                !flags.contains(WRAP_ON_NEWLINE_INLINE_REFLOW_FLAG) {
-            debug!("LineBreaker: white-space: nowrap in effect; falling back to last known good \
-                    split point");
+        if !fragment.white_space().allow_wrap() {
+            debug!("LineBreaker: fragment can't split; falling back to last known good split point");
             if !self.split_line_at_last_known_good_position() {
                 // No line breaking opportunity exists at all for this line. Overflow.
-                self.push_fragment_to_line(layout_context, fragment, LineFlushMode::No)
+                self.push_fragment_to_line(layout_context, fragment, line_flush_mode);
             } else {
-                self.work_list.push_front(fragment)
+                self.work_list.push_front(fragment);
             }
-            return
+            return;
         }
 
         // Split it up!
-        let available_inline_size = if !flags.contains(NO_WRAP_INLINE_REFLOW_FLAG) {
-            green_zone.inline - self.pending_line.bounds.size.inline - indentation
-        } else {
-            MAX_AU
-        };
+        let available_inline_size = green_zone.inline -
+                                    self.pending_line.bounds.size.inline -
+                                    indentation;
         let inline_start_fragment;
         let inline_end_fragment;
         let split_result = match fragment.calculate_split_position(available_inline_size,
@@ -803,16 +775,6 @@ pub struct InlineFragments {
     pub fragments: Vec<Fragment>,
 }
 
-impl fmt::Debug for InlineFragments {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for fragment in &self.fragments {
-            try!(write!(f, "\n  * {:?}", fragment))
-        }
-        Ok(())
-    }
-}
-
-
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
     pub fn new() -> InlineFragments {
@@ -830,16 +792,6 @@ impl InlineFragments {
     /// fragment.
     pub fn is_empty(&self) -> bool {
         self.fragments.is_empty()
-    }
-
-    /// Pushes a new inline fragment.
-    pub fn push(&mut self, fragment: &mut Fragment) {
-        self.fragments.push(fragment.clone());
-    }
-
-    /// Merges another set of inline fragments with this one.
-    pub fn push_all(&mut self, mut other: InlineFragments) {
-        self.fragments.append(&mut other.fragments);
     }
 
     /// A convenience function to return the fragment at a given index.
@@ -982,15 +934,15 @@ impl InlineFlow {
                         offset_from_baseline = offset_from_baseline - *depth_below_baseline
                     }
                 },
-                vertical_align::T::Length(length) => {
+                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
                     offset_from_baseline = offset_from_baseline - length
                 }
-                vertical_align::T::Percentage(p) => {
+                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(p)) => {
                     let line_height = fragment.calculate_line_height(layout_context);
                     let percent_offset = line_height.scale_by(p);
                     offset_from_baseline = offset_from_baseline - percent_offset
                 }
-                vertical_align::T::Calc(calc) => {
+                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(calc)) => {
                     let line_height = fragment.calculate_line_height(layout_context);
                     let percent_offset = line_height.scale_by(calc.percentage());
                     offset_from_baseline = offset_from_baseline - percent_offset - calc.length()
@@ -1371,6 +1323,27 @@ impl Flow for InlineFlow {
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
                 }
+                white_space::T::pre_wrap |
+                white_space::T::pre_line => {
+                    // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
+                    // necessary.
+                    intrinsic_sizes_for_inline_run.union_inline(
+                        &intrinsic_sizes_for_nonbroken_run.finish());
+                    intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
+
+                    intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment);
+
+                    // Flush the intrinsic sizes we've been gathering up in order to handle the
+                    // line break, if necessary.
+                    if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
+                        intrinsic_sizes_for_inline_run.union_inline(
+                            &intrinsic_sizes_for_nonbroken_run.finish());
+                        intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
+                        intrinsic_sizes_for_flow.union_block(
+                            &intrinsic_sizes_for_inline_run.finish());
+                        intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
+                    }
+                }
                 white_space::T::normal => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
@@ -1378,7 +1351,7 @@ impl Flow for InlineFlow {
                         &intrinsic_sizes_for_nonbroken_run.finish());
                     intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
 
-                    intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment)
+                    intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment);
                 }
             }
         }
@@ -1475,7 +1448,6 @@ impl Flow for InlineFlow {
 
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
-        let mut layers_needed_for_descendants = false;
         let line_count = self.lines.len();
         for line_index in 0..line_count {
             let line = &mut self.lines[line_index];
@@ -1503,10 +1475,6 @@ impl Flow for InlineFlow {
 
             for fragment_index in line.range.each_index() {
                 let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
-
-                if fragment.needs_layer() && !fragment.is_positioned() {
-                    layers_needed_for_descendants = true
-                }
 
                 let InlineMetrics {
                     mut block_size_above_baseline,
@@ -1604,21 +1572,12 @@ impl Flow for InlineFlow {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
         }
 
-        // Mark ourselves for layerization if that will be necessary to paint in the proper
-        // order (CSS 2.1, Appendix E).
-        self.base.flags.set(LAYERS_NEEDED_FOR_DESCENDANTS, layers_needed_for_descendants);
-
         if self.contains_positioned_fragments() {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
             (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
                 &mut AbsoluteAssignBSizesTraversal(layout_context));
-            // Store overflow for all absolute descendants.
-            (&mut *self as &mut Flow).traverse_postorder_absolute_flows(
-                &mut AbsoluteStoreOverflowTraversal {
-                    layout_context: layout_context,
-                });
         }
 
         self.base.position.size.block = match self.lines.last() {
@@ -1643,7 +1602,6 @@ impl Flow for InlineFlow {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
-                    (block.as_mut_block() as &mut Flow).late_store_overflow(layout_context);
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let block = flow_ref::deref_mut(&mut info.flow_ref);
@@ -1651,7 +1609,6 @@ impl Flow for InlineFlow {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
-                    (block.as_mut_block() as &mut Flow).late_store_overflow(layout_context);
                 }
                 _ => (),
             }
@@ -1791,7 +1748,7 @@ impl Flow for InlineFlow {
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Rect<Au> {
-        let mut overflow = ZERO_RECT;
+        let mut overflow = Rect::zero();
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
         let relative_containing_block_size =
             &self.base.early_absolute_position_info.relative_containing_block_size;
@@ -1857,15 +1814,21 @@ impl Flow for InlineFlow {
         }
         containing_block_size
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        for fragment in &self.fragments.fragments {
+            print_tree.add_item(format!("{:?}", fragment));
+        }
+    }
 }
 
 impl fmt::Debug for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?} - {:x} - Ovr {:?} - {:?}",
-            self.class(),
-            self.base.debug_id(),
-            flow::base(self).overflow,
-            self.fragments)
+        write!(f,
+               "{:?}({:x}) {:?}",
+               self.class(),
+               self.base.debug_id(),
+               flow::base(self))
     }
 }
 

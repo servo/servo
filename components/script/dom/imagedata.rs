@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use euclid::size::Size2D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsapi::{JS_GetUint8ClampedArrayData, JS_NewUint8ClampedArray};
@@ -17,7 +17,6 @@ use std::slice;
 use std::vec::Vec;
 
 #[dom_struct]
-#[allow(raw_pointer_derive)]
 pub struct ImageData {
     reflector_: Reflector,
     width: u32,

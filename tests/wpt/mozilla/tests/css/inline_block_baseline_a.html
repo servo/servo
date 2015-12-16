@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel='match' href='inline_block_baseline_ref.html'>
+        <style type="text/css">
+            body {
+                font-family: 'ahem';
+                font-size: 400px;
+                line-height: 1;
+                margin: 0;
+            }
+            .test {
+                color: green;
+                display: inline-block;
+                font-size: 300px;
+            }
+            .cdef {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="cdef">X<span class="test">X</span></div>
+    </body>
+</html>

@@ -5,17 +5,16 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
-use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use util::str::DOMString;
@@ -90,7 +89,7 @@ impl FormDataMethods for FormData {
                  .get(&name)
                  .map(|entry| match entry[0] {
                      FormDatum::StringData(ref s) => eString(s.clone()),
-                     FormDatum::FileData(ref f) => eFile(f.root()),
+                     FormDatum::FileData(ref f) => eFile(Root::from_ref(&*f)),
                  })
     }
 
@@ -116,8 +115,8 @@ impl FormDataMethods for FormData {
 impl FormData {
     fn get_file_from_blob(&self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
-        let f: Option<&File> = FileCast::to_ref(value);
-        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));
+        let f = value.downcast::<File>();
+        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or(DOMString::from("blob")));
         File::new(global.r(), value, name)
     }
 }

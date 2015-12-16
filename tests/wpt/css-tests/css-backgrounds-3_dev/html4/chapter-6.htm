@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Backgrounds and Borders Module Level 3 CR Test Suite</h1>
-  <h2>Border Images (34 tests)</h2>
+  <h2>Border Images (37 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -142,7 +142,7 @@
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>border-image-slice - border-style: none
           <ul class="assert">
-            <li>If 'border-style' is not declared, then it defaults to 'none' in which case the computed border-widths on all 4 sides is 0 in which case the border area to be painted with the border-image is also 0. So, we should see no red in this test.</li>
+            <li>If 'border-style' is not declared, then it defaults to 'none' in which case the computed border-widths on all 4 sides is 0 in which case the border area to be painted with the border-image is also 0 because the default border-image-width is 1 which means 1 time the computed border-width. So, we should see no red in this test.</li>
           </ul>
         </td>
       </tr>
@@ -234,7 +234,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.3">+</a>
         <a href="http://www.w3.org/TR/css3-background/#the-border-image-width">6.3 Drawing Areas: the &#8216;border-image-width&#8217; property</a></th></tr>
-      <!-- 4 tests -->
+      <!-- 7 tests -->
       <tr id="border-image-10-6.3" class="primary">
         <td><strong>
             <a href="border-image-10.htm">border-image-10</a></strong></td>
@@ -276,6 +276,39 @@
         <td>CSS Border and Background: border-image #9 border-image-width
           <ul class="assert">
             <li>Support for 3 values for the border-image-width property</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-image-width-005-6.3" class="primary image">
+        <td><strong>
+            <a href="border-image-width-005.htm">border-image-width-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>border image area - border-image-width
+          <ul class="assert">
+            <li>This test checks that the border image area can still exists even if the border area (or border belt) of an element is inexistent. In this test, the border image fills the content area, the padding area and 25px of the extended-beyond-border-belt area, 25px into the margin area of the element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-image-width-006-6.3" class="primary image">
+        <td><strong>
+            <a href="border-image-width-006.htm">border-image-width-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>border image area - border-image-width
+          <ul class="assert">
+            <li>This test checks that the border image area can still exists even if the border area (or border belt) of an element is inexistent, even if the content area of an element is inexistent. In this test, the border image fills the padding area and 25px of the extended-beyond-border-belt area, 25px into the margin area of the element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-image-width-007-6.3" class="primary image">
+        <td><strong>
+            <a href="border-image-width-007.htm">border-image-width-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>border image area - border-image-width
+          <ul class="assert">
+            <li>This test checks that the border image area can still exists even if the border area (or border belt) of an element is inexistent, even if the padding area (or padding belt) is inexistent and even if the content area is inexistent. In this test, the border image fills the margin area of the element. In this test, the whole border image area is outside the border box of the element.</li>
           </ul>
         </td>
       </tr>

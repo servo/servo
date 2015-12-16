@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>URL historical tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+var objects = [
+  [function() { return window.location }, "location object"],
+  [function() { return document.createElement("a") }, "a element"],
+  [function() { return document.createElement("area") }, "area element"],
+];
+
+objects.forEach(function(o) {
+  test(function() {
+    var object = o[0]();
+    assert_false("searchParams" in object,
+                 o[1] + " should not have a searchParams attribute");
+  }, "searchParams on " + o[1]);
+});
+</script>

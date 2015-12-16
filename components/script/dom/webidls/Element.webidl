@@ -37,6 +37,10 @@ interface Element : Node {
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
+  [Pure]
+  Attr? getAttributeNode(DOMString name);
+  [Pure]
+  Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
   [Throws]
   void setAttribute(DOMString name, DOMString value);
   [Throws]
@@ -51,6 +55,8 @@ interface Element : Node {
 
   [Pure, Throws]
   boolean matches(DOMString selectors);
+  [Pure, Throws]
+  boolean webkitMatchesSelector(DOMString selectors);
 
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);

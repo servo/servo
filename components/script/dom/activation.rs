@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::inheritance::Castable;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
-use std::borrow::ToOwned;
+use util::str::DOMString;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
@@ -31,7 +31,11 @@ pub trait Activatable {
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
 
     // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
-    fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+    fn synthetic_click_activation(&self,
+                                  ctrlKey: bool,
+                                  shiftKey: bool,
+                                  altKey: bool,
+                                  metaKey: bool) {
         let element = self.as_element();
         // Step 1
         if element.click_in_progress() {
@@ -45,12 +49,24 @@ pub trait Activatable {
         // Step 4
         // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
         let win = window_from_node(element);
-        let target = EventTargetCast::from_ref(element);
-        let mouse = MouseEvent::new(win.r(), "click".to_owned(),
-                                    EventBubbles::DoesNotBubble, EventCancelable::NotCancelable, Some(win.r()), 1,
-                                    0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
-                                    0, None);
-        let event = EventCast::from_ref(mouse.r());
+        let target = element.upcast();
+        let mouse = MouseEvent::new(win.r(),
+                                    DOMString::from("click"),
+                                    EventBubbles::DoesNotBubble,
+                                    EventCancelable::NotCancelable,
+                                    Some(win.r()),
+                                    1,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    ctrlKey,
+                                    shiftKey,
+                                    altKey,
+                                    metaKey,
+                                    0,
+                                    None);
+        let event = mouse.upcast::<Event>();
         event.fire(target);
 
         // Step 5

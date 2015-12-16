@@ -7,6 +7,7 @@
 #![feature(alloc)]
 
 extern crate alloc;
+extern crate app_units;
 extern crate euclid;
 extern crate libc;
 extern crate util;

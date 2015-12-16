@@ -8,6 +8,7 @@
             .gray { background: rgb(200, 200, 200); }
             .grayer { background: rgb(80, 80, 80); }
             .grayest { background: rgb(0, 0, 0); }
+            iframe { display: block; border: 0; }
         </style>
     </head>
     <body>
@@ -21,11 +22,68 @@
             <div class="gray box" style="margin-left: 20px; margin-top: 10px; position: absolute; top: 20px; z-index: 5;"> </div>
         </div>
 
+        <!-- These divs should be stacked in tree order, even though the second one
+              initiates a stacking context and the third one does not. -->
+        <div class="test grayest box">
+            <div class="grayer box" style="transform: translateX(10px) translateY(10px);"> </div>
+            <div class="gray box" style="top: -30px; left: 20px; position: relative; "></div>
+        </div>
+
         <!-- The z-index of the second box should be ignored since it is not a positioned element.
              so these boxes stack in tree order. -->
         <div class="test grayest box">
             <div class="grayer box" style="margin-left: 10px; margin-top: 10px; opacity: 0.999; z-index: -1;"></div>
             <div class="gray box" style="margin-left: 20px; margin-top: -40px; opacity: 0.999;"> </div>
         </div>
+
+        <!-- The iframe should be painted in tree order since it is not positioned and
+             the following div is. -->
+        <div class="test grayest box">
+            <iframe class="box" style="margin-left: 10px; margin-top: 10px;" src="data:text/html;charset=utf-8;base64,PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IHJnYig4MCwgODAsIDgwKTsiPjwvYm9keT48L2Rpdj4="></iframe>
+            <div class="gray box" style="position: relative; left: 20px; top: -40px;"> </div>
+        </div>
+
+        <!-- Same as the previous test case, but the iframe is now a descendant
+             of the sibling of the second div, instead of a direct sibling. -->
+        <div class="test grayest box">
+            <div>
+                <iframe class="box" style="margin-left: 10px; margin-top: 10px;" src="data:text/html;charset=utf-8;base64,PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IHJnYig4MCwgODAsIDgwKTsiPjwvYm9keT48L2Rpdj4="></iframe>
+            </div>
+            <div class="gray box" style="position: relative; left: 20px; top: -40px;"> </div>
+        </div>
+
+
+        <!-- The iframe should be painted in tree order since both it and the inner div are
+             not positioned elements. -->
+        <div class="test grayest box">
+            <iframe class="box" style="position: relative; left: 10px; top: 10px;" src="data:text/html;charset=utf-8;base64,PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IHJnYig4MCwgODAsIDgwKTsiPjwvYm9keT48L2Rpdj4="></iframe>
+            <div class="gray box" style="position: relative; left: 20px; top: -30px;"> </div>
+        </div>
+
+        <!-- The canvas should be painted in tree order since it is not positioned and
+             the following div is. -->
+        <div class="test grayest box">
+            <canvas class="box" id="canvas1" style="display: block; padding-left: 10px; padding-top: 10px;" width="50" height="50"></canvas>
+            <div class="gray box" style="position: relative; left: 20px; top: -40px;"> </div>
+        </div>
+
+        <!-- The canvas should be painted in tree order since both it and the inner div are
+             not positioned elements. -->
+        <div class="test grayest box">
+            <canvas class="box" id="canvas2" style="display: block; position: relative; left: 10px; top: 10px;" width="50" height="50"></canvas>
+            <div class="gray box" style="position: relative; left: 20px; top: -30px;"> </div>
+        </div>
+
+        <script>
+            function paintCanvas(id) {
+                var canvas = document.getElementById(id);
+                var context = canvas.getContext("2d");
+                context.fillStyle = "rgb(80, 80, 80)";
+                context.fillRect(0, 0, 100, 100);
+            }
+            paintCanvas("canvas1");
+            paintCanvas("canvas2");
+        </script>
+
     </body>
 </html>

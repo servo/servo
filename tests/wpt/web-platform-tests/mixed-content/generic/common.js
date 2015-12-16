@@ -83,7 +83,8 @@ function setAttributes(el, attrs) {
 function bindEvents(element, resolveEventName, rejectEventName) {
   element.eventPromise = new Promise(function(resolve, reject) {
     element.addEventListener(resolveEventName  || "load", resolve);
-    element.addEventListener(rejectEventName || "error", reject);
+    element.addEventListener(rejectEventName || "error",
+                             function(e) { e.preventDefault(); reject(); } );
   });
 }
 

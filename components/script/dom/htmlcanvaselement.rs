@@ -4,29 +4,36 @@
 
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use dom::attr::Attr;
+use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
-use dom::bindings::utils::{Reflectable};
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::Reflectable;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use euclid::size::Size2D;
+use image::ColorType;
+use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
-use std::cell::Cell;
+use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::iter::repeat;
-use util::str::{DOMString, parse_unsigned_integer};
+use string_cache::Atom;
+use util::str::DOMString;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -44,8 +51,6 @@ impl HeapGCValue for CanvasContext {}
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DOMRefCell<Option<CanvasContext>>,
-    width: Cell<u32>,
-    height: Cell<u32>,
 }
 
 impl PartialEq for HTMLCanvasElement {
@@ -55,19 +60,17 @@ impl PartialEq for HTMLCanvasElement {
 }
 
 impl HTMLCanvasElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             context: DOMRefCell::new(None),
-            width: Cell::new(DEFAULT_WIDTH),
-            height: Cell::new(DEFAULT_HEIGHT),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
@@ -78,59 +81,54 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         if let Some(ref context) = *self.context.borrow() {
             match *context {
-                CanvasContext::Context2d(ref context) => context.root().r().recreate(size),
-                CanvasContext::WebGL(ref context) => context.root().r().recreate(size),
+                CanvasContext::Context2d(ref context) => context.set_bitmap_dimensions(size),
+                CanvasContext::WebGL(ref context) => context.recreate(size),
             }
         }
     }
 
     pub fn get_size(&self) -> Size2D<i32> {
-        Size2D::new(self.width.get() as i32, self.height.get() as i32)
+        Size2D::new(self.Width() as i32, self.Height() as i32)
     }
 }
 
+pub struct HTMLCanvasData {
+    pub renderer_id: Option<usize>,
+    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
+    pub width: u32,
+    pub height: u32,
+}
+
 pub trait LayoutHTMLCanvasElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> Option<usize>;
-    #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>>;
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_width(&self) -> u32;
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_height(&self) -> u32;
+    fn data(&self) -> HTMLCanvasData;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> Option<usize> {
-        let ref canvas = *self.unsafe_get();
-        canvas.context.borrow_for_layout().as_ref().map(|context| {
-            match *context {
-                CanvasContext::Context2d(ref context) => context.to_layout().get_renderer_id(),
-                CanvasContext::WebGL(ref context) => context.to_layout().get_renderer_id(),
+    fn data(&self) -> HTMLCanvasData {
+        unsafe {
+            let canvas = &*self.unsafe_get();
+            let (renderer_id, ipc_renderer) = match canvas.context.borrow_for_layout().as_ref() {
+                Some(&CanvasContext::Context2d(ref context)) => {
+                    let context = context.to_layout();
+                    (Some(context.get_renderer_id()), Some(context.get_ipc_renderer()))
+                },
+                Some(&CanvasContext::WebGL(ref context)) => {
+                    let context = context.to_layout();
+                    (Some(context.get_renderer_id()), Some(context.get_ipc_renderer()))
+                },
+                None => (None, None),
+            };
+
+            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("width"));
+            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("height"));
+            HTMLCanvasData {
+                renderer_id: renderer_id,
+                ipc_renderer: ipc_renderer,
+                width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
+                height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             }
-        })
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
-        let ref canvas = *self.unsafe_get();
-        canvas.context.borrow_for_layout().as_ref().map(|context| {
-            match *context {
-                CanvasContext::Context2d(ref context) => context.to_layout().get_ipc_renderer(),
-                CanvasContext::WebGL(ref context) => context.to_layout().get_ipc_renderer(),
-            }
-        })
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_width(&self) -> u32 {
-        (*self.unsafe_get()).width.get()
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_height(&self) -> u32 {
-        (*self.unsafe_get()).height.get()
+        }
     }
 }
 
@@ -139,8 +137,8 @@ impl HTMLCanvasElement {
     pub fn ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
         self.context.borrow().as_ref().map(|context| {
             match *context {
-                CanvasContext::Context2d(ref context) => context.root().r().ipc_renderer(),
-                CanvasContext::WebGL(ref context) => context.root().r().ipc_renderer(),
+                CanvasContext::Context2d(ref context) => context.ipc_renderer(),
+                CanvasContext::WebGL(ref context) => context.ipc_renderer(),
             }
         })
     }
@@ -154,11 +152,12 @@ impl HTMLCanvasElement {
         }
 
         match *self.context.borrow().as_ref().unwrap() {
-            CanvasContext::Context2d(ref context) => Some(context.root()),
+            CanvasContext::Context2d(ref context) => Some(Root::from_ref(&*context)),
             _   => None,
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn get_or_init_webgl_context(&self,
                                  cx: *mut JSContext,
                                  attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
@@ -167,7 +166,7 @@ impl HTMLCanvasElement {
             let size = self.get_size();
 
             let attrs = if let Some(webgl_attributes) = attrs {
-                if let Ok(ref attrs) = WebGLContextAttributes::new(cx, webgl_attributes) {
+                if let Ok(ref attrs) = unsafe { WebGLContextAttributes::new(cx, webgl_attributes) } {
                     From::from(attrs)
                 } else {
                     debug!("Unexpected error on conversion of WebGLContextAttributes");
@@ -182,18 +181,15 @@ impl HTMLCanvasElement {
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(&ctx)));
         }
 
-        if let Some(ref context) = *self.context.borrow() {
-            match *context {
-                CanvasContext::WebGL(ref context) => Some(context.root()),
-                _ => None,
-            }
+        if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {
+            Some(Root::from_ref(&*context))
         } else {
             None
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.height.get() != 0 && self.width.get() != 0
+        self.Height() != 0 && self.Width() != 0
     }
 
     pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<i32>)> {
@@ -219,26 +215,16 @@ impl HTMLCanvasElement {
 
 impl HTMLCanvasElementMethods for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    fn Width(&self) -> u32 {
-        self.width.get()
-    }
+    make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    fn SetWidth(&self, width: u32) {
-        let elem = ElementCast::from_ref(self);
-        elem.set_uint_attribute(&atom!("width"), width)
-    }
+    make_uint_setter!(SetWidth, "width", DEFAULT_WIDTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn Height(&self) -> u32 {
-        self.height.get()
-    }
+    make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn SetHeight(&self, height: u32) {
-        let elem = ElementCast::from_ref(self);
-        elem.set_uint_attribute(&atom!("height"), height)
-    }
+    make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
     fn GetContext(&self,
@@ -249,46 +235,73 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         match &*id {
             "2d" => {
                 self.get_or_init_2d_context()
-                    .map(|ctx| CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(
-                                   ctx))
+                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D)
             }
             "webgl" | "experimental-webgl" => {
                 self.get_or_init_webgl_context(cx, attributes.get(0).map(|p| *p))
-                    .map(|ctx| CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(
-                                   ctx))
+                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext)
             }
             _ => None
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
+    fn ToDataURL(&self,
+                 _context: *mut JSContext,
+                 _mime_type: Option<DOMString>,
+                 _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
+
+        // Step 1: Check the origin-clean flag (should be set in fillText/strokeText
+        // and currently unimplemented)
+
+        // Step 2.
+        if self.Width() == 0 || self.Height() == 0 {
+            return Ok(DOMString::from("data:,"));
+        }
+
+        // Step 3.
+        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+            let window = window_from_node(self);
+            let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
+                                                       Finite::wrap(self.Width() as f64),
+                                                       Finite::wrap(self.Height() as f64)));
+            let raw_data = image_data.get_data_array(&GlobalRef::Window(window.r()));
+
+            // Only handle image/png for now.
+            let mime_type = "image/png";
+
+            let mut encoded = Vec::new();
+            {
+                let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
+                encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
+            }
+
+            let encoded = encoded.to_base64(STANDARD);
+            Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
+        } else {
+            Err(Error::NotSupported)
         }
     }
 }
 
 impl VirtualMethods for HTMLCanvasElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(element as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        let recreate = match attr.local_name() {
-            &atom!(width) => {
-                let width = mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars())
-                });
-                self.width.set(width.unwrap_or(DEFAULT_WIDTH));
-                true
-            },
-            &atom!(height) => {
-                let height = mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars())
-                });
-                self.height.set(height.unwrap_or(DEFAULT_HEIGHT));
-                true
-            },
-            _ => false,
+        match attr.local_name() {
+            &atom!("width") | &atom!("height") => self.recreate_contexts(),
+            _ => (),
         };
-        if recreate {
-            self.recreate_contexts();
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("width") => AttrValue::from_u32(value, DEFAULT_WIDTH),
+            &atom!("height") => AttrValue::from_u32(value, DEFAULT_HEIGHT),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 }

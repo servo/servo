@@ -6,12 +6,13 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::Root;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -25,6 +26,11 @@ impl WebGLContextEventMethods for WebGLContextEvent {
     fn StatusMessage(&self) -> DOMString {
         self.status_message.clone()
     }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
+    }
 }
 
 impl WebGLContextEvent {
@@ -36,7 +42,7 @@ impl WebGLContextEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                status_message: DOMString) -> Root<WebGLContextEvent> {
@@ -46,8 +52,8 @@ impl WebGLContextEvent {
                         WebGLContextEventBinding::Wrap);
 
         {
-            let parent = EventCast::from_ref(event.r());
-            parent.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            let parent = event.upcast::<Event>();
+            parent.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
 
         event
@@ -58,7 +64,7 @@ impl WebGLContextEvent {
                        init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_owned(),
+            None => DOMString::new(),
         };
 
         let bubbles = if init.parent.bubbles {
@@ -73,7 +79,7 @@ impl WebGLContextEvent {
             EventCancelable::NotCancelable
         };
 
-        Ok(WebGLContextEvent::new(global, type_,
+        Ok(WebGLContextEvent::new(global, Atom::from(&*type_),
                                   bubbles,
                                   cancelable,
                                   status_message))

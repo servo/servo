@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel=match href=stacking_context_ref.html>
+<style>
+iframe {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    top: 100px;
+    left: 100px;
+    border: solid green 50px;
+    transform: translateX(0px); /* form a stacking context */
+}
+</style>
+<iframe src="data:text/html,%3Cspan%3EJust%20a%20simple%20little%20iframe.%3C%2Fspan%3E">

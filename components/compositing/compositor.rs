@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use CompositorMsg as ConstellationMsg;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy};
@@ -17,7 +18,7 @@ use gfx_traits::color;
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
@@ -26,23 +27,23 @@ use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
+use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
-use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{AnimationState, Image, PixelFormat};
-use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, MouseButton};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
+use script_traits::CompositorEvent::{MouseMoveEvent, TouchEvent};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
+use script_traits::{TouchEventType, TouchId};
 use scrolling::ScrollingTimerProxy;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::mem as std_mem;
 use std::rc::Rc;
-use std::slice::bytes::copy_memory;
 use std::sync::mpsc::Sender;
 use style_traits::viewport::ViewportConstraints;
 use surface_map::SurfaceMap;
@@ -53,11 +54,32 @@ use util::opts;
 use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
+#[derive(Debug, PartialEq)]
+enum UnableToComposite {
+    NoContext,
+    WindowUnprepared,
+    NotReadyToPaintImage(NotReadyToPaint),
+}
+
+#[derive(Debug, PartialEq)]
+enum NotReadyToPaint {
+    LayerHasOutstandingPaintMessages,
+    MissingRoot,
+    PendingSubpages(usize),
+    AnimationsRunning,
+    AnimationCallbacksRunning,
+    JustNotifiedConstellation,
+    WaitingOnConstellation,
+}
+
 const BUFFER_MAP_SIZE: usize = 10000000;
 
 // Default viewport constraints
 const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
+
+/// Minimum number of ScreenPx to begin touch scrolling.
+const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -145,7 +167,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     frame_tree_id: FrameTreeId,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan,
+    constellation_chan: Sender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -155,6 +177,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Pending scroll to fragment event, if any
     fragment_point: Option<Point2D<f32>>,
+
+    /// Touch input state machine
+    touch_gesture_state: TouchState,
 
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
@@ -169,14 +194,39 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Pipeline IDs of subpages that the compositor has seen in a layer tree but which have not
     /// yet been painted.
     pending_subpages: HashSet<PipelineId>,
+
+    /// The id of the pipeline that was last sent a mouse move event, if any.
+    last_mouse_move_recipient: Option<PipelineId>,
 }
+
+/// The states of the touch input state machine.
+///
+/// TODO: Currently Add support for "flinging" (scrolling inertia), pinch zooming.
+enum TouchState {
+    /// Not tracking any touch point
+    Nothing,
+    /// A touchstart event was dispatched to the page, but the response wasn't received yet.
+    /// Contains the number of active touch points and the initial touch location.
+    WaitingForScript(u32, TypedPoint2D<DevicePixel, f32>),
+    /// Script is consuming the current touch sequence; don't perform default actions.
+    /// Contains the number of active touch points.
+    DefaultPrevented(u32),
+    /// A single touch point is active and may perform click or pan default actions.
+    /// Contains the initial touch location.
+    Touching(TypedPoint2D<DevicePixel, f32>),
+    /// A single touch point is active and has started panning. Contains the latest touch location.
+    Panning(TypedPoint2D<DevicePixel, f32>),
+    /// A multi-touch gesture is in progress. Contains the number of active touch points.
+    MultiTouch(u32),
+}
+
 
 pub struct ScrollEvent {
     delta: TypedPoint2D<DevicePixel, f32>,
     cursor: TypedPoint2D<DevicePixel, i32>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum CompositionRequest {
     NoCompositingNecessary,
     CompositeOnScrollTimeout(u64),
@@ -191,7 +241,9 @@ enum ShutdownState {
 }
 
 struct HitTestResult {
+    /// The topmost layer containing the requested point
     layer: Rc<Layer<CompositorData>>,
+    /// The point in client coordinates of the innermost window or frame containing `layer`
     point: TypedPoint2D<LayerPixel, f32>,
 }
 
@@ -295,6 +347,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             channel_to_self: state.sender.clone_compositor_proxy(),
             scrolling_timer: ScrollingTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
+            touch_gesture_state: TouchState::Nothing,
             pending_scroll_events: Vec::new(),
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
@@ -314,6 +367,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             ready_to_save_state: ReadyState::Unknown,
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
             pending_subpages: HashSet::new(),
+            last_mouse_move_recipient: None,
         }
     }
 
@@ -332,8 +386,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
-        let ConstellationChan(ref constellation_channel) = self.constellation_chan;
-        constellation_channel.send(ConstellationMsg::Exit).unwrap();
+        self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
 
         self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
 
@@ -502,6 +555,22 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
+            (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
+                match self.touch_gesture_state {
+                    TouchState::WaitingForScript(n, p) => {
+                        self.touch_gesture_state = match result {
+                            EventResult::DefaultPrevented => TouchState::DefaultPrevented(n),
+                            EventResult::DefaultAllowed => if n > 1 {
+                                TouchState::MultiTouch(n)
+                            } else {
+                                TouchState::Touching(p)
+                            }
+                        };
+                    }
+                    _ => {}
+                }
+            }
+
             (Msg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
                 self.window.set_cursor(cursor)
             }
@@ -525,8 +594,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 assert!(self.ready_to_save_state == ReadyState::WaitingForConstellationReply);
                 if is_ready {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
+                    if opts::get().is_running_problem_test {
+                        println!("ready to save image!");
+                    }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
+                    if opts::get().is_running_problem_test {
+                        println!("resetting ready_to_save_state!");
+                    }
                 }
                 self.composite_if_necessary(CompositingReason::Headless);
             }
@@ -540,20 +615,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
-                let mut reports = vec![];
                 let name = "compositor-task";
                 // These are both `ExplicitUnknownLocationSize` because the memory might be in the
                 // GPU or on the heap.
-                reports.push(mem::Report {
+                let reports = vec![mem::Report {
                     path: path![name, "surface-map"],
                     kind: ReportKind::ExplicitUnknownLocationSize,
                     size: self.surface_map.mem(),
-                });
-                reports.push(mem::Report {
+                }, mem::Report {
                     path: path![name, "layer-tree"],
                     kind: ReportKind::ExplicitUnknownLocationSize,
                     size: self.scene.get_memory_usage(),
-                });
+                }];
                 reports_chan.send(reports);
             }
 
@@ -598,16 +671,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn pipeline_details<'a>(&'a mut self,
+    pub fn pipeline_details (&mut self,
                                               pipeline_id: PipelineId)
-                                              -> &'a mut PipelineDetails {
+                                              -> &mut PipelineDetails {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
         }
         return self.pipeline_details.get_mut(&pipeline_id).unwrap();
     }
 
-    pub fn pipeline<'a>(&'a self, pipeline_id: PipelineId) -> Option<&'a CompositionPipeline> {
+    pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
         match self.pipeline_details.get(&pipeline_id) {
             Some(ref details) => details.pipeline.as_ref(),
             None => panic!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id),
@@ -629,8 +702,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn set_frame_tree(&mut self,
                       frame_tree: &SendableFrameTree,
-                      response_chan: Sender<()>,
-                      new_constellation_chan: ConstellationChan) {
+                      response_chan: IpcSender<()>,
+                      new_constellation_chan: Sender<ConstellationMsg>) {
         response_chan.send(()).unwrap();
 
         // There are now no more pending iframes.
@@ -670,7 +743,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scroll_policy: ScrollPolicy::Scrollable,
             transform: Matrix4::identity(),
             perspective: Matrix4::identity(),
-            subpage_layer_info: None,
+            subpage_pipeline_id: None,
             establishes_3d_context: true,
             scrolls_overflow_area: false,
         };
@@ -737,8 +810,20 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties)
+    fn update_layer_if_exists(&mut self,
+                              pipeline_id: PipelineId,
+                              properties: LayerProperties)
                               -> bool {
+        if let Some(subpage_id) = properties.subpage_pipeline_id {
+            match self.find_layer_with_pipeline_and_layer_id(subpage_id, LayerId::null()) {
+                Some(layer) => {
+                    *layer.bounds.borrow_mut() = Rect::from_untyped(
+                        &Rect::new(Point2D::zero(), properties.rect.size));
+                }
+                None => warn!("Tried to update non-existent subpage root layer: {:?}", subpage_id),
+            }
+        }
+
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, properties.id) {
             Some(existing_layer) => {
                 existing_layer.update_layer(properties);
@@ -819,18 +904,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             // If this layer contains a subpage, then create the root layer for that subpage now.
-            if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
+            if let Some(ref subpage_pipeline_id) = layer_properties.subpage_pipeline_id {
                 let subpage_layer_properties = LayerProperties {
                     id: LayerId::null(),
                     parent_id: None,
-                    rect: Rect::new(Point2D::new(subpage_layer_info.origin.x.to_f32_px(),
-                                                 subpage_layer_info.origin.y.to_f32_px()),
-                                    layer_properties.rect.size),
+                    rect: Rect::new(Point2D::zero(), layer_properties.rect.size),
                     background_color: layer_properties.background_color,
                     scroll_policy: ScrollPolicy::Scrollable,
                     transform: Matrix4::identity(),
                     perspective: Matrix4::identity(),
-                    subpage_layer_info: layer_properties.subpage_layer_info,
+                    subpage_pipeline_id: layer_properties.subpage_pipeline_id,
                     establishes_3d_context: true,
                     scrolls_overflow_area: true,
                 };
@@ -840,13 +923,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 } else {
                     WantsScrollEventsFlag::DoesntWantScrollEvents
                 };
-                let subpage_layer = CompositorData::new_layer(subpage_layer_info.pipeline_id,
+                let subpage_layer = CompositorData::new_layer(*subpage_pipeline_id,
                                                               subpage_layer_properties,
                                                               wants_scroll_events,
                                                               new_layer.tile_size);
                 *subpage_layer.masks_to_bounds.borrow_mut() = true;
                 new_layer.add_child(subpage_layer);
-                self.pending_subpages.insert(subpage_layer_info.pipeline_id);
+                self.pending_subpages.insert(*subpage_pipeline_id);
             }
 
             parent_layer.add_child(new_layer.clone());
@@ -860,8 +943,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let initial_viewport = self.window_size.as_f32() / dppx;
         let visible_viewport = initial_viewport / self.viewport_zoom;
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
+        self.constellation_chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
@@ -871,14 +953,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// Sends the size of the given subpage up to the constellation. This will often trigger a
     /// reflow of that subpage.
     fn update_subpage_size_if_necessary(&self, layer_properties: &LayerProperties) {
-        let subpage_layer_info = match layer_properties.subpage_layer_info {
-            Some(ref subpage_layer_info) => *subpage_layer_info,
+        let subpage_pipeline_id = match layer_properties.subpage_pipeline_id {
+            Some(ref subpage_pipeline_id) => subpage_pipeline_id,
             None => return,
         };
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::FrameSize(subpage_layer_info.pipeline_id,
-                                              layer_properties.rect.size)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::FrameSize(
+            *subpage_pipeline_id,
+            layer_properties.rect.size)).unwrap();
     }
 
     pub fn move_layer(&self,
@@ -1013,6 +1095,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_mouse_window_move_event_class(cursor);
             }
 
+            WindowEvent::Touch(event_type, identifier, location) => {
+                match event_type {
+                    TouchEventType::Down => self.on_touch_down(identifier, location),
+                    TouchEventType::Move => self.on_touch_move(identifier, location),
+                    TouchEventType::Up => self.on_touch_up(identifier, location),
+                    TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
+                }
+            }
+
             WindowEvent::Scroll(delta, cursor) => {
                 self.on_scroll_window_event(delta, cursor);
             }
@@ -1076,11 +1167,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => ConstellationMsg::InitLoadUrl(url)
         };
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(msg).unwrap()
+        self.constellation_chan.send(msg).unwrap()
     }
 
-    fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
+    fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
+        if opts::get().convert_mouse_to_touch {
+            match mouse_window_event {
+                MouseWindowEvent::Click(_, _) => {}
+                MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(TouchId(0), p),
+                MouseWindowEvent::MouseUp(_, p) => self.on_touch_up(TouchId(0), p),
+            }
+            return
+        }
+
         let point = match mouse_window_event {
             MouseWindowEvent::Click(_, p) => p,
             MouseWindowEvent::MouseDown(_, p) => p,
@@ -1092,9 +1191,156 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
+    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<DevicePixel, f32>) {
+        if opts::get().convert_mouse_to_touch {
+            self.on_touch_move(TouchId(0), cursor);
+            return
+        }
+
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
-            Some(result) => result.layer.send_mouse_move_event(self, result.point),
+            Some(result) => {
+                // In the case that the mouse was previously over a different layer,
+                // that layer must update its state.
+                if let Some(last_pipeline_id) = self.last_mouse_move_recipient {
+                    if last_pipeline_id != result.layer.pipeline_id() {
+                        if let Some(pipeline) = self.pipeline(last_pipeline_id) {
+                            let _ = pipeline.script_chan
+                                            .send(ConstellationControlMsg::SendEvent(
+                                                last_pipeline_id.clone(),
+                                                MouseMoveEvent(None)));
+                        }
+                    }
+                }
+
+                self.last_mouse_move_recipient = Some(result.layer.pipeline_id());
+                result.layer.send_mouse_move_event(self, result.point);
+            }
+            None => {}
+        }
+    }
+
+    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+        self.touch_gesture_state = match self.touch_gesture_state {
+            TouchState::Nothing => {
+                TouchState::WaitingForScript(1, point)
+            }
+            TouchState::Touching(_) |
+            TouchState::Panning(_) => {
+                // Was a single-touch sequence; now a multi-touch sequence:
+                TouchState::MultiTouch(2)
+            }
+            TouchState::WaitingForScript(n, p) => {
+                TouchState::WaitingForScript(n + 1, p)
+            }
+            TouchState::DefaultPrevented(n) => {
+                TouchState::DefaultPrevented(n + 1)
+            }
+            TouchState::MultiTouch(n) => {
+                TouchState::MultiTouch(n + 1)
+            }
+        };
+        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
+            result.layer.send_event(self, TouchEvent(TouchEventType::Down, identifier,
+                                                     result.point.to_untyped()));
+        }
+    }
+
+    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+        match self.touch_gesture_state {
+            TouchState::Nothing => warn!("Got unexpected touch move event"),
+
+            TouchState::WaitingForScript(..) => {
+                // TODO: Queue events while waiting for script?
+            }
+            TouchState::Touching(p0) => {
+                let delta = point - p0;
+                let px: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
+                let px = px.to_untyped();
+
+                if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                   px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                {
+                    self.touch_gesture_state = TouchState::Panning(point);
+                    self.on_scroll_window_event(delta, point.cast().unwrap());
+                }
+            }
+            TouchState::Panning(p0) => {
+                let delta = point - p0;
+                self.on_scroll_window_event(delta, point.cast().unwrap());
+                self.touch_gesture_state = TouchState::Panning(point);
+            }
+            TouchState::DefaultPrevented(_) => {
+                // Send the event to script.
+                if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
+                    result.layer.send_event(self, TouchEvent(TouchEventType::Move, identifier,
+                                                             result.point.to_untyped()));
+                }
+            }
+            TouchState::MultiTouch(_) => {
+                // TODO: Pinch zooming.
+            }
+        }
+    }
+
+    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+        // Send the event to script.
+        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
+            result.layer.send_event(self, TouchEvent(TouchEventType::Up, identifier,
+                                                     result.point.to_untyped()));
+        }
+
+        self.touch_gesture_state = match self.touch_gesture_state {
+            TouchState::Touching(_) => {
+                // TODO: If the duration exceeds some threshold, send a contextmenu event instead.
+                // TODO: Don't send a click if preventDefault is called on the touchend event.
+                self.simulate_mouse_click(point);
+                TouchState::Nothing
+            }
+            TouchState::Nothing |
+            TouchState::Panning(_) |
+            TouchState::WaitingForScript(1, _) |
+            TouchState::DefaultPrevented(1) |
+            TouchState::MultiTouch(1) => {
+                TouchState::Nothing
+            }
+            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
+            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
+            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
+        };
+    }
+
+    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+        // Send the event to script.
+        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
+            result.layer.send_event(self, TouchEvent(TouchEventType::Cancel, identifier,
+                                                     result.point.to_untyped()));
+        }
+
+        self.touch_gesture_state = match self.touch_gesture_state {
+            TouchState::Nothing |
+            TouchState::Touching(_) |
+            TouchState::Panning(_) |
+            TouchState::WaitingForScript(1, _) |
+            TouchState::DefaultPrevented(1) |
+            TouchState::MultiTouch(1) => {
+                TouchState::Nothing
+            }
+            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
+            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
+            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
+        };
+    }
+
+    /// http://w3c.github.io/touch-events/#mouse-events
+    fn simulate_mouse_click(&self, p: TypedPoint2D<DevicePixel, f32>) {
+        match self.find_topmost_layer_at_point(p / self.scene.scale) {
+            Some(HitTestResult { layer, point }) => {
+                let button = MouseButton::Left;
+                layer.send_mouse_move_event(self, point);
+                layer.send_mouse_event(self, MouseWindowEvent::MouseDown(button, p), point);
+                layer.send_mouse_event(self, MouseWindowEvent::MouseUp(button, p), point);
+                layer.send_mouse_event(self, MouseWindowEvent::Click(button, p), point);
+            }
             None => {},
         }
     }
@@ -1198,7 +1444,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn tick_animations_for_pipeline(&self, pipeline_id: PipelineId) {
-        self.constellation_chan.0.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
     }
 
     fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
@@ -1290,13 +1536,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward,
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
     }
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
@@ -1452,7 +1696,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// Query the constellation to see if the current compositor
     /// output matches the current frame tree output, and if the
     /// associated script tasks are idle.
-    fn is_ready_to_paint_image_output(&mut self) -> bool {
+    fn is_ready_to_paint_image_output(&mut self) -> Result<(), NotReadyToPaint> {
         match self.ready_to_save_state {
             ReadyState::Unknown => {
                 // Unsure if the output image is stable.
@@ -1463,17 +1707,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.scene.root {
                     Some(ref root_layer) => {
                         if self.does_layer_have_outstanding_paint_messages(root_layer) {
-                            return false;
+                            return Err(NotReadyToPaint::LayerHasOutstandingPaintMessages);
                         }
                     }
                     None => {
-                        return false;
+                        return Err(NotReadyToPaint::MissingRoot);
                     }
                 }
 
                 // Check if there are any pending frames. If so, the image is not stable yet.
                 if self.pending_subpages.len() > 0 {
-                    return false
+                    return Err(NotReadyToPaint::PendingSubpages(self.pending_subpages.len()));
                 }
 
                 // Collect the currently painted epoch of each pipeline that is
@@ -1484,8 +1728,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 for (id, details) in &self.pipeline_details {
                     // If animations are currently running, then don't bother checking
                     // with the constellation if the output image is stable.
-                    if details.animations_running || details.animation_callbacks_running {
-                        return false;
+                    if details.animations_running {
+                        return Err(NotReadyToPaint::AnimationsRunning);
+                    }
+                    if details.animation_callbacks_running {
+                        return Err(NotReadyToPaint::AnimationCallbacksRunning);
                     }
 
                     pipeline_epochs.insert(*id, details.current_epoch);
@@ -1493,15 +1740,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
+                self.constellation_chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
-                false
+                Err(NotReadyToPaint::JustNotifiedConstellation)
             }
             ReadyState::WaitingForConstellationReply => {
                 // If waiting on a reply from the constellation to the last
                 // query if the image is stable, then assume not ready yet.
-                false
+                Err(NotReadyToPaint::WaitingOnConstellation)
             }
             ReadyState::ReadyToSaveImage => {
                 // Constellation has replied at some point in the past
@@ -1509,8 +1755,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
+                println!("was ready to save, resetting ready_to_save_state");
                 self.ready_to_save_state = ReadyState::Unknown;
-                true
+                Ok(())
             }
         }
     }
@@ -1520,8 +1767,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let composited = self.composite_specific_target(target);
         if composited.is_ok() &&
             (opts::get().output_file.is_some() || opts::get().exit_after_load) {
-            debug!("Shutting down the Constellation after generating an output file or exit flag specified");
+            println!("Shutting down the Constellation after generating an output file or exit flag specified");
             self.start_shutting_down();
+        } else if composited.is_err() &&
+            opts::get().is_running_problem_test &&
+            composited.as_ref().err().unwrap() != &UnableToComposite::NotReadyToPaintImage(
+                NotReadyToPaint::WaitingOnConstellation) {
+            println!("not ready to composite: {:?}", composited.err().unwrap());
         }
     }
 
@@ -1530,26 +1782,28 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// for some reason. If CompositeTarget is Window or Png no image data is returned;
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, ()> {
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
 
         if !self.context.is_some() {
-            return Err(())
+            return Err(UnableToComposite::NoContext)
         }
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
-            return Err(())
+            return Err(UnableToComposite::WindowUnprepared)
         }
 
         match target {
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                if !self.is_ready_to_paint_image_output() {
-                    return Err(())
+                if let Err(result) = self.is_ready_to_paint_image_output() {
+                    return Err(UnableToComposite::NotReadyToPaintImage(result))
                 }
             }
             CompositeTarget::Window => {
-                if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
-                    return Err(())
+                if opts::get().exit_after_load {
+                    if let Err(result) = self.is_ready_to_paint_image_output() {
+                        return Err(UnableToComposite::NotReadyToPaintImage(result))
+                    }
                 }
             }
         }
@@ -1658,15 +1912,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let dst_start = y * stride;
             let src_start = (height - y - 1) * stride;
             let src_slice = &orig_pixels[src_start .. src_start + stride];
-            copy_memory(&src_slice[..stride],
-                        &mut pixels[dst_start .. dst_start + stride]);
+            (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
         RgbImage::from_raw(width as u32, height as u32, pixels).unwrap()
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
         if self.composition_request == CompositionRequest::NoCompositingNecessary {
+            if opts::get().is_running_problem_test {
+                println!("updating composition_request ({:?})", reason);
+            }
             self.composition_request = CompositionRequest::CompositeNow(reason)
+        } else if opts::get().is_running_problem_test {
+            println!("composition_request is already {:?}", self.composition_request);
         }
     }
 
@@ -1679,45 +1937,53 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn find_topmost_layer_at_point_for_layer(&self,
                                              layer: Rc<Layer<CompositorData>>,
-                                             point: TypedPoint2D<LayerPixel, f32>,
-                                             clip_rect: &TypedRect<LayerPixel, f32>)
+                                             point_in_parent_layer: TypedPoint2D<LayerPixel, f32>,
+                                             clip_rect_in_parent_layer: &TypedRect<LayerPixel, f32>)
                                              -> Option<HitTestResult> {
         let layer_bounds = *layer.bounds.borrow();
         let masks_to_bounds = *layer.masks_to_bounds.borrow();
         if layer_bounds.is_empty() && masks_to_bounds {
             return None;
         }
+        let scroll_offset = layer.extra_data.borrow().scroll_offset;
 
-        let clipped_layer_bounds = match clip_rect.intersection(&layer_bounds) {
+        // Total offset from parent coordinates to this layer's coordinates.
+        // FIXME: This offset is incorrect for fixed-position layers.
+        let layer_offset = scroll_offset + layer_bounds.origin;
+
+        let clipped_layer_bounds = match clip_rect_in_parent_layer.intersection(&layer_bounds) {
             Some(rect) => rect,
             None => return None,
         };
 
         let clip_rect_for_children = if masks_to_bounds {
-            Rect::new(Point2D::zero(), clipped_layer_bounds.size)
+            &clipped_layer_bounds
         } else {
-            clipped_layer_bounds.translate(&clip_rect.origin)
-        };
+            clip_rect_in_parent_layer
+        }.translate(&-layer_offset);
 
-        let child_point = point - layer_bounds.origin;
+        let child_point = point_in_parent_layer - layer_offset;
         for child in layer.children().iter().rev() {
             // Translate the clip rect into the child's coordinate system.
-            let clip_rect_for_child =
-                clip_rect_for_children.translate(&-*child.content_offset.borrow());
             let result = self.find_topmost_layer_at_point_for_layer(child.clone(),
                                                                     child_point,
-                                                                    &clip_rect_for_child);
-            if result.is_some() {
-                return result;
+                                                                    &clip_rect_for_children);
+            if let Some(mut result) = result {
+                // Return the point in layer coordinates of the topmost frame containing the point.
+                let pipeline_id = layer.extra_data.borrow().pipeline_id;
+                let child_pipeline_id = result.layer.extra_data.borrow().pipeline_id;
+                if pipeline_id == child_pipeline_id {
+                    result.point = result.point + layer_offset;
+                }
+                return Some(result);
             }
         }
 
-        let point = point - *layer.content_offset.borrow();
-        if !clipped_layer_bounds.contains(&point) {
+        if !clipped_layer_bounds.contains(&point_in_parent_layer) {
             return None;
         }
 
-        return Some(HitTestResult { layer: layer, point: point });
+        return Some(HitTestResult { layer: layer, point: point_in_parent_layer });
     }
 
     fn find_topmost_layer_at_point(&self,
@@ -1748,13 +2014,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn cache_unused_buffers(&mut self, buffers: Vec<Box<LayerBuffer>>) {
-        if !buffers.is_empty() {
-            let surfaces = buffers.into_iter().map(|buffer| {
-                buffer.native_surface
-            }).collect();
-            self.surface_map.insert_surfaces(&self.native_display, surfaces);
-        }
+    pub fn cache_unused_buffers<B>(&mut self, buffers: B)
+        where B: IntoIterator<Item=Box<LayerBuffer>>
+    {
+        let surfaces = buffers.into_iter().map(|buffer| buffer.native_surface);
+        self.surface_map.insert_surfaces(&self.native_display, surfaces);
     }
 
     #[allow(dead_code)]
@@ -1844,14 +2108,9 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
     fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other tasks in the system.
-        loop {
-            match self.port.try_recv_compositor_msg() {
-                None => break,
-                Some(msg) => {
-                    if !self.handle_browser_message(msg) {
-                        break
-                    }
-                }
+        while let Some(msg) = self.port.try_recv_compositor_msg() {
+            if !self.handle_browser_message(msg) {
+                break
             }
         }
 
@@ -1913,13 +2172,12 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             None => return,
             Some(ref root_pipeline) => root_pipeline.id,
         };
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
     }
 }
 
 /// Why we performed a composite. This is used for debugging.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum CompositingReason {
     /// We hit the scroll timeout and are therefore drawing unrendered content.
     HitScrollTimeout,

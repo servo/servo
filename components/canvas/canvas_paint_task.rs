@@ -17,6 +17,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
+use premultiplytable::PREMULTIPLY_TABLE;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::{Sender, channel};
@@ -48,7 +49,7 @@ impl<'a> CanvasPaintTask<'a> {
         //copy the data to the destination vector
         for _ in 0..src_read_rect.size.height {
             let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
-            image_data.push_all(row);
+            image_data.extend_from_slice(row);
             src += stride as usize;
         }
 
@@ -135,6 +136,9 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::Fill => painter.fill(),
                             Canvas2dMsg::Stroke => painter.stroke(),
                             Canvas2dMsg::Clip => painter.clip(),
+                            Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => {
+                                painter.is_point_in_path(x, y, fill_rule, chan)
+                            },
                             Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect,
                                                    smoothing_enabled) => {
                                 painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
@@ -315,6 +319,14 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn clip(&self) {
         self.drawtarget.push_clip(&self.path_builder.finish());
+    }
+
+    fn is_point_in_path(&mut self, x: f64, y: f64,
+                        _fill_rule: FillRule, chan: IpcSender<bool>) {
+        let path = self.path_builder.finish();
+        let result = path.contains_point(x, y, &self.state.transform);
+        self.path_builder = path.copy_to_builder();
+        chan.send(result).unwrap();
     }
 
     fn draw_image(&self, image_data: Vec<u8>, image_size: Size2D<f64>,
@@ -597,11 +609,10 @@ impl<'a> CanvasPaintTask<'a> {
             let mut src_offset = src_line;
             for _ in 0 .. dest_rect.size.width {
                 // Premultiply alpha and swap RGBA -> BGRA.
-                // TODO: may want a precomputed premultiply table to make this fast. (#6969)
-                let alpha = imagedata[src_offset + 3] as f32 / 255.;
-                dest.push((imagedata[src_offset + 2] as f32 * alpha) as u8);
-                dest.push((imagedata[src_offset + 1] as f32 * alpha) as u8);
-                dest.push((imagedata[src_offset + 0] as f32 * alpha) as u8);
+                let alpha = imagedata[src_offset + 3] as usize;
+                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 2] as usize]);
+                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 1] as usize]);
+                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 0] as usize]);
                 dest.push(imagedata[src_offset + 3]);
                 src_offset += 4;
             }
@@ -694,9 +705,9 @@ fn crop_image(image_data: Vec<u8>,
 
     let mut new_image_data = Vec::new();
     let mut src = (crop_rect.origin.y * stride + crop_rect.origin.x * 4) as usize;
-    for _ in (0..crop_rect.size.height) {
+    for _ in 0..crop_rect.size.height {
         let row = &image_data[src .. src + (4 * crop_rect.size.width) as usize];
-        new_image_data.push_all(row);
+        new_image_data.extend_from_slice(row);
         src += stride as usize;
     }
     new_image_data

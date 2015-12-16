@@ -8,44 +8,32 @@
 #![feature(box_syntax)]
 #![feature(cell_extras)]
 #![feature(const_fn)]
-#![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(decode_utf16)]
-#![feature(drain)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(iter_arith)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
+#![feature(on_unimplemented)]
+#![feature(peekable_is_empty)]
 #![feature(plugin)]
-#![feature(ref_slice)]
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
 #![feature(unicode)]
-#![feature(vec_push_all)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
 #![doc = "The script crate contains all matters DOM."]
 
-#![plugin(string_cache_plugin)]
 #![plugin(plugins)]
 
+extern crate angle;
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate style;
-#[macro_use]
-extern crate util;
-extern crate angle;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate caseless;
@@ -57,27 +45,39 @@ extern crate euclid;
 extern crate fnv;
 extern crate html5ever;
 extern crate hyper;
+extern crate image;
 extern crate ipc_channel;
 extern crate js;
 extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate offscreen_gl_context;
+#[macro_use]
+extern crate profile_traits;
 extern crate rand;
+extern crate ref_slice;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
 extern crate script_traits;
-extern crate selectors;
+#[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
+#[macro_use(atom, ns)] extern crate string_cache;
+#[macro_use]
+extern crate style;
+extern crate style_traits;
 extern crate tendril;
 extern crate time;
 extern crate unicase;
 extern crate url;
+#[macro_use]
+extern crate util;
 extern crate uuid;
 extern crate websocket;
+extern crate xml5ever;
 
 pub mod clipboard_provider;
 pub mod cors;
@@ -85,19 +85,22 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
-mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;
 pub mod page;
 pub mod parse;
+pub mod reporter;
 #[allow(unsafe_code)]
 pub mod script_task;
 pub mod textinput;
 mod timers;
+mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
+use js::jsapi::SetDOMProxyInformation;
+use std::ptr;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -144,6 +147,7 @@ fn perform_platform_specific_initialization() {}
 pub fn init() {
     unsafe {
         assert_eq!(js::jsapi::JS_Init(), true);
+        SetDOMProxyInformation(ptr::null(), 0, Some(script_task::shadow_check_callback));
     }
 
     // Create the global vtables used by the (generated) DOM

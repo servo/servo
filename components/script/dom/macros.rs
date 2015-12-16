@@ -4,172 +4,182 @@
 
 #[macro_export]
 macro_rules! make_getter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            element.get_string_attribute(&Atom::from_slice($htmlname))
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.get_string_attribute(&atom!($htmlname))
         }
     );
-    ($attr:ident) => {
-        make_getter!($attr, to_lower!(stringify!($attr)));
-    }
 );
 
 #[macro_export]
 macro_rules! make_bool_getter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> bool {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.has_attribute(&Atom::from_slice($htmlname))
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.has_attribute(&atom!($htmlname))
         }
     );
-    ($attr:ident) => {
-        make_bool_getter!($attr, to_lower!(stringify!($attr)));
-    }
+);
+
+#[macro_export]
+macro_rules! make_limited_int_setter(
+    ($attr:ident, $htmlname:tt, $default:expr) => (
+        fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+
+            let value = if value < 0 {
+                return Err($crate::dom::bindings::error::Error::IndexSize);
+            } else {
+                value
+            };
+
+            let element = self.upcast::<Element>();
+            element.set_int_attribute(&atom!($htmlname), value);
+            Ok(())
+        }
+    );
+);
+
+#[macro_export]
+macro_rules! make_int_getter(
+    ($attr:ident, $htmlname:tt, $default:expr) => (
+        fn $attr(&self) -> i32 {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.get_int_attribute(&atom!($htmlname), $default)
+        }
+    );
+
+    ($attr:ident, $htmlname:tt) => {
+        make_int_getter!($attr, $htmlname, 0);
+    };
 );
 
 #[macro_export]
 macro_rules! make_uint_getter(
-    ($attr:ident, $htmlname:expr, $default:expr) => (
+    ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self) -> u32 {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.get_uint_attribute(&atom!($htmlname), $default)
         }
     );
-    ($attr:ident, $htmlname:expr) => {
+    ($attr:ident, $htmlname:tt) => {
         make_uint_getter!($attr, $htmlname, 0);
     };
-    ($attr:ident) => {
-        make_uint_getter!($attr, to_lower!(stringify!($attr)));
-    }
 );
 
 #[macro_export]
 macro_rules! make_url_getter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.get_url_attribute(&Atom::from_slice($htmlname))
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.get_url_attribute(&atom!($htmlname))
         }
     );
-    ($attr:ident) => {
-        // FIXME(pcwalton): Do this at compile time, not runtime.
-        make_url_getter!($attr, to_lower!(stringify!($attr)));
-    }
 );
 
 #[macro_export]
 macro_rules! make_url_or_base_getter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            let url = element.get_url_attribute(&Atom::from_slice($htmlname));
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            let url = element.get_url_attribute(&atom!($htmlname));
             if url.is_empty() {
                 let window = window_from_node(self);
-                window.r().get_url().serialize()
+                DOMString::from(window.get_url().serialize())
             } else {
                 url
             }
         }
     );
-    ($attr:ident) => {
-        make_url_or_base_getter!($attr, to_lower!(stringify!($attr)));
-    }
 );
 
 #[macro_export]
 macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
+    ( $attr:ident, $htmlname:tt, $default:expr, $(($choices: pat))|+) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
             use std::ascii::AsciiExt;
-            use std::borrow::ToOwned;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            let mut val = element.get_string_attribute(&Atom::from_slice($htmlname));
+            let element = self.upcast::<Element>();
+            let mut val = element.get_string_attribute(&atom!($htmlname));
             val.make_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
                 $($choices)|+ => val,
-                _ => $default.to_owned()
+                _ => DOMString::from($default)
             }
         }
     );
-    ($attr:ident, $default:expr, $(($choices: pat))|+) => {
-        make_enumerated_getter!($attr, &to_lower!(stringify!($attr)), $default, $(($choices))|+);
-    }
 );
 
 // concat_idents! doesn't work for function name positions, so
 // we have to specify both the content name and the HTML name here
 #[macro_export]
 macro_rules! make_setter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_string_attribute(&Atom::from_slice($htmlname), value)
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.set_string_attribute(&atom!($htmlname), value)
         }
     );
 );
 
 #[macro_export]
 macro_rules! make_bool_setter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: bool) {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_bool_attribute(&Atom::from_slice($htmlname), value)
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.set_bool_attribute(&atom!($htmlname), value)
         }
     );
 );
 
 #[macro_export]
 macro_rules! make_uint_setter(
-    ($attr:ident, $htmlname:expr, $default:expr) => (
+    ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
             use dom::values::UNSIGNED_LONG_MAX;
-            use string_cache::Atom;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
                 value
             };
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_uint_attribute(&Atom::from_slice($htmlname), value)
+            let element = self.upcast::<Element>();
+            element.set_uint_attribute(&atom!($htmlname), value)
         }
     );
-    ($attr:ident, $htmlname:expr) => {
+    ($attr:ident, $htmlname:tt) => {
         make_uint_setter!($attr, $htmlname, 0);
     };
 );
 
 #[macro_export]
 macro_rules! make_limited_uint_setter(
-    ($attr:ident, $htmlname:expr, $default:expr) => (
+    ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
             use dom::values::UNSIGNED_LONG_MAX;
-            use string_cache::Atom;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
             } else if value > UNSIGNED_LONG_MAX {
@@ -177,29 +187,51 @@ macro_rules! make_limited_uint_setter(
             } else {
                 value
             };
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.set_uint_attribute(&Atom::from_slice($htmlname), value);
+            let element = self.upcast::<Element>();
+            element.set_uint_attribute(&atom!($htmlname), value);
             Ok(())
         }
     );
-    ($attr:ident, $htmlname:expr) => {
+    ($attr:ident, $htmlname:tt) => {
         make_limited_uint_setter!($attr, $htmlname, 1);
-    };
-    ($attr:ident) => {
-        make_limited_uint_setter!($attr, to_lower!(stringify!($attr)));
     };
 );
 
 #[macro_export]
 macro_rules! make_atomic_setter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_atomic_attribute(&Atom::from_slice($htmlname), value)
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.set_atomic_attribute(&atom!($htmlname), value)
+        }
+    );
+);
+
+#[macro_export]
+macro_rules! make_legacy_color_setter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: DOMString) {
+            use dom::attr::AttrValue;
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            let value = AttrValue::from_legacy_color(value);
+            element.set_attribute(&atom!($htmlname), value)
+        }
+    );
+);
+
+#[macro_export]
+macro_rules! make_dimension_setter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: DOMString) {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            let value = AttrValue::from_dimension(value);
+            element.set_attribute(&atom!($htmlname), value)
         }
     );
 );
@@ -237,28 +269,34 @@ macro_rules! no_jsmanaged_fields(
 
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
-    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
+    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
-            let eventtarget = EventTargetCast::from_ref(self);
+            use dom::bindings::inheritance::Castable;
+            use dom::eventtarget::EventTarget;
+            let eventtarget = self.upcast::<EventTarget>();
             eventtarget.get_event_handler_common(stringify!($event_type))
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
-            let eventtarget = EventTargetCast::from_ref(self);
-            eventtarget.set_event_handler_common(stringify!($event_type), listener)
+            use dom::bindings::inheritance::Castable;
+            use dom::eventtarget::EventTarget;
+            let eventtarget = self.upcast::<EventTarget>();
+            eventtarget.$setter_fn(stringify!($event_type), listener)
         }
     )
 );
 
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter);
+        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter,
+                              set_event_handler_common);
     )
 );
 
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter);
+        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter,
+                              set_error_event_handler);
     )
 );
 
@@ -273,6 +311,7 @@ macro_rules! global_event_handlers(
     );
     (NoOnload) => (
         event_handler!(click, GetOnclick, SetOnclick);
+        error_event_handler!(error, GetOnerror, SetOnerror);
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);

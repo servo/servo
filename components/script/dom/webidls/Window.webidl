@@ -11,9 +11,9 @@
   //[Replaceable] readonly attribute WindowProxy self;
   readonly attribute Window window;
   [BinaryName="Self_"] readonly attribute Window self;
-  /*[Unforgeable]*/ readonly attribute Document document;
+  [Unforgeable] readonly attribute Document document;
   //         attribute DOMString name;
-  /*[PutForwards=href, Unforgeable]*/ readonly attribute Location location;
+  [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
   //readonly attribute History history;
   //[Replaceable] readonly attribute BarProp locationbar;
   //[Replaceable] readonly attribute BarProp menubar;
@@ -161,7 +161,6 @@ partial interface Window {
   void gc();
   void trap();
 };
-Window implements OnErrorEventHandlerForWindow;
 
 // WebDriver extensions
 partial interface Window {

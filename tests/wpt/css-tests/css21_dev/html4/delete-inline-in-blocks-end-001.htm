@@ -8,7 +8,7 @@
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
   <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" title="9.2.1.1 Anonymous block boxes">
   <link rel="match" href="reference/delete-inline-in-blocks-beginning-001-ref.htm">
-  
+
   <meta http-equiv="Content-Script-Type" content="text/javascript">
   <meta content="ahem dom" name="flags">
 
@@ -33,8 +33,8 @@
   <script type="text/javascript">
   function deleteAnInlineAtEnd()
   {
-  document.body.offsetHeight;  
-  
+  document.body.offsetHeight;
+
   document.getElementsByClassName("container")[0].removeChild(document.getElementById("target-node-to-delete"));
 
   document.documentElement.className = "";

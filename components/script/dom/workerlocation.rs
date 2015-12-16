@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 use url::Url;
@@ -36,48 +36,48 @@ impl WorkerLocation {
 }
 
 impl WorkerLocationMethods for WorkerLocation {
-    // https://url.spec.whatwg.org/#dom-urlutils-hash
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-host
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-host
     fn Host(&self) -> USVString {
         UrlHelper::Host(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-hostname
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hostname
     fn Hostname(&self) -> USVString {
         UrlHelper::Hostname(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-href
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
     fn Href(&self) -> USVString {
         UrlHelper::Href(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-pathname
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-pathname
     fn Pathname(&self) -> USVString {
         UrlHelper::Pathname(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-port
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-port
     fn Port(&self) -> USVString {
         UrlHelper::Port(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-protocol
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-protocol
     fn Protocol(&self) -> USVString {
         UrlHelper::Protocol(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-search
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-search
     fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url)
     }
 
-    // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
     fn Stringifier(&self) -> DOMString {
-        self.Href().0
+        DOMString::from(self.Href().0)
     }
 }

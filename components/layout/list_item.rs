@@ -153,7 +153,15 @@ impl Flow for ListItemFlow {
     }
 
     fn compute_overflow(&self) -> Rect<Au> {
-        self.block_flow.compute_overflow()
+        let mut overflow = self.block_flow.compute_overflow();
+        let flow_size = self.block_flow.base.position.size.to_physical(self.block_flow.base.writing_mode);
+        let relative_containing_block_size =
+            &self.block_flow.base.early_absolute_position_info.relative_containing_block_size;
+
+        for fragment in &self.marker_fragments {
+            overflow = overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
+        }
+        overflow
     }
 
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {

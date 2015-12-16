@@ -4,7 +4,6 @@
 
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
-#![feature(core)]
 #![feature(custom_derive)]
 #![feature(nonzero)]
 #![feature(plugin)]
@@ -41,6 +40,12 @@ use std::default::Default;
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use util::mem::HeapSizeOf;
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum FillRule {
+    Nonzero,
+    Evenodd,
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
@@ -93,6 +98,7 @@ pub enum Canvas2dMsg {
     Fill,
     FillRect(Rect<f32>),
     GetImageData(Rect<i32>, Size2D<f64>, IpcSender<Vec<u8>>),
+    IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     PutImageData(Vec<u8>, Point2D<f64>, Size2D<f64>, Rect<f64>),
@@ -127,7 +133,9 @@ pub enum CanvasWebGLMsg {
     BlendFunc(u32, u32),
     BlendFuncSeparate(u32, u32, u32, u32),
     AttachShader(u32, u32),
+    BindAttribLocation(u32, u32, String),
     BufferData(u32, Vec<f32>, u32),
+    BufferSubData(u32, isize, Vec<u8>),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     ClearDepth(f64),
@@ -158,8 +166,12 @@ pub enum CanvasWebGLMsg {
     BindRenderbuffer(u32, u32),
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
+    DrawElements(u32, i32, u32, i64),
     EnableVertexAttribArray(u32),
-    GetShaderParameter(u32, u32, IpcSender<WebGLShaderParameter>),
+    GetBufferParameter(u32, u32, IpcSender<WebGLResult<WebGLParameter>>),
+    GetParameter(u32, IpcSender<WebGLResult<WebGLParameter>>),
+    GetProgramParameter(u32, u32, IpcSender<WebGLResult<WebGLParameter>>),
+    GetShaderParameter(u32, u32, IpcSender<WebGLResult<WebGLParameter>>),
     GetAttribLocation(u32, String, IpcSender<Option<i32>>),
     GetUniformLocation(u32, String, IpcSender<Option<i32>>),
     PolygonOffset(f32, f32),
@@ -169,6 +181,7 @@ pub enum CanvasWebGLMsg {
     LinkProgram(u32),
     Uniform4fv(i32, Vec<f32>),
     UseProgram(u32),
+    VertexAttrib(u32, f32, f32, f32, f32),
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     Viewport(i32, i32, i32, i32),
     TexImage2D(u32, i32, i32, i32, i32, u32, u32, Vec<u8>),
@@ -196,9 +209,11 @@ pub enum WebGLFramebufferBindingRequest {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub enum WebGLShaderParameter {
+pub enum WebGLParameter {
     Int(i32),
     Bool(bool),
+    String(String),
+    Float(f32),
     Invalid,
 }
 

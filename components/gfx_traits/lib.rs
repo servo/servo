@@ -4,6 +4,12 @@
 
 #![crate_name = "gfx_traits"]
 #![crate_type = "rlib"]
+
 extern crate azure;
+extern crate layers;
+extern crate msg;
 
 pub mod color;
+mod paint_listener;
+
+pub use paint_listener::PaintListener;

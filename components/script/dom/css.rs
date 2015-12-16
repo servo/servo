@@ -5,7 +5,7 @@
 use cssparser::serialize_identifier;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::utils::Reflector;
+use dom::bindings::reflector::Reflector;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -19,8 +19,8 @@ impl CSS {
         if ident.bytes().any(|b| b == b'\0') {
             return Err(Error::InvalidCharacter);
         }
-        let mut escaped = DOMString::new();
+        let mut escaped = String::new();
         serialize_identifier(&ident, &mut escaped).unwrap();
-        Ok(escaped)
+        Ok(DOMString::from(escaped))
     }
 }

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html><head>
+<meta charset="utf-8">
 <title>CSS Test: GCPM string-set with content(before)</title>
 <link href="mailto:dauwhe@gmail.com" rel="author" title="Dave Cramer">
 <link href="http://www.w3.org/TR/css-gcpm-3/#setting-named-strings-the-string-set-pro" rel="help">
@@ -8,23 +9,24 @@
 <style>
   @page {
    @top-center {
-   content: string(title); 
+   content: string(title);
    }
   }
- 
+
  h1 {
-   string-set: title content(before); 
+   string-set: title content(before);
  }
- 
+
  h1::before {
  content: 'before-';
  }
- 
- 
+
+
 </style>
 </head>
 <body>
 <h1>Chapter Title</h1>
-<p>Test passes if “before-�&#65533; appears in the running head at the top of the page.</p>
+<p>Test passes if “before-” appears in the running head at the top of the page.</p>
+
 
 </body></html>

@@ -27,6 +27,7 @@ use logical_geometry::WritingMode;
 use rand::OsRng;
 use range::Range;
 use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
+use selectors::states::ElementState;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList, hash_state};
 use std::hash::Hash;
@@ -34,10 +35,11 @@ use std::mem::{size_of, transmute};
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
-use str::LengthOrPercentageOrAuto;
+use str::{DOMString, LengthOrPercentageOrAuto};
 use string_cache::atom::Atom;
-use string_cache::namespace::Namespace;
+use string_cache::namespace::{QualName, Namespace};
 use url;
+use uuid::Uuid;
 
 extern {
     // Get the size of a heap block.
@@ -100,6 +102,12 @@ impl HeapSizeOf for String {
     }
 }
 
+impl HeapSizeOf for DOMString {
+    fn heap_size_of_children(&self) -> usize {
+        heap_size_of(self.as_ptr() as *const c_void)
+    }
+}
+
 impl<T: HeapSizeOf> HeapSizeOf for Option<T> {
     fn heap_size_of_children(&self) -> usize {
         match *self {
@@ -149,7 +157,8 @@ impl HeapSizeOf for url::Host {
     fn heap_size_of_children(&self) -> usize {
         match *self {
             url::Host::Domain(ref str) => str.heap_size_of_children(),
-            url::Host::Ipv6(_) => 0
+            url::Host::Ipv6(_) => 0,
+            url::Host::Ipv4(_) => 0,
         }
     }
 }
@@ -413,8 +422,9 @@ known_heap_size!(0, bool, f32, f64);
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Range<T>);
 known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
 
-known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, Atom, Namespace);
+known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, QualName, Atom, Namespace);
 known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus);
 known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 
-known_heap_size!(0, PseudoElement, Combinator, str);
+known_heap_size!(0, ElementState, Combinator, PseudoElement, str);
+known_heap_size!(0, Uuid);

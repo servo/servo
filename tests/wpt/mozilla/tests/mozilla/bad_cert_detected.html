@@ -1,0 +1,28 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/origin_helpers.js?pipe=sub"></script>
+</head>
+<body>
+<script>
+var t = async_test("Invalid SSL cert noticed");
+t.step(function() {
+  var target = location.href.replace(HTTP_ORIGIN, HTTPS_ORIGIN)
+                            .replace('bad_cert_detected.html',
+                                     'resources/origin_helpers.js');
+  // Servo currently lacks the ability to introspect any content that is blocked
+  // due to a cert error, so we use a roundabout method to infer that that's happened.
+  // When the worker has a cert failure, that translates into attempting to evaluate the
+  // contents of badcert.html as JS, which triggers an exception that currently does not
+  // propagate to the parent scope. If we _do_ get an error event in the parent scope,
+  // that means that the cert verification was treated no different than any other
+  // network error, since we dispatch an error event in that case.
+  var w = new Worker(target);
+  w.addEventListener('error', t.unreached_func("cert not detected as invalid"), false);
+  // We infer that we detected an invalid cert if nothing happens for a few seconds.
+  setTimeout(function() { t.done() }, 3000);
+});
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
+		<meta charset="utf-8" />
 		<title>CSS Regions: auto-size region with contentEditable attribute set</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan" />
 		<link href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" rel="help" />
@@ -36,8 +37,8 @@
 		<ol>
 			<li>Below you should see a rectangle with a black border with some text inside it. No
 				red should be visible at any time during this test.</li>
-			<li>Click between the green and blue colored markers and type ì<strong>foobar
-				bazquux</strong>î
+			<li>Click between the green and blue colored markers and type ‚Äú<strong>foobar
+				bazquux</strong>‚Äù
 				<ul>
 					<li>The text should not be editable.</li>
 				</ul>
@@ -48,7 +49,7 @@
 			Not even the text between <em><span class="inline-marker green"></span>
 			<span id="marked-one">these two markers</span> <span class="inline-marker blue"></span></em>.
 		</div>
-	
+
 		<div contenteditable="true" class="region">
 			This is some editable text that you should not be able to see, with <span class="inline-marker green"></span> <span id="marked-two">colored markers</span> <span class="inline-marker blue"></span>.
 			<p>&#xA0;</p>
@@ -58,6 +59,7 @@
 		<script type="text/javascript">
 		insertText("#marked-one", "foobar bazquux");
 		insertText("#marked-two", "foobar bazquux");
-		</script> 
+		</script>
 	
+
 </body></html>

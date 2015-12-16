@@ -3,6 +3,7 @@
 name = "servo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+build = "build.rs"
 
 [lib]
 name = "servo"
@@ -17,13 +18,19 @@ doc = false
 bench = false
 
 [dev-dependencies]
-image = "0.3.14"
+image = "0.5.0"
 
 [dev-dependencies.gfx_tests]
 path = "../../tests/unit/gfx"
 
 [dev-dependencies.net_tests]
 path = "../../tests/unit/net"
+
+[dev-dependencies.net_traits_tests]
+path = "../../tests/unit/net_traits"
+
+[dev-dependencies.plugin_tests]
+path = "../../tests/unit/plugin"
 
 [dev-dependencies.script_tests]
 path = "../../tests/unit/script"
@@ -111,24 +118,32 @@ path = "../../ports/glutin"
 optional = true
 
 [dependencies.android_glue]
-path = "../../support/android-rs-glue/glue"
 optional = true
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
+[dependencies.log]
+version = "0.3"
+features = ["release_max_level_info"]
 
-[dependencies.euclid]
-version = "0.2"
+[dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[dependencies.ipc-channel]
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.gleam]
-version = "0.1"
+version = "0.2"
+
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [dependencies]
 env_logger = "0.3"
 time = "0.1.12"
 bitflags = "0.3"
-libc = "0.1"
+libc = "0.2"
+url = {version = "0.5", features = ["serde_serialization", "query_encoding"]}
+euclid = {version = "0.4", features = ["plugins"]}

@@ -48,8 +48,8 @@ interface Range {
   const unsigned short END_TO_START = 3;
   [Pure, Throws]
   short compareBoundaryPoints(unsigned short how, Range sourceRange);
-  // [Throws]
-  // void deleteContents();
+  [Throws]
+  void deleteContents();
   [NewObject, Throws]
   DocumentFragment extractContents();
   [NewObject, Throws]

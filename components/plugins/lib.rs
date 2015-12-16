@@ -13,20 +13,21 @@
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[derive(JSTraceable)]`, and `#[must_root]`.
 //!                       Use this for structs that correspond to a DOM type
 
-#![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private)]
+#![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private, slice_patterns)]
 
-#[macro_use]
-extern crate syntax;
-#[macro_use]
-extern crate rustc;
-
-extern crate rustc_front;
-
-extern crate tenacious;
 #[cfg(feature = "clippy")]
 extern crate clippy;
+#[macro_use]
+extern crate rustc;
+extern crate rustc_front;
+extern crate rustc_plugin;
+#[macro_use]
+extern crate syntax;
+extern crate tenacious;
 
-use rustc::plugin::Registry;
+extern crate url;
+
+use rustc_plugin::Registry;
 use syntax::ext::base::*;
 use syntax::feature_gate::AttributeType::Whitelisted;
 use syntax::parse::token::intern;
@@ -36,11 +37,12 @@ use syntax::parse::token::intern;
 pub mod jstraceable;
 /// Handles the auto-deriving for `#[derive(HeapSizeOf)]`
 pub mod heap_size;
-/// Autogenerates implementations of Reflectable on DOM structs
 pub mod lints;
+/// Autogenerates implementations of Reflectable on DOM structs
 pub mod reflector;
 /// Utilities for writing plugins
 pub mod casing;
+mod url_plugin;
 pub mod utils;
 
 #[plugin_registrar]
@@ -51,6 +53,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("derive_HeapSizeOf"), MultiDecorator(box heap_size::expand_heap_size));
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
+    reg.register_macro("url", url_plugin::expand_url);
     reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
     reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
     reg.register_late_lint_pass(box lints::privatize::PrivatizePass);

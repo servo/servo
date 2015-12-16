@@ -1,0 +1,41 @@
+<html>
+  <head>
+    <link rel=match href=position_fixed_static_y_b.html>
+    <style>
+      html, body {
+      margin-left: 0px;
+      margin-right: 0px;
+      }
+      body {
+      margin-top: 100px;
+      }
+      #first {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      border: solid 1px;
+      }
+      #second {
+      width: 30px;
+      height: 30px;
+      }
+      #fixed {
+      position: fixed;
+      left: 30px;
+      right: 30px;
+      width: 100px;
+      height: 20px;
+      background: green;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="first">
+      <div id="second">
+      </div>
+      <!-- This should be at its static y position (inside #first, after #second) -->
+      <div id="fixed">
+      </div>
+    </div>
+  </body>
+</html>

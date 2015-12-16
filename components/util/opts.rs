@@ -18,11 +18,14 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
+use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Opts {
+    pub is_running_problem_test: bool,
+
     /// The initial URL to load.
     pub url: Option<Url>,
 
@@ -71,6 +74,9 @@ pub struct Opts {
 
     /// Log GC passes and their durations.
     pub gc_profile: bool,
+
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    pub load_webfonts_synchronously: bool,
 
     pub headless: bool,
     pub hard_fail: bool,
@@ -121,6 +127,9 @@ pub struct Opts {
     /// Periodically print out on which events script tasks spend their processing time.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
@@ -135,8 +144,11 @@ pub struct Opts {
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: String,
 
-    /// Whether to run in multiprocess mode.
+    /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
+
+    /// Whether we're running inside the sandbox.
+    pub sandbox: bool,
 
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
@@ -168,11 +180,17 @@ pub struct Opts {
     /// Whether to run absolute position calculation and display list construction in parallel.
     pub parallel_display_list_building: bool,
 
+    /// Translate mouse input into touch events.
+    pub convert_mouse_to_touch: bool,
+
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
 
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
+
+    /// Enable vsync in the compositor
+    pub enable_vsync: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -220,6 +238,9 @@ pub struct DebugOptions {
     /// Profile which events script tasks spend their time on.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// Paint borders along layer and tile boundaries.
     pub show_compositor_borders: bool,
 
@@ -247,12 +268,21 @@ pub struct DebugOptions {
     /// Build display lists in parallel.
     pub parallel_display_list_building: bool,
 
+    /// Translate mouse input into touch events.
+    pub convert_mouse_to_touch: bool,
+
     /// Replace unpaires surrogates in DOM strings with U+FFFD.
     /// See https://github.com/servo/servo/issues/6564
     pub replace_surrogates: bool,
 
     /// Log GC passes and their durations.
     pub gc_profile: bool,
+
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    pub load_webfonts_synchronously: bool,
+
+    /// Disable vsync in the compositor
+    pub disable_vsync: bool,
 }
 
 
@@ -274,6 +304,7 @@ impl DebugOptions {
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
+                "profile-heartbeats" => debug_options.profile_heartbeats = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
                 "show-fragment-borders" => debug_options.show_fragment_borders = true,
                 "show-parallel-paint" => debug_options.show_parallel_paint = true,
@@ -283,8 +314,11 @@ impl DebugOptions {
                 "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
                 "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
                 "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
+                "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
+                "load-webfonts-synchronously" => debug_options.load_webfonts_synchronously = true,
+                "disable-vsync" => debug_options.disable_vsync = true,
                 "" => {},
                 _ => return Err(option)
             };
@@ -312,6 +346,8 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
+    print_option("profile-script-events", "Enable profiling of script-related events.");
+    print_option("profile-heartbeats", "Enable heartbeats for all task categories.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
     print_option("show-parallel-paint", "Overlay tiles with colors showing which thread painted them.");
@@ -323,9 +359,14 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
     print_option("parallel-display-list-building", "Build display lists in parallel.");
+    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
     print_option("gc-profile", "Log GC passes and their durations.");
+    print_option("load-webfonts-synchronously",
+                 "Load web fonts synchronously to avoid non-deterministic network-driven reflows");
+    print_option("disable-vsync",
+                 "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate");
 
     println!("");
 
@@ -347,6 +388,13 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os = "android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
+static MULTIPROCESS: AtomicBool = ATOMIC_BOOL_INIT;
+
+#[inline]
+pub fn multiprocess() -> bool {
+    MULTIPROCESS.load(Ordering::Relaxed)
+}
+
 enum UserAgent {
     Desktop,
     Android,
@@ -354,9 +402,29 @@ enum UserAgent {
 }
 
 fn default_user_agent_string(agent: UserAgent) -> String {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Servo/1.0 Firefox/37.0";
+    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux i686; rv:37.0) Servo/1.0 Firefox/37.0";
+
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:37.0) Servo/1.0 Firefox/37.0";
+    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 6.1; rv:37.0) Servo/1.0 Firefox/37.0";
+
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0";
+
+
     match agent {
         UserAgent::Desktop => {
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0"
+            DESKTOP_UA_STRING
         }
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
@@ -380,7 +448,8 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
     Opts {
-        url: Some(Url::parse("about:blank").unwrap()),
+        is_running_problem_test: false,
+        url: Some(url!("about:blank")),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
@@ -394,6 +463,7 @@ pub fn default_opts() -> Opts {
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
+        load_webfonts_synchronously: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -410,6 +480,7 @@ pub fn default_opts() -> Opts {
         initial_window_size: Size2D::typed(800, 600),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
+        sandbox: false,
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
@@ -419,15 +490,18 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         profile_script_events: false,
+        profile_heartbeats: false,
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
+        convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
+        enable_vsync: true,
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) {
+pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
@@ -457,11 +531,14 @@ pub fn from_cmdline_args(args: &[String]) {
                 "Set custom user agent string (or android / gonk / desktop for platform default)",
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
     opts.optopt("Z", "debug",
                 "A comma-separated string of debug options. Pass help to show available options.", "");
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
+    opts.optopt("", "content-process" , "Run as a content process and connect to the given pipe",
+                "servo-ipc-channel.abcdefg");
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
@@ -477,6 +554,13 @@ pub fn from_cmdline_args(args: &[String]) {
         print_usage(app_name, &opts);
         process::exit(0);
     };
+
+    // If this is the content process, we'll receive the real options over IPC. So just fill in
+    // some dummy options for now.
+    if let Some(content_process) = opt_match.opt_str("content-process") {
+        MULTIPROCESS.store(true, Ordering::SeqCst);
+        return ArgumentParsingResult::ContentProcess(content_process);
+    }
 
     let debug_string = match opt_match.opt_str("Z") {
         Some(string) => string,
@@ -499,6 +583,15 @@ pub fn from_cmdline_args(args: &[String]) {
     } else {
         homepage_pref.as_string()
     };
+    let is_running_problem_test =
+        url_opt
+        .as_ref()
+        .map(|url|
+             url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
+             url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
+             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"))
+        .unwrap_or(false);
+
     let url = match url_opt {
         Some(url_string) => {
             parse_url_or_filename(&cwd, url_string)
@@ -566,6 +659,10 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    if opt_match.opt_present("M") {
+        MULTIPROCESS.store(true, Ordering::SeqCst)
+    }
+
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
         Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
@@ -586,6 +683,7 @@ pub fn from_cmdline_args(args: &[String]) {
     }).collect();
 
     let opts = Opts {
+        is_running_problem_test: is_running_problem_test,
         url: Some(url),
         paint_threads: paint_threads,
         gpu_painting: gpu_painting,
@@ -600,17 +698,20 @@ pub fn from_cmdline_args(args: &[String]) {
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.replace_surrogates,
         gc_profile: debug_options.gc_profile,
+        load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_tasks: debug_options.profile_tasks,
         profile_script_events: debug_options.profile_script_events,
+        profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
+        sandbox: opt_match.opt_present("S"),
         show_debug_borders: debug_options.show_compositor_borders,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_paint: debug_options.show_parallel_paint,
@@ -628,8 +729,10 @@ pub fn from_cmdline_args(args: &[String]) {
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.disable_share_style_cache,
         parallel_display_list_building: debug_options.parallel_display_list_building,
+        convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: opt_match.opt_present("b"),
+        enable_vsync: !debug_options.disable_vsync,
     };
 
     set_defaults(opts);
@@ -639,6 +742,22 @@ pub fn from_cmdline_args(args: &[String]) {
     for pref in opt_match.opt_strs("pref").iter() {
         prefs::set_pref(pref, PrefValue::Boolean(true));
     }
+
+    ArgumentParsingResult::ChromeProcess
+}
+
+pub enum ArgumentParsingResult {
+    ChromeProcess,
+    ContentProcess(String),
+}
+
+static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
+
+/// Turn on experimental features globally. Normally this is done
+/// during initialization by `set` or `from_cmdline_args`, but
+/// tests that require experimental features will also set it.
+pub fn set_experimental_enabled(new_value: bool) {
+    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
 }
 
 // Make Opts available globally. This saves having to clone and pass

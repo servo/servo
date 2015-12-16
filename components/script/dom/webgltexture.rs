@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
@@ -70,7 +70,7 @@ impl WebGLTexture {
             self.target.set(Some(target));
         }
 
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(self.id, target))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(target, self.id))).unwrap();
 
         Ok(())
     }
@@ -78,7 +78,7 @@ impl WebGLTexture {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteTexture(self.id))).unwrap();
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteTexture(self.id)));
         }
     }
 
@@ -143,5 +143,11 @@ impl WebGLTexture {
 
             _ => Err(WebGLError::InvalidEnum),
         }
+    }
+}
+
+impl Drop for WebGLTexture {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

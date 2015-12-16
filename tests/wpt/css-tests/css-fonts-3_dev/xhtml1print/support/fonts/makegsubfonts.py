@@ -59,38 +59,38 @@ def makeLookup1():
     f = open(tempShellSourcePath, "wb")
     f.write(ttxData)
     f.close()
-    
+
     # compile the shell
     shell = TTFont(sfntVersion="OTTO")
     shell.importXML(tempShellSourcePath)
     shell.save(shellTempPath)
     os.remove(tempShellSourcePath)
-    
+
     # load the shell
     shell = TTFont(shellTempPath)
-    
+
     # grab the PASS and FAIL data
     hmtx = shell["hmtx"]
     glyphSet = shell.getGlyphSet()
-    
+
     failGlyph = glyphSet["F"]
     failGlyph.decompile()
     failGlyphProgram = list(failGlyph.program)
     failGlyphMetrics = hmtx["F"]
-    
+
     passGlyph = glyphSet["P"]
     passGlyph.decompile()
     passGlyphProgram = list(passGlyph.program)
     passGlyphMetrics = hmtx["P"]
-    
+
     # grab some tables
     hmtx = shell["hmtx"]
     cmap = shell["cmap"]
-    
+
     # start the glyph order
     existingGlyphs = [".notdef", "space", "F", "P"]
     glyphOrder = list(existingGlyphs)
-    
+
     # start the CFF
     cff = shell["CFF "].cff
     globalSubrs = cff.GlobalSubrs
@@ -99,13 +99,13 @@ def makeLookup1():
     private = topDict.Private
     charStrings = topDict.CharStrings
     charStringsIndex = charStrings.charStringsIndex
-    
+
     features = sorted(mapping)
 
     # build the outline, hmtx and cmap data
     cp = baseCodepoint
     for index, tag in enumerate(features):
-    
+
     	# tag.pass
     	glyphName = "%s.pass" % tag
     	glyphOrder.append(glyphName)
@@ -119,14 +119,14 @@ def makeLookup1():
             charStrings=charStrings
     	)
     	hmtx[glyphName] = passGlyphMetrics
-     
+
     	for table in cmap.tables:
     		if table.format == 4:
     			table.cmap[cp] = glyphName
     		else:
     			raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
     	cp += 1
-    
+
     	# tag.fail
     	glyphName = "%s.fail" % tag
     	glyphOrder.append(glyphName)
@@ -140,7 +140,7 @@ def makeLookup1():
             charStrings=charStrings
     	)
     	hmtx[glyphName] = failGlyphMetrics
-     
+
     	for table in cmap.tables:
     		if table.format == 4:
     			table.cmap[cp] = glyphName
@@ -152,15 +152,15 @@ def makeLookup1():
 
     # set the glyph order
     shell.setGlyphOrder(glyphOrder)
-    
+
     # start the GSUB
     shell["GSUB"] = newTable("GSUB")
     gsub = shell["GSUB"].table = GSUB()
     gsub.Version = 1.0
-    
+
     # make a list of all the features we will make
     featureCount = len(features)
-    
+
     # set up the script list
     scriptList = gsub.ScriptList = ScriptList()
     scriptList.ScriptCount = 1
@@ -176,7 +176,7 @@ def makeLookup1():
     defaultLangSys.LookupOrder = None
     script.LangSysCount = 0
     script.LangSysRecord = []
-    
+
     # set up the feature list
     featureList = gsub.FeatureList = FeatureList()
     featureList.FeatureCount = featureCount
@@ -191,7 +191,7 @@ def makeLookup1():
         feature.FeatureParams = None
         feature.LookupCount = 1
         feature.LookupListIndex = [index]
-    
+
     # write the lookups
     lookupList = gsub.LookupList = LookupList()
     lookupList.LookupCount = featureCount
@@ -213,16 +213,16 @@ def makeLookup1():
             "%s.fail" % tag : "%s.pass" % tag,
         }
         lookup.SubTable.append(subtable)
-    
+
     path = outputPath % 1 + ".otf"
     if os.path.exists(path):
     	os.remove(path)
     shell.save(path)
-    
+
     # get rid of the shell
     if os.path.exists(shellTempPath):
         os.remove(shellTempPath)
-    
+
 def makeLookup3():
     # make a variation of the shell TTX data
     f = open(shellSourcePath)
@@ -233,38 +233,38 @@ def makeLookup3():
     f = open(tempShellSourcePath, "wb")
     f.write(ttxData)
     f.close()
-    
+
     # compile the shell
     shell = TTFont(sfntVersion="OTTO")
     shell.importXML(tempShellSourcePath)
     shell.save(shellTempPath)
     os.remove(tempShellSourcePath)
-    
+
     # load the shell
     shell = TTFont(shellTempPath)
-    
+
     # grab the PASS and FAIL data
     hmtx = shell["hmtx"]
     glyphSet = shell.getGlyphSet()
-    
+
     failGlyph = glyphSet["F"]
     failGlyph.decompile()
     failGlyphProgram = list(failGlyph.program)
     failGlyphMetrics = hmtx["F"]
-    
+
     passGlyph = glyphSet["P"]
     passGlyph.decompile()
     passGlyphProgram = list(passGlyph.program)
     passGlyphMetrics = hmtx["P"]
-    
+
     # grab some tables
     hmtx = shell["hmtx"]
     cmap = shell["cmap"]
-    
+
     # start the glyph order
     existingGlyphs = [".notdef", "space", "F", "P"]
     glyphOrder = list(existingGlyphs)
-    
+
     # start the CFF
     cff = shell["CFF "].cff
     globalSubrs = cff.GlobalSubrs
@@ -273,13 +273,13 @@ def makeLookup3():
     private = topDict.Private
     charStrings = topDict.CharStrings
     charStringsIndex = charStrings.charStringsIndex
-    
+
     features = sorted(mapping)
 
     # build the outline, hmtx and cmap data
     cp = baseCodepoint
     for index, tag in enumerate(features):
-    
+
     	# tag.pass
     	glyphName = "%s.pass" % tag
     	glyphOrder.append(glyphName)
@@ -293,7 +293,7 @@ def makeLookup3():
             charStrings=charStrings
     	)
     	hmtx[glyphName] = passGlyphMetrics
-     
+
     	# tag.fail
     	glyphName = "%s.fail" % tag
     	glyphOrder.append(glyphName)
@@ -307,7 +307,7 @@ def makeLookup3():
             charStrings=charStrings
     	)
     	hmtx[glyphName] = failGlyphMetrics
-     
+
     	# tag.default
     	glyphName = "%s.default" % tag
     	glyphOrder.append(glyphName)
@@ -321,14 +321,14 @@ def makeLookup3():
             charStrings=charStrings
     	)
     	hmtx[glyphName] = passGlyphMetrics
-    
+
     	for table in cmap.tables:
     		if table.format == 4:
     			table.cmap[cp] = glyphName
     		else:
     			raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
     	cp += 1
-    
+
     	# tag.alt1,2,3
     	for i in range(1,4):
     		glyphName = "%s.alt%d" % (tag, i)
@@ -349,18 +349,18 @@ def makeLookup3():
     			else:
     				raise NotImplementedError, "Unsupported cmap table format: %d" % table.format
     		cp += 1
-    	
+
     # set the glyph order
     shell.setGlyphOrder(glyphOrder)
-    
+
     # start the GSUB
     shell["GSUB"] = newTable("GSUB")
     gsub = shell["GSUB"].table = GSUB()
     gsub.Version = 1.0
-    
+
     # make a list of all the features we will make
     featureCount = len(features)
-    
+
     # set up the script list
     scriptList = gsub.ScriptList = ScriptList()
     scriptList.ScriptCount = 1
@@ -376,7 +376,7 @@ def makeLookup3():
     defaultLangSys.LookupOrder = None
     script.LangSysCount = 0
     script.LangSysRecord = []
-    
+
     # set up the feature list
     featureList = gsub.FeatureList = FeatureList()
     featureList.FeatureCount = featureCount
@@ -391,7 +391,7 @@ def makeLookup3():
     	feature.FeatureParams = None
     	feature.LookupCount = 1
     	feature.LookupListIndex = [index]
-    
+
     # write the lookups
     lookupList = gsub.LookupList = LookupList()
     lookupList.LookupCount = featureCount
@@ -415,16 +415,16 @@ def makeLookup3():
     		"%s.alt3" % tag    : ["%s.fail" % tag, "%s.fail" % tag, "%s.pass" % tag]
     	}
     	lookup.SubTable.append(subtable)
-    
+
     path = outputPath % 3 + ".otf"
     if os.path.exists(path):
     	os.remove(path)
     shell.save(path)
-    
+
     # get rid of the shell
     if os.path.exists(shellTempPath):
         os.remove(shellTempPath)
-    
+
 def makeJavascriptData():
     features = sorted(mapping)
     outStr = []
@@ -459,7 +459,7 @@ def makeJavascriptData():
     for tag in features:
         taglist.append("\"%s\": 0x%x" % (tag, cp))
         cp += 4
-    
+
     outStr.append(textwrap.fill(", ".join(taglist), initial_indent="  ", subsequent_indent="  "))
     outStr.append("};");
     outStr.append("");

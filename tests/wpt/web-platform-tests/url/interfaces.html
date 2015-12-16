@@ -9,54 +9,38 @@
 <div id=log></div>
 
 <script type=text/plain>
-[Constructor(DOMString url, optional DOMString base = "about:blank"),
- Exposed=Window,Worker]
+[Constructor(USVString url, optional USVString base),
+ Exposed=(Window,Worker)]
 interface URL {
-  static DOMString domainToASCII(ScalarValueString domain);
-  static DOMString domainToUnicode(ScalarValueString domain);
-};
-URL implements URLUtils;
+  static USVString domainToASCII(USVString domain);
+  static USVString domainToUnicode(USVString domain);
 
-[NoInterfaceObject]
-interface URLUtils {
-  stringifier attribute ScalarValueString href;
-  readonly attribute DOMString origin;
-
-           attribute ScalarValueString protocol;
-           attribute ScalarValueString username;
-           attribute ScalarValueString password;
-           attribute ScalarValueString host;
-           attribute ScalarValueString hostname;
-           attribute ScalarValueString port;
-           attribute ScalarValueString pathname;
-           attribute ScalarValueString search;
-           readonly attribute URLSearchParams searchParams;
-           attribute ScalarValueString hash;
+  stringifier attribute USVString href;
+  readonly attribute USVString origin;
+           attribute USVString protocol;
+           attribute USVString username;
+           attribute USVString password;
+           attribute USVString host;
+           attribute USVString hostname;
+           attribute USVString port;
+           attribute USVString pathname;
+           attribute USVString search;
+  readonly attribute URLSearchParams searchParams;
+           attribute USVString hash;
 };
 
-[NoInterfaceObject]
-interface URLUtilsReadOnly {
-  stringifier readonly attribute DOMString href;
-  readonly attribute DOMString origin;
-
-  readonly attribute DOMString protocol;
-  readonly attribute DOMString host;
-  readonly attribute DOMString hostname;
-  readonly attribute DOMString port;
-  readonly attribute DOMString pathname;
-  readonly attribute DOMString search;
-  readonly attribute DOMString hash;
-};
+[Constructor(optional (USVString or URLSearchParams) init = ""),
+ Exposed=(Window,Worker)]
 interface URLSearchParams {
-  void append(ScalarValueString name, ScalarValueString value);
-  void delete(ScalarValueString name);
-  DOMString? get(ScalarValueString name);
-  sequence<DOMString> getAll(ScalarValueString name);
-  boolean has(ScalarValueString name);
-  void set(ScalarValueString name, ScalarValueString value);
+  void append(USVString name, USVString value);
+  void delete(USVString name);
+  USVString? get(USVString name);
+  sequence<USVString> getAll(USVString name);
+  boolean has(USVString name);
+  void set(USVString name, USVString value);
+  iterable<USVString, USVString>;
   stringifier;
 };
-typedef DOMString ScalarValueString;
 </script>
 <script>
 "use strict";

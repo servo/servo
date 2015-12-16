@@ -20,12 +20,12 @@ use model::MaybeAuto;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style};
-use style::legacy::UnsignedIntegerAttribute;
 use style::properties::ComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use wrapper::ThreadSafeLayoutNode;
+use util::print_tree::PrintTree;
+use wrapper::{ThreadSafeLayoutNode};
 
 /// A table formatting context.
 #[derive(RustcEncodable)]
@@ -45,15 +45,12 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_fragment_and_visibility_flag(node: &ThreadSafeLayoutNode,
-                                                  fragment: Fragment,
-                                                  visible: bool)
-                                                  -> TableCellFlow {
+    pub fn from_node_fragment_and_visibility_flag<'ln, N: ThreadSafeLayoutNode<'ln>>(
+            node: &N, fragment: Fragment, visible: bool) -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment, None),
             collapsed_borders: CollapsedBordersForCell::new(),
-            column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpan)
-                             .unwrap_or(1),
+            column_span: node.get_colspan(),
             visible: visible,
         }
     }
@@ -215,6 +212,10 @@ impl Flow for TableCellFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
     }
 }
 

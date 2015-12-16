@@ -4,13 +4,12 @@
 
 use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::ErrorResult;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::node::Node;
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documenttype
@@ -25,15 +24,15 @@ pub struct DocumentType {
 
 impl DocumentType {
     fn new_inherited(name: DOMString,
-                         public_id: Option<DOMString>,
-                         system_id: Option<DOMString>,
-                         document: &Document)
-            -> DocumentType {
+                     public_id: Option<DOMString>,
+                     system_id: Option<DOMString>,
+                     document: &Document)
+                     -> DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
             name: name,
-            public_id: public_id.unwrap_or("".to_owned()),
-            system_id: system_id.unwrap_or("".to_owned())
+            public_id: public_id.unwrap_or_default(),
+            system_id: system_id.unwrap_or_default(),
         }
     }
     #[allow(unrooted_must_root)]
@@ -42,10 +41,7 @@ impl DocumentType {
                system_id: Option<DOMString>,
                document: &Document)
                -> Root<DocumentType> {
-        let documenttype = DocumentType::new_inherited(name,
-                                                       public_id,
-                                                       system_id,
-                                                       document);
+        let documenttype = DocumentType::new_inherited(name, public_id, system_id, document);
         Node::reflect_node(box documenttype, document, DocumentTypeBinding::Wrap)
     }
 
@@ -83,22 +79,21 @@ impl DocumentTypeMethods for DocumentType {
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).before(nodes)
+        self.upcast::<Node>().before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
     fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).after(nodes)
+        self.upcast::<Node>().after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).replace_with(nodes)
+        self.upcast::<Node>().replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = NodeCast::from_ref(self);
-        node.remove_self();
+        self.upcast::<Node>().remove_self();
     }
 }

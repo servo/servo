@@ -19,16 +19,16 @@
         line-height: 50px;
         text-align: center;
     }
-    
-    
+
+
     .flex-container.flex-direction-row{
         flex-direction : row;
     }
-    
+
     .flex-container.flex-direction-row-reverse{
         flex-direction : row-reverse;
     }
-    
+
     .flex-container.flex-direction-column{
         flex-direction : column;
     }
@@ -40,23 +40,23 @@
 <body>
     <h1>flex-direction:row</h1>
     <div class="flex-container flex-direction-row" id="flex-direction-row"><div class="flex-item">1</div><div class="flex-item">2</div><div class="flex-item">3</div></div>
-    
+
     <h1>flex-direction:row-reverse</h1>
     <div class="flex-container flex-direction-row-reverse" id="flex-direction-row-reverse"><div class="flex-item">1</div><div class="flex-item">2</div><div class="flex-item">3</div></div>
-    
+
     <h1>flex-direction:column</h1>
     <div class="flex-container flex-direction-column" id="flex-direction-column"><div class="flex-item">1</div><div class="flex-item">2</div><div class="flex-item">3</div></div>
-    
+
     <h1>flex-direction:column-reverse</h1>
     <div class="flex-container flex-direction-column-reverse" id="flex-direction-column-reverse"><div class="flex-item">1</div><div class="flex-item">2</div><div class="flex-item">3</div></div>
-    
-    
+
+
     <script>
         var ids = ['flex-direction-row',
-            'flex-direction-row-reverse', 
+            'flex-direction-row-reverse',
             'flex-direction-column',
             'flex-direction-column-reverse'];
-        
+
         for( var i in ids ){
             var new_element = document.createElement("div")
             new_element.className="flex-item";

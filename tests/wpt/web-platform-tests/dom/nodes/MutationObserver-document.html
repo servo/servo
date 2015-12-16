@@ -49,19 +49,19 @@
           checkRecords(document, sequence,
                        [{type: "childList",
                          addedNodes: function () {
+                           return [ document.getElementById("inserted_script") ];
+                         },
+                         target: function () {
+                          return document.getElementById("n00");
+                         }},
+                        {type: "childList",
+                         addedNodes: function () {
                            return [ document.getElementById("inserted_element") ];
                          },
                          previousSibling: function () {
                            return document.getElementById("s002");
                          },
-                         target: document.body},
-                        {type: "childList",
-                         addedNodes: function () {
-                           return [ document.getElementById("inserted_script") ];
-                         },
-                         target: function () {
-                          return document.getElementById("n00");
-                         }}
+                         target: document.body}
                         ]);
         });
     }

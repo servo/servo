@@ -17,15 +17,21 @@ path = "../../../components/net_traits"
 [dependencies.util]
 path = "../../../components/util"
 
+[dependencies.msg]
+path = "../../../components/msg"
+
+[dependencies.plugins]
+path = "../../../components/plugins"
+
 [dependencies.devtools_traits]
 path = "../../../components/devtools_traits"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-cookie = "0.1"
-hyper = "0.6"
-url = "0.2"
+cookie = "0.2"
+hyper = "0.7"
+url = "0.5"
 time = "0.1"
 flate2 = "0.2.0"

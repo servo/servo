@@ -7,13 +7,13 @@ use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyM
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
 pub struct DOMPoint {
-    point: DOMPointReadOnly
+    point: DOMPointReadOnly,
 }
 
 impl DOMPoint {
@@ -28,7 +28,11 @@ impl DOMPoint {
     }
 
     pub fn Constructor(global: GlobalRef,
-                        x: f64, y: f64, z: f64, w: f64) -> Fallible<Root<DOMPoint>> {
+                       x: f64,
+                       y: f64,
+                       z: f64,
+                       w: f64)
+                       -> Fallible<Root<DOMPoint>> {
         Ok(DOMPoint::new(global, x, y, z, w))
     }
 }

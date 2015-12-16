@@ -4,20 +4,19 @@
 
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use page::IterablePage;
 use script_task::{MainThreadRunnable, MainThreadScriptMsg, ScriptTask};
-use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
 use util::str::DOMString;
@@ -70,21 +69,24 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().map(DOMString::from)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
     fn GetItem(&self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) = ipc::channel().unwrap();
+        let name = String::from(name);
 
         let msg = StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name);
         self.get_storage_task().send(msg).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().map(DOMString::from)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
     fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
+        let name = String::from(name);
+        let value = String::from(value);
 
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -102,6 +104,7 @@ impl StorageMethods for Storage {
     // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
     fn RemoveItem(&self, name: DOMString) {
         let (sender, receiver) = ipc::channel().unwrap();
+        let name = String::from(name);
 
         let msg = StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
         self.get_storage_task().send(msg).unwrap();
@@ -125,7 +128,7 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_task().send(StorageTaskMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().iter().cloned().map(DOMString::from).collect() // FIXME: inefficient?
     }
 
     // check-tidy: no specs after this line
@@ -147,14 +150,13 @@ impl StorageMethods for Storage {
 
 impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    fn broadcast_change_notification(&self, key: Option<DOMString>, old_value: Option<DOMString>,
-                                     new_value: Option<DOMString>) {
+    fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
+                                     new_value: Option<String>) {
         let global_root = self.global.root();
         let global_ref = global_root.r();
         let main_script_chan = global_ref.as_window().main_thread_script_chan();
-        let script_chan = global_ref.script_chan();
-        let trusted_storage = Trusted::new(global_ref.get_cx(), self,
-                                           script_chan.clone());
+        let script_chan = global_ref.dom_manipulation_task_source();
+        let trusted_storage = Trusted::new(self, script_chan);
         main_script_chan.send(MainThreadScriptMsg::MainThreadRunnableMsg(
             box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }
@@ -162,14 +164,14 @@ impl Storage {
 
 pub struct StorageEventRunnable {
     element: Trusted<Storage>,
-    key: Option<DOMString>,
-    old_value: Option<DOMString>,
-    new_value: Option<DOMString>
+    key: Option<String>,
+    old_value: Option<String>,
+    new_value: Option<String>
 }
 
 impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, key: Option<DOMString>, old_value: Option<DOMString>,
-           new_value: Option<DOMString>) -> StorageEventRunnable {
+    fn new(storage: Trusted<Storage>, key: Option<String>, old_value: Option<String>,
+           new_value: Option<String>) -> StorageEventRunnable {
         StorageEventRunnable { element: storage, key: key, old_value: old_value, new_value: new_value }
     }
 }
@@ -186,13 +188,12 @@ impl MainThreadRunnable for StorageEventRunnable {
 
         let storage_event = StorageEvent::new(
             global_ref,
-            "storage".to_owned(),
+            atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-            this.key, this.old_value, this.new_value,
-            ev_url.to_string(),
+            this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
+            DOMString::from(ev_url.to_string()),
             Some(storage)
         );
-        let event = EventCast::from_ref(storage_event.r());
 
         let root_page = script_task.root_page();
         for it_page in root_page.iter() {
@@ -202,8 +203,7 @@ impl MainThreadRunnable for StorageEventRunnable {
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.
             if ev_window.pipeline() != it_window.pipeline() {
-                let target = EventTargetCast::from_ref(it_window);
-                event.fire(target);
+                storage_event.upcast::<Event>().fire(it_window.upcast());
             }
         }
     }

@@ -4,15 +4,17 @@
 
 //! Communication with the compositor task.
 
+use CompositorMsg as ConstellationMsg;
 use compositor;
-use euclid::{Point2D, Size2D};
+use euclid::point::Point2D;
+use euclid::size::Size2D;
+use gfx_traits::PaintListener;
 use headless;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
-use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
-use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
+use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerProperties, ScriptToCompositorMsg};
+use msg::constellation_msg::{AnimationState, PipelineId};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState};
 use profile_traits::mem;
 use profile_traits::time;
@@ -48,10 +50,7 @@ pub trait CompositorReceiver : 'static {
 /// A convenience implementation of `CompositorReceiver` for a plain old Rust `Receiver`.
 impl CompositorReceiver for Receiver<Msg> {
     fn try_recv_compositor_msg(&mut self) -> Option<Msg> {
-        match self.try_recv() {
-            Ok(msg) => Some(msg),
-            Err(_) => None,
-        }
+        self.try_recv().ok()
     }
     fn recv_compositor_msg(&mut self) -> Msg {
         self.recv().unwrap()
@@ -62,11 +61,11 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
                                   receiver: IpcReceiver<ScriptToCompositorMsg>) {
     while let Ok(msg) = receiver.recv() {
         match msg {
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth) => {
+            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth) => {
                 compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id,
                                                                layer_id,
                                                                point,
-                                                               _smooth));
+                                                               smooth));
             }
 
             ScriptToCompositorMsg::GetClientWindow(send) => {
@@ -82,7 +81,7 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
             }
 
             ScriptToCompositorMsg::Exit => {
-                let (chan, port) = channel();
+                let (chan, port) = ipc::channel().unwrap();
                 compositor_proxy.send(Msg::Exit(chan));
                 port.recv().unwrap();
             }
@@ -93,6 +92,10 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
 
             ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
                 compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
+            }
+
+            ScriptToCompositorMsg::TouchEventProcessed(result) => {
+                compositor_proxy.send(Msg::TouchEventProcessed(result))
             }
         }
     }
@@ -150,7 +153,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
 /// Messages from the painting task and the constellation task to the compositor task.
 pub enum Msg {
     /// Requests that the compositor shut down.
-    Exit(Sender<()>),
+    Exit(IpcSender<()>),
 
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
@@ -178,7 +181,7 @@ pub enum Msg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
+    SetFrameTree(SendableFrameTree, IpcSender<()>, Sender<ConstellationMsg>),
     /// The load of a page has begun: (can go back, can go forward).
     LoadStart(bool, bool),
     /// The load of a page has completed: (can go back, can go forward).
@@ -189,6 +192,8 @@ pub enum Msg {
     RecompositeAfterScroll,
     /// Sends an unconsumed key event back to the compositor.
     KeyEvent(Key, KeyState, KeyModifiers),
+    /// Script has handled a touch event, and either prevented or allowed default actions.
+    TouchEventProcessed(EventResult),
     /// Changes the cursor.
     SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -224,7 +229,7 @@ impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Msg::Exit(..) => write!(f, "Exit"),
-            Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
+            Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
@@ -238,6 +243,7 @@ impl Debug for Msg {
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
+            Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
             Msg::CreatePng(..) => write!(f, "CreatePng"),
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
@@ -291,7 +297,7 @@ pub struct InitialCompositorState {
     /// A port on which messages inbound to the compositor can be received.
     pub receiver: Box<CompositorReceiver>,
     /// A channel to the constellation.
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: Sender<ConstellationMsg>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.

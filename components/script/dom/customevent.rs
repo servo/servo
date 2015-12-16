@@ -5,14 +5,15 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::Event;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
+use string_cache::Atom;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#interface-customevent
@@ -37,23 +38,40 @@ impl CustomEvent {
                            CustomEventBinding::Wrap)
     }
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               detail: HandleValue) -> Root<CustomEvent> {
+               detail: HandleValue)
+               -> Root<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global);
-        ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
+        ev.init_custom_event(global.get_cx(), type_, bubbles, cancelable, detail);
         ev
     }
     #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &CustomEventBinding::CustomEventInit) -> Fallible<Root<CustomEvent>>{
+                       init: &CustomEventBinding::CustomEventInit)
+                       -> Fallible<Root<CustomEvent>> {
         Ok(CustomEvent::new(global,
-                            type_,
+                            Atom::from(&*type_),
                             init.parent.bubbles,
                             init.parent.cancelable,
                             unsafe { HandleValue::from_marked_location(&init.detail) }))
+    }
+
+    fn init_custom_event(&self,
+                         _cx: *mut JSContext,
+                         type_: Atom,
+                         can_bubble: bool,
+                         cancelable: bool,
+                         detail: HandleValue) {
+        let event = self.upcast::<Event>();
+        if event.dispatching() {
+            return;
+        }
+
+        self.detail.set(detail.get());
+        event.init_event(type_, can_bubble, cancelable);
     }
 }
 
@@ -70,12 +88,11 @@ impl CustomEventMethods for CustomEvent {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: HandleValue) {
-        let event = EventCast::from_ref(self);
-        if event.dispatching() {
-            return;
-        }
+        self.init_custom_event(_cx, Atom::from(&*type_), can_bubble, cancelable, detail)
+    }
 
-        self.detail.set(detail.get());
-        event.InitEvent(type_, can_bubble, cancelable);
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
     }
 }

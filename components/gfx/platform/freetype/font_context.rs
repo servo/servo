@@ -57,7 +57,8 @@ extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
         let new_actual_size = heap_size_of(new_ptr);
 
         let user = (*mem).user as *mut User;
-        (*user).size += new_actual_size - old_actual_size;
+        (*user).size += new_actual_size;
+        (*user).size -= old_actual_size;
 
         new_ptr
     }

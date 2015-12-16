@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html><head>
+		<meta charset="utf-8">
 		<title>CSS Regions: named flow content has a child with contentEditable attribute set</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan">
 		<link href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" rel="help">
@@ -36,13 +37,13 @@
 		<ol>
 			<li>Below you should see a square with a black border with some text inside it. No red
 				should be visible at any time during this test.</li>
-			<li>Click between the two gray markers and type ì<strong>foobar bazquux</strong>î
+			<li>Click between the two gray markers and type ‚Äú<strong>foobar bazquux</strong>‚Äù
 				<ul>
 					<li>No (new) text should appear between the gray markers</li>
 				</ul>
 			</li>
-			<li>Click between the two colored markers (green and blue) and type ì<strong>foobar
-				bazquux</strong>î
+			<li>Click between the two colored markers (green and blue) and type ‚Äú<strong>foobar
+				bazquux</strong>‚Äù
 				<ul>
 					<li>The text you typed is displayed at the cursor position between the
 				two markers and the lines of text wrap inside the black border</li>
@@ -68,4 +69,5 @@
 		insertText("#marked-active", "foobar bazquux");
 		</script>
 	
+
 </body></html>

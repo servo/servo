@@ -1,7 +1,17 @@
+import os
 import urlparse
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 item_types = ["testharness", "reftest", "manual", "stub", "wdspec"]
+
+
+def from_os_path(path):
+    return path.replace(os.path.sep, "/")
+
+
+def to_os_path(path):
+    return path.replace("/", os.path.sep)
+
 
 def get_source_file(source_files, tests_root, manifest, path):
     def make_new():
@@ -16,6 +26,7 @@ def get_source_file(source_files, tests_root, manifest, path):
         source_files[path] = make_new()
 
     return source_files[path]
+
 
 class ManifestItem(object):
     __metaclass__ = ABCMeta
@@ -58,7 +69,7 @@ class ManifestItem(object):
         return hash(self.key() + self.meta_key())
 
     def to_json(self):
-        return {"path": self.path}
+        return {"path": from_os_path(self.path)}
 
     @classmethod
     def from_json(self, manifest, tests_root, obj, source_files=None):
@@ -86,7 +97,8 @@ class URLManifestItem(ManifestItem):
 
     @classmethod
     def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest, obj["path"])
+        source_file = get_source_file(source_files, tests_root, manifest,
+                                      to_os_path(obj["path"]))
         return cls(source_file,
                    obj["url"],
                    url_base=manifest.url_base,
@@ -111,7 +123,8 @@ class TestharnessTest(URLManifestItem):
 
     @classmethod
     def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest, obj["path"])
+        source_file = get_source_file(source_files, tests_root, manifest,
+                                      to_os_path(obj["path"]))
         return cls(source_file,
                    obj["url"],
                    url_base=manifest.url_base,
@@ -147,7 +160,8 @@ class RefTest(URLManifestItem):
 
     @classmethod
     def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest, obj["path"])
+        source_file = get_source_file(source_files, tests_root, manifest,
+                                      to_os_path(obj["path"]))
         return cls(source_file,
                    obj["url"],
                    obj["references"],
@@ -171,5 +185,6 @@ class WebdriverSpecTest(ManifestItem):
 
     @classmethod
     def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest, obj["path"])
+        source_file = get_source_file(source_files, tests_root, manifest,
+                                      to_os_path(obj["path"]))
         return cls(source_file, manifest=manifest)

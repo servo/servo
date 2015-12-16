@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
+		<meta charset="utf-8" />
 		<title>CSS Regions: element has contentEditable attribute set and both it and a child of it are
 			flowed in a the same region</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan" />
@@ -7,7 +8,7 @@
 		<link href="http://www.w3.org/TR/css3-regions/#flow-from" rel="help" />
 		<link href="http://www.w3.org/TR/html5/editing.html#contenteditable" rel="help" />
 		<meta content="dom interact" name="flags" />
-		<meta content="Test checks that flowing both and element and one of its 
+		<meta content="Test checks that flowing both and element and one of its
 		children in a region, when said element has the contentEditable attribute set does not
 		affect their rendering in the regions and the ability to edit it." name="assert" />
 		<link href="reference/contentEditable-004-ref.xht" rel="match" />
@@ -40,14 +41,14 @@
 			<li>Below you should see a rectangle with a black border with some text inside it. No
 				red should be visible at any time during this test.</li>
 			<li>Click between the first pair of green and blue colored markers and type
-				ì<strong>foobar bazquux</strong>î
+				‚Äú<strong>foobar bazquux</strong>‚Äù
 				<ul>
 					<li>The text you typed is displayed at the cursor position between the
 				two markers and the lines of text wrap inside the black border</li>
 				</ul>
 			</li>
 			<li>Click between the second pair of green and blue colored markers and type
-				ì<strong>foobar bazquux</strong>î
+				‚Äú<strong>foobar bazquux</strong>‚Äù
 				<ul>
 					<li>The text you typed is displayed at the cursor position between the
 				two markers and the lines of text wrap inside the black border</li>
@@ -64,7 +65,7 @@
 			<!-- On a single line since new lines in contentEditable elements are messy :( -->
 			This is some text that should be editable. Even the text between <em><span class="inline-marker green"></span> <span id="marked-parent">these two markers</span> <span class="inline-marker blue"></span></em>.
 		</div>
-	
+
 		<div class="region">
 			<p>&#xA0;</p>
 		</div>
@@ -75,4 +76,5 @@
 		insertText("#marked-child", "foobar bazquux");
 		</script>
 	
+
 </body></html>

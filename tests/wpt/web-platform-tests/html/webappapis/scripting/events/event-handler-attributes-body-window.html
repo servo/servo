@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>HTMLBodyElement event handlers</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<body>
+<script>
+function f() {
+  return 0;
+}
+
+var handlers = ['blur','error','focus','load','resize','scroll',
+                'afterprint','beforeprint','beforeunload','hashchange',
+                'languagechange','message','offline','online','pagehide',
+                'pageshow','popstate','storage','unload'];
+handlers.forEach(function(handler) {
+  test(function() {
+    document.body['on' + handler] = f;
+    assert_equals(window['on' + handler], f);
+  }, handler);
+});
+
+</script>

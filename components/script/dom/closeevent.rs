@@ -5,13 +5,14 @@
 use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use script_task::ScriptChan;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -23,8 +24,7 @@ pub struct CloseEvent {
 }
 
 impl CloseEvent {
-    pub fn new_inherited(wasClean: bool, code: u16,
-                         reason: DOMString) -> CloseEvent {
+    pub fn new_inherited(wasClean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(),
             wasClean: wasClean,
@@ -34,19 +34,20 @@ impl CloseEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                wasClean: bool,
                code: u16,
-               reason: DOMString) -> Root<CloseEvent> {
+               reason: DOMString)
+               -> Root<CloseEvent> {
         let event = box CloseEvent::new_inherited(wasClean, code, reason);
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
-            let event = EventCast::from_ref(ev.r());
-            event.InitEvent(type_,
-                            bubbles == EventBubbles::Bubbles,
-                            cancelable == EventCancelable::Cancelable);
+            let event = ev.upcast::<Event>();
+            event.init_event(type_,
+                             bubbles == EventBubbles::Bubbles,
+                             cancelable == EventCancelable::Cancelable);
         }
         ev
     }
@@ -55,14 +56,23 @@ impl CloseEvent {
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Root<CloseEvent>> {
-        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+        let bubbles = if init.parent.bubbles {
+            EventBubbles::Bubbles
+        } else {
+            EventBubbles::DoesNotBubble
+        };
         let cancelable = if init.parent.cancelable {
             EventCancelable::Cancelable
         } else {
             EventCancelable::NotCancelable
         };
-        Ok(CloseEvent::new(global, type_, bubbles, cancelable, init.wasClean,
-                           init.code, init.reason.clone()))
+        Ok(CloseEvent::new(global,
+                           Atom::from(&*type_),
+                           bubbles,
+                           cancelable,
+                           init.wasClean,
+                           init.code,
+                           init.reason.clone()))
     }
 }
 
@@ -80,5 +90,10 @@ impl CloseEventMethods for CloseEvent {
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-reason
     fn Reason(&self) -> DOMString {
         self.reason.clone()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
     }
 }

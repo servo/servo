@@ -43,12 +43,14 @@ impl IterablePage for Rc<Page> {
         }
     }
     fn find(&self, id: PipelineId) -> Option<Rc<Page>> {
-        if self.id == id { return Some(self.clone()); }
-        for page in &*self.children.borrow() {
-            let found = page.find(id);
-            if found.is_some() { return found; }
+        if self.id == id {
+            return Some(self.clone());
         }
-        None
+
+        self.children.borrow()
+                     .iter()
+                     .filter_map(|p| p.find(id))
+                     .next()
     }
 
 }
@@ -68,19 +70,19 @@ impl Page {
     }
 
     pub fn window(&self) -> Root<Window> {
-        self.frame.borrow().as_ref().unwrap().window.root()
+        Root::from_ref(&*self.frame.borrow().as_ref().unwrap().window)
     }
 
     pub fn document(&self) -> Root<Document> {
-        self.frame.borrow().as_ref().unwrap().document.root()
+        Root::from_ref(&*self.frame.borrow().as_ref().unwrap().document)
     }
 
     // must handle root case separately
     pub fn remove(&self, id: PipelineId) -> Option<Rc<Page>> {
         let remove_idx = {
             self.children
-                .borrow_mut()
-                .iter_mut()
+                .borrow()
+                .iter()
                 .position(|page_tree| page_tree.id == id)
         };
         match remove_idx {
@@ -100,15 +102,11 @@ impl Iterator for PageIterator {
     type Item = Rc<Page>;
 
     fn next(&mut self) -> Option<Rc<Page>> {
-        match self.stack.pop() {
-            Some(next) => {
-                for child in &*next.children.borrow() {
-                    self.stack.push(child.clone());
-                }
-                Some(next)
-            },
-            None => None,
+        let popped = self.stack.pop();
+        if let Some(ref page) = popped {
+            self.stack.extend(page.children.borrow().iter().cloned());
         }
+        popped
     }
 }
 

@@ -8,11 +8,11 @@ use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethod
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
+use string_cache::Atom;
 use time;
 use util::str::DOMString;
 
@@ -43,7 +43,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableHeap<JS<EventTarget>>,
     target: MutNullableHeap<JS<EventTarget>>,
-    type_: DOMRefCell<DOMString>,
+    type_: DOMRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<bool>,
     stop_propagation: Cell<bool>,
@@ -62,15 +62,15 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
             target: Default::default(),
+            type_: DOMRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
-            type_: DOMRefCell::new("".to_owned()),
             canceled: Cell::new(false),
+            stop_propagation: Cell::new(false),
+            stop_immediate: Cell::new(false),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),
             trusted: Cell::new(false),
             dispatching: Cell::new(false),
-            stop_propagation: Cell::new(false),
-            stop_immediate: Cell::new(false),
             initialized: Cell::new(false),
             timestamp: time::get_time().sec as u64,
         }
@@ -83,11 +83,11 @@ impl Event {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<Event> {
         let event = Event::new_uninitialized(global);
-        event.r().InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         event
     }
 
@@ -96,7 +96,23 @@ impl Event {
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
         let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-        Ok(Event::new(global, type_, bubbles, cancelable))
+        Ok(Event::new(global, Atom::from(&*type_), bubbles, cancelable))
+    }
+
+    pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
+        if self.dispatching.get() {
+            return;
+        }
+
+        self.initialized.set(true);
+        self.stop_propagation.set(false);
+        self.stop_immediate.set(false);
+        self.canceled.set(false);
+        self.trusted.set(false);
+        self.target.set(None);
+        *self.type_.borrow_mut() = type_;
+        self.bubbles.set(bubbles);
+        self.cancelable.set(cancelable);
     }
 
     #[inline]
@@ -153,6 +169,11 @@ impl Event {
     pub fn initialized(&self) -> bool {
         self.initialized.get()
     }
+
+    #[inline]
+    pub fn type_(&self) -> Atom {
+        self.type_.borrow().clone()
+    }
 }
 
 impl EventMethods for Event {
@@ -163,17 +184,17 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(&self) -> DOMString {
-        self.type_.borrow().clone()
+        DOMString::from(&*self.type_()) // FIXME(ajeffrey): Directly convert from Atom to DOMString
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
     fn GetTarget(&self) -> Option<Root<EventTarget>> {
-        self.target.get_rooted()
+        self.target.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
     fn GetCurrentTarget(&self) -> Option<Root<EventTarget>> {
-        self.current_target.get_rooted()
+        self.current_target.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
@@ -219,19 +240,7 @@ impl EventMethods for Event {
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
-        if self.dispatching.get() {
-            return;
-        }
-
-        self.initialized.set(true);
-        self.stop_propagation.set(false);
-        self.stop_immediate.set(false);
-        self.canceled.set(false);
-        self.trusted.set(false);
-        self.target.set(None);
-        *self.type_.borrow_mut() = type_;
-        self.bubbles.set(bubbles);
-        self.cancelable.set(cancelable);
+         self.init_event(Atom::from(&*type_), bubbles, cancelable)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

@@ -56,12 +56,26 @@ impl ByteString {
             // http://tools.ietf.org/html/rfc2616#section-2.2
             match x {
                 0...31 | 127 => false, // CTLs
-                40 | 41 | 60 | 62 | 64 |
-                44 | 59 | 58 | 92 | 34 |
-                47 | 91 | 93 | 63 | 61 |
-                123 | 125 | 32  => false, // separators
+                40 |
+                41 |
+                60 |
+                62 |
+                64 |
+                44 |
+                59 |
+                58 |
+                92 |
+                34 |
+                47 |
+                91 |
+                93 |
+                63 |
+                61 |
+                123 |
+                125 |
+                32 => false, // separators
                 x if x > 127 => false, // non-CHARs
-                _ => true
+                _ => true,
             }
         })
     }
@@ -75,7 +89,7 @@ impl ByteString {
             Other,
             CR,
             LF,
-            SPHT // SP or HT
+            SPHT, // SP or HT
         }
         let ByteString(ref vec) = *self;
         let mut prev = PreviousCharacter::Other; // The previous character

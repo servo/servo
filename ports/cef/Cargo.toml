@@ -9,11 +9,11 @@ path = "lib.rs"
 crate-type = ["dylib"]
 
 [dependencies]
-log = "*"
-url = "*"
-libc = "*"
-euclid = "0.2"
-gleam = "0.1"
+log = "0.3"
+url = "0.5"
+libc = "0.2"
+euclid = {version = "0.4", features = ["plugins"]}
+gleam = "0.2"
 
 [dependencies.servo]
 path = "../../components/servo"
@@ -53,12 +53,14 @@ path = "../../components/devtools"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
@@ -66,15 +68,13 @@ git = "https://github.com/servo/rust-stb-image"
 [target.x86_64-apple-darwin.dependencies]
 objc = "0.1"
 cocoa = "0.1"
-core-foundation = "0.1"
-core-graphics = "0.1"
+core-foundation = "0.2"
+core-graphics = "0.2"
+core-text = "1.0"
 cgl = "0.1"
 
-[target.x86_64-apple-darwin.dependencies.core-text]
-git = "https://github.com/servo/core-text-rs"
-
 [target.i686-unknown-linux-gnu.dependencies]
-x11 = "*"
+x11 = "2.3"
 
 [target.x86_64-unknown-linux-gnu.dependencies]
-x11 = "*"
+x11 = "2.3"

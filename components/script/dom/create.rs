@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
@@ -75,26 +74,30 @@ use dom::htmltrackelement::HTMLTrackElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
-use std::borrow::ToOwned;
 use string_cache::{Atom, QualName};
+use util::str::DOMString;
 
-pub fn create_element(name: QualName, prefix: Option<Atom>,
-                      document: &Document, creator: ElementCreator)
+pub fn create_element(name: QualName,
+                      prefix: Option<Atom>,
+                      document: &Document,
+                      creator: ElementCreator)
                       -> Root<Element> {
-    let prefix = prefix.map(|p| (*p).to_owned());
+    // FIXME(ajeffrey): Convert directly from Atom to DOMString.
 
-    if name.ns != ns!(HTML) {
-        return Element::new((*name.local).to_owned(), name.ns, prefix, document);
+    let prefix = prefix.map(|p| DOMString::from(&*p));
+
+    if name.ns != ns!(html) {
+        return Element::new(name.local, name.ns, prefix, document);
     }
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new((*name.local).to_owned(), prefix, document);
-            ElementCast::from_root(obj)
+            let obj = $ctor::new(name.local, prefix, document);
+            Root::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg),+);
-            ElementCast::from_root(obj)
+            let obj = $ctor::new(name.local, prefix, document, $($arg),+);
+            Root::upcast(obj)
         })
     );
 
@@ -174,7 +177,7 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("label")      => make!(HTMLLabelElement),
         atom!("legend")     => make!(HTMLLegendElement),
         atom!("li")         => make!(HTMLLIElement),
-        atom!("link")       => make!(HTMLLinkElement),
+        atom!("link")       => make!(HTMLLinkElement, creator),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:listing
         atom!("listing")    => make!(HTMLPreElement),
         atom!("main")       => make!(HTMLElement),
@@ -198,6 +201,7 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("output")     => make!(HTMLOutputElement),
         atom!("p")          => make!(HTMLParagraphElement),
         atom!("param")      => make!(HTMLParamElement),
+        atom!("plaintext")  => make!(HTMLPreElement),
         atom!("pre")        => make!(HTMLPreElement),
         atom!("progress")   => make!(HTMLProgressElement),
         atom!("q")          => make!(HTMLQuoteElement),
@@ -240,6 +244,7 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("var")        => make!(HTMLElement),
         atom!("video")      => make!(HTMLVideoElement),
         atom!("wbr")        => make!(HTMLElement),
+        atom!("xmp")        => make!(HTMLPreElement),
         _                   => make!(HTMLUnknownElement),
     }
 }

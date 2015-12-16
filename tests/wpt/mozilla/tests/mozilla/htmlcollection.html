@@ -52,13 +52,68 @@
 
                 var new_live = document.createElement("div");
                 new_live.className = "live";
+                assert_equals(htmlcollection.length, 1);
+
                 document.body.appendChild(new_live);
                 assert_equals(htmlcollection.length, 2);
                 assert_equals(htmlcollection.item(1), new_live);
 
+                new_live.className = "dead";
+                assert_equals(htmlcollection.length, 1);
+
+                new_live.className = "live";
+                assert_equals(htmlcollection.length, 2);
+
                 document.body.removeChild(new_live);
                 assert_equals(htmlcollection.length, 1);
-            }, "live HTMLCollection");
+            }, "live HTMLCollection byClassName");
+
+            test(function() {
+                var element = document.createElement("div");
+                var coll = element.getElementsByTagName("div");
+                assert_equals(coll.length, 0);
+
+                element.innerHTML = '<div id="q1"><span id="q2">a</span><div id="q3">b</div><div id="q4">c</div></div>';
+                assert_equals(coll.length, 3);
+
+                var child = coll[0];
+                var grandchild = coll[1];
+                assert_equals(child.id, "q1");
+                assert_equals(grandchild.id, "q3");
+                assert_equals(grandchild.parentNode, child);
+                assert_equals(child.parentNode, element);
+
+                child.removeChild(grandchild);
+                assert_equals(coll.length, 2);
+
+                child.appendChild(grandchild);
+                assert_equals(coll.length, 3);
+            }, "live HTMLCollection byTagName");
+
+            test(function() {
+                var element = document.createElement("div");
+                var coll = element.getElementsByTagName("div");
+                assert_equals(coll.length, 0);
+
+                element.innerHTML = '<div id="n0"><div id="n1"><div id="n2"></div><div id="n3"></div></div></div>';
+                assert_equals(coll.length, 4);
+
+                assert_equals(coll[3].id, "n3");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[1].id, "n1");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[0].id, "n0");
+
+                assert_equals(coll[0].id, "n0");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[1].id, "n1");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[3].id, "n3");
+
+                assert_equals(coll.length, 4);
+
+            }, "HTMLCollection cursoring");
 
             test(function() {
                 assert_equals(document.getElementsByTagName("DIV").length, 5);

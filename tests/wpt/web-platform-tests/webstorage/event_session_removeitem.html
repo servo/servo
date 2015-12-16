@@ -9,10 +9,11 @@
 
 <script>
 
-var t = async_test("key property test of session event");
-
-t.step(function() {
+async_test(function(t) {
     sessionStorage.clear();
+    t.add_cleanup(function() { sessionStorage.clear() });
+
+    self.step = function(f) { t.step(f); };
 
     var event_index = 0;
     window.addEventListener('storage', t.step_func(function(event) {
@@ -39,5 +40,5 @@ t.step(function() {
     el.setAttribute('id', 'ifrm');
     el.setAttribute('src', 'resources/session_set_item_remove_iframe.html');
     document.body.appendChild(el);
-});
+}, "key property test of session event");
 </script>

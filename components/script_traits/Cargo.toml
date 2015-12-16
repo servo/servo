@@ -7,17 +7,27 @@ authors = ["The Servo Project Developers"]
 name = "script_traits"
 path = "lib.rs"
 
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
 [dependencies.msg]
 path = "../msg"
 
 [dependencies.net_traits]
 path = "../net_traits"
 
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
+
 [dependencies.plugins]
 path = "../plugins"
 
 [dependencies.profile_traits]
 path = "../profile_traits"
+
+[dependencies.style_traits]
+path = "../style_traits"
 
 [dependencies.util]
 path = "../util"
@@ -26,15 +36,13 @@ path = "../util"
 path = "../devtools_traits"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
-
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-app_units = "0.1"
-libc = "0.1"
-euclid = "0.2"
+app_units = {version = "0.1", features = ["plugins"]}
+libc = "0.2"
+euclid = {version = "0.4", features = ["plugins"]}
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
+time = "0.1.12"
+url = "0.5"

@@ -1,5 +1,6 @@
 <!doctype html>
 <script>
+onload = function() {opener.postMessage("loaded", "*")};
 onbeforeunload = function() {
   opener.callback();
 }

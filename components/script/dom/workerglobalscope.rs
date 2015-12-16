@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::console::Console;
 use dom::crypto::Crypto;
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
@@ -19,15 +20,17 @@ use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoRequest, JSContext};
 use js::rust::Runtime;
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::{ResourceTask, load_whole_resource};
 use profile_traits::mem;
-use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, TimerSource};
+use script_task::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
+use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::{Url, UrlParser};
 use util::str::DOMString;
 
@@ -41,7 +44,8 @@ pub struct WorkerGlobalScopeInit {
     pub mem_profiler_chan: mem::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    pub scheduler_chan: IpcSender<TimerEventRequest>,
     pub worker_id: WorkerId,
 }
 
@@ -60,7 +64,7 @@ pub struct WorkerGlobalScope {
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
-    timers: TimerManager,
+    timers: ActiveTimers,
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
@@ -81,14 +85,18 @@ pub struct WorkerGlobalScope {
     devtools_wants_updates: Cell<bool>,
 
     #[ignore_heap_size_of = "Defined in std"]
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
+
+    #[ignore_heap_size_of = "Defined in std"]
+    scheduler_chan: IpcSender<TimerEventRequest>,
 }
 
 impl WorkerGlobalScope {
     pub fn new_inherited(init: WorkerGlobalScopeInit,
                          worker_url: Url,
                          runtime: Rc<Runtime>,
-                         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>)
+                         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+                         timer_event_chan: IpcSender<TimerEvent>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -101,13 +109,14 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             console: Default::default(),
             crypto: Default::default(),
-            timers: TimerManager::new(),
+            timers: ActiveTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
             to_devtools_sender: init.to_devtools_sender,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
+            scheduler_chan: init.scheduler_chan,
         }
     }
 
@@ -127,8 +136,22 @@ impl WorkerGlobalScope {
         &self.from_devtools_receiver
     }
 
-    pub fn constellation_chan(&self) -> ConstellationChan {
+    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
         self.constellation_chan.clone()
+    }
+
+    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
+        self.scheduler_chan.clone()
+    }
+
+    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+        self.timers.schedule_callback(callback,
+                                      duration,
+                                      TimerSource::FromWorker)
+    }
+
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
+        self.timers.unschedule_callback(handle);
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
@@ -181,7 +204,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         }
 
         for url in urls {
-            let (url, source) = match load_whole_resource(&self.resource_task, url) {
+            let (url, source) = match load_whole_resource(&self.resource_task, url, None) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())
@@ -232,8 +255,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -242,8 +264,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -257,8 +278,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -267,8 +287,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -281,7 +300,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn execute_script(&self, source: DOMString) {
         match self.runtime.evaluate_script(
-            self.reflector().get_jsobject(), source, self.worker_url.serialize(), 1) {
+            self.reflector().get_jsobject(), String::from(source), self.worker_url.serialize(), 1) {
             Ok(_) => (),
             Err(_) => {
                 // TODO: An error needs to be dispatched to the parent.
@@ -295,7 +314,7 @@ impl WorkerGlobalScope {
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.script_chan(),
             None => panic!("need to implement a sender for SharedWorker"),
@@ -304,7 +323,7 @@ impl WorkerGlobalScope {
 
     pub fn pipeline(&self) -> PipelineId {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.pipeline(),
             None => panic!("need to add a pipeline for SharedWorker"),
@@ -313,7 +332,7 @@ impl WorkerGlobalScope {
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.new_script_pair(),
             None => panic!("need to implement creating isolated event loops for SharedWorker"),
@@ -322,14 +341,14 @@ impl WorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.process_event(msg),
             None => panic!("need to implement processing single events for SharedWorker"),
         }
     }
 
-    pub fn handle_fire_timer(&self, timer_id: TimerId) {
+    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
     }
 

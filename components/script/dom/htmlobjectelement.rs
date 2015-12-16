@@ -6,10 +6,10 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
@@ -17,6 +17,7 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
 use std::sync::Arc;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -26,7 +27,7 @@ pub struct HTMLObjectElement {
 }
 
 impl HTMLObjectElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
@@ -37,7 +38,7 @@ impl HTMLObjectElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, prefix, document);
@@ -53,11 +54,11 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self) {
-        let elem = ElementCast::from_ref(*self);
+        let elem = self.upcast::<Element>();
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(""), &atom!("type")),
-               elem.get_attribute(&ns!(""), &atom!("data"))) {
+        match (elem.get_attribute(&ns!(), &atom!("type")),
+               elem.get_attribute(&ns!(), &atom!("data"))) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
             }
@@ -79,7 +80,7 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
-    make_getter!(Type);
+    make_getter!(Type, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");
@@ -91,15 +92,14 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
 }
 
 impl VirtualMethods for HTMLObjectElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(data) => {
+            &atom!("data") => {
                 if let AttributeMutation::Set(_) = mutation {
                     self.process_data_url();
                 }

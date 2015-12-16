@@ -14,40 +14,34 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::uintptr_t;
 use msg::compositor_msg::Epoch;
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
-use net_traits::PendingAsyncLoad;
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::mem::ReportsChan;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ScriptMsg as ConstellationMsg, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use std::any::Any;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::animation::PropertyAnimation;
-use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
-use style::viewport::ViewportRule;
 use url::Url;
+use util::ipc::OptionalOpaqueIpcSender;
+
 pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(Stylesheet, MediaQueryList),
-
-    /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad, Box<StylesheetLoadResponder + Send>),
-
-    /// Adds a @viewport rule (translated from a <META name="viewport"> element) to the document.
-    AddMetaViewport(ViewportRule),
+    AddStylesheet(Arc<Stylesheet>),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,
 
     /// Requests a reflow.
-    Reflow(Box<ScriptReflow>),
+    Reflow(ScriptReflow),
 
     /// Get an RPC interface.
     GetRPC(Sender<Box<LayoutRPC + Send>>),
@@ -78,7 +72,7 @@ pub enum Msg {
 
     /// Requests that the layout task immediately shut down. There must be no more nodes left after
     /// this, or layout will crash.
-    ExitNow(PipelineExitType),
+    ExitNow,
 
     /// Get the last epoch counter for this layout task.
     GetCurrentEpoch(IpcSender<Epoch>),
@@ -109,8 +103,8 @@ pub trait LayoutRPC {
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the node containing the point of interest
-    fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
-    fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
+    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
+    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
@@ -174,17 +168,23 @@ pub struct ScriptReflow {
     /// General reflow data.
     pub reflow_info: Reflow,
     /// The document node.
-    pub document_root: TrustedNodeAddress,
-    /// The channel through which messages can be sent back to the script task.
-    pub script_chan: Sender<ConstellationControlMsg>,
+    pub document: TrustedNodeAddress,
+    /// The document's list of stylesheets.
+    pub document_stylesheets: Vec<Arc<Stylesheet>>,
+    /// Whether the document's stylesheets have changed since the last script reflow.
+    pub stylesheets_changed: bool,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
     pub script_join_chan: Sender<()>,
-    /// Unique identifier
-    pub id: u32,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
+}
+
+impl Drop for ScriptReflow {
+    fn drop(&mut self) {
+        self.script_join_chan.send(()).unwrap();
+    }
 }
 
 /// Encapsulates a channel to the layout task.
@@ -253,10 +253,11 @@ pub struct NewLayoutTaskInfo {
     pub is_parent: bool,
     pub layout_pair: OpaqueScriptLayoutChannel,
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan<ConstellationMsg>,
     pub failure: Failure,
-    pub script_chan: Sender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_task: ImageCacheTask,
-    pub paint_chan: Box<Any + Send>,
-    pub layout_shutdown_chan: Sender<()>,
+    pub paint_chan: OptionalOpaqueIpcSender,
+    pub layout_shutdown_chan: IpcSender<()>,
+    pub content_process_shutdown_chan: IpcSender<()>,
 }

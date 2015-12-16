@@ -139,6 +139,13 @@ class DescriptorProvider:
         return self.config.getDescriptor(interfaceName)
 
 
+def MemberIsUnforgeable(member, descriptor):
+    return ((member.isAttr() or member.isMethod()) and
+            not member.isStatic() and
+            (member.isUnforgeable() or
+             bool(descriptor.interface.getExtendedAttribute("Unforgeable"))))
+
+
 class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
@@ -157,24 +164,26 @@ class Descriptor(DescriptorProvider):
             ty = "%sBinding::%s" % (ifaceName, ifaceName)
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
-            self.memberType = "???"
             self.nativeType = ty
         else:
             self.needsRooting = True
             self.returnType = "Root<%s>" % ifaceName
             self.argumentType = "&%s" % ifaceName
-            self.memberType = "Root<%s>" % ifaceName
-            self.nativeType = "Root<%s>" % ifaceName
+            self.nativeType = "*const %s" % ifaceName
 
         self.concreteType = ifaceName
         self.register = desc.get('register', True)
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
+        self.weakReferenceable = desc.get('weakReferenceable', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
         self.concrete = (not self.interface.isCallback() and
                          desc.get('concrete', True))
+        self.hasUnforgeableMembers = (self.concrete and
+                                      any(MemberIsUnforgeable(m, self) for m in
+                                          self.interface.members))
 
         self.operations = {
             'IndexedGetter': None,

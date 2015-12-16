@@ -23,7 +23,7 @@
   <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-slice" title="6.2. Image Slicing: the 'border-image-slice' property" />
   <link rel="match" href="reference/ref-if-there-is-no-red.xht" />
   <meta name="flags" content="image" />
-  <meta name="assert" content="If 'border-style' is not declared, then it defaults to 'none' in which case the computed border-widths on all 4 sides is 0 in which case the border area to be painted with the border-image is also 0. So, we should see no red in this test." />
+  <meta name="assert" content="If 'border-style' is not declared, then it defaults to 'none' in which case the computed border-widths on all 4 sides is 0 in which case the border area to be painted with the border-image is also 0 because the default border-image-width is 1 which means 1 time the computed border-width. So, we should see no red in this test." />
 
   <style type="text/css"><![CDATA[
   div

@@ -5,14 +5,14 @@ import ConfigParser
 
 sys.path.insert(1, os.path.abspath(os.path.join(__file__, "../..")))
 import base_test
-from webdriver import exceptions
+from selenium.common import exceptions
 from wptserve import server
 from wptserve.router import any_method
 from wptserve.handlers import basic_auth_handler
 
 class WebDriverAuthTest(unittest.TestCase):
 
-    # Set up class to start HTTP Server that responds to 
+    # Set up class to start HTTP Server that responds to
     # test URLs with various 401 responses
     @classmethod
     def setUpClass(cls):

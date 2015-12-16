@@ -68,6 +68,7 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
+[Constructor]
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
@@ -89,6 +90,7 @@ interface TestBinding {
            attribute Blob interfaceAttribute;
            attribute (HTMLElement or long) unionAttribute;
            attribute (Event or DOMString) union2Attribute;
+           attribute (Event or USVString) union3Attribute;
   readonly attribute Uint8ClampedArray arrayAttribute;
            attribute any anyAttribute;
            attribute object objectAttribute;
@@ -111,6 +113,7 @@ interface TestBinding {
            attribute ByteString? byteStringAttributeNullable;
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
+           attribute URL? interfaceAttributeWeak;
            attribute object? objectAttributeNullable;
            attribute (HTMLElement or long)? unionAttributeNullable;
            attribute (Event or DOMString)? union2AttributeNullable;
@@ -323,6 +326,7 @@ interface TestBinding {
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
 
   void passVariadicBoolean(boolean... args);
+  void passVariadicBooleanAndDefault(optional boolean arg = true, boolean... args);
   void passVariadicByte(byte... args);
   void passVariadicOctet(octet... args);
   void passVariadicShort(short... args);
@@ -339,7 +343,7 @@ interface TestBinding {
   void passVariadicUsvstring(USVString... args);
   void passVariadicByteString(ByteString... args);
   void passVariadicEnum(TestEnum... args);
-  // void passVariadicInterface(Blob... args);
+  void passVariadicInterface(Blob... args);
   void passVariadicUnion((HTMLElement or long)... args);
   void passVariadicUnion2((Event or DOMString)... args);
   void passVariadicUnion3((Blob or DOMString)... args);

@@ -1,0 +1,25 @@
+﻿﻿<html>
+<head>
+    <title>Text Form</title>
+    <meta charset="utf-8" />
+    <script>
+        function key_press() {
+            document.getElementById("text").textContent = document.getElementById("Text1").value;
+        }
+
+        function got_focus() {
+            var output = document.getElementById("output");
+            output.checked = true;
+        }
+    </script>
+</head>
+<body>
+    <p id="text"></p>
+    <form action="text-form-landing.html">
+        <input id="Text1" type="text" onkeyup="key_press()"/>
+        <input id="Text2" type="text" onfocus="got_focus()" />
+        <input id="output" type="checkbox" />
+        <input type="submit" name="e" value="mc2" />
+    </form>
+</body>
+</html>

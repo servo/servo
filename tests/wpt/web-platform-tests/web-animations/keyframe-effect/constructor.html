@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffectReadOnly constructor tests</title>
+<link rel="help" href="http://w3c.github.io/web-animations/#the-keyframeeffect-interfaces">
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<style>
+#target {
+  border-style: solid;  /* so border-*-width values don't compute to 0 */
+}
+</style>
+<script>
+"use strict";
+
+var target = document.getElementById("target");
+
+function assert_frames_equal(a, b, name) {
+  assert_equals(Object.keys(a).sort().toString(),
+                Object.keys(b).sort().toString(),
+                "properties on " + name);
+  for (var p in a) {
+    assert_equals(a[p], b[p], "value for '" + p + "' on " + name);
+  }
+}
+
+function assert_frame_lists_equal(a, b) {
+  assert_equals(a.length, b.length, "number of frames");
+  for (var i = 0; i < Math.min(a.length, b.length); i++) {
+    assert_frames_equal(a[i], b[i], "ComputedKeyframe #" + i);
+  }
+}
+
+var gEmptyKeyframeListTests = [
+  [],
+  [{}],
+  [{ easing: "ease-in" }],
+  [{ unknown: "unknown" }, { unknown: "unknown" }],
+  [{ color: "invalid" }, { color: "invalid" }],
+  { easing: "ease-in" },
+  { unknown: "unknown" },
+  { unknown: [] },
+  { unknown: ["unknown"] },
+  { unknown: ["unknown", "unknown"] },
+  { animationName: ["none", "abc"] },
+  { color: [] },
+  null,
+  undefined,
+];
+
+test(function(t) {
+  gEmptyKeyframeListTests.forEach(function(frames) {
+    assert_equals(new KeyframeEffectReadOnly(target, frames).getFrames().length,
+                  0, "number of frames for " + JSON.stringify(frames));
+  });
+}, "a KeyframeEffectReadOnly can be constructed with no frames");
+
+// [specified easing value, expected easing value]
+var gEasingValueTests = [
+  ["unrecognised", "linear"],
+  ["linear", "linear"],
+  ["ease-in-out", "ease-in-out"],
+  ["initial", "linear"],
+  ["inherit", "linear"],
+  ["var(--x)", "linear"],
+  ["ease-in-out, ease-out", "linear"],
+  ["Ease\\2d in-out", "ease-in-out"],
+  ["ease /**/", "ease"],
+];
+
+test(function(t) {
+  gEasingValueTests.forEach(function(subtest) {
+    var easing = subtest[0];
+    var expected = subtest[1];
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"],
+      easing: easing
+    });
+    assert_equals(effect.getFrames()[0].easing, expected,
+                  "resulting easing for '" + easing + "'");
+  });
+}, "easing values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in PropertyIndexedKeyframes");
+
+test(function(t) {
+  gEasingValueTests.forEach(function(subtest) {
+    var easing = subtest[0];
+    var expected = subtest[1];
+    var effect = new KeyframeEffectReadOnly(target, [
+      { offset: 0, left: "10px", easing: easing },
+      { offset: 1, left: "20px" }
+    ]);
+    assert_equals(effect.getFrames()[0].easing, expected,
+                  "resulting easing for '" + easing + "'");
+  });
+}, "easing values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in Keyframe");
+
+test(function(t) {
+  gEasingValueTests.forEach(function(subtest) {
+    var easing = subtest[0];
+    var expected = subtest[1];
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"]
+    }, { easing: easing });
+    assert_equals(effect.getFrames()[0].easing, expected,
+                  "resulting easing for '" + easing + "'");
+  });
+}, "easing values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
+
+var gGoodCompositeValueTests = [
+  "replace", "add", "accumulate"
+];
+
+var gBadCompositeValueTests = [
+  "unrecognised", "replace ", "Replace"
+];
+
+test(function(t) {
+  gGoodCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"],
+      composite: composite
+    });
+    assert_equals(effect.getFrames()[0].composite, composite,
+                  "resulting composite for '" + composite + "'");
+  });
+  gBadCompositeValueTests.forEach(function(composite) {
+    assert_throws(new TypeError, function() {
+                    new KeyframeEffectReadOnly(target, {
+                      left: ["10px", "20px"],
+                      composite: composite
+                    });
+                  });
+  });
+}, "composite values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in PropertyIndexedKeyframes");
+
+test(function(t) {
+  gGoodCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, [
+      { offset: 0, left: "10px", composite: composite },
+      { offset: 1, left: "20px" }
+    ]);
+    assert_equals(effect.getFrames()[0].composite, composite,
+                  "resulting composite for '" + composite + "'");
+  });
+  gBadCompositeValueTests.forEach(function(composite) {
+    assert_throws(new TypeError, function() {
+                    new KeyframeEffectReadOnly(target, [
+                      { offset: 0, left: "10px", composite: composite },
+                      { offset: 1, left: "20px" }
+                    ]);
+                  });
+  });
+}, "composite values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in Keyframe");
+
+test(function(t) {
+  gGoodCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"]
+    }, { composite: composite });
+    assert_equals(effect.getFrames()[0].composite, composite,
+                  "resulting composite for '" + composite + "'");
+  });
+  gBadCompositeValueTests.forEach(function(composite) {
+    assert_throws(new TypeError, function() {
+                                   new KeyframeEffectReadOnly(target, {
+                                     left: ["10px", "20px"]
+                                   }, { composite: composite });
+                                 });
+  });
+}, "composite values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
+
+var gPropertyIndexedKeyframesTests = [
+  { desc:   "a one property two value PropertyIndexedKeyframes specification",
+    input:  { left: ["10px", "20px"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px" }] },
+  { desc:   "a one shorthand property two value PropertyIndexedKeyframes specification",
+    input:  { margin: ["10px", "10px 20px 30px 40px"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "10px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "10px", marginRight: "20px", marginBottom: "30px", marginLeft: "40px" }] },
+  { desc:   "a two property (one shorthand and one of its longhand components) two value PropertyIndexedKeyframes specification",
+    input:  { marginTop: ["50px", "60px"],
+              margin: ["10px", "10px 20px 30px 40px"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "50px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "60px", marginRight: "20px", marginBottom: "30px", marginLeft: "40px" }] },
+  { desc:   "a two property two value PropertyIndexedKeyframes specification",
+    input:  { left: ["10px", "20px"],
+              top: ["30px", "40px"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px", top: "30px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px", top: "40px" }] },
+  { desc:   "a two property PropertyIndexedKeyframes specification with different numbers of values",
+    input:  { left: ["10px", "20px", "30px"],
+              top: ["40px", "50px"] },
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", composite: "replace", left: "10px", top: "40px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "20px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "30px", top: "50px" }] },
+  { desc:   "a PropertyIndexedKeyframes specification with an invalid value",
+    input:  { left: ["10px", "20px", "30px", "40px", "50px"],
+              top:  ["15px", "25px", "invalid", "45px", "55px"] },
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px", top: "15px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "20px", top: "25px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "30px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "40px", top: "45px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "50px", top: "55px" }] },
+  { desc:   "a one property two value PropertyIndexedKeyframes specification that needs to stringify its values",
+    input:  { opacity: [0, 1] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", opacity: "0" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", opacity: "1" }] },
+  { desc:   "a one property one value PropertyIndexedKeyframes specification",
+    input:  { left: ["10px"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "10px" }] },
+  { desc:   "a one property one non-array value PropertyIndexedKeyframes specification",
+    input:  { left: "10px" },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "10px" }] },
+  { desc:   "a one property two value PropertyIndexedKeyframes specification where the first value is invalid",
+    input:  { left: ["invalid", "10px"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "10px" }] },
+  { desc:   "a one property two value PropertyIndexedKeyframes specification where the second value is invalid",
+    input:  { left: ["10px", "invalid"] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace" }] },
+  { desc:   "a two property PropertyIndexedKeyframes specification where one property is missing from the first Keyframe",
+    input:  [{ offset: 0, left: "10px" },
+             { offset: 1, left: "20px", top: "30px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px", top: "30px" }] },
+  { desc:   "a two property PropertyIndexedKeyframes specification where one property is missing from the last Keyframe",
+    input:  [{ offset: 0, left: "10px", top: "20px" },
+             { offset: 1, left: "30px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" , top: "20px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "30px" }] },
+  { desc:   "a PropertyIndexedKeyframes specification with repeated values at offset 0 with different easings",
+    input:  [{ offset: 0.0, left: "100px", easing: "ease" },
+             { offset: 0.0, left: "200px", easing: "ease" },
+             { offset: 0.5, left: "300px", easing: "linear" },
+             { offset: 1.0, left: "400px", easing: "ease-out" },
+             { offset: 1.0, left: "500px", easing: "step-end" }],
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "ease",     composite: "replace", left: "100px" },
+             { offset: 0.0, computedOffset: 0.0, easing: "ease",     composite: "replace", left: "200px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear",   composite: "replace", left: "300px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "ease-out", composite: "replace", left: "400px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear",   composite: "replace", left: "500px" }] },
+];
+
+gPropertyIndexedKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    assert_frame_lists_equal(effect.getFrames(), subtest.output);
+  }, "a KeyframeEffectReadOnly can be constructed with " + subtest.desc);
+
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    var secondEffect = new KeyframeEffectReadOnly(target, effect.getFrames());
+    assert_frame_lists_equal(secondEffect.getFrames(), effect.getFrames());
+  }, "a KeyframeEffectReadOnly constructed with " + subtest.desc +
+     " roundtrips");
+});
+
+test(function(t) {
+  var expectedOrder = ["composite", "easing", "offset", "left", "marginLeft"];
+  var actualOrder = [];
+  var kf1 = {};
+  var kf2 = { marginLeft: "10px", left: "20px", offset: 1 };
+  [{ p: "marginLeft", v: "10px" },
+   { p: "left",       v: "20px" },
+   { p: "offset",     v: "0" },
+   { p: "easing",     v: "linear" },
+   { p: "composite",  v: null }].forEach(function(e) {
+    Object.defineProperty(kf1, e.p, {
+      enumerable: true,
+      get: function() { actualOrder.push(e.p); return e.v; }
+    });
+  });
+  new KeyframeEffectReadOnly(target, [kf1, kf2]);
+  assert_array_equals(actualOrder, expectedOrder, "property access order");
+}, "the KeyframeEffectReadOnly constructor reads Keyframe properties in the " +
+   "expected order");
+
+var gKeyframeSequenceTests = [
+  { desc:   "a one property two Keyframe sequence",
+    input:  [{ offset: 0, left: "10px" },
+             { offset: 1, left: "20px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px" }] },
+  { desc:   "a two property two Keyframe sequence",
+    input:  [{ offset: 0, left: "10px", top: "30px" },
+             { offset: 1, left: "20px", top: "40px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px", top: "30px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px", top: "40px" }] },
+  { desc:   "a one shorthand property two Keyframe sequence",
+    input:  [{ offset: 0, margin: "10px" },
+             { offset: 1, margin: "20px 30px 40px 50px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "10px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "20px", marginRight: "30px", marginBottom: "40px", marginLeft: "50px" }] },
+  { desc:   "a two property (a shorthand and one of its component longhands) two Keyframe sequence",
+    input:  [{ offset: 0, margin: "10px", marginTop: "20px" },
+             { offset: 1, marginTop: "70px", margin: "30px 40px 50px 60px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "20px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "70px", marginRight: "40px", marginBottom: "50px", marginLeft: "60px" }] },
+  { desc:   "a Keyframe sequence with duplicate values for a given interior offset",
+    input:  [{ offset: 0.0, left: "10px" },
+             { offset: 0.5, left: "20px" },
+             { offset: 0.5, left: "30px" },
+             { offset: 0.5, left: "40px" },
+             { offset: 1.0, left: "50px" }],
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "20px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "40px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "50px" }] },
+  { desc:   "a Keyframe sequence with duplicate values for offsets 0 and 1",
+    input:  [{ offset: 0, left: "10px" },
+             { offset: 0, left: "20px" },
+             { offset: 0, left: "30px" },
+             { offset: 1, left: "40px" },
+             { offset: 1, left: "50px" },
+             { offset: 1, left: "60px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "30px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "40px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "60px" }] },
+  { desc:   "a two property four Keyframe sequence",
+    input:  [{ offset: 0, left: "10px" },
+             { offset: 0, top: "20px" },
+             { offset: 1, top: "30px" },
+             { offset: 1, left: "40px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px", top: "20px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "40px", top: "30px" }] },
+  { desc:   "a one property Keyframe sequence with some omitted offsets",
+    input:  [{ offset: 0.00, left: "10px" },
+             { offset: 0.25, left: "20px" },
+             { left: "30px" },
+             { left: "40px" },
+             { offset: 1.00, left: "50px" }],
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "20px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "30px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "40px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "50px" }] },
+  { desc:   "a two property Keyframe sequence with some omitted offsets",
+    input:  [{ offset: 0.00, left: "10px", top: "20px" },
+             { offset: 0.25, left: "30px" },
+             { left: "40px" },
+             { left: "50px", top: "60px" },
+             { offset: 1.00, left: "70px", top: "80px" }],
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px", top: "20px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "30px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "40px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "50px", top: "60px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "70px", top: "80px" }] },
+  { desc:   "a one property Keyframe sequence with all omitted offsets",
+    input:  [{ left: "10px" },
+             { left: "20px" },
+             { left: "30px" },
+             { left: "40px" },
+             { left: "50px" }],
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "20px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "30px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "40px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "50px" }] },
+  { desc:   "a Keyframe sequence with different easing values, but the same easing value for a given offset",
+    input:  [{ offset: 0.0, easing: "ease",     left: "10px"},
+             { offset: 0.0, easing: "ease",     top: "20px"},
+             { offset: 0.5, easing: "linear",   left: "30px" },
+             { offset: 0.5, easing: "linear",   top: "40px" },
+             { offset: 1.0, easing: "step-end", left: "50px" },
+             { offset: 1.0, easing: "step-end", top: "60px" }],
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "ease",         composite: "replace", left: "10px", top: "20px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "30px", top: "40px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "50px", top: "60px" }] },
+  { desc:   "a Keyframe sequence with different composite values, but the same composite value for a given offset",
+    input:  [{ offset: 0.0, composite: "replace", left: "10px" },
+             { offset: 0.0, composite: "replace", top: "20px" },
+             { offset: 0.5, composite: "add",     left: "30px" },
+             { offset: 0.5, composite: "add",     top: "40px" },
+             { offset: 1.0, composite: "replace", left: "50px" },
+             { offset: 1.0, composite: "replace", top: "60px" }],
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", composite: "replace", left: "10px", top: "20px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "add",     left: "30px", top: "40px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "50px", top: "60px" }] },
+  { desc:   "a one property two Keyframe sequence that needs to stringify its values",
+    input:  [{ offset: 0, opacity: 0 },
+             { offset: 1, opacity: 1 }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", opacity: "0" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", opacity: "1" }] },
+  { desc:   "a Keyframe sequence where shorthand precedes longhand",
+    input:  [{ offset: 0, margin: "10px", marginRight: "20px" },
+             { offset: 1, margin: "30px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginBottom: "10px", marginLeft: "10px", marginRight: "20px", marginTop: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginBottom: "30px", marginLeft: "30px", marginRight: "30px", marginTop: "30px" }] },
+  { desc:   "a Keyframe sequence where longhand precedes shorthand",
+    input:  [{ offset: 0, marginRight: "20px", margin: "10px" },
+             { offset: 1, margin: "30px" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginBottom: "10px", marginLeft: "10px", marginRight: "20px", marginTop: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginBottom: "30px", marginLeft: "30px", marginRight: "30px", marginTop: "30px" }] },
+  { desc:   "a Keyframe sequence where lesser shorthand precedes greater shorthand",
+    input:  [{ offset: 0, borderLeft: "1px solid rgb(1, 2, 3)", border: "2px dotted rgb(4, 5, 6)" },
+             { offset: 1, border: "3px dashed rgb(7, 8, 9)" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace",
+                 borderBottomColor: "rgb(4, 5, 6)", borderBottomWidth: "2px",
+                 borderLeftColor:   "rgb(1, 2, 3)", borderLeftWidth:   "1px",
+                 borderRightColor:  "rgb(4, 5, 6)", borderRightWidth:  "2px",
+                 borderTopColor:    "rgb(4, 5, 6)", borderTopWidth:    "2px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+                 borderBottomColor: "rgb(7, 8, 9)", borderBottomWidth: "3px",
+                 borderLeftColor:   "rgb(7, 8, 9)", borderLeftWidth:   "3px",
+                 borderRightColor:  "rgb(7, 8, 9)", borderRightWidth:  "3px",
+                 borderTopColor:    "rgb(7, 8, 9)", borderTopWidth:    "3px" }] },
+  { desc:   "a Keyframe sequence where greater shorthand precedes lesser shorthand",
+    input:  [{ offset: 0, border: "2px dotted rgb(4, 5, 6)", borderLeft: "1px solid rgb(1, 2, 3)" },
+             { offset: 1, border: "3px dashed rgb(7, 8, 9)" }],
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace",
+                 borderBottomColor: "rgb(4, 5, 6)", borderBottomWidth: "2px",
+                 borderLeftColor:   "rgb(1, 2, 3)", borderLeftWidth:   "1px",
+                 borderRightColor:  "rgb(4, 5, 6)", borderRightWidth:  "2px",
+                 borderTopColor:    "rgb(4, 5, 6)", borderTopWidth:    "2px" },
+             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+                 borderBottomColor: "rgb(7, 8, 9)", borderBottomWidth: "3px",
+                 borderLeftColor:   "rgb(7, 8, 9)", borderLeftWidth:   "3px",
+                 borderRightColor:  "rgb(7, 8, 9)", borderRightWidth:  "3px",
+                 borderTopColor:    "rgb(7, 8, 9)", borderTopWidth:    "3px" }] },
+];
+
+gKeyframeSequenceTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    assert_frame_lists_equal(effect.getFrames(), subtest.output);
+  }, "a KeyframeEffectReadOnly can be constructed with " + subtest.desc);
+
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    var secondEffect = new KeyframeEffectReadOnly(target, effect.getFrames());
+    assert_frame_lists_equal(secondEffect.getFrames(), effect.getFrames());
+  }, "a KeyframeEffectReadOnly constructed with " + subtest.desc +
+     " roundtrips");
+});
+
+
+// KeyframeEffectOptions
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(
+    target, {left: ["10px", "20px"]});
+
+  var ct = effect.getComputedTiming();
+  assert_equals(ct.delay, 0, "default delay");
+  assert_equals(ct.fill, "none", "default fill");
+  assert_equals(ct.iterations, 1.0, "default iterations");
+  assert_equals(ct.duration, 0, "default duration");
+  assert_equals(ct.direction, "normal", "default direction");
+
+  assert_equals(effect.composite, "replace", "default composite");
+  assert_equals(effect.iterationComposite, "replace",
+                "default iterationComposite");
+  assert_equals(effect.spacing, "distribute",
+                "default spacing");
+}, "a KeyframeEffectReadOnly constructed without any " +
+   "KeyframeEffectOptions object");
+
+var gKeyframeEffectOptionTests = [
+  { desc:     "an empty KeyframeEffectOption",
+    input:    {},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a normal KeyframeEffectOption",
+    input:    {delay: 1000,
+               fill: "auto",
+               iterations: 5.5,
+               duration: "auto",
+               direction: "alternate"},
+    expected: {delay: 1000,
+               fill: "none",
+               iterations: 5.5,
+               duration: 0,
+               direction: "alternate"} },
+  { desc:     "a double value",
+    input:    3000,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 3000,
+               direction: "normal"} },
+  { desc:     "+Infinity",
+    input:    Infinity,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: Infinity,
+               direction: "normal"} },
+  { desc:     "-Infinity",
+    input:    -Infinity,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "NaN",
+    input:    NaN,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative value",
+    input:    -1,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an Infinity duration",
+    input:    {duration: Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: Infinity,
+               direction: "normal"} },
+  { desc:     "a negative Infinity duration",
+    input:    {duration: -Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a NaN duration",
+    input:    {duration: NaN},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative duration",
+    input:    {duration: -1},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a string duration",
+    input:    {duration: "cabbage"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an auto duration",
+    input:    {duration: "auto"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an Infinity iterations",
+    input:    {iterations: Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: Infinity,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative Infinity iterations",
+    input:    {iterations: -Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a NaN iterations",
+    input:    {iterations: NaN},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative iterations",
+    input:    {iterations: -1},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an auto fill",
+    input:    {fill: "auto"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a forwards fill",
+    input:    {fill: "forwards"},
+    expected: {delay: 0,
+               fill: "forwards",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} }
+];
+
+gKeyframeEffectOptionTests.forEach(function(stest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(
+      target, {left: ["10px", "20px"]}, stest.input);
+
+    var ct = effect.getComputedTiming();
+    assert_equals(ct.delay, stest.expected.delay, "initial delay");
+    assert_equals(ct.fill, stest.expected.fill, "initial fill");
+    assert_equals(ct.iterations, stest.expected.iterations, "initial iterations");
+    assert_equals(ct.duration, stest.expected.duration, "initial duration");
+    assert_equals(ct.direction, stest.expected.direction, "initial direction");
+  }, "a KeyframeEffectReadOnly constructed by " + stest.desc);
+});
+
+done();
+</script>
+</body>

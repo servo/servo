@@ -21,13 +21,14 @@ pub struct Comment {
 impl Comment {
     fn new_inherited(text: DOMString, document: &Document) -> Comment {
         Comment {
-            characterdata: CharacterData::new_inherited(text, document)
+            characterdata: CharacterData::new_inherited(text, document),
         }
     }
 
     pub fn new(text: DOMString, document: &Document) -> Root<Comment> {
         Node::reflect_node(box Comment::new_inherited(text, document),
-                           document, CommentBinding::Wrap)
+                           document,
+                           CommentBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Root<Comment>> {

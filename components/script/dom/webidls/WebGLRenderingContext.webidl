@@ -471,12 +471,12 @@ interface WebGLRenderingContextBase
     [WebGLHandlesContextLoss] WebGLContextAttributes? getContextAttributes();
     //[WebGLHandlesContextLoss] boolean isContextLost();
 
-    //sequence<DOMString>? getSupportedExtensions();
+    sequence<DOMString>? getSupportedExtensions();
     object? getExtension(DOMString name);
 
     void activeTexture(GLenum texture);
     void attachShader(WebGLProgram? program, WebGLShader? shader);
-    //void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
+    void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
     void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
     void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
@@ -492,10 +492,11 @@ interface WebGLRenderingContextBase
     //void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     // FIXME(dmarcos) The function below is the original function in the webIdl:
     // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
-    // The Code genearator doesn't handle BufferDataSource so we're using 'optional object'
+    // The Code generator doesn't handle BufferDataSource so we're using 'optional object'
     // in the meantime
     void bufferData(GLenum target, optional object data, GLenum usage);
     //void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
+    void bufferSubData(GLenum target, GLintptr offset, optional object data);
 
     //[WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
@@ -505,13 +506,22 @@ interface WebGLRenderingContextBase
     void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     void compileShader(WebGLShader? shader);
 
-    //void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                          GLsizei width, GLsizei height, GLint border,
-    //                          ArrayBufferView data);
-    //void compressedTexSubImage2D(GLenum target, GLint level,
-    //                             GLint xoffset, GLint yoffset,
-    //                             GLsizei width, GLsizei height, GLenum format,
-    //                             ArrayBufferView data);
+    // FIXME(simartin) The Code generator doesn't handle ArrayBufferView so we're
+    // using 'object' in the meantime
+    // void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
+    //                           GLsizei width, GLsizei height, GLint border,
+    //                           ArrayBufferView data);
+    void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                              GLsizei width, GLsizei height, GLint border,
+                              object data);
+    // void compressedTexSubImage2D(GLenum target, GLint level,
+    //                              GLint xoffset, GLint yoffset,
+    //                              GLsizei width, GLsizei height, GLenum format,
+    //                              ArrayBufferView data);
+    void compressedTexSubImage2D(GLenum target, GLint level,
+                                 GLint xoffset, GLint yoffset,
+                                 GLsizei width, GLsizei height, GLenum format,
+                                 object data);
 
     //void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
     //                    GLint x, GLint y, GLsizei width, GLsizei height,
@@ -542,7 +552,7 @@ interface WebGLRenderingContextBase
     void disable(GLenum cap);
     //void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
-    //void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
+    void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
 
     void enable(GLenum cap);
     void enableVertexAttribArray(GLuint index);
@@ -563,14 +573,14 @@ interface WebGLRenderingContextBase
 
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram? program, DOMString name);
 
-    //any getBufferParameter(GLenum target, GLenum pname);
+    any getBufferParameter(GLenum target, GLenum pname);
     any getParameter(GLenum pname);
 
     [WebGLHandlesContextLoss] GLenum getError();
 
     //any getFramebufferAttachmentParameter(GLenum target, GLenum attachment,
     //                                      GLenum pname);
-    //any getProgramParameter(WebGLProgram? program, GLenum pname);
+    any getProgramParameter(WebGLProgram? program, GLenum pname);
     //DOMString? getProgramInfoLog(WebGLProgram? program);
     //any getRenderbufferParameter(GLenum target, GLenum pname);
     any getShaderParameter(WebGLShader? shader, GLenum pname);
@@ -679,17 +689,23 @@ interface WebGLRenderingContextBase
     void useProgram(WebGLProgram? program);
     //void validateProgram(WebGLProgram? program);
 
-    //void vertexAttrib1f(GLuint indx, GLfloat x);
+    // FIXME(dmarcos)
+    // The code generator doesn't handle Float32Array so we're using 'object'
+    void vertexAttrib1f(GLuint indx, GLfloat x);
     //void vertexAttrib1fv(GLuint indx, Float32Array values);
+    void vertexAttrib1fv(GLuint indx, object values);
     //void vertexAttrib1fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
+    void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
     //void vertexAttrib2fv(GLuint indx, Float32Array values);
+    void vertexAttrib2fv(GLuint indx, object values);
     //void vertexAttrib2fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
+    void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
     //void vertexAttrib3fv(GLuint indx, Float32Array values);
+    void vertexAttrib3fv(GLuint indx, object values);
     //void vertexAttrib3fv(GLuint indx, sequence<GLfloat> values);
-    //void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+    void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     //void vertexAttrib4fv(GLuint indx, Float32Array values);
+    void vertexAttrib4fv(GLuint indx, object values);
     //void vertexAttrib4fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttribPointer(GLuint indx, GLint size, GLenum type,
                              GLboolean normalized, GLsizei stride, GLintptr offset);

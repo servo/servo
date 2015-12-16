@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://dom.spec.whatwg.org/#interface=domimplementation
+ * https://dom.spec.whatwg.org/#interface-domimplementation
  *
  * Copyright:
  * To the extent possible under law, the editors have waived all copyright and
@@ -17,9 +17,9 @@ interface DOMImplementation {
   DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId,
                                   DOMString systemId);
   [NewObject, Throws]
-  Document createDocument(DOMString? namespace,
-                          [TreatNullAs=EmptyString] DOMString qualifiedName,
-                          optional DocumentType? doctype = null);
+  XMLDocument createDocument(DOMString? namespace,
+                             [TreatNullAs=EmptyString] DOMString qualifiedName,
+                             optional DocumentType? doctype = null);
   [NewObject]
   Document createHTMLDocument(optional DOMString title);
 

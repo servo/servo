@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Parsing of meta refresh</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+iframe { display:none }
+</style>
+<body>
+<script>
+
+// failure to parse is []
+// success to parse is [time, url] where url is unresolved
+
+var tests_arr = [
+  {input: '', expected: []},
+  {input: '1', expected: [1, 'refresh.sub.html']},
+  {input: '1 ', expected: [1, 'refresh.sub.html']},
+  {input: '1\t', expected: [1, 'refresh.sub.html']},
+  {input: '1\r', expected: [1, 'refresh.sub.html']},
+  {input: '1\n', expected: [1, 'refresh.sub.html']},
+  {input: '1\f', expected: [1, 'refresh.sub.html']},
+  {input: '1;', expected: [1, 'refresh.sub.html']},
+  {input: '1,', expected: [1, 'refresh.sub.html']},
+  {input: '1; url=foo', expected: [1, 'foo']},
+  {input: '1, url=foo', expected: [1, 'foo']},
+  {input: '1 url=foo', expected: [1, 'foo']},
+  {input: '1;\turl=foo', expected: [1, 'foo']},
+  {input: '1,\turl=foo', expected: [1, 'foo']},
+  {input: '1\turl=foo', expected: [1, 'foo']},
+  {input: '1;\rurl=foo', expected: [1, 'foo']},
+  {input: '1,\rurl=foo', expected: [1, 'foo']},
+  {input: '1\rurl=foo', expected: [1, 'foo']},
+  {input: '1;\nurl=foo', expected: [1, 'foo']},
+  {input: '1,\nurl=foo', expected: [1, 'foo']},
+  {input: '1\nurl=foo', expected: [1, 'foo']},
+  {input: '1;\furl=foo', expected: [1, 'foo']},
+  {input: '1,\furl=foo', expected: [1, 'foo']},
+  {input: '1\furl=foo', expected: [1, 'foo']},
+  {input: '1url=foo', expected: []},
+  {input: '1x;url=foo', expected: []},
+  {input: '1 x;url=foo', expected: [1, 'x;url=foo']},
+  {input: '1;;url=foo', expected: [1, ';url=foo']},
+  {input: '  1  ;  url  =  foo', expected: [1, 'foo']},
+  {input: '  1  ,  url  =  foo', expected: [1, 'foo']},
+  {input: '  1  ;  foo', expected: [1, 'foo']},
+  {input: '  1  ,  foo', expected: [1, 'foo']},
+  {input: '  1  url  =  foo', expected: [1, 'foo']},
+  {input: '1; url=foo ', expected: [1, 'foo']},
+  {input: '1; url=f\to\no', expected: [1, 'foo']},
+  {input: '1; url="foo"bar', expected: [1, 'foo']},
+  {input: '1; url=\'foo\'bar', expected: [1, 'foo']},
+  {input: '1; url="foo\'bar', expected: [1, 'foo\'bar']},
+  {input: '1; url foo', expected: [1, 'url foo']},
+  {input: '1; urlfoo', expected: [1, 'urlfoo']},
+  {input: '1; urfoo', expected: [1, 'urfoo']},
+  {input: '1; ufoo', expected: [1, 'ufoo']},
+  {input: '1; "foo"bar', expected: [1, 'foo']},
+  {input: '; foo', expected: []},
+  {input: ', foo', expected: []},
+  {input: 'foo', expected: []},
+  {input: '+1; url=foo', expected: []},
+  {input: '-1; url=foo', expected: []},
+  {input: '+0; url=foo', expected: []},
+  {input: '-0; url=foo', expected: []},
+  {input: '0; url=foo', expected: [0, 'foo']},
+  {input: '+1; foo', expected: []},
+  {input: '-1; foo', expected: []},
+  {input: '+0; foo', expected: []},
+  {input: '-0; foo', expected: []},
+  {input: '0; foo', expected: [0, 'foo']},
+  {input: '+1', expected: []},
+  {input: '-1', expected: []},
+  {input: '+0', expected: []},
+  {input: '-0', expected: []},
+  {input: '0', expected: [0, 'refresh.sub.html']},
+  {input: '1.9; url=foo', expected: [1, 'foo']},
+  {input: '1.9..5.; url=foo', expected: [1, 'foo']},
+  {input: '.9; url=foo', expected: []},
+];
+
+tests_arr.forEach(function(test_obj) {
+  async_test(function(t) {
+    var iframe = document.createElement('iframe');
+    t.add_cleanup(function() {
+      document.body.removeChild(iframe);
+    });
+    iframe.src = 'support/refresh.sub.html?input=' + encodeURIComponent(test_obj.input);
+    document.body.appendChild(iframe);
+    var loadCount = 0;
+    iframe.onload = t.step_func(function() {
+      loadCount++;
+      var got = iframe.contentDocument.body.textContent.trim();
+      if (test_obj.expected.length === 0) {
+        assert_equals(got, 'refresh.sub.html');
+        if (loadCount === 1) {
+          setTimeout(function() {
+            t.done();
+          }, 3000); // want to make sure it doesn't redirect when it shouldn't
+        } else {
+          assert_unreached('Got > 1 load events');
+        }
+      } else {
+        if (loadCount === 2) {
+          assert_equals(got, test_obj.expected[1]);
+          t.done();
+        }
+      }
+    });
+  }, format_value(test_obj.input));
+});
+</script>

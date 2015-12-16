@@ -13,13 +13,13 @@
             {name: "name of test 2", custom: "data"},
             // ...
         ],
-        
+
         // number of tests (tests, not test-cases!) to run concurrently
         testsPerSlice: 100,
 
         // time in milliseconds a test-run takes
         duration: 1000,
-        
+
         // test-cases to run for for the test - there must be at least one
         // each case creates its separate async_test() instance
         cases: {
@@ -33,17 +33,17 @@
             },
             // ...
         }
-        
+
         // all callbacks are optional:
-        
+
         // invoked for individual test before it starts so you can setup the environment
         // like DOM, CSS, adding event listeners and such
         setup: function(data, options){},
-        
+
         // invoked after a test ended, so you can clean up the environment
         // like DOM, CSS, removing event listeners and such
         teardown: function(data, options){},
-        
+
         // invoked before a batch of tests ("slice") are run concurrently
         // tests is an array of test data objects
         sliceStart: function(options, tests)
@@ -60,22 +60,22 @@ root.runParallelAsyncHarness = function(options) {
     if (!options.cases) {
         throw new Error("Options don't contain test cases!");
     }
-    
+
     var noop = function(){};
-    
+
     // add a 100ms buffer to the test timeout, just in case
     var duration = Math.ceil(options.duration + 100);
-    
+
     // names of individual tests
     var cases = Object.keys(options.cases);
-    
+
     // run tests in a batch of slices
-    // primarily not to overload weak devices (tablets, phones, …) 
+    // primarily not to overload weak devices (tablets, phones, …)
     // with too many tests running simultaneously
     var iteration = -1;
     var testPerSlice = options.testsPerSlice || 100;
     var slices = Math.ceil(options.tests.length / testPerSlice);
-    
+
     // initialize all async test cases
     // Note: satisfying testharness.js needs to know all async tests before load-event
     options.tests.forEach(function(data, index) {
@@ -84,7 +84,7 @@ root.runParallelAsyncHarness = function(options) {
             data.cases[name] = async_test(data.name + " / " + name, {timeout: options.timeout || 60000});
         });
     });
-    
+
     function runLoop() {
         iteration++;
         if (iteration >= slices) {
@@ -92,7 +92,7 @@ root.runParallelAsyncHarness = function(options) {
             (options.done || noop)(options);
             return;
         }
-         
+
         // grab a slice of testss and initialize them
         var offset = iteration * testPerSlice;
         var tests = options.tests.slice(offset, offset + testPerSlice);
@@ -100,10 +100,10 @@ root.runParallelAsyncHarness = function(options) {
             (options.setup || noop)(data, options);
 
         });
-        
+
         // kick off the current slice of tests
         (options.sliceStart || noop)(options, tests);
-    
+
         // perform individual "start" test-case
         tests.forEach(function(data) {
             cases.forEach(function(name) {
@@ -112,7 +112,7 @@ root.runParallelAsyncHarness = function(options) {
                 });
             });
         });
-    
+
         // conclude test (possibly abort)
         setTimeout(function() {
             tests.forEach(function(data) {
@@ -129,15 +129,15 @@ root.runParallelAsyncHarness = function(options) {
                     data.cases[name].done();
                 });
             });
-            
+
             // finish the test for current slice of tests
             (options.sliceDone || noop)(options, tests);
-            
+
             // next test please, give the browser 50ms to do catch its breath
             setTimeout(runLoop, 50);
         }, duration);
     }
-    
+
     // allow DOMContentLoaded before actually doing something
     setTimeout(runLoop, 100);
 };

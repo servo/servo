@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{IPV4_REGEX, IPV6_REGEX, IncludeSubdomains};
+use net_traits::IncludeSubdomains;
 use rustc_serialize::json::{decode};
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::{from_utf8};
 use time;
 use url::Url;
@@ -19,7 +20,7 @@ pub struct HSTSEntry {
 
 impl HSTSEntry {
     pub fn new(host: String, subdomains: IncludeSubdomains, max_age: Option<u64>) -> Option<HSTSEntry> {
-        if IPV4_REGEX.is_match(&host) || IPV6_REGEX.is_match(&host) {
+        if host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
             None
         } else {
             Some(HSTSEntry {

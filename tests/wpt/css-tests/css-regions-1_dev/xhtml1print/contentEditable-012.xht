@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
+		<meta charset="utf-8" />
 		<title>CSS Regions: regions are children of an element with the contentEditable attribute set</title>
 		<link href="mailto:mibalan@adobe.com" rel="author" title="Mihai Balan" />
 		<link href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" rel="help" />
@@ -48,12 +49,12 @@
 			<li>No red should be visible at any time during this test.</li>
 			<li>Below you should see a rectangle with a black border.</li>
 			<li>Inside the rectangle you should see a green square with a black border, between two
-				ì+î signs on blue background.</li>
-			<li>Click and drag from one ì+î to the other and copy the selection either
+				‚Äú+‚Äù signs on blue background.</li>
+			<li>Click and drag from one ‚Äú+‚Äù to the other and copy the selection either
 				via keyboard shortcut (usually <code>Ctrl+C</code> on Windows and Linux
 				and <code>Cmd+C</code> on Mac OS) or menu/context menu.</li>
 			<li>
-				Click after the last ì+î sign and paste the previously selected content
+				Click after the last ‚Äú+‚Äù sign and paste the previously selected content
 				either via keyboard shortcut (usually <code>Ctrl+V</code> on Windows and Linux and
 				<code>Cmd+V</code> on Mac OS) or menu/context menu.
 				<ul>
@@ -65,7 +66,7 @@
 			xxxxx<br />xxxxx<br />xxxxx<br />xxxxx<br />xxxxx<br />
 			xxxxx<br />xxxxx<br />xxxxx<br />xxxxx<br />xxxxx
 		</p>
-		
+
 		<div contenteditable="true" class="container">
 			<span class="inline-marker blue">+</span>
 			<div class="region">
@@ -77,4 +78,5 @@
 		<script src="support/helpers.js"></script>
 		
 	
+
 </body></html>

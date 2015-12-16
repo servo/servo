@@ -18,10 +18,11 @@ use std::str::Chars;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::Origin;
 use util::geometry::ViewportPx;
+use util::mem::HeapSizeOf;
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
 pub enum ViewportDescriptor {
     MinWidth(ViewportLength),
     MaxWidth(ViewportLength),
@@ -38,7 +39,7 @@ pub enum ViewportDescriptor {
 }
 
 trait FromMeta: Sized {
-    fn from_meta<'a>(value: &'a str) -> Option<Self>;
+    fn from_meta (value: &str) -> Option<Self>;
 }
 
 // ViewportLength is a length | percentage | auto | extend-to-zoom
@@ -63,7 +64,7 @@ impl ToCss for ViewportLength {
 }
 
 impl FromMeta for ViewportLength {
-    fn from_meta<'a>(value: &'a str) -> Option<ViewportLength> {
+    fn from_meta(value: &str) -> Option<ViewportLength> {
         macro_rules! specified {
             ($value:expr) => {
                 ViewportLength::Specified(LengthOrPercentageOrAuto::Length($value))
@@ -133,7 +134,7 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
 pub struct ViewportDescriptorDeclaration {
     pub origin: Origin,
     pub descriptor: ViewportDescriptor,
@@ -228,7 +229,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct ViewportRule {
     pub declarations: Vec<ViewportDescriptorDeclaration>
 }
@@ -270,13 +271,13 @@ impl ViewportRule {
             let pos = range.start;
             let message = format!("Unsupported @viewport descriptor declaration: '{}'",
                                   input.slice(range));
-            log_css_error(input, pos, &*message);
+            log_css_error(input, pos, &*message, &context);
         }
 
         Ok(ViewportRule { declarations: valid_declarations.iter().cascade() })
     }
 
-    pub fn from_meta<'a>(content: &'a str) -> Option<ViewportRule> {
+    pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = HashMap::new();
         macro_rules! push_descriptor {
             ($descriptor:ident($value:expr)) => {{

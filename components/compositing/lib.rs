@@ -3,33 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(iter_cmp)]
-#![feature(slice_bytes)]
-#![feature(vec_push_all)]
+#![feature(clone_from_slice)]
+#![feature(custom_derive)]
+#![feature(plugin)]
+#![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
+#![plugin(serde_macros)]
 
 extern crate app_units;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate util;
+
 extern crate azure;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate clipboard;
-
 #[cfg(target_os = "macos")]
 extern crate core_graphics;
 #[cfg(target_os = "macos")]
 extern crate core_text;
-
 extern crate devtools_traits;
 extern crate euclid;
+extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate gleam;
@@ -37,24 +33,69 @@ extern crate image;
 extern crate ipc_channel;
 extern crate layers;
 extern crate layout_traits;
+extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate offscreen_gl_context;
+#[macro_use]
+extern crate profile_traits;
 extern crate script_traits;
+extern crate serde;
 extern crate style_traits;
 extern crate time;
 extern crate url;
+#[macro_use]
+extern crate util;
 
 pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
 pub use constellation::Constellation;
+use euclid::size::{Size2D};
+use ipc_channel::ipc::{IpcSender};
+use msg::compositor_msg::Epoch;
+use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData};
+use std::collections::HashMap;
+use url::Url;
 
 mod compositor;
 mod compositor_layer;
-mod headless;
-mod scrolling;
-mod surface_map;
 pub mod compositor_task;
 pub mod constellation;
+mod headless;
 pub mod pipeline;
+pub mod sandboxing;
+mod scrolling;
+mod surface_map;
+mod timer_scheduler;
 pub mod windowing;
+
+/// Messages from the compositor to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum CompositorMsg {
+    Exit,
+    FrameSize(PipelineId, Size2D<f32>),
+    /// Request that the constellation send the FrameId corresponding to the document
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
+    /// Request that the constellation send the current pipeline id for the provided frame
+    /// id, or for the root frame if this is None, over a provided channel
+    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
+    /// Requests that the constellation inform the compositor of the title of the pipeline
+    /// immediately.
+    GetPipelineTitle(PipelineId),
+    InitLoadUrl(Url),
+    /// Query the constellation to see if the current compositor output is stable
+    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    KeyEvent(Key, KeyState, KeyModifiers),
+    LoadUrl(PipelineId, LoadData),
+    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    ResizedWindow(WindowSizeData),
+    /// Requests that the constellation instruct layout to begin a new tick of the animation.
+    TickAnimation(PipelineId),
+    /// Dispatch a webdriver command
+    WebDriverCommand(WebDriverCommandMsg),
+}

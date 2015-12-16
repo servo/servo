@@ -5,20 +5,21 @@
 #![feature(box_syntax)]
 #![feature(fnbox)]
 #![feature(mpsc_select)]
-#![feature(path_ext)]
 #![feature(plugin)]
-#![feature(vec_push_all)]
 #![feature(plugin)]
 #![plugin(plugins)]
 
-#[macro_use]
-extern crate log;
+extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate flate2;
 extern crate hyper;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
+extern crate mime_guess;
+extern crate msg;
 extern crate net_traits;
 extern crate openssl;
 extern crate rustc_serialize;
@@ -26,6 +27,7 @@ extern crate time;
 extern crate url;
 extern crate util;
 extern crate uuid;
+extern crate websocket;
 
 pub mod about_loader;
 pub mod cookie;
@@ -39,6 +41,7 @@ pub mod mime_classifier;
 pub mod pub_domains;
 pub mod resource_task;
 pub mod storage_task;
+pub mod websocket_loader;
 
 /// An implementation of the [Fetch spec](https://fetch.spec.whatwg.org/)
 pub mod fetch {

@@ -10,7 +10,7 @@ use animation;
 use context::SharedLayoutContext;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
+use script::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use script::layout_interface::Animation;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
@@ -21,12 +21,13 @@ use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
-use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 use string_cache::{Atom, Namespace};
 use style::node::TElementAttributes;
 use style::properties::{ComputedValues, PropertyDeclaration, cascade};
 use style::selector_matching::{DeclarationBlock, Stylist};
+use style_traits::ParseErrorReporter;
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
@@ -50,13 +51,6 @@ impl ApplicableDeclarations {
             after: Vec::new(),
             normal_shareable: false,
         }
-    }
-
-    pub fn clear(&mut self) {
-        self.normal = SmallVec::new();
-        self.before = Vec::new();
-        self.after = Vec::new();
-        self.normal_shareable = false;
     }
 }
 
@@ -167,18 +161,18 @@ pub struct StyleSharingCandidateCache {
     cache: LRUCache<StyleSharingCandidate, ()>,
 }
 
-fn create_common_style_affecting_attributes_from_element(element: &LayoutElement)
+fn create_common_style_affecting_attributes_from_element<'le, E: LayoutElement<'le>>(element: &E)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
     for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                if element.get_attr(&ns!(), &attribute_info.atom).is_some() {
                     flags.insert(flag)
                 }
             }
             CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                match element.get_attr(&ns!(""), &attribute_info.atom) {
+                match element.get_attr(&ns!(), &attribute_info.atom) {
                     Some(element_value) if element_value == target_value => {
                         flags.insert(flag)
                     }
@@ -218,7 +212,7 @@ impl StyleSharingCandidate {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
-    fn new(element: &LayoutElement) -> Option<StyleSharingCandidate> {
+    fn new<'le, E: LayoutElement<'le>>(element: &E) -> Option<StyleSharingCandidate> {
         let parent_element = match element.parent_element() {
             None => return None,
             Some(parent_element) => parent_element,
@@ -255,22 +249,22 @@ impl StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&ns!(""), &atom!("class"))
+            class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
-                   create_common_style_affecting_attributes_from_element(&element)
+                   create_common_style_affecting_attributes_from_element::<'le, E>(&element)
         })
     }
 
-    fn can_share_style_with(&self, element: &LayoutElement) -> bool {
+    fn can_share_style_with<'a, E: LayoutElement<'a>>(&self, element: &E) -> bool {
         if *element.get_local_name() != self.local_name {
             return false
         }
 
         // FIXME(pcwalton): Use `each_class` here instead of slow string comparison.
-        match (&self.class, element.get_attr(&ns!(""), &atom!("class"))) {
+        match (&self.class, element.get_attr(&ns!(), &atom!("class"))) {
             (&None, Some(_)) | (&Some(_), None) => return false,
             (&Some(ref this_class), Some(element_class)) if
                     element_class != &**this_class => {
@@ -296,12 +290,12 @@ impl StyleSharingCandidate {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
-                            element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                            element.get_attr(&ns!(), &attribute_info.atom).is_some() {
                         return false
                     }
                 }
                 CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                    match element.get_attr(&ns!(""), &attribute_info.atom) {
+                    match element.get_attr(&ns!(), &attribute_info.atom) {
                         Some(ref element_value) if self.common_style_affecting_attributes
                                                        .contains(flag) &&
                                                        *element_value != target_value => {
@@ -320,7 +314,7 @@ impl StyleSharingCandidate {
         }
 
         for attribute_name in &rare_style_affecting_attributes() {
-            if element.get_attr(&ns!(""), attribute_name).is_some() {
+            if element.get_attr(&ns!(), attribute_name).is_some() {
                 return false
             }
         }
@@ -349,7 +343,7 @@ impl StyleSharingCandidateCache {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible(&mut self, element: &LayoutElement) {
+    pub fn insert_if_possible<'le, E: LayoutElement<'le>>(&mut self, element: &E) {
         match StyleSharingCandidate::new(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
@@ -363,15 +357,31 @@ impl StyleSharingCandidateCache {
 
 /// The results of attempting to share a style.
 pub enum StyleSharingResult {
-    /// We didn't find anybody to share the style with. The boolean indicates whether the style
-    /// is shareable at all.
-    CannotShare(bool),
+    /// We didn't find anybody to share the style with.
+    CannotShare,
     /// The node's style can be shared. The integer specifies the index in the LRU cache that was
     /// hit and the damage that was done.
     StyleWasShared(usize, RestyleDamage),
 }
 
-pub trait MatchMethods {
+pub trait ElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
+    fn match_element(&self,
+                     stylist: &Stylist,
+                     parent_bf: Option<&BloomFilter>,
+                     applicable_declarations: &mut ApplicableDeclarations)
+                     -> bool;
+
+    /// Attempts to share a style with another node. This method is unsafe because it depends on
+    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
+    /// guarantee that at the type system level yet.
+    unsafe fn share_style_if_possible(&self,
+                                      style_sharing_candidate_cache:
+                                        &mut StyleSharingCandidateCache,
+                                      parent: Option<ConcreteLayoutElement::ConcreteLayoutNode>)
+                                      -> StyleSharingResult;
+}
+
+pub trait MatchMethods<'ln, ConcreteLayoutNode: LayoutNode<'ln>> {
     /// Inserts and removes the matching `Descendant` selectors from a bloom
     /// filter. This is used to speed up CSS selector matching to remove
     /// unnecessary tree climbs for `Descendant` queries.
@@ -385,27 +395,12 @@ pub trait MatchMethods {
     /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter);
 
-    fn match_node(&self,
-                  stylist: &Stylist,
-                  parent_bf: Option<&BloomFilter>,
-                  applicable_declarations: &mut ApplicableDeclarations,
-                  shareable: &mut bool);
-
-    /// Attempts to share a style with another node. This method is unsafe because it depends on
-    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
-    /// guarantee that at the type system level yet.
-    unsafe fn share_style_if_possible(&self,
-                                      style_sharing_candidate_cache:
-                                        &mut StyleSharingCandidateCache,
-                                      parent: Option<LayoutNode>)
-                                      -> StyleSharingResult;
-
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<LayoutNode>,
+                           parent: Option<ConcreteLayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                           new_animations_sender: &Sender<Animation>);
+                           new_animations_sender: &Mutex<Sender<Animation>>);
 }
 
 trait PrivateMatchMethods {
@@ -416,18 +411,25 @@ trait PrivateMatchMethods {
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
-                                   new_animations_sender: &Sender<Animation>,
+                                   new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage;
+    fn update_animations_for_cascade(&self,
+                                     layout_context: &SharedLayoutContext,
+                                     style: &mut Option<Arc<ComputedValues>>)
+                                     -> bool;
+}
 
+trait PrivateElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<LayoutNode>,
+                                              parent_node: Option<ConcreteLayoutElement::ConcreteLayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>>;
 }
 
-impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
+impl<'ln, ConcreteLayoutNode> PrivateMatchMethods for ConcreteLayoutNode
+                                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
@@ -435,24 +437,16 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
-                                   new_animations_sender: &Sender<Animation>,
+                                   new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage {
-        // Finish any transitions.
+        let mut cacheable = true;
         if animate_properties {
-            if let Some(ref mut style) = *style {
-                let this_opaque = self.opaque();
-                if let Some(ref animations) = layout_context.running_animations.get(&this_opaque) {
-                    for animation in *animations {
-                        animation.property_animation.update(&mut *Arc::make_mut(style), 1.0);
-                    }
-                }
-            }
+            cacheable = !self.update_animations_for_cascade(layout_context, style) && cacheable;
         }
 
         let mut this_style;
-        let cacheable;
         match parent_style {
             Some(ref parent_style) => {
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
@@ -460,21 +454,23 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                     None => None,
                     Some(ref style) => Some(&**style),
                 };
-                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+                let (the_style, is_cacheable) = cascade(layout_context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
-                                                        cached_computed_values);
-                cacheable = is_cacheable;
+                                                        cached_computed_values,
+                                                        layout_context.error_reporter.clone());
+                cacheable = cacheable && is_cacheable;
                 this_style = the_style
             }
             None => {
-                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+                let (the_style, is_cacheable) = cascade(layout_context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         None,
-                                                        None);
-                cacheable = is_cacheable;
+                                                        None,
+                                                        layout_context.error_reporter.clone());
+                cacheable = cacheable && is_cacheable;
                 this_style = the_style
             }
         };
@@ -483,10 +479,12 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         // it did trigger a transition.
         if animate_properties {
             if let Some(ref style) = *style {
-                animation::start_transitions_if_applicable(new_animations_sender,
-                                                           self.opaque(),
-                                                           &**style,
-                                                           &mut this_style);
+                let animations_started =
+                    animation::start_transitions_if_applicable(new_animations_sender,
+                                                               self.opaque(),
+                                                               &**style,
+                                                               &mut this_style);
+                cacheable = cacheable && !animations_started
             }
         }
 
@@ -505,12 +503,58 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         damage
     }
 
+    fn update_animations_for_cascade(&self,
+                                     layout_context: &SharedLayoutContext,
+                                     style: &mut Option<Arc<ComputedValues>>)
+                                     -> bool {
+        let style = match *style {
+            None => return false,
+            Some(ref mut style) => style,
+        };
+
+        // Finish any expired transitions.
+        let this_opaque = self.opaque();
+        let had_animations_to_expire;
+        {
+            let all_expired_animations = layout_context.expired_animations.read().unwrap();
+            let animations_to_expire = all_expired_animations.get(&this_opaque);
+            had_animations_to_expire = animations_to_expire.is_some();
+            if let Some(ref animations) = animations_to_expire {
+                for animation in *animations {
+                    animation.property_animation.update(&mut *Arc::make_mut(style), 1.0);
+                }
+            }
+        }
+
+        if had_animations_to_expire {
+            layout_context.expired_animations.write().unwrap().remove(&this_opaque);
+        }
+
+        // Merge any running transitions into the current style, and cancel them.
+        let had_running_animations = layout_context.running_animations
+                                                   .read()
+                                                   .unwrap()
+                                                   .get(&this_opaque)
+                                                   .is_some();
+        if had_running_animations {
+            let mut all_running_animations = layout_context.running_animations.write().unwrap();
+            for running_animation in all_running_animations.get(&this_opaque).unwrap() {
+                animation::update_style_for_animation(running_animation, style, None);
+            }
+            all_running_animations.remove(&this_opaque);
+        }
+
+        had_animations_to_expire || had_running_animations
+    }
+}
+
+impl<'le, ConcreteLayoutElement> PrivateElementMatchMethods<'le, ConcreteLayoutElement>
+                                 for ConcreteLayoutElement
+                                 where ConcreteLayoutElement: LayoutElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<LayoutNode>,
+                                              parent_node: Option<ConcreteLayoutElement::ConcreteLayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
-        let element = self.as_element().unwrap();
-
         let parent_node = match parent_node {
             Some(ref parent_node) if parent_node.as_element().is_some() => parent_node,
             Some(_) | None => return None,
@@ -528,7 +572,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 }
 
                 // Check tag names, classes, etc.
-                if !candidate.can_share_style_with(&element) {
+                if !candidate.can_share_style_with(self) {
                     return None
                 }
 
@@ -541,62 +585,60 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
     }
 }
 
-impl<'ln> MatchMethods for LayoutNode<'ln> {
-    fn match_node(&self,
-                  stylist: &Stylist,
-                  parent_bf: Option<&BloomFilter>,
-                  applicable_declarations: &mut ApplicableDeclarations,
-                  shareable: &mut bool) {
-        let element = self.as_element().unwrap();
-        let style_attribute = element.style_attribute().as_ref();
+impl<'le, ConcreteLayoutElement> ElementMatchMethods<'le, ConcreteLayoutElement>
+                                 for ConcreteLayoutElement
+                                 where ConcreteLayoutElement: LayoutElement<'le> {
+    fn match_element(&self,
+                     stylist: &Stylist,
+                     parent_bf: Option<&BloomFilter>,
+                     applicable_declarations: &mut ApplicableDeclarations)
+                     -> bool {
+        let style_attribute = self.style_attribute().as_ref();
 
         applicable_declarations.normal_shareable =
-            stylist.push_applicable_declarations(&element,
+            stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
-        stylist.push_applicable_declarations(&element,
+        stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
                                              Some(PseudoElement::Before),
                                              &mut applicable_declarations.before);
-        stylist.push_applicable_declarations(&element,
+        stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
                                              Some(PseudoElement::After),
                                              &mut applicable_declarations.after);
 
-        *shareable = applicable_declarations.normal_shareable &&
-            applicable_declarations.before.is_empty() &&
-            applicable_declarations.after.is_empty()
+        applicable_declarations.normal_shareable &&
+        applicable_declarations.before.is_empty() &&
+        applicable_declarations.after.is_empty()
     }
 
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<LayoutNode>)
+                                      parent: Option<ConcreteLayoutElement::ConcreteLayoutNode>)
                                       -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
-            return StyleSharingResult::CannotShare(false)
+            return StyleSharingResult::CannotShare
         }
-        let ok = {
-            if let Some(element) = self.as_element() {
-                element.style_attribute().is_none() &&
-                    element.get_attr(&ns!(""), &atom!("id")).is_none()
-            } else {
-                false
-            }
-        };
-        if !ok {
-            return StyleSharingResult::CannotShare(false)
+
+        if self.style_attribute().is_some() {
+            return StyleSharingResult::CannotShare
+        }
+        if self.get_attr(&ns!(), &atom!("id")).is_some() {
+            return StyleSharingResult::CannotShare
         }
 
         for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
             match self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
-                    let mut layout_data_ref = self.mutate_layout_data();
+                    let node = self.as_node();
+                    let mut layout_data_ref = node.mutate_layout_data();
                     let shared_data = &mut layout_data_ref.as_mut().unwrap().shared_data;
                     let style = &mut shared_data.style;
                     let damage = incremental::compute_damage(style, &*shared_style);
@@ -607,9 +649,13 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             }
         }
 
-        StyleSharingResult::CannotShare(true)
+        StyleSharingResult::CannotShare
     }
+}
 
+impl<'ln, ConcreteLayoutNode> MatchMethods<'ln, ConcreteLayoutNode>
+                              for ConcreteLayoutNode
+                              where ConcreteLayoutNode: LayoutNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -651,10 +697,10 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<LayoutNode>,
+                           parent: Option<ConcreteLayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                           new_animations_sender: &Sender<Animation>) {
+                           new_animations_sender: &Mutex<Sender<Animation>>) {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //

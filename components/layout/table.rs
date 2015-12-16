@@ -7,12 +7,12 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
+use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
-use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use euclid::{Point2D, Rect};
-use flow::{IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, MutableFlowUtils, OpaqueFlow};
+use flow::{IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, OpaqueFlow};
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::DisplayList;
@@ -30,6 +30,7 @@ use table_row::{TableRowFlow};
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_wrapper::TableLayout;
 use util::logical_geometry::LogicalSize;
+use util::print_tree::PrintTree;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
@@ -494,10 +495,10 @@ impl Flow for TableFlow {
         })
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical;
-        self.block_flow.assign_block_size_for_table_like_flow(layout_context, vertical_spacing)
+        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing)
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
@@ -548,6 +549,10 @@ impl Flow for TableFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
     }
 }
 
@@ -630,13 +635,6 @@ impl ColumnIntrinsicInlineSize {
             percentage: 0.0,
             constrained: false,
         }
-    }
-
-    /// Returns the true minimum size of this column, given the containing block's inline size.
-    /// Beware that this is generally only correct for fixed table layout. (Compare CSS 2.1 §
-    /// 17.5.2.1 with the algorithm in INTRINSIC § 4.)
-    pub fn minimum(&self, containing_block_inline_size: Au) -> Au {
-        cmp::max(self.minimum_length, containing_block_inline_size.scale_by(self.percentage))
     }
 
     /// Returns the higher of the two percentages specified in `self` and `other`.
@@ -755,15 +753,11 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
 /// rowgroups.
 pub trait TableLikeFlow {
     /// Lays out the rows of a table.
-    fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 layout_context: &'a LayoutContext<'a>,
-                                                 block_direction_spacing: Au);
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au);
 }
 
 impl TableLikeFlow for BlockFlow {
-    fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 layout_context: &'a LayoutContext<'a>,
-                                                 block_direction_spacing: Au) {
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au) {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::separate || block_direction_spacing == Au(0));
 
@@ -775,11 +769,7 @@ impl TableLikeFlow for BlockFlow {
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            let mut layers_needed_for_descendants = false;
             for kid in self.base.child_iter() {
-                // Mark flows for layerization if necessary to handle painting order correctly.
-                block::propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
-
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
                     has_rows = true;
@@ -842,7 +832,6 @@ impl TableLikeFlow for BlockFlow {
                     relative_containing_block_size: self.fragment.content_box().size,
                     relative_containing_block_mode: self.fragment.style().writing_mode,
                 };
-                kid.late_store_overflow(layout_context)
             }
         }
 

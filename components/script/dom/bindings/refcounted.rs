@@ -24,9 +24,9 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::js::Root;
+use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::trace_reflector;
-use dom::bindings::utils::{Reflectable, Reflector};
-use js::jsapi::{JSContext, JSTracer};
+use js::jsapi::JSTracer;
 use libc;
 use script_task::{CommonScriptMsg, ScriptChan};
 use std::cell::RefCell;
@@ -72,7 +72,7 @@ impl<T: Reflectable> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub fn new(_cx: *mut JSContext, ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
+    pub fn new(ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
@@ -138,7 +138,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
 /// from being garbage collected due to outstanding references.
 pub struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
-    table: RefCell<HashMap<*const libc::c_void, Arc<Mutex<usize>>>>
+    table: RefCell<HashMap<*const libc::c_void, Arc<Mutex<usize>>>>,
 }
 
 impl LiveDOMReferences {
@@ -197,7 +197,8 @@ impl LiveDOMReferences {
 }
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
-pub unsafe extern fn trace_refcounted_objects(tracer: *mut JSTracer, _data: *mut libc::c_void) {
+pub unsafe extern "C" fn trace_refcounted_objects(tracer: *mut JSTracer,
+                                                  _data: *mut libc::c_void) {
     LIVE_REFERENCES.with(|ref r| {
         let r = r.borrow();
         let live_references = r.as_ref().unwrap();

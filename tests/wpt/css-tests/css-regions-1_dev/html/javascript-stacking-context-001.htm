@@ -18,7 +18,7 @@
 			color: lime;
 			flow-into: f;
 		}
-		
+
 		.region {
 			position: absolute;
 			top: 50px;
@@ -107,14 +107,14 @@
 				applyClasses(".region", [ "middle", "front", "back" ]);
 
 				assert_true(regionsEnabled, "Regions is enabled");
-				assert_equals(document.elementFromPoint(60, 100), document.querySelector(".front")); 
+				assert_equals(document.elementFromPoint(60, 100), document.querySelector(".front"));
 			}, "document.elementFromPoint() for point on region border, with all regions overlapping with non-auto z-index");
 
 			test(function() {
 				applyClasses(".region", [ "right middle", "left front", " center back" ]);
 
 				assert_true(regionsEnabled, "Regions is enabled");
-				assert_equals(document.elementFromPoint(60, 100), document.querySelector(".front")); 
+				assert_equals(document.elementFromPoint(60, 100), document.querySelector(".front"));
 			}, "document.elementFromPoint() for point on region border, with regions partially overlapping with non-auto z-index");
 
 			test(function() {
@@ -122,11 +122,12 @@
 
 				assert_true(regionsEnabled, "Regions is enabled");
 				//we're checking the "right middle" region, inside it
-				assert_equals(document.elementFromPoint(180, 210), document.querySelector("#block1")); 
+				assert_equals(document.elementFromPoint(180, 210), document.querySelector("#block1"));
 			}, "document.elementFromPoint() for point inside region (effectively, content node), with regions partially overlapping with non-auto z-index");
 		}
 
 		runTests();
 		</script>
 	
+
 </body></html>

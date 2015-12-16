@@ -191,6 +191,12 @@ pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -
         get_font.font_size, get_font.font_stretch
     ]);
 
+    // If the layer requirements of this flow have changed due to the value
+    // of the transform, then reflow is required to rebuild the layers.
+    if old.transform_requires_layer() != new.transform_requires_layer() {
+        damage.insert(rebuild_and_reflow());
+    }
+
     // FIXME: test somehow that we checked every CSS property
     damage
 }

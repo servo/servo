@@ -3,49 +3,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::codegen::InheritTypes::EventCast;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
-use hyper::header::Host;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
+use net_traits::ControlMsg::WebsocketConnect;
+use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
+use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
+use ref_slice::ref_slice;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
-use std::sync::{Arc, Mutex};
-use std::{ptr, slice};
+use std::cell::Cell;
+use std::ptr;
+use std::thread;
 use util::str::DOMString;
-use util::task::spawn_named;
-use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
-use websocket::client::sender::Sender;
-use websocket::header::Origin;
-use websocket::message::CloseData;
-use websocket::result::WebSocketResult;
-use websocket::stream::WebSocketStream;
-use websocket::ws::receiver::Receiver as WSReceiver;
-use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
-use websocket::{Client, Message};
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
@@ -53,14 +47,6 @@ enum WebSocketRequestState {
     Open = 1,
     Closing = 2,
     Closed = 3,
-}
-
-no_jsmanaged_fields!(Sender<WebSocketStream>);
-
-#[derive(HeapSizeOf)]
-enum MessageData {
-    Text(String),
-    Binary(Vec<u8>),
 }
 
 // list of blacklist ports according to
@@ -126,6 +112,24 @@ const BLOCKED_PORTS_LIST: &'static [u16] = &[
     6000, // x11
 ];
 
+// Close codes defined in https://tools.ietf.org/html/rfc6455#section-7.4.1
+// Names are from https://github.com/mozilla/gecko-dev/blob/master/netwerk/protocol/websocket/nsIWebSocketChannel.idl
+#[allow(dead_code)]
+mod close_code {
+    pub const NORMAL: u16 = 1000;
+    pub const GOING_AWAY: u16 = 1001;
+    pub const PROTOCOL_ERROR: u16 = 1002;
+    pub const UNSUPPORTED_DATATYPE: u16 = 1003;
+    pub const NO_STATUS: u16 = 1005;
+    pub const ABNORMAL: u16 = 1006;
+    pub const INVALID_PAYLOAD: u16 = 1007;
+    pub const POLICY_VIOLATION: u16 = 1008;
+    pub const TOO_LARGE: u16 = 1009;
+    pub const EXTENSION_MISSING: u16 = 1010;
+    pub const INTERNAL_ERROR: u16 = 1011;
+    pub const TLS_FAILED: u16 = 1015;
+}
+
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
@@ -135,37 +139,14 @@ pub struct WebSocket {
     buffered_amount: Cell<u32>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
-    sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
+    sender: DOMRefCell<Option<IpcSender<WebSocketDomAction>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
     full: Cell<bool>, //Flag to tell if websocket queue is full
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
     code: Cell<u16>, //Closing code
-    reason: DOMRefCell<DOMString>, //Closing reason
+    reason: DOMRefCell<String>, //Closing reason
     binary_type: Cell<BinaryType>,
 }
-
-/// *Establish a WebSocket Connection* as defined in RFC 6455.
-fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),
-                                    origin: String)
-   -> WebSocketResult<(Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
-    // URL that we actually fetch from the network, after applying the replacements
-    // specified in the hosts file.
-
-    let host = Host {
-        hostname: resource_url.serialize_host().unwrap(),
-        port: resource_url.port_or_default()
-    };
-
-    let mut request = try!(Client::connect(net_url));
-    request.headers.set(Origin(origin));
-    request.headers.set(host);
-
-    let response = try!(request.send());
-    try!(response.validate());
-
-    Ok(response.begin().split())
-}
-
 
 impl WebSocket {
     fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
@@ -177,7 +158,7 @@ impl WebSocket {
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
             failed: Cell::new(false),
-            sender: RefCell::new(None),
+            sender: DOMRefCell::new(None),
             full: Cell::new(false),
             clean_close: Cell::new(true),
             code: Cell::new(0),
@@ -198,8 +179,9 @@ impl WebSocket {
                        -> Fallible<Root<WebSocket>> {
         // Step 1.
         let resource_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
-        let net_url = try!(parse_url(&replace_hosts(&resource_url)).map_err(|_| Error::Syntax));
-
+        // Although we do this replace and parse operation again in the resource task,
+        // we try here to be able to immediately throw a syntax error on failure.
+        let _ = try!(parse_url(&replace_hosts(&resource_url)).map_err(|_| Error::Syntax));
         // Step 2: Disallow https -> ws connections.
 
         // Step 3: Potentially block access to some ports.
@@ -212,7 +194,7 @@ impl WebSocket {
         // Step 4.
         let protocols: &[DOMString] = protocols
                                       .as_ref()
-                                      .map_or(&[], |ref string| slice::ref_slice(string));
+                                      .map_or(&[], |ref string| ref_slice(string));
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
@@ -235,63 +217,106 @@ impl WebSocket {
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
-        let address = Trusted::new(global.get_cx(), ws.r(), global.script_chan());
+        let address = Trusted::new(ws.r(), global.networking_task_source());
 
         let origin = global.get_url().serialize();
-        let sender = global.script_chan();
-        spawn_named(format!("WebSocket connection to {}", ws.Url()), move || {
-            // Step 8: Protocols.
 
-            // Step 9.
-            let channel = establish_a_websocket_connection(&resource_url, net_url, origin);
-            let (ws_sender, mut receiver) = match channel {
-                Ok(channel) => channel,
-                Err(e) => {
-                    debug!("Failed to establish a WebSocket connection: {:?}", e);
-                    let task = box CloseTask {
-                        addr: address,
-                    };
-                    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
-                    return;
-                }
-            };
-            let ws_sender = Arc::new(Mutex::new(ws_sender));
+        let connect_data = WebSocketConnectData {
+            resource_url: resource_url.clone(),
+            origin: origin,
+        };
 
-            let open_task = box ConnectionEstablishedTask {
-                addr: address.clone(),
-                sender: ws_sender.clone(),
-            };
-            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
+        // Create the interface for communication with the resource task
+        let (dom_action_sender, resource_action_receiver):
+                (IpcSender<WebSocketDomAction>,
+                IpcReceiver<WebSocketDomAction>) = ipc::channel().unwrap();
+        let (resource_event_sender, dom_event_receiver):
+                (IpcSender<WebSocketNetworkEvent>,
+                IpcReceiver<WebSocketNetworkEvent>) = ipc::channel().unwrap();
 
-            for message in receiver.incoming_messages() {
-                let message = match message {
-                    Ok(Message::Text(text)) => MessageData::Text(text),
-                    Ok(Message::Binary(data)) => MessageData::Binary(data),
-                    Ok(Message::Ping(data)) => {
-                        ws_sender.lock().unwrap().send_message(Message::Pong(data)).unwrap();
-                        continue;
+        let connect = WebSocketCommunicate {
+            event_sender: resource_event_sender,
+            action_receiver: resource_action_receiver,
+        };
+
+        let resource_task = global.resource_task();
+        let _ = resource_task.send(WebsocketConnect(connect, connect_data));
+
+        *ws.sender.borrow_mut() = Some(dom_action_sender);
+
+        let moved_address = address.clone();
+        let sender = global.networking_task_source();
+
+        thread::spawn(move || {
+            while let Ok(event) = dom_event_receiver.recv() {
+                match event {
+                    WebSocketNetworkEvent::ConnectionEstablished => {
+                        let open_task = box ConnectionEstablishedTask {
+                            addr: moved_address.clone(),
+                        };
+                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
                     },
-                    Ok(Message::Pong(_)) => continue,
-                    Ok(Message::Close(data)) => {
-                        ws_sender.lock().unwrap().send_message(Message::Close(data)).unwrap();
+                    WebSocketNetworkEvent::MessageReceived(message) => {
+                        let message_task = box MessageReceivedTask {
+                            address: moved_address.clone(),
+                            message: message,
+                        };
+                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_task)).unwrap();
+                    },
+                    WebSocketNetworkEvent::Close => {
                         let task = box CloseTask {
-                            addr: address,
+                            addr: moved_address.clone(),
                         };
                         sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
-                        break;
                     },
-                    Err(_) => break,
-                };
-                let message_task = box MessageReceivedTask {
-                    address: address.clone(),
-                    message: message,
-                };
-                sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_task)).unwrap();
+                }
             }
         });
-
         // Step 7.
         Ok(ws)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn send_impl(&self, data_byte_len: u64) -> Fallible<bool> {
+        let return_after_buffer = match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => false,
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
+        };
+
+        let global = self.global.root();
+        let chan = global.r().networking_task_source();
+        let address = Trusted::new(self, chan.clone());
+
+        let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
+        if new_buffer_amount > (u32::max_value() as u64) {
+            self.buffered_amount.set(u32::max_value());
+            self.full.set(true);
+
+            let _ = self.Close(None, None);
+            return Ok(false);
+
+        }
+
+        self.buffered_amount.set(new_buffer_amount as u32);
+
+        if return_after_buffer {
+            return Ok(false);
+        }
+
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let task = box BufferedAmountTask {
+                addr: address,
+            };
+
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        }
+
+        Ok(true)
     }
 }
 
@@ -310,7 +335,7 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(&self) -> DOMString {
-        self.url.serialize()
+        DOMString::from(self.url.serialize())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
@@ -335,40 +360,33 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> Fallible<()> {
-        match self.ready_state.get() {
-            WebSocketRequestState::Connecting => {
-                return Err(Error::InvalidState);
-            },
-            WebSocketRequestState::Open => (),
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
-                // TODO: Update bufferedAmount.
-                return Ok(());
-            }
+
+        let data_byte_len = data.0.as_bytes().len() as u64;
+        let send_data = try!(self.send_impl(data_byte_len));
+
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
         }
 
-        /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
-                "If argument is a string"
-          TODO: Need to buffer data
-          TODO: The send function needs to flag when full by using the following
-          self.full.set(true). This needs to be done when the buffer is full
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn Send_(&self, data: &Blob) -> Fallible<()> {
+
+        /* As per https://html.spec.whatwg.org/multipage/#websocket
+           the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
+           If the buffer limit is reached in the first place, there are likely other major problems
         */
-        let mut other_sender = self.sender.borrow_mut();
-        let my_sender = other_sender.as_mut().unwrap();
+        let data_byte_len = data.Size();
+        let send_data = try!(self.send_impl(data_byte_len));
 
-        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
-
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
-
-        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
-            self.clearing_buffer.set(true);
-
-            let global = self.global.root();
-            let task = box BufferedAmountTask {
-                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
-            };
-            let chan = global.r().script_chan();
-
-            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(data.clone_bytes())));
         }
 
         Ok(())
@@ -384,14 +402,13 @@ impl WebSocketMethods for WebSocket {
             if let Some(sender) = sender.as_mut() {
                 let code: u16 = this.code.get();
                 let reason = this.reason.borrow().clone();
-                let _ = sender.lock().unwrap().send_message(Message::Close(Some(CloseData::new(code, reason))));
+                let _ = sender.send(WebSocketDomAction::Close(code, reason));
             }
         }
 
-
         if let Some(code) = code {
-            //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
-            if  code != 1000 && (code < 3000 || code > 4999) {
+            //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
+            if code != close_code::NORMAL && (code < 3000 || code > 4999) {
                 return Err(Error::InvalidAccess);
             }
         }
@@ -414,9 +431,7 @@ impl WebSocketMethods for WebSocket {
             WebSocketRequestState::Open => {
                 //Closing handshake not started - still in open
                 //Start the closing by setting the code and reason if they exist
-                if let Some(code) = code {
-                    self.code.set(code);
-                }
+                self.code.set(code.unwrap_or(close_code::NO_STATUS));
                 if let Some(reason) = reason {
                     *self.reason.borrow_mut() = reason.0;
                 }
@@ -433,15 +448,11 @@ impl WebSocketMethods for WebSocket {
 /// Task queued when *the WebSocket connection is established*.
 struct ConnectionEstablishedTask {
     addr: Trusted<WebSocket>,
-    sender: Arc<Mutex<Sender<WebSocketStream>>>,
 }
 
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
-
-        *ws.r().sender.borrow_mut() = Some(self.sender);
-
         // Step 1: Protocols.
 
         // Step 2.
@@ -453,10 +464,10 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(), "open".to_owned(),
+        let event = Event::new(global.r(), atom!("open"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        event.fire(EventTargetCast::from_ref(ws.r()));
+        event.fire(ws.upcast());
     }
 }
 
@@ -495,27 +506,23 @@ impl Runnable for CloseTask {
             //A Bad close
             ws.clean_close.set(false);
             let event = Event::new(global.r(),
-                                   "error".to_owned(),
+                                   atom!("error"),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
-            let target = EventTargetCast::from_ref(ws);
-            event.r().fire(target);
+            event.fire(ws.upcast());
         }
-        let rsn = ws.reason.borrow();
-        let rsn_clone = rsn.clone();
+        let reason = ws.reason.borrow().clone();
         /*In addition, we also have to fire a close even if error event fired
          https://html.spec.whatwg.org/multipage/#closeWebSocket
         */
         let close_event = CloseEvent::new(global.r(),
-                                          "close".to_owned(),
+                                          atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
                                           ws.clean_close.get(),
                                           ws.code.get(),
-                                          rsn_clone);
-        let target = EventTargetCast::from_ref(ws);
-        let event = EventCast::from_ref(close_event.r());
-        event.fire(target);
+                                          DOMString::from(reason));
+        close_event.upcast::<Event>().fire(ws.upcast());
     }
 }
 
@@ -538,33 +545,32 @@ impl Runnable for MessageReceivedTask {
 
         // Step 2-5.
         let global = ws.global.root();
-        let cx = global.r().get_cx();
-        let _ar = JSAutoRequest::new(cx);
-        let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
-        let mut message = RootedValue::new(cx, UndefinedValue());
-        match self.message {
-            MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
-            MessageData::Binary(data) => {
-                match ws.binary_type.get() {
-                    BinaryType::Blob => {
-                        let blob = Blob::new(global.r(), Some(data), "");
-                        blob.to_jsval(cx, message.handle_mut());
-                    }
-                    BinaryType::Arraybuffer => {
-                        unsafe {
+        // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
+        unsafe {
+            let cx = global.r().get_cx();
+            let _ar = JSAutoRequest::new(cx);
+            let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
+            let mut message = RootedValue::new(cx, UndefinedValue());
+            match self.message {
+                MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
+                MessageData::Binary(data) => {
+                    match ws.binary_type.get() {
+                        BinaryType::Blob => {
+                            let blob = Blob::new(global.r(), Some(data), "");
+                            blob.to_jsval(cx, message.handle_mut());
+                        }
+                        BinaryType::Arraybuffer => {
                             let len = data.len() as uint32_t;
                             let buf = JS_NewArrayBuffer(cx, len);
                             let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, ptr::null());
                             ptr::copy_nonoverlapping(data.as_ptr(), buf_data, len as usize);
                             buf.to_jsval(cx, message.handle_mut());
                         }
+
                     }
-
-                }
-            },
+                },
+            }
+            MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
         }
-
-        let target = EventTargetCast::from_ref(ws.r());
-        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
     }
 }

@@ -3,46 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::Attr;
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived, NodeCast};
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use std::cell::Cell;
-use util::str::{self, DOMString};
+use string_cache::Atom;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<RGBA>>,
 }
 
 impl HTMLTableSectionElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            background_color: Cell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableSectionElement> {
         let element = HTMLTableSectionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableSectionElementBinding::Wrap)
-    }
-
-    pub fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
     }
 }
 
@@ -50,51 +44,61 @@ impl HTMLTableSectionElement {
 struct RowsFilter;
 impl CollectionFilter for RowsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is_htmltablerowelement()
-            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+        elem.is::<HTMLTableRowElement>()
+            && elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 
 impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> Root<HTMLCollection> {
-        HTMLCollection::create(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
+        HTMLCollection::create(&window_from_node(self), self.upcast(), box RowsFilter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
     fn InsertRow(&self, index: i32) -> Fallible<Root<HTMLElement>> {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new("tr".to_owned(), None, node.owner_doc().r()))
+            || HTMLTableRowElement::new(atom!("tr"), None, node.owner_doc().r()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
     fn DeleteRow(&self, index: i32) -> ErrorResult {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.delete_cell_or_row(
             index,
             || self.Rows(),
-            |n| n.is_htmltablerowelement())
+            |n| n.is::<HTMLTableRowElement>())
+    }
+}
+
+pub trait HTMLTableSectionElementLayoutHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+}
+
+#[allow(unsafe_code)]
+impl HTMLTableSectionElementLayoutHelpers for LayoutJS<HTMLTableSectionElement> {
+    fn get_background_color(&self) -> Option<RGBA> {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
+                .and_then(AttrValue::as_color)
+                .cloned()
+        }
     }
 }
 
 impl VirtualMethods for HTMLTableSectionElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(bgcolor) => {
-                self.background_color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
-            _ => {},
+    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+        match *local_name {
+            atom!("bgcolor") => AttrValue::from_legacy_color(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
 }

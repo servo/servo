@@ -178,8 +178,8 @@ var testrules = [
 
 ];
 
-// test that invalid value declarations don't affect the parsing of surrounding 
-// declarations.  So before + invalid + after should match the serialization 
+// test that invalid value declarations don't affect the parsing of surrounding
+// declarations.  So before + invalid + after should match the serialization
 // given in s.
 
 var gSurroundingTests = [
@@ -254,7 +254,7 @@ function testOneRule(testrule) {
     parseErr = true;
   }
 
-  test(function() { 
+  test(function() {
     assert_true(!parseErr || expectedErr, "unexpected syntax error");
     if (!parseErr) {
       assert_equals(sheet.cssRules.length, 1, "bad rule count");
@@ -297,13 +297,13 @@ function testOneRule(testrule) {
     if ("rulesrc" in testrule) {
       test(function() {
         var j, rulesrc = testrule.rulesrc;
-    
+
         // invalid value definitions shouldn't affect the parsing of valid
         // definitions before or after an invalid one
         for (var j = 0; j &lt; gSurroundingTests.length; j++) {
           var t = gSurroundingTests[j];
           var srulesrc = [];
-    
+
           if ("between" in t) {
             srulesrc = srulesrc.concat(rulesrc);
             srulesrc = srulesrc.concat(t.between);
@@ -315,7 +315,7 @@ function testOneRule(testrule) {
             if (t.after != "")
               srulesrc = srulesrc.concat(t.after);
           }
-    
+
           var result = testParse(srulesrc);
           assert_equals(valuesText(result), valuesText(t.s), "invalid declarations should not affect valid ones - ");
         }

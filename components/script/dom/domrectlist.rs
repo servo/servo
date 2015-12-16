@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMRectListBinding;
 use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
 use dom::window::Window;
 
@@ -18,7 +18,8 @@ pub struct DOMRectList {
 
 impl DOMRectList {
     fn new_inherited<T>(rects: T) -> DOMRectList
-                        where T: Iterator<Item=Root<DOMRect>> {
+        where T: Iterator<Item = Root<DOMRect>>
+    {
         DOMRectList {
             reflector_: Reflector::new(),
             rects: rects.map(|r| JS::from_rooted(&r)).collect(),
@@ -26,9 +27,11 @@ impl DOMRectList {
     }
 
     pub fn new<T>(window: &Window, rects: T) -> Root<DOMRectList>
-                  where T: Iterator<Item=Root<DOMRect>> {
+        where T: Iterator<Item = Root<DOMRect>>
+    {
         reflect_dom_object(box DOMRectList::new_inherited(rects),
-                           GlobalRef::Window(window), DOMRectListBinding::Wrap)
+                           GlobalRef::Window(window),
+                           DOMRectListBinding::Wrap)
     }
 }
 
@@ -42,7 +45,7 @@ impl DOMRectListMethods for DOMRectList {
     fn Item(&self, index: u32) -> Option<Root<DOMRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
-            Some(rects[index as usize].root())
+            Some(Root::from_ref(&*rects[index as usize]))
         } else {
             None
         }

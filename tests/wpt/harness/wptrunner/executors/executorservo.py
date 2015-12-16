@@ -22,6 +22,12 @@ from .base import (ExecutorException,
                    reftest_result_converter)
 from .process import ProcessTestExecutor
 from ..browsers.base import browser_command
+render_arg = None
+
+
+def do_delayed_imports():
+    global render_arg
+    from ..browsers.servo import render_arg
 
 hosts_text = """127.0.0.1 web-platform.test
 127.0.0.1 www.web-platform.test
@@ -37,11 +43,13 @@ def make_hosts_file():
         f.write(hosts_text)
     return hosts_path
 
+
 class ServoTestharnessExecutor(ProcessTestExecutor):
     convert_result = testharness_result_converter
 
     def __init__(self, browser, server_config, timeout_multiplier=1, debug_info=None,
                  pause_after_test=False):
+        do_delayed_imports()
         ProcessTestExecutor.__init__(self, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
                                      debug_info=debug_info)
@@ -62,7 +70,8 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_data = None
         self.result_flag = threading.Event()
 
-        args = ["--cpu", "--hard-fail", "-u", "Servo/wptrunner", "-z", self.test_url(test)]
+        args = [render_arg(self.browser.render_backend), "--hard-fail", "-u", "Servo/wptrunner",
+                "-z", self.test_url(test)]
         for stylesheet in self.browser.user_stylesheets:
             args += ["--user-stylesheet", stylesheet]
         for pref in test.environment.get('prefs', {}):
@@ -166,7 +175,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
     def __init__(self, browser, server_config, binary=None, timeout_multiplier=1,
                  screenshot_cache=None, debug_info=None, pause_after_test=False):
-
+        do_delayed_imports()
         ProcessTestExecutor.__init__(self,
                                      browser,
                                      server_config,
@@ -193,8 +202,9 @@ class ServoRefTestExecutor(ProcessTestExecutor):
         with TempFilename(self.tempdir) as output_path:
             debug_args, command = browser_command(
                 self.binary,
-                ["--cpu", "--hard-fail", "--exit", "-u", "Servo/wptrunner",
-                 "-Z", "disable-text-aa", "--output=%s" % output_path, full_url],
+                [render_arg(self.browser.render_backend), "--hard-fail", "--exit",
+                 "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously",
+                 "--output=%s" % output_path, full_url],
                 self.debug_info)
 
             for stylesheet in self.browser.user_stylesheets:

@@ -5,8 +5,8 @@
 use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
-use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
+use dom::bindings::global::{GlobalRoot, global_root_from_reflector};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
@@ -49,7 +49,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    let window = match global_object_for_reflector(target) {
+    let window = match global_root_from_reflector(target) {
         GlobalRoot::Window(window) => {
             if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
                 Some(window)
@@ -60,7 +60,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
         _ => None,
     };
 
-    let type_ = event.Type();
+    let type_ = event.type_();
 
     /* capturing */
     event.set_phase(EventPhase::Capturing);
@@ -148,10 +148,9 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     event.set_dispatching(true);
 
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
-    if let Some(target_node) = NodeCast::to_ref(target) {
+    if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
-            let ancestor_target = EventTargetCast::from_ref(ancestor.r());
-            chain.push(JS::from_ref(ancestor_target))
+            chain.push(JS::from_ref(ancestor.upcast()));
         }
     }
 
@@ -161,13 +160,9 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     let target = event.GetTarget();
     match target {
         Some(ref target) => {
-            let node: Option<&Node> = NodeCast::to_ref(target.r());
-            match node {
-                Some(node) => {
-                    let vtable = vtable_for(&node);
-                    vtable.handle_event(event);
-                }
-                None => {}
+            if let Some(node) = target.downcast::<Node>() {
+                let vtable = vtable_for(&node);
+                vtable.handle_event(event);
             }
         }
         None => {}

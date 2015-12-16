@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use brotli::Decompressor;
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -22,11 +23,13 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
+use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
-use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_task::{send_error, start_sending_sniffed_opt};
+use openssl::ssl::error::{SslError, OpensslError};
+use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
+use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -41,10 +44,28 @@ use uuid;
 
 pub type Connector = HttpsConnector<Openssl>;
 
+// The basic logic here is to prefer ciphers with ECDSA certificates, Forward
+// Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
+// A complete discussion of the issues involved in TLS configuration can be found here:
+// https://wiki.mozilla.org/Security/Server_Side_TLS
+const DEFAULT_CIPHERS: &'static str = concat!(
+    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
+    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
+    "DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:",
+    "ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:",
+    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:",
+    "ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
+    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:",
+    "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
+    "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
+);
+
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
     context.set_verify(SSL_VERIFY_PEER, None);
     context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+    context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
+    context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3);
     let connector = HttpsConnector::new(Openssl {
         context: Arc::new(context)
     });
@@ -57,8 +78,11 @@ pub fn factory(user_agent: String,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-    box move |load_data: LoadData, senders, classifier| {
+               -> Box<FnBox(LoadData,
+                            LoadConsumer,
+                            Arc<MIMEClassifier>,
+                            CancellationListener) + Send> {
+    box move |load_data: LoadData, senders, classifier, cancel_listener| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
                               senders,
@@ -67,6 +91,7 @@ pub fn factory(user_agent: String,
                               hsts_list,
                               cookie_jar,
                               devtools_chan,
+                              cancel_listener,
                               user_agent)
         })
     }
@@ -102,12 +127,16 @@ fn load_for_consumer(load_data: LoadData,
                      hsts_list: Arc<RwLock<HSTSList>>,
                      cookie_jar: Arc<RwLock<CookieStorage>>,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                     cancel_listener: CancellationListener,
                      user_agent: String) {
 
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
-    match load::<WrappedHttpRequest>(load_data, hsts_list, cookie_jar, devtools_chan, &factory, user_agent) {
+    match load::<WrappedHttpRequest>(load_data, hsts_list,
+                                     cookie_jar, devtools_chan,
+                                     &factory, user_agent,
+                                     &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -119,6 +148,7 @@ fn load_for_consumer(load_data: LoadData,
             send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
+        Err(LoadError::Cancelled(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
         Err(LoadError::Decoding(url, msg)) => {
             send_error(url, msg, start_chan)
@@ -130,13 +160,12 @@ fn load_for_consumer(load_data: LoadData,
             image.push("badcert.html");
             let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
 
-            file_loader::factory(load_data, start_chan, classifier)
-
+            file_loader::factory(load_data, start_chan, classifier, cancel_listener)
         }
         Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
-            send_data(&mut load_response, start_chan, metadata, classifier)
+            send_data(&mut load_response, start_chan, metadata, classifier, &cancel_listener)
         }
     }
 }
@@ -154,10 +183,9 @@ pub trait HttpResponse: Read {
                         Some(Encoding::Gzip)
                     } else if encodings.contains(&Encoding::Deflate) {
                         Some(Encoding::Deflate)
-                    } else {
-                        // TODO: Is this the correct behaviour?
-                        None
-                    }
+                    } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+                        Some(Encoding::EncodingExt("br".to_owned()))
+                    } else { None }
                 }
             }
         })
@@ -205,29 +233,21 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
     fn create(&self, url: Url, method: Method) -> Result<WrappedHttpRequest, LoadError> {
         let connection = Request::with_connector(method, url.clone(), &*self.connector);
 
-        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
-    function: \"SSL3_GET_SERVER_CERTIFICATE\", \
-    reason: \"certificate verify failed\" }]))";
+        if let Err(HttpError::Ssl(ref error)) = connection {
+            let error: &(Error + Send + 'static) = &**error;
+            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
+                if errors.iter().any(is_cert_verify_error) {
+                    return Err(
+                        LoadError::Ssl(url, format!("ssl error: {:?} {:?}",
+                                                    error.description(),
+                                                    error.cause())));
+                }
+            }
+        }
 
         let request = match connection {
             Ok(req) => req,
 
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                return Err(
-                    LoadError::Ssl(
-                        url,
-                        format!("ssl error {:?}: {:?} {:?}",
-                                io_error.kind(),
-                                io_error.description(),
-                                io_error.cause())
-                    )
-                )
-            },
             Err(e) => {
                  return Err(LoadError::Connection(url, e.description().to_owned()))
             }
@@ -293,6 +313,7 @@ pub enum LoadError {
     Decoding(Url, String),
     MaxRedirects(Url),
     ConnectionAborted(String),
+    Cancelled(Url, String),
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -302,7 +323,8 @@ fn set_default_accept_encoding(headers: &mut Headers) {
 
     headers.set(AcceptEncoding(vec![
         qitem(Encoding::Gzip),
-        qitem(Encoding::Deflate)
+        qitem(Encoding::Deflate),
+        qitem(Encoding::EncodingExt("br".to_owned()))
     ]));
 }
 
@@ -394,6 +416,7 @@ impl<R: HttpResponse> Read for StreamedResponse<R> {
         match self.decoder {
             Decoder::Gzip(ref mut d) => d.read(buf),
             Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Brotli(ref mut d) => d.read(buf),
             Decoder::Plain(ref mut d) => d.read(buf)
         }
     }
@@ -421,6 +444,10 @@ impl<R: HttpResponse> StreamedResponse<R> {
                 let response_decoding = DeflateDecoder::new(response);
                 Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
             }
+            Some(Encoding::EncodingExt(ref ext)) if ext == "br" => {
+                let response_decoding = Decompressor::new(response);
+                Ok(StreamedResponse::new(m, Decoder::Brotli(response_decoding)))
+            }
             _ => {
                 Ok(StreamedResponse::new(m, Decoder::Plain(response)))
             }
@@ -431,6 +458,7 @@ impl<R: HttpResponse> StreamedResponse<R> {
 enum Decoder<R: Read> {
     Gzip(GzDecoder<R>),
     Deflate(DeflateDecoder<R>),
+    Brotli(Decompressor<R>),
     Plain(R)
 }
 
@@ -439,10 +467,12 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             url: Url,
                             method: Method,
                             headers: Headers,
-                            body: Option<Vec<u8>>) {
+                            body: Option<Vec<u8>>,
+                            pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body };
+        let request = DevtoolsHttpRequest {
+            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id };
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
@@ -453,9 +483,10 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              request_id: String,
                              headers: Option<Headers>,
-                             status: Option<RawStatus>) {
+                             status: Option<RawStatus>,
+                             pipeline_id: PipelineId) {
     if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None };
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
         let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
@@ -470,12 +501,54 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool
     }
 }
 
+pub fn modify_request_headers(headers: &mut Headers,
+                              doc_url: &Url,
+                              user_agent: &str,
+                              cookie_jar: &Arc<RwLock<CookieStorage>>,
+                              load_data: &LoadData) {
+    // Ensure that the host header is set from the original url
+    let host = Host {
+        hostname: doc_url.serialize_host().unwrap(),
+        port: doc_url.port_or_default()
+    };
+    headers.set(host);
+    headers.set(UserAgent(user_agent.to_owned()));
+
+    set_default_accept(headers);
+    set_default_accept_encoding(headers);
+    // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
+    if load_data.credentials_flag {
+        set_request_cookies(doc_url.clone(), headers, cookie_jar);
+    }
+}
+
+pub fn process_response_headers(response: &HttpResponse,
+                                url: &Url,
+                                doc_url: &Url,
+                                cookie_jar: &Arc<RwLock<CookieStorage>>,
+                                hsts_list: &Arc<RwLock<HSTSList>>,
+                                load_data: &LoadData) {
+    info!("got HTTP response {}, headers:", response.status());
+    if log_enabled!(log::LogLevel::Info) {
+        for header in response.headers().iter() {
+            info!(" - {}", header);
+        }
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-http-network-fetch step 9
+    if load_data.credentials_flag {
+        set_cookies_from_response(doc_url.clone(), response, cookie_jar);
+    }
+    update_sts_list_from_response(url, response, hsts_list);
+}
+
 pub fn load<A>(load_data: LoadData,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                request_factory: &HttpRequestFactory<R=A>,
-               user_agent: String)
+               user_agent: String,
+               cancel_listener: &CancellationListener)
                -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
@@ -489,6 +562,10 @@ pub fn load<A>(load_data: LoadData,
     let mut url = replace_hosts(&load_data.url);
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+
+    if cancel_listener.is_cancelled() {
+        return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+    }
 
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
@@ -517,13 +594,11 @@ pub fn load<A>(load_data: LoadData,
             return Err(LoadError::UnsupportedScheme(url));
         }
 
-        info!("requesting {}", url.serialize());
+        if cancel_listener.is_cancelled() {
+            return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+        }
 
-        // Ensure that the host header is set from the original url
-        let host = Host {
-            hostname: doc_url.serialize_host().unwrap(),
-            port: doc_url.port_or_default()
-        };
+        info!("requesting {}", url.serialize());
 
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
@@ -537,13 +612,7 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        request_headers.set(host);
-
-        request_headers.set(UserAgent(user_agent.clone()));
-
-        set_default_accept(&mut request_headers);
-        set_default_accept_encoding(&mut request_headers);
-        set_request_cookies(doc_url.clone(), &mut request_headers, &cookie_jar);
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
@@ -556,6 +625,10 @@ pub fn load<A>(load_data: LoadData,
         loop {
             let mut req = try!(request_factory.create(url.clone(), method.clone()));
             *req.headers_mut() = request_headers.clone();
+
+            if cancel_listener.is_cancelled() {
+                return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+            }
 
             if log_enabled!(log::LogLevel::Info) {
                 info!("{}", method);
@@ -572,34 +645,29 @@ pub fn load<A>(load_data: LoadData,
             //
             // https://tools.ietf.org/html/rfc7231#section-6.4
             let is_redirected_request = iters != 1;
+            let cloned_data;
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
-
-                    // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
-                    // in the message
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        load_data.data.clone()
-                    );
-
+                    cloned_data = load_data.data.clone();
                     req.send(&load_data.data)
                 }
                 _ => {
                     if load_data.method != Method::Get && load_data.method != Method::Head {
                         req.headers_mut().set(ContentLength(0))
                     }
-
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        None
-                    );
-
+                    cloned_data = None;
                     req.send(&None)
                 }
             };
+
+            if let Some(pipeline_id) = load_data.pipeline_id {
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), request_headers.clone(),
+                    cloned_data, pipeline_id
+                );
+            }
 
             response = match maybe_response {
                 Ok(r) => r,
@@ -614,15 +682,7 @@ pub fn load<A>(load_data: LoadData,
             break;
         }
 
-        info!("got HTTP response {}, headers:", response.status());
-        if log_enabled!(log::LogLevel::Info) {
-            for header in response.headers().iter() {
-                info!(" - {}", header);
-            }
-        }
-
-        set_cookies_from_response(doc_url.clone(), &response, &cookie_jar);
-        update_sts_list_from_response(&url, &response, &hsts_list);
+        process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
@@ -684,13 +744,13 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        // TODO: Send this message only if load_data has a pipeline_id that is not None
         // TODO: Send this message even when the load fails?
-        send_response_to_devtools(
-            devtools_chan, request_id,
-            metadata.headers.clone(), metadata.status.clone()
-        );
-
+        if let Some(pipeline_id) = load_data.pipeline_id {
+                send_response_to_devtools(
+                    devtools_chan, request_id,
+                    metadata.headers.clone(), metadata.status.clone(),
+                    pipeline_id);
+         }
         return StreamedResponse::from_http_response(response, metadata)
     }
 }
@@ -698,7 +758,8 @@ pub fn load<A>(load_data: LoadData,
 fn send_data<R: Read>(reader: &mut R,
                       start_chan: LoadConsumer,
                       metadata: Metadata,
-                      classifier: Arc<MIMEClassifier>) {
+                      classifier: Arc<MIMEClassifier>,
+                      cancel_listener: &CancellationListener) {
     let (progress_chan, mut chunk) = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
@@ -712,6 +773,11 @@ fn send_data<R: Read>(reader: &mut R,
     };
 
     loop {
+        if cancel_listener.is_cancelled() {
+            let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+            return;
+        }
+
         if progress_chan.send(Payload(chunk)).is_err() {
             // The send errors when the receiver is out of scope,
             // which will happen if the fetch has timed out (or has been aborted)
@@ -726,4 +792,15 @@ fn send_data<R: Read>(reader: &mut R,
     }
 
     let _ = progress_chan.send(Done(Ok(())));
+}
+
+// FIXME: This incredibly hacky. Make it more robust, and at least test it.
+fn is_cert_verify_error(error: &OpensslError) -> bool {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            library == "SSL routines" &&
+            function == "SSL3_GET_SERVER_CERTIFICATE" &&
+            reason == "certificate verify failed"
+        }
+    }
 }

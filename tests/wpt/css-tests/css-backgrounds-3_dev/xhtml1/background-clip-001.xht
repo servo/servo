@@ -16,19 +16,19 @@
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-clip"),
                 "border-box", "background-clip initial value");
         }, "background-clip_initial");
-        
+
         document.getElementById("test").style.backgroundClip = "border-box";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-clip"),
                 "border-box", "background-clip supporting value");
         }, "background-clip_border-box");
-        
+
         document.getElementById("test").style.backgroundClip = "padding-box";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-clip"),
                 "padding-box", "background-clip supporting value");
         }, "background-clip_padding-box");
-        
+
         document.getElementById("test").style.backgroundClip = "content-box";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-clip"),

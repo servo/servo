@@ -51,3 +51,5 @@ stub!(cef_string_wide_to_utf16);
 stub!(cef_unregister_internal_web_plugin);
 stub!(cef_visit_web_plugin_info);
 
+//from skia
+stub!(gluCheckExtension);

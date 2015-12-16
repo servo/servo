@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
 use util::str::DOMString;
@@ -29,7 +29,8 @@ impl DOMStringMap {
     pub fn new(element: &HTMLElement) -> Root<DOMStringMap> {
         let window = window_from_node(element);
         reflect_dom_object(box DOMStringMap::new_inherited(element),
-                           GlobalRef::Window(window.r()), DOMStringMapBinding::Wrap)
+                           GlobalRef::Window(window.r()),
+                           DOMStringMapBinding::Wrap)
     }
 }
 
@@ -37,34 +38,30 @@ impl DOMStringMap {
 impl DOMStringMapMethods for DOMStringMap {
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem
     fn NamedDeleter(&self, name: DOMString) {
-        let element = self.element.root();
-        element.r().delete_custom_attr(name)
+        self.element.delete_custom_attr(name)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem
     fn NamedSetter(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        let element = self.element.root();
-        element.r().set_custom_attr(name, value)
+        self.element.set_custom_attr(name, value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem
     fn NamedGetter(&self, name: DOMString, found: &mut bool) -> DOMString {
-        let element = self.element.root();
-        match element.r().get_custom_attr(name) {
+        match self.element.get_custom_attr(name) {
             Some(value) => {
                 *found = true;
                 value.clone()
             },
             None => {
                 *found = false;
-                String::new()
+                DOMString::new()
             }
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        self.element.supported_prop_names_custom_attr().iter().cloned().collect()
     }
 }

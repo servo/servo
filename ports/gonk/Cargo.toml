@@ -10,15 +10,13 @@ path = "../../components/compositing"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.msg]
 path = "../../components/msg"
 
 [dependencies.script]
 path = "../../components/script"
-
-[dependencies.script_traits]
-path = "../../components/script_traits"
 
 [dependencies.net_traits]
 path = "../../components/net_traits"
@@ -47,9 +45,9 @@ git = "https://github.com/servo/rust-egl"
 
 [dependencies]
 env_logger = "0.3"
-url = "0.2.16"
+url = "0.5"
 time = "0.1.17"
 errno = "0.1"
-libc = "0.1"
-euclid = "0.2"
-gleam = "0.1"
+libc = "0.2"
+euclid = {version = "0.4", features = ["plugins"]}
+gleam = "0.2"

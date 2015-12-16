@@ -4,16 +4,196 @@
 
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
+use js::conversions::{FromJSValConvertible, ToJSValConvertible, latin1_to_string};
+use js::jsapi::{JSContext, JSString, HandleValue, MutableHandleValue};
+use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_StringHasLatin1Chars};
+use js::rust::ToString;
 use libc::c_char;
 use num_lib::ToPrimitive;
+use opts;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::char;
+use std::convert::AsRef;
 use std::ffi::CStr;
+use std::fmt;
 use std::iter::{Filter, Peekable};
-use std::ops::Deref;
-use std::str::{FromStr, Split, from_utf8};
+use std::ops::{Deref, DerefMut};
+use std::ptr;
+use std::slice;
+use std::str::{CharIndices, FromStr, Split, from_utf8};
 
-pub type DOMString = String;
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Deserialize, Serialize, Hash, Debug)]
+pub struct DOMString(String);
+
+impl !Send for DOMString {}
+
+impl DOMString {
+    pub fn new() -> DOMString {
+        DOMString(String::new())
+    }
+    // FIXME(ajeffrey): implement more of the String methods on DOMString?
+    pub fn push_str(&mut self, string: &str) {
+        self.0.push_str(string)
+    }
+    pub fn clear(&mut self) {
+        self.0.clear()
+    }
+}
+
+impl Default for DOMString {
+    fn default() -> Self {
+        DOMString(String::new())
+    }
+}
+
+impl Deref for DOMString {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl DerefMut for DOMString {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut str {
+        &mut self.0
+    }
+}
+
+impl AsRef<str> for DOMString {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for DOMString {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&**self, f)
+    }
+}
+
+impl PartialEq<str> for DOMString {
+    fn eq(&self, other: &str) -> bool {
+        &**self == other
+    }
+}
+
+impl<'a> PartialEq<&'a str> for DOMString {
+    fn eq(&self, other: &&'a str) -> bool {
+        &**self == *other
+    }
+}
+
+impl From<String> for DOMString {
+    fn from(contents: String) -> DOMString {
+        DOMString(contents)
+    }
+}
+
+impl<'a> From<&'a str> for DOMString {
+    fn from(contents: &str) -> DOMString {
+        DOMString::from(String::from(contents))
+    }
+}
+
+impl From<DOMString> for String {
+    fn from(contents: DOMString) -> String {
+        contents.0
+    }
+}
+
+impl Into<Vec<u8>> for DOMString {
+    fn into(self) -> Vec<u8> {
+        self.0.into()
+    }
+}
+
+// https://heycam.github.io/webidl/#es-DOMString
+impl ToJSValConvertible for DOMString {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        (**self).to_jsval(cx, rval);
+    }
+}
+
+/// Behavior for stringification of `JSVal`s.
+#[derive(PartialEq)]
+pub enum StringificationBehavior {
+    /// Convert `null` to the string `"null"`.
+    Default,
+    /// Convert `null` to the empty string.
+    Empty,
+}
+
+/// Convert the given `JSString` to a `DOMString`. Fails if the string does not
+/// contain valid UTF-16.
+pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
+    let latin1 = JS_StringHasLatin1Chars(s);
+    DOMString(if latin1 {
+        latin1_to_string(cx, s)
+    } else {
+        let mut length = 0;
+        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s, &mut length);
+        assert!(!chars.is_null());
+        let potentially_ill_formed_utf16 = slice::from_raw_parts(chars, length as usize);
+        let mut s = String::with_capacity(length as usize);
+        for item in char::decode_utf16(potentially_ill_formed_utf16.iter().cloned()) {
+            match item {
+                Ok(c) => s.push(c),
+                Err(_) => {
+                    // FIXME: Add more info like document URL in the message?
+                    macro_rules! message {
+                        () => {
+                            "Found an unpaired surrogate in a DOM string. \
+                             If you see this in real web content, \
+                             please comment on https://github.com/servo/servo/issues/6564"
+                        }
+                    }
+                    if opts::get().replace_surrogates {
+                        error!(message!());
+                        s.push('\u{FFFD}');
+                    } else {
+                        panic!(concat!(message!(), " Use `-Z replace-surrogates` \
+                            on the command line to make this non-fatal."));
+                    }
+                }
+            }
+        }
+        s
+    })
+}
+
+// https://heycam.github.io/webidl/#es-DOMString
+impl FromJSValConvertible for DOMString {
+    type Config = StringificationBehavior;
+    unsafe fn from_jsval(cx: *mut JSContext,
+                         value: HandleValue,
+                         null_behavior: StringificationBehavior)
+                         -> Result<DOMString, ()> {
+        if null_behavior == StringificationBehavior::Empty &&
+           value.get().is_null() {
+            Ok(DOMString::new())
+        } else {
+            let jsstr = ToString(cx, value);
+            if jsstr.is_null() {
+                debug!("ToString failed");
+                Err(())
+            } else {
+                Ok(jsstring_to_str(cx, jsstr))
+            }
+        }
+    }
+}
+
+impl Extend<char> for DOMString {
+    fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
+        self.0.extend(iterable)
+    }
+}
+
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 
@@ -116,27 +296,46 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     })
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f32),
     Length(Au),
 }
 
-/// Parses a length per HTML5 § 2.4.4.4. If unparseable, `Auto` is returned.
+/// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
+/// Parses a dimension value per HTML5 § 2.4.4.4. If unparseable, `Auto` is
+/// returned.
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
+    // Steps 1 & 2 are not relevant
+
+    // Step 3
     value = value.trim_left_matches(WHITESPACE);
-    if value.is_empty() {
-        return LengthOrPercentageOrAuto::Auto
-    }
-    if value.starts_with("+") {
-        value = &value[1..]
-    }
-    value = value.trim_left_matches('0');
+
+    // Step 4
     if value.is_empty() {
         return LengthOrPercentageOrAuto::Auto
     }
 
+    // Step 5
+    if value.starts_with("+") {
+        value = &value[1..]
+    }
+
+    // Steps 6 & 7
+    match value.chars().nth(0) {
+        Some('0'...'9') => {},
+        _ => return LengthOrPercentageOrAuto::Auto,
+    }
+
+    // Steps 8 to 13
+    // We trim the string length to the minimum of:
+    // 1. the end of the string
+    // 2. the first occurence of a '%' (U+0025 PERCENT SIGN)
+    // 3. the second occurrence of a '.' (U+002E FULL STOP)
+    // 4. the occurrence of a character that is neither a digit nor '%' nor '.'
+    // Note: Step 10 is directly subsumed by FromStr::from_str
     let mut end_index = value.len();
     let (mut found_full_stop, mut found_percent) = (false, false);
     for (i, ch) in value.chars().enumerate() {
@@ -168,7 +367,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 
     match FromStr::from_str(value) {
-        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_px(number)),
+        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_f64_px(number)),
         Err(_) => LengthOrPercentageOrAuto::Auto,
     }
 }
@@ -359,7 +558,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
 }
 
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
 pub struct LowercaseString {
     inner: String,
 }
@@ -419,4 +618,17 @@ pub fn slice_chars(s: &str, begin: usize, end: usize) -> &str {
         (_, None) => panic!("slice_chars: `end` is beyond end of string"),
         (Some(a), Some(b)) => unsafe { s.slice_unchecked(a, b) }
     }
+}
+
+// searches a character index in CharIndices
+// returns indices.count if not found
+pub fn search_index(index: usize, indices: CharIndices) -> isize {
+    let mut character_count = 0;
+    for (character_index, _) in indices {
+        if character_index == index {
+            return character_count;
+        }
+        character_count += 1
+    }
+    character_count
 }

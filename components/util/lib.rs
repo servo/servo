@@ -6,31 +6,27 @@
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
+#![feature(decode_utf16)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]
 #![feature(oom)]
 #![feature(optin_builtin_traits)]
-#![feature(path_ext)]
 #![feature(plugin)]
-#![feature(slice_splits)]
+#![feature(reflect_marker)]
 #![feature(step_by)]
 #![feature(step_trait)]
 #![feature(zero_one)]
 
 #![plugin(plugins, serde_macros)]
 
+extern crate alloc;
 extern crate app_units;
+extern crate azure;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-extern crate alloc;
-extern crate azure;
 extern crate euclid;
 extern crate getopts;
 extern crate html5ever;
@@ -38,9 +34,13 @@ extern crate hyper;
 extern crate ipc_channel;
 extern crate js;
 extern crate layers;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
-extern crate num_cpus;
+#[macro_use]
+extern crate log;
 extern crate num as num_lib;
+extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;
@@ -48,6 +48,7 @@ extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate url;
+extern crate uuid;
 
 use std::sync::Arc;
 
@@ -72,6 +73,7 @@ pub mod task;
 pub mod task_state;
 pub mod taskpool;
 pub mod tid;
+pub mod time;
 pub mod vec;
 pub mod workqueue;
 

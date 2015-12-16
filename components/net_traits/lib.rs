@@ -8,23 +8,21 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![feature(vec_push_all)]
 #![feature(custom_attribute)]
 #![plugin(serde_macros, plugins)]
-#![plugin(regex_macros)]
 
-#[macro_use]
-extern crate log;
 extern crate euclid;
 extern crate hyper;
-extern crate ipc_channel;
 extern crate image as piston_image;
+extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate msg;
-extern crate regex;
 extern crate serde;
 extern crate stb_image;
 extern crate url;
 extern crate util;
+extern crate websocket;
 
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
@@ -33,8 +31,9 @@ use hyper::mime::{Attr, Mime};
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
-use regex::Regex;
 use serde::{Deserializer, Serializer};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::thread;
 use url::Url;
 use util::mem::HeapSizeOf;
@@ -44,10 +43,6 @@ pub mod image_cache_task;
 pub mod net_error_list;
 pub mod storage_task;
 
-pub static IPV4_REGEX: Regex = regex!(
-    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
-
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy)]
 pub enum ResponseType {
@@ -55,7 +50,8 @@ pub enum ResponseType {
     CORS,
     Default,
     Error,
-    Opaque
+    Opaque,
+    OpaqueRedirect
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
@@ -87,13 +83,14 @@ pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
+    pub url_list: Vec<Url>,
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
     pub headers: Headers,
     pub body: ResponseBody,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
-    pub internal_response: Option<Box<Response>>,
+    pub internal_response: Option<Rc<RefCell<Response>>>,
 }
 
 impl Response {
@@ -102,6 +99,7 @@ impl Response {
             response_type: ResponseType::Error,
             termination_reason: None,
             url: None,
+            url_list: vec![],
             status: None,
             headers: Headers::new(),
             body: ResponseBody::Empty,
@@ -139,6 +137,8 @@ pub struct LoadData {
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub pipeline_id: Option<PipelineId>,
+    // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
+    pub credentials_flag: bool,
 }
 
 impl LoadData {
@@ -151,6 +151,7 @@ impl LoadData {
             data: None,
             cors: None,
             pipeline_id: id,
+            credentials_flag: true,
         }
     }
 }
@@ -224,15 +225,53 @@ pub enum IncludeSubdomains {
     NotIncluded
 }
 
+#[derive(HeapSizeOf, Deserialize, Serialize)]
+pub enum MessageData {
+    Text(String),
+    Binary(Vec<u8>),
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebSocketDomAction {
+    SendMessage(MessageData),
+    Close(u16, String),
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebSocketNetworkEvent {
+    ConnectionEstablished,
+    MessageReceived(MessageData),
+    Close,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct WebSocketCommunicate {
+    pub event_sender: IpcSender<WebSocketNetworkEvent>,
+    pub action_receiver: IpcReceiver<WebSocketDomAction>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct WebSocketConnectData {
+    pub resource_url: Url,
+    pub origin: String,
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(LoadData, LoadConsumer),
+    Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
+    /// Try to make a websocket connection to a URL.
+    WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
-    Exit
+    /// Cancel a network request corresponding to a given `ResourceId`
+    Cancel(ResourceId),
+    /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
+    Synchronize(IpcSender<()>),
+    /// Break the load handler loop and exit
+    Exit,
 }
 
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
@@ -274,22 +313,12 @@ impl PendingAsyncLoad {
         }
     }
 
-    /// Initiate the network request associated with this pending load.
-    pub fn load(mut self) -> IpcReceiver<LoadResponse> {
-        self.guard.neuter();
-        let load_data = LoadData::new(self.url, self.pipeline);
-        let (sender, receiver) = ipc::channel().unwrap();
-        let consumer = LoadConsumer::Channel(sender);
-        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
-        receiver
-    }
-
     /// Initiate the network request associated with this pending load, using the provided target.
     pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
         let consumer = LoadConsumer::Listener(listener);
-        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
+        self.resource_task.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
     }
 }
 
@@ -383,49 +412,23 @@ pub enum ProgressMsg {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
+pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: Option<PipelineId>)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None),
-                       LoadConsumer::Channel(start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
+                       LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
     loop {
         match response.progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => buf.push_all(&data),
+            ProgressMsg::Payload(data) => buf.extend_from_slice(&data),
             ProgressMsg::Done(Ok(())) => return Ok((response.metadata, buf)),
             ProgressMsg::Done(Err(e)) => return Err(e)
         }
     }
 }
 
-/// Load a URL asynchronously and iterate over chunks of bytes from the response.
-pub fn load_bytes_iter(pending: PendingAsyncLoad) -> (Metadata, ProgressMsgPortIterator) {
-    let input_port = pending.load();
-    let response = input_port.recv().unwrap();
-    let iter = ProgressMsgPortIterator {
-        progress_port: response.progress_port
-    };
-    (response.metadata, iter)
-}
-
-/// Iterator that reads chunks of bytes from a ProgressMsg port
-pub struct ProgressMsgPortIterator {
-    progress_port: IpcReceiver<ProgressMsg>,
-}
-
-impl Iterator for ProgressMsgPortIterator {
-    type Item = Vec<u8>;
-
-    fn next(&mut self) -> Option<Vec<u8>> {
-        match self.progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => Some(data),
-            ProgressMsg::Done(Ok(()))  => None,
-            ProgressMsg::Done(Err(e))  => {
-                error!("error receiving bytes: {}", e);
-                None
-            }
-        }
-    }
-}
+/// An unique identifier to keep track of each load message in the resource handler
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct ResourceId(pub u32);

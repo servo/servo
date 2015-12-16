@@ -7,12 +7,10 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
@@ -28,51 +26,47 @@ pub struct HTMLTableElement {
     background_color: Cell<Option<RGBA>>,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
-    width: Cell<LengthOrPercentageOrAuto>,
 }
 
 impl HTMLTableElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
-            width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
+    }
+
+    pub fn get_border(&self) -> Option<u32> {
+        self.border.get()
     }
 }
 
 impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
-        let node = NodeCast::from_ref(self);
-        node.children()
-            .filter_map(|c| {
-                HTMLTableCaptionElementCast::to_ref(c.r()).map(Root::from_ref)
-            })
-            .next()
+        self.upcast::<Node>().children().filter_map(Root::downcast).next()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) {
-        let node = NodeCast::from_ref(self);
-
         if let Some(ref caption) = self.GetCaption() {
-            NodeCast::from_ref(caption.r()).remove_self();
+            caption.upcast::<Node>().remove_self();
         }
 
         if let Some(caption) = new_caption {
-            assert!(node.InsertBefore(NodeCast::from_ref(caption),
-                                      node.GetFirstChild().as_ref().map(|n| n.r())).is_ok());
+            let node = self.upcast::<Node>();
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().r())
+                .expect("Insertion failed");
         }
     }
 
@@ -81,105 +75,127 @@ impl HTMLTableElementMethods for HTMLTableElement {
         let caption = match self.GetCaption() {
             Some(caption) => caption,
             None => {
-                let caption = HTMLTableCaptionElement::new("caption".to_owned(),
+                let caption = HTMLTableCaptionElement::new(atom!("caption"),
                                                            None,
                                                            document_from_node(self).r());
                 self.SetCaption(Some(caption.r()));
                 caption
             }
         };
-        HTMLElementCast::from_root(caption)
+        Root::upcast(caption)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
     fn DeleteCaption(&self) {
         if let Some(caption) = self.GetCaption() {
-            NodeCast::from_ref(caption.r()).remove_self();
+            caption.upcast::<Node>().remove_self();
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
-        let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
+        let tbody = HTMLTableSectionElement::new(atom!("tbody"),
                                                  None,
                                                  document_from_node(self).r());
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let last_tbody =
             node.rev_children()
-                .filter_map(ElementCast::to_root)
-                .find(|n| n.is_htmltablesectionelement() && n.local_name() == &atom!("tbody"));
+                .filter_map(Root::downcast::<Element>)
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody"));
         let reference_element =
-            last_tbody.and_then(|t| NodeCast::from_root(t).GetNextSibling());
+            last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        assert!(node.InsertBefore(NodeCast::from_ref(tbody.r()),
-                                  reference_element.r()).is_ok());
+        node.InsertBefore(tbody.upcast(), reference_element.r())
+            .expect("Insertion failed");
         tbody
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
-    make_getter!(BgColor);
+    make_getter!(BgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
     make_setter!(SetBgColor, "bgcolor");
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-width
+    make_getter!(Width, "width");
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-width
+    make_dimension_setter!(SetWidth, "width");
 }
 
+pub trait HTMLTableElementLayoutHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_border(&self) -> Option<u32>;
+    fn get_cellspacing(&self) -> Option<u32>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+}
 
-impl HTMLTableElement {
-    pub fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
+impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
+    #[allow(unsafe_code)]
+    fn get_background_color(&self) -> Option<RGBA> {
+        unsafe {
+            (*self.unsafe_get()).background_color.get()
+        }
     }
 
-    pub fn get_border(&self) -> Option<u32> {
-        self.border.get()
+    #[allow(unsafe_code)]
+    fn get_border(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).border.get()
+        }
     }
 
-    pub fn get_cellspacing(&self) -> Option<u32> {
-        self.cellspacing.get()
+    #[allow(unsafe_code)]
+    fn get_cellspacing(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).cellspacing.get()
+        }
     }
 
-    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
-        self.width.get()
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .map(AttrValue::as_dimension)
+                .cloned()
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 }
 
 impl VirtualMethods for HTMLTableElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(bgcolor) => {
+        match *attr.local_name() {
+            atom!("bgcolor") => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));
             },
-            &atom!(border) => {
+            atom!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
                     str::parse_unsigned_integer(value.chars()).unwrap_or(1)
                 }));
             }
-            &atom!(cellspacing) => {
+            atom!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_unsigned_integer(value.chars())
                 }));
-            },
-            &atom!(width) => {
-                let width = mutation.new_value(attr).map(|value| {
-                    str::parse_length(&value)
-                });
-                self.width.set(width.unwrap_or(LengthOrPercentageOrAuto::Auto));
             },
             _ => {},
         }
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("border") => AttrValue::from_u32(value, 1),
+        match *local_name {
+            atom!("border") => AttrValue::from_u32(value, 1),
+            atom!("width") => AttrValue::from_dimension(value),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

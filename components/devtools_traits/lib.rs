@@ -30,18 +30,17 @@ use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{PipelineId, WorkerId};
+use msg::constellation_msg::PipelineId;
 use rustc_serialize::{Decodable, Decoder};
 use std::net::TcpStream;
 use time::Duration;
 use url::Url;
-use util::str::DOMString;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
 #[derive(Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
-    pub title: DOMString,
+    pub title: String,
     pub url: Url
 }
 
@@ -264,6 +263,7 @@ pub struct HttpRequest {
     pub method: Method,
     pub headers: Headers,
     pub body: Option<Vec<u8>>,
+    pub pipeline_id: PipelineId,
 }
 
 #[derive(Debug, PartialEq)]
@@ -271,6 +271,7 @@ pub struct HttpResponse {
     pub headers: Option<Headers>,
     pub status: Option<RawStatus>,
     pub body: Option<Vec<u8>>,
+    pub pipeline_id: PipelineId,
 }
 
 pub enum NetworkEvent {
@@ -318,3 +319,6 @@ impl PreciseTime {
         Duration::nanoseconds((later.0 - self.0) as i64)
     }
 }
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct WorkerId(pub u32);

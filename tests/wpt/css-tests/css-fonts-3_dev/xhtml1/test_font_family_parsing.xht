@@ -20,7 +20,7 @@
 
 function fontProp(n, size, s1, s2) { return (s1 ? s1 + " " : "") + (s2 ? s2 + " " : "") + size + " " + n; }
 function font(n, size, s1, s2) { return "font: " + fontProp(n, size, s1, s2); }
- 
+
 // testrules
 //   namelist - font family list
 //   invalid  - true if declarations won't parse in either font-family or font
@@ -174,7 +174,7 @@ function testStyleRuleParse(decl, invalid) {
     assert_unreached("unexpected error with " + decl + " ==&gt; " + e.name);
   }
 
-  assert_equals(sheet.cssRules.length, 1, 
+  assert_equals(sheet.cssRules.length, 1,
     "strange number of rules (" + sheet.cssRules.length + ") with " + decl);
 
   var s = extractDecl(sheet.cssRules[0].cssText);
@@ -183,7 +183,7 @@ function testStyleRuleParse(decl, invalid) {
     assert_equals(s, "", "rule declaration shouldn't parse - " + rule + " ==&gt; " + s);
   } else {
     assert_not_equals(s, "", "rule declaration should parse - " + rule);
-    
+
     // check that the serialization also parses
     var r = ".test" + gTest++ + " { " + s + " }";
     while(sheet.cssRules.length &gt; 0) {

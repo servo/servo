@@ -2,21 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Servo, the mighty web browser engine from the future.
-//
-// This is a very simple library that wires all of Servo's components
-// together as type `Browser`, along with a generic client
-// implementing the `WindowMethods` trait, to create a working web
-// browser.
-//
-// The `Browser` type is responsible for configuring a
-// `Constellation`, which does the heavy lifting of coordinating all
-// of Servo's internal subsystems, including the `ScriptTask` and the
-// `LayoutTask`, as well maintains the navigation context.
-//
-// The `Browser` is fed events from a generic type that implements the
-// `WindowMethods` trait.
+//! Servo, the mighty web browser engine from the future.
+//!
+//! This is a very simple library that wires all of Servo's components
+//! together as type `Browser`, along with a generic client
+//! implementing the `WindowMethods` trait, to create a working web
+//! browser.
+//!
+//! The `Browser` type is responsible for configuring a
+//! `Constellation`, which does the heavy lifting of coordinating all
+//! of Servo's internal subsystems, including the `ScriptTask` and the
+//! `LayoutTask`, as well maintains the navigation context.
+//!
+//! The `Browser` is fed events from a generic type that implements the
+//! `WindowMethods` trait.
 
+extern crate gaol;
+extern crate libc;
 #[macro_use]
 extern crate util as _util;
 
@@ -29,6 +31,7 @@ mod export {
     extern crate euclid;
     extern crate gfx;
     extern crate gleam;
+    extern crate ipc_channel;
     extern crate layers;
     extern crate layout;
     extern crate msg;
@@ -42,28 +45,29 @@ mod export {
     extern crate url;
 }
 
-extern crate libc;
-
 #[cfg(feature = "webdriver")]
 extern crate webdriver_server;
 
 #[cfg(feature = "webdriver")]
-fn webdriver(port: u16, constellation: msg::constellation_msg::ConstellationChan) {
-    webdriver_server::start_server(port, constellation.clone());
+fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
+    webdriver_server::start_server(port, constellation);
 }
 
 #[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationChan) { }
+fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use compositing::CompositorEventListener;
+use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_task::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
+use compositing::pipeline::UnprivilegedPipelineContent;
+use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
+use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_task::FontCacheTask;
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use ipc_channel::ipc::{self, IpcSender};
 use net::image_cache_task::new_image_cache_task;
 use net::resource_task::new_resource_task;
 use net::storage_task::StorageTaskFactory;
@@ -86,6 +90,7 @@ pub use export::devtools_traits;
 pub use export::euclid;
 pub use export::gfx;
 pub use export::gleam::gl;
+pub use export::ipc_channel;
 pub use export::layers;
 pub use export::layout;
 pub use export::msg;
@@ -98,10 +103,6 @@ pub use export::script_traits;
 pub use export::style;
 pub use export::url;
 
-pub struct Browser {
-    compositor: Box<CompositorEventListener + 'static>,
-}
-
 /// The in-process interface to Servo.
 ///
 /// It does everything necessary to render the web, primarily
@@ -113,6 +114,10 @@ pub struct Browser {
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
+pub struct Browser {
+    compositor: Box<CompositorEventListener + 'static>,
+}
+
 impl Browser {
     pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
                        where Window: WindowMethods + 'static {
@@ -193,7 +198,7 @@ fn create_constellation(opts: opts::Opts,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-                        supports_clipboard: bool) -> ConstellationChan {
+                        supports_clipboard: bool) -> Sender<ConstellationMsg> {
     let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 
     let image_cache_task = new_image_cache_task(resource_task.clone());
@@ -218,11 +223,33 @@ fn create_constellation(opts: opts::Opts,
     // Send the URL command to the constellation.
     match opts.url {
         Some(url) => {
-            let ConstellationChan(ref chan) = constellation_chan;
-            chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
+            constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
         },
         None => ()
     };
 
     constellation_chan
 }
+
+/// Content process entry point.
+pub fn run_content_process(token: String) {
+    let (unprivileged_content_sender, unprivileged_content_receiver) =
+        ipc::channel::<UnprivilegedPipelineContent>().unwrap();
+    let connection_bootstrap: IpcSender<IpcSender<UnprivilegedPipelineContent>> =
+        IpcSender::connect(token).unwrap();
+    connection_bootstrap.send(unprivileged_content_sender).unwrap();
+
+    let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
+    opts::set_defaults(unprivileged_content.opts());
+
+    // Enter the sandbox if necessary.
+    if opts::get().sandbox {
+        ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+    }
+
+    script::init();
+
+    unprivileged_content.start_all::<layout::layout_task::LayoutTask,
+                                     script::script_task::ScriptTask>(true);
+}
+

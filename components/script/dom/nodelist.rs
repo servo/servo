@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 use std::cell::Cell;
@@ -27,6 +27,7 @@ pub struct NodeList {
 }
 
 impl NodeList {
+    #[allow(unrooted_must_root)]
     fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
@@ -34,6 +35,7 @@ impl NodeList {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                list_type: NodeListType) -> Root<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
@@ -48,6 +50,10 @@ impl NodeList {
 
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
+    }
+
+    pub fn empty(window: &Window) -> Root<NodeList> {
+        NodeList::new(window, NodeListType::Simple(vec![]))
     }
 }
 
@@ -64,7 +70,7 @@ impl NodeListMethods for NodeList {
     fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
-                elems.get(index as usize).map(|node| node.root())
+                elems.get(index as usize).map(|node| Root::from_ref(&**node))
             },
             NodeListType::Children(ref list) => list.item(index),
         }
@@ -109,7 +115,7 @@ impl ChildrenList {
     }
 
     pub fn len(&self) -> u32 {
-        self.node.root().children_count()
+        self.node.children_count()
     }
 
     pub fn item(&self, index: u32) -> Option<Root<Node>> {
@@ -121,7 +127,7 @@ impl ChildrenList {
         }
         if index == 0u32 {
             // Item is first child if any, not worth updating last visited.
-            return self.node.root().GetFirstChild();
+            return self.node.GetFirstChild();
         }
         let last_index = self.last_index.get();
         if index == last_index {
@@ -137,7 +143,7 @@ impl ChildrenList {
         } else if index > last_index {
             if index == len - 1u32 {
                 // Item is parent's last child, not worth updating last visited.
-                return Some(self.node.root().GetLastChild().unwrap());
+                return Some(self.node.GetLastChild().unwrap());
             }
             if index <= last_index + (len - last_index) / 2u32 {
                 // Item is closer to the last visited child and follows it.
@@ -147,7 +153,7 @@ impl ChildrenList {
             } else {
                 // Item is closer to parent's last child and obviously
                 // precedes it.
-                self.node.root().GetLastChild().unwrap()
+                self.node.GetLastChild().unwrap()
                     .inclusively_preceding_siblings()
                     .nth((len - index - 1u32) as usize).unwrap()
             }
@@ -159,7 +165,7 @@ impl ChildrenList {
         } else {
             // Item is closer to parent's first child and obviously follows it.
             debug_assert!(index < last_index / 2u32);
-            self.node.root().GetFirstChild().unwrap()
+            self.node.GetFirstChild().unwrap()
                      .inclusively_following_siblings()
                      .nth(index as usize)
                      .unwrap()
@@ -263,7 +269,7 @@ impl ChildrenList {
     }
 
     fn reset(&self) {
-        self.last_visited.set(self.node.root().GetFirstChild().as_ref().map(Root::r));
+        self.last_visited.set(self.node.GetFirstChild().r());
         self.last_index.set(0u32);
     }
 }

@@ -2,65 +2,80 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use layout_interface::{LayoutChan, Msg};
 use std::ascii::AsciiExt;
+use std::sync::Arc;
+use string_cache::Atom;
+use style::stylesheets::{CSSRule, Origin, Stylesheet};
 use style::viewport::ViewportRule;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
+    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
 }
 
 impl HTMLMetaElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            stylesheet: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
     }
 
+    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+        self.stylesheet.borrow().clone()
+    }
+
     fn process_attributes(&self) {
-        let element = ElementCast::from_ref(self);
-        if let Some(name) = element.get_attribute(&ns!(""), &atom!("name")).r() {
+        let element = self.upcast::<Element>();
+        if let Some(name) = element.get_attribute(&ns!(), &atom!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
             match name {
-                "viewport" => self.translate_viewport(),
+                "viewport" => self.apply_viewport(),
                 _ => {}
             }
         }
     }
 
-    fn translate_viewport(&self) {
-        let element = ElementCast::from_ref(self);
-        if let Some(content) = element.get_attribute(&ns!(""), &atom!("content")).r() {
+    fn apply_viewport(&self) {
+        if !::util::prefs::get_pref("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+            return;
+        }
+        let element = self.upcast::<Element>();
+        if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
-                    let node = NodeCast::from_ref(self);
-                    let win = window_from_node(node);
-                    let LayoutChan(ref layout_chan) = win.r().layout_chan();
-
-                    layout_chan.send(Msg::AddMetaViewport(translated_rule)).unwrap();
+                    *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
+                        rules: vec![CSSRule::Viewport(translated_rule)],
+                        origin: Origin::Author,
+                        media: None,
+                    }));
+                    let doc = document_from_node(self);
+                    doc.invalidate_stylesheets();
                 }
             }
         }
@@ -82,9 +97,8 @@ impl HTMLMetaElementMethods for HTMLMetaElement {
 }
 
 impl VirtualMethods for HTMLMetaElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

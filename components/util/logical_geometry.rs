@@ -175,7 +175,7 @@ impl Debug for DebugWritingMode {
 
     #[cfg(debug_assertions)]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        self.mode.fmt(formatter)
+        write!(formatter, "{}", self.mode)
     }
 }
 
@@ -319,8 +319,10 @@ impl<T: Sub<T, Output=T>> Sub for LogicalSize<T> {
 /// A 2D point in flow-relative dimensions
 #[derive(PartialEq, RustcEncodable, Eq, Clone, Copy)]
 pub struct LogicalPoint<T> {
-    pub i: T,  /// inline-axis coordinate
-    pub b: T,  /// block-axis coordinate
+    /// inline-axis coordinate
+    pub i: T,
+    /// block-axis coordinate
+    pub b: T,
     debug_writing_mode: DebugWritingMode,
 }
 
@@ -500,13 +502,18 @@ pub struct LogicalMargin<T> {
 
 impl<T: Debug> Debug for LogicalMargin<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        write!(formatter,
-               "LogicalMargin({:?}, inline: {:?}..{:?} block: {:?}..{:?})",
-               self.debug_writing_mode,
-               self.inline_start,
-               self.inline_end,
-               self.block_start,
-               self.block_end)
+        let writing_mode_string = if cfg!(debug_assertions) {
+            format!("{:?}, ", self.debug_writing_mode)
+        } else {
+            "".to_owned()
+        };
+
+        write!(formatter, "LogicalMargin({}i:{:?}..{:?} b:{:?}..{:?})",
+            writing_mode_string,
+            self.inline_start,
+            self.inline_end,
+            self.block_start,
+            self.block_end)
     }
 }
 
@@ -786,9 +793,14 @@ pub struct LogicalRect<T> {
 
 impl<T: Debug> Debug for LogicalRect<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        write!(formatter,
-               "LogicalRect({:?}, i{:?}×b{:?}, @ (i{:?},b{:?}))",
-               self.debug_writing_mode,
+        let writing_mode_string = if cfg!(debug_assertions) {
+            format!("{:?}, ", self.debug_writing_mode)
+        } else {
+            "".to_owned()
+        };
+
+        write!(formatter, "LogicalRect({}i{:?}×b{:?}, @ (i{:?},b{:?}))",
+               writing_mode_string,
                self.size.inline,
                self.size.block,
                self.start.i,

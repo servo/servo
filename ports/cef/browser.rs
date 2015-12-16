@@ -129,10 +129,11 @@ impl ServoCefBrowser {
         let mut glutin_window: Option<Rc<glutin_app::window::Window>> = None;
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
-            glutin_window = Some(glutin_app::create_window(window_info.parent_window as glutin_app::WindowID));
+            let parent_window = glutin_app::WindowID::new(window_info.parent_window as *mut _);
+            glutin_window = Some(glutin_app::create_window(Some(parent_window)));
             let servo_browser = Browser::new(glutin_window.clone());
             window_handle = match glutin_window {
-                Some(ref win) => win.platform_window() as cef_window_handle_t,
+                Some(ref win) => win.platform_window().window as cef_window_handle_t,
                 None => get_null_window_handle()
             };
             ServoBrowser::OnScreen(servo_browser)

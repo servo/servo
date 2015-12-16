@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::{EventMethods};
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::StorageEventBinding;
 use dom::bindings::codegen::Bindings::StorageEventBinding::{StorageEventMethods};
-use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
-use dom::bindings::utils::{reflect_dom_object};
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -42,7 +43,7 @@ impl StorageEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                key: Option<DOMString>,
@@ -55,8 +56,8 @@ impl StorageEvent {
                                     global,
                                     StorageEventBinding::Wrap);
         {
-            let event = EventCast::from_ref(ev.r());
-            event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            let event = ev.upcast::<Event>();
+            event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
         ev
     }
@@ -75,7 +76,7 @@ impl StorageEvent {
         } else {
             EventCancelable::NotCancelable
         };
-        let event = StorageEvent::new(global, type_,
+        let event = StorageEvent::new(global, Atom::from(&*type_),
                                       bubbles, cancelable,
                                       key, oldValue, newValue,
                                       url, storageArea);
@@ -106,6 +107,11 @@ impl StorageEventMethods for StorageEvent {
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
     fn GetStorageArea(&self) -> Option<Root<Storage>> {
-        self.storageArea.get_rooted()
+        self.storageArea.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
     }
 }

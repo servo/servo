@@ -6,17 +6,17 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
+use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;
-use std::borrow::ToOwned;
 use std::cell::Cell;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -34,8 +34,8 @@ impl ErrorEvent {
     fn new_inherited() -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(),
-            message: DOMRefCell::new("".to_owned()),
-            filename: DOMRefCell::new("".to_owned()),
+            message: DOMRefCell::new(DOMString::new()),
+            filename: DOMRefCell::new(DOMString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: MutHeapJSVal::new()
@@ -49,7 +49,7 @@ impl ErrorEvent {
     }
 
     pub fn new(global: GlobalRef,
-               type_: DOMString,
+               type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                message: DOMString,
@@ -59,9 +59,9 @@ impl ErrorEvent {
                error: HandleValue) -> Root<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
-            let event = EventCast::from_ref(ev.r());
-            event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
-                            cancelable == EventCancelable::Cancelable);
+            let event = ev.upcast::<Event>();
+            event.init_event(type_, bubbles == EventBubbles::Bubbles,
+                             cancelable == EventCancelable::Cancelable);
             *ev.message.borrow_mut() = message;
             *ev.filename.borrow_mut() = filename;
             ev.lineno.set(lineno);
@@ -76,12 +76,12 @@ impl ErrorEvent {
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Root<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_owned(),
+            None => DOMString::new(),
         };
 
         let file_name = match init.filename.as_ref() {
-            None => "".to_owned(),
             Some(filename) => filename.clone(),
+            None => DOMString::new(),
         };
 
         let line_num = init.lineno.unwrap_or(0);
@@ -99,7 +99,7 @@ impl ErrorEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         let error = RootedValue::new(global.get_cx(), init.error);
-        let event = ErrorEvent::new(global, type_,
+        let event = ErrorEvent::new(global, Atom::from(&*type_),
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num,
@@ -135,4 +135,8 @@ impl ErrorEventMethods for ErrorEvent {
         self.error.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
+    }
 }

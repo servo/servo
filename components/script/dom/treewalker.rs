@@ -12,7 +12,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutHeap};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::Node;
 use std::rc::Rc;
@@ -45,9 +45,8 @@ impl TreeWalker {
                            root_node: &Node,
                            what_to_show: u32,
                            filter: Filter) -> Root<TreeWalker> {
-        let window = document.window();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(window.r()),
+                           GlobalRef::Window(document.window()),
                            TreeWalkerBinding::Wrap)
     }
 
@@ -66,7 +65,7 @@ impl TreeWalker {
 impl TreeWalkerMethods for TreeWalker {
     // https://dom.spec.whatwg.org/#dom-treewalker-root
     fn Root(&self) -> Root<Node> {
-        self.root_node.root()
+        Root::from_ref(&*self.root_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-whattoshow
@@ -152,7 +151,7 @@ impl TreeWalkerMethods for TreeWalker {
         // "2. While node is not root, run these substeps:"
         while !self.is_root_node(node.r()) {
             // "1. Let sibling be the previous sibling of node."
-            let mut sibling_op = node.r().GetPreviousSibling();
+            let mut sibling_op = node.GetPreviousSibling();
             // "2. While sibling is not null, run these subsubsteps:"
             while sibling_op.is_some() {
                 // "1. Set node to sibling."
@@ -184,7 +183,7 @@ impl TreeWalkerMethods for TreeWalker {
                 return Ok(None)
             }
             // "4. Set node to its parent."
-            match node.r().GetParentNode() {
+            match node.GetParentNode() {
                 None =>
                     // This can happen if the user set the current node to somewhere
                     // outside of the tree rooted at the original root.
@@ -215,7 +214,7 @@ impl TreeWalkerMethods for TreeWalker {
                 if NodeFilterConstants::FILTER_REJECT == result {
                     break;
                 }
-                match node.r().GetFirstChild() {
+                match node.GetFirstChild() {
                     None => break,
                     Some (child) => {
                         // "1. Set node to its first child."

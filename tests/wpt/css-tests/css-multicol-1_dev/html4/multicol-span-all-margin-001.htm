@@ -7,7 +7,7 @@
   <link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-span" title="6.1. 'column-span'">
   <link rel="match" href="reference/multicol-span-all-margin-001-ref.htm">
   <meta name="flags" content="ahem may">
-  <meta name="assert" content="This test checks that when 'overflow' is set to 'hidden' on a multi-column element, then any spanning ('column-span: all') element exceeding the available width of the multi-column should be clipped accordingly."> 
+  <meta name="assert" content="This test checks that when 'overflow' is set to 'hidden' on a multi-column element, then any spanning ('column-span: all') element exceeding the available width of the multi-column should be clipped accordingly.">
   <style type="text/css">
   div
   {
@@ -42,10 +42,10 @@
 
   column-span: all;
 
-  /* 
-  This is the target of the test: the spanning element's 
-  width (11em) exceeds the available width of the 
-  multi-column element. The 3em exceeding such 
+  /*
+  This is the target of the test: the spanning element's
+  width (11em) exceeds the available width of the
+  multi-column element. The 3em exceeding such
   width is first clipped at column box boundary.
   */
   }

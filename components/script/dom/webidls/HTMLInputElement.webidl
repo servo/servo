@@ -25,7 +25,8 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString inputMode;
   //readonly attribute HTMLElement? list;
   //         attribute DOMString max;
-  //         attribute long maxLength;
+          [SetterThrows]
+          attribute long maxLength;
   //         attribute DOMString min;
   //         attribute long minLength;
   //         attribute boolean multiple;
@@ -57,7 +58,7 @@ interface HTMLInputElement : HTMLElement {
   //boolean reportValidity();
   //void setCustomValidity(DOMString error);
 
-  //readonly attribute NodeList labels;
+  readonly attribute NodeList labels;
 
   //void select();
   //         attribute unsigned long selectionStart;

@@ -10,15 +10,14 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementCreator};
+use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
@@ -41,6 +40,7 @@ use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
+use string_cache::Atom;
 use url::{Url, UrlParser};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
@@ -60,12 +60,13 @@ pub struct HTMLScriptElement {
     non_blocking: Cell<bool>,
 
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
-    ///
-    /// (currently unused)
     ready_to_be_parser_executed: Cell<bool>,
 
     /// Document of the parser that created this element
     parser_document: JS<Document>,
+
+    /// The source this script was loaded from
+    load: DOMRefCell<Option<ScriptOrigin>>,
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
@@ -73,7 +74,7 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
@@ -83,12 +84,13 @@ impl HTMLScriptElement {
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
+            load: DOMRefCell::new(None),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
         let element = HTMLScriptElement::new_inherited(localName, prefix, document, creator);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
@@ -117,9 +119,9 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
-#[derive(HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
-    Internal(String, Url),
+    Internal(DOMString, Url),
     External(Result<(Metadata, Vec<u8>), String>),
 }
 
@@ -131,8 +133,6 @@ struct ScriptContext {
     data: Vec<u8>,
     /// The response metadata received to date.
     metadata: Option<Metadata>,
-    /// Whether the owning document's parser should resume once the response completes.
-    resume_on_completion: bool,
     /// The initial URL requested.
     url: Url,
 }
@@ -154,23 +154,20 @@ impl AsyncResponseListener for ScriptContext {
             (metadata, data)
         });
         let elem = self.elem.root();
-
-        elem.r().execute(ScriptOrigin::External(load));
+        // TODO: maybe set this to None again after script execution to save memory.
+        *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
+        elem.ready_to_be_parser_executed.set(true);
 
         let document = document_from_node(elem.r());
-        document.r().finish_load(LoadType::Script(self.url.clone()));
-
-        if self.resume_on_completion {
-            document.r().get_current_parser().unwrap().r().resume();
-        }
+        document.finish_load(LoadType::Script(self.url.clone()));
     }
 }
 
 impl PreInvoke for ScriptContext {}
 
 impl HTMLScriptElement {
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script
     pub fn prepare(&self) -> NextParserState {
-        // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 1.
         if self.already_started.get() {
             return NextParserState::Continue;
@@ -180,8 +177,10 @@ impl HTMLScriptElement {
         self.parser_inserted.set(false);
 
         // Step 3.
-        let element = ElementCast::from_ref(self);
-        if was_parser_inserted && element.has_attribute(&atom!("async")) {
+        let element = self.upcast::<Element>();
+        let async = element.has_attribute(&atom!("async"));
+        // Note: confusingly, this is done if the element does *not* have an "async" attribute.
+        if was_parser_inserted && !async {
             self.non_blocking.set(true);
         }
         // Step 4.
@@ -190,8 +189,7 @@ impl HTMLScriptElement {
             return NextParserState::Continue;
         }
         // Step 5.
-        let node = NodeCast::from_ref(self);
-        if !node.is_in_doc() {
+        if !self.upcast::<Node>().is_in_doc() {
             return NextParserState::Continue;
         }
         // Step 6, 7.
@@ -207,9 +205,9 @@ impl HTMLScriptElement {
         self.already_started.set(true);
 
         // Step 10.
-        let document_from_node_ref = document_from_node(self);
-        let document_from_node_ref = document_from_node_ref.r();
-        if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
+        let doc = document_from_node(self);
+        let document_from_node_ref = doc.r();
+        if self.parser_inserted.get() && &*self.parser_document != document_from_node_ref {
             return NextParserState::Continue;
         }
 
@@ -218,9 +216,11 @@ impl HTMLScriptElement {
             return NextParserState::Continue;
         }
 
-        // Step 12.
-        let for_attribute = element.get_attribute(&ns!(""), &atom!("for"));
-        let event_attribute = element.get_attribute(&ns!(""), &atom!("event"));
+        // TODO: Step 12.
+
+        // Step 13.
+        let for_attribute = element.get_attribute(&ns!(), &atom!("for"));
+        let event_attribute = element.get_attribute(&ns!(), &atom!("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
@@ -238,54 +238,51 @@ impl HTMLScriptElement {
             (_, _) => (),
         }
 
-        // Step 13.
-        if let Some(ref charset) = element.get_attribute(&ns!(""), &atom!("charset")) {
-            if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
+        // Step 14.
+        if let Some(ref charset) = element.get_attribute(&ns!(), &atom!("charset")) {
+            if let Some(encodingRef) = encoding_from_whatwg_label(&charset.Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }
         }
 
-        // Step 14.
+        // Step 15.
         let window = window_from_node(self);
         let window = window.r();
         let base_url = window.get_url();
 
-        let load = match element.get_attribute(&ns!(""), &atom!("src")) {
-            // Step 14.
+        let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
+            // Step 15.
             Some(ref src) => {
-                // Step 14.1
+                // Step 15.1
                 let src = src.value();
 
-                // Step 14.2
+                // Step 15.2
                 if src.is_empty() {
                     self.queue_error_event();
                     return NextParserState::Continue;
                 }
 
-                // Step 14.3
+                // Step 15.3
                 match UrlParser::new().base_url(&base_url).parse(&src) {
                     Err(_) => {
-                        // Step 14.4
+                        // Step 15.4
                         error!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
                     }
                     Ok(url) => {
-                        // Step 14.5
+                        // Step 15.5
                         // TODO: Do a potentially CORS-enabled fetch with the mode being the current
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        let doc = document_from_node(self);
-
-                        let script_chan = window.script_chan();
-                        let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
+                        let script_chan = window.networking_task_source();
+                        let elem = Trusted::new(self, script_chan.clone());
 
                         let context = Arc::new(Mutex::new(ScriptContext {
                             elem: elem,
                             data: vec!(),
                             metadata: None,
-                            resume_on_completion: self.parser_inserted.get(),
                             url: url.clone(),
                         }));
 
@@ -301,37 +298,87 @@ impl HTMLScriptElement {
                             listener.notify(message.to().unwrap());
                         });
 
-                        doc.r().load_async(LoadType::Script(url), response_target);
-
-                        if self.parser_inserted.get() {
-                            doc.r().get_current_parser().unwrap().r().suspend();
-                        }
-                        return NextParserState::Suspend;
+                        doc.load_async(LoadType::Script(url), response_target);
                     }
                 }
+                true
             },
-            None => ScriptOrigin::Internal(text, base_url),
+            None => false,
         };
 
-        // Step 15.
-        // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
-        // scripts synchronously and execute them immediately.)
-        self.execute(load);
-        NextParserState::Continue
+        // Step 16.
+        let deferred = element.has_attribute(&atom!("defer"));
+        // Step 16.a, has src, has defer, was parser-inserted, is not async.
+        if is_external &&
+           deferred &&
+           was_parser_inserted &&
+           !async {
+            doc.add_deferred_script(self);
+            // Second part implemented in Document::process_deferred_scripts.
+            return NextParserState::Continue;
+        // Step 16.b, has src, was parser-inserted, is not async.
+        } else if is_external &&
+                  was_parser_inserted &&
+                  !async {
+            doc.set_pending_parsing_blocking_script(Some(self));
+            // Second part implemented in the load result handler.
+        // Step 16.c, doesn't have src, was parser-inserted, is blocked on stylesheet.
+        } else if !is_external &&
+                  was_parser_inserted &&
+                  // TODO: check for script nesting levels.
+                  doc.get_script_blocking_stylesheets_count() > 0 {
+            doc.set_pending_parsing_blocking_script(Some(self));
+            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            self.ready_to_be_parser_executed.set(true);
+        // Step 16.d, has src, isn't async, isn't non-blocking.
+        } else if is_external &&
+                  !async &&
+                  !self.non_blocking.get() {
+            doc.push_asap_in_order_script(self);
+            // Second part implemented in Document::process_asap_scripts.
+        // Step 16.e, has src.
+        } else if is_external {
+            doc.add_asap_script(self);
+            // Second part implemented in Document::process_asap_scripts.
+        // Step 16.f, otherwise.
+        } else {
+            assert!(!text.is_empty());
+            self.ready_to_be_parser_executed.set(true);
+            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            self.execute();
+            return NextParserState::Continue;
+        }
+        // TODO: make this suspension happen automatically.
+        if was_parser_inserted {
+            if let Some(parser) = doc.get_current_parser() {
+                parser.r().suspend();
+            }
+        }
+        return NextParserState::Suspend;
     }
 
-    pub fn execute(&self, load: ScriptOrigin) {
+    pub fn is_ready_to_be_executed(&self) -> bool {
+        self.ready_to_be_parser_executed.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
+    pub fn execute(&self) {
+        assert!(self.ready_to_be_parser_executed.get());
+
         // Step 1.
-        // TODO: If the element is flagged as "parser-inserted", but the
-        // element's node document is not the Document of the parser that
-        // created the element, then abort these steps.
+        let doc = document_from_node(self);
+        if self.parser_inserted.get() && &*doc != &*self.parser_document {
+            return;
+        }
+
+        let load = self.load.borrow_mut().take().unwrap();
 
         // Step 2.
         let (source, external, url) = match load {
             // Step 2.a.
             ScriptOrigin::External(Err(e)) => {
                 error!("error loading script {}", e);
-                self.queue_error_event();
+                self.dispatch_error_event();
                 return;
             }
 
@@ -357,7 +404,8 @@ impl HTMLScriptElement {
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
 
-                (UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap(), true,
+                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
+                 true,
                  metadata.final_url)
             },
 
@@ -388,8 +436,8 @@ impl HTMLScriptElement {
         // Step 2.b.6.
         // TODO: Create a script...
         let window = window_from_node(self);
-        let mut rval = RootedValue::new(window.r().get_cx(), UndefinedValue());
-        window.r().evaluate_script_on_global_with_result(&*source,
+        let mut rval = RootedValue::new(window.get_cx(), UndefinedValue());
+        window.evaluate_script_on_global_with_result(&*source,
                                                          &*url.serialize(),
                                                          rval.handle_mut());
 
@@ -407,8 +455,8 @@ impl HTMLScriptElement {
         if external {
             self.dispatch_load_event();
         } else {
-            let chan = window.r().script_chan();
-            let handler = Trusted::new(window.r().get_cx(), self, chan.clone());
+            let chan = window.dom_manipulation_task_source();
+            let handler = Trusted::new(self, chan.clone());
             let dispatcher = box EventDispatcher {
                 element: handler,
                 is_error: false,
@@ -420,8 +468,8 @@ impl HTMLScriptElement {
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
         let window = window.r();
-        let chan = window.script_chan();
-        let handler = Trusted::new(window.get_cx(), self, chan.clone());
+        let chan = window.dom_manipulation_task_source();
+        let handler = Trusted::new(self, chan.clone());
         let dispatcher = box EventDispatcher {
             element: handler,
             is_error: true,
@@ -430,32 +478,32 @@ impl HTMLScriptElement {
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
-        self.dispatch_event("beforescriptexecute".to_owned(),
+        self.dispatch_event(atom!("beforescriptexecute"),
                             EventBubbles::Bubbles,
                             EventCancelable::Cancelable)
     }
 
     pub fn dispatch_after_script_execute_event(&self) {
-        self.dispatch_event("afterscriptexecute".to_owned(),
+        self.dispatch_event(atom!("afterscriptexecute"),
                             EventBubbles::Bubbles,
                             EventCancelable::NotCancelable);
     }
 
     pub fn dispatch_load_event(&self) {
-        self.dispatch_event("load".to_owned(),
+        self.dispatch_event(atom!("load"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
     }
 
     pub fn dispatch_error_event(&self) {
-        self.dispatch_event("error".to_owned(),
+        self.dispatch_event(atom!("error"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
     }
 
     pub fn is_javascript(&self) -> bool {
-        let element = ElementCast::from_ref(self);
-        let type_attr = element.get_attribute(&ns!(""), &atom!("type"));
+        let element = self.upcast::<Element>();
+        let type_attr = element.get_attribute(&ns!(), &atom!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
@@ -468,7 +516,7 @@ impl HTMLScriptElement {
             },
             None => {
                 debug!("no script type");
-                let language_attr = element.get_attribute(&ns!(""), &atom!("language"));
+                let language_attr = element.get_attribute(&ns!(), &atom!("language"));
                 let is_js = match language_attr.as_ref().map(|s| s.value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
@@ -498,33 +546,27 @@ impl HTMLScriptElement {
     }
 
     fn dispatch_event(&self,
-                      type_: DOMString,
+                      type_: Atom,
                       bubbles: EventBubbles,
                       cancelable: EventCancelable) -> bool {
         let window = window_from_node(self);
         let window = window.r();
-        let event = Event::new(GlobalRef::Window(window),
-                               type_,
-                               bubbles,
-                               cancelable);
-        let event = event.r();
-        let target = EventTargetCast::from_ref(self);
-        event.fire(target)
+        let event = Event::new(GlobalRef::Window(window), type_, bubbles, cancelable);
+        event.fire(self.upcast())
     }
 }
 
 impl VirtualMethods for HTMLScriptElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!("src") => {
+        match *attr.local_name() {
+            atom!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && NodeCast::from_ref(self).is_in_doc() {
+                    if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
                         self.prepare();
                     }
                 }
@@ -537,8 +579,7 @@ impl VirtualMethods for HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(self);
-        if !self.parser_inserted.get() && node.is_in_doc() {
+        if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
             self.prepare();
         }
     }
@@ -561,27 +602,25 @@ impl VirtualMethods for HTMLScriptElement {
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            let copy_elem = HTMLScriptElementCast::to_ref(copy).unwrap();
-            copy_elem.mark_already_started();
+            copy.downcast::<HTMLScriptElement>().unwrap().mark_already_started();
         }
     }
 }
 
 impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_getter!(Src);
+    make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
-        Node::collect_text_contents(NodeCast::from_ref(self).children())
+        Node::collect_text_contents(self.upcast::<Node>().children())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 }
 
@@ -594,9 +633,9 @@ impl Runnable for EventDispatcher {
     fn handler(self: Box<EventDispatcher>) {
         let target = self.element.root();
         if self.is_error {
-            target.r().dispatch_error_event();
+            target.dispatch_error_event();
         } else {
-            target.r().dispatch_load_event();
+            target.dispatch_load_event();
         }
     }
 }

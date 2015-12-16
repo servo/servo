@@ -18,26 +18,25 @@
 //! loop.
 
 use devtools;
-use devtools_traits::ScriptToDevtoolsControlMsg;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
-use document_loader::{DocumentLoader, LoadType, NotifierData};
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, EventTargetCast, NodeCast};
-use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
-use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
+use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
-use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
-use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
+use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
-use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
+use dom::servohtmlparser::{ParserContext, ParserRoot};
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
 use dom::worker::TrustedWorkerAddress;
@@ -50,7 +49,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
-use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue, SetDOMProxyInformation};
+use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
 use js::jsapi::{DisableIncrementalGC, JS_AddExtraGCRootsTracer, JS_SetWrapObjectCallbacks};
 use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallback};
 use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
@@ -62,12 +61,11 @@ use layout_interface::{ReflowQueryType};
 use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLayoutChan};
 use libc;
 use mem::heap_size_of_self_and_children;
-use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
+use msg::compositor_msg::{EventResult, LayerId, ScriptToCompositorMsg};
+use msg::constellation_msg::{ConstellationChan, LoadData};
+use msg::constellation_msg::{MouseButton, MouseEventType, MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
+use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
@@ -76,33 +74,35 @@ use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, Metadata, Resour
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
+use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::CompositorEvent::{ClickEvent, ResizeEvent};
-use script_traits::CompositorEvent::{KeyEvent, MouseMoveEvent};
-use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
-use script_traits::{CompositorEvent, ConstellationControlMsg};
-use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
-use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
+use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
+use script_traits::CompositorEvent::{TouchEvent};
+use script_traits::{CompositorEvent, ConstellationControlMsg, InitialScriptState, NewLayoutInfo};
+use script_traits::{OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg, ScriptState};
+use script_traits::{ScriptTaskFactory, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{TouchEventType, TouchId};
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::io::{Write, stdout};
+use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time::{Tm, now};
-use timers::TimerId;
 use url::{Url, UrlParser};
 use util::opts;
 use util::str::DOMString;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 use webdriver_handlers;
 
@@ -158,13 +158,38 @@ impl InProgressLoad {
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum TimerSource {
-    FromWindow(PipelineId),
-    FromWorker
+/// Encapsulated state required to create cancellable runnables from non-script threads.
+pub struct RunnableWrapper {
+    pub cancelled: Arc<AtomicBool>,
+}
+
+impl RunnableWrapper {
+    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: T) -> Box<Runnable + Send> {
+        box CancellableRunnable {
+            cancelled: self.cancelled.clone(),
+            inner: box runnable,
+        }
+    }
+}
+
+/// A runnable that can be discarded by toggling a shared flag.
+pub struct CancellableRunnable<T: Runnable + Send> {
+    cancelled: Arc<AtomicBool>,
+    inner: Box<T>,
+}
+
+impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
+    fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Relaxed)
+    }
+
+    fn handler(self: Box<CancellableRunnable<T>>) {
+        self.inner.handler()
+    }
 }
 
 pub trait Runnable {
+    fn is_cancelled(&self) -> bool { false }
     fn handler(self: Box<Self>);
 }
 
@@ -177,6 +202,7 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
+    FromScheduler(TimerEvent),
 }
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -184,10 +210,6 @@ pub enum CommonScriptMsg {
     /// Requests that the script task measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
-    /// Fires a JavaScript timeout
-    /// TimerSource must be FromWindow when dispatched to ScriptTask and
-    /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
-    FireTimer(TimerSource, TimerId),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// Generic message that encapsulates event handling.
@@ -207,11 +229,12 @@ pub enum ScriptTaskEventCategory {
     NetworkEvent,
     Resize,
     ScriptEvent,
-    UpdateReplacedElement,
+    TimerEvent,
     SetViewport,
+    StylesheetLoad,
+    UpdateReplacedElement,
     WebSocketEvent,
     WorkerEvent,
-    XhrEvent,
 }
 
 /// Messages used to control the script event loop
@@ -329,18 +352,18 @@ impl MainThreadScriptChan {
     }
 }
 
-pub struct StackRootTLS;
+pub struct StackRootTLS<'a>(PhantomData<&'a u32>);
 
-impl StackRootTLS {
-    pub fn new(roots: &RootCollection) -> StackRootTLS {
+impl<'a> StackRootTLS<'a> {
+    pub fn new(roots: &'a RootCollection) -> StackRootTLS<'a> {
         STACK_ROOTS.with(|ref r| {
             r.set(Some(RootCollectionPtr(roots as *const _)))
         });
-        StackRootTLS
+        StackRootTLS(PhantomData)
     }
 }
 
-impl Drop for StackRootTLS {
+impl<'a> Drop for StackRootTLS<'a> {
     fn drop(&mut self) {
         STACK_ROOTS.with(|ref r| r.set(None));
     }
@@ -372,14 +395,14 @@ pub struct ScriptTask {
     chan: MainThreadScriptChan,
 
     /// A channel to hand out to tasks that need to respond to a message from the script task.
-    control_chan: Sender<ConstellationControlMsg>,
+    control_chan: IpcSender<ConstellationControlMsg>,
 
     /// The port on which the constellation and layout tasks can communicate with the
     /// script task.
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// A handle to the compositor for communicating ready state messages.
     compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
@@ -406,10 +429,16 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>,
+    mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
 
     /// List of pipelines that have been owned and closed by this script task.
-    closed_pipelines: RefCell<HashSet<PipelineId>>,
+    closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
+
+    scheduler_chan: IpcSender<TimerEventRequest>,
+    timer_event_chan: Sender<TimerEvent>,
+    timer_event_port: Receiver<TimerEvent>,
+
+    content_process_shutdown_chan: IpcSender<()>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -441,7 +470,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                     let page = owner.page.borrow_for_script_deallocation();
                     for page in page.iter() {
                         let window = page.window();
-                        window.r().clear_js_runtime_for_script_deallocation();
+                        window.clear_js_runtime_for_script_deallocation();
                     }
                 }
             }
@@ -456,7 +485,8 @@ impl ScriptTaskFactory for ScriptTask {
         ScriptLayoutChan::new(chan, port)
     }
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any + Send> {
+    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel)
+                            -> Box<Any + Send> {
         box pair.sender() as Box<Any + Send>
     }
 
@@ -468,9 +498,10 @@ impl ScriptTaskFactory for ScriptTask {
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         let failure_info = state.failure_info;
-        spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id), task_state::SCRIPT, move || {
+        task::spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id),
+                                               task_state::SCRIPT,
+                                               move || {
             PipelineNamespace::install(state.pipeline_namespace_id);
-
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = MainThreadScriptChan(script_chan);
@@ -496,6 +527,7 @@ impl ScriptTaskFactory for ScriptTask {
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_task.start();
+                let _ = script_task.content_process_shutdown_chan.send(());
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
 
             // This must always be the very last operation performed before the task completes
@@ -554,7 +586,7 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
     }
 }
 
-unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
+pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
     _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
     // XXX implement me
     DOMProxyShadowsResult::ShadowCheckFailed
@@ -562,7 +594,7 @@ unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 
 impl ScriptTask {
     pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
-                               -> Option<Root<ServoHTMLParser>> {
+                               -> Option<ParserRoot> {
         SCRIPT_TASK_ROOT.with(|root| {
             let script_task = unsafe { &*root.borrow().unwrap() };
             script_task.handle_page_fetch_complete(id, subpage, metadata)
@@ -606,6 +638,11 @@ impl ScriptTask {
         let image_cache_port =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
 
+        let (timer_event_chan, timer_event_port) = channel();
+
+        // Ask the router to proxy IPC messages from the control port to us.
+        let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
+
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
@@ -620,7 +657,7 @@ impl ScriptTask {
             port: port,
             chan: chan,
             control_chan: state.control_chan,
-            control_port: state.control_port,
+            control_port: control_port,
             constellation_chan: state.constellation_chan,
             compositor: DOMRefCell::new(state.compositor),
             time_profiler_chan: state.time_profiler_chan,
@@ -632,7 +669,13 @@ impl ScriptTask {
 
             js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!()),
-            closed_pipelines: RefCell::new(HashSet::new()),
+            closed_pipelines: DOMRefCell::new(HashSet::new()),
+
+            scheduler_chan: state.scheduler_chan,
+            timer_event_chan: timer_event_chan,
+            timer_event_port: timer_event_port,
+
+            content_process_shutdown_chan: state.content_process_shutdown_chan,
         }
     }
 
@@ -659,7 +702,6 @@ impl ScriptTask {
 
         unsafe {
             unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
-            SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
             SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
             SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
             // Pre barriers aren't working correctly at the moment
@@ -672,6 +714,12 @@ impl ScriptTask {
     // Return the root page in the frame tree. Panics if it doesn't exist.
     pub fn root_page(&self) -> Rc<Page> {
         self.page.borrow().as_ref().unwrap().clone()
+    }
+
+    /// Find a child page of the root page by pipeline id. Returns `None` if the root page does
+    /// not exist or the subpage cannot be found.
+    fn find_subpage(&self, pipeline_id: PipelineId) -> Option<Rc<Page>> {
+        self.page.borrow().as_ref().and_then(|page| page.find(pipeline_id))
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
@@ -698,12 +746,10 @@ impl ScriptTask {
                 for page in page.iter() {
                     // Only process a resize if layout is idle.
                     let window = page.window();
-                    if window.r().layout_is_idle() {
-                        let resize_event = window.r().steal_resize_event();
-                        match resize_event {
-                            Some(size) => resizes.push((window.r().pipeline(), size)),
-                            None => ()
-                        }
+                    let resize_event = window.steal_resize_event();
+                    match resize_event {
+                        Some(size) => resizes.push((window.pipeline(), size)),
+                        None => ()
                     }
                 }
             }
@@ -719,26 +765,30 @@ impl ScriptTask {
         // Receive at least one message so we don't spinloop.
         let mut event = {
             let sel = Select::new();
-            let mut port1 = sel.handle(&self.port);
-            let mut port2 = sel.handle(&self.control_port);
-            let mut port3 = sel.handle(&self.devtools_port);
-            let mut port4 = sel.handle(&self.image_cache_port);
+            let mut script_port = sel.handle(&self.port);
+            let mut control_port = sel.handle(&self.control_port);
+            let mut timer_event_port = sel.handle(&self.timer_event_port);
+            let mut devtools_port = sel.handle(&self.devtools_port);
+            let mut image_cache_port = sel.handle(&self.image_cache_port);
             unsafe {
-                port1.add();
-                port2.add();
+                script_port.add();
+                control_port.add();
+                timer_event_port.add();
                 if self.devtools_chan.is_some() {
-                    port3.add();
+                    devtools_port.add();
                 }
-                port4.add();
+                image_cache_port.add();
             }
             let ret = sel.wait();
-            if ret == port1.id() {
+            if ret == script_port.id() {
                 MixedMessage::FromScript(self.port.recv().unwrap())
-            } else if ret == port2.id() {
+            } else if ret == control_port.id() {
                 MixedMessage::FromConstellation(self.control_port.recv().unwrap())
-            } else if ret == port3.id() {
+            } else if ret == timer_event_port.id() {
+                MixedMessage::FromScheduler(self.timer_event_port.recv().unwrap())
+            } else if ret == devtools_port.id() {
                 MixedMessage::FromDevtools(self.devtools_port.recv().unwrap())
-            } else if ret == port4.id() {
+            } else if ret == image_cache_port.id() {
                 MixedMessage::FromImageCache(self.image_cache_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
@@ -799,12 +849,15 @@ impl ScriptTask {
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
                 Err(_) => match self.port.try_recv() {
-                    Err(_) => match self.devtools_port.try_recv() {
-                        Err(_) => match self.image_cache_port.try_recv() {
-                            Err(_) => break,
-                            Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                    Err(_) => match self.timer_event_port.try_recv() {
+                        Err(_) => match self.devtools_port.try_recv() {
+                            Err(_) => match self.image_cache_port.try_recv() {
+                                Err(_) => break,
+                                Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                            },
+                            Ok(ev) => event = MixedMessage::FromDevtools(ev),
                         },
-                        Ok(ev) => event = MixedMessage::FromDevtools(ev),
+                        Ok(ev) => event = MixedMessage::FromScheduler(ev),
                     },
                     Ok(ev) => event = MixedMessage::FromScript(ev),
                 },
@@ -818,13 +871,14 @@ impl ScriptTask {
 
             let result = self.profile_event(category, move || {
                 match msg {
-                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
-                        if self.handle_exit_pipeline_msg(id, exit_type) {
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id)) => {
+                        if self.handle_exit_pipeline_msg(id) {
                             return Some(false)
                         }
                     },
                     MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    MixedMessage::FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                 }
@@ -844,11 +898,11 @@ impl ScriptTask {
         if let Some(page) = page.as_ref() {
             for page in page.iter() {
                 let window = page.window();
-                let pending_reflows = window.r().get_pending_reflow_count();
+                let pending_reflows = window.get_pending_reflow_count();
                 if pending_reflows > 0 {
-                    window.r().reflow(ReflowGoal::ForDisplay,
-                                      ReflowQueryType::NoQuery,
-                                      ReflowReason::ImageLoaded);
+                    window.reflow(ReflowGoal::ForDisplay,
+                                  ReflowQueryType::NoQuery,
+                                  ReflowReason::ImageLoaded);
                 }
             }
         }
@@ -873,7 +927,8 @@ impl ScriptTask {
                         *category,
                     _ => ScriptTaskEventCategory::ScriptEvent
                 }
-            }
+            },
+            MixedMessage::FromScheduler(_) => ScriptTaskEventCategory::TimerEvent,
         }
     }
 
@@ -893,11 +948,14 @@ impl ScriptTask {
                 ScriptTaskEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
                 ScriptTaskEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptTaskEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
-                ScriptTaskEventCategory::UpdateReplacedElement => ProfilerCategory::ScriptUpdateReplacedElement,
+                ScriptTaskEventCategory::UpdateReplacedElement => {
+                    ProfilerCategory::ScriptUpdateReplacedElement
+                }
+                ScriptTaskEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
                 ScriptTaskEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
+                ScriptTaskEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptTaskEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
                 ScriptTaskEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
-                ScriptTaskEventCategory::XhrEvent => ProfilerCategory::ScriptXhrEvent,
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
@@ -913,8 +971,6 @@ impl ScriptTask {
                 self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
-            ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
-                self.handle_reflow_complete_msg(id, reflow_id),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::Viewport(..) =>
@@ -947,10 +1003,9 @@ impl ScriptTask {
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
-            ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
-                responder.respond();
-                self.handle_resource_loaded(id, LoadType::Stylesheet(url));
-            }
+            ConstellationControlMsg::DispatchFrameLoadEvent {
+                target: pipeline_id, parent: containing_id } =>
+                self.handle_frame_load_event(containing_id, pipeline_id),
             ConstellationControlMsg::GetCurrentState(sender, pipeline_id) => {
                 let state = self.handle_get_current_state(pipeline_id);
                 sender.send(state).unwrap();
@@ -968,21 +1023,34 @@ impl ScriptTask {
                 runnable.handler(self),
             MainThreadScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
-            MainThreadScriptMsg::Common(
-                CommonScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id)) =>
-                self.handle_fire_timer_msg(id, timer_id),
-            MainThreadScriptMsg::Common(
-                CommonScriptMsg::FireTimer(TimerSource::FromWorker, _)) =>
-                panic!("Worker timeouts must not be sent to script task"),
-            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) =>
+            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
-                runnable.handler(),
+                if !runnable.is_cancelled() {
+                    runnable.handler()
+                }
+            }
             MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) =>
                 LiveDOMReferences::cleanup(addr),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
         }
+    }
+
+    fn handle_timer_event(&self, timer_event: TimerEvent) {
+        let TimerEvent(source, id) = timer_event;
+
+        let pipeline_id = match source {
+            TimerSource::FromWindow(pipeline_id) => pipeline_id,
+            TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script task"),
+        };
+
+        let page = self.root_page();
+        let page = page.find(pipeline_id).expect("ScriptTask: received fire timer msg for a
+            pipeline ID not associated with this script task. This is a bug.");
+        let window = page.window();
+
+        window.handle_fire_timer(id);
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
@@ -1032,16 +1100,28 @@ impl ScriptTask {
                 webdriver_handlers::handle_find_element_css(&page, pipeline_id, selector, reply),
             WebDriverScriptCommand::FindElementsCSS(selector, reply) =>
                 webdriver_handlers::handle_find_elements_css(&page, pipeline_id, selector, reply),
+            WebDriverScriptCommand::FocusElement(element_id, reply) =>
+                webdriver_handlers::handle_focus_element(&page, pipeline_id, element_id, reply),
             WebDriverScriptCommand::GetActiveElement(reply) =>
                 webdriver_handlers::handle_get_active_element(&page, pipeline_id, reply),
             WebDriverScriptCommand::GetElementTagName(node_id, reply) =>
                 webdriver_handlers::handle_get_name(&page, pipeline_id, node_id, reply),
+            WebDriverScriptCommand::GetElementAttribute(node_id, name, reply) =>
+                webdriver_handlers::handle_get_attribute(&page, pipeline_id, node_id, name, reply),
+            WebDriverScriptCommand::GetElementCSS(node_id, name, reply) =>
+                webdriver_handlers::handle_get_css(&page, pipeline_id, node_id, name, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
                 webdriver_handlers::handle_get_frame_id(&page, pipeline_id, frame_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
                 webdriver_handlers::handle_get_url(&page, pipeline_id, reply),
+            WebDriverScriptCommand::GetWindowSize(reply) =>
+                webdriver_handlers::handle_get_window_size(&page, pipeline_id, reply),
+            WebDriverScriptCommand::IsEnabled(element_id, reply) =>
+                webdriver_handlers::handle_is_enabled(&page, pipeline_id, element_id, reply),
+            WebDriverScriptCommand::IsSelected(element_id, reply) =>
+                webdriver_handlers::handle_is_selected(&page, pipeline_id, element_id, reply),
             WebDriverScriptCommand::GetTitle(reply) =>
                 webdriver_handlers::handle_get_title(&page, pipeline_id, reply),
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
@@ -1050,13 +1130,10 @@ impl ScriptTask {
     }
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
-        let page = self.page.borrow();
-        if let Some(ref page) = page.as_ref() {
-            if let Some(ref page) = page.find(id) {
-                let window = page.window();
-                window.r().set_resize_event(size);
-                return;
-            }
+        if let Some(ref page) = self.find_subpage(id) {
+            let window = page.window();
+            window.set_resize_event(size);
+            return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
@@ -1071,7 +1148,7 @@ impl ScriptTask {
         if let Some(page) = page.as_ref() {
             if let Some(ref inner_page) = page.find(id) {
                 let window = inner_page.window();
-                if window.r().set_page_clip_rect_with_new_viewport(rect) {
+                if window.set_page_clip_rect_with_new_viewport(rect) {
                     let page = get_page(page, id);
                     self.rebuild_and_force_reflow(&*page, ReflowReason::Viewport);
                 }
@@ -1084,13 +1161,6 @@ impl ScriptTask {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
-    }
-
-    /// Handle a request to load a page in a new child frame of an existing page.
-    fn handle_resource_loaded(&self, pipeline: PipelineId, load: LoadType) {
-        let page = get_page(&self.root_page(), pipeline);
-        let doc = page.document();
-        doc.r().finish_load(load);
     }
 
     /// Get the current state of a given pipeline.
@@ -1111,15 +1181,15 @@ impl ScriptTask {
         // has been kicked off. Since the script task does a join with
         // layout, this ensures there are no race conditions that can occur
         // between load completing and the first layout completing.
-        let load_pending = doc.r().ReadyState() != DocumentReadyState::Complete;
+        let load_pending = doc.ReadyState() != DocumentReadyState::Complete;
         if load_pending {
             return ScriptState::DocumentLoading;
         }
 
         // Checks if the html element has reftest-wait attribute present.
         // See http://testthewebforward.org/docs/reftests.html
-        let html_element = doc.r().GetDocumentElement();
-        let reftest_wait = html_element.r().map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
+        let html_element = doc.GetDocumentElement();
+        let reftest_wait = html_element.map_or(false, |elem| elem.has_class(&Atom::from("reftest-wait")));
         if reftest_wait {
             return ScriptState::DocumentLoading;
         }
@@ -1137,6 +1207,7 @@ impl ScriptTask {
             failure,
             pipeline_port,
             layout_shutdown_chan,
+            content_process_shutdown_chan,
         } = new_layout_info;
 
         let layout_pair = ScriptTask::create_layout_channel(None::<&mut ScriptTask>);
@@ -1156,6 +1227,7 @@ impl ScriptTask {
             script_chan: self.control_chan.clone(),
             image_cache_task: self.image_cache_task.clone(),
             layout_shutdown_chan: layout_shutdown_chan,
+            content_process_shutdown_chan: content_process_shutdown_chan,
         };
 
         let page = self.root_page();
@@ -1172,7 +1244,7 @@ impl ScriptTask {
 
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
-                                           layout_chan, parent_window.r().window_size(),
+                                           layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
     }
@@ -1188,8 +1260,8 @@ impl ScriptTask {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), doc, self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::Load);
+        let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
+        let handler = box DocumentProgressHandler::new(addr.clone());
         self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
@@ -1256,13 +1328,11 @@ impl ScriptTask {
                 let current_url = it_page.document().url().serialize();
                 urls.push(current_url.clone());
 
-                for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
-                    let target = EventTargetCast::from_ref(&*child);
-                    dom_tree_size += heap_size_of_self_and_children(target);
+                for child in it_page.document().upcast::<Node>().traverse_preorder() {
+                    dom_tree_size += heap_size_of_self_and_children(&*child);
                 }
                 let window = it_page.window();
-                let target = EventTargetCast::from_ref(&*window);
-                dom_tree_size += heap_size_of_self_and_children(target);
+                dom_tree_size += heap_size_of_self_and_children(&*window);
 
                 reports.push(Report {
                     path: path![format!("url({})", current_url), "dom-tree"],
@@ -1276,15 +1346,6 @@ impl ScriptTask {
         reports_chan.send(reports);
     }
 
-    /// Handles a timer that fired.
-    fn handle_fire_timer_msg(&self, id: PipelineId, timer_id: TimerId) {
-        let page = self.root_page();
-        let page = page.find(id).expect("ScriptTask: received fire timer msg for a
-            pipeline ID not associated with this script task. This is a bug.");
-        let window = page.window();
-        window.r().handle_fire_timer(timer_id);
-    }
-
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
         // Workaround for a race condition when navigating before the initial page has
@@ -1296,7 +1357,7 @@ impl ScriptTask {
         let page = page.find(id).expect("ScriptTask: received freeze msg for a
                     pipeline ID not associated with this script task. This is a bug.");
         let window = page.window();
-        window.r().freeze();
+        window.freeze();
     }
 
     /// Handles thaw message
@@ -1311,7 +1372,7 @@ impl ScriptTask {
         }
 
         let window = page.window();
-        window.r().thaw();
+        window.thaw();
     }
 
     fn handle_focus_iframe_msg(&self,
@@ -1324,10 +1385,9 @@ impl ScriptTask {
         let frame_element = doc.find_iframe(subpage_id);
 
         if let Some(ref frame_element) = frame_element {
-            let element = ElementCast::from_ref(frame_element.r());
-            doc.r().begin_focus_transaction();
-            doc.r().request_focus(element);
-            doc.r().commit_focus_transaction(FocusType::Parent);
+            doc.begin_focus_transaction();
+            doc.request_focus(frame_element.upcast());
+            doc.commit_focus_transaction(FocusType::Parent);
         }
     }
 
@@ -1345,7 +1405,7 @@ impl ScriptTask {
         });
 
         if let Some(ref frame_element) = frame_element {
-            frame_element.r().dispatch_mozbrowser_event(event);
+            frame_element.dispatch_mozbrowser_event(event);
         }
     }
 
@@ -1360,22 +1420,7 @@ impl ScriptTask {
             doc.find_iframe(old_subpage_id)
         });
 
-        frame_element.r().unwrap().update_subpage_id(new_subpage_id);
-    }
-
-    /// Handles a notification that reflow completed.
-    fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: u32) {
-        debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
-        let page = self.root_page();
-        match page.find(pipeline_id) {
-            Some(page) => {
-                let window = page.window();
-                window.r().handle_reflow_complete_msg(reflow_id);
-            }
-            None => {
-                assert!(self.closed_pipelines.borrow().contains(&pipeline_id));
-            }
-        }
+        frame_element.unwrap().update_subpage_id(new_subpage_id);
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -1384,7 +1429,7 @@ impl ScriptTask {
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
         let window = page.window();
-        window.r().set_window_size(new_size);
+        window.set_window_size(new_size);
         page.set_reflow_status(true);
     }
 
@@ -1405,7 +1450,7 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  metadata: Metadata) -> Option<Root<ServoHTMLParser>> {
+                                  metadata: Metadata) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         });
@@ -1427,12 +1472,12 @@ impl ScriptTask {
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().send_title_to_compositor();
+        document.send_title_to_compositor();
     }
 
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
-    fn handle_exit_pipeline_msg(&self, id: PipelineId, exit_type: PipelineExitType) -> bool {
+    fn handle_exit_pipeline_msg(&self, id: PipelineId) -> bool {
         self.closed_pipelines.borrow_mut().insert(id);
 
         // Check if the exit message is for an in progress load.
@@ -1450,7 +1495,7 @@ impl ScriptTask {
             if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
-                chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+                chan.send(layout_interface::Msg::ExitNow).ok();
             }
 
             let has_pending_loads = self.incomplete_loads.borrow().len() > 0;
@@ -1463,15 +1508,15 @@ impl ScriptTask {
         // If root is being exited, shut down all pages
         let page = self.root_page();
         let window = page.window();
-        if window.r().pipeline() == id {
+        if window.pipeline() == id {
             debug!("shutting down layout for root page {:?}", id);
-            shut_down_layout(&page, exit_type);
+            shut_down_layout(&page);
             return true
         }
 
         // otherwise find just the matching page and exit all sub-pages
         if let Some(ref mut child_page) = page.remove(id) {
-            shut_down_layout(&*child_page, exit_type);
+            shut_down_layout(&*child_page);
         }
         false
     }
@@ -1480,21 +1525,28 @@ impl ScriptTask {
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let page = get_page(&self.root_page(), id);
         let document = page.document();
-        document.r().run_the_animation_frame_callbacks();
+        document.run_the_animation_frame_callbacks();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
-        if let Some(page) = self.page.borrow().as_ref() {
-            if let Some(page) = page.find(pipeline_id) {
-                self.rebuild_and_force_reflow(&*page, ReflowReason::WebFontLoaded);
-            }
+        if let Some(ref page) = self.find_subpage(pipeline_id)  {
+            self.rebuild_and_force_reflow(page, ReflowReason::WebFontLoaded);
+        }
+    }
+
+    /// Notify the containing document of a child frame that has completed loading.
+    fn handle_frame_load_event(&self, containing_pipeline: PipelineId, id: PipelineId) {
+        let page = get_page(&self.root_page(), containing_pipeline);
+        let document = page.document();
+        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
+            iframe.iframe_load_event_steps();
         }
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoHTMLParser> {
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> ParserRoot {
         let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
@@ -1579,12 +1631,15 @@ impl ScriptTask {
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
         let MainThreadScriptChan(ref sender) = self.chan;
 
+        let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
+        ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
+                                                 self.timer_event_chan.clone());
+
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
                                  page.clone(),
                                  MainThreadScriptChan(sender.clone()),
                                  self.image_cache_channel.clone(),
-                                 self.control_chan.clone(),
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_task.clone(),
                                  self.resource_task.clone(),
@@ -1592,42 +1647,51 @@ impl ScriptTask {
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
+                                 self.scheduler_chan.clone(),
+                                 ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size);
 
-        let last_modified: Option<DOMString> = metadata.headers.as_ref().and_then(|headers| {
+        let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
         let content_type = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                Some("text/plain".to_owned())
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                Some(DOMString::from("text/xml"))
             }
+
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
+                Some(DOMString::from("text/plain"))
+            }
+
             _ => None
         };
 
-        let notifier_data =  {
-            let MainThreadScriptChan(ref sender) = self.chan;
-            NotifierData {
-                script_chan: sender.clone(),
-                pipeline: page.pipeline(),
-            }
-        };
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
-                                                   Some(notifier_data),
+                                                   Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
+
+        let is_html_document = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
+                IsHTMLDocument::NonHTMLDocument,
+            _ => IsHTMLDocument::HTMLDocument,
+        };
+
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),
-                                     IsHTMLDocument::HTMLDocument,
+                                     is_html_document,
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
                                      loader);
 
-        let frame_element = frame_element.r().map(ElementCast::from_ref);
-        window.r().init_browsing_context(document.r(), frame_element);
+        let frame_element = frame_element.r().map(Castable::upcast);
+        window.init_browsing_context(document.r(), frame_element);
+
+        document.set_ready_state(DocumentReadyState::Loading);
 
         // Create the root frame
         page.set_frame(Some(Frame {
@@ -1637,49 +1701,91 @@ impl ScriptTask {
 
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
+            use url::percent_encoding::percent_decode_to;
+
+            // Turn javascript: URL into JS code to eval, according to the steps in
+            // https://html.spec.whatwg.org/multipage/#javascript-protocol
             let _ar = JSAutoRequest::new(self.get_cx());
-            let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
-            let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
-            window.r().evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
-            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval.handle(),
-                                                          StringificationBehavior::Empty);
-            strval.unwrap_or("".to_owned())
+            let mut script_source_bytes = Vec::new();
+            // Start with the scheme data of the parsed URL (5.), while percent-decoding (8.)
+            percent_decode_to(incomplete.url.non_relative_scheme_data().unwrap().as_bytes(),
+                              &mut script_source_bytes);
+            // Append question mark and query component, if any (6.), while percent-decoding (8.)
+            if let Some(ref query) = incomplete.url.query {
+                script_source_bytes.push(b'?');
+                percent_decode_to(query.as_bytes(), &mut script_source_bytes);
+            }
+            // Append number sign and fragment component if any (7.), while percent-decoding (8.)
+            if let Some(ref fragment) = incomplete.url.fragment {
+                script_source_bytes.push(b'#');
+                percent_decode_to(fragment.as_bytes(), &mut script_source_bytes);
+            }
+
+            // UTF-8 decode (9.)
+            let script_source = String::from_utf8_lossy(&script_source_bytes);
+
+            // Script source is ready to be evaluated (11.)
+            unsafe {
+                let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
+                window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
+                let strval = DOMString::from_jsval(self.get_cx(),
+                                                   jsval.handle(),
+                                                   StringificationBehavior::Empty);
+                strval.unwrap_or(DOMString::new())
+            }
         } else {
-            "".to_owned()
+            DOMString::new()
         };
 
-        parse_html(document.r(), parse_input, final_url,
-                   ParseContext::Owner(Some(incomplete.pipeline_id)));
+        match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
+                parse_xml(document.r(),
+                          parse_input,
+                          final_url,
+                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+            _ => {
+                parse_html(document.r(),
+                           parse_input,
+                           final_url,
+                           ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+        }
 
         page_remover.neuter();
 
-        document.r().get_current_parser().unwrap()
+        document.get_current_parser().unwrap()
     }
 
     fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
-        match self.devtools_chan {
-            None => {}
-            Some(ref chan) => {
-                let page_info = DevtoolsPageInfo {
-                    title: title,
-                    url: url,
-                };
-                chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                            ids,
-                            self.devtools_sender.clone(),
-                            page_info)).unwrap();
-            }
+        if let Some(ref chan) = self.devtools_chan {
+            let page_info = DevtoolsPageInfo {
+                title: String::from(title),
+                url: url,
+            };
+            chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                        ids,
+                        self.devtools_sender.clone(),
+                        page_info)).unwrap();
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: &Element) {
-        let node = NodeCast::from_ref(node);
-        let rect = node.get_bounding_content_box();
-        let point = Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
-        // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, element: &Element) {
+        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
+        let rect = element.upcast::<Node>().get_bounding_content_box();
+
+        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
+        // paint task currently does the same for drawing elements. This is important for pages
+        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
+        // don't have the device pixel ratio here, this might not be accurate, but should work as
+        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
+        // account the real device pixel ratio.
+        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
+                                 rect.origin.y.to_nearest_px() as f32);
+
         self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
                                                  pipeline_id, LayerId::null(), point, false)).unwrap();
     }
@@ -1687,9 +1793,9 @@ impl ScriptTask {
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, page: &Page, reason: ReflowReason) {
         let document = page.document();
-        document.r().dirty_all_nodes();
+        document.dirty_all_nodes();
         let window = window_from_node(document.r());
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
+        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -1702,23 +1808,15 @@ impl ScriptTask {
                 self.handle_resize_event(pipeline_id, new_size);
             }
 
-            ClickEvent(button, point) => {
-                self.handle_mouse_event(pipeline_id, MouseEventType::Click, button, point);
-            }
-
-            MouseDownEvent(button, point) => {
-                self.handle_mouse_event(pipeline_id, MouseEventType::MouseDown, button, point);
-            }
-
-            MouseUpEvent(button, point) => {
-                self.handle_mouse_event(pipeline_id, MouseEventType::MouseUp, button, point);
+            MouseButtonEvent(event_type, button, point) => {
+                self.handle_mouse_event(pipeline_id, event_type, button, point);
             }
 
             MouseMoveEvent(point) => {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
 
-                let mut prev_mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+                let mut prev_mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
                 for target in &*self.mouse_over_targets.borrow_mut() {
                     prev_mouse_over_targets.push(target.clone());
                 }
@@ -1727,12 +1825,12 @@ impl ScriptTask {
                 // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
-                document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
+                document.handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
 
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
-                        if target.root().r().is_anchor_element() {
+                        if target.is::<HTMLAnchorElement>() {
                             let event = ConstellationMsg::NodeStatus(None);
                             let ConstellationChan(ref chan) = self.constellation_chan;
                             chan.send(event).unwrap();
@@ -1743,13 +1841,11 @@ impl ScriptTask {
 
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
-                    let target = target.root();
-                    if target.r().is_anchor_element() {
-                        let element = ElementCast::to_ref(target.r()).unwrap();
-                        let status = element.get_attribute(&ns!(""), &atom!("href"))
+                    if target.is::<HTMLAnchorElement>() {
+                        let status = target.get_attribute(&ns!(), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
-                                let url = document.r().url();
+                                let url = document.url();
                                 UrlParser::new().base_url(&url).parse(&value).map(|url| url.serialize()).ok()
                             });
                         let event = ConstellationMsg::NodeStatus(status);
@@ -1762,10 +1858,31 @@ impl ScriptTask {
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
+            TouchEvent(event_type, identifier, point) => {
+                let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
+                match event_type {
+                    TouchEventType::Down => {
+                        if handled {
+                            // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                            self.compositor.borrow_mut()
+                                .send(ScriptToCompositorMsg::TouchEventProcessed(
+                                        EventResult::DefaultAllowed)).unwrap();
+                        } else {
+                            self.compositor.borrow_mut()
+                                .send(ScriptToCompositorMsg::TouchEventProcessed(
+                                        EventResult::DefaultPrevented)).unwrap();
+                        }
+                    }
+                    _ => {
+                        // TODO: Calling preventDefault on a touchup event should prevent clicks.
+                    }
+                }
+            }
+
             KeyEvent(key, state, modifiers) => {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
-                document.r().dispatch_key_event(
+                document.dispatch_key_event(
                     key, state, modifiers, &mut self.compositor.borrow_mut());
             }
         }
@@ -1778,7 +1895,18 @@ impl ScriptTask {
                           point: Point2D<f32>) {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
+        document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
+    }
+
+    fn handle_touch_event(&self,
+                          pipeline_id: PipelineId,
+                          event_type: TouchEventType,
+                          identifier: TouchId,
+                          point: Point2D<f32>)
+                          -> bool {
+        let page = get_page(&self.root_page(), pipeline_id);
+        let document = page.document();
+        document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
@@ -1827,14 +1955,14 @@ impl ScriptTask {
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
         let page = get_page(&self.root_page(), pipeline_id);
         let window = page.window();
-        window.r().set_window_size(new_size);
-        window.r().force_reflow(ReflowGoal::ForDisplay,
-                                ReflowQueryType::NoQuery,
-                                ReflowReason::WindowResize);
+        window.set_window_size(new_size);
+        window.force_reflow(ReflowGoal::ForDisplay,
+                            ReflowQueryType::NoQuery,
+                            ReflowReason::WindowResize);
 
         let document = page.document();
-        let fragment_node = window.r().steal_fragment_name()
-                                      .and_then(|name| document.r().find_fragment_node(&*name));
+        let fragment_node = window.steal_fragment_name()
+                                  .and_then(|name| document.find_fragment_node(&*name));
         match fragment_node {
             Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
@@ -1843,13 +1971,10 @@ impl ScriptTask {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
         let uievent = UIEvent::new(window.r(),
-                                   "resize".to_owned(), EventBubbles::DoesNotBubble,
+                                   DOMString::from("resize"), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32);
-        let event = EventCast::from_ref(uievent.r());
-
-        let wintarget = EventTargetCast::from_ref(window.r());
-        event.fire(wintarget);
+        uievent.upcast::<Event>().fire(window.upcast());
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
@@ -1876,7 +2001,7 @@ impl ScriptTask {
         };
 
         if load_data.url.scheme == "javascript" {
-            load_data.url = Url::parse("about:blank").unwrap();
+            load_data.url = url!("about:blank");
         }
 
         resource_task.send(ControlMsg::Load(NetLoadData {
@@ -1887,7 +2012,8 @@ impl ScriptTask {
             data: load_data.data,
             cors: None,
             pipeline_id: Some(id),
-        }, LoadConsumer::Listener(response_target))).unwrap();
+            credentials_flag: true,
+        }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
@@ -1900,30 +2026,33 @@ impl ScriptTask {
         };
 
         let document = page.document();
-        let final_url = document.r().url();
+        let final_url = document.url();
 
-        document.r().set_ready_state(DocumentReadyState::Interactive);
+        // https://html.spec.whatwg.org/multipage/#the-end step 1
+        document.set_ready_state(DocumentReadyState::Interactive);
+
+        // TODO: Execute step 2 here.
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
-        document.r().disarm_reflow_timeout();
-        document.r().content_changed(NodeCast::from_ref(document.r()),
-                                     NodeDamage::OtherNodeDamage);
+        document.disarm_reflow_timeout();
+        document.content_changed(document.upcast(),
+                                 NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r());
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
+        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 
         // No more reflow required
         page.set_reflow_status(false);
 
-        // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::DOMContentLoaded);
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
+        // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
+        document.process_deferred_scripts();
 
-        window.r().set_fragment_name(final_url.fragment.clone());
+        window.set_fragment_name(final_url.fragment.clone());
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.r().Title(), (*final_url).clone(), (id, None));
+        //TODO: should this happen as soon as the global is created, or at least once the first
+        // script runs?
+        self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
     }
 }
 
@@ -1936,7 +2065,7 @@ impl Drop for ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
+fn shut_down_layout(page_tree: &Rc<Page>) {
     let mut channels = vec!();
 
     for page in page_tree.iter() {
@@ -1944,7 +2073,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = page.window();
-        let LayoutChan(chan) = window.r().layout_chan();
+        let LayoutChan(chan) = window.layout_chan();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();
@@ -1954,14 +2083,14 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
     // Drop our references to the JSContext and DOM objects.
     for page in page_tree.iter() {
         let window = page.window();
-        window.r().clear_js_runtime();
+        window.clear_js_runtime();
         // Sever the connection between the global and the DOM tree
         page.set_frame(None);
     }
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for chan in channels {
-        chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+        chan.send(layout_interface::Msg::ExitNow).ok();
     }
 }
 

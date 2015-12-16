@@ -34,6 +34,7 @@
         <script type='text/javascript'>
             var isPointerCapture = false;
             var isRelatedTargetValueTested = false;
+            var isTargetAuthenticityTested = false;
             var count = 0;
 
             var detected_pointertypes = {};
@@ -91,6 +92,13 @@
                                 assert_true(event.relatedTarget==null, "relatedTarget is null when the capture is set")
                             }, "relatedTarget is null when the capture is set. relatedTarget is " + event.relatedTarget);
                             isRelatedTargetValueTested = true;
+                        }
+                        var hitTest = document.elementFromPoint(event.clientX, event.clientY);
+                        if(event.target !== hitTest && !isTargetAuthenticityTested) {
+                            test(function () {
+                                assert_unreached("pointerover for this target shouldn't trigger events on capture target");
+                            }, "pointerover should only trigger over the black rectangle");
+                            isTargetAuthenticityTested = true;
                         }
                     }
                     else {

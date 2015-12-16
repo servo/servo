@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+    <link rel="match" href="/_mozilla/css/layerization_layer_size_ref.html">
+    <style>
+
+      div {
+        position: absolute;
+        left: 0;
+        top: 10.5px;
+        width: 100px;
+        height: 100px;
+        background: green;
+      }
+
+      iframe {
+        border: none;
+      }
+    </style>
+
+    <body>
+        <!-- This div is positioned so should be rendered on top of the following
+             inline iframe. Since the iframe has a layer, the div should also be
+             promoted to a layer. This should not affect its final rendered position. -->
+        <div></div>
+        <iframe></iframe>
+    </body>
+</html>

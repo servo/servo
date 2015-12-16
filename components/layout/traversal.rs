@@ -6,18 +6,19 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
-use flow::{MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
+use css::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
+use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
-use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use gfx::display_list::OpaqueNode;
+use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script::layout_interface::ReflowGoal;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use std::mem;
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, layout_node_to_unsafe_layout_node};
-use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
+use wrapper::{LayoutNode, UnsafeLayoutNode};
+use wrapper::{ThreadSafeLayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -50,8 +51,11 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context: &LayoutContext)
-                                -> Box<BloomFilter> {
+fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
+                                        root: OpaqueNode,
+                                        layout_context: &LayoutContext)
+                                        -> Box<BloomFilter>
+                                        where N: LayoutNode<'ln> {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -62,12 +66,12 @@ fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context:
             // No bloom filter for this thread yet.
             (Some(parent), None) => {
                 let mut bloom_filter = box BloomFilter::new();
-                insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, layout_context);
+                insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, root);
                 bloom_filter
             }
             // Found cached bloom filter.
             (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
-                if old_node == layout_node_to_unsafe_layout_node(&parent) &&
+                if old_node == parent.to_unsafe() &&
                     old_generation == layout_context.shared.generation {
                     // Hey, the cached parent is our parent! We can reuse the bloom filter.
                     debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
@@ -75,7 +79,7 @@ fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context:
                     // Oh no. the cached parent is stale. I guess we need a new one. Reuse the existing
                     // allocation to avoid malloc churn.
                     bloom_filter.clear();
-                    insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, layout_context);
+                    insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, root);
                 }
                 bloom_filter
             },
@@ -94,16 +98,17 @@ fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
 }
 
 /// "Ancestors" in this context is inclusive of ourselves.
-fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
-                                      mut n: LayoutNode,
-                                      layout_context: &LayoutContext) {
+fn insert_ancestors_into_bloom_filter<'ln, N>(bf: &mut Box<BloomFilter>,
+                                              mut n: N,
+                                              root: OpaqueNode)
+                                              where N: LayoutNode<'ln> {
     debug!("[{}] Inserting ancestors.", tid());
     let mut ancestors = 0;
     loop {
         ancestors += 1;
 
         n.insert_into_bloom_filter(&mut **bf);
-        n = match n.layout_parent_node(layout_context.shared) {
+        n = match n.layout_parent_node(root) {
             None => break,
             Some(p) => p,
         };
@@ -113,21 +118,21 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
 
 
 /// A top-down traversal.
-pub trait PreorderDomTraversal {
+pub trait PreorderDomTraversal<'ln, ConcreteLayoutNode: LayoutNode<'ln>>  {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
+    fn process(&self, node: ConcreteLayoutNode);
 }
 
 /// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderDomTraversal {
+pub trait PostorderDomTraversal<'ln, ConcreteLayoutNode: LayoutNode<'ln>> {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode);
+    fn process(&self, node: ConcreteLayoutNode);
 }
 
 /// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal {
+pub trait PostorderNodeMutTraversal<'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>> {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
+    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) -> bool;
 }
 
 /// The recalc-style-for-node traversal, which styles each node and must run before
@@ -135,12 +140,15 @@ pub trait PostorderNodeMutTraversal {
 #[derive(Copy, Clone)]
 pub struct RecalcStyleForNode<'a> {
     pub layout_context: &'a LayoutContext<'a>,
+    pub root: OpaqueNode,
 }
 
-impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
+impl<'a, 'ln, ConcreteLayoutNode> PreorderDomTraversal<'ln, ConcreteLayoutNode>
+                                  for RecalcStyleForNode<'a>
+                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     #[inline]
     #[allow(unsafe_code)]
-    fn process(&self, node: LayoutNode) {
+    fn process(&self, node: ConcreteLayoutNode) {
         // Initialize layout data.
         //
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
@@ -148,43 +156,59 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         node.initialize_layout_data();
 
         // Get the parent node.
-        let parent_opt = node.layout_parent_node(self.layout_context.shared);
+        let parent_opt = node.layout_parent_node(self.root);
 
         // Get the style bloom filter.
-        let mut bf = take_task_local_bloom_filter(parent_opt, self.layout_context);
+        let mut bf = take_task_local_bloom_filter(parent_opt, self.root, self.layout_context);
 
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.is_dirty() {
             // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
             // to force non-incremental reflow.
             if node.has_changed() {
-                let node = ThreadSafeLayoutNode::new(&node);
+                let node = node.to_threadsafe();
                 node.unstyle();
             }
 
             // Check to see whether we can share a style with someone.
             let style_sharing_candidate_cache =
                 &mut self.layout_context.style_sharing_candidate_cache();
-            let sharing_result = unsafe {
-                node.share_style_if_possible(style_sharing_candidate_cache,
-                                             parent_opt.clone())
+
+            let sharing_result = match node.as_element() {
+                Some(element) => {
+                    unsafe {
+                        element.share_style_if_possible(style_sharing_candidate_cache,
+                                                        parent_opt.clone())
+                    }
+                },
+                None => StyleSharingResult::CannotShare,
             };
+
             // Otherwise, match and cascade selectors.
             match sharing_result {
-                StyleSharingResult::CannotShare(mut shareable) => {
+                StyleSharingResult::CannotShare => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
-                    if node.as_element().is_some() {
-                        // Perform the CSS selector matching.
-                        let stylist = unsafe { &*self.layout_context.shared.stylist };
-                        node.match_node(stylist,
-                                        Some(&*bf),
-                                        &mut applicable_declarations,
-                                        &mut shareable);
-                    } else if node.has_changed() {
-                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(
-                            incremental::rebuild_and_reflow())
-                    }
+                    let shareable_element = match node.as_element() {
+                        Some(element) => {
+                            // Perform the CSS selector matching.
+                            let stylist = unsafe { &*self.layout_context.shared.stylist.0 };
+                            if element.match_element(stylist,
+                                                     Some(&*bf),
+                                                     &mut applicable_declarations) {
+                                Some(element)
+                            } else {
+                                None
+                            }
+                        },
+                        None => {
+                            if node.has_changed() {
+                                node.to_threadsafe().set_restyle_damage(
+                                    incremental::rebuild_and_reflow())
+                            }
+                            None
+                        },
+                    };
 
                     // Perform the CSS cascade.
                     unsafe {
@@ -196,20 +220,18 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                     }
 
                     // Add ourselves to the LRU cache.
-                    if shareable {
-                        if let Some(element) = node.as_element() {
-                            style_sharing_candidate_cache.insert_if_possible(&element);
-                        }
+                    if let Some(element) = shareable_element {
+                        style_sharing_candidate_cache.insert_if_possible(&element);
                     }
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
                     style_sharing_candidate_cache.touch(index);
-                    ThreadSafeLayoutNode::new(&node).set_restyle_damage(damage);
+                    node.to_threadsafe().set_restyle_damage(damage);
                 }
             }
         }
 
-        let unsafe_layout_node = layout_node_to_unsafe_layout_node(&node);
+        let unsafe_layout_node = node.to_unsafe();
 
         // Before running the children, we need to insert our nodes into the bloom
         // filter.
@@ -225,15 +247,18 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 #[derive(Copy, Clone)]
 pub struct ConstructFlows<'a> {
     pub layout_context: &'a LayoutContext<'a>,
+    pub root: OpaqueNode,
 }
 
-impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
+impl<'a, 'ln, ConcreteLayoutNode> PostorderDomTraversal<'ln, ConcreteLayoutNode>
+                                  for ConstructFlows<'a>
+                                  where ConcreteLayoutNode: LayoutNode<'ln> {
     #[inline]
     #[allow(unsafe_code)]
-    fn process(&self, node: LayoutNode) {
+    fn process(&self, node: ConcreteLayoutNode) {
         // Construct flows for this node.
         {
-            let tnode = ThreadSafeLayoutNode::new(&node);
+            let tnode = node.to_threadsafe();
 
             // Always reconstruct if incremental layout is turned off.
             let nonincremental_layout = opts::get().nonincremental_layout;
@@ -255,11 +280,10 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
         unsafe {
             node.set_changed(false);
             node.set_dirty(false);
-            node.set_dirty_siblings(false);
             node.set_dirty_descendants(false);
         }
 
-        let unsafe_layout_node = layout_node_to_unsafe_layout_node(&node);
+        let unsafe_layout_node = node.to_unsafe();
 
         let (mut bf, old_node, old_generation) =
             STYLE_BLOOM.with(|style_bloom| {
@@ -270,7 +294,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
         assert_eq!(old_node, unsafe_layout_node);
         assert_eq!(old_generation, self.layout_context.shared.generation);
 
-        match node.layout_parent_node(self.layout_context.shared) {
+        match node.layout_parent_node(self.root) {
             None => {
                 debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
                 // If this is the reflow root, eat the task-local bloom filter.
@@ -278,7 +302,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
             Some(parent) => {
                 // Otherwise, put it back, but remove this node.
                 node.remove_from_bloom_filter(&mut *bf);
-                let unsafe_parent = layout_node_to_unsafe_layout_node(&parent);
+                let unsafe_parent = parent.to_unsafe();
                 put_task_local_bloom_filter(bf, &unsafe_parent, self.layout_context);
             },
         };
@@ -342,7 +366,6 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
         }
 
         flow.assign_block_size(self.layout_context);
-        flow.early_store_overflow(self.layout_context);
     }
 
     #[inline]
@@ -360,6 +383,7 @@ impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_absolute_position(self.layout_context);
+        flow.store_overflow(self.layout_context);
     }
 }
 
@@ -372,6 +396,7 @@ impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.build_display_list(self.layout_context);
+        flow::mut_base(flow).restyle_damage.remove(REPAINT);
     }
 
     #[inline]

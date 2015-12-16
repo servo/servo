@@ -9,10 +9,8 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![feature(vec_push_all)]
 
 #![plugin(serde_macros)]
-#![plugin(string_cache_plugin)]
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
@@ -21,33 +19,34 @@ extern crate app_units;
 extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
+extern crate encoding;
+extern crate euclid;
+extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate matches;
-#[macro_use]
-extern crate style_traits;
-extern crate encoding;
-extern crate euclid;
-extern crate fnv;
 extern crate num;
 extern crate rustc_serialize;
-extern crate selectors;
+#[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
+#[macro_use(atom, ns)] extern crate string_cache;
+#[macro_use]
+extern crate style_traits;
 extern crate url;
 extern crate util;
 
 pub mod animation;
+pub mod attr;
 mod custom_properties;
 pub mod font_face;
-pub mod legacy;
 pub mod media_queries;
 pub mod node;
 pub mod parser;
+pub mod restyle_hints;
 pub mod selector_matching;
 pub mod stylesheets;
 #[macro_use]

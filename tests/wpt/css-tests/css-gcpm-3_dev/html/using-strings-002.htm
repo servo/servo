@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html><head>
+<meta charset="utf-8">
 <title>CSS Test: using the 'last' property of named strings</title>
 <link href="mailto:dauwhe@gmail.com" rel="author" title="Dave Cramer">
 <link href="http://www.w3.org/TR/css-gcpm-3/#string-last" rel="help">
@@ -8,14 +9,14 @@
 <style>
   @page {
    @top-center {
-   content: string(section, last); 
+   content: string(section, last);
    }
   }
- 
+
  h2 {
  string-set: section content();
  }
- 
+
 </style>
 </head>
 <body>
@@ -26,5 +27,6 @@
 <h2 id="s4">Section Four</h2>
 <h2 id="s5">Section Five</h2>
 <h2 id="s6">Section Six</h2>
+
 
 </body></html>

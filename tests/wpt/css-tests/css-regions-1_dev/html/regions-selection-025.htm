@@ -13,31 +13,31 @@
         <script src="/resources/testharnessreport.js"></script>
         <script src="support/js/selection-test-helper.js"></script>
         <style>
-            #source 
+            #source
             {
                 position: absolute;
                 flow-into: content;
             }
             .region
             {
-                flow-from: content; 
+                flow-from: content;
                 width: 150px;
                 height: 150px;
                 margin: 15px;
             }
-            #region 
+            #region
             {
                 position: absolute;
                 left: 0px;
                 color: red;
             }
-            #region-2 
-            { 
+            #region-2
+            {
                 position: absolute;
                 left: 330px;
             }
             #region-3
-            { 
+            {
                 position: absolute;
                 left: 165px;
             }
@@ -53,7 +53,7 @@
             {
                 width: 15px;
                 height: 15px;
-                display: inline-block; 
+                display: inline-block;
             }
             #log {
               position: relative;
@@ -64,7 +64,7 @@
     </head>
     <body>
         <p id="msg">
-            Click on the orange square, keep the mouse button down and drag it to the blue square, 
+            Click on the orange square, keep the mouse button down and drag it to the blue square,
             release the mouse over the blue square.
         </p>
         <!-- This text will only appear if regions are not enabled -->
@@ -73,16 +73,16 @@
         <div class="region" id="region-3"></div>
         <div id="source">
             <span id="two-regions">
-                <div class="select-point" id="start-select"></div> 
-                between the squares between the squares between the squares between the squares between the squares 
-                between the squares between the squares between the squares between the squares between the squares 
-                between the squares between the squares between the squares 
+                <div class="select-point" id="start-select"></div>
+                between the squares between the squares between the squares between the squares between the squares
+                between the squares between the squares between the squares between the squares between the squares
+                between the squares between the squares between the squares
                 <div class="select-point" id="end-select"></div>
             </span>
-            <span id="one-region"> 
-                after the squares after the squares after the squares after the squares after the squares 
-                after the squares after the squares after the squares after the squares after the squares 
-                after the squares after the squares 
+            <span id="one-region">
+                after the squares after the squares after the squares after the squares after the squares
+                after the squares after the squares after the squares after the squares after the squares
+                after the squares after the squares
             </span>
         </div>
         <div id="log"></div>

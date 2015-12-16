@@ -68,7 +68,9 @@ impl SurfaceMap {
         }
     }
 
-    pub fn insert_surfaces(&mut self, display: &NativeDisplay, surfaces: Vec<NativeSurface>) {
+    pub fn insert_surfaces<I>(&mut self, display: &NativeDisplay, surfaces: I)
+        where I: IntoIterator<Item=NativeSurface>
+    {
         for surface in surfaces {
             self.insert(display, surface);
         }
@@ -109,7 +111,7 @@ impl SurfaceMap {
             let old_key = match opt_key {
                 Some(key) => key,
                 None => {
-                    match self.map.iter().min_by(|&(_, x)| x.last_action) {
+                    match self.map.iter().min_by_key(|&(_, x)| x.last_action) {
                         Some((k, _)) => *k,
                         None => panic!("SurfaceMap: tried to delete with no elements in map"),
                     }

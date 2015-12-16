@@ -24,6 +24,7 @@ use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
 #[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
+use std::os::raw::c_void;
 #[cfg(all(feature = "headless", target_os = "linux"))]
 use std::ptr;
 use std::rc::Rc;
@@ -84,17 +85,22 @@ pub struct Window {
 impl Window {
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
-               parent: glutin::WindowID) -> Rc<Window> {
-        let mut glutin_window = glutin::WindowBuilder::new()
-                            .with_title("Servo".to_string())
-                            .with_decorations(!opts::get().no_native_titlebar)
-                            .with_vsync()
-                            .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
-                            .with_gl(Window::gl_version())
-                            .with_visibility(is_foreground)
-                            .with_parent(parent)
-                            .build()
-                            .unwrap();
+               parent: Option<glutin::WindowID>) -> Rc<Window> {
+        let width = window_size.to_untyped().width;
+        let height = window_size.to_untyped().height;
+        let mut builder = glutin::WindowBuilder::new().with_title("Servo".to_string())
+                                                      .with_decorations(!opts::get().no_native_titlebar)
+                                                      .with_dimensions(width, height)
+                                                      .with_gl(Window::gl_version())
+                                                      .with_visibility(is_foreground)
+                                                      .with_parent(parent)
+                                                      .with_multitouch();
+
+        if opts::get().enable_vsync {
+            builder = builder.with_vsync();
+        }
+
+        let mut glutin_window = builder.build().unwrap();
 
         unsafe { glutin_window.make_current().expect("Failed to make context current!") }
 
@@ -121,7 +127,7 @@ impl Window {
     }
 
     pub fn platform_window(&self) -> glutin::WindowID {
-        unsafe { self.window.platform_window() }
+        unsafe { glutin::WindowID::new(self.window.platform_window()) }
     }
 
     fn nested_window_resize(width: u32, height: u32) {
@@ -148,7 +154,7 @@ impl Window {
 
     #[cfg(not(target_os = "android"))]
     fn load_gl_functions(window: &glutin::Window) {
-        gl::load_with(|s| window.get_proc_address(s));
+        gl::load_with(|s| window.get_proc_address(s) as *const c_void);
     }
 
     #[cfg(target_os = "android")]
@@ -170,18 +176,14 @@ impl Window {
                         (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
                         (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
                         (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
-                        (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
                         (_, key_code) => {
-                            match Window::glutin_key_to_script_key(key_code) {
-                                Ok(key) => {
-                                    let state = match element_state {
-                                        ElementState::Pressed => KeyState::Pressed,
-                                        ElementState::Released => KeyState::Released,
-                                    };
-                                    let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
-                                }
-                                _ => {}
+                            if let Ok(key) = Window::glutin_key_to_script_key(key_code) {
+                                let state = match element_state {
+                                    ElementState::Pressed => KeyState::Pressed,
+                                    ElementState::Released => KeyState::Released,
+                                };
+                                let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+                                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                             }
                         }
                     }
@@ -203,26 +205,26 @@ impl Window {
                     WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
-                if self.ctrl_pressed() {
-                    // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
-                    let dy = match delta {
-                        MouseScrollDelta::LineDelta(_, dy) => dy,
-                        MouseScrollDelta::PixelDelta(_, dy) => dy
-                    };
-                    if dy < 0.0 {
-                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
-                    } else if dy > 0.0 {
-                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
-                    }
-                } else {
-                    match delta {
-                        MouseScrollDelta::LineDelta(dx, dy) => {
-                            self.scroll_window(dx, dy * LINE_HEIGHT);
-                        }
-                        MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
-                    }
-                }
+                let (dx, dy) = match delta {
+                    MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
+                    MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
+                };
+                self.scroll_window(dx, dy);
             },
+            Event::Touch(touch) => {
+                use glutin::TouchPhase;
+                use script_traits::{TouchEventType, TouchId};
+
+                let phase = match touch.phase {
+                    TouchPhase::Started => TouchEventType::Down,
+                    TouchPhase::Moved => TouchEventType::Move,
+                    TouchPhase::Ended => TouchEventType::Up,
+                    TouchPhase::Cancelled => TouchEventType::Cancel,
+                };
+                let id = TouchId(touch.id as i32);
+                let point = Point2D::typed(touch.location.0 as f32, touch.location.1 as f32);
+                self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
+            }
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             }
@@ -233,11 +235,6 @@ impl Window {
         }
 
         false
-    }
-
-    #[inline]
-    fn ctrl_pressed(&self) -> bool {
-        self.key_modifiers.get().intersects(LEFT_CONTROL | RIGHT_CONTROL)
     }
 
     fn toggle_modifier(&self, modifier: KeyModifiers) {
@@ -256,7 +253,7 @@ impl Window {
 
     /// Helper function to handle a click
     fn handle_mouse(&self, button: glutin::MouseButton, action: glutin::ElementState, x: i32, y: i32) {
-        use script_traits::MouseButton;
+        use msg::constellation_msg::MouseButton;
 
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f64;
@@ -305,7 +302,8 @@ impl Window {
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     fn handle_next_event(&self) -> bool {
-        use std::thread::sleep_ms;
+        use std::thread;
+        use std::time::Duration;
 
         // TODO(gw): This is an awful hack to work around the
         // broken way we currently call X11 from multiple threads.
@@ -331,7 +329,7 @@ impl Window {
                 self.handle_window_event(event)
             }
             None => {
-                sleep_ms(16);
+                thread::sleep(Duration::from_millis(16));
                 false
             }
         }
@@ -654,11 +652,18 @@ impl WindowMethods for Window {
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
 
         match (mods, key) {
-            (_, Key::Equal) if mods & !SHIFT == CMD_OR_CONTROL => {
-                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
+            (_, Key::Equal) => {
+                if mods & !SHIFT == CMD_OR_CONTROL {
+                    self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
+                } else if mods & !SHIFT == CMD_OR_CONTROL | ALT {
+                    self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
+                }
             }
             (CMD_OR_CONTROL, Key::Minus) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
+            }
+            (_, Key::Minus) if mods == CMD_OR_CONTROL | ALT => {
+                self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
             }
             (CMD_OR_CONTROL, Key::Num0) |
             (CMD_OR_CONTROL, Key::Kp0) => {
@@ -670,6 +675,10 @@ impl WindowMethods for Window {
             }
             (NONE, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+            }
+
+            (NONE, Key::Escape) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
 
             (CMD_OR_ALT, Key::Right) => {
@@ -718,14 +727,14 @@ pub struct Window {
 impl Window {
     pub fn new(_is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
-               _parent: glutin::WindowID) -> Rc<Window> {
+               _parent: Option<glutin::WindowID>) -> Rc<Window> {
         let window_size = window_size.to_untyped();
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
         let headless_context = headless_builder.build().unwrap();
         unsafe { headless_context.make_current().expect("Failed to make context current!") };
 
-        gl::load_with(|s| headless_context.get_proc_address(s));
+        gl::load_with(|s| headless_context.get_proc_address(s) as *const c_void);
 
         let window = Window {
             context: headless_context,

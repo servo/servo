@@ -16,5 +16,8 @@ git = "https://github.com/Manishearth/rust-clippy"
 branch = "servo"
 optional = true
 
+[dependencies]
+url = "0.5"
+
 [features]
 default = []

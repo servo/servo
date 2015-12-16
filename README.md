@@ -1,11 +1,14 @@
-# The Servo Parallel Browser Project
+# The Servo Parallel Browser Engine Project
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
 64bit OS X, 64bit Linux, Android, and Gonk (Firefox OS).
 
 Servo welcomes contribution from everyone.  See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) for help getting started.
+[`CONTRIBUTING.md`](CONTRIBUTING.md) and [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md)
+for help getting started.
+
+Visit the [Servo Project page](https://servo.org/) for news and guides.
 
 ## Prerequisites
 
@@ -59,7 +62,7 @@ sudo emerge net-misc/curl media-libs/freeglut \
 Cross-compilation for Android:
 
 Pre-installed Android tools are needed. See wiki for
-[details](https://github.com/mozilla/servo/wiki/Building-for-Android)
+[details](https://github.com/servo/servo/wiki/Building-for-Android)
 
 Using Virtualbox:
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
 <title>CSS Test: GCPM string-set on element with display: none</title>
 <link href="mailto:dauwhe@gmail.com" rel="author" title="Dave Cramer" />
 <link href="http://www.w3.org/TR/css-gcpm-3/#setting-named-strings-the-string-set-pro" rel="help" />
@@ -8,22 +9,23 @@
 <style>
   @page {
    @top-center {
-   content: string(title); 
+   content: string(title);
    }
 
   }
- 
+
  h1 {
- string-set: title content(); 
+ string-set: title content();
 display: none;
  }
- 
 
- 
+
+
 </style>
 </head>
 <body>
 <h1>Chapter Title</h1>
-<p>Test passes if “Chapter Title�&#65533; appears in the running head.</p>
+<p>Test passes if “Chapter Title” appears in the running head.</p>
+
 
 </body></html>

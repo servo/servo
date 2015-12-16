@@ -6,7 +6,7 @@
         <link href="mailto:stearns@adobe.com" rel="reviewer" title="Alan Stearns" /> <!-- 2014-03-04 -->
         <link href="http://www.w3.org/TR/css-shapes-1/#funcdef-ellipse" rel="help" />
         <link href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property" rel="help" />
-        <link href="http://www.w3.org/TR/css3-values/#calc" rel="help" />
+        <link href="http://www.w3.org/TR/css3-values/#calc-notation" rel="help" />
         <meta content="An ellipse's &lt;position> arguments may be in calc() values." name="assert" />
         <meta content="dom" name="flags" />
         <script src="/resources/testharness.js"></script>
@@ -18,7 +18,7 @@
         <script type="text/javascript">
             var ellipse_position_calc_tests = [];
             ParsingUtils.calcTestValues.forEach(function(value) {
-                testCase = ['ellipse(at '+ value[0] +' 50%)', 
+                testCase = ['ellipse(at '+ value[0] +' 50%)',
                             'ellipse(at '+ value[1] +' 50%)'];
                 if(Object.prototype.toString.call( value[2] ) === '[object Array]' &amp;&amp; value[2].length == 2) {
                     testCase.push([
@@ -44,7 +44,7 @@
                 ellipse_position_calc_tests.push(testCase);
             });
             ParsingUtils.calcTestValues.forEach(function(value) {
-                testCase = ['ellipse(closest-side farthest-side at '+ value[0] +' '+ value[0] +')', 
+                testCase = ['ellipse(closest-side farthest-side at '+ value[0] +' '+ value[0] +')',
                             'ellipse(closest-side farthest-side at '+ value[1] +' '+ value[1] +')'];
                 if(Object.prototype.toString.call( value[2] ) === '[object Array]' &amp;&amp; value[2].length == 2) {
                     testCase.push([

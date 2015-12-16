@@ -19,11 +19,11 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate log;
 extern crate devtools_traits;
 extern crate hyper;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate rustc_serialize;
 extern crate serde;
@@ -44,9 +44,9 @@ use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
-use devtools_traits::{ScriptToDevtoolsControlMsg};
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{PipelineId, WorkerId};
+use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -54,7 +54,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
 use std::net::{Shutdown, TcpListener, TcpStream};
-use std::sync::mpsc::{Receiver, RecvError, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 use util::task::spawn_named;
@@ -225,7 +225,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
                 name: actors.new_name("tab"),
-                title: title,
+                title: String::from(title),
                 url: url.serialize(),
                 console: console.name(),
                 inspector: inspector.name(),
@@ -401,30 +401,30 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         }
     });
 
-    loop {
-        match receiver.recv() {
-            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream))) => {
+    while let Ok(msg) = receiver.recv() {
+        match msg {
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.try_clone().unwrap());
                 spawn_named("DevtoolsClientHandler".to_owned(), move || {
                     handle_client(actors, stream.try_clone().unwrap())
                 })
             }
-            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
-                        actor_name, tick))) =>
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
+                        actor_name, tick)) =>
                 handle_framerate_tick(actors.clone(), actor_name, tick),
-            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
-                        ids, script_sender, pageinfo))) =>
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
+                        ids, script_sender, pageinfo)) =>
                 handle_new_global(actors.clone(), ids, script_sender, &mut actor_pipelines,
                                   &mut actor_workers, pageinfo),
-            Ok(DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                         id,
                         console_message,
-                        worker_id))) =>
+                        worker_id)) =>
                 handle_console_message(actors.clone(), id, worker_id, console_message,
                                        &actor_pipelines, &actor_workers),
-            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
-                        request_id, network_event))) => {
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+                        request_id, network_event)) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
                 for stream in &accepted_connections {
@@ -435,8 +435,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
                                      &actor_workers, PipelineId::fake_root_pipeline_id(), request_id, network_event);
             },
-            Ok(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg)) |
-            Err(RecvError) => break
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break
         }
     }
     for connection in &mut accepted_connections {

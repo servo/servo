@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{DOMPointReadOnly
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use std::cell::Cell;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
@@ -31,11 +31,17 @@ impl DOMPointReadOnly {
     }
 
     pub fn new(global: GlobalRef, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPointReadOnly> {
-        reflect_dom_object(box DOMPointReadOnly::new_inherited(x, y, z, w), global, Wrap)
+        reflect_dom_object(box DOMPointReadOnly::new_inherited(x, y, z, w),
+                           global,
+                           Wrap)
     }
 
     pub fn Constructor(global: GlobalRef,
-                        x: f64, y: f64, z: f64, w: f64) -> Fallible<Root<DOMPointReadOnly>> {
+                       x: f64,
+                       y: f64,
+                       z: f64,
+                       w: f64)
+                       -> Fallible<Root<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
     }
 }

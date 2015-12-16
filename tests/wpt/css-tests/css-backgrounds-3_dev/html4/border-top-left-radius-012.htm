@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html> 
+<html>
     <head>
         <title>CSS Test: Borders. Border-top-left-radius using two length values: 0.5in 10mm</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -11,19 +11,19 @@
         <meta name="assert" content="To verify border-top-left-radius property set to two length values (with different units), works fine">
         <style type="text/css">
         /*  */
-        	div 
+        	div
           {
-        		border:2px solid #a1a1a1;        		
+        		border:2px solid #a1a1a1;
         		background:#dddddd;
         		width:200px;
         		height: 100px;
-        		border-top-left-radius:  0.5in 10mm; 
+        		border-top-left-radius:  0.5in 10mm;
         	}
          /*  */
         </style>
-<!--        
+<!--
         <script type="text/javascript" src="js/css3_test_helper.js"></script>
--->        
+-->
     </head>
     <body>
         <p id="testdetails">
@@ -34,24 +34,24 @@
             <li>PASS if only top left corner is rounded.</li>
             <li>FAIL if the output is not as expected.</li>
         </ul>
-    	    	
-    	<div id="test"></div>   	
-<!--    	
-    	<script type="text/javascript">     
-         /* <![CDATA[ */   	
+
+    	<div id="test"></div>
+<!--
+    	<script type="text/javascript">
+         /* <![CDATA[ */
         	var expectedBorderRadius = "48px 37px";
-        	
+
         	var testResult = check_CSS_property("border-top-left-radius", expectedBorderRadius);
-        	
+
         	/* if (testResult.pass)
-        	  // This portion of the code has been removed to ensure that the test case is not automated 
+        	  // This portion of the code has been removed to ensure that the test case is not automated
         	else {
-        		// This portion of the code has been removed to ensure that the test case is not automated 
+        		// This portion of the code has been removed to ensure that the test case is not automated
           } */
-          
+
           if (top.FrameEnabled)	top.fnLog(testResult);
          /* ]]> */
         </script>
--->        
+-->
     </body>
 </html>

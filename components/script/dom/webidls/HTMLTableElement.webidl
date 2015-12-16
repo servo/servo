@@ -32,7 +32,7 @@ partial interface HTMLTableElement {
   //         attribute DOMString frame;
   //         attribute DOMString rules;
   //         attribute DOMString summary;
-  //         attribute DOMString width;
+  attribute DOMString width;
 
   [TreatNullAs=EmptyString] attribute DOMString bgColor;
   //[TreatNullAs=EmptyString] attribute DOMString cellPadding;

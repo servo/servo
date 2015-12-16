@@ -4,13 +4,15 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, NodeCast};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -19,7 +21,7 @@ pub struct HTMLDataListElement {
 }
 
 impl HTMLDataListElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDataListElement {
         HTMLDataListElement {
@@ -29,7 +31,7 @@ impl HTMLDataListElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, prefix, document);
@@ -44,12 +46,11 @@ impl HTMLDataListElementMethods for HTMLDataListElement {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.is_htmloptionelement()
+                elem.is::<HTMLOptionElement>()
             }
         }
-        let node = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 }

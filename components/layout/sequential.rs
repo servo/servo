@@ -17,13 +17,16 @@ use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, ConstructFlows, RecalcStyleForNode};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
-use util::geometry::ZERO_POINT;
 use util::opts;
 use wrapper::LayoutNode;
 
-pub fn traverse_dom_preorder(root: LayoutNode,
-                             shared_layout_context: &SharedLayoutContext) {
-    fn doit(node: LayoutNode, recalc_style: RecalcStyleForNode, construct_flows: ConstructFlows) {
+pub fn traverse_dom_preorder<'le, N>(root: N,
+                                     shared_layout_context: &SharedLayoutContext)
+                                     where N: LayoutNode<'le> {
+    fn doit<'le, N>(node: N,
+                    recalc_style: RecalcStyleForNode,
+                    construct_flows: ConstructFlows)
+                    where N: LayoutNode<'le> {
         recalc_style.process(node);
 
         for kid in node.children() {
@@ -33,11 +36,17 @@ pub fn traverse_dom_preorder(root: LayoutNode,
         construct_flows.process(node);
     }
 
-    let layout_context  = LayoutContext::new(shared_layout_context);
-    let recalc_style    = RecalcStyleForNode { layout_context: &layout_context };
-    let construct_flows = ConstructFlows     { layout_context: &layout_context };
+    let layout_context = LayoutContext::new(shared_layout_context);
+    let recalc_style = RecalcStyleForNode {
+        layout_context: &layout_context,
+        root: root.opaque(),
+    };
+    let construct_flows = ConstructFlows {
+        layout_context: &layout_context,
+        root: root.opaque(),
+    };
 
-    doit(root, recalc_style, construct_flows);
+    doit::<'le, N>(root, recalc_style, construct_flows);
 }
 
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
@@ -92,8 +101,6 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     let assign_block_sizes  = AssignBSizesAndStoreOverflow { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
-
-    root.late_store_overflow(&layout_context);
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
@@ -143,5 +150,5 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
         }
     }
 
-    doit(flow_ref::deref_mut(root), 0, iterator, &ZERO_POINT);
+    doit(flow_ref::deref_mut(root), 0, iterator, &Point2D::zero());
 }

@@ -12,13 +12,20 @@ pull requests. Each pull request will be reviewed by a core contributor
 given feedback for changes that would be required. All contributions should
 follow this format, even those from core contributors.
 
-If you're looking for easy bugs, have a look at the [E-Easy issue tag](https://github.com/servo/servo/labels/E-easy) on GitHub.
+Head over to [Servo Starters](http://servo.github.io/servo-starters/) to find
+good tasks to start with.
+
+See [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md) for more information
+on how to start working on Servo.
 
 ## Pull Request Checklist
 
 - Branch from the master branch and, if needed, rebase to the current master
   branch before submitting your pull request. If it doesn't merge cleanly with
   master you may be asked to rebase your changes.
+
+- Commits should be as small as possible, while ensuring that each commit is
+  correct independently (i.e., each commit should compile and pass tests). 
 
 - Don't put submodule updates in your pull request unless they are to landed
   commits.

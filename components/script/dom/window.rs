@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType, WorkerId};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -11,15 +11,15 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull,
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast};
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRef;
-use dom::bindings::global::global_object_for_js_object;
+use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
-use dom::browsercontext::BrowsingContext;
+use dom::bindings::reflector::Reflectable;
+use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
@@ -28,7 +28,7 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{TrustedNodeAddress, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -43,7 +43,7 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -51,26 +51,29 @@ use net_traits::storage_task::{StorageTask, StorageType};
 use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
+use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{MainThreadScriptChan, SendableMainThreadScriptChan};
-use script_task::{MainThreadScriptMsg, ScriptChan, ScriptPort, TimerSource};
-use script_traits::ConstellationControlMsg;
+use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
-use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
+use style_traits::ParseErrorReporter;
 use time;
-use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
+use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -98,6 +101,7 @@ pub enum ReflowReason {
     WindowResize,
     DOMContentLoaded,
     DocumentLoaded,
+    StylesheetLoaded,
     ImageLoaded,
     RequestAnimationFrame,
     WebFontLoaded,
@@ -110,8 +114,6 @@ pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "channels are hard"]
-    control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -121,7 +123,7 @@ pub struct Window {
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: IpcSender<ScriptToCompositorMsg>,
-    browsing_context: DOMRefCell<Option<BrowsingContext>>,
+    browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -129,7 +131,9 @@ pub struct Window {
     screen: MutNullableHeap<JS<Screen>>,
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
-    timers: TimerManager,
+    #[ignore_heap_size_of = "channels are hard"]
+    scheduler_chan: IpcSender<TimerEventRequest>,
+    timers: ActiveTimers,
 
     next_worker_id: Cell<WorkerId>,
 
@@ -143,9 +147,9 @@ pub struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     #[ignore_heap_size_of = "TODO(#6909) need to measure HashSet"]
-    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
-    devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
+    devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -162,9 +166,6 @@ pub struct Window {
     /// Subpage id associated with this page, if any.
     parent_info: Option<(PipelineId, SubpageId)>,
 
-    /// Unique id for last reflow request; used for confirming completion reply.
-    last_reflow_id: Cell<u32>,
-
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
 
@@ -180,10 +181,6 @@ pub struct Window {
     #[ignore_heap_size_of = "trait objects are hard"]
     layout_rpc: Box<LayoutRPC + 'static>,
 
-    /// The port that we will use to join layout. If this is `None`, then layout is not running.
-    #[ignore_heap_size_of = "channels are hard"]
-    layout_join_port: DOMRefCell<Option<Receiver<()>>>,
-
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
@@ -197,7 +194,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the constellation task.
     #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
@@ -211,12 +208,18 @@ pub struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_heap_size_of = "channels are hard"]
-    webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
+    webdriver_script_chan: DOMRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
-    current_viewport: Cell<Rect<Au>>
+    current_viewport: Cell<Rect<Au>>,
+
+    /// A flag to prevent async events from attempting to interact with this window.
+    #[ignore_heap_size_of = "defined in std"]
+    ignore_further_async_events: Arc<AtomicBool>,
+
+    error_reporter: CSSErrorReporter,
 }
 
 impl Window {
@@ -224,8 +227,9 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            *self.browsing_context.borrow_for_script_deallocation() = None;
+            self.browsing_context.set(None);
             self.current_state.set(WindowState::Zombie);
+            self.ignore_further_async_events.store(true, Ordering::Relaxed);
         }
     }
 
@@ -233,7 +237,28 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
+        self.script_chan.clone()
+    }
+
+    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+        // FIXME: Use a different channel instead of the generic script_chan
         self.script_chan.clone()
     }
 
@@ -278,8 +303,8 @@ impl Window {
         &self.compositor
     }
 
-    pub fn browsing_context(&self) -> Ref<Option<BrowsingContext>> {
-        self.browsing_context.borrow()
+    pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
+        self.browsing_context.get()
     }
 
     pub fn page(&self) -> &Page {
@@ -288,6 +313,10 @@ impl Window {
 
     pub fn storage_task(&self) -> StorageTask {
         self.storage_task.clone()
+    }
+
+    pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
+        return self.error_reporter.clone();
     }
 }
 
@@ -307,7 +336,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 
         // "and then must apply the base64 algorithm to that sequence of
         //  octets, and return the result. [RFC4648]"
-        Ok(octets.to_base64(STANDARD))
+        Ok(DOMString::from(octets.to_base64(STANDARD)))
     }
 }
 
@@ -354,7 +383,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 
     match input.from_base64() {
-        Ok(data) => Ok(data.iter().map(|&b| b as char).collect::<String>()),
+        Ok(data) => Ok(DOMString::from(data.iter().map(|&b| b as char).collect::<String>())),
         Err(..) => Err(Error::InvalidCharacter)
     }
 }
@@ -381,12 +410,12 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
     fn Document(&self) -> Root<Document> {
-        self.browsing_context().as_ref().unwrap().active_document()
+        Root::from_ref(self.browsing_context().as_ref().unwrap().active_document())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
-        self.Document().r().Location()
+        self.Document().Location()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
@@ -411,7 +440,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
-        self.browsing_context().as_ref().unwrap().frame_element()
+        self.browsing_context().as_ref().unwrap().frame_element().map(Root::from_ref)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
@@ -425,8 +454,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -435,8 +463,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
@@ -450,8 +477,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -460,8 +486,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -516,9 +541,6 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#handler-window-onstorage
     event_handler!(storage, GetOnstorage, SetOnstorage);
 
-    // https://html.spec.whatwg.org/multipage/#handler-onerror
-    error_event_handler!(error, GetOnerror, SetOnerror);
-
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
@@ -544,13 +566,13 @@ impl WindowMethods for Window {
             let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
         };
 
-        doc.r().request_animation_frame(Box::new(callback))
+        doc.request_animation_frame(Box::new(callback))
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn CancelAnimationFrame(&self, ident: u32) {
         let doc = self.Document();
-        doc.r().cancel_animation_frame(ident);
+        doc.cancel_animation_frame(ident);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
@@ -579,8 +601,9 @@ impl WindowMethods for Window {
         breakpoint();
     }
 
+    #[allow(unsafe_code)]
     fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
-        let rv = jsval_to_webdriver(cx, val);
+        let rv = unsafe { jsval_to_webdriver(cx, val) };
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(rv).unwrap();
@@ -770,8 +793,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
     #[allow(unsafe_code)]
     fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
                                              rval: MutableHandleValue) {
-        let this = self.reflector().get_jsobject();
-        let global = global_object_for_js_object(this.get());
+        let global = global_root_from_reflector(self);
         let cx = global.r().get_cx();
         let _ar = JSAutoRequest::new(cx);
         let globalhandle = global.r().reflector().get_jsobject();
@@ -792,9 +814,14 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
 }
 
 impl Window {
+    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+        RunnableWrapper {
+            cancelled: self.ignore_further_async_events.clone()
+        }
+    }
+
     pub fn clear_js_runtime(&self) {
-        let document = self.Document();
-        NodeCast::from_ref(document.r()).teardown();
+        self.Document().upcast::<Node>().teardown();
 
         // The above code may not catch all DOM objects
         // (e.g. DOM objects removed from the tree that haven't
@@ -809,7 +836,8 @@ impl Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        *self.browsing_context.borrow_mut() = None;
+        self.browsing_context.set(None);
+        self.ignore_further_async_events.store(true, Ordering::Relaxed);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -835,9 +863,7 @@ impl Window {
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
-                let node = NodeCast::from_ref(e.r());
-                let content_size = node.get_bounding_content_box();
-
+                let content_size = e.upcast::<Node>().get_bounding_content_box();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
                 (xfinite.max(0.0f64).min(content_width - width),
@@ -895,14 +921,6 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn force_reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document();
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return,
-        };
-        let root = NodeCast::from_ref(root);
-
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
             None => return,
@@ -919,30 +937,25 @@ impl Window {
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
-        {
-            let mut layout_join_port = self.layout_join_port.borrow_mut();
-            *layout_join_port = Some(join_port);
-        }
-
-        let last_reflow_id = &self.last_reflow_id;
-        last_reflow_id.set(last_reflow_id.get() + 1);
-
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
             debug_reflow_events(&goal, &query_type, &reason);
         }
 
+        let document = self.Document();
+        let stylesheets_changed = document.get_and_reset_stylesheets_changed_since_reflow();
+
         // Send new document and relevant styles to layout.
-        let reflow = box ScriptReflow {
+        let reflow = ScriptReflow {
             reflow_info: Reflow {
                 goal: goal,
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            document_root: root.to_trusted_node_address(),
+            document: self.Document().upcast::<Node>().to_trusted_node_address(),
+            document_stylesheets: document.stylesheets().clone(),
+            stylesheets_changed: stylesheets_changed,
             window_size: window_size,
-            script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
-            id: last_reflow_id.get(),
             query_type: query_type,
         };
 
@@ -951,7 +964,18 @@ impl Window {
 
         debug!("script: layout forked");
 
-        self.join_layout();
+        match join_port.try_recv() {
+            Err(Empty) => {
+                info!("script: waiting on layout");
+                join_port.recv().unwrap();
+            }
+            Ok(_) => {}
+            Err(Disconnected) => {
+                panic!("Layout task failed while script was waiting for a result.");
+            }
+        }
+
+        debug!("script: layout joined");
 
         self.pending_reflow_count.set(0);
 
@@ -966,44 +990,16 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document();
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return,
-        };
-
-        let root = NodeCast::from_ref(root);
-        if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
-            debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
+        if query_type == ReflowQueryType::NoQuery && !self.Document().needs_reflow() {
+            debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
             return
         }
 
-        self.force_reflow(goal, query_type, reason)
-    }
+        self.force_reflow(goal, query_type, reason);
 
-    // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
-    // reflow between the "join complete" message and returning from this
-    // function?
-
-    /// Sends a ping to layout and waits for the response. The response will arrive when the
-    /// layout task has finished any pending request messages.
-    pub fn join_layout(&self) {
-        let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
-            match join_port.try_recv() {
-                Err(Empty) => {
-                    info!("script: waiting on layout");
-                    join_port.recv().unwrap();
-                }
-                Ok(_) => {}
-                Err(Disconnected) => {
-                    panic!("Layout task failed while script was waiting for a result.");
-                }
-            }
-
-            debug!("script: layout joined")
-        }
+        // If window_size is `None`, we don't reflow, so the document stays dirty.
+        // Otherwise, we shouldn't need a reflow immediately after a reflow.
+        assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -1014,7 +1010,6 @@ impl Window {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::ContentBoxQuery(content_box_request),
                     ReflowReason::Query);
-        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
@@ -1023,7 +1018,6 @@ impl Window {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::ContentBoxesQuery(content_boxes_request),
                     ReflowReason::Query);
-        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
@@ -1038,12 +1032,12 @@ impl Window {
     pub fn resolved_style_query(&self,
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
-                            property: &Atom) -> Option<String> {
+                            property: &Atom) -> Option<DOMString> {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
                     ReflowReason::Query);
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
-        resolved
+        resolved.map(DOMString::from)
     }
 
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
@@ -1055,22 +1049,13 @@ impl Window {
         let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
             let node = from_untrusted_node_address(js_runtime.rt(), parent_node_address);
-            ElementCast::to_root(node)
+            Root::downcast(node)
         });
         (element, response.rect)
     }
 
-    pub fn handle_reflow_complete_msg(&self, reflow_id: u32) {
-        let last_reflow_id = self.last_reflow_id.get();
-        if last_reflow_id == reflow_id {
-            *self.layout_join_port.borrow_mut() = None;
-        }
-    }
-
     pub fn init_browsing_context(&self, doc: &Document, frame_element: Option<&Element>) {
-        let mut browsing_context = self.browsing_context.borrow_mut();
-        *browsing_context = Some(BrowsingContext::new(doc, frame_element));
-        (*browsing_context).as_mut().unwrap().create_window_proxy();
+        self.browsing_context.set(Some(&BrowsingContext::new(doc, frame_element)));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -1079,7 +1064,7 @@ impl Window {
             MainThreadScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
     }
 
-    pub fn handle_fire_timer(&self, timer_id: TimerId) {
+    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
         self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::Timer);
     }
@@ -1101,8 +1086,7 @@ impl Window {
     }
 
     pub fn get_url(&self) -> Url {
-        let doc = self.Document();
-        (*doc.r().url()).clone()
+        (*self.Document().url()).clone()
     }
 
     pub fn resource_task(&self) -> ResourceTask {
@@ -1121,8 +1105,22 @@ impl Window {
         self.layout_chan.clone()
     }
 
-    pub fn constellation_chan(&self) -> ConstellationChan {
+    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
         self.constellation_chan.clone()
+    }
+
+    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
+        self.scheduler_chan.clone()
+    }
+
+    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+        self.timers.schedule_callback(callback,
+                                      duration,
+                                      TimerSource::FromWindow(self.id.clone()))
+    }
+
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
+        self.timers.unschedule_callback(handle);
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
@@ -1134,10 +1132,6 @@ impl Window {
         let SubpageId(id_num) = subpage_id;
         self.next_subpage_id.set(SubpageId(id_num + 1));
         subpage_id
-    }
-
-    pub fn layout_is_idle(&self) -> bool {
-        self.layout_join_port.borrow().is_none()
     }
 
     pub fn get_pending_reflow_count(&self) -> u32 {
@@ -1199,8 +1193,7 @@ impl Window {
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
-        let document = self.Document();
-        document.r().title_changed();
+        self.Document().title_changed();
     }
 
     pub fn freeze(&self) {
@@ -1244,15 +1237,12 @@ impl Window {
     }
 
     pub fn parent(&self) -> Option<Root<Window>> {
-        let browsing_context = self.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
+        let browsing_context = self.browsing_context().unwrap();
 
         browsing_context.frame_element().map(|frame_element| {
-            let window = window_from_node(frame_element.r());
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let r = window.r();
-            let context = r.browsing_context();
-            context.as_ref().unwrap().active_window()
+            let window = window_from_node(frame_element);
+            let context = window.browsing_context();
+            Root::from_ref(context.unwrap().active_window())
         })
     }
 }
@@ -1262,14 +1252,15 @@ impl Window {
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
-               control_chan: Sender<ConstellationControlMsg>,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-               constellation_chan: ConstellationChan,
+               constellation_chan: ConstellationChan<ConstellationMsg>,
+               scheduler_chan: IpcSender<TimerEventRequest>,
+               timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
@@ -1281,12 +1272,11 @@ impl Window {
             lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
-
+        let error_reporter = CSSErrorReporter;
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
             image_cache_chan: image_cache_chan,
-            control_chan: control_chan,
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,
@@ -1295,14 +1285,15 @@ impl Window {
             image_cache_task: image_cache_task,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
-            browsing_context: DOMRefCell::new(None),
+            browsing_context: Default::default(),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
-            timers: TimerManager::new(),
+            scheduler_chan: scheduler_chan.clone(),
+            timers: ActiveTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,
@@ -1313,21 +1304,21 @@ impl Window {
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
-            last_reflow_id: Cell::new(0),
             resize_event: Cell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
-            layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
 
-            devtools_marker_sender: RefCell::new(None),
-            devtools_markers: RefCell::new(HashSet::new()),
+            devtools_marker_sender: DOMRefCell::new(None),
+            devtools_markers: DOMRefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
-            webdriver_script_chan: RefCell::new(None),
+            webdriver_script_chan: DOMRefCell::new(None),
+            ignore_further_async_events: Arc::new(AtomicBool::new(false)),
+            error_reporter: error_reporter
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
@@ -1380,6 +1371,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::WindowResize => "\tWindowResize",
         ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
         ReflowReason::DocumentLoaded => "\tDocumentLoaded",
+        ReflowReason::StylesheetLoaded => "\tStylesheetLoaded",
         ReflowReason::ImageLoaded => "\tImageLoaded",
         ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
         ReflowReason::WebFontLoaded => "\tWebFontLoaded",

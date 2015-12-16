@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<title></title>
+<link rel=match href=/_mozilla/css/restyle_hints_state_ref.html>
+<link rel="stylesheet" href="restyle_hints_state.css">
+<body>
+  <fieldset id="fs1" disabled="1">
+    <div>
+      <div>sometext</div>
+    </div>
+  </fieldset>
+  <div>othertext</div>
+  <div></div>
+  <fieldset id="fs2">
+    <input id="cb" type="checkbox"></input>
+    <span>I should be lawngreen</span>
+  </fieldset>
+
+  <script>
+    /*
+     * Servo currently dirties the entire subtree whenever an attribute is
+     * changed, so we want to avoid changing attributes if we want to properly
+     * test restyle hints. This means that we can't use reftest-wait, since
+     * that will cause us to dirty the entire subtree of the <html> element just
+     * before we generate the rendering we want to check.
+     *
+     * Note that the 'disabled' and 'checked' setters forward to attributes, so
+     * we're not getting as much test coverage there as we'd like. When we
+     * implement attribute-based restyle hints, we can stop dirtying the subtree
+     * on attribute modifications, and these tests will start to be more useful.
+     */
+    window.dummy = 0;
+    var $ = document.getElementById.bind(document);
+    function syncRestyle() { window.dummy += $("fs2").offsetTop; }
+    syncRestyle();
+    $('fs1').disabled = true;
+    syncRestyle();
+    $('fs1').disabled = false;
+    syncRestyle();
+    $('cb').checked = true;
+    syncRestyle();
+    $('fs2').disabled = true;
+  </script>
+</body>

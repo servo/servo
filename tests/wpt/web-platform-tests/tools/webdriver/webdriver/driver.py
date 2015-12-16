@@ -85,7 +85,7 @@ class WebDriver(searchcontext.SearchContext):
     def get_window_size(self):
         """Get the dimensions of the current window."""
         result = self._window_command('GET', '/size', 'getWindowSize')
-        return { 'height': result[height], 'width': result[width] }
+        return {'height': result['height'], 'width': result['width']}
 
     def set_window_size(self, height, width):
         """Set the size of the current window."""

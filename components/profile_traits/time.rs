@@ -3,18 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate time as std_time;
-extern crate url;
 
 use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
-use self::url::Url;
 
 #[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize)]
 pub struct TimerMetadata {
     pub url:         String,
-    pub iframe:      bool,
-    pub incremental: bool,
+    pub iframe:      TimerMetadataFrameType,
+    pub incremental: TimerMetadataReflowType,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -62,37 +60,35 @@ pub enum ProfilerCategory {
     ScriptDevtoolsMsg,
     ScriptDocumentEvent,
     ScriptDomEvent,
+    ScriptEvent,
     ScriptFileRead,
     ScriptImageCacheMsg,
     ScriptInputEvent,
     ScriptNetworkEvent,
     ScriptResize,
-    ScriptEvent,
-    ScriptUpdateReplacedElement,
     ScriptSetViewport,
+    ScriptTimerEvent,
+    ScriptStylesheetLoad,
+    ScriptUpdateReplacedElement,
     ScriptWebSocketEvent,
     ScriptWorkerEvent,
-    ScriptXhrEvent,
     ApplicationHeartbeat,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub enum TimerMetadataReflowType {
     Incremental,
     FirstReflow,
 }
 
-pub type ProfilerMetadata<'a> =
-    Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
-
 pub fn profile<T, F>(category: ProfilerCategory,
-                     meta: ProfilerMetadata,
+                     meta: Option<TimerMetadata>,
                      profiler_chan: ProfilerChan,
                      callback: F)
                   -> T
@@ -103,12 +99,6 @@ pub fn profile<T, F>(category: ProfilerCategory,
     let val = callback();
     let end_time = precise_time_ns();
     let end_energy = read_energy_uj();
-    let meta = meta.map(|(url, iframe, reflow_type)|
-        TimerMetadata {
-            url: url.serialize(),
-            iframe: iframe == TimerMetadataFrameType::IFrame,
-            incremental: reflow_type == TimerMetadataReflowType::Incremental,
-        });
     profiler_chan.send(ProfilerMsg::Time((category, meta),
                                          (start_time, end_time),
                                          (start_energy, end_energy)));

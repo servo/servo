@@ -29,6 +29,7 @@ use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
 use util::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
+use util::print_tree::PrintTree;
 
 /// A single row of a table.
 pub struct TableRowFlow {
@@ -93,10 +94,6 @@ impl TableRowFlow {
             final_collapsed_borders: CollapsedBordersForRow::new(),
             collapsed_border_spacing: CollapsedBorderSpacingForRow::new(),
         }
-    }
-
-    pub fn fragment(&mut self) -> &Fragment {
-        &self.block_flow.fragment
     }
 
     /// Assign block-size for table-row flow.
@@ -460,11 +457,15 @@ impl Flow for TableRowFlow {
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
+    }
 }
 
 impl fmt::Debug for TableRowFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableRowFlow: {:?}", self.block_flow.fragment)
+        write!(f, "TableRowFlow: {:?}", self.block_flow)
     }
 }
 
@@ -538,6 +539,9 @@ impl Encodable for CollapsedBorder {
 ///
 /// The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
 /// 17.6.2.1. Higher values override lower values.
+// FIXME(#8586): FromTableRow, FromTableRowGroup, FromTableColumn,
+// FromTableColumnGroup are unused
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, PartialEq, RustcEncodable)]
 pub enum CollapsedBorderProvenance {
     FromPreviousTableCell = 6,

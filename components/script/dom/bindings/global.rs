@@ -7,21 +7,23 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::native_from_reflector_jsmanaged;
+use dom::bindings::conversions::root_from_object;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{GetGlobalForObjectCrossCompartment};
+use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
+use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
+use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -65,7 +67,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> &'b window::Window {
+    pub fn as_window(&self) -> &window::Window {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
@@ -89,10 +91,18 @@ impl<'a> GlobalRef<'a> {
     }
 
     /// Get a `ConstellationChan` to send messages to the constellation channel when available.
-    pub fn constellation_chan(&self) -> ConstellationChan {
+    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
         match *self {
             GlobalRef::Window(window) => window.constellation_chan(),
             GlobalRef::Worker(worker) => worker.constellation_chan(),
+        }
+    }
+
+    /// Get the scheduler channel to request timer events.
+    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
+        match *self {
+            GlobalRef::Window(window) => window.scheduler_chan(),
+            GlobalRef::Worker(worker) => worker.scheduler_chan(),
         }
     }
 
@@ -130,7 +140,7 @@ impl<'a> GlobalRef<'a> {
     pub fn get_next_worker_id(&self) -> WorkerId {
         match *self {
             GlobalRef::Window(ref window) => window.get_next_worker_id(),
-            GlobalRef::Worker(ref worker) => worker.get_next_worker_id()
+            GlobalRef::Worker(ref worker) => worker.get_next_worker_id(),
         }
     }
 
@@ -144,9 +154,45 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
         match *self {
-            GlobalRef::Window(ref window) => window.script_chan(),
+            GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
+            GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// thread.
+    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
+        match *self {
+            GlobalRef::Window(ref window) => window.user_interaction_task_source(),
+            GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// thread.
+    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
+        match *self {
+            GlobalRef::Window(ref window) => window.networking_task_source(),
+            GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// thread.
+    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+        match *self {
+            GlobalRef::Window(ref window) => window.history_traversal_task_source(),
+            GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// thread.
+    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+        match *self {
+            GlobalRef::Window(ref window) => window.file_reading_task_source(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
         }
     }
@@ -186,10 +232,29 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Worker(worker) => worker.set_devtools_wants_updates(send_updates),
         }
     }
-}
 
-impl<'a> Reflectable for GlobalRef<'a> {
-    fn reflector<'b>(&'b self) -> &'b Reflector {
+    /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
+    /// passed.
+    pub fn schedule_callback(&self,
+                             callback: Box<ScheduledCallback>,
+                             duration: MsDuration)
+                             -> TimerHandle {
+        match *self {
+            GlobalRef::Window(window) => window.schedule_callback(callback, duration),
+            GlobalRef::Worker(worker) => worker.schedule_callback(callback, duration),
+        }
+    }
+
+    /// Unschedule a previously-scheduled callback.
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
+        match *self {
+            GlobalRef::Window(window) => window.unschedule_callback(handle),
+            GlobalRef::Worker(worker) => worker.unschedule_callback(handle),
+        }
+    }
+
+    /// Returns the receiver's reflector.
+    pub fn reflector(&self) -> &Reflector {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),
@@ -221,30 +286,30 @@ impl GlobalField {
     /// Create a stack-bounded root for this reference.
     pub fn root(&self) -> GlobalRoot {
         match *self {
-            GlobalField::Window(ref window) => GlobalRoot::Window(window.root()),
-            GlobalField::Worker(ref worker) => GlobalRoot::Worker(worker.root()),
+            GlobalField::Window(ref window) => GlobalRoot::Window(Root::from_ref(window)),
+            GlobalField::Worker(ref worker) => GlobalRoot::Worker(Root::from_ref(worker)),
         }
     }
 }
 
 /// Returns the global object of the realm that the given DOM object's reflector was created in.
-pub fn global_object_for_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
-    global_object_for_js_object(*reflector.reflector().get_jsobject())
+pub fn global_root_from_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
+    global_root_from_object(*reflector.reflector().get_jsobject())
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
+pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match native_from_reflector_jsmanaged(global) {
+        match root_from_object(global) {
             Ok(window) => return GlobalRoot::Window(window),
             Err(_) => (),
         }
 
-        match native_from_reflector_jsmanaged(global) {
+        match root_from_object(global) {
             Ok(worker) => return GlobalRoot::Worker(worker),
             Err(_) => (),
         }

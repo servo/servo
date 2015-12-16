@@ -11,16 +11,6 @@
 <h1>HTML IDL tests</h1>
 <div id=log></div>
 
-<!-- URLUtils* stubs -->
-<script type=text/plain class=untested>
-interface URLUtils {
-  stringifier;
-};
-interface URLUtilsReadOnly {
-  stringifier;
-};
-</script>
-<!-- DOM IDLs -->
 <script type=text/plain class=untested>
 [Constructor(DOMString type, optional EventInit eventInitDict)/*,
  Exposed=(Window,Worker)*/]
@@ -868,6 +858,21 @@ typedef (Int8Array or Uint8Array or Uint8ClampedArray or
          Float32Array or Float64Array or
          DataView) ArrayBufferView;
 
+[NoInterfaceObject, Exposed=Window]
+interface HTMLHyperlinkElementUtils {
+  stringifier attribute USVString href;
+           attribute USVString origin;
+           attribute USVString protocol;
+           attribute USVString username;
+           attribute USVString password;
+           attribute USVString host;
+           attribute USVString hostname;
+           attribute USVString port;
+           attribute USVString pathname;
+           attribute USVString search;
+           attribute USVString hash;
+};
+
 interface HTMLAllCollection : HTMLCollection {
   // inherits length and 'getter'
   Element? item(unsigned long index);
@@ -1125,19 +1130,17 @@ interface HTMLDivElement : HTMLElement {
 };
 
 interface HTMLAnchorElement : HTMLElement {
-           attribute DOMString target;
-           attribute DOMString download;
-  [PutForwards=value] attribute DOMSettableTokenList ping;
-           attribute DOMString rel;
+  attribute DOMString target;
+  attribute DOMString download;
+  [PutForwards=value] readonly attribute DOMSettableTokenList ping;
+  attribute DOMString rel;
   readonly attribute DOMTokenList relList;
-           attribute DOMString hreflang;
-           attribute DOMString type;
+  attribute DOMString hreflang;
+  attribute DOMString type;
 
-           attribute DOMString text;
-
-  // also has obsolete members
+  attribute DOMString text;
 };
-HTMLAnchorElement implements URLUtils;
+HTMLAnchorElement implements HTMLHyperlinkElementUtils;
 
 interface HTMLDataElement : HTMLElement {
            attribute DOMString value;
@@ -1494,20 +1497,17 @@ interface HTMLMapElement : HTMLElement {
 };
 
 interface HTMLAreaElement : HTMLElement {
-           attribute DOMString alt;
-           attribute DOMString coords;
-           attribute DOMString shape;
-           attribute DOMString target;
-           attribute DOMString download;
-  [PutForwards=value] attribute DOMSettableTokenList ping;
-           attribute DOMString rel;
+  attribute DOMString alt;
+  attribute DOMString coords;
+  attribute DOMString shape;
+  attribute DOMString target;
+  attribute DOMString download;
+  [PutForwards=value] readonly attribute DOMSettableTokenList ping;
+  attribute DOMString rel;
   readonly attribute DOMTokenList relList;
-           attribute DOMString hreflang;
-           attribute DOMString type;
-
-  // also has obsolete members
+  // hreflang and type are not reflected
 };
-HTMLAreaElement implements URLUtils;
+HTMLAreaElement implements HTMLHyperlinkElementUtils;
 
 interface HTMLTableElement : HTMLElement {
            attribute HTMLTableCaptionElement? caption;
@@ -2320,11 +2320,22 @@ interface History {
 };
 
 [Unforgeable] interface Location {
-  void assign(DOMString url);
-  void replace(DOMString url);
+  stringifier attribute USVString href;
+           attribute USVString origin;
+           attribute USVString protocol;
+           attribute USVString host;
+           attribute USVString hostname;
+           attribute USVString port;
+           attribute USVString pathname;
+           attribute USVString search;
+           attribute USVString hash;
+
+  void assign(USVString url);
+  void replace(USVString url);
   void reload();
+
+  [SameObject] readonly attribute USVString[] ancestorOrigins;
 };
-Location implements URLUtils;
 
 [Constructor(DOMString type, optional PopStateEventInit eventInitDict), Exposed=Window,Worker]
 interface PopStateEvent : Event {
@@ -2816,8 +2827,17 @@ WorkerNavigator implements NavigatorLanguage;
 WorkerNavigator implements NavigatorOnLine;
 
 [Exposed=Worker]
-interface WorkerLocation { };
-WorkerLocation implements URLUtilsReadOnly;
+interface WorkerLocation {
+  stringifier readonly attribute USVString href;
+  readonly attribute USVString origin;
+  readonly attribute USVString protocol;
+  readonly attribute USVString host;
+  readonly attribute USVString hostname;
+  readonly attribute USVString port;
+  readonly attribute USVString pathname;
+  readonly attribute USVString search;
+  readonly attribute USVString hash;
+};
 
 interface Storage {
   readonly attribute unsigned long length;

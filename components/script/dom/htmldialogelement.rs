@@ -9,7 +9,7 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use std::borrow::ToOwned;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -19,18 +19,18 @@ pub struct HTMLDialogElement {
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
                 HTMLElement::new_inherited(localName, prefix, document),
-            return_value: DOMRefCell::new("".to_owned()),
+            return_value: DOMRefCell::new(DOMString::new()),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDialogElement> {
         let element = HTMLDialogElement::new_inherited(localName, prefix, document);
@@ -40,7 +40,7 @@ impl HTMLDialogElement {
 
 impl HTMLDialogElementMethods for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
-    make_bool_getter!(Open);
+    make_bool_getter!(Open, "open");
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_setter!(SetOpen, "open");

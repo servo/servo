@@ -24,7 +24,6 @@ INDENT TABS: tools/*
 INDENT TABS: touch-events/*
 INDENT TABS: web-animations/*
 INDENT TABS: webaudio/*
-INDENT TABS: webdriver/*
 INDENT TABS: webvtt/*
 INDENT TABS: XMLHttpRequest/*
 
@@ -43,7 +42,6 @@ TRAILING WHITESPACE: shadow-dom/*
 TRAILING WHITESPACE: svg/import/*
 TRAILING WHITESPACE: tools/*
 TRAILING WHITESPACE: webaudio/*
-TRAILING WHITESPACE: webdriver/*
 TRAILING WHITESPACE: WebIDL/*
 TRAILING WHITESPACE: webvtt/*
 TRAILING WHITESPACE: XMLHttpRequest/*
@@ -108,3 +106,10 @@ W3C-TEST.ORG:subresource-integrity/refresh-header.js.headers
 # Lint doesn't know about sub.svg I guess
 PARSE-FAILED:content-security-policy/svg/including.sub.svg
 
+#Helper files that aren't valid XML
+PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xml
+PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
+
+# Git submodules are not currently scanned
+*:tools/*
+*:resources/*

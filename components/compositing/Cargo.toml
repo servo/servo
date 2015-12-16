@@ -48,35 +48,38 @@ path = "../plugins"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 features = ["texture_surface"]
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
+[dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
 
 [dependencies]
-app_units = "0.1"
-image = "0.3.14"
+app_units = {version = "0.1", features = ["plugins"]}
+image = "0.5.0"
+libc = "0.2"
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
-gleam = "0.1"
-euclid = "0.2"
+gleam = "0.2"
+euclid = {version = "0.4", features = ["plugins"]}
+serde = "0.6"
+serde_macros = "0.6"
+url = "0.5"
 
 [target.x86_64-apple-darwin.dependencies]
-core-graphics = "0.1"
-
-[target.x86_64-apple-darwin.dependencies.core-text]
-git = "https://github.com/servo/core-text-rs"
+core-graphics = "0.2"
+core-text = "1.0"

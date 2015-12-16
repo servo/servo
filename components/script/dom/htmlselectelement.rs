@@ -3,20 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{IN_ENABLED_STATE, Node, NodeFlags, window_from_node};
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::node::{Node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use std::borrow::ToOwned;
+use selectors::states::*;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -28,23 +32,81 @@ pub struct HTMLSelectElement {
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
-                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
     }
+
+    // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
+    pub fn ask_for_reset(&self) {
+        if self.Multiple() {
+            return;
+        }
+
+        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
+        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+
+        let node = self.upcast::<Node>();
+        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            if opt.Selected() {
+                opt.set_selectedness(false);
+                last_selected = Some(Root::from_ref(opt.r()));
+            }
+            let element = opt.upcast::<Element>();
+            if first_enabled.is_none() && !element.get_disabled_state() {
+                first_enabled = Some(Root::from_ref(opt.r()));
+            }
+        }
+
+        if let Some(last_selected) = last_selected {
+            last_selected.set_selectedness(true);
+        } else {
+            if self.display_size() == 1 {
+                if let Some(first_enabled) = first_enabled {
+                    first_enabled.set_selectedness(true);
+                }
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-select-pick
+    pub fn pick_option(&self, picked: &HTMLOptionElement) {
+        if !self.Multiple() {
+            let node = self.upcast::<Node>();
+            let picked = picked.upcast();
+            for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+                if opt.upcast::<HTMLElement>() != picked {
+                    opt.set_selectedness(false);
+                }
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-select-size
+    fn display_size(&self) -> u32 {
+         if self.Size() == 0 {
+             if self.Multiple() {
+                 4
+             } else {
+                 1
+             }
+         } else {
+             self.Size()
+         }
+     }
 }
 
 impl HTMLSelectElementMethods for HTMLSelectElement {
@@ -60,7 +122,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
@@ -71,13 +133,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-multiple
-    make_bool_getter!(Multiple);
+    make_bool_getter!(Multiple, "multiple");
 
     // https://html.spec.whatwg.org/multipage/#dom-select-multiple
     make_bool_setter!(SetMultiple, "multiple");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_getter!(Name);
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_setter!(SetName, "name");
@@ -90,33 +152,37 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
     fn Type(&self) -> DOMString {
-        if self.Multiple() {
-            "select-multiple".to_owned()
+        DOMString::from(if self.Multiple() {
+            "select-multiple"
         } else {
-            "select-one".to_owned()
-        }
+            "select-one"
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
     }
 }
 
 impl VirtualMethods for HTMLSelectElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if attr.local_name() == &atom!(disabled) {
-            let node = NodeCast::from_ref(self);
+        if attr.local_name() == &atom!("disabled") {
+            let el = self.upcast::<Element>();
             match mutation {
                 AttributeMutation::Set(_) => {
-                    node.set_disabled_state(true);
-                    node.set_enabled_state(false);
+                    el.set_disabled_state(true);
+                    el.set_enabled_state(false);
                 },
                 AttributeMutation::Removed => {
-                    node.set_disabled_state(false);
-                    node.set_enabled_state(true);
-                    node.check_ancestors_disabled_state_for_form_control();
+                    el.set_disabled_state(false);
+                    el.set_enabled_state(true);
+                    el.check_ancestors_disabled_state_for_form_control();
                 }
             }
         }
@@ -127,8 +193,7 @@ impl VirtualMethods for HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -136,17 +201,18 @@ impl VirtualMethods for HTMLSelectElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
-            node.check_ancestors_disabled_state_for_form_control();
+        let node = self.upcast::<Node>();
+        let el = self.upcast::<Element>();
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+            el.check_ancestors_disabled_state_for_form_control();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
+        match *local_name {
+            atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

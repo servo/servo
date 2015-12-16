@@ -1,0 +1,40 @@
+<!doctype html>
+<title>rel=noreferrer and reuse of names</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  async_test(function(t) {
+    localStorage.clear()
+
+    function makeHyperlink(n) {
+      var hyperlink = document.body.appendChild(document.createElement("a"))
+      hyperlink.rel = "noreferrer"
+      hyperlink.target = "sufficientlyrandomwindownameamiright"
+      hyperlink.href = "support-named-null-opener.html#" + n
+      return hyperlink
+    }
+
+    var hyperlink1 = makeHyperlink(1),
+        hyperlink2 = makeHyperlink(2)
+
+    t.add_cleanup(function() {
+      localStorage.setItem("x", "close")
+      localStorage.clear()
+      document.body.removeChild(hyperlink1)
+      document.body.removeChild(hyperlink2)
+    })
+
+    addEventListener("storage", function(e) {
+      t.step(function() {
+        if(localStorage.getItem("window1") && localStorage.getItem("window2")) {
+          localStorage.setItem("x", "close")
+          t.done()
+        }
+      })
+    })
+
+    hyperlink1.click()
+    hyperlink2.click()
+  })
+</script>

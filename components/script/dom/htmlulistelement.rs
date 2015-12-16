@@ -7,6 +7,7 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -15,14 +16,14 @@ pub struct HTMLUListElement {
 }
 
 impl HTMLUListElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLUListElement {
+    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLUListElement {
         HTMLUListElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLUListElement> {
         let element = HTMLUListElement::new_inherited(localName, prefix, document);

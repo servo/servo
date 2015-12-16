@@ -124,7 +124,6 @@ background-size-vector-007.htm == reference/ref-t-lime16x128-aqua16x128.htm
 background-size-vector-008.htm == reference/background-size-vector-008-ref.htm
 background-size-vector-009.htm == reference/ref-t-lime16x128-aqua16x128.htm
 background-size-vector-010.htm == reference/ref-t-lime16x192-aqua16x192.htm
-background-size-vector-011.htm == reference/ref-t-lime16x128-aqua16x128.htm
 background-size-vector-012.htm == reference/ref-t-lime16x192-aqua16x192.htm
 background-size-vector-013.htm == reference/ref-t-lime16x128-aqua16x128.htm
 background-size-vector-014.htm == reference/background-size-vector-008-ref.htm
@@ -181,6 +180,9 @@ border-image-slice-002.htm == reference/ref-filled-green-100px-square.htm
 border-image-slice-003.htm == reference/ref-if-there-is-no-red.htm
 border-image-slice-percentage.htm == reference/border-image-slice-percentage-ref.htm
 border-image-space-001.htm == reference/border-image-space-001-ref.htm
+border-image-width-005.htm == reference/ref-filled-green-100px-square.htm
+border-image-width-006.htm == reference/ref-filled-green-100px-square.htm
+border-image-width-007.htm == reference/ref-filled-green-100px-square.htm
 border-radius-001.htm == reference/border-radius-001-ref.htm
 border-radius-002.htm == reference/border-radius-002-ref.htm
 border-radius-003.htm == reference/border-radius-003-ref.htm

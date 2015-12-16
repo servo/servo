@@ -8,13 +8,15 @@ use heartbeats;
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
+use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use std::f64;
-use std::thread::sleep_ms;
+use std::time::Duration;
+use std::{thread, f64};
 use std_time::precise_time_ns;
 use util::task::spawn_named;
+use util::time::duration_from_seconds;
 
 pub trait Formattable {
     fn format(&self) -> String;
@@ -31,8 +33,14 @@ impl Formattable for Option<TimerMetadata> {
                 } else {
                     url
                 };
-                let incremental = if meta.incremental { "    yes" } else { "    no " };
-                let iframe = if meta.iframe { "  yes" } else { "  no " };
+                let incremental = match meta.incremental {
+                    TimerMetadataReflowType::Incremental => "    yes",
+                    TimerMetadataReflowType::FirstReflow => "    no ",
+                };
+                let iframe = match meta.iframe {
+                    TimerMetadataFrameType::RootWindow => "  yes",
+                    TimerMetadataFrameType::IFrame => "  no ",
+                };
                 format!(" {:14} {:9} {:30}", incremental, iframe, url)
             },
             None =>
@@ -92,9 +100,10 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
             ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
+            ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
+            ProfilerCategory::ScriptStylesheetLoad => "Script Stylesheet Load",
             ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
             ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
-            ProfilerCategory::ScriptXhrEvent => "Script Xhr Event",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)
@@ -115,11 +124,10 @@ impl Profiler {
         let (chan, port) = ipc::channel().unwrap();
         match period {
             Some(period) => {
-                let period = (period * 1000.) as u32;
                 let chan = chan.clone();
                 spawn_named("Time profiler timer".to_owned(), move || {
                     loop {
-                        sleep_ms(period);
+                        thread::sleep(duration_from_seconds(period));
                         if chan.send(ProfilerMsg::Print).is_err() {
                             break;
                         }
@@ -165,7 +173,7 @@ impl Profiler {
                 loop {
                     for _ in 0..loop_count {
                         match run_ap_thread() {
-                            true => sleep_ms(SLEEP_MS),
+                            true => thread::sleep(Duration::from_millis(SLEEP_MS as u64)),
                             false => return,
                         }
                     }

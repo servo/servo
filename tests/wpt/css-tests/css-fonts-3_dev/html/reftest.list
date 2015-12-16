@@ -127,10 +127,32 @@ font-size-adjust-008.htm == reference/ref-filled-green-100px-square.htm
 font-size-applies-to-016.htm == reference/no-red-on-blank-page-ref.htm
 font-style-applies-to-001.htm == reference/font-style-applies-to-001-ref.htm
 font-style-applies-to-002.htm == reference/font-style-applies-to-001-ref.htm
+font-style-applies-to-004.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-005.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-006.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-007.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-008.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-009.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-010.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-011.htm == reference/pass_if_filler_text_slanted.htm
+font-style-applies-to-014.htm == reference/pass_if_filler_text_slanted.htm
 font-style-applies-to-016.htm == reference/no-red-on-blank-page-ref.htm
 font-style-applies-to-017.htm == reference/font-style-applies-to-001-ref.htm
 font-variant-001.htm == reference/font-variant-001-ref.htm
+font-variant-applies-to-001.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-002.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-004.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-005.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-006.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-007.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-008.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-009.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-010.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-011.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-014.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
+font-variant-applies-to-015.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
 font-variant-applies-to-016.htm == reference/no-red-on-blank-page-ref.htm
+font-variant-applies-to-017.htm == reference/pass_if_filler_text_match_smallcaps.htm != reference/pass_if_filler_text_match.htm
 font-variant-caps.htm == reference/font-variant-caps-ref.htm
 font-variant-east-asian.htm == reference/font-variant-east-asian-ref.htm
 font-variant-ligatures.htm == reference/font-variant-ligatures-ref.htm
@@ -138,6 +160,16 @@ font-variant-numeric.htm == reference/font-variant-numeric-ref.htm
 font-variant-position.htm == reference/font-variant-position-ref.htm
 font-weight-applies-to-001.htm == reference/font-weight-bold-ref.htm
 font-weight-applies-to-002.htm == reference/font-weight-bold-ref.htm
+font-weight-applies-to-004.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-005.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-006.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-007.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-008.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-009.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-010.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-011.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-014.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
+font-weight-applies-to-015.htm == reference/pass_if_filler_text_match_bold.htm != reference/pass_if_filler_text_match.htm
 font-weight-applies-to-016.htm == reference/no-red-on-blank-page-ref.htm
 font-weight-applies-to-017.htm == reference/font-weight-bold-ref.htm
 font-weight-rule-001.htm == reference/font-weight-normal-ref.htm

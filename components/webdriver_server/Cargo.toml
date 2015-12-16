@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "webdriver_server"
 path = "lib.rs"
 
+[dependencies.compositing]
+path = "../compositing"
+
 [dependencies.msg]
 path = "../msg"
 
@@ -20,16 +23,13 @@ path = "../util"
 git = "https://github.com/jgraham/webdriver-rust.git"
 
 [dependencies.ipc-channel]
-git = "https://github.com/pcwalton/ipc-channel"
-
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
+git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-image = "0.3.14"
+image = "0.5.0"
 log = "0.3"
-hyper = "0.6"
+hyper = "0.7"
 rustc-serialize = "0.3.4"
 regex = "0.1.33"
+url = "0.5"
 uuid = "0.1"

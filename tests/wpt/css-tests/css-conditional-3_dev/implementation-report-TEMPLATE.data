@@ -3,8 +3,8 @@
 # http://test.csswg.org/suites/css-conditional-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
 testname	revision	result	comment
-html/001.htm	14314b4352e062f4cf10a0c0f725d8a66575a940	?
-xhtml1/001.xht	14314b4352e062f4cf10a0c0f725d8a66575a940	?
+html/001.htm	387e60a50a3d993a46f121d3abb2b5aa60bbf623	?
+xhtml1/001.xht	387e60a50a3d993a46f121d3abb2b5aa60bbf623	?
 html/at-media-whitespace-optional-001.htm	4e2c5ec01563d357382aae5e723e1d952b8875c0	?
 xhtml1/at-media-whitespace-optional-001.xht	4e2c5ec01563d357382aae5e723e1d952b8875c0	?
 html/at-media-whitespace-optional-002.htm	50509a80453c49e7b9765b5cef6ec6b67436a7ff	?
@@ -61,8 +61,8 @@ html/at-supports-025.htm	1dd59cb1354b0fcf648a415e5f6be20e7ce3594a	?
 xhtml1/at-supports-025.xht	1dd59cb1354b0fcf648a415e5f6be20e7ce3594a	?
 html/at-supports-026.htm	07854d783792eca893f1e80e8e3d256319f1b702	?
 xhtml1/at-supports-026.xht	07854d783792eca893f1e80e8e3d256319f1b702	?
-html/at-supports-027.htm	090abf500225c50b7377d113de12fe4193a38c3f	?
-xhtml1/at-supports-027.xht	090abf500225c50b7377d113de12fe4193a38c3f	?
+html/at-supports-027.htm	ad457c192de9d5f4d6604cb223a070d820c2b604	?
+xhtml1/at-supports-027.xht	ad457c192de9d5f4d6604cb223a070d820c2b604	?
 html/at-supports-028.htm	b952644db0f913efdc6321f9c14d1287b1998e30	?
 xhtml1/at-supports-028.xht	b952644db0f913efdc6321f9c14d1287b1998e30	?
 html/at-supports-029.htm	3d2094308272219cc3e2eff15f6005a9edfae148	?
@@ -75,18 +75,18 @@ html/at-supports-032.htm	3ca58122eeae5292b554484dd433137e613a310f	?
 xhtml1/at-supports-032.xht	3ca58122eeae5292b554484dd433137e613a310f	?
 html/at-supports-033.htm	8d2ee70f60d678ff84bf832955a84ee01c4be51a	?
 xhtml1/at-supports-033.xht	8d2ee70f60d678ff84bf832955a84ee01c4be51a	?
-html/at-supports-034.htm	a974e466cdb76c4f0244b928dcbd65ee5641cf93	?
-xhtml1/at-supports-034.xht	a974e466cdb76c4f0244b928dcbd65ee5641cf93	?
-html/at-supports-035.htm	dd51e9a36e26e05cc4a7d2e0e82c156cb4223bf0	?
-xhtml1/at-supports-035.xht	dd51e9a36e26e05cc4a7d2e0e82c156cb4223bf0	?
-html/at-supports-036.htm	ed58ca6eaed786ac6f90ec1e8d81c5e8e0fa2564	?
-xhtml1/at-supports-036.xht	ed58ca6eaed786ac6f90ec1e8d81c5e8e0fa2564	?
-html/at-supports-037.htm	2d91e424d0c0730566f360c5b7be903415b21a0f	?
-xhtml1/at-supports-037.xht	2d91e424d0c0730566f360c5b7be903415b21a0f	?
-html/at-supports-038.htm	8649bd6d70bad29c6fdd259ee571d61b52bfcf47	?
-xhtml1/at-supports-038.xht	8649bd6d70bad29c6fdd259ee571d61b52bfcf47	?
-html/at-supports-039.htm	ff9359fb25c72f40e3c064b3d1b351c442ebb6e4	?
-xhtml1/at-supports-039.xht	ff9359fb25c72f40e3c064b3d1b351c442ebb6e4	?
+html/at-supports-034.htm	05f2d87be51e27ebfbb1ee54e6d2f7e2a23907e8	?
+xhtml1/at-supports-034.xht	05f2d87be51e27ebfbb1ee54e6d2f7e2a23907e8	?
+html/at-supports-035.htm	9911385dd0408bb4a1032912cc8f2bed5b4abed9	?
+xhtml1/at-supports-035.xht	9911385dd0408bb4a1032912cc8f2bed5b4abed9	?
+html/at-supports-036.htm	50b9956080ee43e80705c41d462cc2cd8baeb661	?
+xhtml1/at-supports-036.xht	50b9956080ee43e80705c41d462cc2cd8baeb661	?
+html/at-supports-037.htm	2c4de31a3aa1e2b7b4106c00ad495c7105e5839c	?
+xhtml1/at-supports-037.xht	2c4de31a3aa1e2b7b4106c00ad495c7105e5839c	?
+html/at-supports-038.htm	e4b351139dd52a7479df10d345288b1c0e8bbf9f	?
+xhtml1/at-supports-038.xht	e4b351139dd52a7479df10d345288b1c0e8bbf9f	?
+html/at-supports-039.htm	e1f599c1c5167c5e6aba9fa446fc3b6d603631f3	?
+xhtml1/at-supports-039.xht	e1f599c1c5167c5e6aba9fa446fc3b6d603631f3	?
 html/css-supports-001.htm	3eb2e352b9a56eb0b25c14593c3158c9a2677c1f	?
 xhtml1/css-supports-001.xht	3eb2e352b9a56eb0b25c14593c3158c9a2677c1f	?
 html/css-supports-002.htm	1af686f5705d6c604eb1cfab0a39a07d8d1879da	?

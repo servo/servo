@@ -3,17 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult, WebGLParameter};
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct WebGLProgram {
@@ -58,7 +59,7 @@ impl WebGLProgram {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(self.id))).unwrap();
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(self.id)));
         }
     }
 
@@ -93,8 +94,25 @@ impl WebGLProgram {
         Ok(())
     }
 
+    /// glBindAttribLocation
+    pub fn bind_attrib_location(&self, index: u32, name: DOMString) -> WebGLResult<()> {
+        if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        // Check if the name is reserved
+        if name.starts_with("webgl") || name.starts_with("_webgl_") {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        self.renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindAttribLocation(self.id, index, String::from(name))))
+            .unwrap();
+        Ok(())
+    }
+
     /// glGetAttribLocation
-    pub fn get_attrib_location(&self, name: String) -> WebGLResult<Option<i32>> {
+    pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
             return Err(WebGLError::InvalidValue);
         }
@@ -105,12 +123,14 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, name, sender))).unwrap();
+        self.renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, String::from(name), sender)))
+            .unwrap();
         Ok(receiver.recv().unwrap())
     }
 
     /// glGetUniformLocation
-    pub fn get_uniform_location(&self, name: String) -> WebGLResult<Option<i32>> {
+    pub fn get_uniform_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
             return Err(WebGLError::InvalidValue);
         }
@@ -121,7 +141,22 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, name, sender))).unwrap();
+        self.renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, String::from(name), sender)))
+            .unwrap();
         Ok(receiver.recv().unwrap())
+    }
+
+    /// glGetProgramParameter
+    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetProgramParameter(self.id, param_id, sender))).unwrap();
+        receiver.recv().unwrap()
+    }
+}
+
+impl Drop for WebGLProgram {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

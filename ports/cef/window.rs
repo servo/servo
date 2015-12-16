@@ -26,11 +26,11 @@ use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
 use std::cell::RefCell;
 use std::ffi::CString;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
@@ -46,7 +46,6 @@ use self::x11::xlib::{XInitThreads,XOpenDisplay};
 pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 
 /// The type of an off-screen window.
-#[allow(raw_pointer_derive)]
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,

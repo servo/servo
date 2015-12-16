@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+  <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+
+  <title>Embedded HTML document for abs-pos-non-replaced-icb-vlr-009 in 'writing-mode: vertical-rl'</title>
+
+  <!--
+  position absolute and 'vertical-lr' - 'left' and 'width' are 'auto', 'right' is not 'auto' with 'direction: rtl' in initial containing block
+  -->
+
+  <style type="text/css">
+  html
+    {
+      direction: rtl;
+    }
+
+  div
+    {
+      border-left: green solid 25px;
+      border-right: green solid 75px;
+      height: 100px;
+      left: auto;
+      position: absolute;
+      right: 20%;
+      top: 0px;
+      width: auto;
+      writing-mode: vertical-lr;
+    }
+
+  /*
+  "
+  1. [If] 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width is shrink-to-fit. Then solve for 'left'
+  "
+  10.3.7 Absolutely positioned, non-replaced elements
+  http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
+
+  So:
+
+           auto : left
+        +
+            0px : margin-left
+        +
+           25px : border-left-width
+        +
+            0px : padding-left
+        +
+           auto : width
+        +
+            0px : padding-right
+        +
+           75px : border-right-width
+        +
+            0px : margin-right
+        +
+           20% : right
+        ====================
+          500px : width of containing block (width of Initial Containing Block)
+
+  becomes
+
+        (solve) : left
+        +
+            0px : margin-left
+        +
+           25px : border-left-width
+        +
+            0px : padding-left
+        +
+            0px : width (shrink-to-fit)
+        +
+            0px : padding-right
+        +
+           75px : border-right-width
+        +
+            0px : margin-right
+        +
+          400px : right (20% of 500px == 100px)
+        ====================
+          500px : width of containing block (width of Initial Containing Block)
+
+   so used left offset value must be 300px .
+
+  */
+  </style>
+ </head>
+
+ <body>
+
+  <div></div>
+
+ 
+</body></html>

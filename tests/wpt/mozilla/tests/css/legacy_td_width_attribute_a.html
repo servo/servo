@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=match href=legacy_td_width_attribute_ref.html>
+<style>
+.a {
+    height: 16px;
+    background: blue;
+}
+.b {
+    background: green;
+}
+</style>
+</head>
+<body>
+<table><tr><td width=30 class=a></td><td width=200 class=b></td></tr></table>
+<table><tr><td width="30 " class=a></td><td width="  200 " class=b></td></tr></table>
+<table><tr><td width="30asdf" class=a></td><td width=200haha class=b></td></tr></table>
+</table>
+</body>
+</html>
+

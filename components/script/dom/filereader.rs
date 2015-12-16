@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
@@ -23,9 +24,10 @@ use hyper::mime::{Attr, Mime};
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_task::ScriptTaskEventCategory::FileRead;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
+use string_cache::Atom;
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -39,14 +41,14 @@ pub type TrustedFileReader = Trusted<FileReader>;
 
 #[derive(Clone, HeapSizeOf)]
 pub struct ReadMetaData {
-    pub blobtype: DOMString,
-    pub label: Option<DOMString>,
+    pub blobtype: String,
+    pub label: Option<String>,
     pub function: FileReaderFunction
 }
 
 impl ReadMetaData {
-    pub fn new(blobtype: DOMString,
-               label: Option<DOMString>, function: FileReaderFunction) -> ReadMetaData {
+    pub fn new(blobtype: String,
+               label: Option<String>, function: FileReaderFunction) -> ReadMetaData {
         ReadMetaData {
             blobtype: blobtype,
             label: label,
@@ -72,7 +74,7 @@ pub struct FileReader {
     global: GlobalField,
     ready_state: Cell<FileReaderReadyState>,
     error: MutNullableHeap<JS<DOMException>>,
-    result: RefCell<Option<DOMString>>,
+    result: DOMRefCell<Option<DOMString>>,
     generation_id: Cell<GenerationId>,
 }
 
@@ -83,7 +85,7 @@ impl FileReader {
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableHeap::new(None),
-            result: RefCell::new(None),
+            result: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }
     }
@@ -118,10 +120,10 @@ impl FileReader {
         let exception = DOMException::new(global.r(), error);
         fr.error.set(Some(&exception));
 
-        fr.dispatch_progress_event("error".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("error"), 0, None);
         return_on_abort!();
         // Step 3
-        fr.dispatch_progress_event("loadend".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("loadend"), 0, None);
         return_on_abort!();
         // Step 4
         fr.terminate_ongoing_reading();
@@ -140,7 +142,7 @@ impl FileReader {
         );
         return_on_abort!();
         //FIXME Step 7 send current progress
-        fr.dispatch_progress_event("progress".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("progress"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -156,7 +158,7 @@ impl FileReader {
         );
         return_on_abort!();
         // Step 6
-        fr.dispatch_progress_event("loadstart".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("loadstart"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -186,11 +188,11 @@ impl FileReader {
         *fr.result.borrow_mut() = Some(output);
 
         // Step 8.3
-        fr.dispatch_progress_event("load".to_owned(), 0, None);
+        fr.dispatch_progress_event(atom!("load"), 0, None);
         return_on_abort!();
         // Step 8.4
         if fr.ready_state.get() != FileReaderReadyState::Loading {
-            fr.dispatch_progress_event("loadend".to_owned(), 0, None);
+            fr.dispatch_progress_event(atom!("loadend"), 0, None);
         }
         return_on_abort!();
         // Step 9
@@ -227,7 +229,7 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        output
+        DOMString::from(output)
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
@@ -247,7 +249,7 @@ impl FileReader {
             format!("data:{};base64,{}", data.blobtype, base64)
         };
 
-        output
+        DOMString::from(output)
     }
 }
 
@@ -296,13 +298,13 @@ impl FileReaderMethods for FileReader {
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
-        self.dispatch_progress_event("abort".to_owned(), 0, None);
-        self.dispatch_progress_event("loadend".to_owned(), 0, None);
+        self.dispatch_progress_event(atom!("abort"), 0, None);
+        self.dispatch_progress_event(atom!("loadend"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
     fn GetError(&self) -> Option<Root<DOMException>> {
-        self.error.get_rooted()
+        self.error.get()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-result
@@ -318,16 +320,13 @@ impl FileReaderMethods for FileReader {
 
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
-
-        let target = EventTargetCast::from_ref(self);
-        let event = EventCast::from_ref(progressevent.r());
-        event.fire(target);
+        progressevent.upcast::<Event>().fire(self.upcast());
     }
 
     fn terminate_ongoing_reading(&self) {
@@ -348,7 +347,7 @@ impl FileReader {
             let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
             self.error.set(Some(&exception));
 
-            self.dispatch_progress_event("error".to_owned(), 0, None);
+            self.dispatch_progress_event(atom!("error"), 0, None);
             return Ok(());
         }
 
@@ -360,12 +359,12 @@ impl FileReader {
         blob.read_out_buffer(send);
         let type_ = blob.Type();
 
-        let load_data = ReadMetaData::new(type_, label, function);
+        let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
 
-        let fr = Trusted::new(global.get_cx(), self, global.script_chan());
+        let fr = Trusted::new(self, global.file_reading_task_source());
         let gen_id = self.generation_id.get();
 
-        let script_chan = global.script_chan();
+        let script_chan = global.file_reading_task_source();
 
         spawn_named("file reader async operation".to_owned(), move || {
             perform_annotated_read_operation(gen_id, load_data, bytes, fr, script_chan)
@@ -381,7 +380,7 @@ impl FileReader {
 #[derive(Clone)]
 pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId, DOMString),
+    ProcessReadData(TrustedFileReader, GenerationId),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>)
 }
@@ -393,7 +392,7 @@ impl Runnable for FileReaderEvent {
             FileReaderEvent::ProcessRead(filereader, gen_id) => {
                 FileReader::process_read(filereader, gen_id);
             },
-            FileReaderEvent::ProcessReadData(filereader, gen_id, _) => {
+            FileReaderEvent::ProcessReadData(filereader, gen_id) => {
                 FileReader::process_read_data(filereader, gen_id);
             },
             FileReaderEvent::ProcessReadError(filereader, gen_id, error) => {
@@ -414,8 +413,7 @@ fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, bl
     let task = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
     chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 
-    let task = box FileReaderEvent::ProcessReadData(filereader.clone(),
-        gen_id, DOMString::new());
+    let task = box FileReaderEvent::ProcessReadData(filereader.clone(), gen_id);
     chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 
     let bytes = match blob_contents.recv() {

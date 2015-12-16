@@ -8,21 +8,19 @@ use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use canvas_traits::CanvasMsg;
-use display_list::{DisplayList, LayerInfo, StackingContext};
+use display_list::{DisplayItem, DisplayList, LayerInfo, StackingContext};
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
-use gfx_traits::color;
+use gfx_traits::{PaintListener, color};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
-use msg::compositor_msg::{ScrollPolicy, SubpageLayerInfo};
-use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::PipelineExitType;
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, ScrollPolicy};
+use msg::constellation_msg::PaintMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
@@ -35,10 +33,9 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
-use util::geometry::ZERO_POINT;
+use util::geometry::{ExpandToPixelBoundaries};
 use util::opts;
-use util::task::spawn_named;
-use util::task::spawn_named_with_send_on_failure;
+use util::task;
 use util::task_state;
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -60,8 +57,8 @@ pub struct PaintLayer {
     pub bounds: Rect<Au>,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
-    /// The subpage that this layer represents, if there is one.
-    pub subpage_layer_info: Option<SubpageLayerInfo>,
+    /// The pipeline of the subpage that this layer represents, if there is one.
+    pub subpage_pipeline_id: Option<PipelineId>,
 }
 
 impl PaintLayer {
@@ -78,7 +75,7 @@ impl PaintLayer {
             contents: PaintLayerContents::StackingContext(stacking_context),
             bounds: bounds,
             scroll_policy: layer_info.scroll_policy,
-            subpage_layer_info: layer_info.subpage_layer_info,
+            subpage_pipeline_id: layer_info.subpage_pipeline_id,
         }
     }
 
@@ -86,14 +83,14 @@ impl PaintLayer {
     pub fn new_with_display_list(layer_info: LayerInfo,
                                  display_list: DisplayList)
                                  -> PaintLayer {
-        let bounds = display_list.calculate_bounding_rect();
+        let bounds = display_list.calculate_bounding_rect().expand_to_px_boundaries();
         PaintLayer {
             id: layer_info.layer_id,
             background_color: color::transparent(),
             contents: PaintLayerContents::DisplayList(Arc::new(display_list)),
             bounds: bounds,
             scroll_policy: layer_info.scroll_policy,
-            subpage_layer_info: layer_info.subpage_layer_info,
+            subpage_pipeline_id: layer_info.subpage_pipeline_id,
         }
     }
 
@@ -149,7 +146,7 @@ impl PaintLayer {
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
             scrolls_overflow_area: scrolls_overflow_area,
-            subpage_layer_info: self.subpage_layer_info,
+            subpage_pipeline_id: self.subpage_pipeline_id,
         }
     }
 
@@ -198,7 +195,7 @@ pub enum Msg {
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, PaintLayer),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
+    Exit(IpcSender<()>),
 }
 
 pub enum ChromeToPaintMsg {
@@ -206,7 +203,7 @@ pub enum ChromeToPaintMsg {
     PaintPermissionGranted,
     PaintPermissionRevoked,
     CollectReports(ReportsChan),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
+    Exit,
 }
 
 pub struct PaintTask<C> {
@@ -215,7 +212,7 @@ pub struct PaintTask<C> {
     layout_to_paint_port: Receiver<LayoutToPaintMsg>,
     chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
     compositor: C,
-    constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// A channel to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -251,14 +248,16 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
-                  constellation_chan: ConstellationChan,
+                  constellation_chan: ConstellationChan<ConstellationMsg>,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
-                  shutdown_chan: Sender<()>) {
+                  shutdown_chan: IpcSender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("PaintTask {:?}", id), task_state::PAINT, move || {
+        task::spawn_named_with_send_on_failure(format!("PaintTask {:?}", id),
+                                               task_state::PAINT,
+                                               move || {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
@@ -269,7 +268,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
-                // FIXME: rust/#5967
                 let mut paint_task = PaintTask {
                     id: id,
                     _url: url,
@@ -331,7 +329,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                        c.send(ConstellationMsg::Ready(self.id)).unwrap();
                         continue;
                     }
 
@@ -346,7 +344,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                        c.send(ConstellationMsg::Ready(self.id)).unwrap();
                         continue;
                     }
 
@@ -383,14 +381,21 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // FIXME(njn): should eventually measure the paint task.
                     channel.send(Vec::new())
                 }
-                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel, _)) |
-                Msg::FromChrome(ChromeToPaintMsg::Exit(ref response_channel, _)) => {
+                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel)) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);
 
                     debug!("PaintTask: Exiting.");
-                    response_channel.as_ref().map(|channel| channel.send(()));
+                    let _ = response_channel.send(());
+                    break;
+                }
+                Msg::FromChrome(ChromeToPaintMsg::Exit) => {
+                    // Ask the compositor to remove any layers it is holding for this paint task.
+                    // FIXME(mrobinson): This can probably move back to the constellation now.
+                    self.compositor.notify_paint_task_exiting(self.id);
+
+                    debug!("PaintTask: Exiting.");
                     break;
                 }
             }
@@ -448,7 +453,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
         let mut properties = Vec::new();
         build_from_paint_layer(&mut properties,
                                root_paint_layer,
-                               &ZERO_POINT,
+                               &Point2D::zero(),
                                &Matrix4::identity(),
                                &Matrix4::identity(),
                                None);
@@ -468,15 +473,38 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                                perspective,
                                                                parent_id));
 
-            if let PaintLayerContents::StackingContext(ref context) = paint_layer.contents {
-                // When there is a new layer, the transforms and origin are handled by the compositor,
-                // so the new transform and perspective matrices are just the identity.
-                continue_walking_stacking_context(properties,
-                                                  &context,
-                                                  &paint_layer.origin_for_child_layers(),
-                                                  &Matrix4::identity(),
-                                                  &Matrix4::identity(),
-                                                  Some(paint_layer.id));
+            match paint_layer.contents {
+                PaintLayerContents::StackingContext(ref context) => {
+                    // When there is a new layer, the transforms and origin are handled by the compositor,
+                    // so the new transform and perspective matrices are just the identity.
+                    continue_walking_stacking_context(properties,
+                                                      &context,
+                                                      &paint_layer.origin_for_child_layers(),
+                                                      &Matrix4::identity(),
+                                                      &Matrix4::identity(),
+                                                      Some(paint_layer.id));
+                },
+                PaintLayerContents::DisplayList(ref display_list) => {
+                    for kid in display_list.positioned_content.iter() {
+                        if let &DisplayItem::StackingContextClass(ref stacking_context) = kid {
+                            build_from_stacking_context(properties,
+                                                        &stacking_context,
+                                                        &parent_origin,
+                                                        &transform,
+                                                        &perspective,
+                                                        parent_id)
+
+                        }
+                    }
+                    for kid in display_list.layered_children.iter() {
+                        build_from_paint_layer(properties,
+                                               &kid,
+                                               &parent_origin,
+                                               &transform,
+                                               &perspective,
+                                               parent_id)
+                    }
+                },
             }
         }
 
@@ -500,13 +528,16 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                              transform: &Matrix4,
                                              perspective: &Matrix4,
                                              parent_id: Option<LayerId>) {
-            for kid in stacking_context.display_list.children.iter() {
-                build_from_stacking_context(properties,
-                                            &kid,
-                                            &parent_origin,
-                                            &transform,
-                                            &perspective,
-                                            parent_id)
+            for kid in stacking_context.display_list.positioned_content.iter() {
+                if let &DisplayItem::StackingContextClass(ref stacking_context) = kid {
+                    build_from_stacking_context(properties,
+                                                &stacking_context,
+                                                &parent_origin,
+                                                &transform,
+                                                &perspective,
+                                                parent_id)
+
+                }
             }
 
             for kid in stacking_context.display_list.layered_children.iter() {
@@ -541,7 +572,7 @@ impl WorkerThreadProxy {
             let (to_worker_sender, to_worker_receiver) = channel();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            spawn_named("PaintWorker".to_owned(), move || {
+            task::spawn_named("PaintWorker".to_owned(), move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_display,
@@ -679,8 +710,8 @@ impl WorkerThread {
             let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
                 font_context: &mut self.font_context,
-                page_rect: tile.page_rect,
-                screen_rect: tile.screen_rect,
+                page_rect: Rect::from_untyped(&tile.page_rect),
+                screen_rect: Rect::from_untyped(&tile.screen_rect),
                 clip_rect: None,
                 transient_clip: None,
                 layer_kind: layer_kind,

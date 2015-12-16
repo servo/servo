@@ -5,13 +5,16 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLOptionElementDerived, NodeCast};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
-use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
+use string_cache::Atom;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -20,18 +23,18 @@ pub struct HTMLOptGroupElement {
 }
 
 impl HTMLOptGroupElement {
-    fn new_inherited(localName: DOMString,
+    fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement:
-                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString,
+    pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptGroupElement> {
         let element = HTMLOptGroupElement::new_inherited(localName, prefix, document);
@@ -41,22 +44,21 @@ impl HTMLOptGroupElement {
 
 impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
-    make_bool_getter!(Disabled);
+    make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_setter!(SetDisabled, "disabled");
 }
 
 impl VirtualMethods for HTMLOptGroupElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!(disabled) => {
+            &atom!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -65,20 +67,22 @@ impl VirtualMethods for HTMLOptGroupElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(disabled_state);
-                node.set_enabled_state(!disabled_state);
-                let options = node.children().filter(|child| {
-                    child.is_htmloptionelement()
-                });
+                let el = self.upcast::<Element>();
+                el.set_disabled_state(disabled_state);
+                el.set_enabled_state(!disabled_state);
+                let options = el.upcast::<Node>().children().filter(|child| {
+                    child.is::<HTMLOptionElement>()
+                }).map(|child| Root::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
                 if disabled_state {
                     for option in options {
-                        option.set_disabled_state(true);
-                        option.set_enabled_state(false);
+                        let el = option.upcast::<Element>();
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     }
                 } else {
                     for option in options {
-                        option.check_disabled_attribute();
+                        let el = option.upcast::<Element>();
+                        el.check_disabled_attribute();
                     }
                 }
             },

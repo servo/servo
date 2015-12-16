@@ -6,14 +6,14 @@ use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -25,7 +25,6 @@ use js::jsapi::{HandleValue, JSContext, RootedValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
 use script_task::{Runnable, ScriptChan};
-use std::borrow::ToOwned;
 use std::sync::mpsc::{Sender, channel};
 use url::UrlParser;
 use util::str::DOMString;
@@ -72,10 +71,11 @@ impl Worker {
 
         let resource_task = global.resource_task();
         let constellation_chan = global.constellation_chan();
+        let scheduler_chan = global.scheduler_chan();
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
-        let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
+        let worker_ref = Trusted::new(worker.r(), global.dom_manipulation_task_source());
         let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -101,11 +101,12 @@ impl Worker {
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
+            scheduler_chan: scheduler_chan,
             worker_id: worker_id,
         };
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker_ref,
-            global.script_chan(), sender, receiver);
+            global.dom_manipulation_task_source(), sender, receiver);
 
         Ok(worker)
     }
@@ -115,7 +116,7 @@ impl Worker {
         let worker = address.root();
 
         let global = worker.r().global.root();
-        let target = EventTargetCast::from_ref(worker.r());
+        let target = worker.upcast();
         let _ar = JSAutoRequest::new(global.r().get_cx());
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
         let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
@@ -126,13 +127,11 @@ impl Worker {
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
         let global = worker.r().global.root();
-        let target = EventTargetCast::from_ref(worker.r());
-
         let event = Event::new(global.r(),
-                               "error".to_owned(),
+                               atom!("error"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        event.r().fire(target);
+        event.fire(worker.upcast());
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
@@ -140,12 +139,10 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
-        let target = EventTargetCast::from_ref(worker.r());
-        let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
+        let errorevent = ErrorEvent::new(global.r(), atom!("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());
-        let event = EventCast::from_ref(errorevent.r());
-        event.fire(target);
+        errorevent.upcast::<Event>().fire(worker.upcast());
     }
 }
 
@@ -153,7 +150,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
+        let address = Trusted::new(self, self.global.root().r().dom_manipulation_task_source());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }

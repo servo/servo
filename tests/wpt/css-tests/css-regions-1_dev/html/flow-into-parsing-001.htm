@@ -8,19 +8,19 @@
         <meta content="dom" name="flags">
         <meta content="Value specified for the flow-into property should be parsed correctly." name="assert">
         <script src="/resources/testharness.js"></script>
-        <script src="/resources/testharnessreport.js"></script>        
+        <script src="/resources/testharnessreport.js"></script>
     </head>
-    
+
     <body>
         <div id="log"></div>
-        
+
         <script type="text/javascript">
             function testParse(declaration) {
                 var div = document.createElement("div");
                 div.setAttribute("style", declaration);
                 return div.style.flowInto;
             }
-            
+
             function testComputedStyle(value) {
                 var div = document.createElement("div");
                 document.body.appendChild(div);
@@ -42,8 +42,8 @@
                 document.body.removeChild(parentDiv);
                 return childFlowComputedValue;
             }
-            
-            test(function() {assert_equals(testParse("flow-into: none"), "none")}, "Test Parse none"); 
+
+            test(function() {assert_equals(testParse("flow-into: none"), "none")}, "Test Parse none");
             test(function() {assert_equals(testParse("flow-into: first-flow"), "first-flow")}, "Test Parse first-flow");
             test(function() {assert_equals(testParse("flow-into: \'first flow\'"), "")}, "Test Parse 'first-flow'");
             test(function() {assert_equals(testParse("flow-into: ;"), "")}, "Test Parse ;");
@@ -64,4 +64,5 @@
             test(function() {assert_equals(testNotInherited("parent-flow", "child-flow"), "child-flow")}, "Test Non-Inherited parent-flow, child-flow");
         </script>
     
+
 </body></html>

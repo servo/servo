@@ -7,8 +7,7 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
-use std::borrow::ToOwned;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 #[repr(u16)]
@@ -36,7 +35,7 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
-    EncodingError
+    EncodingError,
 }
 
 #[dom_struct]
@@ -54,7 +53,9 @@ impl DOMException {
     }
 
     pub fn new(global: GlobalRef, code: DOMErrorName) -> Root<DOMException> {
-        reflect_dom_object(box DOMException::new_inherited(code), global, DOMExceptionBinding::Wrap)
+        reflect_dom_object(box DOMException::new_inherited(code),
+                           global,
+                           DOMExceptionBinding::Wrap)
     }
 }
 
@@ -64,13 +65,13 @@ impl DOMExceptionMethods for DOMException {
         match self.code {
             // https://heycam.github.io/webidl/#dfn-throw
             DOMErrorName::EncodingError => 0,
-            code => code as u16
+            code => code as u16,
         }
     }
 
     // https://heycam.github.io/webidl/#idl-DOMException-error-names
     fn Name(&self) -> DOMString {
-        format!("{:?}", self.code)
+        DOMString::from(format!("{:?}", self.code))
     }
 
     // https://heycam.github.io/webidl/#error-names
@@ -102,11 +103,11 @@ impl DOMExceptionMethods for DOMException {
             DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
-        message.to_owned()
+        DOMString::from(message)
     }
 
     // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.tostring
-    fn Stringifier(&self) -> String {
-        format!("{}: {}", self.Name(), self.Message())
+    fn Stringifier(&self) -> DOMString {
+        DOMString::from(format!("{}: {}", self.Name(), self.Message()))
     }
 }
