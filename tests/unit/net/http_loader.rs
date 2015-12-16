@@ -1290,15 +1290,16 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         let mut cookie_jar = cookie_jar.write().unwrap();
         let cookie_x_url = url_x.clone();
         let cookie_x = Cookie::new_wrapped(
-            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
+            CookiePair::new("mozillaIsNot".to_owned(), "dotCom".to_owned()),
             &cookie_x_url,
             CookieSource::HTTP
         ).unwrap();
+
         cookie_jar.push(cookie_x, CookieSource::HTTP);
 
         let cookie_y_url = url_y.clone();
         let cookie_y = Cookie::new_wrapped(
-            CookiePair::new("mozillaIsNot".to_owned(), "dotCom".to_owned()),
+            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &cookie_y_url,
             CookieSource::HTTP
         ).unwrap();
