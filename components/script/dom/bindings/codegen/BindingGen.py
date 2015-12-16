@@ -18,8 +18,10 @@ def generate_binding_rs(config, outputprefix, webidlfile):
     """
 
     filename = outputprefix + ".rs"
-    root = CGBindingRoot(config, outputprefix, webidlfile)
-    if replaceFileIfChanged(filename, root.define()):
+    module = CGBindingRoot(config, outputprefix, webidlfile).define()
+    if not module:
+        print "Skipping empty module: %s" % (filename)
+    elif replaceFileIfChanged(filename, module):
         print "Generating binding implementation: %s" % (filename)
 
 
