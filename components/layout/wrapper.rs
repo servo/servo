@@ -93,6 +93,11 @@ pub trait LayoutNode<'ln> : Sized + Copy + Clone {
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
 
+    /// Returns whether this is a text node. It turns out that this is all the style system cares
+    /// about, and thus obviates the need to compute the full type id, which would be expensive in
+    /// Gecko.
+    fn is_text_node(&self) -> bool;
+
     fn is_element(&self) -> bool;
 
     fn dump(self);
@@ -302,6 +307,10 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
         unsafe {
             self.node.type_id_for_layout()
         }
+    }
+
+    fn is_text_node(&self) -> bool {
+        self.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
     }
 
     fn is_element(&self) -> bool {
