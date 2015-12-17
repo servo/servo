@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -17,10 +18,13 @@ use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::htmlbuttonelement::{HTMLButtonElement};
+use dom::eventtarget::EventTarget;
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
+use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -140,7 +144,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Copy, Clone, HeapSizeOf, PartialEq)]
 pub enum SubmittedFrom {
     FromFormSubmitMethod,
     NotFromFormSubmitMethod
@@ -154,32 +158,54 @@ pub enum ResetFrom {
 
 
 impl HTMLFormElement {
-    pub fn submit(&self, _submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
+    /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
+    pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
         let doc = document_from_node(self);
         let win = window_from_node(self);
         let base = doc.url();
         // TODO: Handle browsing contexts
-        // TODO: Handle validation
-        let event = Event::new(GlobalRef::Window(win.r()),
-                               atom!("submit"),
-                               EventBubbles::Bubbles,
-                               EventCancelable::Cancelable);
-        event.fire(self.upcast());
-        if event.DefaultPrevented() {
-            return;
+        // Step 4
+        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod
+           && !submitter.no_validate(self)
+        {
+            if self.interactive_validation().is_err() {
+                // TODO: Implement event handlers on all form control elements
+                // XXXKiChjang: We're also calling the following two statements quite often,
+                //              we should refactor it into a function
+                let event = Event::new(GlobalRef::Window(win.r()),
+                                       atom!("invalid"),
+                                       EventBubbles::DoesNotBubble,
+                                       EventCancelable::NotCancelable);
+                event.fire(self.upcast());
+                return;
+            }
+        }
+        // Step 5
+        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod {
+            let event = Event::new(GlobalRef::Window(win.r()),
+                                   atom!("submit"),
+                                   EventBubbles::Bubbles,
+                                   EventCancelable::Cancelable);
+            event.fire(self.upcast());
+            if event.DefaultPrevented() {
+                return;
+            }
         }
         // Step 6
         let form_data = self.get_form_dataset(Some(submitter));
-        // Step 7-8
+        // Step 7
         let mut action = submitter.action();
+        // Step 8
         if action.is_empty() {
             action = DOMString::from(base.serialize());
         }
-        // TODO: Resolve the url relative to the submitter element
-        // Step 10-15
-        let action_components =
-            UrlParser::new().base_url(base).parse(&action).unwrap_or((*base).clone());
+        // Step 9-11
+        let action_components = match UrlParser::new().base_url(base).parse(&action) {
+            Ok(url) => url,
+            Err(_) => return
+        };
+        // Step 12-15
         let _action = action_components.serialize();
         let scheme = action_components.scheme.clone();
         let enctype = submitter.enctype();
@@ -219,13 +245,61 @@ impl HTMLFormElement {
             win.pipeline(), load_data)).unwrap();
     }
 
+    /// Interactively validate the constraints of form elements
+    /// https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints
+    fn interactive_validation(&self) -> Result<(), ()> {
+        // Step 1-3
+        let unhandled_invalid_controls = match self.static_validation() {
+            Ok(()) => return Ok(()),
+            Err(err) => err
+        };
+        // TODO: Report the problems with the constraints of at least one of
+        //       the elements given in unhandled invalid controls to the user
+        // Step 4
+        Err(())
+    }
+
+    /// Statitically validate the constraints of form elements
+    /// https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints
+    fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
+        let node = self.upcast::<Node>();
+        // FIXME(#3553): This is an incorrect way of getting controls owned by the
+        //               form, refactor this when html5ever's form owner PR lands
+        // Step 1-3
+        let invalid_controls = node.traverse_preorder().filter_map(|field| {
+            if let Some(el) = field.downcast::<Element>() {
+                None // Remove this line if you decide to refactor
+
+                // XXXKiChjang: Form control elements should each have a candidate_for_validation
+                //              and satisfies_constraints methods
+
+            } else {
+                None
+            }
+        }).collect::<Vec<FormSubmittableElement>>();
+        // Step 4
+        if invalid_controls.is_empty() { return Ok(()); }
+        // Step 5-6
+        let win = window_from_node(self);
+        let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
+            let event = Event::new(GlobalRef::Window(win.r()),
+                                   atom!("invalid"),
+                                   EventBubbles::DoesNotBubble,
+                                   EventCancelable::Cancelable);
+            event.fire(field.as_event_target());
+            if !event.DefaultPrevented() { return Some(field); }
+            None
+        }).collect::<Vec<FormSubmittableElement>>();
+        // Step 7
+        Err(unhandled_invalid_controls)
+    }
+
     /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
     /// Steps range from 1 to 3
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         let node = self.upcast::<Node>();
-        // TODO: This is an incorrect way of getting controls owned
-        //       by the form, but good enough until html5ever lands
-        // Step 1-2
+        // FIXME(#3553): This is an incorrect way of getting controls owned
+        //               by the form, but good enough until html5ever lands
         node.traverse_preorder().filter_map(|child| {
             // Step 3.1: The field element is disabled.
             match child.downcast::<Element>() {
@@ -382,6 +456,29 @@ pub enum FormMethod {
     FormDialog
 }
 
+#[derive(HeapSizeOf)]
+pub enum FormSubmittableElement {
+    ButtonElement(Root<HTMLButtonElement>),
+    InputElement(Root<HTMLInputElement>),
+    // TODO: HTMLKeygenElement unimplemented
+    // KeygenElement(&'a HTMLKeygenElement),
+    ObjectElement(Root<HTMLObjectElement>),
+    SelectElement(Root<HTMLSelectElement>),
+    TextAreaElement(Root<HTMLTextAreaElement>)
+}
+
+impl FormSubmittableElement {
+    fn as_event_target(&self) -> &EventTarget {
+        match *self {
+            FormSubmittableElement::ButtonElement(ref button) =>  button.r().upcast(),
+            FormSubmittableElement::InputElement(ref input) => input.r().upcast(),
+            FormSubmittableElement::ObjectElement(ref object) => object.r().upcast(),
+            FormSubmittableElement::SelectElement(ref select) => select.r().upcast(),
+            FormSubmittableElement::TextAreaElement(ref textarea) => textarea.r().upcast()
+        }
+    }
+}
+
 #[derive(Copy, Clone, HeapSizeOf)]
 pub enum FormSubmitter<'a> {
     FormElement(&'a HTMLFormElement),
@@ -466,6 +563,22 @@ impl<'a> FormSubmitter<'a> {
             }
         }
     }
+
+    fn no_validate(&self, form_owner: &HTMLFormElement) -> bool {
+        match *self {
+            FormSubmitter::FormElement(form) => form.NoValidate(),
+            FormSubmitter::InputElement(input_element) => {
+                input_element.get_form_boolean_attribute(&atom!("formnovalidate"),
+                                                 |i| i.FormNoValidate(),
+                                                 |f| f.NoValidate())
+            }
+            FormSubmitter::ButtonElement(button_element) => {
+                button_element.get_form_boolean_attribute(&atom!("formnovalidate"),
+                                                  |i| i.FormNoValidate(),
+                                                  |f| f.NoValidate())
+            }
+        }
+    }
 }
 
 pub trait FormControl: DerivedFrom<Element> + Reflectable {
@@ -506,9 +619,28 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         }
     }
 
+    fn get_form_boolean_attribute<InputFn, OwnerFn>(&self,
+                                            attr: &Atom,
+                                            input: InputFn,
+                                            owner: OwnerFn)
+                                            -> bool
+        where InputFn: Fn(&Self) -> bool,
+              OwnerFn: Fn(&HTMLFormElement) -> bool
+    {
+        if self.to_element().has_attribute(attr) {
+            input(self)
+        } else {
+            self.form_owner().map_or(false, |t| owner(t.r()))
+        }
+    }
+
     fn to_element(&self) -> &Element {
         self.upcast()
     }
+
+    // XXXKiChjang: Implement these on inheritors
+    // fn candidate_for_validation(&self) -> bool;
+    // fn satisfies_constraints(&self) -> bool;
 }
 
 impl VirtualMethods for HTMLFormElement {
