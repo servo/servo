@@ -13,20 +13,21 @@ use display_list_builder::FlexFlowDisplayListBuilding;
 use euclid::{Point2D, Rect};
 use floats::FloatKind;
 use flow;
-use flow::INLINE_POSITION_IS_STATIC;
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::ImmutableFlowUtils;
 use flow::mut_base;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow_list::{MutFlowListIterator};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::DisplayList;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::MaybeAuto;
 use model::{IntrinsicISizes};
-use std::cmp::max;
+use std::cmp::{max, Ordering};
 use std::sync::Arc;
+use std::vec::IntoIter;
 use style::computed_values::{flex_direction, float};
 use style::properties::ComputedValues;
 use style::properties::style_structs;
@@ -52,11 +53,60 @@ pub struct FlexFlow {
     /// The logical axis which the main axis will be parallel with.
     /// The cross axis will be parallel with the opposite logical axis.
     main_mode: Mode,
+    /// Is the container reversed? In other words, is the flex direction `row-reverse` or
+    /// `column-reverse`?
+    reversed: bool,
+    /// Information about each child of this flexbox. This Vec is in the same order as the child
+    /// flows.
+    items: Vec<FlexItem>,
 }
 
+/// Holds information about a child flow. Used to avoid repeated recalculations of flexbox
+/// algorithm intermediate values like e.g. `hypothetical main size`.
+#[derive(Debug)]
+struct FlexItem;
+
+impl FlexItem {
+    fn new() -> Self {
+        FlexItem
+    }
+}
+
+type FlowFlexItemIterMut<'a> = IntoIter<(&'a mut Flow, &'a mut FlexItem)>;
+
+fn compare_flows_by_order(a: &Flow, b: &Flow) -> Ordering {
+    flex_item_style(flow_style(a)).order.cmp(&flex_item_style(flow_style(b)).order)
+}
+
+fn flow_flex_item_iter_mut<'a>(flows: MutFlowListIterator<'a>, items: &'a mut Vec<FlexItem>,
+                               reverse: bool) -> FlowFlexItemIterMut<'a> {
+    let mut pairs : Vec<(&'a mut Flow, &'a mut FlexItem)> = flows.zip(items.iter_mut()).collect();
+
+    // Flexbox § 9.1: Re-order the flex items (and any absolutely positioned flex
+    // container children) according to their order.
+    // We implement this by sorting the flex items by the child's `order` property.
+    pairs.sort_by(|a, b| compare_flows_by_order(a.0, b.0));
+    if reverse {
+        pairs.reverse();
+    }
+    pairs.into_iter()
+}
+
+fn flow_style<'a>(child: &'a Flow) -> &'a ComputedValues {
+    &child.as_block().fragment.style
+}
+
+
+// Returns the style struct for the properties of a flex container's fragment.
 fn flex_style(fragment: &Fragment) -> &style_structs::Flex {
     fragment.style.get_flex()
 }
+
+// Returns the style struct for the properties of a flex items's fragment.
+fn flex_item_style(style: &ComputedValues) -> &style_structs::Flex {
+    style.get_flex()
+}
+
 
 // TODO(zentner): This function should use flex-basis.
 fn flex_item_inline_sizes(flow: &mut Flow) -> IntrinsicISizes {
@@ -86,10 +136,24 @@ impl FlexFlow {
             flex_direction::T::column         => Mode::Block
         };
 
+        let reversed = match flex_style(&fragment).flex_direction {
+            flex_direction::T::row_reverse | flex_direction::T::column_reverse => true,
+            flex_direction::T::row         | flex_direction::T::column         => false
+        };
+
         FlexFlow {
             block_flow: BlockFlow::from_fragment(fragment, flotation),
-            main_mode: main_mode
+            main_mode: main_mode,
+            reversed: reversed,
+            items: Vec::new()
         }
+    }
+
+    // Iterate through children in `display order`. This applies the `order` property, as well as
+    // reversing the children if necessary.
+    fn item_iter_mut<'a>(&'a mut self) -> FlowFlexItemIterMut<'a> {
+        flow_flex_item_iter_mut(self.block_flow.base.child_iter(), &mut self.items,
+                                self.reversed)
     }
 
     // TODO(zentner): This function should use flex-basis.
@@ -103,7 +167,7 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter() {
+            for (kid, _) in self.item_iter_mut() {
                 let is_absolutely_positioned =
                     flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
@@ -125,7 +189,7 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter() {
+            for (kid, _) in self.item_iter_mut() {
                 let is_absolutely_positioned =
                     flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
                 let child_base = flow::mut_base(kid);
@@ -149,51 +213,23 @@ impl FlexFlow {
     fn block_mode_assign_inline_sizes(&mut self,
                                       _layout_context: &LayoutContext,
                                       inline_start_content_edge: Au,
-                                      inline_end_content_edge: Au,
+                                      _inline_end_content_edge: Au,
                                       content_inline_size: Au) {
         let _scope = layout_debug_scope!("flex::block_mode_assign_inline_sizes");
         debug!("block_mode_assign_inline_sizes");
 
-        // Calculate non-auto block size to pass to children.
-        let content_block_size = self.block_flow.fragment.style().content_block_size();
-
-        let explicit_content_size =
-            match (content_block_size, self.block_flow.base.block_container_explicit_block_size) {
-            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
-                Some(container_size.scale_by(percent))
-            }
-            (LengthOrPercentageOrAuto::Percentage(_), None) |
-            (LengthOrPercentageOrAuto::Auto, _) => None,
-            (LengthOrPercentageOrAuto::Calc(_), _) => None,
-            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
-        };
-
-        // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.block_flow.base.writing_mode;
 
-        let mut iterator = self.block_flow.base.child_iter().enumerate().peekable();
-        while let Some((_, kid)) = iterator.next() {
-            {
-                let kid_base = flow::mut_base(kid);
-                kid_base.block_container_explicit_block_size = explicit_content_size;
-            }
-
+        let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
+        for (kid, _) in self.item_iter_mut() {
             // The inline-start margin edge of the child flow is at our inline-start content edge,
             // and its inline-size is our content inline-size.
-            let kid_mode = flow::base(kid).writing_mode;
             {
                 let kid_base = flow::mut_base(kid);
-                if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
-                    kid_base.position.start.i =
-                        if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
-                            inline_start_content_edge
-                        } else {
-                            // The kid's inline 'start' is at the parent's 'end'
-                            inline_end_content_edge
-                        };
-                }
                 kid_base.block_container_inline_size = content_inline_size;
                 kid_base.block_container_writing_mode = containing_block_mode;
+                kid_base.block_container_explicit_block_size = block_container_explicit_block_size;
+                kid_base.position.start.i = inline_start_content_edge;
             }
         }
     }
@@ -225,7 +261,7 @@ impl FlexFlow {
 
         let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
         let mut inline_child_start = inline_start_content_edge;
-        for kid in self.block_flow.base.child_iter() {
+        for (kid, _) in self.item_iter_mut() {
             let kid_base = flow::mut_base(kid);
 
             kid_base.block_container_inline_size = even_content_inline_size;
@@ -238,6 +274,16 @@ impl FlexFlow {
 
     // TODO(zentner): This function should actually flex elements!
     fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+        let _scope = layout_debug_scope!("flex::block_mode_assign_block_size");
+
+        let mut cur_b = self.block_flow.fragment.border_padding.block_start;
+
+        for (kid, _) in self.item_iter_mut() {
+            let kid_base = flow::mut_base(kid);
+            kid_base.position.start.b = cur_b;
+            cur_b = cur_b + kid_base.position.size.block;
+        }
+
         self.block_flow.assign_block_size(layout_context)
     }
 
@@ -249,7 +295,7 @@ impl FlexFlow {
 
         let mut max_block_size = Au(0);
         let thread_id = self.block_flow.base.thread_id;
-        for kid in self.block_flow.base.child_iter() {
+        for (kid, _) in self.item_iter_mut() {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
 
             {
@@ -287,7 +333,7 @@ impl FlexFlow {
         self.block_flow.base.position.size.block = block_size;
 
         // Assign the block-size of kid fragments, which is the same value as own block-size.
-        for kid in self.block_flow.base.child_iter() {
+        for (kid, _) in self.item_iter_mut() {
             {
                 let kid_fragment = &mut kid.as_mut_block().fragment;
                 let mut position = kid_fragment.border_box;
@@ -318,13 +364,17 @@ impl Flow for FlexFlow {
         let _scope = layout_debug_scope!("flex::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
 
-        // Flexbox Section 9.0: Generate anonymous flex items:
+        // Flexbox § 9.0: Generate anonymous flex items:
         // This part was handled in the flow constructor.
 
-        // Flexbox Section 9.1: Re-order the flex items (and any absolutely positioned flex
-        // container children) according to their order.
-        // TODO(zentner): We need to re-order the items at some point. However, all the operations
-        // here ignore order, so we can afford to do it later, if necessary.
+        // Allocate the flex items. It's efficient to do this here, since we know the number of
+        // children. After this point, `self.item_iter_mut()` should be used to iterate through
+        // child flows, in order to conform to Flexbox § 9.1 (the `order` property).
+        let child_count = ImmutableFlowUtils::child_count(self as &Flow);
+        self.items.reserve (child_count);
+        for _ in self.block_flow.base.child_iter() {
+            self.items.push(FlexItem::new());
+        }
 
         // `flex item`s (our children) cannot be floated. Furthermore, they all establish BFC's.
         // Therefore, we do not have to handle any floats here.
