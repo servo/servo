@@ -5,6 +5,7 @@
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -122,17 +123,22 @@ impl EventListenerType {
             EventListenerType::Inline(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
-                        if let Some(event) = event.downcast::<ErrorEvent>() {
+                        if let Some(error_event) = event.downcast::<ErrorEvent>() {
                             let global = global_root_from_reflector(object);
                             let cx = global.r().get_cx();
-                            let error = RootedValue::new(cx, event.Error(cx));
-                            let _ = handler.Call_(object,
-                                                  EventOrString::eString(event.Message()),
-                                                  Some(event.Filename()),
-                                                  Some(event.Lineno()),
-                                                  Some(event.Colno()),
-                                                  Some(error.handle()),
-                                                  exception_handle);
+                            let error = RootedValue::new(cx, error_event.Error(cx));
+                            let return_value = RootedValue::new(cx, handler.Call_(object,
+                                                                                  EventOrString::eString(error_event.Message()),
+                                                                                  Some(error_event.Filename()),
+                                                                                  Some(error_event.Lineno()),
+                                                                                  Some(error_event.Colno()),
+                                                                                  Some(error.handle()),
+                                                                                  exception_handle));
+                            if let value = Ok(return_value) {
+
+                            }&& return_value.unwrap().to_boolean() == true {
+                                event.PreventDefault();
+                            }
                             return;
                         }
 
@@ -141,10 +147,29 @@ impl EventListenerType {
                     }
 
                     CommonEventHandler::EventHandler(ref handler) => {
-                        let _ = handler.Call_(object, event, exception_handle);
+                        let return_value = handler.Call_(object, event, exception_handle);
+
+                        //Step 4
+                        match event.type_() {
+                            atom!("mouseover") => {
+                                if return_value.is_ok() &&  return_value.unwrap().to_boolean() == true {
+                                    event.PreventDefault();
+                                }
+                            },
+                            atom!("beforeunload") => {
+                                if let value = Ok(return_value) && value.is_null() {
+                                    event.PreventDefault();
+                                }
+                            },
+                            _ => {
+                                if return_value.is_ok() &&  return_value.unwrap().to_boolean() == false {
+                                    event.PreventDefault();
+                                }
+                            }
+                        }
                     }
                 }
-            },
+            }
         }
 
         // TODO(#8490): step 4 (cancel event based on return value)
