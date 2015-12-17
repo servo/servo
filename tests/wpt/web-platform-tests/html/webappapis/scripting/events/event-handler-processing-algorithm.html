@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Event handlers processing algorithm</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script
+ <body>
+ <div id="foo" style="width: 100px; height: 100px; background-color: black"></div>
+ <script>
+ async_test(function(t){
+     document.getElementById("foo").onmouseover = t.step_func(function() { return true; });
+     document.getElementById("foo").addEventListener("mouseover", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, true)}), false);
+     document.getElementById("foo").dispatchEvent(new Event('mouseover', {cancelable: true}));
+     t.done();
+ }, "test Mouseover listener returning true cancels event");
+ async_test(function(t){
+     document.getElementById("foo").onmouseover = t.step_func(function() { return false; });
+     document.getElementById("foo").addEventListener("mouseover", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, false) }), false);
+     document.getElementById("foo").dispatchEvent(new Event('mouseover', {cancelable: true}));
+     t.done();
+ }, "test Mouseover listener returning false doesn't cancel event");
+ async_test(function(t){
+     window.onbeforeunload = t.step_func(function() {return null});
+     window.addEventListener("beforeunload", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, true)}));
+     window.dispatchEvent(new Event('beforeunload', {cancelable: true}));
+     t.done();
+ }, "test beforeunload listener returning null cancels event");
+ test(function(t){
+     window.onbeforeunload = t.step_func(function() {return true});
+     window.addEventListener("beforeunload", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, false)}));
+     window.dispatchEvent(new Event('beforeunload', {cancelable: true}));
+     t.done();
+ }, "test beforeunload listener returning non null doesn't cancel event");
+ test(function(t){
+     document.getElementById("foo").onclick = t.step_func(function() { return false; });
+     document.getElementById("foo").addEventListener("click", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, true) }), false);
+     document.getElementById("foo").dispatchEvent(new Event("click", {cancelable: true}));
+     t.done();
+ }, "click listener returning false cancels event");
+ test(function(t){
+     document.getElementById("foo").onblur = t.step_func(function() { return false; });
+     document.getElementById("foo").addEventListener("blur", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, true) }), false);
+     document.getElementById("foo").dispatchEvent(new Event("blur", {cancelable: true}));
+     t.done();
+ }, "blur listener returning false cancels event");
+ test(function(t){
+     document.getElementById("foo").ondblkclick = t.step_func(function() { return false; });
+     document.getElementById("foo").addEventListener("dblclick", t.step_func(function(ev) { assert_equals(ev.defaultPrevented, true) }), false);
+     document.getElementById("foo").dispatchEvent(new Event("dblclick", {cancelable: true}));
+     t.done();
+ }, "dblclick listener returning false cancels event");
+</script>
