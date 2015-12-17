@@ -1917,12 +1917,17 @@ impl ScriptTask {
         match subpage_id {
             Some(subpage_id) => {
                 let borrowed_page = self.root_page();
-                let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
-                    let doc = page.document();
-                    doc.find_iframe(subpage_id)
-                });
-                if let Some(iframe) = iframe.r() {
-                    iframe.navigate_child_browsing_context(load_data.url);
+                if let Some(containing_page) = borrowed_page.find(pipeline_id) {
+                    let doc = containing_page.document();
+                    let iframe = doc.find_iframe(subpage_id);
+                    if let Some(iframe) = iframe.r() {
+                        iframe.navigate_child_browsing_context(load_data.url);
+
+                        let window = containing_page.window();
+                        window.reflow(ReflowGoal::ForDisplay,
+                                      ReflowQueryType::NoQuery,
+                                      ReflowReason::IframeLoadedNewPage);
+                    }
                 }
             }
             None => {

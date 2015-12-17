@@ -18,7 +18,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -119,6 +119,10 @@ impl HTMLIFrameElement {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
             self.dispatch_mozbrowser_event(MozBrowserEvent::LoadStart);
         }
+
+        // We need to dirty ourselves so that the iframe fragment will be reconstructed with the
+        // new subpage ID.
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage)
     }
 
     pub fn process_the_iframe_attributes(&self) {
