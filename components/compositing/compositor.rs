@@ -27,7 +27,7 @@ use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
-use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerKind};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::{AnimationState, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, MouseButton};
@@ -48,6 +48,7 @@ use std::sync::mpsc::Sender;
 use style_traits::viewport::ViewportConstraints;
 use surface_map::SurfaceMap;
 use time::{precise_time_ns, precise_time_s};
+use touch::{TouchHandler, TouchAction};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
@@ -77,9 +78,6 @@ const BUFFER_MAP_SIZE: usize = 10000000;
 // Default viewport constraints
 const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
-
-/// Minimum number of ScreenPx to begin touch scrolling.
-const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -179,10 +177,10 @@ pub struct IOCompositor<Window: WindowMethods> {
     fragment_point: Option<Point2D<f32>>,
 
     /// Touch input state machine
-    touch_gesture_state: TouchState,
+    touch_handler: TouchHandler,
 
-    /// Pending scroll events.
-    pending_scroll_events: Vec<ScrollEvent>,
+    /// Pending scroll/zoom events.
+    pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
 
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
@@ -199,30 +197,12 @@ pub struct IOCompositor<Window: WindowMethods> {
     last_mouse_move_recipient: Option<PipelineId>,
 }
 
-/// The states of the touch input state machine.
-///
-/// TODO: Currently Add support for "flinging" (scrolling inertia), pinch zooming.
-enum TouchState {
-    /// Not tracking any touch point
-    Nothing,
-    /// A touchstart event was dispatched to the page, but the response wasn't received yet.
-    /// Contains the number of active touch points and the initial touch location.
-    WaitingForScript(u32, TypedPoint2D<DevicePixel, f32>),
-    /// Script is consuming the current touch sequence; don't perform default actions.
-    /// Contains the number of active touch points.
-    DefaultPrevented(u32),
-    /// A single touch point is active and may perform click or pan default actions.
-    /// Contains the initial touch location.
-    Touching(TypedPoint2D<DevicePixel, f32>),
-    /// A single touch point is active and has started panning. Contains the latest touch location.
-    Panning(TypedPoint2D<DevicePixel, f32>),
-    /// A multi-touch gesture is in progress. Contains the number of active touch points.
-    MultiTouch(u32),
-}
-
-
-pub struct ScrollEvent {
+pub struct ScrollZoomEvent {
+    /// Change the pinch zoom level by this factor
+    magnification: f32,
+    /// Scroll by this offset
     delta: TypedPoint2D<DevicePixel, f32>,
+    /// Apply changes to the frame at this location
     cursor: TypedPoint2D<DevicePixel, i32>,
 }
 
@@ -347,8 +327,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             channel_to_self: state.sender.clone_compositor_proxy(),
             scrolling_timer: ScrollingTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
-            touch_gesture_state: TouchState::Nothing,
-            pending_scroll_events: Vec::new(),
+            touch_handler: TouchHandler::new(),
+            pending_scroll_zoom_events: Vec::new(),
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: ScaleFactor::new(1.0),
@@ -556,19 +536,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
-                match self.touch_gesture_state {
-                    TouchState::WaitingForScript(n, p) => {
-                        self.touch_gesture_state = match result {
-                            EventResult::DefaultPrevented => TouchState::DefaultPrevented(n),
-                            EventResult::DefaultAllowed => if n > 1 {
-                                TouchState::MultiTouch(n)
-                            } else {
-                                TouchState::Touching(p)
-                            }
-                        };
-                    }
-                    _ => {}
-                }
+                self.touch_handler.on_event_processed(result);
             }
 
             (Msg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
@@ -1220,25 +1188,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
-        self.touch_gesture_state = match self.touch_gesture_state {
-            TouchState::Nothing => {
-                TouchState::WaitingForScript(1, point)
-            }
-            TouchState::Touching(_) |
-            TouchState::Panning(_) => {
-                // Was a single-touch sequence; now a multi-touch sequence:
-                TouchState::MultiTouch(2)
-            }
-            TouchState::WaitingForScript(n, p) => {
-                TouchState::WaitingForScript(n + 1, p)
-            }
-            TouchState::DefaultPrevented(n) => {
-                TouchState::DefaultPrevented(n + 1)
-            }
-            TouchState::MultiTouch(n) => {
-                TouchState::MultiTouch(n + 1)
-            }
-        };
+        self.touch_handler.on_touch_down(identifier, point);
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
             result.layer.send_event(self, TouchEvent(TouchEventType::Down, identifier,
                                                      result.point.to_untyped()));
@@ -1246,89 +1196,49 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
-        match self.touch_gesture_state {
-            TouchState::Nothing => warn!("Got unexpected touch move event"),
-
-            TouchState::WaitingForScript(..) => {
-                // TODO: Queue events while waiting for script?
-            }
-            TouchState::Touching(p0) => {
-                let delta = point - p0;
-                let px: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
-                let px = px.to_untyped();
-
-                if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                   px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
-                {
-                    self.touch_gesture_state = TouchState::Panning(point);
-                    self.on_scroll_window_event(delta, point.cast().unwrap());
-                }
-            }
-            TouchState::Panning(p0) => {
-                let delta = point - p0;
+        match self.touch_handler.on_touch_move(identifier, point) {
+            TouchAction::Scroll(delta) => {
                 self.on_scroll_window_event(delta, point.cast().unwrap());
-                self.touch_gesture_state = TouchState::Panning(point);
             }
-            TouchState::DefaultPrevented(_) => {
-                // Send the event to script.
+            TouchAction::Zoom(magnification, scroll_delta) => {
+                let cursor = Point2D::typed(-1, -1);  // Make sure this hits the base layer.
+                self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+                    magnification: magnification,
+                    delta: scroll_delta,
+                    cursor: cursor,
+                });
+                self.composite_if_necessary(CompositingReason::Zoom);
+            }
+            TouchAction::DispatchEvent => {
                 if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
                     result.layer.send_event(self, TouchEvent(TouchEventType::Move, identifier,
                                                              result.point.to_untyped()));
                 }
             }
-            TouchState::MultiTouch(_) => {
-                // TODO: Pinch zooming.
-            }
+            _ => {}
         }
     }
 
     fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
-        // Send the event to script.
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
             result.layer.send_event(self, TouchEvent(TouchEventType::Up, identifier,
                                                      result.point.to_untyped()));
         }
-
-        self.touch_gesture_state = match self.touch_gesture_state {
-            TouchState::Touching(_) => {
-                // TODO: If the duration exceeds some threshold, send a contextmenu event instead.
-                // TODO: Don't send a click if preventDefault is called on the touchend event.
+        match self.touch_handler.on_touch_up(identifier, point) {
+            TouchAction::Click => {
                 self.simulate_mouse_click(point);
-                TouchState::Nothing
             }
-            TouchState::Nothing |
-            TouchState::Panning(_) |
-            TouchState::WaitingForScript(1, _) |
-            TouchState::DefaultPrevented(1) |
-            TouchState::MultiTouch(1) => {
-                TouchState::Nothing
-            }
-            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
-            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
-            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
-        };
+            _ => {}
+        }
     }
 
     fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
         // Send the event to script.
+        self.touch_handler.on_touch_cancel(identifier, point);
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
             result.layer.send_event(self, TouchEvent(TouchEventType::Cancel, identifier,
                                                      result.point.to_untyped()));
         }
-
-        self.touch_gesture_state = match self.touch_gesture_state {
-            TouchState::Nothing |
-            TouchState::Touching(_) |
-            TouchState::Panning(_) |
-            TouchState::WaitingForScript(1, _) |
-            TouchState::DefaultPrevented(1) |
-            TouchState::MultiTouch(1) => {
-                TouchState::Nothing
-            }
-            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
-            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
-            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
-        };
     }
 
     /// http://w3c.github.io/touch-events/#mouse-events
@@ -1348,7 +1258,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<DevicePixel, f32>,
                               cursor: TypedPoint2D<DevicePixel, i32>) {
-        self.pending_scroll_events.push(ScrollEvent {
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: 1.0,
             delta: delta,
             cursor: cursor,
         });
@@ -1357,20 +1268,30 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
-        let had_scroll_events = self.pending_scroll_events.len() > 0;
-        for scroll_event in std_mem::replace(&mut self.pending_scroll_events,
+        let had_events = self.pending_scroll_zoom_events.len() > 0;
+        for event in std_mem::replace(&mut self.pending_scroll_zoom_events,
                                              Vec::new()) {
-            let delta = scroll_event.delta / self.scene.scale;
-            let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
+            let delta = event.delta / self.scene.scale;
+            let cursor = event.cursor.as_f32() / self.scene.scale;
 
             if let Some(ref mut layer) = self.scene.root {
                 layer.handle_scroll_event(delta, cursor);
             }
 
+            if event.magnification != 1.0 {
+                self.zoom_action = true;
+                self.zoom_time = precise_time_s();
+                self.viewport_zoom = ScaleFactor::new(
+                    (self.viewport_zoom.get() * event.magnification)
+                    .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
+                    .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
+                self.update_zoom_transform();
+            }
+
             self.perform_updates_after_scroll();
         }
 
-        if had_scroll_events {
+        if had_events {
             self.send_viewport_rects_for_all_layers();
         }
     }
@@ -1498,36 +1419,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size();
     }
 
-    // TODO(pcwalton): I think this should go through the same queuing as scroll events do.
+    /// Simulate a pinch zoom
     fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
-        use num::Float;
-
-        self.zoom_action = true;
-        self.zoom_time = precise_time_s();
-        let old_viewport_zoom = self.viewport_zoom;
-
-        let viewport_zoom = ScaleFactor::new((self.viewport_zoom.get() * magnification)
-            .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
-            .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
-        self.viewport_zoom = viewport_zoom;
-
-        self.update_zoom_transform();
-
-        // Scroll as needed
-        let window_size = self.window_size.as_f32();
-        let page_delta: TypedPoint2D<LayerPixel, f32> = Point2D::typed(
-            window_size.width.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5,
-            window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
-
-        let cursor = Point2D::typed(-1f32, -1f32);  // Make sure this hits the base layer.
-        match self.scene.root {
-            Some(ref mut layer) => {
-                layer.handle_scroll_event(page_delta, cursor);
-            }
-            None => { }
-        }
-
-        self.send_viewport_rects_for_all_layers();
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: magnification,
+            delta: Point2D::typed(0.0, 0.0), // TODO: Scroll to keep the center in view?
+            cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
+        });
         self.composite_if_necessary(CompositingReason::Zoom);
     }
 
