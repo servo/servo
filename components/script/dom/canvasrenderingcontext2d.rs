@@ -52,7 +52,7 @@ use util::vec::byte_swap;
 enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
-    // Pattern(JS<CanvasPattern>),  // https://github.com/servo/servo/pull/6157
+    Pattern(JS<CanvasPattern>),
 }
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
@@ -880,6 +880,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
+            CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
+                StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern.root())
+            }
         }
     }
 
@@ -905,7 +908,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
-            _ => {}
+            StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+                self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetStrokeStyle(
+                                                            pattern.r().to_fill_or_stroke_style()))).unwrap();
+            }
         }
     }
 
@@ -920,6 +926,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
+            CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
+                StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern.root())
+            }
         }
     }
 
