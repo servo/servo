@@ -89,6 +89,7 @@ pub struct FontMetrics {
 
 pub type SpecifiedFontStyle = FontStyle;
 
+#[derive(Debug)]
 pub struct Font {
     pub handle: FontHandle,
     pub metrics: FontMetrics,
@@ -115,7 +116,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[derive(Clone, Eq, PartialEq, Hash, Copy)]
+#[derive(Clone, Eq, PartialEq, Hash, Copy, Debug)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
@@ -129,7 +130,7 @@ pub struct ShapingOptions {
 }
 
 /// An entry in the shape cache.
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ShapeCacheEntry {
     text: String,
     options: ShapingOptions,
@@ -217,6 +218,7 @@ impl Font {
     }
 }
 
+#[derive(Debug)]
 pub struct FontGroup {
     pub fonts: SmallVec<[Rc<RefCell<Font>>; 8]>,
 }

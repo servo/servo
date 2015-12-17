@@ -70,7 +70,7 @@ pub type UserPtr = *mut User;
 
 // WARNING: We need to be careful how we use this struct. See the comment about Rc<> in
 // FontContextHandle.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FreeTypeLibraryHandle {
     pub ctx: FT_Library,
     mem: FT_Memory,
@@ -98,7 +98,7 @@ impl HeapSizeOf for FreeTypeLibraryHandle {
     }
 }
 
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, Debug)]
 pub struct FontContextHandle {
     // WARNING: FreeTypeLibraryHandle contains raw pointers, is clonable, and also implements
     // `Drop`. This field needs to be Rc<> to make sure that the `drop` function is only called
