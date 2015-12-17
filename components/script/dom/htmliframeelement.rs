@@ -90,7 +90,7 @@ impl HTMLIFrameElement {
         (subpage_id, old_subpage_id)
     }
 
-    pub fn navigate_child_browsing_context(&self, url: Url) {
+    pub fn navigate_or_reload_child_browsing_context(&self, url: Option<Url>) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -127,7 +127,7 @@ impl HTMLIFrameElement {
             None => url!("about:blank"),
         };
 
-        self.navigate_child_browsing_context(url);
+        self.navigate_or_reload_child_browsing_context(Some(url));
     }
 
     #[allow(unsafe_code)]
@@ -399,7 +399,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
     fn Reload(&self, _hardReload: bool) -> Fallible<()> {
-        Err(Error::NotSupported)
+        if mozbrowser_enabled() {
+            if self.upcast::<Node>().is_in_doc() {
+                self.navigate_or_reload_child_browsing_context(None);
+            }
+        }
+        Ok(())
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop

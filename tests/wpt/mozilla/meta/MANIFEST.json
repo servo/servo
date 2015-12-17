@@ -5685,6 +5685,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/mozbrowsericonchange_event.html"
           }
         ],
+        "mozilla/mozbrowser/reload.html": [
+          {
+            "path": "mozilla/mozbrowser/reload.html",
+            "url": "/_mozilla/mozilla/mozbrowser/reload.html"
+          }
+        ],
         "mozilla/navigator.html": [
           {
             "path": "mozilla/navigator.html",
