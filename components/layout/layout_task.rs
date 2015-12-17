@@ -24,6 +24,7 @@ use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUti
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, StackingContext};
+use gfx::font;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
@@ -1033,6 +1034,18 @@ impl LayoutTask {
                     }
                 }
             });
+
+            // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
+            let text_shaping_time =
+                (font::get_and_reset_text_shaping_performance_counter() as u64) /
+                (opts::get().layout_threads as u64);
+            time::send_profile_data(time::ProfilerCategory::LayoutTextShaping,
+                                    self.profiler_metadata(),
+                                    self.time_profiler_chan.clone(),
+                                    0,
+                                    text_shaping_time,
+                                    0,
+                                    0);
 
             // Retrieve the (possibly rebuilt) root flow.
             self.root_flow = self.try_get_layout_root(node);

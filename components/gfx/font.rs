@@ -14,13 +14,17 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
 use text::Shaper;
 use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
+use time;
 use unicode_script::Script;
 use util::cache::HashCache;
+
+static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
@@ -145,6 +149,8 @@ impl Font {
             return glyphs.clone();
         }
 
+        let start_time = time::precise_time_ns();
+
         let mut glyphs = GlyphStore::new(text.chars().count(),
                                          options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
                                          options.flags.contains(RTL_FLAG));
@@ -155,6 +161,11 @@ impl Font {
             text: text.to_owned(),
             options: *options,
         }, glyphs.clone());
+
+        let end_time = time::precise_time_ns();
+        TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
+                                                   Ordering::Relaxed);
+
         glyphs
     }
 
@@ -245,3 +256,10 @@ impl RunMetrics {
         }
     }
 }
+
+pub fn get_and_reset_text_shaping_performance_counter() -> usize {
+    let value = TEXT_SHAPING_PERFORMANCE_COUNTER.load(Ordering::SeqCst);
+    TEXT_SHAPING_PERFORMANCE_COUNTER.store(0, Ordering::SeqCst);
+    value
+}
+
