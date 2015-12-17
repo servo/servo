@@ -470,7 +470,6 @@ impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
         let global = ws.global.root();
-        let sender = global.r().networking_task_source();
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
@@ -479,6 +478,7 @@ impl Runnable for ConnectionEstablishedTask {
             let task = box CloseTask {
                 addr: self.addr,
             };
+            let sender = global.r().networking_task_source();
             sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
             return;
         }

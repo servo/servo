@@ -431,15 +431,9 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: 
     }
 }
 
-///Defensively unwraps the protocol string from the response object's protocol
+/// Defensively unwraps the protocol string from the response object's protocol
 pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Option<&str> {
-    if let Some(protocol) = wsp {
-        let protocol_list = &protocol;
-        if let Some(ref p) = protocol_list.get(0) {
-            return Some(p);
-        };
-    };
-    return None;
+    wsp.and_then(|protocol_list| protocol_list.get(0).map(|protocol| protocol.as_ref()))
 }
 
 /// An unique identifier to keep track of each load message in the resource handler
