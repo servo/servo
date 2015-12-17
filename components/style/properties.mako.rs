@@ -4951,6 +4951,11 @@ pub mod longhands {
 
     // Flex container properties
     ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+    // Flex item properties
+    ${integer_type_or_auto("order",
+                           "i32",
+                           "Specified(0)",
+                           experimental=True)}
 }
 
 
