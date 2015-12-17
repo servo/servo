@@ -39,6 +39,7 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};
 use script_traits::ScriptMsg as ConstellationMsg;
+use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::{cmp, fmt};
@@ -66,6 +67,7 @@ pub struct CanvasRenderingContext2D {
     canvas: JS<HTMLCanvasElement>,
     state: DOMRefCell<CanvasContextState>,
     saved_states: DOMRefCell<Vec<CanvasContextState>>,
+    origin_clean: Cell<bool>,
 }
 
 #[must_root]
@@ -131,6 +133,7 @@ impl CanvasRenderingContext2D {
             canvas: JS::from_ref(canvas),
             state: DOMRefCell::new(CanvasContextState::new()),
             saved_states: DOMRefCell::new(Vec::new()),
+            origin_clean: Cell::new(true),
         }
     }
 
@@ -222,6 +225,29 @@ impl CanvasRenderingContext2D {
         (source_rect, dest_rect)
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean
+    fn is_origin_clean(&self,
+                       image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D)
+                           -> bool {
+        match image {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
+                canvas.origin_is_clean()
+            }
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) =>
+                image.r().origin_is_clean(),
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) =>
+                match image.get_url() {
+                    None => true,
+                    Some(url) => {
+                        // TODO(zbarsky): we should check the origin of the image against
+                        // the entry settings object, but for now check it against the canvas' doc.
+                        let node: &Node = &*self.canvas.upcast();
+                        url.origin() == node.owner_doc().url().origin()
+                    }
+                }
+        }
+    }
+
     //
     // drawImage coordinates explained
     //
@@ -254,19 +280,20 @@ impl CanvasRenderingContext2D {
                   dw: Option<f64>,
                   dh: Option<f64>)
                   -> Fallible<()> {
-        match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) =>
+        let result = match image {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(ref canvas) => {
                 self.draw_html_canvas_element(canvas.r(),
                                               sx, sy, sw, sh,
-                                              dx, dy, dw, dh),
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
+                                              dx, dy, dw, dh)
+            }
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(ref image) => {
                 let context = image.r();
                 let canvas = context.Canvas();
                 self.draw_html_canvas_element(canvas.r(),
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(ref image) => {
                 let image_element = image.r();
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
@@ -290,7 +317,14 @@ impl CanvasRenderingContext2D {
                                      sx, sy, sw, sh,
                                      dx, dy, dw, dh)
             }
+        };
+
+        if result.is_ok() {
+            if !self.is_origin_clean(image) {
+                self.set_origin_unclean()
+            }
         }
+        result
     }
 
     fn draw_html_canvas_element(&self,
@@ -474,6 +508,14 @@ impl CanvasRenderingContext2D {
     }
     pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
+    }
+
+    pub fn origin_is_clean(&self) -> bool {
+        self.origin_clean.get()
+    }
+
+    fn set_origin_unclean(&self) {
+        self.origin_clean.set(false)
     }
 }
 
@@ -887,15 +929,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
-                match self.parse_color(&string) {
-                    Ok(rgba) => {
-                        self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
-                        self.ipc_renderer
-                            .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetStrokeStyle(
-                                        FillOrStrokeStyle::Color(rgba))))
-                            .unwrap();
-                    }
-                    _ => {}
+                if let Ok(rgba) = self.parse_color(&string) {
+                    self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
+                    self.ipc_renderer
+                        .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetStrokeStyle(
+                                    FillOrStrokeStyle::Color(rgba))))
+                        .unwrap();
                 }
             },
             StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
@@ -905,7 +944,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
-            _ => {}
+            StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+                let msg = CanvasMsg::Canvas2d(
+                    Canvas2dMsg::SetStrokeStyle(pattern.to_fill_or_stroke_style()));
+                self.ipc_renderer.send(msg).unwrap();
+                if !pattern.origin_is_clean() {
+                    self.set_origin_unclean();
+                }
+            }
         }
     }
 
@@ -943,8 +989,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
-                self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
-                                                       pattern.to_fill_or_stroke_style()))).unwrap();
+                let msg = CanvasMsg::Canvas2d(
+                    Canvas2dMsg::SetFillStyle(pattern.to_fill_or_stroke_style()));
+                self.ipc_renderer.send(msg).unwrap();
+                if !pattern.origin_is_clean() {
+                    self.set_origin_unclean();
+                }
             }
         }
     }
@@ -975,6 +1025,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     sw: Finite<f64>,
                     sh: Finite<f64>)
                     -> Fallible<Root<ImageData>> {
+
+        if !self.origin_is_clean() {
+            return Err(Error::Security)
+        }
+
         let mut sx = *sx;
         let mut sy = *sy;
         let mut sw = *sw;
@@ -1095,38 +1150,34 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      repetition: DOMString)
                      -> Fallible<Root<CanvasPattern>> {
         let (image_data, image_size) = match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                match self.fetch_image_data(&image.r()) {
-                    Some((data, size)) => (data, size),
-                    None => return Err(Error::InvalidState),
-                }
+                try!(self.fetch_image_data(&image.r()).ok_or(Error::InvalidState))
             },
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(ref canvas) => {
                 let _ = canvas.get_or_init_2d_context();
 
-                match canvas.fetch_all_data() {
-                    Some((data, size)) => (data, size),
-                    None => return Err(Error::InvalidState),
-                }
+                try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
             },
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(context) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(ref context) => {
                 let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 
-                match canvas.fetch_all_data() {
-                    Some((data, size)) => (data, size),
-                    None => return Err(Error::InvalidState),
-                }
+                try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
             }
         };
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            return Ok(CanvasPattern::new(self.global.root().r(), image_data, image_size, rep));
+            Ok(CanvasPattern::new(self.global.root().r(),
+                                  image_data,
+                                  image_size,
+                                  rep,
+                                  self.is_origin_clean(image)))
+        } else {
+            Err(Error::Syntax)
         }
-        return Err(Error::Syntax);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
