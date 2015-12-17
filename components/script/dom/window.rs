@@ -991,7 +991,9 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        if query_type != ReflowQueryType::NoQuery || self.Document().needs_reflow() {
+        let for_display = query_type == ReflowQueryType::NoQuery;
+
+        if !for_display || self.Document().needs_reflow() {
             self.force_reflow(goal, query_type, reason);
 
             // If window_size is `None`, we don't reflow, so the document stays dirty.
@@ -1001,7 +1003,15 @@ impl Window {
             debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
         }
 
-        if opts::get().output_file.is_some() {
+        // If writing a screenshot, check if the script has reached a state
+        // where it's safe to write the image. This means that:
+        // 1) The reflow is for display (otherwise it could be a query)
+        // 2) The html element doesn't contain the 'reftest-wait' class
+        // 3) The load event has fired.
+        // When all these conditions are met, notify the constellation
+        // that this pipeline is ready to write the image (from the script task
+        // perspective at least).
+        if opts::get().output_file.is_some() && for_display {
             let document = self.Document();
 
             // Checks if the html element has reftest-wait attribute present.
