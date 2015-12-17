@@ -5,6 +5,7 @@
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -188,13 +189,20 @@ impl CompiledEventListener {
                             let global = object.global();
                             let cx = global.r().get_cx();
                             let error = RootedValue::new(cx, event.Error(cx));
-                            let _ = handler.Call_(object,
-                                                  EventOrString::String(event.Message()),
-                                                  Some(event.Filename()),
-                                                  Some(event.Lineno()),
-                                                  Some(event.Colno()),
-                                                  Some(error.handle()),
-                                                  exception_handle);
+                            let return_value = handler.Call_(object,
+                                                             EventOrString::String(event.Message()),
+                                                             Some(event.Filename()),
+                                                             Some(event.Lineno()),
+                                                             Some(event.Colno()),
+                                                             Some(error.handle()),
+                                                             exception_handle);
+                            // Step 4
+                            if let Ok(return_value) = return_value {
+                                let return_value = RootedValue::new(cx, return_value);
+                                if return_value.handle().is_boolean() && return_value.handle().to_boolean() == true {
+                                    event.upcast::<Event>().PreventDefault();
+                                }
+                            }
                             return;
                         }
 
@@ -203,13 +211,26 @@ impl CompiledEventListener {
                     }
 
                     CommonEventHandler::EventHandler(ref handler) => {
-                        let _ = handler.Call_(object, event, exception_handle);
+                        if let Ok(value) = handler.Call_(object, event, exception_handle) {
+                            let global = object.global();
+                            let cx = global.r().get_cx();
+                            let value = RootedValue::new(cx, value);
+                            let value = value.handle();
+
+                            //Step 4
+                            let should_cancel = match event.type_() {
+                                atom!("mouseover") => value.is_boolean() && value.to_boolean() == true,
+                                atom!("beforeunload") => value.is_null(),
+                                _ => value.is_boolean() && value.to_boolean() == false
+                            };
+                            if should_cancel {
+                                event.PreventDefault();
+                            }
+                        }
                     }
                 }
-            },
+            }
         }
-
-        // TODO(#8490): step 4 (cancel event based on return value)
     }
 }
 
@@ -294,8 +315,8 @@ impl EventTarget {
     }
 
     pub fn dispatch_event_with_target(&self,
-                                  target: &EventTarget,
-                                  event: &Event) -> bool {
+                                      target: &EventTarget,
+                                      event: &Event) -> bool {
         dispatch_event(self, Some(target), event)
     }
 

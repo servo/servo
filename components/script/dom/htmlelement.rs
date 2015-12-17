@@ -180,6 +180,24 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-onblur
+    fn GetOnblur(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            window_from_node(self).GetOnblur()
+        } else {
+            self.upcast::<EventTarget>().get_event_handler_common("blur")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onblur
+    fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            window_from_node(self).SetOnblur(listener)
+        } else {
+            self.upcast::<EventTarget>().set_event_handler_common("blur", listener)
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
         if let Some(i) = self.downcast::<HTMLInputElement>() {
