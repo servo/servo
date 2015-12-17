@@ -22,15 +22,23 @@ pub trait Int:
     fn from_usize(n: usize) -> Option<Self>;
 }
 impl Int for isize {
+    #[inline]
     fn zero() -> isize { 0 }
+    #[inline]
     fn one() -> isize { 1 }
+    #[inline]
     fn max_value() -> isize { ::std::isize::MAX }
+    #[inline]
     fn from_usize(n: usize) -> Option<isize> { num_lib::NumCast::from(n) }
 }
 impl Int for usize {
+    #[inline]
     fn zero() -> usize { 0 }
+    #[inline]
     fn one() -> usize { 1 }
+    #[inline]
     fn max_value() -> usize { ::std::usize::MAX }
+    #[inline]
     fn from_usize(n: usize) -> Option<usize> { Some(n) }
 }
 
@@ -88,9 +96,13 @@ macro_rules! int_range_index {
         }
 
         impl $crate::range::Int for $Self_ {
+            #[inline]
             fn zero() -> $Self_ { $Self_($crate::range::Int::zero()) }
+            #[inline]
             fn one() -> $Self_ { $Self_($crate::range::Int::one()) }
+            #[inline]
             fn max_value() -> $Self_ { $Self_($crate::range::Int::max_value()) }
+            #[inline]
             fn from_usize(n: usize) -> Option<$Self_> { $crate::range::Int::from_usize(n).map($Self_) }
         }
 
