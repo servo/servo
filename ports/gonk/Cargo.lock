@@ -4,7 +4,6 @@ version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
  "devtools 0.0.1",
- "egl 0.2.0 (git+https://github.com/servo/rust-egl)",
  "env_logger 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "errno 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -18,6 +17,7 @@ dependencies = [
  "profile 0.0.1",
  "script 0.0.1",
  "servo 0.0.1",
+ "servo-egl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -384,14 +384,6 @@ dependencies = [
 name = "dylib"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "egl"
-version = "0.2.0"
-source = "git+https://github.com/servo/rust-egl#c59c59f6dc252e2ab17103b045d7ab1e452f32da"
 dependencies = [
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

@@ -40,9 +40,6 @@ path = "../../components/profile"
 [dependencies.util]
 path = "../../components/util"
 
-[dependencies.egl]
-git = "https://github.com/servo/rust-egl"
-
 [dependencies]
 env_logger = "0.3"
 url = "0.5"
@@ -51,3 +48,4 @@ errno = "0.1"
 libc = "0.2"
 euclid = {version = "0.4", features = ["plugins"]}
 gleam = "0.2"
+servo-egl = "0.2"
