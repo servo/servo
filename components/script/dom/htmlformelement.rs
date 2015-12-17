@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -249,7 +248,7 @@ impl HTMLFormElement {
     /// https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints
     fn interactive_validation(&self) -> Result<(), ()> {
         // Step 1-3
-        let unhandled_invalid_controls = match self.static_validation() {
+        let _unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
             Err(err) => err
         };
@@ -267,7 +266,7 @@ impl HTMLFormElement {
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3
         let invalid_controls = node.traverse_preorder().filter_map(|field| {
-            if let Some(el) = field.downcast::<Element>() {
+            if let Some(_el) = field.downcast::<Element>() {
                 None // Remove this line if you decide to refactor
 
                 // XXXKiChjang: Form control elements should each have a candidate_for_validation
@@ -564,7 +563,7 @@ impl<'a> FormSubmitter<'a> {
         }
     }
 
-    fn no_validate(&self, form_owner: &HTMLFormElement) -> bool {
+    fn no_validate(&self, _form_owner: &HTMLFormElement) -> bool {
         match *self {
             FormSubmitter::FormElement(form) => form.NoValidate(),
             FormSubmitter::InputElement(input_element) => {
