@@ -6,7 +6,7 @@ use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{AnimationState, IframeLoadInfo, NavigationDirection};
+use msg::constellation_msg::{AnimationState, DocumentState, IframeLoadInfo, NavigationDirection};
 use msg::constellation_msg::{Failure, MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{LoadData, SubpageId};
 use msg::constellation_msg::{MouseButton, MouseEventType};
@@ -66,4 +66,8 @@ pub enum ScriptMsg {
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+    /// Mark a new document as active
+    ActivateDocument(PipelineId),
+    /// Set the document state for a pipeline (used by screenshot / reftests)
+    SetDocumentState(PipelineId, DocumentState),
 }

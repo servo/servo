@@ -80,7 +80,7 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, InitialScriptState, NewLayoutInfo};
-use script_traits::{OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg, ScriptState};
+use script_traits::{OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptTaskFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
 use std::any::Any;
@@ -97,7 +97,6 @@ use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use time::{Tm, now};
 use url::{Url, UrlParser};
 use util::opts;
@@ -1014,10 +1013,6 @@ impl ScriptTask {
             ConstellationControlMsg::DispatchFrameLoadEvent {
                 target: pipeline_id, parent: containing_id } =>
                 self.handle_frame_load_event(containing_id, pipeline_id),
-            ConstellationControlMsg::GetCurrentState(sender, pipeline_id) => {
-                let state = self.handle_get_current_state(pipeline_id);
-                sender.send(state).unwrap();
-            },
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
         }
@@ -1171,40 +1166,6 @@ impl ScriptTask {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
-    }
-
-    /// Get the current state of a given pipeline.
-    fn handle_get_current_state(&self, pipeline_id: PipelineId) -> ScriptState {
-        // Check if the main page load is still pending
-        let loads = self.incomplete_loads.borrow();
-        if let Some(_) = loads.iter().find(|load| load.pipeline_id == pipeline_id) {
-            return ScriptState::DocumentLoading;
-        }
-
-        // If not in pending loads, the page should exist by now.
-        let page = self.root_page();
-        let page = page.find(pipeline_id).expect("GetCurrentState sent to nonexistent pipeline");
-        let doc = page.document();
-
-        // Check if document load event has fired. If the document load
-        // event has fired, this also guarantees that the first reflow
-        // has been kicked off. Since the script task does a join with
-        // layout, this ensures there are no race conditions that can occur
-        // between load completing and the first layout completing.
-        let load_pending = doc.ReadyState() != DocumentReadyState::Complete;
-        if load_pending {
-            return ScriptState::DocumentLoading;
-        }
-
-        // Checks if the html element has reftest-wait attribute present.
-        // See http://testthewebforward.org/docs/reftests.html
-        let html_element = doc.GetDocumentElement();
-        let reftest_wait = html_element.map_or(false, |elem| elem.has_class(&Atom::from("reftest-wait")));
-        if reftest_wait {
-            return ScriptState::DocumentLoading;
-        }
-
-        ScriptState::DocumentLoaded
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1714,6 +1675,9 @@ impl ScriptTask {
             document: JS::from_rooted(&document),
             window: JS::from_rooted(&window),
         }));
+
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id)).unwrap();
 
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
