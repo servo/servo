@@ -12,7 +12,7 @@ use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, StylistWrapper, heap_size_of_local_context};
+use context::{SharedLayoutContext, heap_size_of_local_context};
 use display_list_builder::ToGfxColor;
 use euclid::Matrix4;
 use euclid::point::Point2D;
@@ -64,6 +64,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::computed_values::{filter, mix_blend_mode};
+use style::context::{SharedStyleContext, StylistWrapper};
 use style::dom::{TDocument, TElement, TNode};
 use style::media_queries::{Device, MediaType};
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
@@ -470,21 +471,23 @@ impl LayoutTask {
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
+            style_context: SharedStyleContext {
+                viewport_size: self.viewport_size.clone(),
+                screen_size_changed: screen_size_changed,
+                stylist: StylistWrapper(&*rw_data.stylist),
+                generation: self.generation,
+                goal: goal,
+                new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
+                running_animations: self.running_animations.clone(),
+                expired_animations: self.expired_animations.clone(),
+                error_reporter: self.error_reporter.clone(),
+            },
             image_cache_task: self.image_cache_task.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
-            viewport_size: self.viewport_size.clone(),
-            screen_size_changed: screen_size_changed,
             font_cache_task: Mutex::new(self.font_cache_task.clone()),
             canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
-            stylist: StylistWrapper(&*rw_data.stylist),
             url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
-            generation: self.generation,
-            new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
-            goal: goal,
-            running_animations: self.running_animations.clone(),
-            expired_animations: self.expired_animations.clone(),
-            error_reporter: self.error_reporter.clone(),
         }
     }
 

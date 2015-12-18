@@ -40,7 +40,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Mutex<Sender<Anim
             let start_time =
                 now + (animation_style.transition_delay.0.get_mod(i).seconds() as f64);
             new_animations_sender.lock().unwrap().send(Animation {
-                node: node.id(),
+                node: node,
                 property_animation: property_animation,
                 start_time: start_time,
                 end_time: start_time +
@@ -101,7 +101,7 @@ pub fn update_animation_state(constellation_chan: &ConstellationChan<Constellati
 
     // Add new running animations.
     for new_running_animation in new_running_animations {
-        match running_animations.entry(OpaqueNode(new_running_animation.node)) {
+        match running_animations.entry(new_running_animation.node) {
             Entry::Vacant(entry) => {
                 entry.insert(vec![new_running_animation]);
             }
@@ -126,7 +126,7 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
                                    animations: &HashMap<OpaqueNode, Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
-        if let Some(ref animations) = animations.get(&OpaqueNode(fragment.node.id())) {
+        if let Some(ref animations) = animations.get(&fragment.node) {
             for animation in *animations {
                 update_style_for_animation(animation, &mut fragment.style, Some(&mut damage));
             }
