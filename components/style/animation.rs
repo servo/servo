@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use cssparser::{Color, RGBA};
+use dom::OpaqueNode;
 use euclid::point::Point2D;
 use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
@@ -29,6 +30,28 @@ use util::bezier::Bezier;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage, Time};
+
+/// State relating to an animation.
+#[derive(Clone)]
+pub struct Animation {
+    /// An opaque reference to the DOM node participating in the animation.
+    pub node: OpaqueNode,
+    /// A description of the property animation that is occurring.
+    pub property_animation: PropertyAnimation,
+    /// The start time of the animation, as returned by `time::precise_time_s()`.
+    pub start_time: f64,
+    /// The end time of the animation, as returned by `time::precise_time_s()`.
+    pub end_time: f64,
+}
+
+impl Animation {
+    /// Returns the duration of this animation in seconds.
+    #[inline]
+    pub fn duration(&self) -> f64 {
+        self.end_time - self.start_time
+    }
+}
+
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {
