@@ -12,7 +12,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::window_from_node;
 use string_cache::Atom;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 #[dom_struct]
 pub struct DOMTokenList {
@@ -129,10 +129,9 @@ impl DOMTokenListMethods for DOMTokenList {
         }
     }
 
-    // https://dom.spec.whatwg.org/#stringification-behavior
+    // https://dom.spec.whatwg.org/#concept-dtl-serialize
     fn Stringifier(&self) -> DOMString {
-        let tokenlist = self.element.get_tokenlist_attribute(&self.local_name);
-        DOMString::from(str_join(&tokenlist, "\x20"))
+        self.element.get_string_attribute(&self.local_name)
     }
 
     // check-tidy: no specs after this line
