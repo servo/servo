@@ -276,34 +276,6 @@ class CGThing():
         raise NotImplementedError  # Override me!
 
 
-class CGNativePropertyHooks(CGThing):
-    """
-    Generate a NativePropertyHooks for a given descriptor
-    """
-    def __init__(self, descriptor, properties):
-        CGThing.__init__(self)
-        self.descriptor = descriptor
-        self.properties = properties
-
-    def define(self):
-        parent = self.descriptor.interface.parent
-        if parent:
-            parentHooks = ("Some(&::dom::bindings::codegen::Bindings::%sBinding::sNativePropertyHooks)"
-                           % parent.identifier.name)
-        else:
-            parentHooks = "None"
-
-        substitutions = {
-            "parentHooks": parentHooks
-        }
-
-        return string.Template(
-            "pub static sNativePropertyHooks: NativePropertyHooks = NativePropertyHooks {\n"
-            "    native_properties: &sNativeProperties,\n"
-            "    proto_hooks: ${parentHooks},\n"
-            "};\n").substitute(substitutions)
-
-
 class CGMethodCall(CGThing):
     """
     A class to generate selection of a method signature from a set of
@@ -1760,7 +1732,6 @@ def DOMClass(descriptor):
         return """\
 DOMClass {
     interface_chain: [ %s ],
-    native_hooks: &sNativePropertyHooks,
     type_id: %s,
     heap_size_of: %s as unsafe fn(_) -> _,
 }""" % (prototypeChainString, DOMClassTypeId(descriptor), heapSizeOf)
@@ -4921,7 +4892,6 @@ class CGDescriptor(CGThing):
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGNativeProperties(descriptor, properties))
-        cgThings.append(CGNativePropertyHooks(descriptor, properties))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
@@ -5339,8 +5309,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::reflector::{Reflectable}',
             'dom::bindings::utils::{ConstantSpec, DOMClass, DOMJSClass}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
-            'dom::bindings::utils::{NativeProperties, NativePropertyHooks, NonNullJSNative}',
-            'dom::bindings::utils::{create_dom_global, do_create_interface_objects, finalize_global}',
+            'dom::bindings::utils::{NativeProperties, NonNullJSNative, create_dom_global}',
+            'dom::bindings::utils::{do_create_interface_objects, finalize_global}',
             'dom::bindings::utils::{find_enum_string_index, generic_getter}',
             'dom::bindings::utils::{generic_lenient_getter, generic_lenient_setter}',
             'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',

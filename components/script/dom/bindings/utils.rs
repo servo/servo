@@ -129,15 +129,6 @@ impl ConstantSpec {
     }
 }
 
-/// Helper structure for cross-origin wrappers for DOM binding objects.
-pub struct NativePropertyHooks {
-    /// The property arrays for this interface.
-    pub native_properties: &'static NativeProperties,
-
-    /// The NativePropertyHooks instance for the parent interface, if any.
-    pub proto_hooks: Option<&'static NativePropertyHooks>,
-}
-
 /// The struct that holds inheritance information for DOM object reflectors.
 #[derive(Copy, Clone)]
 pub struct DOMClass {
@@ -147,9 +138,6 @@ pub struct DOMClass {
 
     /// The type ID of that interface.
     pub type_id: TopTypeId,
-
-    /// The NativePropertyHooks for the interface associated with this class.
-    pub native_hooks: &'static NativePropertyHooks,
 
     /// The HeapSizeOf function wrapper for that interface.
     pub heap_size_of: unsafe fn(*const libc::c_void) -> usize,
