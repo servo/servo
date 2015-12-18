@@ -135,6 +135,8 @@ struct InProgressLoad {
     layout_chan: LayoutChan,
     /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
+    /// Window is frozen (navigated away while loading for example).
+    is_frozen: bool,
     /// The requested URL of the load.
     url: Url,
 }
@@ -152,6 +154,7 @@ impl InProgressLoad {
             layout_chan: layout_chan,
             window_size: window_size,
             clip_rect: None,
+            is_frozen: false,
             url: url,
         }
     }
@@ -1319,31 +1322,38 @@ impl ScriptTask {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
-        // Workaround for a race condition when navigating before the initial page has
-        // been constructed c.f. https://github.com/servo/servo/issues/7677
-        if self.page.borrow().is_none() {
-            return
-        };
-        let page = self.root_page();
-        let page = page.find(id).expect("ScriptTask: received freeze msg for a
-                    pipeline ID not associated with this script task. This is a bug.");
-        let window = page.window();
-        window.freeze();
+        if let Some(root_page) = self.page.borrow().as_ref() {
+            if let Some(ref inner_page) = root_page.find(id) {
+                let window = inner_page.window();
+                window.freeze();
+                return;
+            }
+        }
+        let mut loads = self.incomplete_loads.borrow_mut();
+        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+            load.is_frozen = true;
+            return;
+        }
+        panic!("freeze sent to nonexistent pipeline");
     }
 
     /// Handles thaw message
     fn handle_thaw_msg(&self, id: PipelineId) {
-        // We should only get this message when moving in history, so all pages requested
-        // should exist.
-        let page = self.root_page().find(id).unwrap();
-
-        let needed_reflow = page.set_reflow_status(false);
-        if needed_reflow {
-            self.rebuild_and_force_reflow(&*page, ReflowReason::CachedPageNeededReflow);
+        if let Some(ref inner_page) = self.root_page().find(id) {
+            let needed_reflow = inner_page.set_reflow_status(false);
+            if needed_reflow {
+                self.rebuild_and_force_reflow(&*inner_page, ReflowReason::CachedPageNeededReflow);
+            }
+            let window = inner_page.window();
+            window.thaw();
+            return;
         }
-
-        let window = page.window();
-        window.thaw();
+        let mut loads = self.incomplete_loads.borrow_mut();
+        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+            load.is_frozen = false;
+            return;
+        }
+        panic!("thaw sent to nonexistent pipeline");
     }
 
     fn handle_focus_iframe_msg(&self,
@@ -1730,6 +1740,10 @@ impl ScriptTask {
                            final_url,
                            ParseContext::Owner(Some(incomplete.pipeline_id)));
             }
+        }
+
+        if incomplete.is_frozen {
+            window.freeze();
         }
 
         page_remover.neuter();
