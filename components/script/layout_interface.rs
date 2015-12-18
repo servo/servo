@@ -7,7 +7,7 @@
 //! the DOM to be placed in a separate crate from layout.
 
 use app_units::Au;
-use dom::node::LayoutData;
+use dom::node::OpaqueStyleAndLayoutData;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::LayerId;
@@ -59,7 +59,7 @@ pub enum Msg {
     /// Destroys layout data associated with a DOM node.
     ///
     /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
-    ReapLayoutData(LayoutData),
+    ReapStyleAndLayoutData(OpaqueStyleAndLayoutData),
 
     /// Requests that the layout task measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.

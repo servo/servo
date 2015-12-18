@@ -479,9 +479,9 @@ pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
             layout_root: &mut FlowRef,
             requested_node: N,
             property: &Atom) -> Option<String> {
-        let layout_data = layout_node.borrow_layout_data();
-        let position = layout_data.as_ref().map(|layout_data| {
-            match layout_data.data.flow_construction_result {
+        let maybe_data = layout_node.borrow_layout_data();
+        let position = maybe_data.map(|data| {
+            match (*data).flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) =>
                     flow::base(flow_ref.deref()).stacking_relative_position,
                 // TODO(dzbarsky) search parents until we find node with a flow ref.

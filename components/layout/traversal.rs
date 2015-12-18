@@ -15,10 +15,10 @@ use script::layout_interface::ReflowGoal;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use std::mem;
+use style::dom::UnsafeNode;
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, UnsafeLayoutNode};
-use wrapper::{ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -45,7 +45,7 @@ type Generation = u32;
 /// will no longer be the for the parent of the node we're currently on. When
 /// this happens, the task local bloom filter will be thrown away and rebuilt.
 thread_local!(
-    static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeLayoutNode, Generation)>> = RefCell::new(None));
+    static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeNode, Generation)>> = RefCell::new(None));
 
 /// Returns the task local bloom filter.
 ///
@@ -88,7 +88,7 @@ fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
 }
 
 fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
-                               unsafe_node: &UnsafeLayoutNode,
+                               unsafe_node: &UnsafeNode,
                                layout_context: &LayoutContext) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
@@ -153,7 +153,7 @@ impl<'a, 'ln, ConcreteLayoutNode> PreorderDomTraversal<'ln, ConcreteLayoutNode>
         //
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
         // parser.
-        node.initialize_layout_data();
+        node.initialize_data();
 
         // Get the parent node.
         let parent_opt = node.layout_parent_node(self.root);
