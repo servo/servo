@@ -44,6 +44,29 @@ impl HTMLImageElement {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/embedded-content.html#image-request
+pub enum ImageState {
+   Unavailable,
+   PartiallyAvailable,
+   CompletelyAvailable,
+   Broken,
+}
+
+pub struct ImageRequest {
+  state : ImageState,
+  currentUrl : URL,
+  imageData : ImageData,
+}
+
+impl ImageRequest {
+   fn new(imageData : ImageData, currentUrl : URL) -> ImageRequest {
+       ImageRequest {
+          state : ImageState::Unavailable,
+          currentUrl : currentUrl,
+          imageData : imageData,
+       }
+   }
+}
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
@@ -137,6 +160,8 @@ impl HTMLImageElement {
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
             metadata: DOMRefCell::new(None),
+            currentRequest: DOMRefCell::new(None)
+            pendingRequest: DOMRefCell::new(None)
         }
     }
 
