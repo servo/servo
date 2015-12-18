@@ -17,3 +17,7 @@ features = ["plugins"]
 
 [dependencies.msg]
 path = "../msg"
+
+[dependencies]
+serde = "0.6"
+serde_macros = "0.6"

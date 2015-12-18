@@ -618,6 +618,8 @@ dependencies = [
  "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
  "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
+ "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
