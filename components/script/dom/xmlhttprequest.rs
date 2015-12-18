@@ -60,7 +60,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
 use timers::{ScheduledCallback, TimerHandle};
-use url::{Url, UrlParser};
+use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
@@ -326,7 +326,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 // Step 6
                 let base = self.global.root().r().get_url();
-                let parsed_url = match UrlParser::new().base_url(&base).parse(&url) {
+                let parsed_url = match base.join(&url) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Error::Syntax) // Step 7
                 };
@@ -1109,7 +1109,7 @@ impl XMLHttpRequest {
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
         let base = self.global.root().r().get_url();
-        let parsed_url = match UrlParser::new().base_url(&base).parse(&self.ResponseURL()) {
+        let parsed_url = match base.join(&self.ResponseURL()) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7
         };

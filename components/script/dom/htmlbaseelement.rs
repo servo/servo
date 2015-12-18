@@ -12,7 +12,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -42,7 +42,7 @@ impl HTMLBaseElement {
                      that have a base url.");
         let document = document_from_node(self);
         let base = document.fallback_base_url();
-        let parsed = UrlParser::new().base_url(&base).parse(&href.value());
+        let parsed = base.join(&href.value());
         parsed.unwrap_or(base)
     }
 

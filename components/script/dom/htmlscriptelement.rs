@@ -41,7 +41,7 @@ use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[dom_struct]
@@ -263,7 +263,7 @@ impl HTMLScriptElement {
                 }
 
                 // Step 15.3
-                match UrlParser::new().base_url(&base_url).parse(&src) {
+                match base_url.join(&src) {
                     Err(_) => {
                         // Step 15.4
                         error!("error parsing URL for script {}", &**src);

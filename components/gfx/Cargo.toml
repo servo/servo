@@ -25,7 +25,7 @@ smallvec = "0.1"
 string_cache = "0.2"
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
-url = "0.5"
+url = "0.5.2"
 servo-skia = "0.20130412.0"
 
 [dependencies.plugins]

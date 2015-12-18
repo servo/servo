@@ -35,7 +35,6 @@ use script_task::{MainThreadScriptMsg, ScriptChan};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
-use url::UrlParser;
 use url::form_urlencoded::serialize;
 use util::str::DOMString;
 
@@ -200,7 +199,7 @@ impl HTMLFormElement {
             action = DOMString::from(base.serialize());
         }
         // Step 9-11
-        let action_components = match UrlParser::new().base_url(base).parse(&action) {
+        let action_components = match base.join(&action) {
             Ok(url) => url,
             Err(_) => return
         };

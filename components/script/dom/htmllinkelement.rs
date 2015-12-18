@@ -37,7 +37,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
 use style::stylesheets::{Origin, Stylesheet};
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 no_jsmanaged_fields!(Stylesheet);
@@ -182,7 +182,7 @@ impl HTMLLinkElement {
     fn handle_stylesheet_url(&self, href: &str) {
         let window = window_from_node(self);
         let window = window.r();
-        match UrlParser::new().base_url(&window.get_url()).parse(href) {
+        match window.get_url().join(href) {
             Ok(url) => {
                 let element = self.upcast::<Element>();
 
@@ -232,7 +232,7 @@ impl HTMLLinkElement {
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
         let window = window_from_node(self);
         let window = window.r();
-        match UrlParser::new().base_url(&window.get_url()).parse(href) {
+        match window.get_url().join(href) {
             Ok(url) => {
                 let ConstellationChan(ref chan) = window.constellation_chan();
                 let event = ConstellationMsg::NewFavicon(url.clone());

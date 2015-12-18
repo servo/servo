@@ -31,7 +31,7 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::DOMString;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -195,8 +195,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings {
-            let url = UrlParser::new().base_url(&self.worker_url)
-                                      .parse(&url);
+            let url = self.worker_url.join(&url);
             match url {
                 Ok(url) => urls.push(url),
                 Err(_) => return Err(Error::Syntax),

@@ -37,7 +37,7 @@ use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
-use url::{Url, UrlParser};
+use url::Url;
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 use uuid;
@@ -700,7 +700,7 @@ pub fn load<A>(load_data: LoadData,
                     }
                 }
 
-                let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
+                let new_doc_url = match doc_url.join(&new_url) {
                     Ok(u) => u,
                     Err(e) => {
                         return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
