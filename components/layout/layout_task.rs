@@ -13,7 +13,6 @@ use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, StylistWrapper, heap_size_of_local_context};
-use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use euclid::Matrix4;
 use euclid::point::Point2D;
@@ -45,7 +44,7 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_offset_parent_query, process_resolved_style_request};
-use script::dom::node::LayoutData;
+use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
@@ -65,6 +64,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::computed_values::{filter, mix_blend_mode};
+use style::dom::{TDocument, TElement, TNode};
 use style::media_queries::{Device, MediaType};
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
@@ -77,8 +77,7 @@ use util::opts;
 use util::task;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::{LayoutDocument, LayoutElement, LayoutNode};
-use wrapper::{ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -607,9 +606,9 @@ impl LayoutTask {
             Msg::SetVisibleRects(new_visible_rects) => {
                 self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
             }
-            Msg::ReapLayoutData(dead_layout_data) => {
+            Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
-                    self.handle_reap_layout_data(dead_layout_data)
+                    self.handle_reap_style_and_layout_data(dead_data)
                 }
             }
             Msg::CollectReports(reports_chan) => {
@@ -707,9 +706,9 @@ impl LayoutTask {
         response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
-                Msg::ReapLayoutData(dead_layout_data) => {
+                Msg::ReapStyleAndLayoutData(dead_data) => {
                     unsafe {
-                        self.handle_reap_layout_data(dead_layout_data)
+                        self.handle_reap_style_and_layout_data(dead_data)
                     }
                 }
                 Msg::ExitNow => {
@@ -765,14 +764,11 @@ impl LayoutTask {
     }
 
     fn try_get_layout_root<'ln, N: LayoutNode<'ln>>(&self, node: N) -> Option<FlowRef> {
-        let mut layout_data_ref = node.mutate_layout_data();
-        let layout_data =
-            match layout_data_ref.as_mut() {
-                None              => return None,
-                Some(layout_data) => layout_data,
-            };
-
-        let result = layout_data.data.flow_construction_result.swap_out();
+        if !node.has_data() {
+            return None;
+        }
+        let mut data = node.mutate_layout_data();
+        let result = data.flow_construction_result.swap_out();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
@@ -1312,8 +1308,9 @@ impl LayoutTask {
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because the struct type is transmuted to a different type on the script side.
-    unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
-        let _: LayoutDataWrapper = transmute(layout_data);
+    unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
+        let non_opaque: NonOpaqueStyleAndLayoutData = transmute(data.ptr);
+        let _ = Box::from_raw(non_opaque);
     }
 
     /// Returns profiling information which is passed to the time profiler.

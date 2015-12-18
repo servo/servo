@@ -22,7 +22,6 @@ use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::{color, LayerId, LayerKind, ScrollPolicy};
-use libc::uintptr_t;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
@@ -49,6 +48,8 @@ use util::opts;
 use util::print_tree::PrintTree;
 use util::range::Range;
 
+pub use style::dom::OpaqueNode;
+
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
 pub use azure::azure_hl::GradientStop;
@@ -58,24 +59,6 @@ pub mod optimizer;
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
-
-/// An opaque handle to a node. The only safe operation that can be performed on this node is to
-/// compare it to another opaque handle or to another node.
-///
-/// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
-/// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
-/// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf, Hash, Eq, Deserialize, Serialize)]
-pub struct OpaqueNode(pub uintptr_t);
-
-impl OpaqueNode {
-    /// Returns the address of this node, for debugging purposes.
-    #[inline]
-    pub fn id(&self) -> uintptr_t {
-        let OpaqueNode(pointer) = *self;
-        pointer
-    }
-}
 
 /// LayerInfo is used to store PaintLayer metadata during DisplayList construction.
 /// It is also used for tracking LayerIds when creating layers to preserve ordering when

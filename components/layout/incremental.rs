@@ -47,6 +47,7 @@ bitflags! {
     }
 }
 
+
 impl RestyleDamage {
     /// Supposing a flow has the given `position` property and this damage, returns the damage that
     /// we should add to the *parent* of this flow.

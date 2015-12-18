@@ -30,7 +30,7 @@
 
 #![allow(unsafe_code)]
 
-use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
+use data::{LayoutDataFlags, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
 use incremental::RestyleDamage;
@@ -49,7 +49,7 @@ use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
-use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
+use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
 use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
@@ -57,202 +57,44 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
-use std::cell::{Ref, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
-use std::mem;
+use std::mem::{transmute, transmute_copy};
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
-use style::node::TElementAttributes;
+use style::data::PrivateStyleData;
+use style::dom::{TDocument, TElement, TNode, UnsafeNode};
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use style::restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use style::restyle_hints::ElementSnapshot;
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
-/// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from LayoutNode.
-pub type UnsafeLayoutNode = (usize, usize);
+pub type NonOpaqueStyleAndLayoutData = *mut RefCell<PrivateLayoutData>;
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 
-pub trait LayoutNode<'ln> : Sized + Copy + Clone {
+pub trait LayoutNode<'ln> : TNode<'ln> {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>;
-    type ConcreteLayoutElement: LayoutElement<'ln, ConcreteLayoutNode = Self,
-                                              ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
-    type ConcreteLayoutDocument: LayoutDocument<'ln, ConcreteLayoutNode = Self,
-                                                ConcreteLayoutElement = Self::ConcreteLayoutElement>;
-
-    fn to_unsafe(&self) -> UnsafeLayoutNode;
-    unsafe fn from_unsafe(&UnsafeLayoutNode) -> Self;
-
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
 
-    /// Returns whether this is a text node. It turns out that this is all the style system cares
-    /// about, and thus obviates the need to compute the full type id, which would be expensive in
-    /// Gecko.
-    fn is_text_node(&self) -> bool;
+    /// Similar to borrow_data*, but returns the full PrivateLayoutData rather
+    /// than only the PrivateStyleData.
+    unsafe fn borrow_layout_data_unchecked(&self) -> *const PrivateLayoutData;
+    fn borrow_layout_data(&self) -> Ref<PrivateLayoutData>;
+    fn mutate_layout_data(&self) -> RefMut<PrivateLayoutData>;
 
-    fn is_element(&self) -> bool;
-
-    fn dump(self);
-
-    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Self> {
-        LayoutTreeIterator::new(self)
-    }
-
-    /// Returns an iterator over this node's children.
-    fn children(self) -> LayoutNodeChildrenIterator<'ln, Self> {
-        LayoutNodeChildrenIterator {
-            current: self.first_child(),
-            phantom: PhantomData,
-        }
-    }
-
-    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Self> {
-        LayoutNodeReverseChildrenIterator {
-            current: self.last_child(),
-            phantom: PhantomData,
-        }
-    }
-
-    /// Converts self into an `OpaqueNode`.
-    fn opaque(&self) -> OpaqueNode;
-
-    /// Resets layout data and styles for the node.
-    ///
-    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    fn initialize_layout_data(self);
-
-    /// While doing a reflow, the node at the root has no parent, as far as we're
-    /// concerned. This method returns `None` at the reflow root.
-    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<Self>;
-
-    fn debug_id(self) -> usize;
-
-    fn as_element(&self) -> Option<Self::ConcreteLayoutElement>;
-
-    fn as_document(&self) -> Option<Self::ConcreteLayoutDocument>;
-
-    fn children_count(&self) -> u32;
-
-    fn has_changed(&self) -> bool;
-
-    unsafe fn set_changed(&self, value: bool);
-
-    fn is_dirty(&self) -> bool;
-
-    unsafe fn set_dirty(&self, value: bool);
-
-    fn has_dirty_descendants(&self) -> bool;
-
-    unsafe fn set_dirty_descendants(&self, value: bool);
-
-    fn dirty_self(&self) {
-        unsafe {
-            self.set_dirty(true);
-            self.set_dirty_descendants(true);
-        }
-    }
-
-    fn dirty_descendants(&self) {
-        for ref child in self.children() {
-            child.dirty_self();
-            child.dirty_descendants();
-        }
-    }
-
-    /// Borrows the layout data without checks.
-    #[inline(always)]
-    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper>;
-
-    /// Borrows the layout data immutably. Fails on a conflicting borrow.
-    #[inline(always)]
-    fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>>;
-
-    /// Borrows the layout data mutably. Fails on a conflicting borrow.
-    #[inline(always)]
-    fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>>;
-
-    fn parent_node(&self) -> Option<Self>;
-
-    fn first_child(&self) -> Option<Self>;
-
-    fn last_child(&self) -> Option<Self>;
-
-    fn prev_sibling(&self) -> Option<Self>;
-
-    fn next_sibling(&self) -> Option<Self>;
-}
-
-pub trait LayoutDocument<'ld> : Sized + Copy + Clone {
-    type ConcreteLayoutNode: LayoutNode<'ld, ConcreteLayoutElement = Self::ConcreteLayoutElement,
-                                        ConcreteLayoutDocument = Self>;
-    type ConcreteLayoutElement: LayoutElement<'ld, ConcreteLayoutNode = Self::ConcreteLayoutNode,
-                                              ConcreteLayoutDocument = Self>;
-
-    fn as_node(&self) -> Self::ConcreteLayoutNode;
-
-    fn root_node(&self) -> Option<Self::ConcreteLayoutNode>;
-
-    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteLayoutElement, ElementSnapshot)>;
-}
-
-pub trait LayoutElement<'le> : Sized + Copy + Clone + ::selectors::Element + TElementAttributes {
-    type ConcreteLayoutNode: LayoutNode<'le, ConcreteLayoutElement = Self,
-                                        ConcreteLayoutDocument = Self::ConcreteLayoutDocument>;
-    type ConcreteLayoutDocument: LayoutDocument<'le, ConcreteLayoutNode = Self::ConcreteLayoutNode,
-                                                ConcreteLayoutElement = Self>;
-
-    fn as_node(&self) -> Self::ConcreteLayoutNode;
-
-    fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock>;
-
-    fn get_state(&self) -> ElementState;
-
-    /// Properly marks nodes as dirty in response to restyle hints.
-    fn note_restyle_hint(&self, mut hint: RestyleHint) {
-        // Bail early if there's no restyling to do.
-        if hint.is_empty() {
-            return;
-        }
-
-        // If the restyle hint is non-empty, we need to restyle either this element
-        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
-        let node = self.as_node();
-        let mut curr = node;
-        while let Some(parent) = curr.parent_node() {
-            if parent.has_dirty_descendants() { break }
-            unsafe { parent.set_dirty_descendants(true); }
-            curr = parent;
-        }
-
-        // Process hints.
-        if hint.contains(RESTYLE_SELF) {
-            node.dirty_self();
-
-            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
-            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
-            // properly. See the explanation in the github issue.
-            hint.insert(RESTYLE_DESCENDANTS);
-        }
-        if hint.contains(RESTYLE_DESCENDANTS) {
-            unsafe { node.set_dirty_descendants(true); }
-            node.dirty_descendants();
-        }
-        if hint.contains(RESTYLE_LATER_SIBLINGS) {
-            let mut next = ::selectors::Element::next_sibling_element(self);
-            while let Some(sib) = next {
-                let sib_node = sib.as_node();
-                sib_node.dirty_self();
-                sib_node.dirty_descendants();
-                next = ::selectors::Element::next_sibling_element(&sib);
-            }
+    fn maybe_borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
+        if self.has_data() {
+            Some(self.borrow_layout_data())
+        } else {
+            None
         }
     }
 }
@@ -294,31 +136,20 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
-    type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'ln>;
-    type ConcreteLayoutElement = ServoLayoutElement<'ln>;
-    type ConcreteLayoutDocument = ServoLayoutDocument<'ln>;
+impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
+    type ConcreteElement = ServoLayoutElement<'ln>;
+    type ConcreteDocument = ServoLayoutDocument<'ln>;
 
-    fn to_unsafe(&self) -> UnsafeLayoutNode {
+    fn to_unsafe(&self) -> UnsafeNode {
         unsafe {
-            let ptr: usize = mem::transmute_copy(self);
+            let ptr: usize = transmute_copy(self);
             (ptr, 0)
         }
     }
 
-    unsafe fn from_unsafe(n: &UnsafeLayoutNode) -> Self {
+    unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
         let (node, _) = *n;
-        mem::transmute(node)
-    }
-
-    fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode {
-        ServoThreadSafeLayoutNode::new(self)
-    }
-
-    fn type_id(&self) -> NodeTypeId {
-        unsafe {
-            self.node.type_id_for_layout()
-        }
+        transmute(node)
     }
 
     fn is_text_node(&self) -> bool {
@@ -339,16 +170,22 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
     }
 
-    fn initialize_layout_data(self) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref {
-            None => {
-                *layout_data_ref = Some(LayoutDataWrapper {
-                    shared_data: SharedLayoutData { style: None },
-                    data: box PrivateLayoutData::new(),
-                });
+    fn initialize_data(self) {
+        if !self.has_data() {
+            let ptr: NonOpaqueStyleAndLayoutData =
+                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
+            let opaque = OpaqueStyleAndLayoutData {
+                ptr: unsafe { transmute(ptr) }
+            };
+            unsafe {
+                self.node.init_style_and_layout_data(opaque);
             }
-            Some(_) => {}
+        }
+    }
+
+    fn has_data(self) -> bool {
+        unsafe {
+            self.node.has_style_and_layout_data()
         }
     }
 
@@ -400,20 +237,16 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
     }
 
-    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
-        mem::transmute(self.get_jsmanaged().layout_data_unchecked())
+    unsafe fn borrow_data_unchecked(&self) -> *const PrivateStyleData {
+        &((*self.borrow_layout_data_unchecked()).style_data)
     }
 
-    fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get_jsmanaged().layout_data())
-        }
+    fn borrow_data(&self) -> Ref<PrivateStyleData> {
+        unsafe { transmute(self.borrow_layout_data()) }
     }
 
-    fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>> {
-        unsafe {
-            mem::transmute(self.get_jsmanaged().layout_data_mut())
-        }
+    fn mutate_data(&self) -> RefMut<PrivateStyleData> {
+        unsafe { transmute(self.mutate_layout_data()) }
     }
 
     fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
@@ -447,6 +280,43 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     }
 }
 
+impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
+    type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'ln>;
+
+    fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode {
+        ServoThreadSafeLayoutNode::new(self)
+    }
+
+    fn type_id(&self) -> NodeTypeId {
+        unsafe {
+            self.node.type_id_for_layout()
+        }
+    }
+
+    unsafe fn borrow_layout_data_unchecked(&self) -> *const PrivateLayoutData {
+        let opaque = self.get_jsmanaged().style_and_layout_data();
+        let container: NonOpaqueStyleAndLayoutData = transmute(opaque.ptr);
+        &(*(*container).as_unsafe_cell().get())
+    }
+
+    fn borrow_layout_data(&self) -> Ref<PrivateLayoutData> {
+        unsafe {
+            let opaque = self.get_jsmanaged().style_and_layout_data();
+            let container: NonOpaqueStyleAndLayoutData = transmute(opaque.ptr);
+            (*container).borrow()
+        }
+    }
+
+    fn mutate_layout_data(&self) -> RefMut<PrivateLayoutData> {
+        unsafe {
+            let opaque = self.get_jsmanaged().style_and_layout_data();
+            let container: NonOpaqueStyleAndLayoutData = transmute(opaque.ptr);
+            (*container).borrow_mut()
+        }
+    }
+}
+
+
 impl<'ln> ServoLayoutNode<'ln> {
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
@@ -468,10 +338,10 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     pub fn flow_debug_id(self) -> usize {
-        let layout_data_ref = self.borrow_layout_data();
-        match *layout_data_ref {
-            None => 0,
-            Some(ref layout_data) => layout_data.data.flow_construction_result.debug_id()
+        if self.has_data() {
+            self.borrow_layout_data().flow_construction_result.debug_id()
+        } else {
+            0
         }
     }
 
@@ -482,65 +352,6 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
-pub struct LayoutNodeChildrenIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
-    current: Option<ConcreteLayoutNode>,
-    // Satisfy the compiler about the unused lifetime.
-    phantom: PhantomData<&'a ()>,
-}
-
-impl<'a, ConcreteLayoutNode> Iterator for LayoutNodeChildrenIterator<'a, ConcreteLayoutNode>
-                                      where ConcreteLayoutNode: LayoutNode<'a> {
-    type Item = ConcreteLayoutNode;
-    fn next(&mut self) -> Option<ConcreteLayoutNode> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling());
-        node
-    }
-}
-
-pub struct LayoutNodeReverseChildrenIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
-    current: Option<ConcreteLayoutNode>,
-    // Satisfy the compiler about the unused lifetime.
-    phantom: PhantomData<&'a ()>,
-}
-
-impl<'a, ConcreteLayoutNode> Iterator for LayoutNodeReverseChildrenIterator<'a, ConcreteLayoutNode>
-                                      where ConcreteLayoutNode: LayoutNode<'a> {
-    type Item = ConcreteLayoutNode;
-    fn next(&mut self) -> Option<ConcreteLayoutNode> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.prev_sibling());
-        node
-    }
-}
-
-pub struct LayoutTreeIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
-    stack: Vec<ConcreteLayoutNode>,
-    // Satisfy the compiler about the unused lifetime.
-    phantom: PhantomData<&'a ()>,
-}
-
-impl<'a, ConcreteLayoutNode> LayoutTreeIterator<'a, ConcreteLayoutNode> where ConcreteLayoutNode: LayoutNode<'a> {
-    fn new(root: ConcreteLayoutNode) -> LayoutTreeIterator<'a, ConcreteLayoutNode> {
-        let mut stack = vec!();
-        stack.push(root);
-        LayoutTreeIterator {
-            stack: stack,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<'a, ConcreteLayoutNode> Iterator for LayoutTreeIterator<'a, ConcreteLayoutNode>
-                                      where ConcreteLayoutNode: LayoutNode<'a> {
-    type Item = ConcreteLayoutNode;
-    fn next(&mut self) -> Option<ConcreteLayoutNode> {
-        let ret = self.stack.pop();
-        ret.map(|node| self.stack.extend(node.rev_children()));
-        ret
-    }
-}
-
 // A wrapper around documents that ensures ayout can only ever access safe properties.
 #[derive(Copy, Clone)]
 pub struct ServoLayoutDocument<'ld> {
@@ -548,9 +359,9 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> LayoutDocument<'ld> for ServoLayoutDocument<'ld> {
-    type ConcreteLayoutNode = ServoLayoutNode<'ld>;
-    type ConcreteLayoutElement = ServoLayoutElement<'ld>;
+impl<'ld> TDocument<'ld> for ServoLayoutDocument<'ld> {
+    type ConcreteNode = ServoLayoutNode<'ld>;
+    type ConcreteElement = ServoLayoutElement<'ld>;
 
     fn as_node(&self) -> ServoLayoutNode<'ld> {
         ServoLayoutNode::from_layout_js(self.document.upcast())
@@ -582,9 +393,9 @@ pub struct ServoLayoutElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
-impl<'le> LayoutElement<'le> for ServoLayoutElement<'le> {
-    type ConcreteLayoutNode = ServoLayoutNode<'le>;
-    type ConcreteLayoutDocument = ServoLayoutDocument<'le>;
+impl<'le> TElement<'le> for ServoLayoutElement<'le> {
+    type ConcreteNode = ServoLayoutNode<'le>;
+    type ConcreteDocument = ServoLayoutDocument<'le>;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
@@ -598,6 +409,28 @@ impl<'le> LayoutElement<'le> for ServoLayoutElement<'le> {
 
     fn get_state(&self) -> ElementState {
         self.element.get_state_for_layout()
+    }
+
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+    {
+        unsafe {
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+        }
+    }
+
+    #[inline]
+    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
+        unsafe {
+            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
+        }
+    }
+
+    #[inline]
+    fn get_attrs<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
+        unsafe {
+            (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
+        }
     }
 }
 
@@ -783,30 +616,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 }
 
-impl<'le> TElementAttributes for ServoLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
-    {
-        unsafe {
-            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
-    }
-
-    #[inline]
-    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
-        }
-    }
-
-    #[inline]
-    fn get_attrs<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
-        }
-    }
-}
-
 #[derive(Copy, PartialEq, Clone)]
 pub enum PseudoElementType<T> {
     Normal,
@@ -865,18 +674,14 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        let layout_data_ref = self.borrow_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
-        node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
+        self.borrow_layout_data().style_data.before_style.as_ref().map(|style| {
             self.with_pseudo(PseudoElementType::Before(style.get_box().display))
         })
     }
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        let layout_data_ref = self.borrow_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
-        node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
+        self.borrow_layout_data().style_data.after_style.as_ref().map(|style| {
             self.with_pseudo(PseudoElementType::After(style.get_box().display))
         })
     }
@@ -885,24 +690,24 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     ///
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
-    fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>>;
+    fn borrow_layout_data(&self) -> Ref<PrivateLayoutData>;
+    fn maybe_borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>>;
 
     /// Borrows the layout data mutably. Fails on a conflicting borrow.
     ///
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
-    fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>>;
+    fn mutate_layout_data(&self) -> RefMut<PrivateLayoutData>;
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
     #[inline]
     fn style(&self) -> Ref<Arc<ComputedValues>> {
-        Ref::map(self.borrow_layout_data(), |layout_data_ref| {
-            let layout_data = layout_data_ref.as_ref().expect("no layout data");
+        Ref::map(self.borrow_layout_data(), |data| {
             let style = match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => &layout_data.data.before_style,
-                PseudoElementType::After(_) => &layout_data.data.after_style,
-                PseudoElementType::Normal => &layout_data.shared_data.style,
+                PseudoElementType::Before(_) => &data.style_data.before_style,
+                PseudoElementType::After(_) => &data.style_data.after_style,
+                PseudoElementType::Normal => &data.style_data.style,
             };
             style.as_ref().unwrap()
         })
@@ -910,14 +715,12 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     /// Removes the style from this node.
     fn unstyle(self) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let layout_data = layout_data_ref.as_mut().expect("no layout data");
-
+        let mut data = self.mutate_layout_data();
         let style =
             match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => &mut layout_data.data.before_style,
-                PseudoElementType::After (_) => &mut layout_data.data.after_style,
-                PseudoElementType::Normal    => &mut layout_data.shared_data.style,
+                PseudoElementType::Before(_) => &mut data.style_data.before_style,
+                PseudoElementType::After (_) => &mut data.style_data.after_style,
+                PseudoElementType::Normal    => &mut data.style_data.style,
             };
 
         *style = None;
@@ -928,17 +731,12 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     /// Get the description of how to account for recent style changes.
     /// This is a simple bitfield and fine to copy by value.
     fn restyle_damage(self) -> RestyleDamage {
-        let layout_data_ref = self.borrow_layout_data();
-        layout_data_ref.as_ref().unwrap().data.restyle_damage
+        self.borrow_layout_data().restyle_damage
     }
 
     /// Set the restyle damage field.
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref {
-            Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
-            _ => panic!("no layout data for this node"),
-        }
+        self.mutate_layout_data().restyle_damage = damage;
     }
 
     /// Returns the layout data flags for this node.
@@ -946,20 +744,12 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     /// Adds the given flags to this node.
     fn insert_flags(self, new_flags: LayoutDataFlags) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref {
-            Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
-            _ => panic!("no layout data for this node"),
-        }
+        self.mutate_layout_data().flags.insert(new_flags);
     }
 
     /// Removes the given flags from this node.
     fn remove_flags(self, flags: LayoutDataFlags) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref {
-            Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
-            _ => panic!("no layout data for this node"),
-        }
+        self.mutate_layout_data().flags.remove(flags);
     }
 
     /// Returns true if this node contributes content. This is used in the implementation of
@@ -1049,14 +839,6 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
     unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {
         self.node.get_jsmanaged()
     }
-
-    /// Borrows the layout data without checking.
-    #[inline(always)]
-    fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
-        unsafe {
-            self.node.borrow_layout_data_unchecked()
-        }
-    }
 }
 
 impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
@@ -1112,11 +894,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         self.pseudo
     }
 
-    fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>> {
+    fn borrow_layout_data(&self) -> Ref<PrivateLayoutData> {
         self.node.borrow_layout_data()
     }
 
-    fn mutate_layout_data(&self) -> RefMut<Option<LayoutDataWrapper>> {
+    fn maybe_borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
+        self.node.maybe_borrow_layout_data()
+    }
+
+    fn mutate_layout_data(&self) -> RefMut<PrivateLayoutData> {
         self.node.mutate_layout_data()
     }
 
@@ -1143,17 +929,13 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
 
     fn flags(self) -> LayoutDataFlags {
         unsafe {
-            match *self.borrow_layout_data_unchecked() {
-                None => panic!(),
-                Some(ref layout_data) => layout_data.data.flags,
-            }
+            (*self.node.borrow_layout_data_unchecked()).flags
         }
     }
 
     fn text_content(&self) -> TextContent {
         if self.pseudo != PseudoElementType::Normal {
-            let layout_data_ref = self.borrow_layout_data();
-            let data = &layout_data_ref.as_ref().unwrap().data;
+            let data = &self.borrow_layout_data().style_data;
 
             let style = if self.pseudo.is_before() {
                 &data.before_style
