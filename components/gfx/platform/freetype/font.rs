@@ -45,6 +45,7 @@ impl FontTableMethods for FontTable {
     }
 }
 
+#[derive(Debug)]
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.

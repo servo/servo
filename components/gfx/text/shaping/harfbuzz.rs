@@ -134,11 +134,13 @@ impl ShapedGlyphData {
     }
 }
 
+#[derive(Debug)]
 struct FontAndShapingOptions {
     font: *mut Font,
     options: ShapingOptions,
 }
 
+#[derive(Debug)]
 pub struct Shaper {
     hb_face: *mut hb_face_t,
     hb_font: *mut hb_font_t,

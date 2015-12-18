@@ -17,7 +17,7 @@ use string_cache::Atom;
 /// The identifier is a PostScript font name. The
 /// CTFont object is cached here for use by the
 /// paint functions that create CGFont references.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FontTemplateData {
     /// The `CTFont` object, if present. This is cached here so that we don't have to keep creating
     /// `CTFont` instances over and over. It can always be recreated from the `identifier` and/or
@@ -64,6 +64,7 @@ impl FontTemplateData {
     }
 }
 
+#[derive(Debug)]
 pub struct CachedCTFont(Mutex<Option<CTFont>>);
 
 impl Deref for CachedCTFont {

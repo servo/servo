@@ -12,7 +12,11 @@ use std::hash::{Hash, Hasher, SipHasher};
 use std::slice::Iter;
 
 
-pub struct HashCache<K, V> {
+#[derive(Debug)]
+pub struct HashCache<K, V>
+    where K: Clone + PartialEq + Eq + Hash,
+          V: Clone,
+{
     entries: HashMap<K, V, DefaultState<SipHasher>>,
 }
 
