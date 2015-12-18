@@ -1,0 +1,1153 @@
+case float_input
+	version 300 es
+	values
+	{
+		input float in0		= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+		output float out0	= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+	}
+	values
+	{
+		input float in0		= [ -1.123 | -0.75 | 512.0 | -72.13 | -199.91 ];
+		output float out0	= [ -1.123 | -0.75 | 512.0 | -72.13 | -199.91 ];
+	}
+
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = in0;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_uniform
+	version 300 es
+	values
+	{
+		uniform float uni0	= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+		output float out0	= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+	}
+
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		uniform float uni0;
+		void main()
+		{
+			out0 = uni0;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_0
+	version 300 es
+	values { output float out0 = 1.123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = +1.123;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_1
+	version 300 es
+	values { output float out0 = -1.123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -1.123;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_2
+	version 300 es
+	values { output float out0 = 123.0; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 123.;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_3
+	version 300 es
+	values { output float out0 = 0.123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = .123;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_4
+	version 300 es
+	values { output float out0 = 123.0; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 1.23e+2;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_5
+	version 300 es
+	values { output float out0 = -123.0; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -1.23E+2;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_6
+	version 300 es
+	values { output float out0 = -123.0; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -1.23e2;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_7
+	version 300 es
+	values { output float out0 = 0.123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 1.23e-1;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_8
+	version 300 es
+	values { output float out0 = 1000.0; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 1e3;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_f_suffix_0
+	version 300 es
+	values { output float out0 = 1.0; }
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			float value = 1.0f;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_f_suffix_1
+	version 300 es
+	values { output float out0 = 1.0; }
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			float value = 1.0F;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_0
+	version 300 es
+	values { output int out0 = 123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 123;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_1
+	version 300 es
+	values { output int out0 = -321; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -321;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_2
+	version 300 es
+	values { output int out0 = 123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 0x7B;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_3
+	version 300 es
+	values { output int out0 = 123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 0X7b;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_4
+	version 300 es
+	values { output int out0 = 123; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 0173;
+			${OUTPUT}
+		}
+	""
+end
+
+case bool_0
+	version 300 es
+	values { output bool out0 = true; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = true;
+			${OUTPUT}
+		}
+	""
+end
+
+case bool_1
+	version 300 es
+	values { output bool out0 = false; }
+	both ""
+		#version 300 es
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = false;
+			${OUTPUT}
+		}
+	""
+end
+
+case const_float_global
+	 version 300 es
+	 values { output float out0 = 1000.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = 1000.0;
+			void main()
+			{
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_main
+	 version 300 es
+	 values { output float out0 = -1000.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+					const float theConstant = -1000.0;
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_function
+	 version 300 es
+	 values { output float out0 = -0.012; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			float func()
+			{
+					const float theConstant = -0.012;
+				return theConstant;
+			}
+			void main()
+			{
+				out0 = func();
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_scope
+	 version 300 es
+	 values { output float out0 = 1.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_scope_shawdowing_1
+	 version 300 es
+	 values { output float out0 = 1.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				const float theConstant = 100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_scope_shawdowing_2
+	 version 300 es
+	 values { output float out0 = 1.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = 100.0;
+			void main()
+			{
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_scope_shawdowing_3
+	 version 300 es
+	 values { output float out0 = 1.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = 100.0;
+			void main()
+			{
+				const float theConstant = -100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_scope_shawdowing_4
+	 version 300 es
+	 values { output float out0 = 2.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = 100.0;
+			float func()
+			{
+				const float theConstant = 2.0;
+				return theConstant;
+			}
+			void main()
+			{
+				const float theConstant = -100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = func();
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_operations_with_const
+	 version 300 es
+	 values { output float out0 = 21.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theGlobalConstant = 10.0;
+			float func()
+			{
+				const float theConstant = 2.0;
+				return theConstant;
+			}
+			void main()
+			{
+				const float theConstant = -100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = func() * theGlobalConstant + theConstant;
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assignment_1
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				const float theConstant1 = 10.0;
+				const float theConstant2 = theConstant1;
+				out0 = theConstant2;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assignment_2
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				const float theConstant1 = 10.0;
+				{
+					const float theConstant2 = theConstant1;
+					out0 = theConstant2;
+				}
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assignment_3
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant1 = 10.0;
+			void main()
+			{
+				const float theConstant2 = theConstant1;
+				out0 = theConstant2;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assignment_4
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant1 = 10.0;
+			float func()
+			{
+				const float theConstant2 = theConstant1;
+				return theConstant2;
+			}
+			void main()
+			{
+				out0 = func();
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assign_uniform
+	 version 300 es
+	 expect compile_fail
+	 values { output float out0 = 10.0; }
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			uniform float theUniform;
+			void main()
+			{
+				const float theConstant = theUniform;
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assign_varying
+	 version 300 es
+	 expect compile_fail
+	 values { output float out0 = 10.0; }
+	 vertex ""
+			#version 300 es
+			${VERTEX_DECLARATIONS}
+			out float theVarying;
+			void main()
+			{
+				theVarying = 1.0;
+				gl_Position = vec(1.0);
+			}
+	 ""
+	 fragment ""
+			#version 300 es
+			precision mediump float;
+			${FRAGMENT_DECLARATIONS}
+			in float theVarying;
+			void main()
+			{
+				const float theConstant = theVarying;
+				out0 = theConstant;
+				${FRAGMENT_OUTPUT}
+			}
+	 ""
+end
+
+case const_float_function_gotcha
+	 version 300 es
+	 desc "Function constant parameters are not really constants, so using them as constant expressions should fail."
+	 expect compile_fail
+	 values { output float out0 = 20.0; }
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			float func(const float gotcha)
+			{
+				const float theConstant2 = gotcha;
+				return theConstant2*2.0;
+			}
+			void main()
+			{
+					const float theConstant = 10.0;
+				out0 = func(theConstant);
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_from_int
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = float(10);
+			void main()
+			{
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_from_vec2
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = vec2(1.0, 10.0).y;
+			void main()
+			{
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_from_vec3
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = vec3(1.0, 10.0, 20.0).y;
+			void main()
+			{
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_from_vec4
+	 version 300 es
+	 values { output float out0 = 10.0; }
+
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			const float theConstant = vec4(1.0, 10.0, 20.0, -10.0).y;
+			void main()
+			{
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assign_variable_1
+	 version 300 es
+	 expect compile_fail
+	 values { output float out0 = 20.0; }
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				float theVariable = 20.0;
+				const float theConstant = theVariable;
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assign_variable_2
+	 version 300 es
+	 expect compile_fail
+	 values { output float out0 = 50.0; }
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				float theVariable = 20.0;
+				theVariable += 30.0;
+				const float theConstant = theVariable;
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case const_float_assign_user_func
+	 version 300 es
+	 expect compile_fail
+	 values { output float out0 = 50.0; }
+	 both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			float func()
+			{
+				return 50.0;
+			}
+			void main()
+			{
+				const float theConstant = func();
+				out0 = theConstant;
+				${OUTPUT}
+			}
+	 ""
+end
+
+case int_decimal
+	version 300 es
+	values { output int out0 = 7; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			int value = 7;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_octal
+	version 300 es
+	values { output int out0 = 15; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			int value = 017;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_hexadecimal_0
+	version 300 es
+	values { output int out0 = 47; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			int value = 0x2f;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_hexadecimal_1
+	version 300 es
+	values { output int out0 = 47; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			int value = 0X2f;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case uint_decimal_0
+	version 300 es
+	values { output uint out0 = 7; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			uint value = 7u;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case uint_decimal_1
+	version 300 es
+	values { output uint out0 = 7; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			uint value = 7U;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case uint_octal_0
+	version 300 es
+	values { output uint out0 = 15; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			uint value = 017u;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case uint_octal_1
+	version 300 es
+	values { output uint out0 = 15; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			uint value = 017U;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case uint_hexadecimal_0
+	version 300 es
+	values { output uint out0 = 47; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			uint value = 0x2fU;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case uint_hexadecimal_1
+	version 300 es
+	values { output uint out0 = 47; }
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			uint value = 0X2fu;
+			out0 = value;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_from_uint
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			int value = 7u;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case uint_from_int
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			uint value = 7;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case int_from_float
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			int value = 7.0;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case uint_from_float
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			uint value = 7.0;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case bool_from_int
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			bool value = 1;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case bool_from_uint
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			bool value = 1u;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case bool_from_float
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			bool value = 1.0;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case float_int_f_suffix_0
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			float value = 1f;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case float_int_f_suffix_1
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		void main ()
+		{
+			${SETUP}
+			float value = 1F;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case int_l_suffix
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			int value = 1l;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case uint_ul_suffix
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			uint value = 1ul;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case invalid_octal_0
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			int value = 018;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case invalid_octal_1
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			uint value = 09U;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case invalid_hexadecimal_0
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			int value = 0x2g7;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end
+
+case invalid_hexadecimal_1
+	expect compile_fail
+	version 300 es
+	both ""
+		#version 300 es
+		${DECLARATIONS}
+		void main ()
+		{
+			uint value = 0X1h7u;
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+		}
+	""
+end

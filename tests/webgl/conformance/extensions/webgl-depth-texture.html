@@ -1,0 +1,338 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<title>WebGL WEBGL_depth_texture Conformance Tests</title>
+</head>
+<body>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main()
+{
+    gl_Position = a_position;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_texture;
+uniform vec2 u_resolution;
+void main()
+{
+    vec2 texcoord = gl_FragCoord.xy / u_resolution;
+    gl_FragColor = texture2D(u_texture, texcoord);
+}
+</script>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="8" height="8" style="width: 8px; height: 8px;"></canvas>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_depth_texture extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false});
+var program = wtu.setupTexturedQuad(gl);
+var ext = null;
+var vao = null;
+var tex;
+var name;
+var supportedFormats;
+var canvas2;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    // Run tests with extension disabled
+    runTestDisabled();
+
+    // Query the extension and store globally so shouldBe can access it
+    ext = wtu.getExtensionWithKnownPrefixes(gl, "WEBGL_depth_texture");
+    if (!ext) {
+        testPassed("No WEBGL_depth_texture support -- this is legal");
+        runSupportedTest(false);
+    } else {
+        testPassed("Successfully enabled WEBGL_depth_texture extension");
+
+        runSupportedTest(true);
+        runTestExtension();
+    }
+}
+
+function runSupportedTest(extensionEnabled) {
+    var name = wtu.getSupportedExtensionWithKnownPrefixes(gl, "WEBGL_depth_texture");
+    if (name !== undefined) {
+        if (extensionEnabled) {
+            testPassed("WEBGL_depth_texture listed as supported and getExtension succeeded");
+        } else {
+            testFailed("WEBGL_depth_texture listed as supported but getExtension failed");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("WEBGL_depth_texture not listed as supported but getExtension succeeded");
+        } else {
+            testPassed("WEBGL_depth_texture not listed as supported and getExtension failed -- this is legal");
+        }
+    }
+}
+
+
+function runTestDisabled() {
+    debug("Testing binding enum with extension disabled");
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    wtu.shouldGenerateGLError(gl, [gl.INVALID_ENUM, gl.INVALID_VALUE],
+                              'gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, 1, 1, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null)');
+    wtu.shouldGenerateGLError(gl, [gl.INVALID_ENUM, gl.INVALID_VALUE],
+                              'gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, 1, 1, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null)');
+}
+
+
+function dumpIt(gl, res, msg) {
+  return;  // comment out to debug
+  debug(msg);
+  var actualPixels = new Uint8Array(res * res * 4);
+  gl.readPixels(0, 0, res, res, gl.RGBA, gl.UNSIGNED_BYTE, actualPixels);
+
+  for (var yy = 0; yy < res; ++yy) {
+    var strs = [];
+    for (var xx = 0; xx < res; ++xx) {
+      var actual = (yy * res + xx) * 4;
+      strs.push("(" + actualPixels[actual] + "," + actualPixels[actual+1] + "," + actualPixels[actual + 2] + "," + actualPixels[actual + 3] + ")");
+    }
+    debug(strs.join(" "));
+  }
+}
+function runTestExtension() {
+    debug("Testing WEBGL_depth_texture");
+
+    var res = 8;
+
+    // make canvas for testing.
+    canvas2 = document.createElement("canvas");
+    canvas2.width = res;
+    canvas2.height = res;
+    var ctx = canvas2.getContext("2d");
+    ctx.fillStyle = "blue";
+    ctx.fillRect(0, 0, canvas2.width, canvas2.height);
+
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['a_position']);
+    gl.useProgram(program);
+    gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), res, res);
+
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(
+            [   1,  1,  1,
+               -1,  1,  0,
+               -1, -1, -1,
+                1,  1,  1,
+               -1, -1, -1,
+                1, -1,  0,
+            ]),
+        gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    var types = [
+        {obj: 'gl',  attachment: 'DEPTH_ATTACHMENT',         format: 'DEPTH_COMPONENT', type: 'UNSIGNED_SHORT',          data: 'new Uint16Array(1)', depthBits: "16"},
+        {obj: 'gl',  attachment: 'DEPTH_ATTACHMENT',         format: 'DEPTH_COMPONENT', type: 'UNSIGNED_INT',            data: 'new Uint32Array(1)', depthBits: "16"},
+        {obj: 'ext', attachment: 'DEPTH_STENCIL_ATTACHMENT', format: 'DEPTH_STENCIL',   type: 'UNSIGNED_INT_24_8_WEBGL', data: 'new Uint32Array(1)', depthBits: "24", stencilBits: "8"}
+    ];
+
+    for (var ii = 0; ii < types.length; ++ii) {
+        var typeInfo = types[ii];
+        var type = typeInfo.type;
+        var typeStr = typeInfo.obj + '.' + type;
+
+        debug("");
+        debug("testing: " + type);
+
+        // check that cubemaps are not allowed.
+        var cubeTex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeTex);
+        var targets = [
+          'TEXTURE_CUBE_MAP_POSITIVE_X',
+          'TEXTURE_CUBE_MAP_NEGATIVE_X',
+          'TEXTURE_CUBE_MAP_POSITIVE_Y',
+          'TEXTURE_CUBE_MAP_NEGATIVE_Y',
+          'TEXTURE_CUBE_MAP_POSITIVE_Z',
+          'TEXTURE_CUBE_MAP_NEGATIVE_Z'
+        ];
+        for (var tt = 0; tt < targets.length; ++tt) {
+            wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, 'gl.texImage2D(gl.' + targets[ii] + ', 1, gl.' + typeInfo.format + ', 1, 1, 0, gl.' + typeInfo.format + ', ' + typeStr + ', null)');
+        }
+
+        // check 2d textures.
+        tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // test level > 0
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, 'gl.texImage2D(gl.TEXTURE_2D, 1, gl.' + typeInfo.format + ', 1, 1, 0, gl.' + typeInfo.format + ', ' + typeStr + ', null)');
+
+        // test with data
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, 'gl.texImage2D(gl.TEXTURE_2D, 0, gl.' + typeInfo.format + ', 1, 1, 0, gl.' + typeInfo.format + ', ' + typeStr + ', ' + typeInfo.data + ')');
+
+        // test with canvas
+        wtu.shouldGenerateGLError(gl, [gl.INVALID_VALUE, gl.INVALID_ENUM, gl.INVALID_OPERATION], 'gl.texImage2D(gl.TEXTURE_2D, 0, gl.' + typeInfo.format + ', gl.' + typeInfo.format + ', ' + typeStr  + ', canvas2)');
+
+        // test copyTexImage2D
+        wtu.shouldGenerateGLError(gl, [gl.INVALID_ENUM, gl.INVALID_OPERATION], 'gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.' + typeInfo.format + ', 0, 0, 1, 1, 0)');
+
+        // test real thing
+        wtu.shouldGenerateGLError(gl, gl.NO_ERROR, 'gl.texImage2D(gl.TEXTURE_2D, 0, gl.' + typeInfo.format + ', ' + res + ', ' + res + ', 0, gl.' + typeInfo.format + ', ' + typeStr + ', null)');
+
+        // test texSubImage2D
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, 'gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.' + typeInfo.format + ', ' + typeStr  + ', ' + typeInfo.data + ')');
+
+        // test copyTexSubImage2D
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, 'gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, 1, 1)');
+
+        // test generateMipmap
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, 'gl.generateMipmap(gl.TEXTURE_2D)');
+
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl[typeInfo.attachment], gl.TEXTURE_2D, tex, 0);
+
+        // Ensure DEPTH_BITS returns >= 16 bits for UNSIGNED_SHORT and UNSIGNED_INT, >= 24 UNSIGNED_INT_24_8_WEBGL.
+        // If there is stencil, ensure STENCIL_BITS reports >= 8 for UNSIGNED_INT_24_8_WEBGL.
+        shouldBeGreaterThanOrEqual('gl.getParameter(gl.DEPTH_BITS)', typeInfo.depthBits);
+        if (typeInfo.stencilBits === undefined) {
+            shouldBe('gl.getParameter(gl.STENCIL_BITS)', '0');
+        } else {
+            shouldBeGreaterThanOrEqual('gl.getParameter(gl.STENCIL_BITS)', typeInfo.stencilBits);
+        }
+
+        // TODO: remove this check if the spec is updated to require these combinations to work.
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
+        {
+            // try adding a color buffer.
+            var colorTex = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, colorTex);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, res, res, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, colorTex, 0);
+        }
+
+        shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+        // use the default texture to render with while we return to the depth texture.
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        // render the z-quad
+        gl.enable(gl.DEPTH_TEST);
+        gl.clearColor(1, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        dumpIt(gl, res, "--first--");
+
+        // render the depth texture.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.clearColor(0, 0, 1, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        var actualPixels = new Uint8Array(res * res * 4);
+        gl.readPixels(0, 0, res, res, gl.RGBA, gl.UNSIGNED_BYTE, actualPixels);
+
+        dumpIt(gl, res, "--depth--");
+
+        // Check that each pixel's R value is less than that of the previous pixel
+        // in either direction. Basically verify we have a gradient.
+        var success = true;
+        for (var yy = 0; yy < res; ++yy) {
+          for (var xx = 0; xx < res; ++xx) {
+            var actual = (yy * res + xx) * 4;
+            var left = actual - 4;
+            var down = actual - res * 4;
+
+            if (xx > 0) {
+              if (actualPixels[actual] <= actualPixels[left]) {
+                  testFailed("actual(" + actualPixels[actual] + ") < left(" + actualPixels[left] + ")");
+                  success = false;
+              }
+            }
+            if (yy > 0) {
+                if (actualPixels[actual] <= actualPixels[down]) {
+                    testFailed("actual(" + actualPixels[actual] + ") < down(" + actualPixels[down] + ")");
+                    success = false;
+                }
+            }
+          }
+        }
+
+        // Check that bottom left corner is vastly different thatn top right.
+        if (actualPixels[(res * res - 1) * 4] - actualPixels[0] < 0xC0) {
+            testFailed("corners are not different enough");
+            success = false;
+        }
+
+        if (success) {
+            testPassed("depth texture rendered correctly.");
+        }
+
+        // check limitations
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl[typeInfo.attachment], gl.TEXTURE_2D, null, 0);
+        var badAttachment = typeInfo.attachment == 'DEPTH_ATTACHMENT' ? 'DEPTH_STENCIL_ATTACHMENT' : 'DEPTH_ATTACHMENT';
+        wtu.shouldGenerateGLError(gl, gl.NO_ERROR, 'gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.' + badAttachment + ', gl.TEXTURE_2D, tex, 0)');
+        shouldNotBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+        wtu.shouldGenerateGLError(gl, gl.INVALID_FRAMEBUFFER_OPERATION, 'gl.clear(gl.DEPTH_BUFFER_BIT)');
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        shouldBe('gl.getError()', 'gl.NO_ERROR');
+    }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+FAIL getError expected: INVALID_ENUM. Was NO_ERROR : after evaluating: context.createShader(0)
+FAIL getError expected: INVALID_ENUM. Was NO_ERROR : after evaluating: context.createShader(context.TRIANGLES)
+FAIL getError expected: INVALID_VALUE. Was NO_ERROR : after evaluating: context.clear(desktopGL['ACCUM_BUFFER_BIT'])
+FAIL getError expected: INVALID_VALUE. Was NO_ERROR : after evaluating: context.clear(desktopGL['ACCUM_BUFFER_BIT'] | context.COLOR_BUFFER_BIT)
+FAIL getError expected: INVALID_VALUE. Was NO_ERROR : after evaluating: context.clear(desktopGL['ACCUM_BUFFER_BIT'] | context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT | context.STENCIL_BUFFER_BIT)
+FAIL context.texImage2D(context.TEXTURE_2D, 0, context.RGBA, -16, -16, 0, context.RGBA, context.UNSIGNED_BYTE, null) threw exception TypeError: argument could not be converted to any of: ImageData, HTMLImageElement, HTMLCanvasElement, HTMLVideoElement
+FAIL context.texImage2D(context.TEXTURE_2D, 0, context.RGBA, 16, 16, 0, context.RGBA, context.UNSIGNED_BYTE, null) threw exception TypeError: argument could not be converted to any of: ImageData, HTMLImageElement, HTMLCanvasElement, HTMLVideoElement
+FAIL context.texSubImage2D(context.TEXTURE_2D, 0, -1, -1, 2, 2, context.RGBA, context.UNSIGNED_BYTE, pixels) threw exception TypeError: context.texSubImage2D is not a function
+FAIL context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, -1, -1, context.RGBA, context.UNSIGNED_BYTE, pixels) threw exception TypeError: context.texSubImage2D is not a function
+FAIL context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, 2, 2, context.RGBA, context.UNSIGNED_BYTE, pixels) threw exception TypeError: context.texSubImage2D is not a function
+FAIL context.copyTexImage2D(context.TEXTURE_2D, 0, context.RGBA, 0, 0, -1, -1, 0) threw exception TypeError: context.copyTexImage2D is not a function
+FAIL context.copyTexImage2D(context.TEXTURE_2D, 0, context.RGBA, 0, 0, 16, 16, 0) threw exception TypeError: context.copyTexImage2D is not a function
+FAIL context.copyTexSubImage2D(context.TEXTURE_2D, 0, -1, -1, 0, 0, 2, 2) threw exception TypeError: context.copyTexSubImage2D is not a function
+FAIL context.copyTexSubImage2D(context.TEXTURE_2D, 0, 0, 0, 0, 0, -1, -1) threw exception TypeError: context.copyTexSubImage2D is not a function
+FAIL context.copyTexSubImage2D(context.TEXTURE_2D, 0, 0, 0, 0, 0, 2, 2) threw exception TypeError: context.copyTexSubImage2D is not a function
+FAIL context.renderbufferStorage(context.RENDERBUFFER, context.RGBA4, -2, -2) threw exception TypeError: context.renderbufferStorage is not a function
+FAIL context.renderbufferStorage(context.RENDERBUFFER, context.RGBA4, 16, 16) threw exception TypeError: context.renderbufferStorage is not a function
+FAIL context.scissor(0, 0, -2, -2) threw exception TypeError: context.scissor is not a function
+FAIL context.scissor(0, 0, 16, 16) threw exception TypeError: context.scissor is not a function
+FAIL getError expected: INVALID_VALUE. Was NO_ERROR : after evaluating: context.viewport(0, 0, -2, -2)
+FAIL successfullyParsed should be true (of type boolean). Was undefined (of type undefined).

@@ -1,0 +1,240 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Indexing with a constant expression should compile only if the index is in range</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../resources/glsl-feature-tests.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"></script>
+<script src="../js/glsl-conformance-test.js"></script>
+<script id="VertexArrayTemplate" type="x-shader/x-vertex">
+precision mediump float;
+
+uniform float ua[4];
+
+$(init)
+
+void main() {
+    float c = ua[$(constantExpression)];
+    gl_Position = vec4(c);
+}
+</script>
+<script id="FragmentArrayTemplate" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform float ua[4];
+
+$(init)
+
+void main() {
+    float c = ua[$(constantExpression)];
+    gl_FragColor = vec4(c);
+}
+</script>
+<script id="VertexVectorTemplate" type="x-shader/x-vertex">
+precision mediump float;
+
+uniform vec4 uv;
+
+$(init)
+
+void main() {
+    float c = uv[$(constantExpression)];
+    gl_Position = vec4(c);
+}
+</script>
+<script id="FragmentVectorTemplate" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform vec4 uv;
+
+$(init)
+
+void main() {
+    float c = uv[$(constantExpression)];
+    gl_FragColor = vec4(c);
+}
+</script>
+<script id="VertexMatrixTemplate" type="x-shader/x-vertex">
+precision mediump float;
+
+uniform mat4 um;
+
+$(init)
+
+void main() {
+    float c = um[$(constantExpression)].x;
+    gl_Position = vec4(c);
+}
+</script>
+<script id="FragmentMatrixTemplate" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform mat4 um;
+
+$(init)
+
+void main() {
+    float c = um[$(constantExpression)].x;
+    gl_FragColor = vec4(c);
+}
+</script>
+</head>
+<body onload="runTest()">
+<div id="description"></div>
+<div id="console"></div>
+<script type="application/javascript">
+"use strict";
+description();
+
+var wtu = WebGLTestUtils;
+
+// ESSL 1.00 section 4.1.9 Arrays
+// It is illegal to index an array with an integral constant expression greater than or equal to its
+// declared size. It is also illegal to index an array with a negative constant expression.
+
+// ESSL 1.00 section 5.5 Vector Components
+// Reading from or writing to a vector using a constant integral expression with a value that is negative
+// or greater than or equal to the size of the vector is illegal.
+
+// ESSL 1.00 section 5.6 Matrix components
+// The behavior when accessing a component outside the bounds of a matrix are the same as those for
+// vectors and arrays. The compiler must generate an error if the index expression is a constant expression.
+
+// ESSL 1.00 spec section 5.10.
+// A constant expression is one of
+// * a literal value (e.g., 5 or true)
+// * a global or local variable qualified as const excluding function parameters
+// * an expression formed by an operator on operands that are constant expressions, including getting
+// an element of a constant vector or a constant matrix, or a field of a constant structure
+// * a constructor whose arguments are all constant expressions
+// * a built-in function call whose arguments are all constant expressions, with the exception of the
+// texture lookup functions.
+
+var runTest = function() {
+  var vsArrayTemplate = document.getElementById('VertexArrayTemplate').text;
+  var fsArrayTemplate = document.getElementById('FragmentArrayTemplate').text;
+  var vsVectorTemplate = document.getElementById('VertexVectorTemplate').text;
+  var fsVectorTemplate = document.getElementById('FragmentVectorTemplate').text;
+  var vsMatrixTemplate = document.getElementById('VertexMatrixTemplate').text;
+  var fsMatrixTemplate = document.getElementById('FragmentMatrixTemplate').text;
+
+  var tests = [];
+
+  var pushTest = function(constantExpression, expectSuccess, opt_init) {
+    if (opt_init === undefined) {
+        opt_init = '';
+    }
+    tests.push({
+      vShaderSource: wtu.replaceParams(vsArrayTemplate, {constantExpression: constantExpression, init: opt_init}),
+      vShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Using " + constantExpression + " as an index for an array with size 4 in a vertex shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+    tests.push({
+      fShaderSource: wtu.replaceParams(fsArrayTemplate, {constantExpression: constantExpression, init: opt_init}),
+      fShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Using " + constantExpression + " as an index for an array with size 4 in a fragment shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+    tests.push({
+      vShaderSource: wtu.replaceParams(vsVectorTemplate, {constantExpression: constantExpression, init: opt_init}),
+      vShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Using " + constantExpression + " as a vec4 index in a vertex shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+    tests.push({
+      fShaderSource: wtu.replaceParams(fsVectorTemplate, {constantExpression: constantExpression, init: opt_init}),
+      fShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Using " + constantExpression + " as a vec4 index in a fragment shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+    tests.push({
+      vShaderSource: wtu.replaceParams(vsMatrixTemplate, {constantExpression: constantExpression, init: opt_init}),
+      vShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Using " + constantExpression + " as a mat4 index in a vertex shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+    tests.push({
+      fShaderSource: wtu.replaceParams(fsMatrixTemplate, {constantExpression: constantExpression, init: opt_init}),
+      fShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Using " + constantExpression + " as a mat4 index in a fragment shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+  }
+
+  pushTest('0', true);
+  pushTest('3', true);
+  pushTest('-1', false);
+  pushTest('4', false);
+  pushTest('2 + 2', false);
+  pushTest('6 - 2', false);
+  pushTest('2 * 2', false);
+  pushTest('8 / 2', false);
+  pushTest('int(true) * 4', false);
+  pushTest('ivec4(4).x', false);
+  pushTest('ivec4(4)[0]', false);
+  pushTest('int(vec4(5.0).x)', false);
+  pushTest('int(mat4(5.0)[0].x)', false);
+
+  pushTest('int(radians(360.0))', false);
+  pushTest('int(degrees(1.0))', false);
+  pushTest('int(5.0 + sin(0.0))', false);
+  pushTest('int(5.0 + asin(0.0))', false);
+  pushTest('int(pow(2.0, 3.0))', false);
+  pushTest('int(exp(3.0))', false);
+  pushTest('int(exp2(4.0))', false);
+  pushTest('int(floor(-0.5))', false); // floor(-0.5) = -1.0
+  pushTest('int(5.0 + fract(-3.5))', false);
+  pushTest('int(mod(2.0, -4.0))', false); // mod(2.0, -4.0) = 2.0 - (-4.0) * floor(2.0 / -4.0) = 2.0 + 4.0 * (-1.0) = -2.0
+  pushTest('int(mix(2.0, 8.0, 0.9))', false);
+  pushTest('int(length(vec4(3.0)))', false);
+  pushTest('int(lessThan(vec4(2.0), vec4(3.0)).x) * 4', false);
+
+  pushTest('true ? 5 : 0', false);
+  pushTest('int(false ? 0.0 : 5.0)', false);
+  pushTest('my_struct(5, 1).field', false, 'struct my_struct { int field; int field2; };');
+
+  pushTest('int(-0.9)', true); // conversion to int drops the fractional part
+
+  // Sequence operator returns the value of the right-most expression.
+  // Note that the sequence operator is allowed in constant expressions in ESSL 1.00,
+  // but not in ESSL 3.00, so with ESSL 3.00 failing compilation would not be required.
+  pushTest('5, 1', true);
+  pushTest('1, 5', false);
+
+  GLSLConformanceTester.runTests(tests);
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

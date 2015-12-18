@@ -1,0 +1,89 @@
+<!--
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css" />
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css" />
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+<title></title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+precision mediump float;
+struct S { $(type) t; };
+void main() {
+    S a;
+    a.t = $(initializer);
+    S b = $(operator)a;   // Unary operators not allowed
+    gl_FragColor = $(fragColor);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies that unary operators +, ++, -, --, !, and ~ do not work on structures. Per the spec, field selectors, equality and assignment are the only operators allowed on structures.");
+var tests = [];
+var wtu = WebGLTestUtils;
+var operators = ['+', '++', '-', '--', '!', '~']
+var typeInfos = [
+    { type: 'float',    initializer: '1.0',                         fragColor: 'vec4(0.0, b.t, 0.0, 1.0)' },
+    { type: 'vec2',     initializer: 'vec2(0.0, 1.0)',              fragColor: 'vec4(b.t, 0.0, 1.0)' },
+    { type: 'vec3',     initializer: 'vec3(0.0, 1.0, 0.0)',         fragColor: 'vec4(b.t, 1.0)' },
+    { type: 'vec4',     initializer: 'vec4(0.0, 1.0, 0.0, 1.0)',    fragColor: 'b.t' },
+    { type: 'int',      initializer: '1',                           fragColor: 'vec4(0.0, b.t, 0.0, 1.0)' },
+    { type: 'ivec2',    initializer: 'ivec2(0, 1)',                 fragColor: 'vec4(b.t, 0.0, 1.0)' },
+    { type: 'ivec3',    initializer: 'ivec3(0, 1, 0)',              fragColor: 'vec4(b.t, 1.0)' },
+    { type: 'ivec4',    initializer: 'ivec4(0, 1, 0, 1)',           fragColor: 'vec4(b.t)' },
+    { type: 'bool',     initializer: 'true',                        fragColor: 'vec4(0.0, b.t, 0.0, 1.0)' },
+    { type: 'bvec2',    initializer: 'bvec2(false, true)',          fragColor: 'vec4(b.t, 0.0, 1.0)' },
+    { type: 'bvec3',    initializer: 'bvec3(false, true, false)',   fragColor: 'vec4(b.t, 1.0)' },
+    { type: 'bvec4',    initializer: 'bvec4(false,true,false,true)',fragColor: 'vec4(b.t)' },
+];
+operators.forEach(function (operator) {
+    typeInfos.forEach(function (typeInfo) {
+        var replaceParams = {
+            initializer: typeInfo.initializer,
+            type: typeInfo.type,
+            fragColor: typeInfo.fragColor,
+            operator: operator,
+        };
+        tests.push({
+            fShaderSource: wtu.replaceParams(wtu.getScript('fragmentShader'), replaceParams),
+            passMsg: 'Unary operator ' + operator + ' cannot be used on a struct with a ' + typeInfo.type,
+            fShaderSuccess: false,
+            linkSuccess: false
+        });
+    });
+});
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

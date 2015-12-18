@@ -1,0 +1,212 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Uniform Buffers Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id='vshader' type='x-shader/x-vertex'>#version 300 es
+layout(location=0) in vec3 p;
+void main()
+{
+    gl_Position = vec4(p.xyz, 1.0);
+}
+</script>
+<script id='fbadshader' type='x-shader/x-fragment'>#version 300 es
+precision mediump float;
+layout(location=0) out vec4 oColor;
+
+uniform UBOData {
+    float UBORed;
+    float UBOGreen;
+    float UBOBlue;
+};
+
+uniform Color {
+    float Red;
+    float UBOGreen;
+    float Blue;
+};
+
+void main()
+{
+    oColor = vec4(UBORed * Red, UBOGreen * UBOGreen, UBOBlue * Blue, 1.0);
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>#version 300 es
+precision mediump float;
+layout(location=0) out vec4 oColor;
+
+uniform UBOData {
+    float UBORed;
+    float UBOGreen;
+    float UBOBlue;
+};
+
+uniform UBOD {
+    float UBOR;
+    float UBOG;
+    float UBOB;
+};
+
+void main()
+{
+    oColor = vec4(UBORed * UBOR, UBOGreen * UBOG, UBOBlue * UBOB, 1.0);
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the Uniform Buffer objects");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var b1 = null;
+var b2 = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runBindingTest();
+    runDrawTest();
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runBindingTest() {
+    debug("");
+    debug("Testing uniform buffer binding behavior");
+    shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "UNIFORM_BUFFER_BINDING query should succeed");
+
+    debug("Testing basic uniform buffer binding and unbinding");
+    b1 = gl.createBuffer();
+    b2 = gl.createBuffer();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "createBuffer should not set an error");
+    shouldBeNonNull("b1");
+    shouldBeNonNull("b2");
+    gl.bindBuffer(gl.UNIFORM_BUFFER, b1);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to bind uniform buffer");
+    shouldBe("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)", "b1");
+    gl.bindBuffer(gl.UNIFORM_BUFFER, b2);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to update uniform buffer binding");
+    shouldBe("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)", "b2");
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to unbind uniform buffer");
+
+    debug("Testing deleting uniform buffers");
+    gl.deleteBuffer(b1);
+    gl.deleteBuffer(b2);
+    shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+
+    // Shouldn't be able to bind a deleted buffer.
+    gl.bindBuffer(gl.UNIFORM_BUFFER, b2);
+    shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runDrawTest() {
+    debug("");
+    debug("Testing drawing with uniform buffers");
+
+    wtu.setupUnitQuad(gl);
+
+    var testProgram = wtu.setupProgram(gl, ['vshader', 'fbadshader']);
+    if (!testProgram) {
+        testPassed("To define the same uniform in two uniform blocks should fail");
+    }
+
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+    if (program) {
+        testPassed("should be able to compile shader with uniform blocks without error");
+    }
+
+    var blockIndex = gl.getUniformBlockIndex(program, "UBOData");
+    var blockSize = gl.getActiveUniformBlockParameter(program, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+    var uniformIndices = gl.getUniformIndices(program, ["UBORed", "UBOGreen", "UBOBlue"]);
+    var uniformOffsets = gl.getActiveUniforms(program, uniformIndices, gl.UNIFORM_OFFSET);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to query uniform block information without error");
+
+    if (uniformOffsets.length < 3) {
+        testFailed("Could not query uniform offsets");
+    }
+
+    // Verify that the uniform offsets are aligned on 4-byte boundries
+    // While unaligned values are allowed by the ES3 spec it would be *really* weird for anyone to actually do that.
+    if (uniformOffsets[0] / Float32Array.BYTES_PER_ELEMENT != Math.floor(uniformOffsets[0] / Float32Array.BYTES_PER_ELEMENT) ||
+        uniformOffsets[1] / Float32Array.BYTES_PER_ELEMENT != Math.floor(uniformOffsets[1] / Float32Array.BYTES_PER_ELEMENT) ||
+        uniformOffsets[2] / Float32Array.BYTES_PER_ELEMENT != Math.floor(uniformOffsets[2] / Float32Array.BYTES_PER_ELEMENT)) {
+        testFailed("Uniform offsets are not well aligned");
+    }
+
+    var uboArray = new ArrayBuffer(blockSize);
+    var uboFloatView = new Float32Array(uboArray);
+    uboFloatView[uniformOffsets[0] / Float32Array.BYTES_PER_ELEMENT] = 1.0; // UBORed
+    uboFloatView[uniformOffsets[1] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOGreen
+    uboFloatView[uniformOffsets[2] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOBlue
+
+    b1 = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, b1);
+    gl.bufferData(gl.UNIFORM_BUFFER, uboArray, gl.DYNAMIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to set UBO data with no errors");
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, blockIndex, b1);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call bindBufferBase without errors");
+
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "draw call should set canvas to red");
+
+    debug("Changing the data in the uniform buffer should automatically update the uniforms exposed to the draw call");
+    uboFloatView[uniformOffsets[0] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBORed
+    uboFloatView[uniformOffsets[1] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOGreen
+    uboFloatView[uniformOffsets[2] / Float32Array.BYTES_PER_ELEMENT] = 1.0; // UBOBlue
+    gl.bufferData(gl.UNIFORM_BUFFER, uboArray, gl.DYNAMIC_DRAW);
+
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 0, 255, 255], "draw call should set canvas to blue");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

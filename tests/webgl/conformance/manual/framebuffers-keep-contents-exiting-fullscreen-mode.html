@@ -1,0 +1,155 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Check that framebuffers keep contents exiting fullscreen mode.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<style>
+canvas {
+    width: 100%;
+    height: 50px;
+    border: 1px solid black;
+}
+#f {
+    left: 0px;
+    top: 0px;
+}
+#inner {
+}
+input.button {
+    font-size: 36pt;
+}
+.redbox {
+    border: 1px solid black;
+    background-color: red;
+}
+#canvasholder {
+    position: relative;
+}
+#clabel {
+    position: absolute;
+    width: 100%;
+    top: 0px;
+    left: 0px;
+    font-size: 40px;
+    z-index: 10;
+    text-align: center;
+}
+</style>
+</head>
+<body>
+<pre>
+This test must be run manually.
+
+Checks that framebuffers keep their contents going into and out of fullscreen mode.
+
+Through the entire test you should see a <span class="redbox">red rectangle</span>. If it is not <span class="redbox">red</span> in all cases the test has failed.
+</pre>
+<div id="f">
+  <div id="inner">
+    <div id="buttonHolder">
+      <div><input id="button" class="button" type="button" value="Click this button to continue the test"/></div>
+      <div id="canvasholder">
+        <canvas id='c'></canvas>
+        <div id='clabel'>
+          should be red
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var testedFullScreen = false;
+var c = document.getElementById("c");
+var button = document.getElementById("button");
+var buttonHolder = document.getElementById("buttonHolder");
+var gl = wtu.create3DContext(c);
+if (!gl) {
+  testFailed("can't init WebGL");
+}
+
+var checkState = function() {
+  debug("");
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 255, 0, 255]);
+  shouldBeNonNull("gl.getParameter(gl.FRAMEBUFFER_BINDING)");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+var checkFramebufferState = function(fullscreen) {
+  checkState();
+
+  debug("fullscreen:" + fullscreen);
+
+  if (fullscreen) {
+    // Not sure if this is needed but need to make sure
+    // we at least went fullscreen once.
+    testedFullScreen = true;
+  } else {
+    if (testedFullScreen) {
+      finishTest();
+    }
+  }
+};
+
+var test = function() {
+  if (!wtu.setupFullscreen("button", "f", checkFramebufferState)) {
+    testPassed("Browser does not support fullscreen mode. This is OK");
+    finishTest();
+    return;
+  }
+
+  var fb = gl.createFramebuffer();
+  var tex = gl.createTexture();
+
+  gl.clearColor(1,0,0,1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+
+  gl.clearColor(0, 1, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  checkState();
+};
+test();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertexShaderVoid" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump void;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderBool" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump bool;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderVec2" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump vec2;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderVec3" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump vec3;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderVec4" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump vec4;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderBvec2" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump bvec2;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderBvec3" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump bvec3;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderBvec4" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump bvec4;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderIvec2" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump ivec2;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderIvec3" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump ivec3;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderIvec4" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump ivec4;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderMat2" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump mat2;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderMat3" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump mat3;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="vertexShaderMat4" type="text/something-not-javascript">
+// vertex shader with default precision for illegal type should fail
+precision mediump mat4;
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script>
+"use strict";
+GLSLConformanceTester.runTests([
+    { vShaderId: 'vertexShaderVoid',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for void should fail'
+    },
+    { vShaderId: 'vertexShaderBool',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bool should fail'
+    },
+    { vShaderId: 'vertexShaderVec2',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for vec2 should fail'
+    },
+    { vShaderId: 'vertexShaderVec3',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for vec3 should fail'
+    },
+    { vShaderId: 'vertexShaderVec4',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for vec4 should fail'
+    },
+    { vShaderId: 'vertexShaderBvec2',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bvec2 should fail'
+    },
+    { vShaderId: 'vertexShaderBvec3',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bvec3 should fail'
+    },
+    { vShaderId: 'vertexShaderBvec4',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bvec4 should fail'
+    },
+    { vShaderId: 'vertexShaderIvec2',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for ivec2 should fail'
+    },
+    { vShaderId: 'vertexShaderIvec3',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for ivec3 should fail'
+    },
+    { vShaderId: 'vertexShaderIvec4',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for ivec4 should fail'
+    },
+    { vShaderId: 'vertexShaderMat2',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for mat2 should fail'
+    },
+    { vShaderId: 'vertexShaderMat3',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for mat3 should fail'
+    },
+    { vShaderId: 'vertexShaderMat4',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for mat4 should fail'
+    }
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Sampler Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the Sampler objects.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var s = null;
+var s1 = null;
+var s2 = null;
+var testCases = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runBindingTest();
+    runObjectTest();
+    runParameterTest();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function enumToString(value) {
+    return wtu.glEnumToString(gl, value);
+}
+
+function runBindingTest() {
+    debug("Testing binding enum");
+
+    shouldBe("gl.SAMPLER_BINDING", "0x8919");
+
+    // Default value is null
+    shouldBeNull("gl.getParameter(gl.SAMPLER_BINDING)");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "SAMPLER_BINDING query should succeed");
+
+    debug("Testing binding a Sampler object");
+    s1 = gl.createSampler();
+    s2 = gl.createSampler();
+    gl.bindSampler(0, s1);
+    shouldBe("gl.getParameter(gl.SAMPLER_BINDING)", "s1");
+    gl.bindSampler(0, s2);
+    shouldBe("gl.getParameter(gl.SAMPLER_BINDING)", "s2");
+
+    // Bindings should not affect other units.
+    gl.bindSampler(1, s1);
+    shouldBe("gl.getParameter(gl.SAMPLER_BINDING)", "s2");
+    gl.activeTexture(gl.TEXTURE1);
+    shouldBe("gl.getParameter(gl.SAMPLER_BINDING)", "s1");
+    gl.activeTexture(gl.TEXTURE0);
+
+    // Should be able to bind a single sampler to multiple texture units.
+    gl.bindSampler(0, s1);
+    shouldBe("gl.getParameter(gl.SAMPLER_BINDING)", "s1");
+
+    // Deleting samplers should unbind them.
+    gl.deleteSampler(s1);
+    gl.deleteSampler(s2);
+    shouldBeNull("gl.getParameter(gl.SAMPLER_BINDING)");
+    gl.activeTexture(gl.TEXTURE1);
+    shouldBeNull("gl.getParameter(gl.SAMPLER_BINDING)");
+    gl.activeTexture(gl.TEXTURE0);
+
+    // Shouldn't be able to bind a deleted sampler.
+    gl.bindSampler(0, s2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "binding a deleted Sampler object");
+    gl.bindSampler(0, null);
+    shouldBeNull("gl.getParameter(gl.SAMPLER_BINDING)");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runObjectTest() {
+    debug("Testing object creation");
+
+    s1 = gl.createSampler();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "createSampler should not set an error");
+    shouldBeNonNull("s1");
+
+    // Expect true, even if never bound
+    shouldBeTrue("gl.isSampler(s1)");
+    gl.bindSampler(0, s1);
+    shouldBeTrue("gl.isSampler(s1)");
+    gl.bindSampler(0, null);
+    shouldBeTrue("gl.isSampler(s1)");
+    gl.deleteSampler(s1);
+    shouldBeFalse("gl.isSampler(s1)");
+
+    shouldBeFalse("gl.isSampler(null)");
+
+    s1 = null;
+}
+
+function runParameterTest() {
+    debug("Testing getSamplerParameter and samplerParameter[if]");
+
+    s = gl.createSampler();
+    gl.bindSampler(0, s);
+
+    debug("Checking default param for getSamplerParameter");
+
+    testCases = [
+      { pname: gl.TEXTURE_WRAP_S,  defaultParam: gl.REPEAT },
+      { pname: gl.TEXTURE_WRAP_T,  defaultParam: gl.REPEAT },
+      { pname: gl.TEXTURE_WRAP_R,  defaultParam: gl.REPEAT },
+      { pname: gl.TEXTURE_MIN_FILTER,  defaultParam: gl.NEAREST_MIPMAP_LINEAR },
+      { pname: gl.TEXTURE_MAG_FILTER,  defaultParam: gl.LINEAR },
+      { pname: gl.TEXTURE_COMPARE_MODE,  defaultParam: gl.NONE },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  defaultParam: gl.LEQUAL },
+      { pname: gl.TEXTURE_MIN_LOD,  defaultParam: -1000 },
+      { pname: gl.TEXTURE_MAX_LOD,  defaultParam: 1000 },
+    ];
+
+    for (var ii = 0; ii < testCases.length; ++ii) {
+        var pname = testCases[ii].pname;
+        var defaultParam = testCases[ii].defaultParam;
+        shouldBe("gl.getSamplerParameter(s, " + pname + ")", defaultParam.toString());
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+
+    debug("Checking valid pname and param for samplerParameteri");
+
+    testCases = [
+      { pname: gl.TEXTURE_WRAP_S,  param: gl.REPEAT },
+      { pname: gl.TEXTURE_WRAP_S,  param: gl.MIRRORED_REPEAT },
+      { pname: gl.TEXTURE_WRAP_S,  param: gl.CLAMP_TO_EDGE },
+      { pname: gl.TEXTURE_WRAP_T,  param: gl.REPEAT },
+      { pname: gl.TEXTURE_WRAP_T,  param: gl.MIRRORED_REPEAT },
+      { pname: gl.TEXTURE_WRAP_T,  param: gl.CLAMP_TO_EDGE },
+      { pname: gl.TEXTURE_WRAP_R,  param: gl.REPEAT },
+      { pname: gl.TEXTURE_WRAP_R,  param: gl.MIRRORED_REPEAT },
+      { pname: gl.TEXTURE_WRAP_R,  param: gl.CLAMP_TO_EDGE },
+      { pname: gl.TEXTURE_MIN_FILTER,  param: gl.NEAREST },
+      { pname: gl.TEXTURE_MIN_FILTER,  param: gl.LINEAR },
+      { pname: gl.TEXTURE_MIN_FILTER,  param: gl.NEAREST_MIPMAP_NEAREST },
+      { pname: gl.TEXTURE_MIN_FILTER,  param: gl.NEAREST_MIPMAP_LINEAR },
+      { pname: gl.TEXTURE_MIN_FILTER,  param: gl.LINEAR_MIPMAP_NEAREST },
+      { pname: gl.TEXTURE_MIN_FILTER,  param: gl.LINEAR_MIPMAP_LINEAR },
+      { pname: gl.TEXTURE_MAG_FILTER,  param: gl.NEAREST },
+      { pname: gl.TEXTURE_MAG_FILTER,  param: gl.LINEAR },
+      { pname: gl.TEXTURE_COMPARE_MODE,  param: gl.NONE },
+      { pname: gl.TEXTURE_COMPARE_MODE,  param: gl.COMPARE_REF_TO_TEXTURE },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.LEQUAL },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.GEQUAL },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.LESS },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.GREATER },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.EQUAL },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.NOTEQUAL },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.ALWAYS },
+      { pname: gl.TEXTURE_COMPARE_FUNC,  param: gl.NEVER },
+    ];
+
+    for (var ii = 0; ii < testCases.length; ++ii) {
+        var pname = testCases[ii].pname;
+        var param = testCases[ii].param;
+        wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.samplerParameteri(s, " + pname + ", " + param + ")");
+        shouldBe("gl.getSamplerParameter(s, " + pname + ")", "gl['" + enumToString(param) + "']");
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+
+    debug("Checking valid pname and param for samplerParameterf");
+    testCases = [
+      { pname: gl.TEXTURE_MIN_LOD,  param: -500 },
+      { pname: gl.TEXTURE_MIN_LOD,  param: 0 },
+      { pname: gl.TEXTURE_MIN_LOD,  param: 10.0 },
+      { pname: gl.TEXTURE_MAX_LOD,  param: 500 },
+      { pname: gl.TEXTURE_MAX_LOD,  param: 0 },
+      { pname: gl.TEXTURE_MAX_LOD,  param: 10.0 },
+    ];
+
+    for (var ii = 0; ii < testCases.length; ++ii) {
+        var pname = testCases[ii].pname;
+        var param = testCases[ii].param;
+        wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.samplerParameterf(s, " + pname + ", " + param + ")");
+        shouldBe("gl.getSamplerParameter(s, " + pname + ")", param.toString());
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+
+    debug("Checking invalid pname and param");
+
+    testCases = [
+      { pname: gl.TEXTURE_IMMUTABLE_FORMAT,  param: null,  expectedError: gl.INVALID_ENUM },
+      { pname: gl.TEXTURE_BASE_LEVEL,  param: null,  expectedError: gl.INVALID_ENUM },
+      { pname: gl.TEXTURE_MAX_LEVEL,  param: null,  expectedError: gl.INVALID_ENUM },
+      { pname: gl.TEXTURE_WRAP_S,  param: 0x812D,/* GL_CLAMP_TO_BORDER */  expectedError: gl.INVALID_ENUM },
+      { pname: gl.TEXTURE_WRAP_T,  param: 0x812D,/* GL_CLAMP_TO_BORDER */  expectedError: gl.INVALID_ENUM },
+      { pname: gl.TEXTURE_MAG_FILTER,  param: gl.LINEAR_MIPMAP_NEAREST,  expectedError: gl.INVALID_ENUM },
+    ];
+
+    for (var ii = 0; ii < testCases.length; ++ii) {
+        var pname = testCases[ii].pname;
+        var param = testCases[ii].param;
+        var expectedError = testCases[ii].expectedError;
+        if (param == null) {
+            wtu.shouldGenerateGLError(gl, expectedError, "gl.getSamplerParameter(s, " + pname + ")");
+        } else {
+            wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.getSamplerParameter(s, " + pname + ")");
+        }
+        wtu.shouldGenerateGLError(gl, expectedError, "gl.samplerParameteri(s, " + pname + ", " + param + ")");
+        wtu.shouldGenerateGLError(gl, expectedError, "gl.samplerParameterf(s, " + pname + ", " + param + ")");
+    }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

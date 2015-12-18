@@ -1,0 +1,242 @@
+﻿<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Instanced Arrays Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing instanced draws -->
+<script id="outputVertexShader" type="x-shader/x-vertex">
+attribute vec4 aPosition;
+attribute vec2 aOffset;
+attribute vec4 aColor;
+varying vec4 vColor;
+void main() {
+    vColor = aColor;
+    gl_Position = aPosition + vec4(aOffset, 0.0, 0.0);
+}
+</script>
+
+<script id="outputFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 vColor;
+void main() {
+    gl_FragColor = vColor;
+}
+</script>
+
+<script>
+"use strict";
+description("This test verifies the functionality of Instanced Arrays.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runDivisorTest();
+    runOutputTests();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runDivisorTest() {
+    debug("Testing VERTEX_ATTRIB_ARRAY_DIVISOR");
+
+    shouldBe("gl.VERTEX_ATTRIB_ARRAY_DIVISOR", "0x88FE");
+
+    var max_vertex_attribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+
+    for (var i = 0; i < max_vertex_attribs; ++i) {
+        var queried_value = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
+        if(queried_value == 0){
+            testPassed("Vertex attribute " + i + " must has a default divisor of 0");
+        }
+        else{
+            testFailed("Default divisor of vertex attribute " + i + " should be: 0, returned value was: " + queried_value);
+        }
+    }
+
+    gl.vertexAttribDivisor(max_vertex_attribs, 2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "vertexAttribDivisor index set greater than or equal to MAX_VERTEX_ATTRIBS should be an invalid value");
+
+    gl.vertexAttribDivisor(max_vertex_attribs-1, 2);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "vertexAttribDivisor index set less than MAX_VERTEX_ATTRIBS should succeed");
+
+    var queried_value = gl.getVertexAttrib(max_vertex_attribs-1, gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
+    if(queried_value == 2){
+        testPassed("Set value of VERTEX_ATTRIB_ARRAY_DIVISOR matches expecation");
+    }
+    else{
+        testFailed("Set value of VERTEX_ATTRIB_ARRAY_DIVISOR should be: 2, returned value was: " + queried_value);
+    }
+}
+
+function runOutputTests() {
+    var e = 2; // Amount of variance to allow in result pixels - may need to be tweaked higher
+    var instanceCount = 4;
+
+    debug("Testing various draws for valid built-in function behavior");
+
+    canvas.width = 50; canvas.height = 50;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+
+    var positionLoc = 0;
+    var offsetLoc = 2;
+    var colorLoc = 3;
+    var program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"], ['aPosition', 'aOffset', 'aColor'], [positionLoc, offsetLoc, colorLoc]);
+
+    var offsets = new Float32Array([
+        -1.0,  1.0,
+         1.0,  1.0,
+        -1.0, -1.0,
+         1.0, -1.0,
+    ]);
+    var offsetBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsets, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(offsetLoc);
+    gl.vertexAttribPointer(offsetLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribDivisor(offsetLoc, 1);
+
+    var colors = new Float32Array([
+        1.0, 0.0, 0.0, 1.0, // Red
+        0.0, 1.0, 0.0, 1.0, // Green
+        0.0, 0.0, 1.0, 1.0, // Blue
+        1.0, 1.0, 0.0, 1.0, // Yellow
+    ]);
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribDivisor(colorLoc, 1);
+
+    // Draw 1: Draw Non-indexed instances
+    debug("Testing drawArraysInstanced");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.setupUnitQuad(gl, 0);
+
+    // Test drawArraysInstanced error conditions
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.checkCanvasRect(gl, 0, canvas.height/2, canvas.width/2, canvas.height/2, [255, 0, 0, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, canvas.height/2, canvas.width/2, canvas.height/2, [0, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width/2, canvas.height/2, [0, 0, 255, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, 0, canvas.width/2, canvas.height/2, [255, 255, 0, 255]);
+
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, -1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawArraysInstanced cannot have a primcount less than 0");
+
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, -1, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawArraysInstanced cannot have a count less than 0");
+
+    gl.vertexAttribDivisor(positionLoc, 1);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "There must be at least one vertex attribute with a divisor of zero when calling drawArraysInstanced");
+    gl.vertexAttribDivisor(positionLoc, 0);
+
+    gl.drawArraysInstanced(gl.POINTS, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced with POINTS should succeed");
+    gl.drawArraysInstanced(gl.LINES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced with LINES should succeed");
+    gl.drawArraysInstanced(gl.LINE_LIST, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced with LINE_LIST should return succeed");
+    gl.drawArraysInstanced(gl.TRI_LIST, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced with TRI_LIST should succeed");
+
+    gl.drawArraysInstanced(desktopGL['QUAD_STRIP'], 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstanced with QUAD_STRIP should return INVALID_ENUM");
+    gl.drawArraysInstanced(desktopGL['QUADS'], 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstanced with QUADS should return INVALID_ENUM");
+    gl.drawArraysInstanced(desktopGL['POLYGON'], 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstanced with POLYGON should return INVALID_ENUM");
+
+    // Draw 2: Draw indexed instances
+    debug("Testing drawElementsInstanced");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.setupIndexedQuad(gl, 1, 0);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.checkCanvasRect(gl, 0, canvas.height/2, canvas.width/2, canvas.height/2, [255, 0, 0, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, canvas.height/2, canvas.width/2, canvas.height/2, [0, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width/2, canvas.height/2, [0, 0, 255, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, 0, canvas.width/2, canvas.height/2, [255, 255, 0, 255]);
+
+    // Test drawElementsInstanced error conditions
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, -1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawElementsInstanced cannot have a primcount less than 0");
+
+    gl.drawElementsInstanced(gl.TRIANGLES, -1, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawElementsInstanced cannot have a count less than 0");
+
+    gl.vertexAttribDivisor(positionLoc, 1);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "There must be at least one vertex attribute with a divisor of zero when calling drawElementsInstanced");
+    gl.vertexAttribDivisor(positionLoc, 0);
+
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced with UNSIGNED_BYTE should succeed");
+
+    gl.drawElementsInstanced(gl.POINTS, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced with POINTS should succeed");
+    gl.drawElementsInstanced(gl.LINES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced with LINES should succeed");
+    gl.drawElementsInstanced(gl.LINE_LIST, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced with LINE_LIST should return succeed");
+    gl.drawElementsInstanced(gl.TRI_LIST, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced with TRI_LIST should succeed");
+
+    gl.drawElementsInstanced(desktopGL['QUAD_STRIP'], 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawElementsInstanced with QUAD_STRIP should return INVALID_ENUM");
+    gl.drawElementsInstanced(desktopGL['QUADS'], 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawElementsInstanced with QUADS should return INVALID_ENUM");
+    gl.drawElementsInstanced(desktopGL['POLYGON'], 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawElementsInstanced with POLYGON should return INVALID_ENUM");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

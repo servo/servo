@@ -1,0 +1,7 @@
+// files that end in .txt list other tests
+// other lines are assumed to be .html files
+
+--min-version 1.0.4 data/gles2/shaders/00_test_list.txt
+--min-version 2.0.0 data/gles3/shaders/00_test_list.txt
+--min-version 2.0.0 framework/opengl/simplereference/00_test_list.txt
+--min-version 2.0.0 functional/gles3/00_test_list.txt

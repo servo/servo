@@ -1,0 +1,104 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texel fetch test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<canvas id="c" width="256" height="256"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+  precision highp float;
+  in vec4 aPosition;
+
+  void main() {
+    gl_Position = aPosition;
+  }
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+  precision mediump float;
+  uniform sampler2D uSampler;
+  uniform ivec2 uTestPos;
+
+  out vec4 my_FragColor;
+  void main() {
+    my_FragColor = texelFetch(uSampler, uTestPos, 0); 
+  }
+</script>
+<script>
+"use strict";
+description("This test makes sure that texelFetch works to the WebGL 2.0 spec when retrieving a texel outside of the texture's size.");
+
+var wtu = WebGLTestUtils;
+var textureSize = 24;
+
+var gl = wtu.create3DContext('c', undefined, 2);
+
+function testFetchAt(x, y, expectedColor) {
+  debug("");
+  debug("Test fetching a texel of the texture at x = " + x +", y = " + y);
+  gl.uniform2i(uTestPos, x, y);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, expectedColor);
+}
+
+var program = wtu.setupProgram(gl, ["vertex-shader", "fragment-shader"]);
+var aPosition = gl.getAttribLocation(program, "aPosition");
+var uTestPos = gl.getUniformLocation(program, "uTestPos");
+
+debug('Creating a texture with size ' + textureSize + '*' + textureSize);
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+wtu.fillTexture(gl, tex, textureSize, textureSize, [0, 255, 0, 255]);
+
+wtu.setupUnitQuad(gl, aPosition);
+
+testFetchAt(0, 0, [0, 255, 0, 255]);
+testFetchAt(textureSize - 1, textureSize - 1, [0, 255, 0, 255]);
+testFetchAt(textureSize, 0, [0, 0, 0, 0]);
+testFetchAt(0, textureSize, [0, 0, 0, 0]);
+testFetchAt(-1, 0, [0, 0, 0, 0]);
+testFetchAt(0, -1, [0, 0, 0, 0]);
+testFetchAt(-1, 1, [0, 0, 0, 0]);
+
+finishTest();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Check that the canvas is NOT recomposited after unsucessful draw call</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<style>
+canvas {
+    border: 1px solid black;
+}
+.correct {
+    border: 1px solid black;
+    background-color: #00ff00;
+}
+</style>
+</head>
+<body>
+<pre>
+This test must be run manually.
+
+This test tests that a canvas is NOT cleared
+when a draw call fails.
+
+You should see two <span class="correct">green rectangles</span>
+with black outlines on success.
+</pre>
+<canvas id='c1'></canvas>
+<canvas id='c2'></canvas>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var c1 = document.getElementById("c1");
+var c2 = document.getElementById("c2");
+var gl1 = wtu.create3DContext(c1);
+var gl2 = wtu.create3DContext(c2);
+gl1.clearColor(0,1,0,1);
+gl1.clear(gl1.COLOR_BUFFER_BIT);
+gl2.clearColor(0,1,0,1);
+gl2.clear(gl2.COLOR_BUFFER_BIT);
+wtu.waitForComposite(function() {
+  gl1.drawArrays(gl1.BLEND, 0, 0);
+  wtu.glErrorShouldBe(gl1, gl1.INVALID_ENUM, "no errors");
+});
+
+wtu.waitForComposite(function() {
+  var buf = gl2.createBuffer();
+  gl2.bindBuffer(gl2.ELEMENT_ARRAY_BUFFER, buf);
+  gl2.bufferData(gl2.ELEMENT_ARRAY_BUFFER, new Uint8Array(1), gl2.STATIC_DRAW);
+  gl2.drawElements(gl2.BLEND, 0, gl2.UNSIGNED_SHORT, 0);
+  wtu.glErrorShouldBe(gl2, gl2.INVALID_ENUM, "no errors");
+});
+</script>
+</body>
+</html>

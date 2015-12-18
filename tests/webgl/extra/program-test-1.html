@@ -1,0 +1,101 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- This is a visual test that programs must have both a vertex and
+     fragment shader attached; the fixed function pipeline on the
+     desktop must remain disabled. -->
+<script type="application/javascript">
+function log() {
+  var s = "";
+  for (var i = 0; i < arguments.length; ++i) {
+    s += arguments[i] + " ";
+  }
+  document.getElementById("log").innerHTML += s + "<br>";
+}
+
+function go() {
+  var gl = document.getElementById("c").getContext("experimental-webgl");
+
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  var vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, "attribute vec4 aVertex; attribute vec4 aColor; varying vec4 vColor; void main() { vColor = aColor; gl_Position = aVertex; }");
+  gl.compileShader(vs);
+
+  var fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, "precision mediump float; varying vec4 vColor; void main() { gl_FragColor = vColor; }");
+  gl.compileShader(fs);
+
+  var prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  // don't attach a fragment shader -- may use fixed pipeline on desktop if the implementation doesn't check!
+  //gl.attachShader(prog, fs);
+
+  gl.bindAttribLocation(prog, 0, "aVertex");
+  gl.bindAttribLocation(prog, 1, "aColor");
+
+  gl.linkProgram(prog);
+
+  var vbuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1.0, -1.0, 0.0, 1.0,
+      -1.0, 1.0, 0.0, 1.0,
+      1.0, -1.0, 0.0, 1.0,
+      1.0, 1.0, 0.0, 1.0]), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+
+  var cbuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, cbuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array([255, 0, 0,
+                                                 0, 255, 0,
+                                                 0, 0, 255,
+                                                 255, 255, 0]), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(1, 3, gl.UNSIGNED_BYTE, false, 0, 0);
+
+  gl.enableVertexAttribArray(0);
+  gl.enableVertexAttribArray(1);
+
+  gl.useProgram(prog);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  log("glError", "0x" + gl.getError().toString(16));
+}
+</script>
+</head>
+
+<body onload="go()">
+<p>Should be green in the rectangle below:</p>
+<canvas style="background: green;" id="c"></canvas>
+<div id="log"></div>
+</body>
+</html>

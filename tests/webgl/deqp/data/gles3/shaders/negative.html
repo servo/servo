@@ -1,0 +1,36 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>WebGL Shader Conformance Tests</title>
+<link rel="stylesheet" href="../../../../resources/js-test-style.css"/>
+<script src="../../../../js/js-test-pre.js"></script>
+<script src="../../../../js/webgl-test-utils.js"></script>
+
+<script src="../../../../closure-library/closure/goog/base.js"></script>
+<script src="../../../deqp-deps.js"></script>
+<script>goog.require('modules.shared.glsShaderLibrary');</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="200" height="100"> </canvas>
+<script>
+testName = 'negative';
+description("Shader test: " + testName + ".");
+WebGLTestUtils.setDefault3DContextVersion(2);
+
+var getFilter = function() {
+    var queryVars = window.location.search.substring(1).split('&');
+
+    for (var i = 0; i < queryVars.length; i++) {
+        var value = queryVars[i].split('=');
+        if (decodeURIComponent(value[0]) === 'filter')
+            return decodeURIComponent(value[1]);
+    }
+}
+
+modules.shared.glsShaderLibrary.run(testName, getFilter())
+
+</script>
+</body>
+</html>

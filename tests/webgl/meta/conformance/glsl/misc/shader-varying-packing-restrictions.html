@@ -1,0 +1,25 @@
+checking: float
+checking: vec2
+checking: vec3
+checking: vec4
+checking: mat2
+checking: mat3
+checking: mat4
+FAIL [unexpected link status] shaders with varying array of float with 1 elements (one past maximum) accessing last element should fail
+FAIL [unexpected link status] shaders with varying array of float with 1 elements (one past maximum) accessing first element should fail
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:8: 'rseInt' : syntax error 
+
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:23: 'ucceed' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) shaders with 8 varyings of float (the minimum required) should succeed
+FAIL [link failed] shaders with 8 varyings of float (the minimum required) should succeed
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:8: 'ontext' : syntax error 
+
+FAIL [unexpected fragment shader compile status] (expected: true) shaders with varying array of vec2 with 1 element should succeed
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:8: 'cessing' : syntax error 
+
+FAIL [unexpected fragment shader compile status] (expected: true) shaders with varying array of vec2 with 8 elements (the minimum required) should succeed
+was ready to save, resetting ready_to_save_state
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:8: 'ot' : syntax error 
+
+FAIL [unexpected link status] shaders with varying array of vec2 with 1 elements (one past maximum) accessing first element should fail

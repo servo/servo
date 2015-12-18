@@ -1,0 +1,190 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Short circuit in loop condition test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+  precision highp float;
+  in vec4 aPosition;
+
+  void main() {
+    gl_Position = aPosition;
+  }
+</script>
+<script id="fshaderWhile" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform bool u;
+out vec4 result;
+int sideEffectCounter;
+
+bool foo() {
+  ++sideEffectCounter;
+  return true;
+}
+
+void main() {
+  sideEffectCounter = 0;
+  int iterations = 0;
+
+  while(u && foo()) {
+    ++iterations;
+    if (iterations >= 10) {
+      break;
+    }
+  }
+
+  bool success = (u && sideEffectCounter == 10) || (!u && sideEffectCounter == 0);
+  result = success ? vec4(0, 1.0, 0, 1.0) : vec4(0, 1.0, 0, 0);
+}
+</script>
+<script id="fshaderFor" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform bool u;
+out vec4 result;
+int sideEffectCounter;
+
+bool foo() {
+  ++sideEffectCounter;
+  return true;
+}
+
+void main() {
+  sideEffectCounter = 0;
+  for(int iterations = 0; true; u && foo()) {
+    ++iterations;
+    if (iterations > 10) {
+      break;
+    }
+  }
+
+  bool success = (u && sideEffectCounter == 10) || (!u && sideEffectCounter == 0);
+  result = success ? vec4(0, 1.0, 0, 1.0) : vec4(0, 1.0, 0, 0);
+}
+</script>
+<script id="fshaderDoWhile" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform bool u;
+out vec4 result;
+int sideEffectCounter;
+
+bool foo() {
+  ++sideEffectCounter;
+  return true;
+}
+
+void main() {
+  sideEffectCounter = 0;
+  int iterations = 0;
+
+  do {
+    ++iterations;
+    if (iterations > 10) {
+      break;
+    }
+  } while (u && foo());
+
+  bool success = (u && sideEffectCounter == 10) || (!u && sideEffectCounter == 0);
+  result = success ? vec4(0, 1.0, 0, 1.0) : vec4(0, 1.0, 0, 0);
+}
+</script>
+<script id="fshaderSequence" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform bool u;
+out vec4 result;
+int sideEffectCounter;
+
+bool foo() {
+  ++sideEffectCounter;
+  return true;
+}
+
+void main() {
+  sideEffectCounter = 0;
+  int iterations = 0;
+
+  while(u, u && foo()) {
+    ++iterations;
+    if (iterations >= 10) {
+      break;
+    }
+  }
+
+  bool success = (u && sideEffectCounter == 10) || (!u && sideEffectCounter == 0);
+  result = success ? vec4(0, 1.0, 0, 1.0) : vec4(0, 1.0, 0, 0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("Test behavior of a short-circuiting operator in a loop using a function call with side effects");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+wtu.setupUnitQuad(gl);
+
+var testShader = function(fshaderId, subTestDescription) {
+    debug("");
+    debug(subTestDescription);
+    var program = wtu.setupProgram(gl, ["vertex-shader", fshaderId], ['aPosition'], undefined, true);
+    if (!program) {
+        testFailed('Program compilation failed');
+        return;
+    }
+
+    debug("Test short-circuiting operator with a true condition.");
+    gl.uniform1i(gl.getUniformLocation(program, "u"), 1);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+
+    debug("Test short-circuiting operator with a false condition.");
+    gl.uniform1i(gl.getUniformLocation(program, "u"), 0);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+};
+
+if (!gl) {
+    testFailed("context does not exist");
+} else {
+    testShader("fshaderWhile", "in while loop condition");
+    testShader("fshaderFor", "in for loop expression");
+    testShader("fshaderDoWhile", "in do-while loop condition");
+    testShader("fshaderSequence", "inside a sequence in while loop condition");
+}
+var successfullyParsed = true;
+finishTest();
+</script>
+</body>
+</html>

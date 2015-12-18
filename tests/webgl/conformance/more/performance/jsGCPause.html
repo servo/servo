@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+Tests.autorun = false;
+
+Tests.testInterval = function() {
+    document.getElementById('dtMax').textContent = "Running, please wait...";
+    setTimeout(function() {
+        var t0 = new Date().getTime();
+        var t = t0;
+        var dtMax = 0;
+        var frames = [];
+        var iv;
+        iv = setInterval(function() {
+            if (t > t0 + 10000) {
+                var hist = [];
+                var dtMed = 0, maxi = [0, 0];
+                for (var i=0; i<dtMax; i++) hist[i] = 0;
+                for (var i=0; i<frames.length; i++)
+                    hist[frames[i]]++;
+                for (var i=0; i<hist.length; i++)
+                    if (hist[i] > maxi[1]) maxi = [i, hist[i]];
+                dtMed = maxi[0];
+                var dtAvg = frames.reduce(function(s,i){return s + i;})/frames.length;
+                document.getElementById('dtMax').textContent = "Longest frame: " + dtMax + " ms. Average frame: " + Math.floor(dtAvg*100)*0.01 + " ms. Median frame: " + dtMed + " ms.";
+                clearInterval(iv);
+                var c = document.getElementById('dtCanvas');
+                c.width = frames.length;
+                c.height = dtMax;
+                var ctx = c.getContext('2d');
+                for (var i=0; i<frames.length; i++)
+                    ctx.fillRect(i,0,1,frames[i]);
+            }
+            var t1 = new Date().getTime();
+            if (t1-t > dtMax) dtMax = t1-t;
+            frames.push(t1-t);
+            t = t1;
+            var rot = Matrix.rotate((t/400) % (2*Math.PI), [0, 1+(t%1000), 1]);
+            var trans = Matrix.translate3(0, Math.cos(t/1000)*1, Math.sin(t/1000)*3);
+            for (var i=0; i<200; i++)
+                var mat = Matrix.mul4x4(rot, trans);
+        }, 16);
+    }, 0);
+}
+
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+<h3>10 seconds of 60fps 200x mul4x4, frame time statistics</h3>
+<p id="dtMax"></p>
+<canvas id="dtCanvas"></canvas>
+</body></html>
+

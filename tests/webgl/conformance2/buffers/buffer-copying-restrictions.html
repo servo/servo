@@ -1,0 +1,123 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL buffer copying restrictions test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Test buffer copying restrictions governed by the WebGL 2 spec. The test makes sure that copyBufferSubData acts as expected.");
+
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+var validTargets = [gl.ARRAY_BUFFER, gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER,
+                    gl.ELEMENT_ARRAY_BUFFER, gl.PIXEL_PACK_BUFFER,
+                    gl.PIXEL_UNPACK_BUFFER, gl.TRANSFORM_FEEDBACK_BUFFER,
+                    gl.UNIFORM_BUFFER];
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+var testCopyBuffer = function(srcTarget, dstTarget) {
+  var srcTargetStr = wtu.glEnumToString(gl, srcTarget),
+    dstTargetStr = wtu.glEnumToString(gl, dstTarget);
+  var srcBuffer = gl.createBuffer(),
+    dstBuffer = gl.createBuffer();
+  var testCopyStr = "copying from a gl." + wtu.glEnumToString(gl, srcTarget) + " buffer to a gl."
+    + wtu.glEnumToString(gl, dstTarget) + " buffer"
+
+  gl.bindBuffer(srcTarget, srcBuffer);
+  gl.bufferData(srcTarget, new Float32Array(32), gl.STATIC_DRAW);
+  gl.bindBuffer(dstTarget, dstBuffer);
+  gl.bufferData(dstTarget, new Float32Array(32), gl.STATIC_DRAW);
+  gl.copyBufferSubData(srcTarget, dstTarget, 8, 0, 4);
+  if (srcTarget == dstTarget)
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, testCopyStr + " should work.");
+  else if (srcTarget == gl.ELEMENT_ARRAY_BUFFER || dstTarget == gl.ELEMENT_ARRAY_BUFFER )
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, testCopyStr + " should fail.");
+  else
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, testCopyStr + " should work.");
+
+  // Special case: COPY_READ_BUFFER and COPY_WRITE_BUFFER are compatible with ELEMENT_ARRAY_BUFFER
+  // only if the buffer had been initially bound to an ELEMENT_ARRAY_BUFFER
+  if (srcTarget == gl.ELEMENT_ARRAY_BUFFER &&
+      (dstTarget == gl.COPY_READ_BUFFER || dstTarget == gl.COPY_WRITE_BUFFER)) {
+    dstBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, dstBuffer);
+  } else if (dstTarget == gl.ELEMENT_ARRAY_BUFFER &&
+      (srcTarget == gl.COPY_READ_BUFFER || srcTarget == gl.COPY_WRITE_BUFFER)) {
+    srcBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, srcBuffer);
+  } else {
+    return;
+  }
+
+  gl.bindBuffer(srcTarget, srcBuffer);
+  gl.bufferData(srcTarget, new Float32Array(32), gl.STATIC_DRAW);
+  gl.bindBuffer(dstTarget, dstBuffer);
+  gl.bufferData(dstTarget, new Float32Array(32), gl.STATIC_DRAW);
+  gl.copyBufferSubData(srcTarget, dstTarget, 8, 0, 4);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, testCopyStr + " should work if all buffers were initially bound to ELEMENT_ARRAY_BUFFER.");
+};
+
+for (var i = 0; i < validTargets.length; i++) {
+  debug("");
+  debug("Copying data from a " + wtu.glEnumToString(gl, validTargets[i])
+    + " buffer to another target");
+  for (var j = 0; j < validTargets.length; j++)
+    testCopyBuffer(validTargets[i], validTargets[j]);
+}
+
+debug("");
+debug("Test copying a buffer of other data (gl.ARRAY_BUFFER) bound to gl.COPY_READ_BUFFER to a "
+  + "buffer bound to gl.ELEMENT_ARRAY_BUFFER");
+var srcBuffer = gl.createBuffer(), dstBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, srcBuffer);
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, dstBuffer);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Float32Array(32), gl.STATIC_DRAW);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(32), gl.STATIC_DRAW);
+gl.bindBuffer(gl.COPY_READ_BUFFER, srcBuffer);
+gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.ELEMENT_ARRAY_BUFFER, 0, 0, 4);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Copying gl.ARRAY_BUFFER bound to "
+  + "gl.COPY_READ_BUFFER to a buffer bound to gl.ELEMENT_ARRAY_BUFFER should fail.");
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

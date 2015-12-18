@@ -1,0 +1,121 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Conformance test for WebGL2 texStorage2D and texStorage3D with compressed format</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+
+
+<script>
+"use strict";
+description("This test verifies that texStorage2D and texStorage3D " +
+            "accept compressed internalformats.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var vao = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runTexCompressedFormatsTest();
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function enumToString(value) {
+  return wtu.glEnumToString(gl, value);
+}
+
+function runTexCompressedFormatsTest()
+{
+    // These compressed formats are in Table 3.19 from the OpenGL ES 3.0.4 spec.
+    var texCompressedFormats = [
+        gl.COMPRESSED_R11_EAC,
+        gl.COMPRESSED_SIGNED_R11_EAC,
+        gl.COMPRESSED_RG11_EAC,
+        gl.COMPRESSED_SIGNED_RG11_EAC,
+        gl.COMPRESSED_RGB8_ETC2,
+        gl.COMPRESSED_SRGB8_ETC2,
+        gl.COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+        gl.COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+        gl.COMPRESSED_RGBA8_ETC2_EAC,
+        gl.COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,
+    ];
+
+    texCompressedFormats.forEach(function(internalformat){
+        // Test a 2D texture.
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, internalformat, 1, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                            "texStorage2D should succeed for " + enumToString(internalformat));
+        gl.deleteTexture(tex);
+
+        // GLES 3.0.4 p147:
+        // "If internalformat is an ETC2/EAC format, CompressedTexImage3D will generate an
+        //  INVALID_OPERATION error if target is not TEXTURE_2D_ARRAY."
+
+        // Test the 3D texture targets.
+        var tex3d = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_3D, tex3d);
+        gl.texStorage3D(gl.TEXTURE_3D, 1, internalformat, 1, 1, 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+                            "texStorage3D(TEXTURE_3D) should fail for " + enumToString(internalformat));
+        gl.deleteTexture(tex3d);
+
+        var tex2dArr = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex2dArr);
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, internalformat, 1, 1, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                            "texStorage3D(TEXTURE_2D_ARRAY) should succeed for " + enumToString(internalformat));
+        gl.deleteTexture(tex2dArr);
+    });
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+Tests.autorun = false;
+Tests.message = "Caution: may crash the browser";
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = getGLContext(canvas);
+  return [gl];
+}
+
+Tests.testPassingTooManyVBOs = function(gl) {
+    var sh = new Filter(gl, 'vert', 'frag');
+    assertFail(function(){sh.apply();});
+    sh.destroy();
+}
+Tests.testPassingTooManyUniforms = function(gl) {
+    var sh = new Filter(gl, 'vert2', 'frag2');
+    sh.apply(function(f){
+        assertFail(function(){f.uniform1f('foo', 3.0);throwError("foo")});
+        f.uniform1f('bar', 1.0);
+        assertFail(function(){f.uniform1f('baz', 1.0);throwError("baz")});
+    });
+    sh.destroy();
+}
+
+</script>
+
+<script id="vert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex; attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Vertex.st;
+    gl_Position = vec4(Vertex, 0.0);
+  }
+</script>
+
+<script id="frag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  void main()
+  {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+  }
+</script>
+<script id="vert2" type="x-shader/x-vertex">
+
+
+  uniform float foo, bar;
+  attribute vec3 Vertex; attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex.st;
+    gl_Position = vec4(Vertex, bar);
+  }
+</script>
+
+<script id="frag2" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  uniform float baz;
+
+  varying vec2 TexCoord;
+  void main()
+  {
+    gl_FragColor = vec4(1.0, TexCoord.s, 0.0, 1.0);
+  }
+</script>
+
+
+<style>canvas{ position:absolute; }</style>
+</head><body>
+  <canvas id="gl" width="1" height="1"></canvas>
+</body></html>

@@ -1,0 +1,95 @@
+<!--
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verifies than GL framebuffer bindings do not change by toDataURL()</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="50" height="50"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Verifies than GL framebuffer bindings do not change by toDataURL()");
+
+var wtu = WebGLTestUtils;
+function test() {
+  var glCanvas = document.getElementById("example");
+  var gl = wtu.create3DContext(glCanvas, {preserveDrawingBuffer: true, premultipliedAlpha: true});
+
+  var program = wtu.setupColorQuad(gl);
+
+  // Clear backbuffer in red.
+  gl.clearColor(1.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+
+  var fbo = gl.createFramebuffer();
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 50, 50, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    return;
+  }
+
+  // Clear the FBO in green.
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // backbuffer is still in red.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+  // toDataURL() calls must not bind backbuffer.
+  glCanvas.toDataURL();
+  // Calling twice caused a bug due to wrong cache impl; crbug.com/445848
+  glCanvas.toDataURL();
+  // It must applies to the FBO, not backbuffer.
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // backbuffer must be in red, not green.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+}
+test();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

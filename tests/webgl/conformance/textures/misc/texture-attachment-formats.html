@@ -1,0 +1,197 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Texture Attachment Format Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2" style="width: 100px; height:100px; border: 1px solid black;"> </canvas>
+<script>
+"use strict";
+description();
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking texture formats.");
+
+  var numValidFormats = 0;
+  var clearColor = [0.25, 0.5, 0.75, 0.25];
+
+  var floatToBits = function(value, bits) {
+    var range = (1 << bits) - 1;
+    var result = 0;
+    if (range > 0) {
+      result = Math.floor(Math.floor(value * range) * 255 / range);
+    }
+
+    //debug("v = " + value + ", bits = " + bits + ", range = " + range  + ", result = " + result);
+    return result;
+  }
+
+  var testFormat = function(info) {
+    debug("");
+    debug("testing: " + info.format + ", " + info.type);
+
+    var format = gl[info.format];
+    var type = gl[info.type];
+
+    gl.texImage2D(gl.TEXTURE_2D,
+                  0,                 // level
+                  format,            // internalFormat
+                  16,                // width
+                  16,                // height
+                  0,                 // border
+                  format,            // format
+                  type,              // type
+                  null);             // data
+    var fbStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    debug(wtu.glEnumToString(gl, fbStatus));
+    if (fbStatus != gl.FRAMEBUFFER_COMPLETE) {
+      debug("format unsupported");
+      if (info.mustBeFramebufferComplete) {
+        testFailed(info.format + " must be FRAMEBUFFER_COMPLETE");
+      }
+      return;
+    }
+
+    ++numValidFormats;
+
+    var startExpected = [0, 0, 0, info.channels[3] < 0 ? 255 : 0];
+
+    var expected = [];
+    var tolerance = [];
+    for (var ii = 0; ii < 4; ++ii) {
+      var color = 0;
+      var channel = info.channels[ii];
+      if (channel < 0) {
+        color = ii < 3 ? 0 : 255
+      } else {
+        color = floatToBits(clearColor[channel], info.bits[ii]);
+      }
+      expected.push(color);
+      tolerance.push(channel < 0 ? 0 : (1 + (1 << (8 - info.bits[ii]))));
+    }
+
+    wtu.checkCanvas(gl, startExpected, "should be " + startExpected);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.checkCanvas(gl, expected, "should be " + expected + " with tolerance " + tolerance, tolerance);
+  }
+
+  var validFormats = [
+    { format: 'RGBA',
+      type:  'UNSIGNED_BYTE',
+      channels: [0, 1, 2, 3],
+      bits: [8, 8, 8, 8],
+      mustBeFramebufferComplete: true
+    },
+    { format: 'ALPHA',
+      type:  'UNSIGNED_BYTE',
+      channels: [-1, -1, -1, 3],
+      bits: [0, 0, 0, 8],
+      mustBeFramebufferComplete: false
+    },
+    { format: 'RGB',
+      type:  'UNSIGNED_BYTE',
+      channels: [0, 1, 2, -1],
+      bits: [8, 8, 8, 0],
+      mustBeFramebufferComplete: false
+    },
+    { format: 'RGB',
+      type:  'UNSIGNED_SHORT_5_6_5',
+      channels: [0, 1, 2, -1],
+      bits: [5, 6, 5, 0],
+      mustBeFramebufferComplete: false
+    },
+    { format: 'RGBA',
+      type:  'UNSIGNED_SHORT_5_5_5_1',
+      channels: [0, 1, 2, 3],
+      bits: [5, 5, 5, 1],
+      mustBeFramebufferComplete: false
+    },
+    { format: 'RGBA',
+      type:  'UNSIGNED_SHORT_4_4_4_4',
+      channels: [0, 1, 2, 3],
+      bits: [4, 4, 4, 4],
+      mustBeFramebufferComplete: false
+    },
+    { format: 'LUMINANCE',
+      type:  'UNSIGNED_BYTE',
+      channels: [0, 0, 0, -1],
+      bits: [8, 8, 8, -1],
+      mustBeFramebufferComplete: false
+    },
+    { format: 'LUMINANCE_ALPHA',
+      type:  'UNSIGNED_BYTE',
+      channels: [0, 0, 0, 3],
+      bits: [8, 8, 8, 8],
+      mustBeFramebufferComplete: false
+    }
+  ];
+
+  gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.framebufferTexture2D(
+      gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+  for (var ii = 0; ii < validFormats.length; ++ii) {
+    var info = validFormats[ii];
+    testFormat(info);
+  }
+
+  debug("");
+  shouldBeTrue("numValidFormats > 0");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,37 @@
+checking: bool
+checking: float
+checking: int
+checking: vec2
+checking: ivec2
+checking: bvec2
+checking: vec3
+checking: ivec3
+checking: bvec3
+checking: vec4
+checking: ivec4
+checking: bvec4
+checking: mat2
+checking: mat3
+checking: mat4
+checking: bool
+checking: float
+checking: int
+checking: vec2
+checking: ivec2
+checking: bvec2
+checking: vec3
+checking: ivec3
+checking: bvec3
+checking: vec4
+checking: ivec4
+checking: bvec4
+checking: mat2
+checking: mat3
+checking: mat4
+FAIL [unexpected link status] vertex shader with uniform array of bool with 1 elements (one past maximum) accessing last element should fail
+FAIL [unexpected link status] vertex shader with uniform array of bool with 1 elements (one past maximum) accessing first element should fail
+was ready to save, resetting ready_to_save_state
+FAIL [unexpected link status] vertex shader with 1 uniforms of bool (one past maximum) should fail
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:263: 'C' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) vertex shader with 127 uniforms of bool (the minimum required) should succeed

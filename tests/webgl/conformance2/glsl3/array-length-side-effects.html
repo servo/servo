@@ -1,0 +1,106 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL: test that length() method called on a complex expression does not compile</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderLengthOfAssignment" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    int a[3];
+    int b[3];
+    int c = (a = b).length();
+    my_FragColor = vec4(float(c));
+}
+</script>
+<script id="fshaderLengthOfFunctionCall" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+int[2] func() {
+    int a[2];
+    return a;
+}
+
+void main() {
+    int b = (func()).length();
+    my_FragColor = vec4(float(b));
+}
+</script>
+<script id="fshaderLengthOfConstructor" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    int a = (int[1](0)).length();
+    my_FragColor = vec4(float(a));
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+debug("These restrictions come from ESSL 3.00 section 5.9 definition of expression, which only allows length to be called on array names, not on arbitrary expressions returning an array.");
+GLSLConformanceTester.runTests([
+  {
+    fShaderId: "fshaderLengthOfAssignment",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Fragment shader which tries to evaluate the length of an assignment operation should fail."
+  },
+  {
+    fShaderId: "fshaderLengthOfFunctionCall",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Fragment shader which tries to evaluate the length of a return value should fail."
+  },
+  {
+    fShaderId: "fshaderLengthOfConstructor",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Fragment shader which tries to evaluate the length of a newly constructed array should fail."
+  }
+], 2);
+</script>
+</body>
+</html>
+

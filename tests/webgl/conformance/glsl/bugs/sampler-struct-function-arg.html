@@ -1,0 +1,116 @@
+<!--
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Passing a struct containing a sampler to a function.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+
+<body>
+<canvas id="output" style="border: none;" width="256" height="256"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec4 a_position;
+    void main(){
+        gl_Position = a_position;
+    }
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    struct SomeStruct{
+        sampler2D source;
+    };
+
+    vec4 fun(SomeStruct s){
+        return texture2D(s.source, vec2(0.5));
+    }
+
+    uniform SomeStruct green;
+    void main(){
+        gl_FragColor = fun(green);
+    }
+</script>
+
+
+<script>
+"use strict";
+
+description();
+debug("");
+debug("If the test passes correctly the viewport will be green.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("output");
+var gl = wtu.create3DContext(canvas);
+if (!gl) {
+    testFailed("context does not exist");
+} else {
+    var textureGreen = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, textureGreen);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    wtu.fillTexture(gl, textureGreen, 1, 1, [0, 255, 0, 255]);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    // Clear complete viewport to red
+    gl.clearColor(1.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      
+    var attribBuffers = wtu.setupUnitQuad(gl, 0, 1);
+    var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], ["a_position"], [0], true);
+
+    if (!program) {
+        testFailed("Shader compilation/link failed");
+    } else {
+        // Bind texture
+        var uniformMap = wtu.getUniformMap(gl, program);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, textureGreen);
+        gl.uniform1i(uniformMap['green.source'].location, 0);
+
+        // Draw
+        wtu.drawUnitQuad(gl);
+
+        // Verify output
+        wtu.checkCanvasRect(gl, 0, 128, 256, 128, [0, 255,0, 255], "should be green",  1);
+    }
+}
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

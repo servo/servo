@@ -1,0 +1,114 @@
+--max-version 1.9.9 attrib-location-length-limits.html
+--min-version 1.0.3 boolean_precision.html
+--min-version 1.0.4 const-variable-initialization.html
+embedded-struct-definitions-forbidden.html
+--min-version 1.0.4 empty-declaration.html
+empty_main.vert.html
+--min-version 1.0.3 expression-list-in-declarator-initializer.html
+gl_position_unset.vert.html
+--min-version 1.0.4 global-variable-init.html
+# this test is intentionally disabled as it is too strict and to hard to simulate
+# glsl-2types-of-textures-on-same-unit.html
+glsl-function-nodes.html
+--min-version 1.0.2 glsl-vertex-branch.html
+glsl-long-variable-names.html
+non-ascii-comments.vert.html
+non-ascii.vert.html
+--min-version 1.0.2 re-compile-re-link.html
+--min-version 1.0.4 sequence-operator-returns-constant.html
+--min-version 1.0.3 shader-precision-format-obeyed.html
+--min-version 1.0.3 shader-struct-scope.html
+--min-version 1.0.2 shader-uniform-packing-restrictions.html
+--min-version 1.0.2 shader-varying-packing-restrictions.html
+--min-version 1.0.2 shader-with-256-character-define.html
+shader-with-256-character-identifier.frag.html
+--min-version 1.0.2 --max-version 1.9.9 shader-with-257-character-define.html
+--max-version 1.9.9 shader-with-257-character-identifier.frag.html
+shader-with-_webgl-identifier.vert.html
+shader-with-arbitrary-indexing.frag.html
+shader-with-arbitrary-indexing.vert.html
+--min-version 1.0.2 shader-with-array-of-structs-containing-arrays.html
+--min-version 1.0.2 shader-with-array-of-structs-uniform.html
+shader-with-attrib-array.vert.html
+shader-with-attrib-struct.vert.html
+shader-with-clipvertex.vert.html
+--min-version 1.0.2 shader-with-conditional-scoping.html
+--min-version 1.0.2 shader-with-conditional-scoping-negative.html
+shader-with-default-precision.frag.html
+shader-with-default-precision.vert.html
+shader-with-define-line-continuation.frag.html
+shader-with-dfdx-no-ext.frag.html
+shader-with-dfdx.frag.html
+--min-version 1.0.2 shader-with-do-loop.html
+shader-with-error-directive.html
+shader-with-explicit-int-cast.vert.html
+shader-with-float-return-value.frag.html
+--min-version 1.0.2 shader-with-for-scoping.html
+--min-version 1.0.2 shader-with-for-loop.html
+shader-with-frag-depth.frag.html
+shader-with-function-recursion.frag.html
+--min-version 1.0.2 shader-with-function-scoped-struct.html
+--min-version 1.0.2 shader-with-functional-scoping.html
+--min-version 1.0.2 shader-with-comma-assignment.html
+--min-version 1.0.2 shader-with-comma-conditional-assignment.html
+--min-version 1.0.4 shader-with-comma-separated-variable-declarations.html
+shader-with-glcolor.vert.html
+shader-with-gles-1.frag.html
+shader-with-gles-symbol.frag.html
+shader-with-glprojectionmatrix.vert.html
+shader-with-implicit-vec3-to-vec4-cast.vert.html
+shader-with-include.vert.html
+shader-with-int-return-value.frag.html
+shader-with-invalid-identifier.frag.html
+shader-with-ivec2-return-value.frag.html
+shader-with-ivec3-return-value.frag.html
+shader-with-ivec4-return-value.frag.html
+shader-with-limited-indexing.frag.html
+--min-version 1.0.2 shader-with-hex-int-constant-macro.html
+shader-with-long-line.html
+shader-with-non-ascii-error.frag.html
+--min-version 1.0.2 shader-with-non-reserved-words.html
+shader-with-precision.frag.html
+--min-version 1.0.3 shader-with-preprocessor-whitespace.html
+shader-with-quoted-error.frag.html
+--min-version 1.0.2 shader-with-reserved-words.html
+--min-version 1.0.2 shader-with-similar-uniform-array-names.html
+--min-version 1.0.2 shader-with-too-many-uniforms.html
+--min-version 1.0.4 shader-with-two-initializer-types.html
+shader-with-undefined-preprocessor-symbol.frag.html
+shader-with-uniform-in-loop-condition.vert.html
+shader-with-vec2-return-value.frag.html
+shader-with-vec3-return-value.frag.html
+shader-with-vec4-return-value.frag.html
+--min-version 1.0.2 shader-with-vec4-vec3-vec4-conditional.html
+shader-with-version-100.frag.html
+shader-with-version-100.vert.html
+shader-with-version-120.vert.html
+shader-with-version-130.vert.html
+shader-with-webgl-identifier.vert.html
+--min-version 1.0.2 shader-with-while-loop.html
+shader-without-precision.frag.html
+--min-version 1.0.3 shaders-with-constant-expression-loop-conditions.html
+--min-version 1.0.3 shaders-with-invariance.html
+--min-version 1.0.3 shaders-with-name-conflicts.html
+--min-version 1.0.2 shaders-with-mis-matching-uniforms.html
+--min-version 1.0.2 shaders-with-mis-matching-varyings.html
+--min-version 1.0.2 shaders-with-missing-varyings.html
+--min-version 1.0.3 shaders-with-uniform-structs.html
+--min-version 1.0.2 shaders-with-varyings.html
+shared.html
+struct-nesting-exceeds-maximum.html
+struct-nesting-under-maximum.html
+--max-version 1.9.9 uniform-location-length-limits.html
+--min-version 1.0.2 shader-with-short-circuiting-operators.html
+--min-version 1.0.2 shader-with-global-variable-precision-mismatch.html
+--min-version 1.0.2 large-loop-compile.html
+--min-version 1.0.3 struct-equals.html
+--min-version 1.0.4 struct-assign.html
+--min-version 1.0.3 struct-mixed-array-declarators.html
+--min-version 1.0.3 struct-nesting-of-variable-names.html
+--min-version 1.0.3 struct-specifiers-in-uniforms.html
+--min-version 1.0.3 struct-unary-operators.html
+--min-version 1.0.4 ternary-operator-on-arrays.html
+--min-version 1.0.3 ternary-operators-in-global-initializers.html
+--min-version 1.0.3 ternary-operators-in-initializers.html

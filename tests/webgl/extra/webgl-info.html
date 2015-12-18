@@ -1,0 +1,296 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Information</title>
+<style type="text/css">
+th, td {
+    padding: 4pt;
+}
+th {
+    text-align: right;
+    min-width: 22em;
+}
+</style>
+<script src="../js/webgl-test-utils.js"> </script>
+<script>
+"use strict";
+window.onload = main;
+
+function createCell(txt, isTh) {
+  var str = txt.toString();
+  if (typeof txt != 'string') {
+    if (txt.length !== undefined) {
+      str = "";
+      for (var ii = 0; ii < txt.length; ++ii) {
+        str += (ii == 0 ? "" : ", ") + txt[ii];
+      }
+    }
+  }
+  var t = document.createTextNode(str);
+  var d = document.createElement("div");
+  var td;
+  if (isTh) {
+    td = document.createElement("th");
+  } else {
+    td = document.createElement("td");
+  }
+  d.appendChild(t);
+  td.appendChild(d);
+  return td;
+}
+
+function createRow(values) {
+  var tr = document.createElement("tr");
+  for (var i = 0; i < values.length; ++i) {
+    var td = createCell(values[i], i == 0);
+    tr.appendChild(td);
+  }
+  return tr;
+}
+
+function main() {
+  var wtu = WebGLTestUtils;
+
+  var canvas = document.getElementById("example");
+  var gl = wtu.create3DContext(canvas);
+  if (!gl) {
+    return;
+  }
+
+  var debugRendererInfoRows = function() {
+    var rows = [];
+    var debugExt =  wtu.getExtensionWithKnownPrefixes(gl, 'WEBGL_debug_renderer_info');
+    if (debugExt) {
+      var extPnames = [
+        'UNMASKED_VENDOR_WEBGL',
+        'UNMASKED_RENDERER_WEBGL'
+      ];
+      for (var ii = 0; ii < extPnames.length; ++ii) {
+        var pname = extPnames[ii];
+        var value = gl.getParameter(debugExt[pname]);
+        rows.push([pname, value]);
+      }
+    }
+    return rows;
+  };
+
+  var precisionRows = function() {
+    var rows = [];
+
+    var addPrecisionRow = function(shaderType, precision) {
+        var typeStr = shaderType === gl.FRAGMENT_SHADER ? 'fragment' : 'vertex';
+        var precisionStr = 'highp';
+        if (precision == gl.MEDIUM_FLOAT) {
+            precisionStr = 'mediump';
+        } else if (precision == gl.LOW_FLOAT) {
+            precisionStr = 'lowp';
+        }
+        rows.push([typeStr + ' shader ' + precisionStr + ' float', gl.getShaderPrecisionFormat(shaderType, precision).precision + ' mantissa bits']);
+    };
+
+    var fSource = 'precision highp float; uniform float r; void main() { gl_FragColor = vec4(r, 0.0, 0.0, 1.0); }'
+    var f = wtu.loadShader(gl, fSource, gl.FRAGMENT_SHADER);
+    if (!f) {
+        rows.push(['fragment shader highp float', 'not supported']);
+    } else {
+        addPrecisionRow(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    }
+    addPrecisionRow(gl.FRAGMENT_SHADER, gl.MEDIUM_FLOAT);
+    addPrecisionRow(gl.FRAGMENT_SHADER, gl.LOW_FLOAT);
+    addPrecisionRow(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
+    addPrecisionRow(gl.VERTEX_SHADER, gl.MEDIUM_FLOAT);
+    addPrecisionRow(gl.VERTEX_SHADER, gl.LOW_FLOAT);
+    return rows;
+  };
+
+  var renderTargetRows = function() {
+    var rows = [];
+    var oesTextureFloat = wtu.getExtensionWithKnownPrefixes(gl, 'OES_texture_float');
+    var oesTextureHalfFloat = wtu.getExtensionWithKnownPrefixes(gl, 'OES_texture_half_float');
+    var formatsToTest = [
+      {
+        description: 'RGBA UNSIGNED_BYTE',
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE
+      },
+      {
+        description: 'RGB UNSIGNED_BYTE',
+        format: gl.RGB,
+        type: gl.UNSIGNED_BYTE
+      }
+    ];
+    if (oesTextureFloat) {
+      formatsToTest.push({
+        description: 'RGBA FLOAT',
+        format: gl.RGBA,
+        type: gl.FLOAT
+      });
+      formatsToTest.push({
+        description: 'RGB FLOAT (deprecated)',
+        format: gl.RGB,
+        type: gl.FLOAT
+      });
+    }
+    if (oesTextureHalfFloat) {
+      formatsToTest.push({
+        description: 'RGBA HALF_FLOAT_OES',
+        format: gl.RGBA,
+        type: oesTextureHalfFloat.HALF_FLOAT_OES
+      });
+      formatsToTest.push({
+        description: 'RGB HALF_FLOAT_OES',
+        format: gl.RGB,
+        type: oesTextureHalfFloat.HALF_FLOAT_OES
+      });
+    }
+    for (var ii = 0; ii < formatsToTest.length; ++ii) {
+      var fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      var format = formatsToTest[ii];
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, format.format, 256, 256, 0, format.format, format.type, null);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        rows.push([format.description, 'supported']);
+      } else {
+        rows.push([format.description, 'not supported']);
+      }
+      gl.deleteFramebuffer(fb);
+      gl.deleteTexture(tex);
+    }
+    return rows;
+  };
+
+  var info = [
+    {
+      title: 'Renderer',
+      pnames: [
+        'VERSION',
+        'VENDOR',
+        'RENDERER'
+      ],
+      genRows: debugRendererInfoRows
+    },
+    {
+      title: 'Textures and Viewport',
+      pnames: [
+        'MAX_TEXTURE_SIZE',
+        'MAX_CUBE_MAP_TEXTURE_SIZE',
+        'MAX_RENDERBUFFER_SIZE',
+        'MAX_VIEWPORT_DIMS'
+      ]
+    },
+    {
+      title: 'Shader Variables',
+      pnames: [
+        'MAX_VARYING_VECTORS',
+        'MAX_VERTEX_ATTRIBS',
+        'MAX_VERTEX_UNIFORM_VECTORS',
+        'MAX_FRAGMENT_UNIFORM_VECTORS',
+        'MAX_VERTEX_TEXTURE_IMAGE_UNITS',
+        'MAX_TEXTURE_IMAGE_UNITS',
+        'MAX_COMBINED_TEXTURE_IMAGE_UNITS'
+      ]
+    },
+    {
+      title: 'Shader Precision',
+      genRows: precisionRows
+    },
+    {
+      title: 'Framebuffer Texture Attachment Support',
+      genRows: renderTargetRows
+    }
+  ];
+
+  // TODO: max anisotropy, framebuffer depth bits, MSAA samples, max multiple render targets buffers, point size, line width
+
+  for (var jj = 0; jj < info.length; ++jj) {
+    var table = document.createElement("table");
+    var tb = document.createElement("tbody");
+    if (info[jj].pnames) {
+      var pnames = info[jj].pnames;
+      for (var ii = 0; ii < pnames.length; ++ii) {
+        var pname = pnames[ii];
+        var value = gl.getParameter(gl[pname]);
+        tb.appendChild(createRow([pname, value]));
+      }
+    }
+    if (info[jj].genRows) {
+      var genRows = info[jj].genRows();
+      for (var ii = 0; ii < genRows.length; ++ii) {
+        tb.appendChild(createRow(genRows[ii]));
+      }
+    }
+    table.appendChild(tb);
+    var header = document.createElement("h2");
+    header.textContent = info[jj].title;
+    document.getElementById("info").appendChild(header);
+    document.getElementById("info").appendChild(table);
+  }
+  var extensionList = document.createElement('ul');
+  var exts = gl.getSupportedExtensions();
+  var extsWithPrefixes = [];
+  while (exts.length > 0) {
+    var prefixedNames = wtu.getExtensionPrefixedNames(exts[0]);
+    var supportedPrefixedNames = [];
+    for (var ii = 0; ii < prefixedNames.length; ++ii) {
+      var index = exts.indexOf(prefixedNames[ii]);
+      if (index >= 0) {
+        supportedPrefixedNames.push(exts[index]);
+        exts.splice(index, 1);
+      }
+    }
+    extsWithPrefixes.push(supportedPrefixedNames.join(" / "));
+  }
+  extsWithPrefixes.sort();
+  for (var ii = 0; ii < extsWithPrefixes.length; ++ii) {
+    var li = document.createElement('li');
+    li.appendChild(document.createTextNode(extsWithPrefixes[ii]));
+    extensionList.appendChild(li);
+  }
+  document.getElementById('extensions').appendChild(extensionList);
+}
+</script>
+</head>
+<body>
+<h1>WebGL Info</h1>
+<div id="info"></div>
+<h2>WebGL Extensions</h2>
+<div id="extensions"></div>
+<canvas id="example" width="256" height="16" style="width: 256px; height: 48px;"></canvas>
+</body>
+</html>
+

@@ -1,0 +1,128 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Framebuffer state restoration Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description();
+
+function test() {
+  var gl = wtu.create3DContext("example", {preserveDrawingBuffer: true});
+  var program = wtu.setupColorQuad(gl);
+  var colorLoc = gl.getUniformLocation(program, "u_color");
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LESS);
+
+  var testDrawToBackBuffer = function(label) {
+    debug("");
+    debug("drawing to backbuffer " + label);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // Draw in green
+    gl.uniform4fv(colorLoc, [0, 1, 0, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+    // Draw in red, should not draw because of depth test.
+    gl.uniform4fv(colorLoc, [1, 0, 0, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should still be green");
+  }
+
+  var testDrawToFBO = function(label ) {
+    debug("");
+    debug("drawing to framebuffer " + label);
+    // Draw in green
+    gl.uniform4fv(colorLoc, [0, 1, 0, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+    // Draw in red as there is not depth buffer.
+    gl.uniform4fv(colorLoc, [1, 0, 0, 1]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+  }
+
+  testDrawToBackBuffer("start");
+
+  var fbo = gl.createFramebuffer();
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 50, 50, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    finishTest();
+    return;
+  }
+
+  wtu.checkCanvas(gl, [0, 0, 0, 0], "should be zero");
+  testDrawToFBO("start");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  testDrawToBackBuffer("after drawing to framebuffer");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  testDrawToFBO("after drawing to backbuffer");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.waitForComposite(function() {
+    testDrawToBackBuffer("after composite");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    testDrawToFBO("after drawing to backbuffer after composite");
+    wtu.waitForComposite(function() {
+      testDrawToFBO("after composite");
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      testDrawToBackBuffer("after drawing to framebuffer after composite");
+
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+      finishTest();
+    });
+  });
+}
+test();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

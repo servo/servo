@@ -1,0 +1,198 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL gl calls Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("This test ensures getParameter is working correct with WebGL 2 pnames");
+
+debug("");
+debug("Canvas.getContext");
+
+var minimumRequiredStencilMask = 0;
+var wtu = WebGLTestUtils;
+var context = wtu.create3DContext("canvas", null, 2);
+if (!context)
+    testFailed("context does not exist");
+else {
+    testPassed("context exists");
+
+    debug("");
+    debug("Context contains getError");
+    if ("getError" in context)
+      testPassed("context contains getError");
+    else
+      testFailed("context does not contains getError");
+
+    debug("");
+    debug("Check default values");
+
+    shouldBe('context.getParameter(context.COPY_READ_BUFFER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.COPY_WRITE_BUFFER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.DRAW_BUFFER0)', 'context.BACK');
+    shouldBe('context.getParameter(context.DRAW_FRAMEBUFFER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.FRAGMENT_SHADER_DERIVATIVE_HINT)', 'context.DONT_CARE');
+    shouldBe('context.getParameter(context.PACK_ROW_LENGTH)', '0');
+    shouldBe('context.getParameter(context.PACK_SKIP_PIXELS)', '0');
+    shouldBe('context.getParameter(context.PACK_SKIP_ROWS)', '0');
+    shouldBe('context.getParameter(context.PIXEL_PACK_BUFFER_BINDING)', 'null');
+
+    shouldBe('context.getParameter(context.PIXEL_UNPACK_BUFFER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.RASTERIZER_DISCARD)', 'false');
+    shouldBe('context.getParameter(context.READ_BUFFER)', 'context.BACK');
+    shouldBe('context.getParameter(context.READ_FRAMEBUFFER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.SAMPLE_ALPHA_TO_COVERAGE)', 'false');
+    shouldBe('context.getParameter(context.SAMPLE_COVERAGE)', 'false');
+    shouldBe('context.getParameter(context.SAMPLER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.TEXTURE_BINDING_2D_ARRAY)', 'null');
+    shouldBe('context.getParameter(context.TEXTURE_BINDING_3D)', 'null');
+    shouldBe('context.getParameter(context.TRANSFORM_FEEDBACK_ACTIVE)', 'false');
+    shouldBe('context.getParameter(context.TRANSFORM_FEEDBACK_BINDING)', 'null');
+    shouldBe('context.getParameter(context.TRANSFORM_FEEDBACK_BUFFER_BINDING)', 'null');
+    shouldBe('context.getParameter(context.TRANSFORM_FEEDBACK_PAUSED)', 'false');
+    shouldBe('context.getParameter(context.UNIFORM_BUFFER_BINDING)', 'null');
+
+    shouldBe('context.getParameter(context.UNPACK_IMAGE_HEIGHT)', '0');
+    shouldBe('context.getParameter(context.UNPACK_ROW_LENGTH)', '0');
+    shouldBe('context.getParameter(context.UNPACK_SKIP_IMAGES)', '0');
+    shouldBe('context.getParameter(context.UNPACK_SKIP_PIXELS)', '0');
+    shouldBe('context.getParameter(context.UNPACK_SKIP_ROWS)', '0');
+    shouldBe('context.getParameter(context.VERTEX_ARRAY_BINDING)', 'null');
+
+    debug("");
+    debug("Check minimum values");
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_3D_TEXTURE_SIZE)', '256');
+    shouldBeType('context.getParameter(context.MAX_3D_TEXTURE_SIZE)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_ARRAY_TEXTURE_LAYERS)', '256');
+    shouldBeType('context.getParameter(context.MAX_ARRAY_TEXTURE_LAYERS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_CLIENT_WAIT_TIMEOUT_WEBGL)', '0');
+    shouldBeType('context.getParameter(context.MAX_CLIENT_WAIT_TIMEOUT_WEBGL)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_COLOR_ATTACHMENTS)', '4');
+    shouldBeType('context.getParameter(context.MAX_COLOR_ATTACHMENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_COMBINED_UNIFORM_BLOCKS)', '24');
+    shouldBeType('context.getParameter(context.MAX_COMBINED_UNIFORM_BLOCKS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_DRAW_BUFFERS)', '4');
+    shouldBeType('context.getParameter(context.MAX_DRAW_BUFFERS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_ELEMENT_INDEX)', '16777215'); // 2^24 - 1
+    shouldBeType('context.getParameter(context.MAX_ELEMENT_INDEX)', 'Number');
+
+    shouldBeType('context.getParameter(context.MAX_ELEMENTS_INDICES)', 'Number');
+    shouldBeType('context.getParameter(context.MAX_ELEMENTS_VERTICES)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_FRAGMENT_INPUT_COMPONENTS)', '60');
+    shouldBeType('context.getParameter(context.MAX_FRAGMENT_INPUT_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_FRAGMENT_UNIFORM_BLOCKS)', '12');
+    shouldBeType('context.getParameter(context.MAX_FRAGMENT_INPUT_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_FRAGMENT_UNIFORM_COMPONENTS)', '896');
+    shouldBeType('context.getParameter(context.MAX_FRAGMENT_UNIFORM_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_PROGRAM_TEXEL_OFFSET)', '7');
+    shouldBeType('context.getParameter(context.MAX_PROGRAM_TEXEL_OFFSET)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_SAMPLES)', '4');
+    shouldBeType('context.getParameter(context.MAX_PROGRAM_TEXEL_OFFSET)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_SERVER_WAIT_TIMEOUT)', '0');
+    shouldBeType('context.getParameter(context.MAX_SERVER_WAIT_TIMEOUT)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_TEXTURE_LOD_BIAS)', '2.0');
+    shouldBeType('context.getParameter(context.MAX_TEXTURE_LOD_BIAS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS)', '64');
+    shouldBeType('context.getParameter(context.MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS)', '4');
+    shouldBeType('context.getParameter(context.MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS)', '4');
+    shouldBeType('context.getParameter(context.MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_UNIFORM_BLOCK_SIZE)', '16384');
+    shouldBeType('context.getParameter(context.MAX_UNIFORM_BLOCK_SIZE)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_UNIFORM_BUFFER_BINDINGS)', '24');
+    shouldBeType('context.getParameter(context.MAX_UNIFORM_BUFFER_BINDINGS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_VARYING_COMPONENTS)', '60');
+    shouldBeType('context.getParameter(context.MAX_VARYING_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_VERTEX_OUTPUT_COMPONENTS)', '64');
+    shouldBeType('context.getParameter(context.MAX_VERTEX_OUTPUT_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_VERTEX_UNIFORM_BLOCKS)', '12');
+    shouldBeType('context.getParameter(context.MAX_VERTEX_UNIFORM_BLOCKS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_VERTEX_UNIFORM_COMPONENTS)', '1024');
+    shouldBeType('context.getParameter(context.MAX_VERTEX_UNIFORM_COMPONENTS)', 'Number');
+
+    shouldBeLessThanOrEqual('context.getParameter(context.MIN_PROGRAM_TEXEL_OFFSET)', '-8');
+    shouldBeType('context.getParameter(context.MIN_PROGRAM_TEXEL_OFFSET)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.UNIFORM_BUFFER_OFFSET_ALIGNMENT)', '1');
+    shouldBeType('context.getParameter(context.UNIFORM_BUFFER_OFFSET_ALIGNMENT)', 'Number');
+
+    var minCombinedFragmentUniformComponents = context.getParameter(context.MAX_FRAGMENT_UNIFORM_BLOCKS) * context.getParameter(context.MAX_UNIFORM_BLOCK_SIZE) / 4 + context.getParameter(context.MAX_FRAGMENT_UNIFORM_COMPONENTS);
+    var minCombinedVertexUniformComponents = context.getParameter(context.MAX_VERTEX_UNIFORM_BLOCKS) * context.getParameter(context.MAX_UNIFORM_BLOCK_SIZE) / 4 + context.getParameter(context.MAX_VERTEX_UNIFORM_COMPONENTS);
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS)', minCombinedFragmentUniformComponents + '');
+    shouldBeType('context.getParameter(context.MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS)', 'Number');
+
+    shouldBeGreaterThanOrEqual('context.getParameter(context.MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS)', minCombinedVertexUniformComponents + '');
+    shouldBeType('context.getParameter(context.MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS)', 'Number');
+
+    shouldBe('context.getError()', 'context.NO_ERROR');
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

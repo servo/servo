@@ -1,0 +1,17 @@
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:5: 'est' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) shader with 256 character identifier should succeed
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:9: '7_9_1_3_5_7_9_1_3_5' : invalid number 
+ERROR: 0:9: ',' : syntax error 
+
+FAIL [unexpected fragment shader compile status] (expected: true) shader with 256 character identifier should succeed
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:5: 's' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) shader with 256 character identifier that starts with underscore should succeed
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:9: '1.0' : syntax error 
+
+FAIL [unexpected fragment shader compile status] (expected: true) shader with 256 character identifier that starts with underscore should succeed
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:5: 's' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) shader with 256 character identifier that ends with underscore should succeed
+FAIL [link failed] shader with 256 character identifier that ends with underscore should succeed

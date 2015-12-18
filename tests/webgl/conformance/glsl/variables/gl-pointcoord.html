@@ -1,0 +1,162 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>gl-pointcoord Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="256" height="256">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform float uPointSize;
+void main()
+{
+  gl_PointSize = uPointSize;
+  gl_Position = vPosition;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+  gl_FragColor = vec4(
+      gl_PointCoord.x,
+      gl_PointCoord.y,
+      0,
+      1);
+}
+</script>
+
+<script>
+"use strict";
+description("Checks gl_PointCoord and gl_PointSize");
+debug("");
+
+// NOTE: I'm not 100% confident in this test. I think it is correct.
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+shouldBeNonNull("gl");
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+shouldBe("gl.getError()", "gl.NO_ERROR");
+
+var canvas = gl.canvas;
+var width = canvas.width;
+var height = canvas.height;
+shouldBe("width", "height");
+
+var maxPointSize = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE)[1];
+shouldBeTrue("maxPointSize >= 1");
+// The minimum and maximum point sizes may be floating-point numbers.
+shouldBeTrue("Math.floor(maxPointSize) >= 1");
+maxPointSize = Math.floor(maxPointSize);
+shouldBeTrue("maxPointSize % 1 == 0");
+
+maxPointSize = Math.min(maxPointSize, 64);
+var pointWidth = maxPointSize / width;
+var pointStep = Math.floor(maxPointSize / 4);
+var pointStep = Math.max(1, pointStep);
+
+var pointSizeLoc = gl.getUniformLocation(program, "uPointSize");
+gl.uniform1f(pointSizeLoc, maxPointSize);
+
+var pixelOffset = (maxPointSize % 2) ? (1 / width) : 0;
+var vertexObject = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array(
+        [-0.5 + pixelOffset, -0.5 + pixelOffset,
+          0.5 + pixelOffset, -0.5 + pixelOffset,
+         -0.5 + pixelOffset,  0.5 + pixelOffset,
+          0.5 + pixelOffset,  0.5 + pixelOffset]),
+    gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+gl.drawArrays(gl.POINTS, 0, 4);
+shouldBe("gl.getError()", "gl.NO_ERROR");
+
+function s2p(s) {
+  return (s + 1.0) * 0.5 * width;
+}
+
+//function print(x, y) {
+//  var b = new Uint8Array(4);
+//  gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, b);
+//  debug("" + x + "," + y + ": " + b[0] + "," + b[1] + "," + b[2]);
+//}
+//
+//for (var ii = 0; ii < 100; ++ii) {
+//  print(ii, ii);
+//}
+
+for (var py = 0; py < 2; ++py) {
+  for (var px = 0; px < 2; ++px) {
+    debug("");
+    var pointX = -0.5 + px + pixelOffset;
+    var pointY = -0.5 + py + pixelOffset;
+    for (var yy = 0; yy < maxPointSize; yy += pointStep) {
+      for (var xx = 0; xx < maxPointSize; xx += pointStep) {
+        // formula for s and t from OpenGL ES 2.0 spec section 3.3
+        var xw = s2p(pointX);
+        var yw = s2p(pointY);
+        //debug("xw: " + xw + " yw: " + yw);
+        var u = xx / maxPointSize * 2 - 1;
+        var v = yy / maxPointSize * 2 - 1;
+        var xf = Math.floor(s2p(pointX + u * pointWidth));
+        var yf = Math.floor(s2p(pointY + v * pointWidth));
+        //debug("xf: " + xf + " yf: " + yf);
+        var s = 0.5 + (xf + 0.5 - xw) / maxPointSize;
+        var t = 0.5 + (yf + 0.5 - yw) / maxPointSize;
+        //debug("s: " + s + " t: " + t);
+        var color = [Math.floor(s * 255), Math.floor((1 - t) * 255), 0];
+        var msg = "pixel " + xf + "," + yf + " should be " + color;
+        wtu.checkCanvasRect(gl, xf, yf, 1, 1, color, msg, 4);
+      }
+    }
+  }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

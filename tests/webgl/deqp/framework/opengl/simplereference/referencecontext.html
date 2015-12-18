@@ -1,0 +1,32 @@
+<html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Reference context test</title>
+<link rel="stylesheet" href="../../../../resources/js-test-style.css"/>
+<script src="../../../../js/js-test-pre.js"></script>
+<script src="../../../../js/webgl-test-utils.js"></script>
+
+<script src="../../../../closure-library/closure/goog/base.js"></script>
+<script src="../../../deqp-deps.js"></script>
+<script>goog.require('framework.opengl.simplereference.sglrReferenceContextTest');</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="200" height="100"> </canvas>
+<script>
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext('canvas', {preserveDrawingBuffer: true}, 2);
+
+    try {
+      framework.opengl.simplereference.sglrReferenceContextTest.run(gl);
+    }
+    catch(err)
+    {
+        bufferedLogToConsole(err);
+    }
+
+</script>
+</body>
+</html>

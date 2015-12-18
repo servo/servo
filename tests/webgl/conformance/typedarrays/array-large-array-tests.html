@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/tests/typed-array-test-cases.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+description("Verifies allocation of large array buffers");
+
+var currentlyRunning = '';
+var allPassed = true;
+function running(str) {
+  currentlyRunning = str;
+}
+
+function output(str) {
+  debug(str);
+}
+
+function pass() {
+  testPassed(currentlyRunning);
+}
+
+function fail(str) {
+  allPassed = false;
+  var exc;
+  if (str)
+    exc = currentlyRunning + ': ' + str;
+  else
+    exc = currentlyRunning;
+  testFailed(exc);
+}
+
+function assertEq(prefix, expected, val) {
+  if (expected != val) {
+    var str = prefix + ': expected ' + expected + ', got ' + val;
+    throw str;
+  }
+}
+
+function assert(prefix, expected) {
+  if (!expected) {
+    var str = prefix + ': expected value / true';
+    throw str;
+  }
+}
+
+function printSummary() {
+  if (allPassed) {
+    debug("Test passed.");
+  } else {
+    debug("TEST FAILED");
+  }
+}
+
+
+function testConstructionOfHugeArray(type, name, sz) {
+    if (sz == 1)
+        return;
+    try {
+        // Construction of huge arrays must fail because byteLength is
+        // an unsigned long
+        array = new type(3000000000);
+        testFailed("Construction of huge " + name + " should throw exception");
+    } catch (e) {
+        testPassed("Construction of huge " + name + " threw exception");
+    }
+}
+
+function runTests() {
+  allPassed = true;
+
+  for (var i = 0; i < testCases.length; i++) {
+    var testCase = testCases[i];
+    running(testCase.name);
+    if (!(testCase.name in window)) {
+        fail("does not exist");
+        continue;
+    }
+    var type = window[testCase.name];
+    var name = testCase.name;
+    testConstructionOfHugeArray(type, name, testCase.elementSizeInBytes);
+  }  
+}
+
+runTests();
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

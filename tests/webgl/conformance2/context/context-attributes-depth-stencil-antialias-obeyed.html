@@ -1,0 +1,110 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+function getWebGL(attribs) {
+  var canvas = document.createElement("canvas");
+  if (!canvas)
+    return null;
+
+  // We can't use wtu.create3DContext because it defaults to antialias=false.
+  var names = ["webgl2", "experimental-webgl2"];
+  var gl = null;
+  for (var i = 0; i < names.length; ++i) {
+    try {
+      gl = canvas.getContext(names[i], attribs);
+    } catch (e) {
+    }
+    if (gl) {
+      break;
+    }
+  }
+  if (!gl)
+    return null;
+  return gl;
+}
+
+function testAttribs(attribs) {
+  var antialias, depth, stencil;
+  if (!attribs) {
+    antialias = true;
+    depth = true;
+    stencil = false;
+    debug("Testing default attributes: { antialias: true, depth: true, stencil:false }");
+  } else {
+    antialias = attribs.antialias;
+    depth = attribs.depth;
+    stencil = attribs.stencil;
+    debug("Testing specified attributes: { antialias: " + antialias + ", depth: " + depth + ", stencil: " + stencil + " }");
+  }
+  var gl = getWebGL(attribs);
+  if (!gl) {
+    testFailed("Fail to create a context");
+    return;
+  }
+  var actual_attribs = gl.getContextAttributes();
+  if (antialias != actual_attribs.antialias)
+    testFailed("antialias = " + antialias + " is not obeyed")
+  if (depth != actual_attribs.depth)
+    testFailed("depth = " + depth + " is not obeyed")
+  if (stencil != actual_attribs.stencil)
+    testFailed("stencil = " + stencil + " is not obeyed")
+  if (antialias == actual_attribs.antialias &&
+      depth == actual_attribs.depth &&
+      stencil == actual_attribs.stencil) {
+    testPassed("Context created with the correct antialias, depth, and stencil.");
+  }
+}
+
+description('Verify WebGLContextAttributes are working as specified, including depth, stencil, antialias');
+testAttribs(null);  // Default attribs
+testAttribs({antialias: true, depth: true, stencil: true});
+testAttribs({antialias: false, depth: true, stencil: true});
+testAttribs({antialias: true, depth: false, stencil: true});
+testAttribs({antialias: false, depth: false, stencil: true});
+testAttribs({antialias: true, depth: true, stencil: false});
+testAttribs({antialias: false, depth: true, stencil: false});
+testAttribs({antialias: true, depth: false, stencil: false});
+testAttribs({antialias: false, depth: false, stencil: false});
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

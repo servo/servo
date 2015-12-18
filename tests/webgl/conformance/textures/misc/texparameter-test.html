@@ -1,0 +1,150 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL TexParameter conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas_drawing" width="12" height="12"></canvas>
+<canvas id="canvas_texture" width="2" height="2"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Tests TexParameter works as expected");
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas_drawing");
+var canvas_texture = null;
+var texParam = [
+    gl.REPEAT,
+    gl.CLAMP_TO_EDGE,
+    gl.MIRRORED_REPEAT,
+];
+var color = [200, 0, 254, 255];
+var textures = [];
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    wtu.setupTexturedQuadWithTexCoords(gl, [-2.5, -2.5], [3.5, 3.5]);
+
+    setupCanvasTexture();
+    setupTextures();
+    for (var ii = 0; ii < texParam.length; ++ii) {
+        runDrawingTest(textures[ii], texParam[ii]);
+    }
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function setupCanvasTexture() {
+    canvas_texture = document.getElementById("canvas_texture");
+    var ctx2d = canvas_texture.getContext("2d");
+    ctx2d.fillStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + color[3] + ")";
+    ctx2d.fillRect(0, 0, 1, 1);
+}
+
+function setupTextures() {
+    for (var ii = 0; ii < texParam.length; ++ii) {
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas_texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, texParam[ii]);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, texParam[ii]);
+        textures[ii] = texture;
+    }
+}
+
+function runDrawingTest(texture, param) {
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    checkPixels(param);
+}
+
+function checkPixels(param) {
+    var buf = new Uint8Array(12 * 12 * 4);
+    gl.readPixels(0, 0, 12, 12, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    var passed = true;
+    for (var yy = 0; yy < 12; ++yy) {
+        for (var xx = 0; xx < 12; ++xx) {
+            var ec = [0, 0, 0, 0];
+            switch (param) {
+                case gl.REPEAT:
+                    if (xx % 2 == 1 && yy % 2 == 1) {
+                        ec = color;
+                    }
+                    break;
+                case gl.CLAMP_TO_EDGE:
+                    if (xx < 6 && yy < 6) {
+                        ec = color;
+                    }
+                    break;
+                case gl.MIRRORED_REPEAT:
+                    if (xx % 4 < 2 && yy % 4 < 2) {
+                        ec = color;
+                    }
+                    break;
+            }
+            var off = (yy * 12 + xx) * 4;
+            if (buf[off + 0] != ec[0] || buf[off + 1] != ec[1] ||
+                buf[off + 2] != ec[2] || buf[off + 3] != ec[3]) {
+                var msg = 'at (' + xx + ', ' + yy + ') expected: ' +
+                    ec[0] + ', ' + ec[1] + ', ' + ec[2] + ', ' + ec[3] + ' found: ' +
+                    buf[off + 0] + ', ' + buf[off + 1] + ', ' + buf[off + 2] + ', ' + buf[off + 3];
+                testFailed(msg);
+                passed = false;
+            }
+        }
+    }
+    if (passed) {
+        testPassed("Drawing with wrap " + wtu.glEnumToString(gl, param) + " as expected");
+    }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

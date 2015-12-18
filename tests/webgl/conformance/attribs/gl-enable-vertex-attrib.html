@@ -1,0 +1,82 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+<meta charset="utf-8">
+    <title>WebGL Enable Vertex Attrib Test</title>
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+    <script src="../../js/js-test-pre.js"></script>
+    <script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+    attribute vec4 vPosition;
+    void main()
+    {
+        gl_Position = vPosition;
+    }
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+    void main()
+    {
+        gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+    }
+</script>
+
+<script>
+"use strict";
+description("tests that turning on attribs that have no buffer bound fails to draw");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+
+var vertexObject = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.5,0, -0.5,-0.5,0, 0.5,-0.5,0 ]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+gl.enableVertexAttribArray(3);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+gl.drawArrays(gl.TRIANGLES, 0, 3);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

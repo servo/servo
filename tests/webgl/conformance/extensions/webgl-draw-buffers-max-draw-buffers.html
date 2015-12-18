@@ -1,0 +1,139 @@
+﻿<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_draw_buffers gl_FragData[gl_MaxDrawBuffers] Conformance Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main() {
+    gl_Position = a_position;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+precision mediump float;
+void main() {
+    gl_FragData[gl_MaxDrawBuffers] = vec4(0.0);
+}
+</script>
+<script id="fshaderConstantIndex" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+precision mediump float;
+void main() {
+    gl_FragData[$(gl_MaxDrawBuffers)] = vec4(0.0);
+}
+</script>
+<script id="fshaderTestMaxDrawBuffersValue" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+precision mediump float;
+void main() {
+    gl_FragColor = ($(gl_MaxDrawBuffers) == gl_MaxDrawBuffers) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies that compiling the same shader using GL_EXT_draw_buffers twice will have similar results on both rounds.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+var maxDrawBuffers;
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  ext = gl.getExtension("WEBGL_draw_buffers");
+  if (!ext) {
+    testPassed("No WEBGL_draw_buffers support -- this is legal");
+    finishTest();
+  } else {
+    testPassed("Successfully enabled WEBGL_draw_buffers extension");
+    maxDrawBuffers = gl.getParameter(ext.MAX_DRAW_BUFFERS_WEBGL);
+    runShadersTest();
+    finishTest();
+  }
+}
+
+function testValueOfMaxDrawBuffers() {
+  debug("Test the value of gl_MaxDrawBuffers in a shader");
+  var fshader = wtu.replaceParams(wtu.getScript("fshaderTestMaxDrawBuffersValue"), {"gl_MaxDrawBuffers": maxDrawBuffers});
+  var program = wtu.setupProgram(gl, ["vshader", fshader], ["a_position"], undefined, true);
+  expectTrue(program != null, "Test program should compile");
+  wtu.setupUnitQuad(gl);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green to indicate that gl_MaxDrawBuffers had the right value");
+  gl.deleteProgram(program);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runSingleTest(shaders, indexMsg) {
+  var program = wtu.setupProgram(gl, shaders, ["a_position"], undefined, true);
+  var programLinkedSuccessfully = (program != null);
+  expectTrue(!programLinkedSuccessfully, "Program where gl_FragData is indexed by " + indexMsg + " should fail compilation.");
+  gl.deleteProgram(program);
+}
+
+function runShadersTest() {
+  debug("MAX_DRAW_BUFFERS_WEBGL is: " + maxDrawBuffers);
+
+  // For reference, use a constant out-of-range parameter to test:
+  debug("Test indexing gl_FragData with value of MAX_DRAW_BUFFERS_WEBGL");
+  var fshader = wtu.replaceParams(wtu.getScript("fshaderConstantIndex"), {"gl_MaxDrawBuffers": maxDrawBuffers});
+  runSingleTest(["vshader", fshader], maxDrawBuffers + " (value of MAX_DRAW_BUFFERS_WEBGL)");
+
+  debug("");
+
+  debug("Test indexing gl_FragData with gl_MaxDrawBuffers");
+  debug("Repeat this test twice as that has revealed a bug.");
+  for (var i = 0; i < 2; ++i) {
+    runSingleTest(["vshader", "fshader"], "gl_MaxDrawBuffers");
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+
+  debug("");
+
+  testValueOfMaxDrawBuffers();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id='vs' type='x-shader/x-vertex'>
+    attribute vec2 aPosCoord;
+
+    void main(void) {
+        gl_Position = vec4(aPosCoord, 0.0, 1.0);
+    }
+</script>
+
+<script id='fs' type='x-shader/x-fragment'>
+    precision mediump float;
+
+    void main(void) {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+</script>
+<script>
+"use strict";
+
+var posCoords_arr = new Float32Array(2 * 4);
+var posCoords_buff = null;
+function DrawQuad(gl, prog, x0, y0, x1, y1) {
+    gl.useProgram(prog);
+
+    if (!posCoords_buff) {
+        posCoords_buff = gl.createBuffer();
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, posCoords_buff);
+    posCoords_arr[0] = x0;
+    posCoords_arr[1] = y0;
+
+    posCoords_arr[2] = x1;
+    posCoords_arr[3] = y0;
+
+    posCoords_arr[4] = x0;
+    posCoords_arr[5] = y1;
+
+    posCoords_arr[6] = x1;
+    posCoords_arr[7] = y1;
+    gl.bufferData(gl.ARRAY_BUFFER, posCoords_arr, gl.STREAM_DRAW);
+
+    gl.enableVertexAttribArray(prog.aPosCoord);
+    gl.vertexAttribPointer(prog.aPosCoord, 2, gl.FLOAT, false, 0, 0);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+function DrawSquare(gl, prog, size) {
+    DrawQuad(gl, prog, -size, -size, size, size);
+}
+
+function Reset(gl) {
+    gl.canvas.width += 1;
+    gl.canvas.width -= 1;
+}
+
+var iColor;
+var pixel;
+var dataURL_pre;
+var dataURL_post;
+
+function Test(gl, prog, shouldFinish) {
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ZERO, gl.DST_ALPHA);
+
+    iColor = 64;
+    var fColor = iColor / 255.0;
+
+    //////////////////
+
+    debug('clear(R,G,B,0)');
+
+    Reset(gl);
+
+    gl.clearColor(fColor, fColor, fColor, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    dataURL_pre = gl.canvas.toDataURL();
+    //console.log('Before blending: ' + dataURL_pre);
+
+    DrawSquare(gl, prog, 0.7);
+
+    WebGLTestUtils.checkCanvasRect(gl, gl.drawingBufferWidth/2,
+                                   gl.drawingBufferHeight/2, 1, 1,
+                                   [iColor, iColor, iColor, 255],
+                                   'Should blend as if alpha is 1.0.');
+
+    dataURL_post = gl.canvas.toDataURL();
+    //console.log('After blending: ' + dataURL_post);
+    shouldBe("dataURL_post", "dataURL_pre");
+
+    //////////////////
+
+    debug('mask(R,G,B,0), clear(R,G,B,1)');
+
+    Reset(gl);
+
+    gl.colorMask(true, true, true, false);
+    gl.clearColor(fColor, fColor, fColor, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.colorMask(true, true, true, true);
+
+    dataURL_pre = gl.canvas.toDataURL();
+    //console.log('Before blending: ' + dataURL_pre);
+
+    DrawSquare(gl, prog, 0.7);
+
+    WebGLTestUtils.checkCanvasRect(gl, gl.drawingBufferWidth/2,
+                                   gl.drawingBufferHeight/2, 1, 1,
+                                   [iColor, iColor, iColor, 255],
+                                   'Should blend as if alpha is 1.0.');
+
+    dataURL_post = gl.canvas.toDataURL();
+    //console.log('After blending: ' + dataURL_post);
+    shouldBe("dataURL_post", "dataURL_pre");
+
+    ////////////////
+
+    WebGLTestUtils.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    if (shouldFinish)
+        finishTest();
+}
+
+var gl;
+function init() {
+    var canvas = document.getElementById('canvas');
+    var attribs = {
+        alpha: false,
+        antialias: false,
+        premultipliedAlpha: false,
+    };
+    gl = canvas.getContext('experimental-webgl', attribs);
+    shouldBeNonNull(gl);
+    shouldBe("gl.getParameter(gl.ALPHA_BITS)", "0");
+
+    var prog = WebGLTestUtils.setupProgram(gl, ['vs', 'fs']);
+    shouldBeNonNull(prog);
+    prog.aPosCoord = gl.getAttribLocation(prog, 'aPosCoord');
+
+    Test(gl, prog, false);
+
+    requestAnimationFrame(function(){ Test(gl, prog, true); });
+}
+
+</script>
+</head>
+<body onload="init()">
+<canvas id='canvas'></canvas>
+<br/>
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

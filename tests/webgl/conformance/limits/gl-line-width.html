@@ -1,0 +1,93 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verify that line width limits are enforced.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="4" height="4" style="width: 40px; height: 30px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description(document.title);
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+
+// Query the line width range
+var lineWidthRange = gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");
+
+if (lineWidthRange[0] > 1 || lineWidthRange[1] < 1)
+  testFailed("Line width range must include width 1");
+
+// Zero, negative, or NaN values should cause an error and leave the value unchanged.
+var curLineWidth = gl.getParameter(gl.LINE_WIDTH);
+gl.lineWidth(0);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Should not be able to set lineWidth to zero");
+shouldBe('gl.getParameter(gl.LINE_WIDTH)', 'curLineWidth'); // Previous value should be preserved
+
+gl.lineWidth(-1);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Should not be able to set lineWidth to a negative value");
+shouldBe('gl.getParameter(gl.LINE_WIDTH)', 'curLineWidth'); // Previous value should be preserved
+
+gl.lineWidth(NaN);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Should not be able to set lineWidth to NaN");
+shouldBe('gl.getParameter(gl.LINE_WIDTH)', 'curLineWidth'); // Previous value should be preserved
+
+// Check that the line width can be set to the valid range.
+gl.lineWidth(lineWidthRange[1]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be able to set lineWidth to the max supported value");
+shouldBe('gl.getParameter(gl.LINE_WIDTH)', 'lineWidthRange[1]');
+
+gl.lineWidth(lineWidthRange[0]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be able to set lineWidth to the min supported value");
+shouldBe('gl.getParameter(gl.LINE_WIDTH)', 'lineWidthRange[0]');
+
+// Checks that the line width can be set outside the supported range without error,
+// and the unclamped value can be queried back.
+// Yes, this is actually what the spec says should happen.
+// See: https://www.khronos.org/opengles/sdk/docs/man3/html/glLineWidth.xhtml
+gl.lineWidth(lineWidthRange[1]+1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be able to set lineWidth to the above max supported value");
+shouldBe('gl.getParameter(gl.LINE_WIDTH)', 'lineWidthRange[1]+1');
+
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+
+

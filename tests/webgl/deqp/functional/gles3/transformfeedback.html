@@ -1,0 +1,34 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>WebGL Transform Feedback Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../closure-library/closure/goog/base.js"></script>
+<script src="../../deqp-deps.js"></script>
+<script>goog.require('functional.gles3.es3fTransformFeedbackTests');</script>
+<script>goog.require('framework.opengl.gluVarTypeUtil');</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="320" height="240"></canvas>
+<script>
+    var wtu = WebGLTestUtils;
+    // Useful for debugging early errors, but not so much once the
+    // test is running a lot of code, because raising an exception
+    // breaks the subsequent tests.
+    // var gl = wtu.create3DContextWithWrapperThatThrowsOnGLError('canvas', {preserveDrawingBuffer: true}, 2);
+    var gl = wtu.create3DContext('canvas', {preserveDrawingBuffer: true}, 2);
+
+    try {
+        functional.gles3.es3fTransformFeedbackTests.run(gl);
+    }
+    catch(err) {
+        bufferedLogToConsole(err);
+    }
+
+</script>
+</body>
+</html>

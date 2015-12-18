@@ -1,0 +1,337 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture texSubImage2Ds cube map conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="256" height="256" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform mat4 rotation;
+varying vec3 texCoord;
+void main()
+{
+    gl_Position = vPosition;
+    vec4 direction = vec4(vPosition.x * 0.5, vPosition.y * 0.5, 1, 1);
+    texCoord = normalize((rotation * direction).xyz);
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform samplerCube tex;
+varying vec3 texCoord;
+void main()
+{
+    gl_FragColor = textureCube(tex, normalize(texCoord));
+}
+</script>
+<script>
+"use strict";
+var canvas;
+description("Checks issues with size of cube map textures");
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+
+var gl = wtu.create3DContext(canvas);
+wtu.setupUnitQuad(gl, 0, 1);
+var program = wtu.setupProgram(
+    gl,
+    ['vshader', 'fshader'],
+    ['vPosition', 'texCoord0'], [0, 1]);
+var rotLoc = gl.getUniformLocation(program, "rotation");
+
+var size = 16;
+
+var colors = [
+  {name: 'red',     color: [255,   0,   0, 255]},
+  {name: 'green',   color: [  0, 255,   0, 255]},
+  {name: 'blue',    color: [  0,   0, 255, 255]},
+  {name: 'yellow',  color: [255, 255,   0, 255]},
+  {name: 'cyan',    color: [  0, 255, 255, 255]},
+  {name: 'magenta', color: [255,   0, 255, 255]}
+];
+
+var targets = [
+  gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+  gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+  gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+  gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+  gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+  gl.TEXTURE_CUBE_MAP_NEGATIVE_Z];
+
+var rotations = [
+  {axis: [0, 1, 0], angle:  Math.PI / 2},
+  {axis: [0, 1, 0], angle: -Math.PI / 2},
+  {axis: [1, 0, 0], angle: -Math.PI / 2},
+  {axis: [1, 0, 0], angle:  Math.PI / 2},
+  {axis: [0, 1, 0], angle:  0},
+  {axis: [0, 1, 0], angle:  Math.PI},
+];
+
+var halfRotations = [
+  {colors: [3, 4], rotations: [{axis: [1, 0, 0], angle:  Math.PI / 4}]},
+  {colors: [4, 2], rotations: [{axis: [1, 0, 0], angle: -Math.PI / 4}]},
+  {colors: [5, 3], rotations: [{axis: [1, 0, 0], angle:  Math.PI / 4 * 3}]},
+  {colors: [2, 5], rotations: [{axis: [1, 0, 0], angle: -Math.PI / 4 * 3}]},
+  {colors: [3, 0], rotations: [{axis: [0, 1, 0], angle:  Math.PI / 2},
+                               {axis: [1, 0, 0], angle:  Math.PI / 4}]},
+  {colors: [0, 2], rotations: [{axis: [0, 1, 0], angle:  Math.PI / 2},
+                               {axis: [1, 0, 0], angle: -Math.PI / 4}]},
+];
+
+var count = 0;
+testSize(size);
+
+function testSize(size) {
+  debug("");
+  debug("testing size: " + size);
+  var canvasSize = Math.max(size / 4, 2);
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
+  gl.viewport(0, 0, canvasSize, canvasSize);
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+
+  // Seems like I should be using LINEAR here with some other math
+  // to make sure I get more mip coverage but that's easier said
+  // than done.
+
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  for (var jj = 0; jj < 2; ++jj) {
+    for (var tt = 0; tt < targets.length; ++tt) {
+      var color = colors[(tt + count) % colors.length];
+      fillLevel(targets[tt], 0, size, color.color);
+    }
+    if (jj == 1) {
+      debug("use mipmap");
+      gl.texParameteri(
+          gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER,
+          gl.NEAREST_MIPMAP_NEAREST);
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+    }
+
+    var err = gl.getError();
+    if (err == gl.OUT_OF_MEMORY) {
+      debug("out of memory");
+      return false;
+    }
+    if (err != gl.NO_ERROR) {
+      testFailed("unexpected gl error: " + wtu.glEnumToString(gl, err));
+    }
+
+
+    for (var rr = 0; rr < rotations.length; ++rr) {
+      var rot = rotations[rr];
+      var color = colors[(rr + count) % colors.length];
+      var rotMat = axisRotation(rot.axis, rot.angle);
+      gl.uniformMatrix4fv(rotLoc, false, rotMat);
+      wtu.clearAndDrawUnitQuad(gl);
+      wtu.checkCanvas(
+          gl, color.color,
+          wtu.glEnumToString(gl, targets[rr]) + " should be " + color.name);
+    }
+
+    for (var rr = 0; rr < halfRotations.length; ++rr) {
+      var h = halfRotations[rr];
+      var rots = h.rotations;
+      var rotMat = axisRotation(rots[0].axis, rots[0].angle);
+      for (var ii = 1; ii < rots.length; ++ii) {
+        var tmpMat = axisRotation(rots[ii].axis, rots[ii].angle);
+        var rotMat = mulMatrix(tmpMat, rotMat);
+      }
+      gl.uniformMatrix4fv(rotLoc, false, rotMat);
+      wtu.clearAndDrawUnitQuad(gl);
+
+      for (var ii = 0; ii < 2; ++ii) {
+        checkRect(
+            0,
+            canvasSize / 2 * ii,
+            canvasSize,
+            canvasSize / 2,
+            colors[(h.colors[ii] + count) % colors.length]);
+      }
+    }
+    ++count;
+  }
+
+  gl.deleteTexture(tex);
+  return true;
+}
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");
+
+function checkRect(x, y, width, height, color) {
+  wtu.checkCanvasRect(
+       gl,
+       x,
+       y,
+       width,
+       height,
+       color.color,
+       "" + x + ", " + y + ", " + width + ", " + height +
+       " should be " + color.name);
+}
+
+function fillLevel(target, level, size, color) {
+  var numPixels = size * size;
+  var halfPixelRow = new Uint8Array(size * 2);
+  for (var jj = 0; jj < size; ++jj) {
+    var off = jj * 4;
+    halfPixelRow[off + 0] = color[0];
+    halfPixelRow[off + 1] = color[1];
+    halfPixelRow[off + 2] = color[2];
+    halfPixelRow[off + 3] = color[3];
+  }
+  gl.texImage2D(
+      target, level, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+      null);
+  for (var jj = 0; jj < size; ++jj) {
+      gl.texSubImage2D(
+          target, level, 0, jj, size / 2, 1, gl.RGBA, gl.UNSIGNED_BYTE, halfPixelRow);
+      gl.texSubImage2D(
+          target, level, size / 2, jj, size / 2, 1, gl.RGBA, gl.UNSIGNED_BYTE, halfPixelRow);
+  }
+}
+
+function printMat(mat) {
+  debug("" + mat[0] + ", " + mat[1] + ", " + mat[2] + ", " + mat[3] + ", ");
+  debug("" + mat[4] + ", " + mat[5] + ", " + mat[6] + ", " + mat[7] + ", ");
+  debug("" + mat[8] + ", " + mat[9] + ", " + mat[10] + ", " + mat[11] + ", ");
+  debug("" + mat[12] + ", " + mat[13] + ", " + mat[14] + ", " + mat[15] + ", ");
+}
+
+function axisRotation(axis, angle) {
+  var dst = new Float32Array(16);
+  var x = axis[0];
+  var y = axis[1];
+  var z = axis[2];
+  var n = Math.sqrt(x * x + y * y + z * z);
+  x /= n;
+  y /= n;
+  z /= n;
+  var xx = x * x;
+  var yy = y * y;
+  var zz = z * z;
+  var c = Math.cos(angle);
+  var s = Math.sin(angle);
+  var oneMinusCosine = 1 - c;
+
+  dst[ 0] = xx + (1 - xx) * c;
+  dst[ 1] = x * y * oneMinusCosine + z * s;
+  dst[ 2] = x * z * oneMinusCosine - y * s;
+  dst[ 3] = 0;
+  dst[ 4] = x * y * oneMinusCosine - z * s;
+  dst[ 5] = yy + (1 - yy) * c;
+  dst[ 6] = y * z * oneMinusCosine + x * s;
+  dst[ 7] = 0;
+  dst[ 8] = x * z * oneMinusCosine + y * s;
+  dst[ 9] = y * z * oneMinusCosine - x * s;
+  dst[10] = zz + (1 - zz) * c;
+  dst[11] = 0;
+  dst[12] = 0;
+  dst[13] = 0;
+  dst[14] = 0;
+  dst[15] = 1;
+
+  return dst;
+};
+
+function mulMatrix(a, b) {
+  var dst = new Float32Array(16);
+  var a00 = a[0];
+  var a01 = a[1];
+  var a02 = a[2];
+  var a03 = a[3];
+  var a10 = a[ 4 + 0];
+  var a11 = a[ 4 + 1];
+  var a12 = a[ 4 + 2];
+  var a13 = a[ 4 + 3];
+  var a20 = a[ 8 + 0];
+  var a21 = a[ 8 + 1];
+  var a22 = a[ 8 + 2];
+  var a23 = a[ 8 + 3];
+  var a30 = a[12 + 0];
+  var a31 = a[12 + 1];
+  var a32 = a[12 + 2];
+  var a33 = a[12 + 3];
+  var b00 = b[0];
+  var b01 = b[1];
+  var b02 = b[2];
+  var b03 = b[3];
+  var b10 = b[ 4 + 0];
+  var b11 = b[ 4 + 1];
+  var b12 = b[ 4 + 2];
+  var b13 = b[ 4 + 3];
+  var b20 = b[ 8 + 0];
+  var b21 = b[ 8 + 1];
+  var b22 = b[ 8 + 2];
+  var b23 = b[ 8 + 3];
+  var b30 = b[12 + 0];
+  var b31 = b[12 + 1];
+  var b32 = b[12 + 2];
+  var b33 = b[12 + 3];
+  dst[ 0] = a00 * b00 + a01 * b10 + a02 * b20 + a03 * b30;
+  dst[ 1] = a00 * b01 + a01 * b11 + a02 * b21 + a03 * b31;
+  dst[ 2] = a00 * b02 + a01 * b12 + a02 * b22 + a03 * b32;
+  dst[ 3] = a00 * b03 + a01 * b13 + a02 * b23 + a03 * b33;
+  dst[ 4] = a10 * b00 + a11 * b10 + a12 * b20 + a13 * b30;
+  dst[ 5] = a10 * b01 + a11 * b11 + a12 * b21 + a13 * b31;
+  dst[ 6] = a10 * b02 + a11 * b12 + a12 * b22 + a13 * b32;
+  dst[ 7] = a10 * b03 + a11 * b13 + a12 * b23 + a13 * b33;
+  dst[ 8] = a20 * b00 + a21 * b10 + a22 * b20 + a23 * b30;
+  dst[ 9] = a20 * b01 + a21 * b11 + a22 * b21 + a23 * b31;
+  dst[10] = a20 * b02 + a21 * b12 + a22 * b22 + a23 * b32;
+  dst[11] = a20 * b03 + a21 * b13 + a22 * b23 + a23 * b33;
+  dst[12] = a30 * b00 + a31 * b10 + a32 * b20 + a33 * b30;
+  dst[13] = a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31;
+  dst[14] = a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32;
+  dst[15] = a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33;
+  return dst;
+};
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>
+
+

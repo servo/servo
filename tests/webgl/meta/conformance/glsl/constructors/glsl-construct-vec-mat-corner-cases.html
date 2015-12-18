@@ -1,0 +1,10 @@
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:10: A call to a user defined function is not permitted.
+
+FAIL [unexpected fragment shader compile status] (expected: true) vec(func(mat)) works ok
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:11: A call to a user defined function is not permitted.
+ERROR: 0:11: A call to a user defined function is not permitted.
+
+FAIL [unexpected fragment shader compile status] (expected: true) mat(func(vec)) works ok
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:15: '{' : syntax error 
+
+FAIL [unexpected fragment shader compile status] (expected: true) mat4(float, vec2, float, vec3+vec3, float, vec4, f(vec4)) works ok

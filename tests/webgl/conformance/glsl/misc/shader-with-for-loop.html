@@ -1,0 +1,104 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+// fragment shader with for loop should succeed
+
+// TODO(gman): trim to min size to test bug.
+precision mediump float;
+uniform float time;
+uniform vec2 resolution;
+
+// Saw-tooth function that is synced with the demo music (128bpm)
+float gBeat;
+
+// Calculate the surface color
+vec3 surfColor(vec2 p)
+{
+    vec2 q=vec2(sin(.08*p.x),4.*p.y);
+    vec3 c=vec3(0);
+    for(float i=0.;i<15.;i++)
+      c+=(1.+sin(i*sin(time)+vec3(0.,1.3,2.2)))*.2/length(q-vec2(sin(i),12.*sin(.3*time+i)));
+    return c+vec3(mix(mod(floor(p.x*.2)+floor(p.y*2.2),2.),.2,gBeat));
+}
+
+// Ray trace (cylinder)
+vec3 trace(vec3 o,vec3 d)
+{
+    d.y*=.65+.1*sin(.5*time);
+    float D=1./(d.y*d.y+d.z*d.z),
+          a=(o.y*d.y+o.z*d.z)*D,
+          b=(o.y*o.y+o.z*o.z-36.)*D,
+          t=-a-sqrt(a*a-b);
+    o+=t*d;
+    return surfColor(vec2(o.x,atan(o.y,o.z)))*(1.+.01*t);
+}
+
+void main()
+{
+    gBeat=fract(time*3.2/3.);
+    // Screen setup
+    vec2 p=(2.*gl_FragCoord.xy-resolution)/resolution.y,
+         q=2.*gl_FragCoord.xy/resolution-1.;
+
+    // Camera setup
+    vec3 cp=vec3(-time*20.+1.,1.6*sin(time*1.2),2.+2.*cos(time*.3)),
+         ct=cp+vec3(1.,.3*cos(time),-.2),
+         cd=normalize(ct-cp),
+         cr=normalize(cross(cd,vec3(.5*cos(.3*time),0.,1.))),
+         cu=cross(cr,cd),
+         rd=normalize(2.*cd+cr*p.x+cu*p.y);
+
+    // Trace! (+some funky lens/raster effects)
+    vec3 c=trace(cp,rd)*
+           min(1.,1.8-dot(q,q))*
+           (.9+.1*sin(3.*sin(gBeat)*gl_FragCoord.y));
+
+    gl_FragColor=vec4(c,1);
+}
+</script>
+<script>
+"use strict";
+GLSLConformanceTester.runTest();
+var successfullyParsed = true;
+</script>
+</body>
+</html>

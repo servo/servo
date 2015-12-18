@@ -1,0 +1,85 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests - Ternary operator on arrays</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshader-array-ternary-operator" type="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+  float a[3];
+  float b[3];
+  float c[3] = true ? a : b;
+}
+</script>
+<script id="fshader-struct-array-ternary-operator" type="x-shader/x-fragment">
+precision mediump float;
+struct MyStruct {
+    bool a[3];
+};
+
+void main()
+{
+  MyStruct b;
+  MyStruct c;
+  MyStruct d = true ? b : c;
+}
+</script>
+<script>
+"use strict";
+description("Checks ternary operators for structs and arrays.");
+
+GLSLConformanceTester.runTests([
+{ fShaderId: 'fshader-array-ternary-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using ternary operators with arrays is not allowed",
+},
+{ fShaderId: 'fshader-struct-array-ternary-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "By implication, using ternary operators with structs containing arrays is not allowed",
+},
+]);
+
+debug("");
+var successfullyParsed = true;
+</script>
+</body>
+</html>

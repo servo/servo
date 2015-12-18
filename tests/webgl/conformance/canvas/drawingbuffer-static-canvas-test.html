@@ -1,0 +1,137 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Canvas Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="50" height="50"> </canvas>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main()
+{
+  gl_Position = vPosition;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+void main()
+{
+  gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+}
+</script>
+
+<script>
+"use strict";
+
+function drawTriangleTest(gl)
+{
+  var width = 50;
+  var height = 50;
+  gl.viewport(0, 0, width, height);
+  var vertexObject = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.5,0, -0.5,-0.5,0, 0.5,-0.5,0 ]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // Test several locations
+  wtu.checkCanvasRect(gl, 0, 0, width, 1, [0, 0, 0, 255],
+      'First line should be all black');
+  wtu.checkCanvasRect(gl, 20, 15, 10, 1, [255, 0, 0, 255],
+      'Line 15 should be red for at least 10 red pixels starting 20 pixels in');
+  wtu.checkCanvasRect(gl, 0, height - 1, width, 1, [0, 0, 0, 255],
+      'Last line should be all black');
+}
+
+description("This test ensures WebGL implementations correctly implement drawingbufferWidth/Height with compositing.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var err;
+var maxSize;
+var gl =  wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+  shouldBeNonNull("program");
+  gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0, 0, 0, 1);
+  shouldBe('gl.getError()', 'gl.NO_ERROR');
+
+  debug("");
+  debug("Checking drawingBufferWidth/drawingBufferHeight");
+
+  shouldBe('gl.drawingBufferWidth', 'gl.canvas.width');
+  shouldBe('gl.drawingBufferHeight', 'gl.canvas.height');
+
+  // Check that changing the canvas size to something too large falls back to reasonable values.
+  maxSize = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+  shouldBeTrue('maxSize[0] > 0');
+  shouldBeTrue('maxSize[1] > 0');
+
+  // debug("MAX_VIEWPORT_DIMS = " + maxSize[0] + "x" + maxSize[1]);
+  gl.canvas.width = maxSize[0] * 4;
+  gl.canvas.height = maxSize[1] * 4;
+  shouldBeTrue('gl.drawingBufferWidth > 0');
+  shouldBeTrue('gl.drawingBufferHeight > 0');
+  shouldBeTrue('gl.drawingBufferWidth <= maxSize[0]');
+  shouldBeTrue('gl.drawingBufferHeight <= maxSize[1]');
+  shouldBe('gl.getError()', 'gl.NO_ERROR');
+
+  debug("");
+  debug("Checking scaling up then back down to 50/50, drawing still works.");
+  gl.canvas.width = 50;
+  gl.canvas.height = 50;
+  shouldBeTrue('gl.drawingBufferWidth == 50');
+  shouldBeTrue('gl.drawingBufferHeight == 50');
+  shouldBe('gl.getError()', 'gl.NO_ERROR');
+  drawTriangleTest(gl);
+  shouldBe('gl.getError()', 'gl.NO_ERROR');
+}
+debug("")
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

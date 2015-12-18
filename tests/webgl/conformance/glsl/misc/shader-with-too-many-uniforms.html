@@ -1,0 +1,144 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main()
+{
+    gl_Position = a_position;
+}
+</script>
+<script id="vshader-max" type="x-shader/x-vertex">
+attribute vec4 a_position;
+uniform vec4 u_color[$(maxUniformVectors)];
+void main()
+{
+    vec4 v = vec4(0, 0, 0, 0);
+    for (int i = 0; i < $(maxUniformVectors); ++i) {
+        v = v + vec4(u_color[i]);
+    }
+    gl_Position = a_position + v;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+    gl_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script id="fshader-max" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec4 u_color[$(maxUniformVectors)];
+void main()
+{
+    vec4 v = vec4(0, 0, 0, 0);
+    for (int i = 0; i < $(maxUniformVectors); ++i) {
+        v = v + vec4(u_color[i]);
+    }
+    gl_FragColor = v;
+}
+</script>
+<script>
+"use strict";
+description("checks shader with too many uniforms fails");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+var maxFragmentUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
+var maxVertexUniformVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
+
+// Up to 2 uniform vector registers may be spent for literal constants in
+// vshader-max or fshader-max code. One vector row is used for the vec4, and
+// another may be used for integer constants that are allowed to be treated
+// internally as floats and are packable to the space of one row. This is
+// according to the GLSL ES variable packing algorithm detailed in Section 7 of
+// Appendix A of the GLSL ES Specification 10.0.17.
+var maxVectorStorageUsedForLiterals = 2;
+
+var tests = [
+ { desc: "using all uniforms in vertex shader should succeed",
+   maxUniformVectors: maxVertexUniformVectors - maxVectorStorageUsedForLiterals,
+   vShader: "vshader-max",
+   fShader: "fshader",
+   success: true,
+ },
+ { desc: "using too many uniforms in vertex shader should fail",
+   maxUniformVectors: maxVertexUniformVectors + 1,
+   vShader: "vshader-max",
+   fShader: "fshader",
+   color: [0, 1, 0, 1],
+   success: false,
+ },
+ { desc: "using all uniforms in fragment shader should succeed",
+   maxUniformVectors: maxFragmentUniformVectors - maxVectorStorageUsedForLiterals,
+   vShader: "vshader",
+   fShader: "fshader-max",
+   success: true,
+ },
+ { desc: "using too many uniforms in fragment shader should fail",
+   maxUniformVectors: maxFragmentUniformVectors + 1,
+   vShader: "vshader",
+   fShader: "fshader-max",
+   color: [0, 1, 0, 1],
+   success: false,
+ },
+];
+
+var glslTests = [];
+
+for (var ii = 0; ii < tests.length; ++ii) {
+  var test = tests[ii];
+  var vSrc = wtu.replaceParams(wtu.getScript(test.vShader), test);
+  var fSrc = wtu.replaceParams(wtu.getScript(test.fShader), test);
+  glslTests.push({
+    vShaderSource: vSrc,
+    fShaderSource: fSrc,
+    linkSuccess: test.success,
+    passMsg: 'shader ' + test.desc,
+  });
+}
+
+GLSLConformanceTester.runTests(glslTests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Slow Shader example.</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="1024" height="1024" style="width: 40px; height: 40px;">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="slow" type="text/something-not-javascript">
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main() {
+  gl_FragColor = texture2D(tex, texture2D(tex, texture2D(tex, texCoord).xy).xy);
+}
+</script>
+<script>
+"use strict";
+window.onload = main;
+
+debug("Tests drawing a very slow shader.");
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+canvas.addEventListener("webglcontextlost", function(e) { e.preventDefault(); }, false);
+canvas.addEventListener("webglcontextrestored", function(e) { }, false);
+var gl = wtu.create3DContext(canvas);
+var maxTexSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+var texSize = Math.min(maxTexSize, 4096);
+debug("Max Texture size: " + maxTexSize);
+debug("Texture size: " + texSize);
+var shaderSource =
+    document.getElementById("slow").text.replace(/\$size/g, texSize + ".0");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after getting a context");
+var vs = wtu.setupSimpleTextureVertexShader(gl);
+var fs = wtu.loadShader(
+    gl,
+    shaderSource,
+    gl.FRAGMENT_SHADER)
+var program = wtu.setupProgram(
+    gl,
+    [vs, fs],
+    ['vPosition', 'texCoord0'],
+    [0, 1]);
+wtu.setupUnitQuad(gl, 0, 1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after program setup");
+var tex = gl.createTexture();
+gl.enable(gl.BLEND);
+gl.disable(gl.DEPTH_TEST);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after creating texture");
+debug("preparing...");
+var numBytes = texSize * texSize * 4;
+var pixelBuf = new ArrayBuffer(numBytes);
+var pixels = new Uint8Array(pixelBuf);
+for (var ii = 0; ii < numBytes; ++ii) {
+  pixels[ii] = Math.random() * 255;
+}
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(
+      gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after texture setup");
+
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after texture param setting");
+
+var loc = gl.getUniformLocation(program, "tex");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after getting tex location");
+gl.uniform1i(loc, 0);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after setting tex uniform");
+
+var numQuads = 1000;
+var indexBuf = new ArrayBuffer(numQuads * 6);
+var indices = new Uint8Array(indexBuf);
+for (var ii = 0; ii < numQuads; ++ii) {
+  var offset = ii * 6;
+  indices[offset + 0] = 0;
+  indices[offset + 1] = 1;
+  indices[offset + 2] = 2;
+  indices[offset + 3] = 3;
+  indices[offset + 4] = 4;
+  indices[offset + 5] = 5;
+}
+var indexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after setting up indices");
+
+function main () {
+  if (confirm(
+      "After clicking OK your machine may become unresponsive or crash.")) {
+    gl.drawElements(gl.TRIANGLES, numQuads * 6, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawing");
+  } else {
+    debug("cancelled");
+  }
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

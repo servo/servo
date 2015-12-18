@@ -1,0 +1,17 @@
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':
+FAIL [unexpected vertex shader compile status] (expected: true) Two structs defined within non-overlapping scopes should be able to use the same name
+FAIL [link failed] Two structs defined within non-overlapping scopes should be able to use the same name
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':
+FAIL [unexpected vertex shader compile status] (expected: true) A struct defined inside a scope overrides a struct defined in a outer scope with the same name
+FAIL [link failed] A struct defined inside a scope overrides a struct defined in a outer scope with the same name
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':
+FAIL [unexpected vertex shader compile status] (expected: true) A struct can use the same name of another out-of-scope struct
+FAIL [link failed] A struct can use the same name of another out-of-scope struct
+was ready to save, resetting ready_to_save_state
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:13: 'T' : redefinition struct
+ERROR: 0:18: 'v2' :  no such field in structure 
+ERROR: 0:18: 'assign' :  cannot convert from 'structure' to 'highp float'
+
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:22: 'i' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) Variables of masked outer scope struct work with inner scope struct

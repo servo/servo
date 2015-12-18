@@ -1,0 +1,168 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture upload size conformance test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+enableJSTestPreVerboseLogging();
+description("Checks that the size of a texture uploaded from an element is set correctly.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+
+var testUpload = function(upload, expectedWidth, expectedHeight) {
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, upload);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "when calling texImage2D");
+  wtu.checkTextureSize(gl, expectedWidth, expectedHeight);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, upload);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "when calling texSubImage2D with the same texture upload");
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, upload);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "when calling texSubImage2D with the same texture upload with offset 1, 1");
+};
+
+var testImage = function(test, img) {
+  var width = img.width;
+  var height = img.height;
+  testUpload(img, width, height);
+
+  debug("Testing changing the width and height attributes of the image");
+  img.width *= 2;
+  img.height *= 2;
+  if (test.isSVG) {
+    testUpload(img, img.width, img.height);
+  } else {
+    testUpload(img, width, height);
+  }
+};
+
+var testVideo = function(test, video) {
+  // Assuming that the video is not anamorphic, nor has clean aperture data
+  // that would make the frame size in pixels different.
+  var width = video.videoWidth;
+  var height = video.videoHeight;
+  testUpload(video, width, height);
+
+  debug("Testing changing the width and height attributes of the video");
+  video.width *= 2;
+  video.height *= 2;
+  testUpload(video, width, height);
+};
+
+var createCanvas2DContext = function(width, height) {
+  var canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext("2d");
+  ctx.fillRect(0, 0, width, height);
+  return ctx;
+};
+
+var testImageData = function(test) {
+  var ctx = createCanvas2DContext(test.width, test.height);
+  var imageData = ctx.getImageData(0, 0, test.width, test.height);
+  testUpload(imageData, test.width, test.height);
+};
+
+var testCanvas = function(test) {
+  var ctx = createCanvas2DContext(test.width, test.height);
+  testUpload(ctx.canvas, test.width, test.height);
+
+  debug("Testing changing the dimensions of the same canvas");
+  ctx.canvas.width = test.width + 1;
+  ctx.canvas.height = test.height + 1;
+  testUpload(ctx.canvas, ctx.canvas.width, ctx.canvas.height);
+};
+
+var tests = [
+  {type: "ImageData", width: 123, height: 456},
+  {type: "canvas", width: 123, height: 456},
+  {type: "img", isSVG: false, src: "../../../resources/red-green.png"},
+  {type: "img", isSVG: true, src: "../../../resources/red-green.svg"},
+  {type: "video", src: "../../../resources/red-green.mp4", videoType: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'},
+  {type: "video", src: "../../../resources/red-green.webmvp8.webm", videoType: 'video/webm; codecs="vp8, vorbis"'},
+  {type: "video", src: "../../../resources/red-green.theora.ogv", videoType: 'video/ogg; codecs="theora, vorbis"'},
+];
+
+var testIndex = 0;
+
+var runNextTest = function() {
+  if (testIndex < tests.length) {
+    debug("");
+    var test = tests[testIndex];
+    ++testIndex;
+    if (test.type == "img") {
+      debug("HTMLImageElement" + (test.isSVG ? " (SVG)" : ""));
+      var img = wtu.makeImage(test.src, function() {
+        testImage(test, img);
+        setTimeout(runNextTest, 0);
+      });
+    } else if (test.type == "video") {
+      debug("HTMLVideoElement (" + test.videoType + ")");
+      var video = wtu.makeVideo(test.src);
+      if(!video.canPlayType(test.videoType).replace(/no/, '')) {
+        debug(test.videoType + " unsupported");
+        setTimeout(runNextTest, 0);
+        return;
+      }
+      wtu.startPlayingAndWaitForVideo(video, function() {
+        testVideo(test, video);
+        setTimeout(runNextTest, 0);
+      });
+    } else if (test.type == "ImageData") {
+      debug("ImageData");
+      testImageData(test);
+      setTimeout(runNextTest, 0);
+    } else if (test.type == "canvas") {
+      debug("HTMLCanvasElement");
+      testCanvas(test);
+      setTimeout(runNextTest, 0);
+    }
+  } else {
+    finishTest();
+  }
+};
+
+runNextTest();
+</script>
+</body>
+</html>
+

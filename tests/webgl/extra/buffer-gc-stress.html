@@ -1,0 +1,176 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Float32Array garbage collection test</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas" width="40" height="40"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec2 inPosition;
+attribute vec4 inColor;
+
+varying vec4 color;
+
+void main()
+{
+    color = inColor;
+
+    gl_Position = vec4(inPosition, 0.0, 1.0);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 color;
+
+void main()
+{
+    if (color == vec4(0.0))
+        discard;
+
+    gl_FragColor = color;
+}
+</script>
+
+<script>
+"use strict";
+
+description("Allocates a buffer object and then updates it repeatedly using throw-away Float32Array objects. " +
+            "Ideally, this should not result in a browser crash or instability, since GC should be able to collect all Float32Arrays.");
+var wtu = WebGLTestUtils;
+
+var vertices = [];
+var w = 0.25;
+for (var x = -1; x < 1; x += w) {
+    for (var y = -1; y < 1; y += w) {
+        vertices.push(x + w, y + w);
+        vertices.push(x,     y + w);
+        vertices.push(x,     y    );
+
+        vertices.push(x + w, y + w);
+        vertices.push(x,     y    );
+        vertices.push(x + w, y    );
+    }
+}
+var numVertices = (vertices.length / 2);
+
+var gl;
+var squareBuffer;
+var buffer;
+var updateBufferData;
+var drawIterationsPerTest = 100;
+
+function initGL() {
+    gl = wtu.create3DContext("canvas");
+    var attribs = ["inPosition", "inColor"];
+    wtu.setupProgram(gl, ["vshader", "fshader"], attribs);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+
+    squareBuffer = gl.createBuffer();
+    gl.enableVertexAttribArray(0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    buffer = gl.createBuffer();
+    gl.enableVertexAttribArray(1);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+}
+
+var testIndex = -1;
+var drawIterations = 0;
+var size = 0;
+function runNextTest() {
+    ++testIndex;
+    var prevSize = size;
+    size = Math.pow(2, testIndex) * numVertices * 16;
+
+    if (size > 2 * 1024 * 1024 && prevSize <= 2 * 1024 * 1024) {
+        if (!confirm("The following tests can cause unresponsiveness or instability. Press OK to continue.")) {
+            testFailed("Tests aborted");
+            return;
+        }
+    }
+
+    if (size > 64 * 1024 * 1024) {
+        gl.deleteBuffer(buffer);
+        testPassed("Tests finished");
+        return;
+    }
+
+    debug('Initializing buffer with size: ' + size);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, size, gl.DYNAMIC_DRAW);
+    updateBufferData = new Float32Array(size / 4);
+
+    debug("Drawing " + drawIterationsPerTest + " times, each time creating a new throw-away Float32Array of size " + size + " and using it to update the buffer");
+    drawIterations = 0;
+    doDraw();
+};
+
+var doDraw = function() {
+    gl.clearColor(0, 255, 0, 255);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Update the array buffer with a throw-away Float32Array
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(updateBufferData));
+
+    gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+    var error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+        testFailed("drawArrays failed with error " + wtu.glEnumToString(gl, error));
+        return;
+    }
+    if (drawIterations < drawIterationsPerTest) {
+        ++drawIterations;
+        requestAnimationFrame(doDraw);
+    } else {
+        runNextTest();
+    }
+};
+
+initGL();
+runNextTest();
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>
+

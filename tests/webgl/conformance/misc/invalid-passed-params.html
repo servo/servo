@@ -1,0 +1,184 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test for invalid passed parameters");
+
+var wtu = WebGLTestUtils;
+var context = wtu.create3DContext();
+
+debug("");
+debug("Test createShader()");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.createShader(context.FRAGMENT_SHADER)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.createShader(context.VERTEX_SHADER)");
+wtu.shouldGenerateGLError(context, context.INVALID_ENUM, "context.createShader(0)");
+wtu.shouldGenerateGLError(context, context.INVALID_ENUM, "context.createShader(context.TRIANGLES)");
+
+debug("");
+debug("Test clear()");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.clear(desktopGL['ACCUM_BUFFER_BIT'])");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.clear(desktopGL['ACCUM_BUFFER_BIT'] | context.COLOR_BUFFER_BIT)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.clear(desktopGL['ACCUM_BUFFER_BIT'] | context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT | context.STENCIL_BUFFER_BIT)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.clear(context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT | context.STENCIL_BUFFER_BIT)");
+
+debug("");
+debug("Test {copy}Tex{Sub}Image2D with negative offset/width/height");
+var tex = context.createTexture();
+var pixels = new Uint8Array(2 * 2 * 4);
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.bindTexture(context.TEXTURE_2D, tex)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.texImage2D(context.TEXTURE_2D, 0, context.RGBA, -16, -16, 0, context.RGBA, context.UNSIGNED_BYTE, null)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.texImage2D(context.TEXTURE_2D, 0, context.RGBA, 16, 16, 0, context.RGBA, context.UNSIGNED_BYTE, null)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.texSubImage2D(context.TEXTURE_2D, 0, -1, -1, 2, 2, context.RGBA, context.UNSIGNED_BYTE, pixels)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, -1, -1, context.RGBA, context.UNSIGNED_BYTE, pixels)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, 2, 2, context.RGBA, context.UNSIGNED_BYTE, pixels)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.copyTexImage2D(context.TEXTURE_2D, 0, context.RGBA, 0, 0, -1, -1, 0)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.copyTexImage2D(context.TEXTURE_2D, 0, context.RGBA, 0, 0, 16, 16, 0)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.copyTexSubImage2D(context.TEXTURE_2D, 0, -1, -1, 0, 0, 2, 2)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.copyTexSubImage2D(context.TEXTURE_2D, 0, 0, 0, 0, 0, -1, -1)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.copyTexSubImage2D(context.TEXTURE_2D, 0, 0, 0, 0, 0, 2, 2)");
+
+debug("");
+debug("Test renderbufferStorage() with negative width/height");
+var renderbuffer = context.createRenderbuffer();
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.bindRenderbuffer(context.RENDERBUFFER, renderbuffer)");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.renderbufferStorage(context.RENDERBUFFER, context.RGBA4, -2, -2)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.renderbufferStorage(context.RENDERBUFFER, context.RGBA4, 16, 16)");
+
+debug("");
+debug("Test scissor() with negative width/height");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.scissor(0, 0, -2, -2)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.scissor(0, 0, 16, 16)");
+
+debug("");
+debug("Test viewport() with negative width/height");
+wtu.shouldGenerateGLError(context, context.INVALID_VALUE, "context.viewport(0, 0, -2, -2)");
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.viewport(0, 0, 16, 16)");
+
+debug("");
+debug("Set up a program to test invalid characters");
+var invalidSet = ['"', '$', '`', '@', '\\', "'"];
+var validUniformName = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890";
+var validAttribName = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+function generateShaderSource(opt_invalidIdentifierChar, opt_invalidCommentChar) {
+  var invalidIdentifierString = "";
+  var invalidCommentString = "";
+  if (opt_invalidIdentifierChar != undefined) {
+    invalidIdentifierString += opt_invalidIdentifierChar;
+  }
+  if (opt_invalidCommentChar != undefined) {
+    invalidCommentString += opt_invalidCommentChar;
+  }
+  return "uniform float " + validUniformName + invalidIdentifierString + ";\n"
+                          + "varying float " + validAttribName + ";\n"
+                          + "void main() {\n"
+                          + validAttribName  + " = " + validUniformName + ";\n"
+                          + "gl_Position = vec4(0.0, 0.0, 0.0, 1.0); }\n";
+                          + "//.+-/*%<>[](){}^|&~=!:;,?# " + invalidCommentString;
+}
+var vShader = context.createShader(context.VERTEX_SHADER);
+context.shaderSource(vShader, generateShaderSource());
+context.compileShader(vShader);
+shouldBe("context.getError()", "context.NO_ERROR");
+var fShader = context.createShader(context.FRAGMENT_SHADER);
+context.shaderSource(fShader, "precision mediump float;\n"
+                              + "varying float " + validAttribName + ";\n"
+                              + "void main() {\n"
+                              + "gl_FragColor = vec4(" + validAttribName + ", 0.0, 0.0, 1.0); }");
+context.compileShader(fShader);
+shouldBe("context.getError()", "context.NO_ERROR");
+var program = context.createProgram();
+context.attachShader(program, vShader);
+context.attachShader(program, fShader);
+context.linkProgram(program);
+var linkStatus = context.getProgramParameter(program, context.LINK_STATUS);
+shouldBeTrue("linkStatus");
+if (!linkStatus)
+  debug(context.getProgramInfoLog(program));
+shouldBe("context.getError()", "context.NO_ERROR");
+context.bindAttribLocation(program, 1, validAttribName);
+shouldBe("context.getError()", "context.NO_ERROR");
+context.getAttribLocation(program, validAttribName);
+shouldBe("context.getError()", "context.NO_ERROR");
+context.getUniformLocation(program, validUniformName);
+shouldBe("context.getError()", "context.NO_ERROR");
+
+debug("");
+debug("Test shaderSource() with invalid characters");
+for (var i = 0; i < invalidSet.length; ++i) {
+  var validShaderSource = generateShaderSource(undefined, invalidSet[i]);
+  context.shaderSource(vShader, validShaderSource);
+  shouldBe("context.getError()", "context.NO_ERROR");
+  var invalidShaderSource = generateShaderSource(invalidSet[i], undefined);
+  context.shaderSource(vShader, invalidShaderSource);
+  shouldBe("context.getError()", "context.INVALID_VALUE");
+}
+
+debug("");
+debug("Test bindAttribLocation() with invalid characters");
+for (var i = 0; i < invalidSet.length; ++i) {
+  var invalidName = validAttribName + invalidSet[i];
+  context.bindAttribLocation(program, 1, invalidName);
+  shouldBe("context.getError()", "context.INVALID_VALUE");
+}
+
+debug("");
+debug("Test getAttribLocation() with invalid characters");
+for (var i = 0; i < invalidSet.length; ++i) {
+  var invalidName = validAttribName + invalidSet[i];
+  context.getAttribLocation(program, invalidName);
+  shouldBe("context.getError()", "context.INVALID_VALUE");
+}
+
+debug("");
+debug("Test getUniformLocation() with invalid characters");
+for (var i = 0; i < invalidSet.length; ++i) {
+  var invalidName = validUniformName + invalidSet[i];
+  context.getUniformLocation(program, invalidName);
+  shouldBe("context.getError()", "context.INVALID_VALUE");
+}
+
+debug("")
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

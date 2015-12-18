@@ -1,0 +1,96 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Gradient loop in if in loop crash</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script id='vshader' type='x-shader/x-vertex'>
+precision highp float;
+void main() { 
+gl_Position = vec4( 1.0, 1.0, 1.0, 1.0 );
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>
+precision mediump float;
+uniform lowp sampler2D iChannel0;
+
+void main(){
+    highp float c;
+    for (mediump float i = 0.0; i <= 1.0; i++) {
+        if (gl_FragCoord.x < 0.0) {
+            for (mediump float l = 0.0; l < 2.0; l++) { // with 1 as a bound it works
+                c = texture2D(iChannel0, vec2(l), 0.0).x;
+            }
+        }
+    }
+    gl_FragColor = vec4(c, vec3(1.0));
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test checks an ANGLE regression that was caused by a complex ShaderToy shader. <a href='https://code.google.com/p/chromium/issues/detail?id=524297'>crbug.com/524297</a>");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+
+gl.canvas.addEventListener("webglcontextlost", function(e) {
+   testFailed("WebGL context lost");
+});
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+    debug("");
+
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        testFailed("Program failed to link");
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+// Cycle through a rAF once to give any webglcontextlost events a chance to propagate
+window.requestAnimationFrame(function() { finishTest(); });
+
+debug("");
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

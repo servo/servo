@@ -1,0 +1,303 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="16" height="16"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Verifies texImage2D and texSubImage2D code paths taking ArrayBufferView');
+
+var wtu = WebGLTestUtils;
+
+function roundUpToAlignment(value, alignment) {
+  return Math.floor((value + alignment - 1) / alignment) * alignment;
+}
+
+function generateRGBAData(type, unpackAlignment, sourceData, width, height)
+{
+    var numColors = sourceData.length / 4;
+    var colorOffset = function(y) {
+      return 4 * Math.floor(y * numColors / height);
+    };
+
+    switch (type) {
+    case gl.UNSIGNED_BYTE: {
+        var rowWidth = roundUpToAlignment(width * 4, unpackAlignment);
+        var data = new Uint8Array(height * rowWidth);
+        for (var y = 0; y < height; ++y) {
+            var index = y * rowWidth;
+            var offset = colorOffset(y);
+            for (var element = 0; element < width * 4; ++element) {
+                data[index + element] = sourceData[offset + element % 4];
+            }
+        }
+        return data;
+    }
+    case gl.UNSIGNED_SHORT_4_4_4_4: {
+        var rowWidth = roundUpToAlignment(width * 2, unpackAlignment) / 2;
+        var data = new Uint16Array(height * rowWidth);
+        for (var y = 0; y < height; ++y) {
+            var offset = colorOffset(y);
+            for (var x = 0; x < width; ++x) {
+                var index = y * rowWidth + x;
+                data[index] = (((sourceData[offset + 0] & 0xF0) << 8)
+                             | ((sourceData[offset + 1] & 0xF0) << 4)
+                             | ((sourceData[offset + 2] & 0xF0) >> 0)
+                             | ((sourceData[offset + 3] & 0xF0) >> 4));
+            }
+        }
+        return data;
+    }
+    case gl.UNSIGNED_SHORT_5_5_5_1: {
+        var rowWidth = roundUpToAlignment(width * 2, unpackAlignment) / 2;
+        var data = new Uint16Array(height * rowWidth);
+        for (var y = 0; y < height; ++y) {
+            var offset = colorOffset(y);
+            for (var x = 0; x < width; ++x) {
+                var index = y * rowWidth + x;
+                data[index] = (((sourceData[offset + 0] & 0xF8) << 8)
+                             | ((sourceData[offset + 1] & 0xF8) << 3)
+                             | ((sourceData[offset + 2] & 0xF8) >> 2)
+                             | ((sourceData[offset + 3] & 0x80) >> 7));
+            }
+        }
+        return data;
+    }
+    }
+}
+
+function typeToString(type)
+{
+    switch (type) {
+    case gl.UNSIGNED_BYTE:           return 'UNSIGNED_BYTE';
+    case gl.UNSIGNED_SHORT_5_5_5_1:  return 'UNSIGNED_SHORT_5_5_5_1';
+    case gl.UNSIGNED_SHORT_4_4_4_4:  return 'UNSIGNED_SHORT_4_4_4_4';
+    }
+    return 'Unknown type ' + type;
+}
+
+function runOneIteration(useTexSubImage2D, type, unpackAlignment, flipY, premultiplyAlpha,
+                         topColor, bottomColor, extraColor, bindingTarget, program)
+{
+    debug('Testing ' + (useTexSubImage2D ? 'texSubImage2D' : 'texImage2D') +
+          ' with type=' + typeToString(type) +
+          ', unpackAlignment=' + unpackAlignment +
+          ', flipY=' + flipY + ', premultiplyAlpha=' + premultiplyAlpha +
+          ', bindingTarget=' + (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP'));
+    gl.colorMask(true, true, true, true);
+    gl.clearColor(0, 0, 0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // Enable writes to the RGB channels
+    gl.colorMask(true, true, true, false);
+    var texture = gl.createTexture();
+    // Bind the texture to texture unit 0
+    gl.bindTexture(bindingTarget, texture);
+    // Set up texture parameters
+    gl.texParameteri(bindingTarget, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(bindingTarget, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(bindingTarget, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(bindingTarget, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // Set up pixel store parameters
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, unpackAlignment);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiplyAlpha);
+    // Generate the data
+    var sourceData = [ 255,   0,   0, 255,
+                       0,   255,   0,   0 ];
+    var texWidth = 5;   // this must be mod 4 + 1 to test unpackAlignment
+    // cube map texture must be square.
+    if (bindingTarget == gl.TEXTURE_CUBE_MAP)
+        texWidth = 16;
+    var texHeight = 16;
+    var data = generateRGBAData(type, unpackAlignment, sourceData, texWidth, texHeight);
+    if (gl.getError() != gl.NO_ERROR)
+        testFailed("GL error before texture upload");
+    var targets = [gl.TEXTURE_2D];
+    if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+        targets = [gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+                   gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+                   gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+                   gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                   gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+                   gl.TEXTURE_CUBE_MAP_NEGATIVE_Z];
+    }
+    // Upload the image into the texture
+    for (var tt = 0; tt < targets.length; ++tt) {
+        if (useTexSubImage2D) {
+            // Initialize the texture to black first
+            gl.texImage2D(targets[tt], 0, gl.RGBA, texWidth, texHeight, 0,
+                          gl.RGBA, type, null);
+            if (gl.getError() != gl.NO_ERROR)
+                testFailed("GL error after texImage2D(null)");
+            gl.texSubImage2D(targets[tt], 0, 0, 0, texWidth, texHeight, gl.RGBA, type, data);
+            if (gl.getError() != gl.NO_ERROR)
+                testFailed("GL error after texSubImage2D");
+        } else {
+            gl.texImage2D(targets[tt], 0, gl.RGBA, texWidth, texHeight, 0, gl.RGBA, type, data);
+            if (gl.getError() != gl.NO_ERROR)
+                testFailed("GL error after texImage2D");
+        }
+    }
+
+    var testWidth  = gl.drawingBufferWidth;
+    var testHeight = gl.drawingBufferHeight / 2;
+
+    var loc;
+    if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+        loc = gl.getUniformLocation(program, "face");
+    }
+
+    for (var tt = 0; tt < targets.length; ++tt) {
+        if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+            gl.uniform1i(loc, targets[tt]);
+        }
+
+        // Draw the triangles
+        wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+
+        // Check the top pixel and bottom pixel and make sure they have
+        // the right color.
+        var rects = [wtu.makeCheckRect(0, 0, testWidth, testHeight, bottomColor, "bottom pixel should be " + bottomColor, 0),
+                     wtu.makeCheckRect(0, testHeight, testWidth, testHeight, topColor, "top pixel should be " + topColor, 0)];
+        wtu.checkCanvasRects(gl, rects);
+      }
+
+    // Change part of the texture.
+    var partWidth = 16;
+    var partHeight = 16;
+    // make texture double res of part.
+    var data = generateRGBAData(type, unpackAlignment, sourceData, partWidth * 2, partHeight * 2);
+    for (var tt = 0; tt < targets.length; ++tt) {
+        gl.texImage2D(targets[tt], 0, gl.RGBA, partWidth * 2, partHeight * 2, 0, gl.RGBA, type, data);
+    }
+    // set part.
+    var extraData = [
+      255,   0,   0, 255,
+        0,   0, 255,   0
+    ];
+    var data = generateRGBAData(type, unpackAlignment, extraData, partWidth, partHeight);
+    for (var tt = 0; tt < targets.length; ++tt) {
+        gl.texSubImage2D(targets[tt], 0, 0, 0, partWidth, partHeight, gl.RGBA, type, data);
+    }
+    var halfWidth  = gl.drawingBufferWidth / 2;
+    var halfHeight = gl.drawingBufferHeight / 2;
+    var quarterHeight = gl.drawingBufferHeight / 4;
+    var red = [255, 0, 0, 255];
+    var tcolor0 = flipY ? extraColor : red;
+    var tcolor1 = flipY ? red : extraColor;
+
+    for (var tt = 0; tt < targets.length; ++tt) {
+        if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+            gl.uniform1i(loc, targets[tt]);
+        }
+
+        wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+        wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+        var rects = [wtu.makeCheckRect(0, 0, halfWidth, quarterHeight, tcolor0, "bottom left bottom pixels should be " + tcolor0, 0),
+                     wtu.makeCheckRect(0, quarterHeight, halfWidth, quarterHeight, tcolor1, "bottom left top pixels should be " + tcolor1, 0),
+                     wtu.makeCheckRect(halfWidth, 0, halfWidth, halfHeight, bottomColor, "bottom right pixels should be " + bottomColor, 0),
+                     wtu.makeCheckRect(0, halfHeight, testWidth, halfHeight, topColor, "top pixels should be " + topColor, 0)];
+        wtu.checkCanvasRects(gl, rects);
+      }
+
+    // set far corner.
+    for (var tt = 0; tt < targets.length; ++tt) {
+        gl.texSubImage2D(targets[tt], 0, partWidth, partHeight, partWidth, partHeight, gl.RGBA, type, data);
+    }
+    for (var tt = 0; tt < targets.length; ++tt) {
+        if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+            gl.uniform1i(loc, targets[tt]);
+        }
+
+        wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+        var rects = [wtu.makeCheckRect(0, 0, halfWidth, quarterHeight, tcolor0, "bottom left bottom pixels should be " + tcolor0, 0),
+                     wtu.makeCheckRect(0, quarterHeight, halfWidth, quarterHeight, tcolor1, "bottom left top pixels should be " + tcolor1, 0),
+                     wtu.makeCheckRect(halfWidth, 0, halfWidth, halfHeight, bottomColor, "bottom left pixels should be " + bottomColor, 0),
+                     wtu.makeCheckRect(0, halfHeight, halfWidth, halfHeight, topColor, "top right pixels should be " + topColor, 0),
+                     wtu.makeCheckRect(halfWidth, halfHeight, halfWidth, quarterHeight, tcolor0, "top right bottom pixels should be " + tcolor0, 0),
+                     wtu.makeCheckRect(halfWidth, halfHeight + quarterHeight, halfWidth, quarterHeight, tcolor1, "top right top pixels should be " + tcolor1, 0)];
+        wtu.checkCanvasRects(gl, rects);
+      }
+}
+
+function runTest(bindingTarget, program)
+{
+    var red = [255, 0, 0, 255];
+    var green = [0, 255, 0, 255];
+    var blue = [0, 0, 255, 255];
+    var redPremultiplyAlpha = [255, 0, 0, 255];
+    var greenPremultiplyAlpha = [0, 0, 0, 255];
+    var bluePremultiplyAlpha = [0, 0, 0, 255];
+
+    var types = [ gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_5_5_5_1, gl.UNSIGNED_SHORT_4_4_4_4 ];
+    var unpackAlignments = [ 1, 2, 4, 8 ];
+
+    var cases = [
+        { sub: false, flipY: true, premultiplyAlpha: false, topColor: red, bottomColor: green, extraColor: blue },
+        { sub: false, flipY: false, premultiplyAlpha: false, topColor: green, bottomColor: red, extraColor: blue },
+        { sub: false, flipY: true, premultiplyAlpha: true, topColor: redPremultiplyAlpha, bottomColor: greenPremultiplyAlpha, extraColor: bluePremultiplyAlpha },
+        { sub: false, flipY: false, premultiplyAlpha: true, topColor: greenPremultiplyAlpha, bottomColor: redPremultiplyAlpha, extraColor: bluePremultiplyAlpha },
+        { sub: true, flipY: true, premultiplyAlpha: false, topColor: red, bottomColor: green, extraColor: blue },
+        { sub: true, flipY: false, premultiplyAlpha: false, topColor: green, bottomColor: red, extraColor: blue },
+        { sub: true, flipY: true, premultiplyAlpha: true, topColor: redPremultiplyAlpha, bottomColor: greenPremultiplyAlpha, extraColor: bluePremultiplyAlpha },
+        { sub: true, flipY: false, premultiplyAlpha: true, topColor: greenPremultiplyAlpha, bottomColor: redPremultiplyAlpha, extraColor: bluePremultiplyAlpha },
+    ];
+
+    for (var i in types) {
+        for (var j in unpackAlignments) {
+            for (var k in cases) {
+                runOneIteration(cases[k].sub, types[i], unpackAlignments[j], cases[k].flipY, cases[k].premultiplyAlpha,
+                                cases[k].topColor, cases[k].bottomColor, cases[k].extraColor, bindingTarget, program);
+            }
+        }
+    }
+
+}
+
+var gl = wtu.create3DContext("example");
+
+var program = wtu.setupTexturedQuad(gl);
+runTest(gl.TEXTURE_2D, program);
+program = wtu.setupTexturedQuadWithCubeMap(gl);
+runTest(gl.TEXTURE_CUBE_MAP, program);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

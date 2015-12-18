@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<script type="application/javascript" src="../util.js"></script>
+<script>
+"use strict";
+var processor = {
+  lastTime : new Date,
+  timerCallback: function() {
+    if (this.video.paused || this.video.ended) {
+      return;
+    }
+    this.computeFrame();
+    var t = new Date;
+    var elapsed = t - this.lastTime;
+    this.lastTime = t;
+    var self = this;
+    setTimeout(function () {
+        self.timerCallback();
+      }, Math.max(0, 33-elapsed));
+  },
+
+  init: function() {
+    if (this.initDone) return;
+    this.c2 = document.getElementById("c2");
+    this.ctx2 = getGLContext(this.c2);
+    this.greenScreen = new Filter(this.ctx2, 'identity-flip-vert', 'greenScreen');
+    this.ctx2.activeTexture(this.ctx2.TEXTURE0);
+    this.tex = loadTexture(this.ctx2, this.c1, false);
+    this.ctx2.activeTexture(this.ctx2.TEXTURE1);
+    this.tex2 = loadTexture(this.ctx2, document.getElementById('i'), false);
+    this.ctx2.activeTexture(this.ctx2.TEXTURE0);
+    this.initDone = true;
+  },
+
+  doLoad: function() {
+    this.video = document.getElementById("video");
+    this.c1 = document.getElementById("c1");
+    this.ctx1 = this.c1.getContext("2d");
+    this.ctx1.globalCompositeOperation = 'copy';
+    this.ctx1.fillRect(0,0,this.c1.width, this.c1.height);
+    var self = this;
+    this.video.addEventListener("play", function() {
+        self.init();
+        self.width = self.video.videoWidth;
+        self.height = self.video.videoHeight;
+        self.lastTime = new Date;
+        self.timerCallback();
+      }, false);
+  },
+
+  computeFrame: function() {
+//     this.ctx1.drawImage(this.video, 0, 0, this.width, this.height);
+    this.ctx2.texImage2D(this.ctx2.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
+    this.greenScreen.apply(function(s) {
+        s.uniform1i('Texture', 0);
+        s.uniform1i('Texture2', 1);
+    });
+
+    return;
+  }
+};
+
+</script>
+<script id="identity-flip-vert" type="x-shader/x-vertex">
+    attribute vec3 Vertex;
+    attribute vec2 Tex;
+
+    varying vec4 texCoord0;
+    void main()
+    {
+        texCoord0 = vec4(Tex.s,1.0-Tex.t,0.0,0.0);
+        gl_Position = vec4(Vertex, 1.0);
+    }
+</script>
+<script id="greenScreen" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform sampler2D Texture;
+    uniform sampler2D Texture2;
+
+    varying vec4 texCoord0;
+    void main()
+    {
+        vec4 c = texture2D(Texture, texCoord0.st);
+        float r = c.r * 0.5;
+        float a = c.g * 6.28;
+        float x = cos(a) * r;
+        float y = sin(a) * r;
+        vec4 c2 = texture2D(Texture2, vec2(0.7+x, 0.5+y));
+        // Shaders with branches are not allowed when dealing with non-SOP content
+        // so instead of "if (b) c2.a = 0;", we use mix()
+        bool b = (c.g > 120.0/255.0 && c.r > 120.0/255.0 && c.b < 50.0/255.0);
+        c2.a = mix(c2.a, 0.0, float(b));
+        gl_FragColor = c2;
+    }
+</script>
+    <style>
+      body {
+        background: black;
+        color:#CCCCCC;
+      }
+      a {
+          color: white;
+      }
+      #c2 {
+        background-image: url(http://www.mozbox.org/pub/green/foo.png);
+        background-repeat: repeat;
+      }
+      div {
+        float: left;
+        border :1px solid #444444;
+        padding:10px;
+        margin: 10px;
+        background:#3B3B3B;
+      }
+      img { display: none; }
+    </style>
+ </head>
+  <body onload="processor.doLoad()">
+    <div>
+        This is a port of Paul Rouget's <a href="http://blog.mozbox.org/post/2009/02/25/video-canvas%3A-special-effects">Canvas+Video green screen demo</a>, plus a texture lookup from the Firefox logo based on the values of the green and red color channels.
+    </div>
+    <div>
+      <video id="video" controls="true">
+        <source src="http://www.mozbox.org/pub/green/video.ogv"></source>
+        <source src="http://cs.helsinki.fi/u/ilmarihe/c3d/demos/video.mp4"></source>
+      </video>
+      <canvas id="c1" width="320" height="192"></canvas>
+    </div>
+    <div>
+      <canvas id="c2" width="640" height="384"></canvas>
+    </div>
+    <img id="i" src="http://www.mozbox.org/pub/green/foo.png">
+  </body>
+</html>

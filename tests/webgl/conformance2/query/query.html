@@ -1,0 +1,178 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Query Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+attribute vec4 a_color;
+varying vec4 v_color;
+void main(void) {
+    gl_Position = a_position;
+    v_color = a_color;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 v_color;
+void main(void) {
+    gl_FragColor = v_color;
+}
+</script>
+<script>
+"use strict";
+description("This test verifies the functionality of the Query objects.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var q1 = null;
+var q2 = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runCurrentQueryTest();
+    runObjectTest();
+    // TODO: Test buffer binding, drawing, etc.
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runCurrentQueryTest() {
+    debug("");
+    debug("Testing Beginning, Ending, and checking the state of query objects");
+
+    shouldBe("gl.ANY_SAMPLES_PASSED", "0x8C2F");
+    shouldBe("gl.ANY_SAMPLES_PASSED_CONSERVATIVE", "0x8D6A");
+    shouldBe("gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN", "0x8C88");
+
+    gl.getQuery(gl.ANY_SAMPLES_PASSED, gl.CURRENT_QUERY);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "ANY_SAMPLES_PASSED query should succeed");
+
+    gl.getQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE, gl.CURRENT_QUERY);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "ANY_SAMPLES_PASSED query should succeed");
+
+    gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "ANY_SAMPLES_PASSED query should succeed");
+
+    // Default value is null
+    shouldBeNull("gl.getQuery(gl.ANY_SAMPLES_PASSED, gl.CURRENT_QUERY)");
+    shouldBeNull("gl.getQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE, gl.CURRENT_QUERY)");
+    shouldBeNull("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)");
+
+    q1 = gl.createQuery();
+    q2 = gl.createQuery();
+    shouldBeNull("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)");
+    gl.beginQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, q1);
+    shouldBeTrue("gl.isQuery(q1)");
+    shouldBe("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)", "q1");
+
+    gl.beginQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, q2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Can't begin a query while one is already active");
+    shouldBe("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)", "q1");
+
+    gl.endQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    shouldBeNull("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)");
+
+    gl.endQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Can't end a query if one is not active");
+
+    gl.beginQuery(gl.ANY_SAMPLES_PASSED, q1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Can't re-use query objects for incompatible targets");
+    shouldBeNull("gl.getQuery(gl.ANY_SAMPLES_PASSED, gl.CURRENT_QUERY)");
+
+    gl.beginQuery(gl.ANY_SAMPLES_PASSED, q2);
+    shouldBe("gl.getQuery(gl.ANY_SAMPLES_PASSED, gl.CURRENT_QUERY)", "q2");
+
+    gl.beginQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE, q2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Can't call beginQuery on an already active query object");
+    shouldBeNull("gl.getQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE, gl.CURRENT_QUERY)");
+
+    gl.endQuery(gl.ANY_SAMPLES_PASSED);
+
+    gl.beginQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, q1);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be able to have multiple unrelated query types active at once");
+    shouldBe("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)", "q1");
+
+    gl.deleteQuery(q1);
+    gl.deleteQuery(q2);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "deleting queries should not produce errors");
+
+    shouldBeNull("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)");
+    shouldBeNull("gl.getQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE, gl.CURRENT_QUERY)");
+
+    gl.beginQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, q1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "beginning a deleted query object");
+    shouldBeNull("gl.getQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, gl.CURRENT_QUERY)");
+}
+
+function runObjectTest() {
+    debug("");
+    debug("Testing object creation");
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should have no previous errors");
+
+    q1 = gl.createQuery();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "createQuery should not set an error");
+    shouldBeNonNull("q1");
+
+    // Expect false if never bound
+    shouldBeFalse("gl.isQuery(q1)");
+    gl.beginQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, q1);
+    shouldBeTrue("gl.isQuery(q1)");
+    gl.endQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    shouldBeTrue("gl.isQuery(q1)");
+    gl.deleteQuery(q1);
+    shouldBeFalse("gl.isQuery(q1)");
+
+    shouldBeFalse("gl.isQuery(null)");
+
+    q1 = null;
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

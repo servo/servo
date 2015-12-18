@@ -1,0 +1,150 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="testbed" width="40" height="40" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description('Verify multisampled renderbuffers are initialized to 0 before being read in WebGL');
+
+var gl = wtu.create3DContext("testbed", null, 2);
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    // Set the clear color to green. It should never show up.
+    gl.clearColor(0, 1, 0, 1);
+
+    runTest(gl, gl.canvas.width, gl.canvas.height, 0);
+    runTest(gl, gl.canvas.width, gl.canvas.height, 1);
+    runTest(gl, gl.canvas.width, gl.canvas.height, 0);
+    runTest(gl, gl.canvas.width, gl.canvas.height, 1);
+
+    // Testing buffer clearing won't change the clear values.
+    var clearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+    shouldBe("clearColor", "[0, 1, 0, 1]");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+}
+
+function runTest(gl, width, height, order) {
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 0, 0, 0],
+                        "internal buffers have been initialized to 0");
+
+    // fill the back buffer so we know that reading below happens from
+    // the renderbuffer.
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Set up non-multisampled buffer to blit to and read back from.
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var buffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, width, height);
+    attachBuffer(buffer);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)",
+             "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 255, 0, 255],
+                        "user buffer has been cleared to green");
+
+    // Set up multisampled buffer to test.
+    var fbo_m = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo_m);
+    var buffer_m = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, buffer_m);
+    switch (order) {
+      case 0:
+        allocStorage(width, height);
+        attachBuffer(buffer_m);
+        break;
+      case 1:
+        attachBuffer(buffer_m);
+        allocStorage(width, height);
+        break;
+    }
+
+    function allocStorage(width, height) {
+      var samples = gl.getInternalformatParameter(
+          gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES);
+      gl.renderbufferStorageMultisample(
+          gl.RENDERBUFFER, samples[0], gl.RGBA8, width, height);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+          "should be no error after renderbufferStorageMultisample(RGBA8).");
+    }
+
+    function attachBuffer(buffer) {
+      gl.framebufferRenderbuffer(
+          gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, buffer);
+    }
+
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)",
+             "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+
+    // Blit from multisampled buffer to non-multisampled buffer.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_m);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height,
+                       gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 0, 0, 0],
+                        "user buffer has been initialized to 0");
+
+    gl.deleteFramebuffer(fbo_m);
+    gl.deleteRenderbuffer(buffer_m);
+    gl.deleteFramebuffer(fbo);
+    gl.deleteRenderbuffer(buffer);
+
+    // this clear should not matter we are about to resize
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.canvas.width += 1;
+    gl.canvas.height += 1;
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+    debug('');
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

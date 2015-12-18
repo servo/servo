@@ -1,0 +1,171 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Shader Translator</title>
+<style>
+textarea {
+    min-width: 70%;
+    min-height: 200px;
+    font-family: monospace;
+    background: #def;
+}
+#disabled {
+    color: red;
+    font-weight: bold;
+}
+</style>
+<script>
+// Needed by wtu.create3DContext():
+var testFailed = function() {};
+</script>
+<script src="../js/webgl-test-utils.js"> </script>
+<script>
+"use strict";
+window.onload = main;
+
+var gl;
+var debugShaders;
+var enabledExtensions = [];
+
+var translateButton;
+var extButton;
+
+function main() {
+  translateButton = document.getElementById('translate');
+  extButton = document.getElementById('getExts');
+
+  var canvas = document.getElementById("example");
+  var wtu = WebGLTestUtils;
+  gl = wtu.create3DContext(canvas);
+  if (!gl) {
+    disable();
+    return;
+  }
+
+  debugShaders = gl.getExtension('WEBGL_debug_shaders');
+  if (!debugShaders) {
+    disable();
+  }
+}
+
+function disable() {
+  translateButton.disabled = true;
+  extButton.disabled = true;
+  document.getElementById('disabled').style.display = 'block';
+}
+
+function getExtensions() {
+    getExtensionSet([
+        'EXT_frag_depth',
+        'EXT_shader_texture_lod',
+        'OES_standard_derivatives',
+        'WEBGL_draw_buffers'
+    ]);
+}
+
+function getExtensionSet(shaderExtensions) {
+    for (var i = 0; i < shaderExtensions.length; ++i) {
+        if (enabledExtensions.indexOf(shaderExtensions[i]) < 0) {
+            var ext = gl.getExtension(shaderExtensions[i]);
+            if (ext) {
+                enabledExtensions.push(shaderExtensions[i]);
+            }
+        }
+    }
+    if (enabledExtensions.length > 0) {
+        document.getElementById('enabled-extensions').textContent = enabledExtensions.join(', ');
+    }
+}
+
+function translateShader() {
+    var sourceElement = document.getElementById('original-shader');
+    var source = sourceElement.value;
+
+    var output = document.getElementById('translated-shader');
+    var infoLog = document.getElementById('info-log');
+    var shaderType = document.getElementById('shader-type');
+    infoLog.value = '';
+
+    // Try compiling the source as both vertex and fragment shader and see if either one works
+    var tryCompile = function(type) {
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        var shaderTypeStr;
+        if (type == gl.FRAGMENT_SHADER) {
+            shaderTypeStr = 'Fragment shader';
+        } else {
+            shaderTypeStr = 'Vertex shader';
+        }
+        if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            shaderType.textContent = shaderTypeStr;
+            var translatedSource = debugShaders.getTranslatedShaderSource(shader);
+            output.value = translatedSource;
+            infoLog.value = gl.getShaderInfoLog(shader);
+            return true;
+        } else {
+            infoLog.value += 'Info log when compiling as ' + shaderTypeStr + ':\n' + gl.getShaderInfoLog(shader) + '\n';
+            return false;
+        }
+    }
+
+    if (!tryCompile(gl.FRAGMENT_SHADER) && !tryCompile(gl.VERTEX_SHADER)) {
+        output.value = 'Invalid shader, compilation failed as both fragment and vertex shader.';
+        shaderType.textContent = 'Shader not';
+    }
+}
+</script>
+</head>
+<body>
+<h1>WebGL Shader Translator</h1>
+<p>This page uses the browser's built-in shader translation facilities to show how a shader
+is changed before being passed on to the underlying platform's graphics driver.</p>
+<p id="disabled" style="display: none;">
+    WebGL or WEBGL_debug_shaders extension is not available on this browser configuration.
+    Use a different browser or look for other alternatives to enable the extension to be able to use this page.
+    The extension might be behind a runtime flag for privacy considerations.
+</p>
+<h2>WebGL GLSL shader</h2>
+<textarea id="original-shader"></textarea>
+<p>
+<input type="button" id="translate" value="Translate" onclick="translateShader()"></input>
+<input type="button" id="getExts" value="Enable supported GLSL extensions" onclick="getExtensions()"></input>
+</p>
+<h2><span id="shader-type">Shader</span> translated for graphics driver</h2>
+<textarea id="translated-shader"></textarea>
+<h2>Enabled shader extensions</h2>
+<p id="enabled-extensions">None</p>
+<h2>Shader info log</h2>
+<textarea id="info-log"></textarea>
+<canvas id="example" width="256" height="16" style="width: 256px; height: 48px;"></canvas>
+</body>
+</html>
+

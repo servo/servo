@@ -1,0 +1,112 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Vertex Texture Fetch.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="1" height="1" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vs" type="text/something-not-javascript">
+attribute vec4 a_position;
+attribute vec2 a_texCoord;
+uniform sampler2D u_texture;
+varying vec4 color;
+void main() {
+    gl_Position = a_position;
+    color = texture2D(u_texture, a_texCoord);
+}
+</script>
+<script id="fs" type="text/something-not-javascript">
+precision mediump float;
+varying vec4 color;
+void main() {
+    gl_FragColor = color;
+}
+</script>
+<script>
+"use strict";
+description("checks that vertex texture fetch, if supported, operates correctly.");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+if (!gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)) {
+  testPassed("No vertex texture image units (vertex texture fetch not supported) -- this is legal");
+} else {
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                new Uint8Array([
+                    255, 0, 0, 255,
+                    0, 255, 0, 255,
+                    0, 0, 255, 255,
+                    255, 255, 0, 255]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after creating texture");
+
+  var program = wtu.setupProgram(gl, ["vs", "fs"], ["vPosition", "vTexCoord"]);
+  gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
+  gl.disable(gl.BLEND);
+  gl.disable(gl.DEPTH_TEST);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after initWebGL");
+  var bufferObjects = wtu.setupUnitQuad(gl, 0);
+  gl.disableVertexAttribArray(1);
+
+  gl.vertexAttrib2f(1, 0, 0);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "Should be red.");
+
+  gl.vertexAttrib2f(1, 1, 0);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "Should be green.");
+
+  gl.vertexAttrib2f(1, 0, 1);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 0, 255, 255], "Should be blue.");
+
+  gl.vertexAttrib2f(1, 1, 1);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [255, 255, 0, 255], "Should be yellow.");
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawing");
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

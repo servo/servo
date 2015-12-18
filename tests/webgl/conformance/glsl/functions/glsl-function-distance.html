@@ -1,0 +1,109 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL distance function test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+GLSLGenerator.runFeatureTest({
+  feature: "distance",
+  args: "$(type) p1, $(type) p2",
+  baseArgs: "value$(field)",
+  testFunc: "$(func)($(type),$(type))",
+  emuFuncs: [
+    { type: "float",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return abs(p1 - p2);",
+        "}"].join("\n")
+    },
+    { type: "vec2",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return length(p1 - p2);",
+        "}"].join("\n")
+    },
+    { type: "vec3",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return length(p1 - p2);",
+        "}"].join("\n")
+    },
+    { type: "vec4",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return length(p1 - p2);",
+        "}"].join("\n")
+    }
+  ],
+  gridRes: 8,
+  tests: [
+    ["$(output) = vec4(",
+     "    $(func)(",
+     "        $(input).x * 8.0 - 4.0,", 
+     "        $(input).y * 8.0 - 4.0) / 8.0,",
+     "    0,",
+     "    0,",
+     "    1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    0,",
+     "    $(func)(",
+     "        $(input).xy * 8.0 - 4.0,",
+     "        $(input).wz * 8.0 - 4.0) / 8.0,", 
+     "    0, 1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    0, 0,",
+     "    $(func)(",
+     "        $(input).xyz * 8.0 - 4.0,",
+     "        $(input).yzw * 8.0 - 4.0) / 8.0,",
+     "    1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    $(func)(",
+     "        vec4($(input).xyz, 0) * 8.0 - 4.0,",
+     "        vec4(0, $(input).wzy) * 8.0 - 4.0) / 8.0,",
+     "    0, 0, 1);",
+    ].join("\n")
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

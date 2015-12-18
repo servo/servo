@@ -1,0 +1,132 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL sampler uniforms conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="2" height="2" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+function init()
+{
+  description(
+      "Tests that only Uniform1i and Uniform1iv can be used to set" +
+      "sampler uniforms.");
+
+  var canvas2d = document.getElementById("canvas2d");
+
+  var wtu = WebGLTestUtils;
+  var gl = wtu.create3DContext("example");
+  var program = wtu.setupTexturedQuad(gl);
+
+  var textureLoc = gl.getUniformLocation(program, "tex");
+
+  gl.uniform1i(textureLoc, 1);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "uniform1i can set a sampler uniform");
+  gl.uniform1iv(textureLoc, [1]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "uniform1iv can set a sampler uniform");
+  gl.uniform1f(textureLoc, 1);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "uniform1f returns INVALID_OPERATION if attempting to set a sampler uniform");
+  gl.uniform1fv(textureLoc, [1]);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "uniform1fv returns INVALID_OPERATION if attempting to set a sampler uniform");
+
+  var maxTextureUnits = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+
+  var testUniformi = function() {
+    var success = true;
+    for (var ii = 0; ii < maxTextureUnits; ++ii) {
+      gl.uniform1i(textureLoc, ii);
+      success = success && (gl.getError() == gl.NO_ERROR);
+    }
+    expectTrue(success, "uniform1i works for any valid texture unit");
+  };
+
+  var testUniformiv = function() {
+    var success = true;
+    for (var ii = 0; ii < maxTextureUnits; ++ii) {
+      gl.uniform1iv(textureLoc, [ii]);
+      success = success && (gl.getError() == gl.NO_ERROR);
+    }
+    expectTrue(success, "uniform1iv works for any valid texture unit");
+  };
+
+  var steps = [
+    testUniformi,
+    testUniformiv,
+  ];
+
+  var generateInvalidUniformiTests = function(start, end) {
+    return function() {
+      var success = true;
+      for (var ii = start; ii < end; ++ii) {
+        gl.uniform1i(textureLoc, ii);
+        success = success && (gl.getError() == gl.INVALID_VALUE);
+      }
+      expectTrue(success, "uniform1i generates INVALID_VALUE for invalid texture units 0x" + start.toString(16) + " to 0x" + end.toString(16));
+    };
+  };
+
+  var generateInvalidUniformivTests = function(start, end) {
+    return function() {
+      var success = true;
+      for (var ii = start; ii < end; ++ii) {
+        gl.uniform1iv(textureLoc, [ii]);
+        success = success && (gl.getError() == gl.INVALID_VALUE);
+      }
+      expectTrue(success, "uniform1iv generates INVALID_VALUE for invalid texture units 0x" + start.toString(16) + " to 0x" + end.toString(16));
+    };
+  };
+
+  var step = 0x1000;
+  for (var ii = maxTextureUnits; ii < 0x10000; ii += step) {
+    steps.push(generateInvalidUniformiTests(ii, ii + step));
+    steps.push(generateInvalidUniformivTests(ii, ii + step));
+  }
+
+  steps.push(finishTest);
+  wtu.runSteps(steps);
+}
+
+init();
+var successfullyParsed = true;
+</script>
+</body>
+</html>

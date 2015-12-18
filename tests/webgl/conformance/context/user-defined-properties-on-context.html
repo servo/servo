@@ -1,0 +1,70 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL User-Defined Properties Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body onload="initialize()">
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<script>
+"use strict";
+description("This test ensures that if user-defined properties are set on the WebGL context object, that they don't disappear after garbage collection.");
+
+var gl2 = null;
+
+function initialize() {
+  var wtu = WebGLTestUtils;
+  var canvas = document.getElementById("canvas");
+  var gl1 = wtu.create3DContext(canvas);
+  if (!gl1) {
+    testFailed("WebGL context does not exist");
+    finishTest();
+  } else {
+    testPassed("WebGL context exists");
+    gl1.myProperty = 2;
+    wtu.requestAnimFrame(runTest);
+  }
+}
+
+function runTest() {
+  webglHarnessCollectGarbage();
+  var wtu = WebGLTestUtils;
+  var canvas = document.getElementById("canvas");
+  gl2 = wtu.create3DContext(canvas);
+  shouldBe('gl2.myProperty', '2');
+  finishTest();
+}
+</script>
+</body>
+</html>

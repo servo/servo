@@ -1,0 +1,92 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Default precision qualifiers should only work with int, float and sampler types</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!-- See ESSL 3.00 section 4.5.4 -->
+<script id="precisionVec" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+precision mediump vec2;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script id="precisionVoid" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+precision mediump void;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script id="precisionUint" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+precision mediump uint;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+GLSLConformanceTester.runTests([
+  {
+    fShaderId: "precisionVec",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "default precision qualifier shouldn't work with vec2"
+  },
+  {
+    fShaderId: "precisionVoid",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "default precision qualifier shouldn't work with void"
+  },
+  {
+    fShaderId: "precisionUint",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "default precision qualifier shouldn't work with uint"
+  }
+], 2);
+</script>
+</body>
+</html>
