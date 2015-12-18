@@ -17,7 +17,7 @@ branch = "servo"
 optional = true
 
 [dependencies]
-url = "0.5"
+url = "0.5.2"
 
 [features]
 default = []

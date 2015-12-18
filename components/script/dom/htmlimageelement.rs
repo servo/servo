@@ -27,7 +27,7 @@ use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::sync::Arc;
 use string_cache::Atom;
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -101,7 +101,7 @@ impl HTMLImageElement {
                 *self.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
-                let img_url = UrlParser::new().base_url(&base_url).parse(&src);
+                let img_url = base_url.join(&src);
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
                 *self.url.borrow_mut() = Some(img_url.clone());

@@ -98,7 +98,7 @@ use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::{Tm, now};
-use url::{Url, UrlParser};
+use url::Url;
 use util::opts;
 use util::str::DOMString;
 use util::task;
@@ -1840,7 +1840,7 @@ impl ScriptTask {
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.url();
-                                UrlParser::new().base_url(&url).parse(&value).map(|url| url.serialize()).ok()
+                                url.join(&value).map(|url| url.serialize()).ok()
                             });
                         let event = ConstellationMsg::NodeStatus(status);
                         let ConstellationChan(ref chan) = self.constellation_chan;

@@ -17,7 +17,7 @@ use std::ascii::AsciiExt;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str::FromStr;
-use url::{Url, UrlParser};
+use url::Url;
 use util::task::spawn_named;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
@@ -367,7 +367,7 @@ impl Request {
                     _ => return Response::network_error(),
                 };
                 // Step 5
-                let location_url = UrlParser::new().base_url(self.url_list.last().unwrap()).parse(&*location);
+                let location_url = self.url_list.last().unwrap().join(&*location);
                 // Step 6
                 let location_url = match location_url {
                     Ok(ref url) if url.scheme == "data" => { return Response::network_error(); }

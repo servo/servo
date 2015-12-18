@@ -81,7 +81,6 @@ use style::properties::longhands::{self, background_image, border_spacing, font_
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
-use url::UrlParser;
 use util::mem::HeapSizeOf;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -1051,7 +1050,7 @@ impl Element {
         let base = doc.url();
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        match UrlParser::new().base_url(&base).parse(&url) {
+        match base.join(&url) {
             Ok(parsed) => DOMString::from(parsed.serialize()),
             Err(_) => DOMString::from(""),
         }

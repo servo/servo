@@ -8,7 +8,7 @@ use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;
 use string_cache::Atom;
-use url::{Url, UrlParser};
+use url::Url;
 use util::mem::HeapSizeOf;
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
@@ -111,7 +111,7 @@ fn parse_one_src(context: &ParserContext, input: &mut Parser) -> Result<Source, 
         return Ok(Source::Local(try!(input.parse_nested_block(parse_one_non_generic_family_name))))
     }
     let url = try!(input.expect_url());
-    let url = UrlParser::new().base_url(context.base_url).parse(&url).unwrap_or_else(
+    let url = context.base_url.join(&url).unwrap_or_else(
         |_error| url!("about:invalid"));
 
     // Parsing optional format()

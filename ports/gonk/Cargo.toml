@@ -42,7 +42,7 @@ path = "../../components/util"
 
 [dependencies]
 env_logger = "0.3"
-url = "0.5"
+url = "0.5.2"
 time = "0.1.17"
 errno = "0.1"
 libc = "0.2"

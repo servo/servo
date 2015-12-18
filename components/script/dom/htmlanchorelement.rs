@@ -25,7 +25,6 @@ use dom::virtualmethods::VirtualMethods;
 use num::ToPrimitive;
 use std::default::Default;
 use string_cache::Atom;
-use url::UrlParser;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -187,7 +186,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
 
     // Step 4-5.
     let document = document_from_node(subject);
-    let url = match UrlParser::new().base_url(&document.url()).parse(&href) {
+    let url = match document.url().join(&href) {
         Ok(url) => url,
         Err(_) => return,
     };

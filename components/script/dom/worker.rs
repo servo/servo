@@ -26,7 +26,6 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
 use script_task::{Runnable, ScriptChan};
 use std::sync::mpsc::{Sender, channel};
-use url::UrlParser;
 use util::str::DOMString;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -64,7 +63,7 @@ impl Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
-        let worker_url = match UrlParser::new().base_url(&global.get_url()).parse(&script_url) {
+        let worker_url = match global.get_url().join(&script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };

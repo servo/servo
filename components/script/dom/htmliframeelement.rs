@@ -32,7 +32,7 @@ use script_traits::ScriptMsg as ConstellationMsg;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::Atom;
-use url::{Url, UrlParser};
+use url::Url;
 use util::prefs;
 use util::str::DOMString;
 use util::str::{self, LengthOrPercentageOrAuto};
@@ -74,8 +74,7 @@ impl HTMLIFrameElement {
                 None
             } else {
                 let window = window_from_node(self);
-                UrlParser::new().base_url(&window.get_url())
-                    .parse(&url).ok()
+                window.get_url().join(&url).ok()
             }
         })
     }

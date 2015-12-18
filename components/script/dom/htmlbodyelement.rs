@@ -22,7 +22,7 @@ use script_traits::ScriptMsg as ConstellationMsg;
 use std::rc::Rc;
 use string_cache::Atom;
 use time;
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::DOMString;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
@@ -157,7 +157,7 @@ impl VirtualMethods for HTMLBodyElement {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let document = document_from_node(self);
                     let base = document.url();
-                    UrlParser::new().base_url(&base).parse(&value).ok()
+                    base.join(&value).ok()
                 });
                 true
             },
