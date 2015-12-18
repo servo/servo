@@ -182,13 +182,14 @@ impl CORSRequest {
         let error = CORSResponse::new_error();
         let mut cors_response = CORSResponse::new();
 
-        let mut preflight = self.clone(); // Step 1
-        preflight.method = Method::Options; // Step 2
-        preflight.headers = Headers::new(); // Step 3
-        // Step 4
+        // Step 1
+        let mut preflight = self.clone();
+        preflight.method = Method::Options;
+        preflight.headers = Headers::new();
+        // Step 2
         preflight.headers.set(AccessControlRequestMethod(self.method.clone()));
 
-        // Step 5 - 7
+        // Steps 3-5
         let mut header_names = vec![];
         for header in self.headers.iter() {
             header_names.push(header.name().to_owned());
@@ -197,10 +198,6 @@ impl CORSRequest {
         preflight.headers
                  .set(AccessControlRequestHeaders(header_names.into_iter().map(UniCase).collect()));
 
-        // Step 8 unnecessary, we don't use the request body
-        // Step 9, 10 unnecessary, we're writing our own fetch code
-
-        // Step 11
         let preflight_request = Request::new(preflight.method, preflight.destination);
         let mut req = match preflight_request {
             Ok(req) => req,
@@ -214,12 +211,14 @@ impl CORSRequest {
             Ok(s) => s,
             Err(_) => return error,
         };
+        // Step 6
         let response = match stream.send() {
             Ok(r) => r,
             Err(_) => return error,
         };
 
-        // Step 12
+        // Step 7: We don't perform a CORS check here
+        // FYI, fn allow_cross_origin_request() performs the CORS check
         match response.status.class() {
             Success => {}
             _ => return error,
@@ -252,7 +251,7 @@ impl CORSRequest {
                 return error;
             }
         }
-        // Substep 7, 8
+        // Substeps 7-8
         let max_age = match response.headers.get() {
             Some(&AccessControlMaxAge(num)) => num,
             None => 0,
@@ -272,6 +271,7 @@ impl CORSRequest {
                                                  HeaderOrMethod::MethodData(m.clone())));
             }
         }
+        // Substeps 13-14
         for h in response.headers.iter() {
             let cache_match = cache.match_header_and_update(self, h.name(), max_age);
             if !cache_match {
@@ -282,6 +282,7 @@ impl CORSRequest {
                                                  HeaderOrMethod::HeaderData(h.to_string())));
             }
         }
+        // Substep 15
         cors_response
     }
 }
