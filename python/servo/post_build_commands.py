@@ -62,17 +62,21 @@ class PostBuildCommands(CommandBase):
                 print("Android on-device debugging is not supported by mach yet. See")
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
                 return
-            if params:
-                url = params[0]
-            else:
-                url = 'http://mozilla.org/'
-            subprocess.Popen(["adb", "shell"], stdin=subprocess.PIPE).communicate('''
-                am force-stop com.mozilla.servo
-                export SERVO_URL='%s'
-                am start com.mozilla.servo/com.mozilla.servo.MainActivity
-                exit
-            ''' % url.replace('\'', '\\\''))
-            return
+            script = [
+                "am force-stop com.mozilla.servo",
+                "echo servo >/sdcard/servo/android_params"
+            ]
+            for param in params:
+                script += [
+                    "echo '%s' >>/sdcard/servo/android_params" % param.replace("'", "\\'")
+                ]
+            script += [
+                "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
+                "exit"
+            ]
+            shell = subprocess.Popen(["adb", "shell"], stdin=subprocess.PIPE)
+            shell.communicate("\n".join(script) + "\n")
+            return shell.wait()
 
         args = [self.get_binary_path(release, dev)]
 
