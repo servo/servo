@@ -2577,7 +2577,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
-                                         "PrototypeList::", pub=True)
+                                         "PrototypeList::", pub=descriptor.hasDescendants())
 
     def definition_body(self):
         return CGList([
@@ -2594,7 +2594,7 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject",
-                                         "constructors::")
+                                         "constructors::", pub=descriptor.hasDescendants())
 
     def definition_body(self):
         return CGList([
@@ -4964,7 +4964,8 @@ class CGDescriptor(CGThing):
             cgThings.append(CGWrapMethod(descriptor))
 
         if not descriptor.interface.isCallback():
-            cgThings.append(CGIDLInterface(descriptor))
+            if descriptor.concrete or descriptor.hasDescendants():
+                cgThings.append(CGIDLInterface(descriptor))
             cgThings.append(CGInterfaceTrait(descriptor))
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))
