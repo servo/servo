@@ -161,7 +161,7 @@ impl HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
-            currentRequest: DOMRefCell::new(None)
+            currentRequest: DOMRefCell::new(None),
             pendingRequest: DOMRefCell::new(None)
         }
     }
