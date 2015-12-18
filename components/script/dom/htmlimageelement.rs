@@ -29,6 +29,8 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::DOMString;
+use dom::url::URL;
+use dom::imagedata::ImageData;
 
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -36,6 +38,8 @@ pub struct HTMLImageElement {
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
     metadata: DOMRefCell<Option<ImageMetadata>>,
+    currentRequest: DOMRefCell<Option<ImageRequest>>,
+    pendingRequest: DOMRefCell<Option<ImageRequest>>,
 }
 
 impl HTMLImageElement {
@@ -160,7 +164,7 @@ impl HTMLImageElement {
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
             metadata: DOMRefCell::new(None),
-            currentRequest: DOMRefCell::new(None)
+            currentRequest: DOMRefCell::new(None),
             pendingRequest: DOMRefCell::new(None)
         }
     }
