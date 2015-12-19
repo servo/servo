@@ -176,6 +176,6 @@ partial interface Document {
                         double pageY,
                         double screenX,
                         double screenY);
-      // FIXME (#8159):
-      // TouchList createTouchList(Touch... touches);
+
+      TouchList createTouchList(Touch... touches);
 };
