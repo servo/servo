@@ -91,7 +91,7 @@ fn redirect_to(host: String) -> MockResponse {
         headers,
         StatusCode::MovedPermanently,
         RawStatus(301, Cow::Borrowed("Moved Permanently")),
-        <[_]>::to_vec("".as_bytes())
+        b"".to_vec()
     )
 }
 
@@ -102,7 +102,7 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
         headers,
         StatusCode::MovedPermanently,
         RawStatus(301, Cow::Borrowed("Moved Permanently")),
-        <[_]>::to_vec("".as_bytes())
+        b"".to_vec()
     )
 }
 
@@ -182,8 +182,7 @@ struct AssertRequestMustIncludeHeaders {
 }
 
 impl AssertRequestMustIncludeHeaders {
-    fn new(t: ResponseType, expected_headers: Headers) -> Self {
-        //assert!(expected_headers.len() != 0);
+    fn new(t: ResponseType, expected_headers: Headers) -> Self {        
         AssertRequestMustIncludeHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
@@ -194,8 +193,6 @@ impl HttpRequest for AssertRequestMustIncludeHeaders {
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        println!("expected {}", self.expected_headers);
-        println!("request {}", self.request_headers);
         for header in self.expected_headers.iter() {
             assert!(self.request_headers.get_raw(header.name()).is_some());
             assert_eq!(
@@ -203,7 +200,6 @@ impl HttpRequest for AssertRequestMustIncludeHeaders {
                 self.expected_headers.get_raw(header.name()).unwrap()
             )
         }
-
         response_for_request_type(self.t)
     }
 }
@@ -1336,8 +1332,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
             if url.path().unwrap()[0] == "initial" {
                 let expected_initial_headers = Headers::new();
                 let mut initial_answer_headers = Headers::new();
-                initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest".to_vec()]);
-                println!("initial request");
+                initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
                 Ok(AssertRequestMustIncludeHeaders::new(
                     ResponseType::RedirectWithHeaders("http://mozilla.org/subsequent/".to_owned(),
                         initial_answer_headers),
@@ -1345,9 +1340,8 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
             } else if url.path().unwrap()[0] == "subsequent" {
                 let mut expected_subsequent_headers = Headers::new();
                 expected_subsequent_headers.set_raw("Cookie", vec![b"mozillaIs=theBest".to_vec()]);
-                println!("subsequent request");
                 Ok(AssertRequestMustIncludeHeaders::new(
-                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())),
+                    ResponseType::Text(b"Yay!".to_vec()),
                     expected_subsequent_headers))
             } else {
                 panic!("unexpected host {:?}", url)
