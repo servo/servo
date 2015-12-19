@@ -1703,7 +1703,7 @@ impl Node {
         let mut content = String::new();
         for node in iterator {
             match node.downcast::<Text>() {
-                Some(text) => content.push_str(&text.upcast::<CharacterData>().Data()),
+                Some(ref text) => content.push_str(&text.upcast::<CharacterData>().data()),
                 None => (),
             }
         }
