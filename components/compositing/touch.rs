@@ -5,8 +5,7 @@
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use layers::geometry::DevicePixel;
-use msg::compositor_msg::EventResult;
-use script_traits::TouchId;
+use script_traits::{EventResult, TouchId};
 use self::TouchState::*;
 
 /// Minimum number of ScreenPx to begin touch scrolling.
