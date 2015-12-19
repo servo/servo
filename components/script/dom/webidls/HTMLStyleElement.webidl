@@ -5,7 +5,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlstyleelement
 interface HTMLStyleElement : HTMLElement {
-  //         attribute DOMString media;
+  attribute DOMString media;
   //         attribute DOMString type;
   //         attribute boolean scoped;
 };
