@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser;
+use cssparser::{self, Parser, SourcePosition};
 use media_queries::CSSErrorReporterTest;
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
+use std::sync::Mutex;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};
+use msg::ParseErrorReporter;
+use msg::constellation_msg::PipelineId;
 
 #[test]
 fn test_parse_stylesheet() {
@@ -138,4 +141,82 @@ fn test_parse_stylesheet() {
             }),
         ],
     });
+}
+
+
+struct CSSError {
+    pub line: usize,
+    pub column: usize,
+    pub message: String
+}
+
+struct CSSInvalidErrorReporterTest {
+    pub errors: Arc<Mutex<Vec<CSSError>>>
+}
+
+impl CSSInvalidErrorReporterTest {
+    pub fn new() -> CSSInvalidErrorReporterTest {
+        return CSSInvalidErrorReporterTest{
+            errors: Arc::new(Mutex::new(Vec::new()))
+        }
+    }
+}
+
+impl ParseErrorReporter for CSSInvalidErrorReporterTest {
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
+        let location = input.source_location(position);
+
+        let errors = self.errors.clone();
+        let mut errors = errors.lock().unwrap();
+
+        errors.push(
+            CSSError{
+                line: location.line,
+                column: location.column,
+                message: message.to_owned()
+            }
+        );
+    }
+
+    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
+        return Box::new(
+            CSSInvalidErrorReporterTest{
+                errors: self.errors.clone()
+            }
+        );
+    }
+
+    fn pipeline(&self) -> PipelineId {
+        return PipelineId::fake_root_pipeline_id();
+    }
+}
+
+
+#[test]
+fn test_report_error_stylesheet() {
+    let css = r"
+    div {
+        background-color: red;
+        display: invalid;
+        invalid: true;
+    }
+    ";
+    let url = url!("about::test");
+    let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
+
+    let errors = error_reporter.errors.clone();
+
+    Stylesheet::from_str(css, url, Origin::UserAgent, error_reporter);
+
+    let mut errors = errors.lock().unwrap();
+
+    let error = errors.pop().unwrap();
+    assert_eq!("Unsupported property declaration: 'invalid: true;'", error.message);
+    assert_eq!(5, error.line);
+    assert_eq!(9, error.column);
+
+    let error = errors.pop().unwrap();
+    assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
+    assert_eq!(4, error.line);
+    assert_eq!(9, error.column);
 }
