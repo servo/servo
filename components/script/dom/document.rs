@@ -1993,6 +1993,11 @@ impl DocumentMethods for Document {
                    pageY)
     }
 
+    // https://w3c.github.io/touch-events/#idl-def-document-createtouchlist(touch...)
+    fn CreateTouchList(&self, touches: &[&Touch]) -> Root<TouchList> {
+        TouchList::new(&self.window, &touches)
+    }
+
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
