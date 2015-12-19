@@ -26,7 +26,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
 use msg::constellation_msg::{PipelineId, SubpageId};
-use net_traits::{AsyncResponseListener, Metadata};
+use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use parse::Parser;
 use script_task::{ScriptChan, ScriptTask};
@@ -238,11 +238,15 @@ impl ParserContext {
 }
 
 impl AsyncResponseListener for ParserContext {
-    fn headers_available(&mut self, metadata: Metadata) {
-        let content_type = metadata.content_type.clone();
-
-        let parser = ScriptTask::page_fetch_complete(self.id.clone(), self.subpage.clone(),
-                                                     metadata);
+    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+        let meta_data = match metadata {
+            Ok(meta) => meta,
+            Err(_) => return,
+        };
+        let content_type = meta_data.content_type.clone();
+        let parser = ScriptTask::page_fetch_complete(self.id.clone(),
+                                                     self.subpage.clone(),
+                                                     meta_data);
         let parser = match parser {
             Some(parser) => parser,
             None => return,
@@ -307,7 +311,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
@@ -315,7 +319,7 @@ impl AsyncResponseListener for ParserContext {
         parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
-            debug!("Failed to load page URL {}, error: {}", self.url.serialize(), err);
+            debug!("Failed to load page URL {}, error: {:?}", self.url.serialize(), err);
             // TODO(Savago): we should send a notification to callers #5463.
         }
 

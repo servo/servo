@@ -20,7 +20,7 @@ use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
-use net_traits::{WebSocketCommunicate, WebSocketConnectData};
+use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -54,7 +54,7 @@ impl ProgressSender {
     }
 }
 
-pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
@@ -126,7 +126,7 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
         LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = ipc::channel().unwrap();
             let result = start_chan.send(LoadResponse {
-                metadata:      metadata,
+                metadata: metadata,
                 progress_port: progress_port,
             });
             match result {
@@ -135,7 +135,7 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
             }
         }
         LoadConsumer::Listener(target) => {
-            target.invoke_with_listener(ResponseAction::HeadersAvailable(metadata));
+            target.invoke_with_listener(ResponseAction::HeadersAvailable(Ok(metadata)));
             Ok(ProgressSender::Listener(target))
         }
     }
@@ -343,7 +343,7 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                send_error(load_data.url, "no loader for scheme".to_owned(), consumer);
+                send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);
                 return
             }
         };

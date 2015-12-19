@@ -5,7 +5,7 @@
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
@@ -44,7 +44,7 @@ pub fn load(load_data: LoadData,
     }
     let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
     if parts.len() != 2 {
-        send_error(url, "invalid data uri".to_owned(), start_chan);
+        send_error(url, NetworkError::Internal("Invalid Data URI".to_owned()), start_chan);
         return;
     }
 
@@ -79,7 +79,7 @@ pub fn load(load_data: LoadData,
         // but Acid 3 apparently depends on spaces being ignored.
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
-            Err(..) => return send_error(url, "non-base64 data uri".to_owned(), start_chan),
+            Err(..) => return send_error(url, NetworkError::Internal("Non-Base64 Data URI".to_owned()), start_chan),
             Ok(data) => data,
         }
     } else {
