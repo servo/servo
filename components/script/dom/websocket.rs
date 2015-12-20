@@ -498,10 +498,7 @@ impl Runnable for ConnectionEstablishedTask {
         // Step 5: Cookies.
 
         // Step 6.
-        let event = Event::new(global.r(), atom!("open"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        event.fire(ws.upcast());
+        ws.upcast().fire_simple_event("open", global.r());
     }
 }
 
@@ -539,11 +536,10 @@ impl Runnable for CloseTask {
             ws.full.set(false);
             //A Bad close
             ws.clean_close.set(false);
-            let event = Event::new(global.r(),
-                                   atom!("error"),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable);
-            event.fire(ws.upcast());
+            ws.upcast().fire_simple_event_params("error",
+                                                 EventBubbles::DoesNotBubble,
+                                                 EventCancelable::Cancelable,
+                                                 global.r());
         }
         let reason = ws.reason.borrow().clone();
         /*In addition, we also have to fire a close even if error event fired

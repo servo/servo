@@ -16,7 +16,7 @@ use dom::bindings::js::{Root};
 use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -169,23 +169,18 @@ impl HTMLFormElement {
         {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
-                // XXXKiChjang: We're also calling the following two statements quite often,
-                //              we should refactor it into a function
-                let event = Event::new(GlobalRef::Window(win.r()),
-                                       atom!("invalid"),
-                                       EventBubbles::DoesNotBubble,
-                                       EventCancelable::NotCancelable);
-                event.fire(self.upcast());
+                self.upcast::<EventTarget>()
+                    .fire_simple_event("invalid", GlobalRef::Window(win.r()));
                 return;
             }
         }
         // Step 5
         if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod {
-            let event = Event::new(GlobalRef::Window(win.r()),
-                                   atom!("submit"),
-                                   EventBubbles::Bubbles,
-                                   EventCancelable::Cancelable);
-            event.fire(self.upcast());
+            let event = self.upcast::<EventTarget>()
+                .fire_simple_event_params("submit",
+                                          EventBubbles::Bubbles,
+                                          EventCancelable::Cancelable,
+                                          GlobalRef::Window(win.r()));
             if event.DefaultPrevented() {
                 return;
             }
@@ -280,11 +275,11 @@ impl HTMLFormElement {
         // Step 5-6
         let win = window_from_node(self);
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
-            let event = Event::new(GlobalRef::Window(win.r()),
-                                   atom!("invalid"),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable);
-            event.fire(field.as_event_target());
+            let event = field.as_event_target()
+                .fire_simple_event_params("invalid",
+                                          EventBubbles::DoesNotBubble,
+                                          EventCancelable::Cancelable,
+                                          GlobalRef::Window(win.r()));
             if !event.DefaultPrevented() { return Some(field); }
             None
         }).collect::<Vec<FormSubmittableElement>>();
@@ -393,11 +388,11 @@ impl HTMLFormElement {
         }
 
         let win = window_from_node(self);
-        let event = Event::new(GlobalRef::Window(win.r()),
-                               atom!("reset"),
-                               EventBubbles::Bubbles,
-                               EventCancelable::Cancelable);
-        event.fire(self.upcast());
+        let event = self.upcast::<EventTarget>()
+            .fire_simple_event_params("reset",
+                                      EventBubbles::Bubbles,
+                                      EventCancelable::Cancelable,
+                                      GlobalRef::Window(win.r()));
         if event.DefaultPrevented() {
             return;
         }
@@ -430,6 +425,7 @@ impl HTMLFormElement {
         };
         self.marked_for_reset.set(false);
     }
+
 }
 
 // TODO: add file support

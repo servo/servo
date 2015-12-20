@@ -786,12 +786,12 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
+
         let global = self.global.root();
-        let event = Event::new(global.r(),
-                               atom!("readystatechange"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable);
-        event.fire(self.upcast());
+        self.upcast::<EventTarget>().fire_simple_event_params("readystatechange",
+                                                              EventBubbles::DoesNotBubble,
+                                                              EventCancelable::Cancelable,
+                                                              global.r());
     }
 
     fn process_headers_available(&self, cors_request: Option<CORSRequest>,
