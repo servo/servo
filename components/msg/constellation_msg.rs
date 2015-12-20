@@ -283,7 +283,7 @@ pub enum MozBrowserEvent {
     /// Sent when the SSL state changes within a browser `<iframe>`.
     SecurityChange,
     /// Sent when alert(), confirm(), or prompt() is called within a browser `<iframe>`.
-    ShowModalPrompt,
+    ShowModalPrompt(String, String, String, String), // TODO(simartin): Handle unblock()
     /// Sent when the document.title changes within a browser `<iframe>`.
     TitleChange(String),
     /// Sent when an HTTP authentification is requested.
@@ -305,7 +305,7 @@ impl MozBrowserEvent {
             MozBrowserEvent::LocationChange(_) => "mozbrowserlocationchange",
             MozBrowserEvent::OpenWindow => "mozbrowseropenwindow",
             MozBrowserEvent::SecurityChange => "mozbrowsersecuritychange",
-            MozBrowserEvent::ShowModalPrompt => "mozbrowsershowmodalprompt",
+            MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
             MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
             MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
             MozBrowserEvent::OpenSearch => "mozbrowseropensearch"

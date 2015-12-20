@@ -45,7 +45,7 @@ use libc;
 use msg::ParseErrorReporter;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::{ConstellationChan, DocumentState, LoadData};
-use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{MozBrowserEvent, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -394,7 +394,7 @@ impl WindowMethods for Window {
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
-        // communicate test results.
+        // communicate test results (see executorservo.py in wptrunner).
         let stderr = stderr();
         let mut stderr = stderr.lock();
         let stdout = stdout();
@@ -402,6 +402,11 @@ impl WindowMethods for Window {
         writeln!(&mut stdout, "ALERT: {}", s).unwrap();
         stdout.flush().unwrap();
         stderr.flush().unwrap();
+
+        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+        let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                     String::from(s), "".to_owned());
+        self.Document().trigger_mozbrowser_event(event);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close

@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Dispatch mozbrowsershowmodalprompt event for alert (issue #8352)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+    async_test(function(t) {
+        var iframe = document.createElement("iframe");
+        iframe.mozbrowser = "true";
+        iframe.src = "mozbrowsershowmodalprompt_event_iframe.html";
+        iframe.addEventListener("mozbrowsershowmodalprompt", t.step_func(e => {
+            assert_equals(e.detail.promptType, "alert");
+            assert_equals(e.detail.message, "my alert message");
+            t.done();
+        }));
+        document.body.appendChild(iframe);
+    });
+</script>
