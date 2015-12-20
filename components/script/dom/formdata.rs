@@ -51,6 +51,7 @@ impl FormData {
     }
 
     pub fn Constructor(global: GlobalRef, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
+        // TODO: Construct form data set for form if it is supplied
         Ok(FormData::new(form, global))
     }
 }
@@ -91,6 +92,18 @@ impl FormDataMethods for FormData {
                      FormDatum::StringData(ref s) => eString(s.clone()),
                      FormDatum::FileData(ref f) => eFile(Root::from_ref(&*f)),
                  })
+    }
+
+    // https://xhr.spec.whatwg.org/#dom-formdata-getall
+    fn GetAll(&self, name: DOMString) -> Vec<FileOrString> {
+        self.data.borrow()
+                 .get(&name)
+                 .map_or(vec![], |data|
+                    data.iter().map(|item| match *item {
+                        FormDatum::StringData(ref s) => eString(s.clone()),
+                        FormDatum::FileData(ref f) => eFile(Root::from_ref(&*f)),
+                    }).collect()
+                 )
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has

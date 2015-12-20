@@ -11932,6 +11932,10 @@
         "url": "/XMLHttpRequest/formdata-blob.htm"
       },
       {
+        "path": "XMLHttpRequest/formdata-get.htm",
+        "url": "/XMLHttpRequest/formdata-get.htm"
+      },
+      {
         "path": "XMLHttpRequest/formdata.htm",
         "url": "/XMLHttpRequest/formdata.htm"
       },
