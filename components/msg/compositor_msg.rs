@@ -4,7 +4,7 @@
 
 use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
-use euclid::{Matrix4, Point2D, Rect, Size2D};
+use euclid::{Matrix4, Point2D, Rect};
 use ipc_channel::ipc::IpcSender;
 use std::fmt::{self, Debug, Formatter};
 
@@ -122,22 +122,4 @@ pub struct LayerProperties {
     pub establishes_3d_context: bool,
     /// Whether this layer scrolls its overflow area.
     pub scrolls_overflow_area: bool,
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum ScriptToCompositorMsg {
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
-    SetTitle(PipelineId, Option<String>),
-    SendKeyEvent(Key, KeyState, KeyModifiers),
-    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
-    MoveTo(Point2D<i32>),
-    ResizeTo(Size2D<u32>),
-    TouchEventProcessed(EventResult),
-    Exit,
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum EventResult {
-    DefaultAllowed,
-    DefaultPrevented,
 }
