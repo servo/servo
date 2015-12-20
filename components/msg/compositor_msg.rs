@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
-use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
-use euclid::{Matrix4, Point2D, Rect};
-use ipc_channel::ipc::IpcSender;
+use constellation_msg::PipelineId;
+use euclid::{Matrix4, Rect};
 use std::fmt::{self, Debug, Formatter};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
