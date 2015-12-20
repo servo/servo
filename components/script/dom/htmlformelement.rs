@@ -169,23 +169,15 @@ impl HTMLFormElement {
         {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
-                // XXXKiChjang: We're also calling the following two statements quite often,
-                //              we should refactor it into a function
-                let event = Event::new(GlobalRef::Window(win.r()),
-                                       atom!("invalid"),
-                                       EventBubbles::DoesNotBubble,
-                                       EventCancelable::NotCancelable);
-                event.fire(self.upcast());
+                self.fire_event(atom!("invalid"), EventBubbles::DoesNotBubble,
+                                EventCancelable::NotCancelable, None);
                 return;
             }
         }
         // Step 5
         if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod {
-            let event = Event::new(GlobalRef::Window(win.r()),
-                                   atom!("submit"),
-                                   EventBubbles::Bubbles,
-                                   EventCancelable::Cancelable);
-            event.fire(self.upcast());
+            let event = self.fire_event(atom!("submit"), EventBubbles::Bubbles,
+                                        EventCancelable::Cancelable, None);
             if event.DefaultPrevented() {
                 return;
             }
@@ -278,13 +270,11 @@ impl HTMLFormElement {
         // Step 4
         if invalid_controls.is_empty() { return Ok(()); }
         // Step 5-6
-        let win = window_from_node(self);
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
-            let event = Event::new(GlobalRef::Window(win.r()),
-                                   atom!("invalid"),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable);
-            event.fire(field.as_event_target());
+            let event = self.fire_event(atom!("invalid"),
+                                        EventBubbles::DoesNotBubble,
+                                        EventCancelable::Cancelable,
+                                        Some(field.as_event_target()));
             if !event.DefaultPrevented() { return Some(field); }
             None
         }).collect::<Vec<FormSubmittableElement>>();
@@ -392,12 +382,8 @@ impl HTMLFormElement {
             self.marked_for_reset.set(true);
         }
 
-        let win = window_from_node(self);
-        let event = Event::new(GlobalRef::Window(win.r()),
-                               atom!("reset"),
-                               EventBubbles::Bubbles,
-                               EventCancelable::Cancelable);
-        event.fire(self.upcast());
+        let event = self.fire_event(atom!("reset"), EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable, None);
         if event.DefaultPrevented() {
             return;
         }
@@ -429,6 +415,22 @@ impl HTMLFormElement {
             }
         };
         self.marked_for_reset.set(false);
+    }
+
+    /// Create and fire a simple event.
+    /// If no 'target' is supplied, then the event target is assumed to be the
+    /// form element itself.
+    pub fn fire_event(&self, atom: Atom,
+                      bubbles: EventBubbles,
+                      cancelable: EventCancelable,
+                      target: Option<&EventTarget>) -> Root<Event> {
+        let win = window_from_node(self);
+        let event = Event::new(GlobalRef::Window(win.r()), atom, bubbles, cancelable);
+        let target = target.unwrap_or(self.upcast());
+
+        event.fire(target);
+
+        event
     }
 }
 
