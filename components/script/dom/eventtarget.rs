@@ -11,12 +11,12 @@ use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::global_root_from_reflector;
+use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::inheritance::{Castable, EventTargetTypeId};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::errorevent::ErrorEvent;
-use dom::event::Event;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventdispatcher::dispatch_event;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -328,6 +328,24 @@ impl EventTarget {
 
     pub fn has_handlers(&self) -> bool {
         !self.handlers.borrow().is_empty()
+    }
+
+    /// Implements https://html.spec.whatwg.org/multipage/#fire-a-simple-event
+    pub fn fire_simple_event(&self, name: &str, win: GlobalRef) -> Root<Event> {
+        self.fire_simple_event_params(name, EventBubbles::DoesNotBubble,
+                                      EventCancelable::NotCancelable, win)
+    }
+
+    /// Implements more customizable variant of EventTarget::fire_simple_event.
+    pub fn fire_simple_event_params(&self, name: &str,
+                                    bubbles: EventBubbles,
+                                    cancelable: EventCancelable,
+                                    win: GlobalRef) -> Root<Event> {
+        let event = Event::new(win, Atom::from(name), bubbles, cancelable);
+
+        event.fire(self);
+
+        event
     }
 }
 

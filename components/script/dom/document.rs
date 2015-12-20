@@ -558,12 +558,8 @@ impl Document {
 
         self.ready_state.set(state);
 
-        let event = Event::new(GlobalRef::Window(&self.window),
-                               atom!("readystatechange"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let target = self.upcast::<EventTarget>();
-        let _ = event.fire(target);
+        self.upcast::<EventTarget>().fire_simple_event("readystatechange",
+                                                       GlobalRef::Window(&self.window));
     }
 
     /// Return whether scripting is enabled or not
