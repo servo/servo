@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://xhr.spec.whatwg.org
+ * https://xhr.spec.whatwg.org/#interface-formdata
  */
 
 typedef (File or DOMString) FormDataEntryValue;
@@ -15,7 +15,7 @@ interface FormData {
   void append(DOMString name, DOMString value);
   void delete(DOMString name);
   FormDataEntryValue? get(DOMString name);
-  // sequence<FormDataEntryValue> getAll(DOMString name);
+  sequence<FormDataEntryValue> getAll(DOMString name);
   boolean has(DOMString name);
   void set(DOMString name, Blob value, optional DOMString filename);
   void set(DOMString name, DOMString value);

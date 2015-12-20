@@ -30149,7 +30149,28 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "XMLHttpRequest/formdata-delete.htm": [
+          {
+            "path": "XMLHttpRequest/formdata-delete.htm",
+            "url": "/XMLHttpRequest/formdata-delete.htm"
+          }
+        ],
+        "XMLHttpRequest/formdata-get.htm": [
+          {
+            "path": "XMLHttpRequest/formdata-get.htm",
+            "url": "/XMLHttpRequest/formdata-get.htm"
+          }
+        ],
+        "XMLHttpRequest/formdata-has.htm": [
+          {
+            "path": "XMLHttpRequest/formdata-has.htm",
+            "url": "/XMLHttpRequest/formdata-has.htm"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
