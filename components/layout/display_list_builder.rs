@@ -1097,10 +1097,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
-                // TODO(mrobinson): When https://github.com/servo/euclid/issues/109 is fixed this
-                // check can just become stacking_relative_content_box.is_empty().
-                if stacking_relative_content_box.size.width != Zero::zero() &&
-                   stacking_relative_content_box.size.height != Zero::zero() {
+                if !stacking_relative_content_box.is_empty() {
                     let layer_id = self.layer_id();
                     display_list.content.push_back(DisplayItem::LayeredItemClass(box LayeredItem {
                         item: DisplayItem::NoopClass(
