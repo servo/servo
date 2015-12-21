@@ -182,7 +182,7 @@ struct AssertRequestMustIncludeHeaders {
 }
 
 impl AssertRequestMustIncludeHeaders {
-    fn new(t: ResponseType, expected_headers: Headers) -> Self {        
+    fn new(t: ResponseType, expected_headers: Headers) -> Self {
         AssertRequestMustIncludeHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
