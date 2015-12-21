@@ -60,7 +60,7 @@ metadata, as described in the [metadata](#metadata) section below.
 
 Testing asynchronous features is somewhat more complex since the result of
 a test may depend on one or more events or other callbacks. The API provided
-for testing these features is indended to be rather low-level but hopefully
+for testing these features is intended to be rather low-level but hopefully
 applicable to many situations.
 
 To create a test, one starts by getting a Test object using async_test:
@@ -225,7 +225,7 @@ wrapping everything in functions for isolation becomes
 burdensome. For these cases `testharness.js` support "single page
 tests".
 
-In order for a test to be interpreted as a single page test, the
+In order for a test to be interpreted as a single page test, then
 it must simply not call `test()` or `async_test()` anywhere on the page, and
 must call the `done()` function to indicate that the test is complete. All
 the `assert_*` functions are avaliable as normal, but are called without
@@ -243,7 +243,7 @@ the normal step function wrapper. For example:
  </script>
 ```
 
-The test title for sinple page tests is always taken from `document.title`.
+The test title for single page tests is always taken from `document.title`.
 
 ## Making assertions ##
 
@@ -424,8 +424,8 @@ The framework provides callbacks corresponding to 4 events:
 
  * `start` - triggered when the first Test is created
  * `test_state` - triggered when a test state changes
- * `result` - triggered when a test result is recieved
- * `complete` - triggered when all results are recieved
+ * `result` - triggered when a test result is received
+ * `complete` - triggered when all results are received
 
 The page defining the tests may add callbacks for these events by calling
 the following methods:

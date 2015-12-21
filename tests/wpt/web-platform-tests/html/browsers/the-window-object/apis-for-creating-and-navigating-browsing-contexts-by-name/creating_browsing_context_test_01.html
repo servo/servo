@@ -3,12 +3,12 @@
 <title>[Browsing Context] : [APIs for creating browsing_contexts by name]</title>
 <link rel="author" title="Duhyeong Kim" href="mailto:dduskim@gmail.com">
 <link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+<meta name=timeout content=long>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
 async_test(function() {
-  var currentUrl = 'http://' + window.location.host + '/';
+  var currentUrl = 'http://' + window.location.host + '/common/blank.html';
   var win = window.open(currentUrl, '', 'height=1,width=1');
   this.add_cleanup(function() { win.close(); });
   win.onload = this.step_func_done(function () {

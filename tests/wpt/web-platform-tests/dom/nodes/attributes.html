@@ -459,4 +459,104 @@ test(function() {
   var el2 = document.createElement("div");
   assert_throws("INUSE_ATTRIBUTE_ERR", function(){el2.setAttributeNode(attrNode)});
 }, "setAttributeNode on bound attribute should throw InUseAttributeError")
+
+test(function() {
+  var el = document.createElement("div");
+  el.setAttribute("foo", "bar");
+  assert_equals(el.getAttributeNames().length, 1);
+  assert_equals(el.getAttributeNames()[0], el.attributes[0].name);
+  assert_equals(el.getAttributeNames()[0], "foo");
+
+  el.removeAttribute("foo");
+  assert_equals(el.getAttributeNames().length, 0);
+
+  el.setAttribute("foo", "bar");
+  el.setAttributeNS("", "FOO", "bar");
+  el.setAttributeNS("dummy1", "foo", "bar");
+  el.setAttributeNS("dummy2", "dummy:foo", "bar");
+  assert_equals(el.getAttributeNames().length, 4);
+  assert_equals(el.getAttributeNames()[0], "foo");
+  assert_equals(el.getAttributeNames()[1], "FOO");
+  assert_equals(el.getAttributeNames()[2], "foo");
+  assert_equals(el.getAttributeNames()[3], "dummy:foo");
+  assert_equals(el.getAttributeNames()[0], el.attributes[0].name);
+  assert_equals(el.getAttributeNames()[1], el.attributes[1].name);
+  assert_equals(el.getAttributeNames()[2], el.attributes[2].name);
+  assert_equals(el.getAttributeNames()[3], el.attributes[3].name);
+
+  el.removeAttributeNS("", "FOO");
+  assert_equals(el.getAttributeNames().length, 3);
+  assert_equals(el.getAttributeNames()[0], "foo");
+  assert_equals(el.getAttributeNames()[1], "foo");
+  assert_equals(el.getAttributeNames()[2], "dummy:foo");
+  assert_equals(el.getAttributeNames()[0], el.attributes[0].name);
+  assert_equals(el.getAttributeNames()[1], el.attributes[1].name);
+  assert_equals(el.getAttributeNames()[2], el.attributes[2].name);
+}, "getAttributeNames tests");
+
+function getEnumerableOwnProps1(obj) {
+  var arr = [];
+  for (var prop in obj) {
+    if (obj.hasOwnProperty(prop)) {
+      arr.push(prop);
+    }
+  }
+  return arr;
+}
+
+function getEnumerableOwnProps2(obj) {
+  return Object.getOwnPropertyNames(obj).filter(
+    (name) => Object.getOwnPropertyDescriptor(obj, name).enumerable)
+}
+
+test(function() {
+  var el = document.createElement("div");
+  el.setAttribute("a", "");
+  el.setAttribute("b", "");
+  assert_array_equals(getEnumerableOwnProps1(el.attributes),
+                      ["0", "1"])
+  assert_array_equals(getEnumerableOwnProps2(el.attributes),
+                      ["0", "1"])
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "a", "b"])
+}, "Own property correctness with basic attributes");
+
+test(function() {
+  var el = document.createElement("div");
+  el.setAttributeNS("", "a", "");
+  el.setAttribute("b", "");
+  el.setAttributeNS("foo", "a", "");
+  assert_array_equals(getEnumerableOwnProps1(el.attributes),
+                      ["0", "1", "2"])
+  assert_array_equals(getEnumerableOwnProps2(el.attributes),
+                      ["0", "1", "2"])
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "2", "a", "b"])
+}, "Own property correctness with non-namespaced attribute before same-name namespaced one");
+
+test(function() {
+  var el = document.createElement("div");
+  el.setAttributeNS("foo", "a", "");
+  el.setAttribute("b", "");
+  el.setAttributeNS("", "a", "");
+  assert_array_equals(getEnumerableOwnProps1(el.attributes),
+                      ["0", "1", "2"])
+  assert_array_equals(getEnumerableOwnProps2(el.attributes),
+                      ["0", "1", "2"])
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "2", "a", "b"])
+}, "Own property correctness with namespaced attribute before same-name non-namespaced one");
+
+test(function() {
+  var el = document.createElement("div");
+  el.setAttributeNS("foo", "a:b", "");
+  el.setAttributeNS("foo", "c:d", "");
+  el.setAttributeNS("bar", "a:b", "");
+  assert_array_equals(getEnumerableOwnProps1(el.attributes),
+                      ["0", "1", "2"])
+  assert_array_equals(getEnumerableOwnProps2(el.attributes),
+                      ["0", "1", "2"])
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "2", "a:b", "c:d"])
+}, "Own property correctness with two namespaced attributes with the same name-with-prefix");
 </script>

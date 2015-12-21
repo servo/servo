@@ -137,7 +137,9 @@ class FileHandler(object):
             if "pipe" in query:
                 pipeline = Pipeline(query["pipe"][-1])
             elif os.path.splitext(path)[0].endswith(".sub"):
-                pipeline = Pipeline("sub")
+                ml_extensions = {".html", ".htm", ".xht", ".xhtml", ".xml", ".svg"}
+                escape_type = "html" if os.path.splitext(path)[1] in ml_extensions else "none"
+                pipeline = Pipeline("sub(%s)" % escape_type)
             if pipeline is not None:
                 response = pipeline(request, response)
 
@@ -167,7 +169,7 @@ class FileHandler(object):
             return []
         else:
             if use_sub:
-                data = template(request, data)
+                data = template(request, data, escape_type="none")
             return [tuple(item.strip() for item in line.split(":", 1))
                     for line in data.splitlines() if line]
 
