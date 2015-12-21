@@ -18,6 +18,13 @@ features = ["plugins"]
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.plugins]
+path = "../plugins"
+
+[dependencies.util]
+path = "../util"
+
 [dependencies]
+euclid = {version = "0.4", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"

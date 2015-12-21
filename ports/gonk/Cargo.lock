@@ -606,10 +606,13 @@ name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
  "azure 0.2.1 (git+https://github.com/servo/rust-azure)",
+ "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
+ "plugins 0.0.1",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
 ]
 
 [[package]]
@@ -1400,6 +1403,7 @@ dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gfx_traits 0.0.1",
  "html5ever 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1441,6 +1445,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "devtools_traits 0.0.1",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gfx_traits 0.0.1",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",

@@ -62,6 +62,9 @@ git = "https://github.com/servo/ipc-channel"
 git = "https://github.com/Ygg01/xml5ever"
 features = ["unstable"]
 
+[dependencies.gfx_traits]
+path = "../gfx_traits"
+
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }

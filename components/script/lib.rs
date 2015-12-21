@@ -43,6 +43,7 @@ extern crate devtools_traits;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
+extern crate gfx_traits;
 extern crate html5ever;
 extern crate hyper;
 extern crate image;

@@ -33,6 +33,7 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
+use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{HandleValue, JSContext};
@@ -43,7 +44,6 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
 use msg::ParseErrorReporter;
-use msg::compositor_msg::LayerId;
 use msg::constellation_msg::{ConstellationChan, DocumentState, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};

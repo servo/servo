@@ -44,12 +44,12 @@ use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonf
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
+use gfx_traits::LayerId;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{IntrinsicISizes, MarginCollapseInfo};
-use msg::compositor_msg::LayerId;
 use rustc_serialize::{Encodable, Encoder};
 use std::cmp::{max, min};
 use std::fmt;

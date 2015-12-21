@@ -10,6 +10,9 @@ path = "lib.rs"
 [dependencies.canvas_traits]
 path = "../canvas_traits"
 
+[dependencies.gfx_traits]
+path = "../gfx_traits"
+
 [dependencies.msg]
 path = "../msg"
 
