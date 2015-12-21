@@ -247,7 +247,9 @@ class SeleniumRefTestExecutor(RefTestExecutor):
 
         return self.convert_result(test, result)
 
-    def screenshot(self, test):
+    def screenshot(self, test, viewport_size):
+        assert viewport_size is None
+
         return SeleniumRun(self._screenshot,
                            self.protocol.webdriver,
                            self.test_url(test),
