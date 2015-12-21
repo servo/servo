@@ -4843,6 +4843,32 @@
             "url": "/_mozilla/css/viewport_meta.html"
           }
         ],
+        "css/viewport_percentage_vmin_vmax_a.html": [
+          {
+            "path": "css/viewport_percentage_vmin_vmax_a.html",
+            "references": [
+              [
+                "/_mozilla/css/viewport_percentage_vmin_vmax_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/viewport_percentage_vmin_vmax_a.html",
+            "viewport_size": "700x500"
+          }
+        ],
+        "css/viewport_percentage_vmin_vmax_b.html": [
+          {
+            "path": "css/viewport_percentage_vmin_vmax_b.html",
+            "references": [
+              [
+                "/_mozilla/css/viewport_percentage_vmin_vmax_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/viewport_percentage_vmin_vmax_b.html",
+            "viewport_size": "500x700"
+          }
+        ],
         "css/viewport_rule.html": [
           {
             "path": "css/viewport_rule.html",
@@ -10732,6 +10758,32 @@
             ]
           ],
           "url": "/_mozilla/css/viewport_meta.html"
+        }
+      ],
+      "css/viewport_percentage_vmin_vmax_a.html": [
+        {
+          "path": "css/viewport_percentage_vmin_vmax_a.html",
+          "references": [
+            [
+              "/_mozilla/css/viewport_percentage_vmin_vmax_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/viewport_percentage_vmin_vmax_a.html",
+          "viewport_size": "700x500"
+        }
+      ],
+      "css/viewport_percentage_vmin_vmax_b.html": [
+        {
+          "path": "css/viewport_percentage_vmin_vmax_b.html",
+          "references": [
+            [
+              "/_mozilla/css/viewport_percentage_vmin_vmax_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/viewport_percentage_vmin_vmax_b.html",
+          "viewport_size": "500x700"
         }
       ],
       "css/viewport_rule.html": [
