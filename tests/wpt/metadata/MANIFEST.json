@@ -13272,10 +13272,6 @@
         "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
       },
       {
-        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
-        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
-      },
-      {
         "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
         "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html"
       },
@@ -15052,10 +15048,6 @@
         "url": "/html/browsers/browsing-the-web/scroll-to-fragid/006.html"
       },
       {
-        "path": "html/browsers/browsing-the-web/scroll-to-fragid/007.html",
-        "url": "/html/browsers/browsing-the-web/scroll-to-fragid/007.html"
-      },
-      {
         "path": "html/browsers/browsing-the-web/unloading-documents/001.html",
         "url": "/html/browsers/browsing-the-web/unloading-documents/001.html"
       },
@@ -15494,10 +15486,6 @@
       {
         "path": "html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/close_unload.html",
         "url": "/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/close_unload.html"
-      },
-      {
-        "path": "html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/creating_browsing_context_test_01.html",
-        "url": "/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/creating_browsing_context_test_01.html"
       },
       {
         "path": "html/browsers/the-window-object/garbage-collection-and-browsing-contexts/discard_iframe_history_1.html",
@@ -28810,6 +28798,11 @@
         "url": "/custom-elements/concepts/custom-elements-type-allowed-chars.html"
       },
       {
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
+        "timeout": "long",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
+      },
+      {
         "path": "dom/nodes/Document-characterSet-normalization.html",
         "timeout": "long",
         "url": "/dom/nodes/Document-characterSet-normalization.html"
@@ -28950,6 +28943,11 @@
         "url": "/eventsource/shared-worker/eventsource-constructor-non-same-origin.htm"
       },
       {
+        "path": "html/browsers/browsing-the-web/scroll-to-fragid/007.html",
+        "timeout": "long",
+        "url": "/html/browsers/browsing-the-web/scroll-to-fragid/007.html"
+      },
+      {
         "path": "html/browsers/history/the-history-interface/007.html",
         "timeout": "long",
         "url": "/html/browsers/history/the-history-interface/007.html"
@@ -28958,6 +28956,11 @@
         "path": "html/browsers/origin/cross-origin-objects/cross-origin-objects.sub.html",
         "timeout": "long",
         "url": "/html/browsers/origin/cross-origin-objects/cross-origin-objects.sub.html"
+      },
+      {
+        "path": "html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/creating_browsing_context_test_01.html",
+        "timeout": "long",
+        "url": "/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/creating_browsing_context_test_01.html"
       },
       {
         "path": "html/dom/interfaces.html",
@@ -35866,7 +35869,7 @@
       }
     ]
   },
-  "rev": "0bb3d73f26aa5a21326b6c1c7aaf35029222223f",
+  "rev": "887399d3d0a85d0e27a6688ae384459376adf7ca",
   "url_base": "/",
   "version": 2
 }

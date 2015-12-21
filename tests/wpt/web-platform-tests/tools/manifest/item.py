@@ -2,15 +2,9 @@ import os
 import urlparse
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+from utils import from_os_path, to_os_path
+
 item_types = ["testharness", "reftest", "manual", "stub", "wdspec"]
-
-
-def from_os_path(path):
-    return path.replace(os.path.sep, "/")
-
-
-def to_os_path(path):
-    return path.replace("/", os.path.sep)
 
 
 def get_source_file(source_files, tests_root, manifest, path):
