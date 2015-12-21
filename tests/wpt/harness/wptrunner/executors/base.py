@@ -206,11 +206,12 @@ class RefTestImplementation(object):
     def logger(self):
         return self.executor.logger
 
-    def get_hash(self, test):
+    def get_hash(self, test, viewport_size):
         timeout = test.timeout * self.timeout_multiplier
+        key = (test.url, viewport_size)
 
-        if test.url not in self.screenshot_cache:
-            success, data = self.executor.screenshot(test)
+        if key not in self.screenshot_cache:
+            success, data = self.executor.screenshot(test, viewport_size)
 
             if not success:
                 return False, data
@@ -218,14 +219,14 @@ class RefTestImplementation(object):
             screenshot = data
             hash_value = hashlib.sha1(screenshot).hexdigest()
 
-            self.screenshot_cache[test.url] = (hash_value, None)
+            self.screenshot_cache[key] = (hash_value, None)
 
-            rv = True, (hash_value, screenshot)
+            rv = (hash_value, screenshot)
         else:
-            rv = True, self.screenshot_cache[test.url]
+            rv = self.screenshot_cache[key]
 
-        self.message.append("%s %s" % (test.url, rv[1][0]))
-        return rv
+        self.message.append("%s %s" % (test.url, rv[0]))
+        return True, rv
 
     def is_pass(self, lhs_hash, rhs_hash, relation):
         assert relation in ("==", "!=")
@@ -234,6 +235,7 @@ class RefTestImplementation(object):
                 (relation == "!=" and lhs_hash != rhs_hash))
 
     def run_test(self, test):
+        viewport_size = test.viewport_size
         self.message = []
 
         # Depth-first search of reference tree, with the goal
@@ -247,7 +249,7 @@ class RefTestImplementation(object):
             nodes, relation = stack.pop()
 
             for i, node in enumerate(nodes):
-                success, data = self.get_hash(node)
+                success, data = self.get_hash(node, viewport_size)
                 if success is False:
                     return {"status": data[0], "message": data[1]}
 
@@ -264,7 +266,7 @@ class RefTestImplementation(object):
 
         for i, (node, screenshot) in enumerate(zip(nodes, screenshots)):
             if screenshot is None:
-                success, screenshot = self.retake_screenshot(node)
+                success, screenshot = self.retake_screenshot(node, viewport_size)
                 if success:
                     screenshots[i] = screenshot
 
@@ -275,13 +277,14 @@ class RefTestImplementation(object):
                 "message": "\n".join(self.message),
                 "extra": {"reftest_screenshots": log_data}}
 
-    def retake_screenshot(self, node):
-        success, data = self.executor.screenshot(node)
+    def retake_screenshot(self, node, viewport_size):
+        success, data = self.executor.screenshot(node, viewport_size)
         if not success:
             return False, data
 
-        hash_val, _ = self.screenshot_cache[node.url]
-        self.screenshot_cache[node.url] = hash_val, data
+        key = (node.url, viewport_size)
+        hash_val, _ = self.screenshot_cache[key]
+        self.screenshot_cache[key] = hash_val, data
         return True, data
 
 class Protocol(object):
