@@ -56,11 +56,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
     make_getter!(Size, "size");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
-    fn SetSize(&self, value: DOMString) {
-        let element = self.upcast::<Element>();
-        let length = parse_length(&value);
-        element.set_attribute(&atom!("size"), AttrValue::Length(value, length));
-    }
+    make_dimension_setter!(SetSize, "size");
 }
 
 impl VirtualMethods for HTMLFontElement {
