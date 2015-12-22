@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use util::str::{DOMString, LengthOrPercentageOrAuto, parse_unsigned_integer, parse_legacy_color, parse_length};
-use util::str::{split_html_space_chars, str_join, parse_integer};
+use util::str::{parse_nonzero_length, split_html_space_chars, str_join, parse_integer};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -93,6 +93,11 @@ impl AttrValue {
 
     pub fn from_dimension(string: DOMString) -> AttrValue {
         let parsed = parse_length(&string);
+        AttrValue::Dimension(string, parsed)
+    }
+
+    pub fn from_nonzero_dimension(string: DOMString) -> AttrValue {
+        let parsed = parse_nonzero_length(&string);
         AttrValue::Dimension(string, parsed)
     }
 

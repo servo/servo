@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use euclid::num::Zero;
 use cssparser::{self, Color, RGBA};
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, latin1_to_string};
 use js::jsapi::{JSContext, JSString, HandleValue, MutableHandleValue};
@@ -369,6 +370,17 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     match FromStr::from_str(value) {
         Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_f64_px(number)),
         Err(_) => LengthOrPercentageOrAuto::Auto,
+    }
+}
+
+/// HTML5 § 2.4.4.5.
+///
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
+pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
+    match parse_length(value) {
+        LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,
+        LengthOrPercentageOrAuto::Percentage(0.) => LengthOrPercentageOrAuto::Auto,
+        x => x,
     }
 }
 

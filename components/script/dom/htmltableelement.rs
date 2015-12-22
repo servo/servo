@@ -120,7 +120,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
     make_getter!(Width, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-width
-    make_dimension_setter!(SetWidth, "width");
+    make_nonzero_dimension_setter!(SetWidth, "width");
 }
 
 pub trait HTMLTableElementLayoutHelpers {
@@ -195,7 +195,7 @@ impl VirtualMethods for HTMLTableElement {
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
             atom!("border") => AttrValue::from_u32(value, 1),
-            atom!("width") => AttrValue::from_dimension(value),
+            atom!("width") => AttrValue::from_nonzero_dimension(value),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
