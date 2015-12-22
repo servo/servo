@@ -34,7 +34,7 @@ extern crate servo;
 extern crate time;
 
 use gleam::gl;
-use offscreen_gl_context::GLContext;
+use offscreen_gl_context::{GLContext, NativeGLContext};
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::net_traits::hosts;
@@ -43,7 +43,7 @@ use std::rc::Rc;
 
 #[cfg(not(target_os = "android"))]
 fn load_gl_when_headless() {
-    gl::load_with(|addr| GLContext::get_proc_address(addr) as *const _);
+    gl::load_with(|addr| GLContext::<NativeGLContext>::get_proc_address(addr) as *const _);
 }
 
 #[cfg(target_os = "android")]
@@ -76,7 +76,7 @@ fn main() {
 
     let window = if opts::get().headless {
         // Load gl functions even when in headless mode,
-        // to avoid crashing with webgl
+        // to avoid crashing with WebGL
         load_gl_when_headless();
         None
     } else {

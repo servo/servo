@@ -11,7 +11,7 @@ use gleam::gl::types::{GLsizei};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
-use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes};
+use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, NativeGLContext};
 use std::borrow::ToOwned;
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
@@ -20,7 +20,7 @@ use util::vec::byte_swap;
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
     original_context_size: Size2D<i32>,
-    gl_context: GLContext,
+    gl_context: GLContext<NativeGLContext>,
 }
 
 // This allows trying to create the PaintTask
@@ -29,9 +29,7 @@ unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintTask, &'static str> {
-        let context = try!(
-            GLContext::create_offscreen_with_color_attachment(
-                size, attrs, ColorAttachmentType::TextureWithSurface));
+        let context = try!(GLContext::new(size, attrs, ColorAttachmentType::Texture, None));
 
         // NOTE: As of right now this is always equal to the size parameter,
         // but this doesn't have to be true. Firefox after failing with
