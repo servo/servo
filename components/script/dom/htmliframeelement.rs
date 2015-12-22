@@ -35,8 +35,7 @@ use std::cell::Cell;
 use string_cache::Atom;
 use url::Url;
 use util::prefs;
-use util::str::DOMString;
-use util::str::{self, LengthOrPercentageOrAuto};
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 pub fn mozbrowser_enabled() -> bool {
     prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
@@ -239,7 +238,8 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &atom!("width"))
-                .map(|attribute| str::parse_length(&attribute))
+                .map(AttrValue::as_dimension)
+                .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
@@ -249,7 +249,8 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &atom!("height"))
-                .map(|attribute| str::parse_length(&attribute))
+                .map(AttrValue::as_dimension)
+                .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
@@ -423,12 +424,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
     make_getter!(Width, "width");
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
-    make_setter!(SetWidth, "width");
+    make_dimension_setter!(SetWidth, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
     make_getter!(Height, "height");
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
-    make_setter!(SetHeight, "height");
+    make_dimension_setter!(SetHeight, "height");
 }
 
 impl VirtualMethods for HTMLIFrameElement {
@@ -470,6 +471,8 @@ impl VirtualMethods for HTMLIFrameElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("width") => AttrValue::from_dimension(value),
+            &atom!("height") => AttrValue::from_dimension(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
