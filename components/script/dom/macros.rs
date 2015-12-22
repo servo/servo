@@ -236,6 +236,19 @@ macro_rules! make_dimension_setter(
     );
 );
 
+#[macro_export]
+macro_rules! make_nonzero_dimension_setter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: DOMString) {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            let element = self.upcast::<Element>();
+            let value = AttrValue::from_nonzero_dimension(value);
+            element.set_attribute(&atom!($htmlname), value)
+        }
+    );
+);
+
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
 macro_rules! no_jsmanaged_fields(

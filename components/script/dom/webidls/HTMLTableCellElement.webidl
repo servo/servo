@@ -19,7 +19,7 @@ partial interface HTMLTableCellElement {
   //         attribute DOMString align;
   //         attribute DOMString axis;
   //         attribute DOMString height;
-  //         attribute DOMString width;
+  attribute DOMString width;
 
   //         attribute DOMString ch;
   //         attribute DOMString chOff;
