@@ -359,7 +359,7 @@ impl NetworkEventActor {
         let mut mString = "".to_owned();
         if let Some(ref headers) = self.response.headers {
             mString = match headers.get() {
-                Some(&ContentType(ref mime)) =>  mime.to_string(),
+                Some(&ContentType(ref mime)) => mime.to_string(),
                 None => "".to_owned()
             };
         }
@@ -377,7 +377,7 @@ impl NetworkEventActor {
         let mut cookies_size = 0;
         if let Some(ref headers) = self.response.headers {
             cookies_size = match headers.get() {
-                Some(&Cookie(ref cookie)) =>  cookie.len(),
+                Some(&Cookie(ref cookie)) => cookie.len(),
                 None => 0
             };
         }
@@ -408,7 +408,7 @@ impl NetworkEventActor {
         let mut cookies_size = 0;
         if let Some(ref headers) = self.response.headers {
             cookies_size = match headers.get() {
-                Some(&Cookie(ref cookie)) =>  cookie.len(),
+                Some(&Cookie(ref cookie)) => cookie.len(),
                 None => 0
             };
         }
