@@ -1,0 +1,54 @@
+<link rel="match" href="table-cell-width-ref.html">
+<style>
+body {
+  margin: 0;
+}
+
+table {
+  width: 400px;
+  border-collapse: collapse;
+}
+
+th {
+  font-weight: normal;
+  text-align: left;
+}
+
+td, th {
+  padding: 0;
+}
+
+td:first-child, th:first-child {
+  background-color: red;
+}
+</style>
+
+<!-- width=0 should be treated as 'auto' -->
+<table>
+  <tr>
+    <th width=0>a</th>
+    <th>a</th>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width=0>a</td>
+    <td>a</td>
+  </tr>
+</table>
+
+<!-- test valid width attribute value-->
+<table>
+  <tr>
+    <th width=100>a</th>
+    <th>a</th>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width=100>a</td>
+    <td>a</td>
+  </tr>
+</table>
