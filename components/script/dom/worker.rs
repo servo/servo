@@ -126,11 +126,7 @@ impl Worker {
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
         let global = worker.r().global.root();
-        let event = Event::new(global.r(),
-                               atom!("error"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        event.fire(worker.upcast());
+        worker.upcast().fire_simple_event("error", global.r());
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,

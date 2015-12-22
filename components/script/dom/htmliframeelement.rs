@@ -17,7 +17,8 @@ use dom::bindings::reflector::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -208,12 +209,7 @@ impl HTMLIFrameElement {
 
         // Step 4
         let window = window_from_node(self);
-        let event = Event::new(GlobalRef::Window(window.r()),
-                               atom!("load"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        event.fire(self.upcast());
-
+        self.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
         // TODO Step 5 - unset child document `mut iframe load` flag
     }
 }

@@ -858,19 +858,16 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(self);
-                    let target = self.upcast();
+                    let target = self.upcast::<EventTarget>();
 
-                    let event = Event::new(GlobalRef::Window(win.r()),
-                                           atom!("input"),
-                                           EventBubbles::Bubbles,
-                                           EventCancelable::NotCancelable);
-                    event.fire(target);
-
-                    let event = Event::new(GlobalRef::Window(win.r()),
-                                           atom!("change"),
-                                           EventBubbles::Bubbles,
-                                           EventCancelable::NotCancelable);
-                    event.fire(target);
+                    target.fire_simple_event_params("input",
+                                                    EventBubbles::Bubbles,
+                                                    EventCancelable::NotCancelable,
+                                                    GlobalRef::Window(win.r()));
+                    target.fire_simple_event_params("change",
+                                                    EventBubbles::Bubbles,
+                                                    EventCancelable::NotCancelable,
+                                                    GlobalRef::Window(win.r()));
                 }
             },
             _ => ()

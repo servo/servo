@@ -15,7 +15,7 @@ use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -77,12 +77,7 @@ impl Runnable for ImageResponseHandlerRunnable {
 
         // Fire image.onload
         let window = window_from_node(document.r());
-        let event = Event::new(GlobalRef::Window(window.r()),
-                               atom!("load"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        event.fire(element.upcast());
-
+        element.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
         // Trigger reflow
         window.add_pending_reflow();
     }
