@@ -1715,8 +1715,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     layout_context: &LayoutContext,
                                     border_painting_mode: BorderPaintingMode) {
         if self.base.flags.is_float() {
-            // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
-            // auto` kids into the parent stacking context, when that is supported.
             self.build_display_list_for_floating_block(display_list,
                                                        layout_context,
                                                        border_painting_mode);
