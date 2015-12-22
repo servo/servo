@@ -314,6 +314,14 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space after ->")
 
+        if line.find("=>") != -1:
+            if not re.search(r"^=>|\s=>", line):
+                yield (idx + 1, "missing space before =>")
+            elif not re.search(r"=>\s|=>$", line):
+                yield (idx + 1, "missing space after =>")
+            elif re.search(r"=>\s\s", line):
+                yield (idx + 1, "extra space after =>")
+
         # Avoid flagging ::crate::mod and `trait Foo : Bar`
         match = line.find(" :")
         if match != -1:
