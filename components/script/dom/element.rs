@@ -855,9 +855,7 @@ impl Element {
                               name: Atom,
                               namespace: Namespace,
                               prefix: Option<Atom>) {
-        self.will_mutate_attr();
         let window = window_from_node(self);
-        let in_empty_ns = namespace == ns!();
         let attr = Attr::new(&window,
                              local_name,
                              value,
@@ -865,9 +863,15 @@ impl Element {
                              namespace,
                              prefix,
                              Some(self));
-        self.attrs.borrow_mut().push(JS::from_rooted(&attr));
-        if in_empty_ns {
-            vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Set(None));
+        self.push_attribute(&attr);
+    }
+
+    pub fn push_attribute(&self, attr: &Attr) {
+        assert!(attr.GetOwnerElement().r() == Some(self));
+        self.will_mutate_attr();
+        self.attrs.borrow_mut().push(JS::from_ref(attr));
+        if attr.namespace() == &ns!() {
+            vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
     }
 

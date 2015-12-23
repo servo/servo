@@ -193,16 +193,12 @@ impl Attr {
     pub fn set_owner(&self, owner: Option<&Element>) {
         let ref ns = self.identifier.namespace;
         match (self.owner().r(), owner) {
-            (None, Some(new)) => {
-                // Already in the list of attributes of new owner.
-                assert!(new.get_attribute(&ns, &self.identifier.local_name) ==
-                        Some(Root::from_ref(self)))
-            }
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(old.get_attribute(&ns, &self.identifier.local_name).is_none())
             }
-            (old, new) => assert!(old == new),
+            (Some(old), Some(new)) => assert!(old == new),
+            _ => {},
         }
         self.owner.set(owner);
     }

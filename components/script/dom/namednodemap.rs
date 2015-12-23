@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
@@ -19,6 +20,12 @@ use util::str::DOMString;
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,
+}
+
+impl PartialEq for Attr {
+    fn eq(&self, other: &Attr) -> bool {
+        self as *const Attr == &*other
+    }
 }
 
 impl NamedNodeMap {
@@ -56,6 +63,41 @@ impl NamedNodeMapMethods for NamedNodeMap {
                      -> Option<Root<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner.get_attribute(&ns, &Atom::from(&*local_name))
+    }
+
+    // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem
+    fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        // Step 1.
+        if let Some(owner) = attr.GetOwnerElement() {
+            if &*owner != &*self.owner {
+                return Err(Error::InUseAttribute);
+            }
+        }
+
+        // Step 2.
+        let old_attr = self.owner.get_attribute(attr.namespace(), attr.local_name());
+
+        // Step 3.
+        if old_attr.r() == Some(attr) {
+            return Ok(Some(Root::from_ref(attr)));
+        }
+
+        // Step 4.
+        if let Some(ref attr) = old_attr {
+            self.owner.remove_attribute(attr.namespace(), attr.local_name());
+        }
+
+        // Step 5.
+        attr.set_owner(Some(&self.owner));
+        self.owner.push_attribute(attr);
+
+        // Step 6.
+        Ok(old_attr)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns
+    fn SetNamedItemNS(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        self.SetNamedItem(attr)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
