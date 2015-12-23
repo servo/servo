@@ -1201,7 +1201,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#348364d8869d5e673b49c60f40803dfa903c70f2"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#0677179502384f07fced16744dbe5882d9a71dfa"
 dependencies = [
  "cgl 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1209,11 +1209,9 @@ dependencies = [
  "gl_generator 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-glutin 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

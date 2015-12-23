@@ -21,7 +21,6 @@ path = "../net_traits"
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
-features = ["texture_surface"]
 
 [dependencies.plugins]
 path = "../plugins"
