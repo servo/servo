@@ -93,16 +93,33 @@ pub trait LayoutNode<'ln> : Sized + Copy + Clone {
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
 
+    /// Returns whether this is a text node. It turns out that this is all the style system cares
+    /// about, and thus obviates the need to compute the full type id, which would be expensive in
+    /// Gecko.
+    fn is_text_node(&self) -> bool;
+
     fn is_element(&self) -> bool;
 
     fn dump(self);
 
-    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Self>;
+    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Self> {
+        LayoutTreeIterator::new(self)
+    }
 
     /// Returns an iterator over this node's children.
-    fn children(self) -> LayoutNodeChildrenIterator<'ln, Self>;
+    fn children(self) -> LayoutNodeChildrenIterator<'ln, Self> {
+        LayoutNodeChildrenIterator {
+            current: self.first_child(),
+            phantom: PhantomData,
+        }
+    }
 
-    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Self>;
+    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Self> {
+        LayoutNodeReverseChildrenIterator {
+            current: self.last_child(),
+            phantom: PhantomData,
+        }
+    }
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -304,6 +321,10 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
         }
     }
 
+    fn is_text_node(&self) -> bool {
+        self.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
+    }
+
     fn is_element(&self) -> bool {
         unsafe {
             self.node.is_element_for_layout()
@@ -312,24 +333,6 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
 
     fn dump(self) {
         self.dump_indent(0);
-    }
-
-    fn traverse_preorder(self) -> LayoutTreeIterator<'ln, Self> {
-        LayoutTreeIterator::new(self)
-    }
-
-    fn children(self) -> LayoutNodeChildrenIterator<'ln, Self> {
-        LayoutNodeChildrenIterator {
-            current: self.first_child(),
-            phantom: PhantomData,
-        }
-    }
-
-    fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln, Self> {
-        LayoutNodeReverseChildrenIterator {
-            current: self.last_child(),
-            phantom: PhantomData,
-        }
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -835,6 +838,10 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<'ln, ConcreteThreadSafeLayoutNode = Self>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
+    /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
+    /// with a different pseudo-element type.
+    fn with_pseudo(&self, pseudo: PseudoElementType<display::T>) -> Self;
+
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 
@@ -857,10 +864,22 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn get_pseudo_element_type(&self) -> PseudoElementType<display::T>;
 
     #[inline]
-    fn get_before_pseudo(&self) -> Option<Self>;
+    fn get_before_pseudo(&self) -> Option<Self> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
+        })
+    }
 
     #[inline]
-    fn get_after_pseudo(&self) -> Option<Self>;
+    fn get_after_pseudo(&self) -> Option<Self> {
+        let layout_data_ref = self.borrow_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
+        node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
+            self.with_pseudo(PseudoElementType::After(style.get_box().display))
+        })
+    }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
     ///
@@ -975,8 +994,9 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn get_colspan(&self) -> u32;
 }
 
-// These can violate the thread-safety and therefore are not public.
-trait DangerousThreadSafeLayoutNode<'ln> : ThreadSafeLayoutNode<'ln> {
+// This trait is only public so that it can be implemented by the gecko wrapper.
+// It can be used to violate thread-safety, so don't use it elsewhere in layout!
+pub trait DangerousThreadSafeLayoutNode<'ln> : ThreadSafeLayoutNode<'ln> {
     unsafe fn dangerous_first_child(&self) -> Option<Self>;
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
@@ -1024,15 +1044,6 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    /// Creates a new `ServoThreadSafeLayoutNode` for the same `LayoutNode`
-    /// with a different pseudo-element type.
-    fn with_pseudo(&self, pseudo: PseudoElementType<display::T>) -> ServoThreadSafeLayoutNode<'ln> {
-        ServoThreadSafeLayoutNode {
-            node: self.node.clone(),
-            pseudo: pseudo,
-        }
-    }
-
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {
@@ -1051,6 +1062,13 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
 impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
     type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<'ln, Self>;
+
+    fn with_pseudo(&self, pseudo: PseudoElementType<display::T>) -> ServoThreadSafeLayoutNode<'ln> {
+        ServoThreadSafeLayoutNode {
+            node: self.node.clone(),
+            pseudo: pseudo,
+        }
+    }
 
     fn opaque(&self) -> OpaqueNode {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
@@ -1092,22 +1110,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
 
     fn get_pseudo_element_type(&self) -> PseudoElementType<display::T> {
         self.pseudo
-    }
-
-    fn get_before_pseudo(&self) -> Option<ServoThreadSafeLayoutNode<'ln>> {
-        let layout_data_ref = self.borrow_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
-        node_layout_data_wrapper.data.before_style.as_ref().map(|style| {
-            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
-        })
-    }
-
-    fn get_after_pseudo(&self) -> Option<ServoThreadSafeLayoutNode<'ln>> {
-        let layout_data_ref = self.borrow_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
-        node_layout_data_wrapper.data.after_style.as_ref().map(|style| {
-            self.with_pseudo(PseudoElementType::After(style.get_box().display))
-        })
     }
 
     fn borrow_layout_data(&self) -> Ref<Option<LayoutDataWrapper>> {
@@ -1244,7 +1246,7 @@ pub struct ThreadSafeLayoutNodeChildrenIterator<'ln, ConcreteNode: ThreadSafeLay
 
 impl<'ln, ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<'ln, ConcreteNode>
                         where ConcreteNode: DangerousThreadSafeLayoutNode<'ln> {
-    fn new(parent: ConcreteNode) -> Self {
+    pub fn new(parent: ConcreteNode) -> Self {
         let first_child: Option<ConcreteNode> = match parent.get_pseudo_element_type() {
             PseudoElementType::Normal => {
                 parent.get_before_pseudo().or_else(|| {

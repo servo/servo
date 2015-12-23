@@ -11,7 +11,6 @@ use context::SharedLayoutContext;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
 use msg::ParseErrorReporter;
-use script::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use script::layout_interface::Animation;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
@@ -724,49 +723,46 @@ impl<'ln, ConcreteLayoutNode> MatchMethods<'ln, ConcreteLayoutNode>
         match *layout_data_ref {
             None => panic!("no layout data"),
             Some(ref mut layout_data) => {
-                match self.type_id() {
-                    NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
-                        // Text nodes get a copy of the parent style. This ensures
-                        // that during fragment construction any non-inherited
-                        // CSS properties (such as vertical-align) are correctly
-                        // set on the fragment(s).
-                        let cloned_parent_style = parent_style.unwrap().clone();
-                        layout_data.shared_data.style = Some(cloned_parent_style);
-                    }
-                    _ => {
-                        let mut damage = self.cascade_node_pseudo_element(
+                if self.is_text_node() {
+                    // Text nodes get a copy of the parent style. This ensures
+                    // that during fragment construction any non-inherited
+                    // CSS properties (such as vertical-align) are correctly
+                    // set on the fragment(s).
+                    let cloned_parent_style = parent_style.unwrap().clone();
+                    layout_data.shared_data.style = Some(cloned_parent_style);
+                } else {
+                    let mut damage = self.cascade_node_pseudo_element(
+                        layout_context,
+                        parent_style,
+                        &applicable_declarations.normal,
+                        &mut layout_data.shared_data.style,
+                        applicable_declarations_cache,
+                        new_animations_sender,
+                        applicable_declarations.normal_shareable,
+                        true);
+                    if !applicable_declarations.before.is_empty() {
+                        damage = damage | self.cascade_node_pseudo_element(
                             layout_context,
-                            parent_style,
-                            &applicable_declarations.normal,
-                            &mut layout_data.shared_data.style,
+                            Some(layout_data.shared_data.style.as_ref().unwrap()),
+                            &*applicable_declarations.before,
+                            &mut layout_data.data.before_style,
                             applicable_declarations_cache,
                             new_animations_sender,
-                            applicable_declarations.normal_shareable,
-                            true);
-                        if applicable_declarations.before.len() > 0 {
-                            damage = damage | self.cascade_node_pseudo_element(
-                                layout_context,
-                                Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                &*applicable_declarations.before,
-                                &mut layout_data.data.before_style,
-                                applicable_declarations_cache,
-                                new_animations_sender,
-                                false,
-                                false);
-                        }
-                        if applicable_declarations.after.len() > 0 {
-                            damage = damage | self.cascade_node_pseudo_element(
-                                layout_context,
-                                Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                &*applicable_declarations.after,
-                                &mut layout_data.data.after_style,
-                                applicable_declarations_cache,
-                                new_animations_sender,
-                                false,
-                                false);
-                        }
-                        layout_data.data.restyle_damage = damage;
+                            false,
+                            false);
                     }
+                    if !applicable_declarations.after.is_empty() {
+                        damage = damage | self.cascade_node_pseudo_element(
+                            layout_context,
+                            Some(layout_data.shared_data.style.as_ref().unwrap()),
+                            &*applicable_declarations.after,
+                            &mut layout_data.data.after_style,
+                            applicable_declarations_cache,
+                            new_animations_sender,
+                            false,
+                            false);
+                    }
+                    layout_data.data.restyle_damage = damage;
                 }
             }
         }
