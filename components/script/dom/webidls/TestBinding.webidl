@@ -149,6 +149,7 @@ interface TestBinding {
   object receiveObject();
   (HTMLElement or long) receiveUnion();
   (Event or DOMString) receiveUnion2();
+  sequence<long> receiveSequence();
 
   byte? receiveNullableByte();
   boolean? receiveNullableBoolean();
@@ -171,6 +172,7 @@ interface TestBinding {
   object? receiveNullableObject();
   (HTMLElement or long)? receiveNullableUnion();
   (Event or DOMString)? receiveNullableUnion2();
+  sequence<long>? receiveNullableSequence();
 
   void passBoolean(boolean arg);
   void passByte(byte arg);
@@ -197,6 +199,8 @@ interface TestBinding {
   void passObject(object arg);
   void passCallbackFunction(Function fun);
   void passCallbackInterface(EventListener listener);
+  void passSequence(sequence<long> seq);
+  void passStringSequence(sequence<DOMString> seq);
 
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);
@@ -221,6 +225,7 @@ interface TestBinding {
   void passNullableUnion2((Event or DOMString)? data);
   void passNullableCallbackFunction(Function? fun);
   void passNullableCallbackInterface(EventListener? listener);
+  void passNullableSequence(sequence<long>? seq);
 
   void passOptionalBoolean(optional boolean arg);
   void passOptionalByte(optional byte arg);
@@ -246,6 +251,7 @@ interface TestBinding {
   void passOptionalObject(optional object arg);
   void passOptionalCallbackFunction(optional Function fun);
   void passOptionalCallbackInterface(optional EventListener listener);
+  void passOptionalSequence(optional sequence<long> seq);
 
   void passOptionalNullableBoolean(optional boolean? arg);
   void passOptionalNullableByte(optional byte? arg);
@@ -270,6 +276,7 @@ interface TestBinding {
   void passOptionalNullableUnion2(optional (Event or DOMString)? data);
   void passOptionalNullableCallbackFunction(optional Function? fun);
   void passOptionalNullableCallbackInterface(optional EventListener? listener);
+  void passOptionalNullableSequence(optional sequence<long>? seq);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);

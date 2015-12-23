@@ -728,7 +728,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        raise TypeError("Can't handle sequence arguments yet")
+        # Use the same type that for return values
+        declType = getRetvalDeclarationForType(type, descriptorProvider)
+        config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
+
+        templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+                        "    Ok(value) => value,\n"
+                        "    Err(()) => { %s },\n"
+                        "}" % (config, exceptionCode))
+
+        return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
     if type.isUnion():
         declType = CGGeneric(union_native_type(type))
@@ -803,20 +812,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle SpiderMonkey interface arguments yet")
 
     if type.isDOMString():
-        assert not isEnforceRange and not isClamp
-
-        treatAs = {
-            "Default": "StringificationBehavior::Default",
-            "EmptyString": "StringificationBehavior::Empty",
-        }
-        if treatNullAs not in treatAs:
-            raise TypeError("We don't support [TreatNullAs=%s]" % treatNullAs)
-        if type.nullable():
-            # Note: the actual behavior passed here doesn't matter for nullable
-            # strings.
-            nullBehavior = "StringificationBehavior::Default"
-        else:
-            nullBehavior = treatAs[treatNullAs]
+        nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
         conversionCode = (
             "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
@@ -1030,16 +1026,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
 
-    if type.isInteger():
-        if isEnforceRange:
-            conversionBehavior = "ConversionBehavior::EnforceRange"
-        elif isClamp:
-            conversionBehavior = "ConversionBehavior::Clamp"
-        else:
-            conversionBehavior = "ConversionBehavior::Default"
-    else:
-        assert not isEnforceRange and not isClamp
-        conversionBehavior = "()"
+    conversionBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
     if failureCode is None:
         failureCode = 'return false'
@@ -1241,6 +1228,36 @@ def typeNeedsCx(type, retVal=False):
     if retVal and type.isSpiderMonkeyInterface():
         return True
     return type.isAny() or type.isObject()
+
+
+# Returns a conversion behavior suitable for a type
+def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
+    if type.isSequence():
+        return getConversionConfigForType(type.unroll(), isEnforceRange, isClamp, treatNullAs)
+    if type.isDOMString():
+        assert not isEnforceRange and not isClamp
+
+        treatAs = {
+            "Default": "StringificationBehavior::Default",
+            "EmptyString": "StringificationBehavior::Empty",
+        }
+        if treatNullAs not in treatAs:
+            raise TypeError("We don't support [TreatNullAs=%s]" % treatNullAs)
+        if type.nullable():
+            # Note: the actual behavior passed here doesn't matter for nullable
+            # strings.
+            return "StringificationBehavior::Default"
+        else:
+            return treatAs[treatNullAs]
+    if type.isInteger():
+        if isEnforceRange:
+            return "ConversionBehavior::EnforceRange"
+        elif isClamp:
+            return "ConversionBehavior::Clamp"
+        else:
+            return "ConversionBehavior::Default"
+    assert not isEnforceRange and not isClamp
+    return "()"
 
 
 # Returns a CGThing containing the type of the return value.

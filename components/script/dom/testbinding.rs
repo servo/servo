@@ -188,6 +188,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::eLong(0) }
     fn ReceiveUnion2(&self) -> EventOrString { EventOrString::eString(DOMString::new()) }
+    fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
     fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
@@ -216,6 +217,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableUnion2(&self) -> Option<EventOrString> {
         Some(EventOrString::eString(DOMString::new()))
     }
+    fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
 
     fn PassBoolean(&self, _: bool) {}
     fn PassByte(&self, _: i8) {}
@@ -242,6 +244,8 @@ impl TestBindingMethods for TestBinding {
     fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
+    fn PassSequence(&self, _: Vec<i32>) {}
+    fn PassStringSequence(&self, _: Vec<DOMString>) {}
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
     fn PassNullableByte(&self, _: Option<i8>) {}
@@ -266,6 +270,7 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
     fn PassNullableCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassNullableCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
+    fn PassNullableSequence(&self, _: Option<Vec<i32>>) {}
 
     fn PassOptionalBoolean(&self, _: Option<bool>) {}
     fn PassOptionalByte(&self, _: Option<i8>) {}
@@ -291,6 +296,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassOptionalCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
+    fn PassOptionalSequence(&self, _: Option<Vec<i32>>) {}
 
     fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
     fn PassOptionalNullableByte(&self, _: Option<Option<i8>>) {}
@@ -315,6 +321,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
     fn PassOptionalNullableCallbackFunction(&self, _: Option<Option<Rc<Function>>>) {}
     fn PassOptionalNullableCallbackInterface(&self, _: Option<Option<Rc<EventListener>>>) {}
+    fn PassOptionalNullableSequence(&self, _: Option<Option<Vec<i32>>>) {}
 
     fn PassOptionalBooleanWithDefault(&self, _: bool) {}
     fn PassOptionalByteWithDefault(&self, _: i8) {}
