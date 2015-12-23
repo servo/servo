@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
@@ -56,6 +57,16 @@ impl NamedNodeMapMethods for NamedNodeMap {
                      -> Option<Root<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner.get_attribute(&ns, &Atom::from(&*local_name))
+    }
+
+    // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem
+    fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        self.owner.SetAttributeNode(attr)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns
+    fn SetNamedItemNS(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        self.SetNamedItem(attr)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem

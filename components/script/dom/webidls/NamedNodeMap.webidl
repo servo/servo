@@ -13,10 +13,10 @@ interface NamedNodeMap {
   getter Attr? getNamedItem(DOMString name);
   [Pure]
   Attr? getNamedItemNS(DOMString? namespace, DOMString localName);
-  //[Throws]
-  //Attr? setNamedItem(Attr attr);
-  //[Throws]
-  //Attr? setNamedItemNS(Attr attr);
+  [Throws]
+  Attr? setNamedItem(Attr attr);
+  [Throws]
+  Attr? setNamedItemNS(Attr attr);
   [Throws]
   Attr removeNamedItem(DOMString name);
   [Throws]
