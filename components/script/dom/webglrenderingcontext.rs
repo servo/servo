@@ -932,20 +932,53 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4fv(&self,
-                  _cx: *mut JSContext,
+    fn Uniform1f(&self,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: Option<*mut JSObject>) {
+                  val: f32) {
         let uniform_id = match uniform {
             Some(uniform) => uniform.id(),
             None => return,
         };
 
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform1f(uniform_id, val)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1fv(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  data: Vec<f32>) {
+        if data.len() < 1 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        self.Uniform1f(uniform, data[0]);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4f(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  x: f32, y: f32, z: f32, w: f32) {
+        let uniform_id = match uniform {
+            Some(uniform) => uniform.id(),
+            None => return,
+        };
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4f(uniform_id, x, y, z, w)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4fv(&self,
+                  _cx: *mut JSContext,
+                  uniform: Option<&WebGLUniformLocation>,
+                  data: Option<*mut JSObject>) {
         let data = match data {
             Some(data) => data,
-            None => return,
+            None => return self.webgl_error(InvalidValue),
         };
 
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
@@ -953,9 +986,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return self.webgl_error(InvalidOperation);
             }
 
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
-                .unwrap()
+            self.Uniform4f(uniform, data[0], data[1], data[2], data[3]);
         } else {
             self.webgl_error(InvalidValue);
         }

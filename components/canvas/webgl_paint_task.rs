@@ -161,8 +161,10 @@ impl WebGLPaintTask {
                 gl::bind_texture(target, id),
             CanvasWebGLMsg::LinkProgram(program_id) =>
                 gl::link_program(program_id),
-            CanvasWebGLMsg::Uniform4fv(uniform_id, data) =>
-                gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]),
+            CanvasWebGLMsg::Uniform1f(uniform_id, x) =>
+                gl::uniform_1f(uniform_id, x),
+            CanvasWebGLMsg::Uniform4f(uniform_id, x, y, z, w) =>
+                gl::uniform_4f(uniform_id, x, y, z, w),
             CanvasWebGLMsg::UseProgram(program_id) =>
                 gl::use_program(program_id),
             CanvasWebGLMsg::VertexAttrib(attrib_id, x, y, z, w) =>
