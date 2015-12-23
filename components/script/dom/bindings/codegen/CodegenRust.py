@@ -559,7 +559,6 @@ def union_native_type(t):
     name = t.unroll().name
     return 'UnionTypes::%s' % name
 
-
 class JSToNativeConversionInfo():
     """
     An object representing information about a JS-to-native conversion.
@@ -728,7 +727,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        raise TypeError("Can't handle sequence arguments yet")
+        # Use the same type that for return values
+        declType = getRetvalDeclarationForType(type, descriptorProvider);
+        if type.nullable():
+            declType = CGWrapper(declType, pre="Option<", post=" >")
+        templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+                        "    Ok(value) => value,\n"
+                        "    Err(()) => { %s },\n"
+                        "}" % exceptionCode)
+
+        return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
     if type.isUnion():
         declType = CGGeneric(union_native_type(type))
