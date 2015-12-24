@@ -506,7 +506,7 @@ function getEnumerableOwnProps1(obj) {
 
 function getEnumerableOwnProps2(obj) {
   return Object.getOwnPropertyNames(obj).filter(
-    (name) => Object.getOwnPropertyDescriptor(obj, name).enumerable)
+    function (name) { return Object.getOwnPropertyDescriptor(obj, name).enumerable; })
 }
 
 test(function() {
