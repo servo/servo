@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>bufferData and bufferSubData input array type check (issue #6791)</title>
+<title>bufferData and bufferSubData input array type check (issue #6791, #6601)</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -40,5 +40,10 @@ test(function() {
     var coordF64 = new Float64Array([ 1.0, 0.0 ]);
     gl.bufferData(gl.ARRAY_BUFFER, coordF64, gl.STATIC_DRAW);
     gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordF64);
+
+    // Test case for issue #6601
+    var buffer = new ArrayBuffer(8);
+    var dv = new DataView(buffer);
+    gl.bufferData(0, dv, 0);
 });
 </script>
