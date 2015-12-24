@@ -1315,6 +1315,18 @@
             "url": "/_mozilla/css/flex_column_direction.html"
           }
         ],
+        "css/flex_column_reverse_direction.html": [
+          {
+            "path": "css/flex_column_reverse_direction.html",
+            "references": [
+              [
+                "/_mozilla/css/flex_column_direction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/flex_column_reverse_direction.html"
+          }
+        ],
         "css/flex_nochild.html": [
           {
             "path": "css/flex_nochild.html",
@@ -1337,6 +1349,18 @@
               ]
             ],
             "url": "/_mozilla/css/flex_row_direction.html"
+          }
+        ],
+        "css/flex_row_reverse_direction.html": [
+          {
+            "path": "css/flex_row_reverse_direction.html",
+            "references": [
+              [
+                "/_mozilla/css/flex_row_direction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/flex_row_reverse_direction.html"
           }
         ],
         "css/float_clearance_a.html": [
