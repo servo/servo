@@ -4950,7 +4950,8 @@ pub mod longhands {
     ${new_style_struct("Flex", is_inherited=False)}
 
     // Flex container properties
-    ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+    ${single_keyword("flex-direction", "row-reverse row column-reverse column",
+                     experimental=True)}
     // Flex item properties
     ${integer_type_or_auto("order",
                            "i32",
