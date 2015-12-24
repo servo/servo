@@ -71,8 +71,9 @@ VIM_HEADER = "/* vim:"
 def check_license(file_name, contents):
     if file_name.endswith(".toml") or file_name.endswith(".lock"):
         raise StopIteration
-    while contents.startswith(EMACS_HEADER) or contents.startswith(VIM_HEADER):
-        _, _, contents = contents.partition("\n")
+    while contents and (contents[0].startswith(EMACS_HEADER) or contents[0].startswith(VIM_HEADER)):
+        contents = contents[1:]
+    contents = "".join(contents)
     valid_license = any(contents.startswith(license) for license in licenses)
     acknowledged_bad_license = "xfail-license" in contents[:100]
     if not (valid_license or acknowledged_bad_license):
@@ -118,8 +119,7 @@ def check_whitespace(idx, line):
 
 
 def check_by_line(file_name, contents):
-    lines = contents.splitlines(True)
-    for idx, line in enumerate(lines):
+    for idx, line in enumerate(contents):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
@@ -151,6 +151,7 @@ def check_flake8(file_name, contents):
     }
 
     output = StringIO.StringIO()
+    contents = "".join(contents)
     with stdout_redirect(output):
         check_code(contents, ignore=ignore)
     for error in output.getvalue().splitlines():
@@ -173,6 +174,7 @@ def check_lock(file_name, contents):
     exceptions = ["libc", "cocoa"]
 
     import toml
+    contents = "".join(contents)
     content = toml.loads(contents)
 
     packages = {}
@@ -217,7 +219,6 @@ def maybe_int(value):
 def check_toml(file_name, contents):
     if not file_name.endswith(".toml"):
         raise StopIteration
-    contents = contents.splitlines(True)
     for idx, line in enumerate(contents):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
@@ -229,7 +230,6 @@ def check_rust(file_name, contents):
        file_name.endswith(os.path.join("style", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
         raise StopIteration
-    contents = contents.splitlines(True)
     comment_depth = 0
     merged_lines = ''
 
@@ -475,6 +475,7 @@ def check_webidl_spec(file_name, contents):
         "// This interface is entirely internal to Servo, and should not be" +
         " accessible to\n// web pages."
     ]
+    contents = "".join(contents)
     for i in standards:
         if contents.find(i) != -1:
             raise StopIteration
@@ -498,7 +499,6 @@ def check_spec(file_name, contents):
     comment_patt = re.compile("^\s*///?.+$")
 
     pattern = "impl %sMethods for %s {" % (file_name, file_name)
-    contents = contents.splitlines(True)
     brace_count = 0
     in_impl = False
     for idx, line in enumerate(contents):
@@ -528,7 +528,7 @@ def check_spec(file_name, contents):
 def collect_errors_for_files(files_to_check, checking_functions):
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
-            contents = fp.read()
+            contents = fp.readlines()
             for check in checking_functions:
                 for error in check(file_name, contents):
                     # filename, line, message
