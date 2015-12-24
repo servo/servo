@@ -34,6 +34,8 @@ interface Element : Node {
   [SameObject]
   readonly attribute NamedNodeMap attributes;
   [Pure]
+  sequence<DOMString> getAttributeNames();
+  [Pure]
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);

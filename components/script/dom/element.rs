@@ -1201,6 +1201,11 @@ impl ElementMethods for Element {
         self.attr_list.or_init(|| NamedNodeMap::new(&window_from_node(self), self))
     }
 
+    // https://dom.spec.whatwg.org/#interface-element
+    fn GetAttributeNames(&self) -> Vec<DOMString> {
+        self.attrs.borrow().iter().map(|attr| attr.Name()).collect()
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         self.GetAttributeNode(name)

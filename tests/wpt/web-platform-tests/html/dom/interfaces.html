@@ -289,6 +289,7 @@ interface Element : Node {
 
   boolean hasAttributes();
   [SameObject] readonly attribute NamedNodeMap attributes;
+  sequence<DOMString> getAttributeNames();
   DOMString? getAttribute(DOMString name);
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   void setAttribute(DOMString name, DOMString value);
