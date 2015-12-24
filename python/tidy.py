@@ -314,6 +314,16 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space after ->")
 
+        line_len = len(line)
+        arrow_pos = line.find("=>")
+        if arrow_pos != -1:
+            if arrow_pos and line[arrow_pos - 1] != ' ':
+                yield (idx + 1, "missing space before =>")
+            if arrow_pos + 2 < line_len and line[arrow_pos + 2] != ' ':
+                yield (idx + 1, "missing space after =>")
+            elif arrow_pos + 3 < line_len and line[arrow_pos + 3] == ' ':
+                yield (idx + 1, "extra space after =>")
+
         # Avoid flagging ::crate::mod and `trait Foo : Bar`
         match = line.find(" :")
         if match != -1:
@@ -344,7 +354,7 @@ def check_rust(file_name, contents):
         # check extern crates
         if line.startswith("extern crate "):
             crate_name = line[len("extern crate "):-1]
-            indent = len(original_line) - len(line)
+            indent = len(original_line) - line_len
             if indent not in prev_crate:
                 prev_crate[indent] = ""
             if prev_crate[indent] > crate_name:
@@ -358,7 +368,7 @@ def check_rust(file_name, contents):
         elif line.startswith("use "):
             import_block = True
             use = line[4:]
-            indent = len(original_line) - len(line)
+            indent = len(original_line) - line_len
             if not use.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
             current_use = use[:len(use) - 1]
@@ -378,7 +388,7 @@ def check_rust(file_name, contents):
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
-            indent = len(original_line) - len(line)
+            indent = len(original_line) - line_len
             mod = line[4:] if line.startswith("mod ") else line[8:]
 
             if idx < 0 or "#[macro_use]" not in contents[idx - 1]:

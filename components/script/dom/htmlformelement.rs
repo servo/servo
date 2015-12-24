@@ -464,7 +464,7 @@ pub enum FormSubmittableElement {
 impl FormSubmittableElement {
     fn as_event_target(&self) -> &EventTarget {
         match *self {
-            FormSubmittableElement::ButtonElement(ref button) =>  button.r().upcast(),
+            FormSubmittableElement::ButtonElement(ref button) => button.r().upcast(),
             FormSubmittableElement::InputElement(ref input) => input.r().upcast(),
             FormSubmittableElement::ObjectElement(ref object) => object.r().upcast(),
             FormSubmittableElement::SelectElement(ref select) => select.r().upcast(),

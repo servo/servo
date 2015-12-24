@@ -1251,9 +1251,9 @@ impl<'a> PaintContext<'a> {
                                                             0.5 * border.bottom,
                                                             0.5 * border.left);
         let is_groove = match style {
-                border_style::T::groove =>  true,
-                border_style::T::ridge  =>  false,
-                _ =>  panic!("invalid border style")
+                border_style::T::groove => true,
+                border_style::T::ridge  => false,
+                _ => panic!("invalid border style")
         };
 
         let lighter_color;

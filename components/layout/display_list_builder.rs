@@ -1137,7 +1137,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if width > 0 && height > 0 {
                     let layer_id = self.layer_id();
                     let canvas_data = match canvas_fragment_info.ipc_renderer {
-                        Some(ref ipc_renderer) =>  {
+                        Some(ref ipc_renderer) => {
                             let ipc_renderer = ipc_renderer.lock().unwrap();
                             let (sender, receiver) = ipc::channel().unwrap();
                             ipc_renderer.send(CanvasMsg::FromLayout(
