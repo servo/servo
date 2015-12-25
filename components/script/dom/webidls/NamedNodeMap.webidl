@@ -4,6 +4,7 @@
 
 // https://dom.spec.whatwg.org/#interface-namednodemap
 
+[LegacyUnenumerableNamedProperties]
 interface NamedNodeMap {
   [Pure]
   readonly attribute unsigned long length;
