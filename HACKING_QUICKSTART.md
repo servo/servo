@@ -111,11 +111,11 @@ This is how my projects are laid out:
 
 These are all git repositories.
 
-To make it so that servo uses `~/my-projects/cocoa-rs/` and `~/my-projects/glutin/` , create a `~/my-projects/.cargo/config` file:
+To make it so that servo uses `~/my-projects/cocoa-rs/` and `~/my-projects/glutin/` , create a `~/my-projects/servo/.cargo/config` file:
 
 ``` shell
-$ cat ~/my-projects/.cargo/config
-paths = ['glutin', 'cocoa-rs']
+$ cat ~/my-projects/servo/.cargo/config
+paths = ['../glutin', '../cocoa-rs']
 ```
 
 This will tell any cargo project to not use the online version of the dependency, but your local clone.
