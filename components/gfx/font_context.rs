@@ -44,17 +44,20 @@ fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFo
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8;      // Matches FireFox (see gfxFont.h)
 
+#[derive(Debug)]
 struct LayoutFontCacheEntry {
     family: String,
     font: Option<Rc<RefCell<Font>>>,
 }
 
+#[derive(Debug)]
 struct FallbackFontCacheEntry {
     font: Rc<RefCell<Font>>,
 }
 
 /// A cached azure font (per paint task) that
 /// can be shared by multiple text runs.
+#[derive(Debug)]
 struct PaintFontCacheEntry {
     pt_size: Au,
     identifier: Atom,
@@ -69,6 +72,7 @@ static FONT_CACHE_EPOCH: AtomicUsize = ATOMIC_USIZE_INIT;
 /// working with fonts. It is the public API used by the layout and
 /// paint code. It talks directly to the font cache task where
 /// required.
+#[derive(Debug)]
 pub struct FontContext {
     platform_handle: FontContextHandle,
     font_cache_task: FontCacheTask,
@@ -317,6 +321,7 @@ impl HeapSizeOf for FontContext {
     }
 }
 
+#[derive(Debug)]
 struct LayoutFontGroupCacheKey {
     pointer: Arc<SpecifiedFontStyle>,
     size: Au,

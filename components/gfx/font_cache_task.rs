@@ -77,7 +77,7 @@ impl FontFamily {
 }
 
 /// Commands that the FontContext sends to the font cache task.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
@@ -87,7 +87,7 @@ pub enum Command {
 }
 
 /// Reply messages sent from the font cache task to the FontContext caller.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
@@ -271,7 +271,7 @@ impl FontCache {
 
 /// The public interface to the font cache task, used exclusively by
 /// the per-thread/task FontContext structures.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct FontCacheTask {
     chan: IpcSender<Command>,
 }
