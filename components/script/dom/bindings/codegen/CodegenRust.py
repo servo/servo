@@ -4321,10 +4321,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             get = "let index = get_array_index_from_id(cx, id);\n"
 
         if indexedGetter:
-            readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
+            attrs = "JSPROP_ENUMERATE"
+            if self.descriptor.operations['IndexedSetter'] is None:
+                attrs += " | JSPROP_READONLY"
             fillDescriptor = ("desc.get().value = result_root.ptr;\n"
                               "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\n"
-                              "return true;" % readonly)
+                              "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
@@ -4338,10 +4340,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
+            attrs = "JSPROP_ENUMERATE"
+            if self.descriptor.operations['IndexedSetter'] is None:
+                attrs += " | JSPROP_READONLY"
             fillDescriptor = ("desc.get().value = result_root.ptr;\n"
                               "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\n"
-                              "return true;" % readonly)
+                              "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
