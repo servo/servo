@@ -53,7 +53,7 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
-use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::text::Text;
@@ -1615,12 +1615,10 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.unbind_from_tree(tree_in_doc);
-        }
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
 
-        if !tree_in_doc {
+        if !context.tree_in_doc {
             return;
         }
 

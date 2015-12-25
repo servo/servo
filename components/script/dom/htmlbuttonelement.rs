@@ -16,7 +16,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -174,10 +174,8 @@ impl VirtualMethods for HTMLButtonElement {
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.unbind_from_tree(tree_in_doc);
-        }
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();

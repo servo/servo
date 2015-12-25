@@ -6,13 +6,18 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::comment::Comment;
 use dom::document::Document;
 use dom::element::Element;
 use dom::node::{Node, NodeDamage};
+use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
 use std::cell::Ref;
 use util::str::DOMString;
 
@@ -30,6 +35,38 @@ impl CharacterData {
             data: DOMRefCell::new(data),
         }
     }
+
+    pub fn clone_with_data(&self, data: DOMString, document: &Document) -> Root<Node> {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                Root::upcast(Comment::new(data, &document))
+            }
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                let pi = self.downcast::<ProcessingInstruction>().unwrap();
+                Root::upcast(ProcessingInstruction::new(pi.Target(), data, &document))
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                Root::upcast(Text::new(data, &document))
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    #[inline]
+    pub fn data(&self) -> Ref<DOMString> {
+        self.data.borrow()
+    }
+
+    #[inline]
+    pub fn append_data(&self, data: &str) {
+        self.data.borrow_mut().push_str(data);
+        self.content_changed();
+    }
+
+    fn content_changed(&self) {
+        let node = self.upcast::<Node>();
+        node.owner_doc().content_changed(node, NodeDamage::OtherNodeDamage);
+    }
 }
 
 impl CharacterDataMethods for CharacterData {
@@ -40,13 +77,17 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
+        let old_length = self.Length();
+        let new_length = data.utf16_units().count() as u32;
         *self.data.borrow_mut() = data;
         self.content_changed();
+        let node = self.upcast::<Node>();
+        node.ranges().replace_code_units(node, 0, old_length, new_length);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(&self) -> u32 {
-        self.data.borrow().chars().map(|c| c.len_utf16()).sum::<usize>() as u32
+        self.data.borrow().utf16_units().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
@@ -107,7 +148,10 @@ impl CharacterDataMethods for CharacterData {
         };
         *self.data.borrow_mut() = DOMString::from(new_data);
         self.content_changed();
-        // FIXME: Once we have `Range`, we should implement step 8 to step 11
+        // Steps 8-11.
+        let node = self.upcast::<Node>();
+        node.ranges().replace_code_units(
+            node, offset, count, arg.utf16_units().count() as u32);
         Ok(())
     }
 
@@ -140,24 +184,6 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
-    }
-}
-
-impl CharacterData {
-    #[inline]
-    pub fn data(&self) -> Ref<DOMString> {
-        self.data.borrow()
-    }
-    #[inline]
-    pub fn append_data(&self, data: &str) {
-        // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.data.borrow_mut().push_str(data);
-        self.content_changed();
-    }
-
-    fn content_changed(&self) {
-        let node = self.upcast::<Node>();
-        node.owner_doc().content_changed(node, NodeDamage::OtherNodeDamage);
     }
 }
 

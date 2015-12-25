@@ -62,15 +62,18 @@ impl TextMethods for Text {
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
-            // Step 7.
+            // Step 7.1.
             parent.InsertBefore(new_node.upcast(), node.GetNextSibling().r()).unwrap();
-            // TODO: Ranges.
+            // Steps 7.2-3.
+            node.ranges().move_to_following_text_sibling_above(node, offset, new_node.upcast());
+            // Steps 7.4-5.
+            parent.ranges().increment_at(&parent, node.index() + 1);
         }
         // Step 8.
         cdata.DeleteData(offset, count).unwrap();
         if parent.is_none() {
             // Step 9.
-            // TODO: Ranges
+            node.ranges().clamp_above(&node, offset);
         }
         // Step 10.
         Ok(new_node)

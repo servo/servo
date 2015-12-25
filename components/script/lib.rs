@@ -13,7 +13,6 @@
 #![feature(custom_derive)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
-#![feature(iter_arith)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]

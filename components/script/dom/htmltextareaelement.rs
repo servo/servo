@@ -20,7 +20,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{ChildrenMutation, Node, NodeDamage};
+use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
@@ -300,10 +300,8 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
     }
 
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.unbind_from_tree(tree_in_doc);
-        }
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
