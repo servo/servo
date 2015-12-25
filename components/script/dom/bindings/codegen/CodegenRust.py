@@ -2602,9 +2602,9 @@ class CGDefineProxyHandler(CGAbstractMethod):
         if self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete'
 
-        getOwnEnumerablePropertyKeys = "None"
+        getOwnEnumerablePropertyKeys = "own_property_keys"
         if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
-            getOwnEnumerablePropertyKeys = "Some(getOwnEnumerablePropertyKeys)"
+            getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys"
 
         args = {
             "defineProperty": customDefineProperty,
@@ -2631,7 +2631,7 @@ let traps = ProxyTraps {
     construct: None,
     getPropertyDescriptor: Some(get_property_descriptor),
     hasOwn: Some(hasOwn),
-    getOwnEnumerablePropertyKeys: %(getOwnEnumerablePropertyKeys)s,
+    getOwnEnumerablePropertyKeys: Some(%(getOwnEnumerablePropertyKeys)s),
     nativeCall: None,
     hasInstance: None,
     objectClassIs: None,
