@@ -523,18 +523,18 @@ def check_spec(file_name, lines):
                 brace_count -= 1
 
 
-def collect_errors_for_files(files_to_check, checking_fns, line_checking_fns):
+def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions):
     for filename in files_to_check:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             contents = f.read()
+            for check in checking_functions:
+                for error in check(filename, contents):
+                    # the result will be: `(filename, line, message)`
+                    yield (filename,) + error
             lines = contents.splitlines(True)
-            errors = itertools.chain(
-                itertools.chain.from_iterable(fn(filename, contents) for fn in checking_fns),
-                itertools.chain.from_iterable(fn(filename, lines) for fn in line_checking_fns)
-            )
-            for error in errors:
-                # the result will be: `(filename, line, message)`
-                yield (filename,) + error
+            for check in line_checking_functions:
+                for error in check(filename, lines):
+                    yield (filename,) + error
 
 
 def check_reftest_order(files_to_check):
