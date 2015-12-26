@@ -66,15 +66,17 @@ def should_check_reftest(file_name):
 
 EMACS_HEADER = "/* -*- Mode:"
 VIM_HEADER = "/* vim:"
+MAX_LICENSE_LINESPAN = max(len(license.splitlines()) for license in licenses)
 
 
-def check_license(file_name, contents):
+def check_license(file_name, lines):
     if file_name.endswith(".toml") or file_name.endswith(".lock"):
         raise StopIteration
-    while contents.startswith(EMACS_HEADER) or contents.startswith(VIM_HEADER):
-        _, _, contents = contents.partition("\n")
+    while lines and (lines[0].startswith(EMACS_HEADER) or lines[0].startswith(VIM_HEADER)):
+        lines = lines[1:]
+    contents = "".join(lines[:MAX_LICENSE_LINESPAN])
     valid_license = any(contents.startswith(license) for license in licenses)
-    acknowledged_bad_license = "xfail-license" in contents[:100]
+    acknowledged_bad_license = "xfail-license" in contents
     if not (valid_license or acknowledged_bad_license):
         yield (1, "incorrect license")
 
@@ -117,8 +119,7 @@ def check_whitespace(idx, line):
         yield (idx + 1, "CR on line")
 
 
-def check_by_line(file_name, contents):
-    lines = contents.splitlines(True)
+def check_by_line(file_name, lines):
     for idx, line in enumerate(lines):
         errors = itertools.chain(
             check_length(file_name, idx, line),
@@ -214,22 +215,20 @@ def maybe_int(value):
         return value
 
 
-def check_toml(file_name, contents):
+def check_toml(file_name, lines):
     if not file_name.endswith(".toml"):
         raise StopIteration
-    contents = contents.splitlines(True)
-    for idx, line in enumerate(contents):
+    for idx, line in enumerate(lines):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
-def check_rust(file_name, contents):
+def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \
        file_name.endswith("properties.mako.rs") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
         raise StopIteration
-    contents = contents.splitlines(True)
     comment_depth = 0
     merged_lines = ''
 
@@ -245,7 +244,7 @@ def check_rust(file_name, contents):
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
 
-    for idx, original_line in enumerate(contents):
+    for idx, original_line in enumerate(lines):
         # simplify the analysis
         line = original_line.strip()
 
@@ -391,7 +390,7 @@ def check_rust(file_name, contents):
             indent = len(original_line) - line_len
             mod = line[4:] if line.startswith("mod ") else line[8:]
 
-            if idx < 0 or "#[macro_use]" not in contents[idx - 1]:
+            if idx < 0 or "#[macro_use]" not in lines[idx - 1]:
                 match = line.find(" {")
                 if indent not in prev_mod:
                     prev_mod[indent] = ""
@@ -481,7 +480,7 @@ def check_webidl_spec(file_name, contents):
     yield 0, "No specification link found."
 
 
-def check_spec(file_name, contents):
+def check_spec(file_name, lines):
     base_path = "components/script/dom/"
     if base_path not in file_name:
         raise StopIteration
@@ -498,10 +497,9 @@ def check_spec(file_name, contents):
     comment_patt = re.compile("^\s*///?.+$")
 
     pattern = "impl %sMethods for %s {" % (file_name, file_name)
-    contents = contents.splitlines(True)
     brace_count = 0
     in_impl = False
-    for idx, line in enumerate(contents):
+    for idx, line in enumerate(lines):
         if "// check-tidy: no specs after this line" in line:
             break
         if not patt.match(line):
@@ -509,7 +507,7 @@ def check_spec(file_name, contents):
                 in_impl = True
             if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
                 for up_idx in range(1, idx + 1):
-                    up_line = contents[idx - up_idx]
+                    up_line = lines[idx - up_idx]
                     if link_patt.match(up_line):
                         # Comment with spec link exists
                         break
@@ -525,14 +523,18 @@ def check_spec(file_name, contents):
                 brace_count -= 1
 
 
-def collect_errors_for_files(files_to_check, checking_functions):
-    for file_name in files_to_check:
-        with open(file_name, "r") as fp:
-            contents = fp.read()
+def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions):
+    for filename in files_to_check:
+        with open(filename, "r") as f:
+            contents = f.read()
             for check in checking_functions:
-                for error in check(file_name, contents):
-                    # filename, line, message
-                    yield (file_name, error[0], error[1])
+                for error in check(filename, contents):
+                    # the result will be: `(filename, line, message)`
+                    yield (filename,) + error
+            lines = contents.splitlines(True)
+            for check in line_checking_functions:
+                for error in check(filename, lines):
+                    yield (filename,) + error
 
 
 def check_reftest_order(files_to_check):
@@ -587,9 +589,9 @@ def scan():
     all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_by_line, check_flake8, check_toml,
-                          check_lock, check_rust, check_webidl_spec, check_spec]
-    errors = collect_errors_for_files(files_to_check, checking_functions)
+    checking_functions = (check_flake8, check_lock, check_webidl_spec)
+    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
+    errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
     reftest_files = (os.path.join(r, f) for r, _, files in os.walk(reftest_dir) for f in files)
     reftest_to_check = filter(should_check_reftest, reftest_files)
