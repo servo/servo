@@ -300,17 +300,13 @@ def check_rust(file_name, lines):
         match = re.search(pre_space_re, line)
         if match and not is_associated_type(match, line, 1):
             yield (idx + 1, "missing space before %s" % match.group(0)[1])
-
         match = re.search(post_space_re, line)
         if match and not is_associated_type(match, line, 0):
             yield (idx + 1, "missing space after %s" % match.group(0)[0])
 
-        match = re.search(r"\)->", line)
-        if match:
+        if re.search(r"\)->", line):
             yield (idx + 1, "missing space before ->")
-
-        match = re.search(r"->[A-Za-z]", line)
-        if match:
+        if re.search(r"->[A-Za-z]", line):
             yield (idx + 1, "missing space after ->")
 
         line_len = len(line)
@@ -323,34 +319,38 @@ def check_rust(file_name, lines):
             elif arrow_pos + 3 < line_len and line[arrow_pos + 3] == ' ':
                 yield (idx + 1, "extra space after =>")
 
-        # Avoid flagging ::crate::mod and `trait Foo : Bar`
+        # do not allow spaces before colons, but
+        # allow " ::crate::mod" and "trait Foo : Bar"
         match = line.find(" :")
-        if match != -1:
-            if line[0:match].find('trait ') == -1 and line[match + 2] != ':':
-                yield (idx + 1, "extra space before :")
+        if match != -1 and (line[0:match].find('trait ') == -1 and
+                            line[match + 2] != ':'):
+            yield (idx + 1, "extra space before :")
 
-        # Avoid flagging crate::mod
+        # require spaces after colons, but
+        # allow "crate::mod"
         match = re.search(r"[^:]:[A-Za-z]", line)
         if match:
-            # Avoid flagging macros like $t1:expr
+            # also allow flagging macros like "$t1:expr"
             if line[0:match.end()].rfind('$') == -1:
                 yield (idx + 1, "missing space after :")
 
-        match = re.search(r"[A-Za-z0-9\)]{", line)
-        if match:
+        # require a space before opening braces
+        if re.search(r"[A-Za-z0-9\)]{", line):
             yield (idx + 1, "missing space before {")
 
-        # ignored cases like {}, }` and }}
-        match = re.search(r"[^\s{}]}[^`]", line)
-        if match and not (line.startswith("use") or line.startswith("pub use")):
+        # require a space before closing braces, but
+        # ignore cases like "{}", "}`", "}}" and "use::std::{Foo, Bar}"
+        if (re.search(r"[^\s{}]}[^`]", line)
+                and not (line.startswith("use") or line.startswith("pub use"))):
             yield (idx + 1, "missing space before }")
 
-        # ignored cases like {}, `{ and {{
+        # require a space after opening braces, but
+        # ignore cases like "{}", "`{", "{{" and "use::std::{Foo, Bar}"
         match = re.search(r"[^`]{[^\s{}]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space after {")
 
-        # check extern crates
+        # check alphabetical order of extern crates
         if line.startswith("extern crate "):
             crate_name = line[len("extern crate "):-1]
             indent = len(original_line) - line_len
@@ -364,13 +364,12 @@ def check_rust(file_name, lines):
 
         # imports must be in the same line, alphabetically sorted, and merged
         # into a single import block
-        elif line.startswith("use "):
+        if line.startswith("use "):
             import_block = True
-            use = line[4:]
             indent = len(original_line) - line_len
-            if not use.endswith(";"):
+            if not line.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
-            current_use = use[:len(use) - 1]
+            current_use = line[4:-1]
             if indent == current_indent and prev_use and current_use < prev_use:
                 yield(idx + 1, decl_message.format("use statement")
                       + decl_expected.format(prev_use)
@@ -381,6 +380,7 @@ def check_rust(file_name, lines):
         if whitespace or not import_block:
             current_indent = 0
 
+        # do not allow blank lines in an import block
         if import_block and whitespace and line.startswith("use "):
             whitespace = False
             yield(idx, "encountered whitespace following a use statement")
@@ -388,15 +388,14 @@ def check_rust(file_name, lines):
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
             indent = len(original_line) - line_len
-            mod = line[4:] if line.startswith("mod ") else line[8:]
+            mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
 
-            if idx < 0 or "#[macro_use]" not in lines[idx - 1]:
+            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1]:
                 match = line.find(" {")
                 if indent not in prev_mod:
                     prev_mod[indent] = ""
-                if match == -1 and not mod.endswith(";"):
+                if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
-                mod = mod[:len(mod) - 1]
                 if len(prev_mod[indent]) > 0 and mod < prev_mod[indent]:
                     yield(idx + 1, decl_message.format("mod declaration")
                           + decl_expected.format(prev_mod[indent])
