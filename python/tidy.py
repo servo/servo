@@ -416,12 +416,13 @@ def check_rust(file_name, lines):
 
 # Avoid flagging <Item=Foo> constructs
 def is_associated_type(match, line, index):
+    if not match.group(0)[index] == '=':
+        return False
     open_angle = line[0:match.end()].rfind('<')
     close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
-    is_equals = match.group(0)[index] == '='
     generic_open = open_angle != -1 and open_angle < match.start()
     generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
-    return is_equals and generic_open and generic_close
+    return generic_open and generic_close
 
 
 def line_is_attribute(line):
