@@ -116,7 +116,7 @@ pub struct hw_module {
     author: *const c_char,
     methods: *mut hw_module_methods,
     dso: *mut u32,
-    reserved: [u32; (32-7)],
+    reserved: [u32; (32 - 7)],
 }
 
 #[repr(C)]

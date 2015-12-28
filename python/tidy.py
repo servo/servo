@@ -291,7 +291,9 @@ def check_rust(file_name, lines):
                 lambda match, line: not line_is_attribute(line)),
             (r"=[A-Za-z0-9\"]", "missing space after =",
                 lambda match, line: not line_is_attribute(line)),
-            # - not included because of scientific notation (1e-6)
+            # ignore scientific notation patterns like 1e-6
+            (r"[A-DF-Za-df-z0-9]-", "missing space before -",
+                lambda match, line: line_is_attribute(line)),
             (r"[A-Za-z0-9]([\+/\*%=])", "missing space before {0}",
                 lambda match, line: line_is_attribute(line) or is_associated_type(match, line)),
             # * not included because of dereferencing and casting
