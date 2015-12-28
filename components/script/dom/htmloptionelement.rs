@@ -210,6 +210,12 @@ impl VirtualMethods for HTMLOptionElement {
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
+        if let Some(select) = context.parent.inclusive_ancestors()
+                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .next() {
+            select.ask_for_reset();
+        }
+
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
         if node.GetParentNode().is_some() {
