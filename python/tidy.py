@@ -283,54 +283,44 @@ def check_rust(file_name, lines):
         # get rid of attributes that do not contain =
         line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
 
-        match = re.search(r",[^\s]", line)
-        if match and '$' not in line:
-            yield (idx + 1, "missing space after ,")
-
-        # we will define a lot of rules for this line they are each like:
-        # (pattern, format_message[, exception_functions])
-        rules = []
-
-        if line_is_attribute(line):
-            rules.append((r"[A-Za-z0-9\"]=", "missing space before ="))
-            rules.append((r"=[A-Za-z0-9\"]", "missing space after ="))
-        else:
+        # define a lot of rules for this line they are each like:
+        # (pattern, format_message[, exception_function(match, line)])
+        rules = [
+            (r",[^\s]", "missing space after ,", lambda match, line: '$' in line),
+            (r"[A-Za-z0-9\"]=", "missing space before =",
+                lambda match, line: not line_is_attribute(line)),
+            (r"=[A-Za-z0-9\"]", "missing space after =",
+                lambda match, line: not line_is_attribute(line)),
             # - not included because of scientific notation (1e-6)
-            rules.append((r"[A-Za-z0-9]([\+/\*%=])", "missing space before {0}",
-                          is_associated_type))
+            (r"[A-Za-z0-9]([\+/\*%=])", "missing space before {0}",
+                lambda match, line: line_is_attribute(line) or is_associated_type(match, line)),
             # * not included because of dereferencing and casting
             # - not included because of unary negation
-            rules.append((r'([\+/\%=])[A-Za-z0-9"]', "missing space after {0}",
-                          is_associated_type))
-        rules.append((r"\)->", "missing space before ->"))
-        rules.append((r"->[A-Za-z]", "missing space after ->"))
-        rules.append(("[^ ]=>", "missing space before =>",
-                      lambda match, _: match.start() == 0))
-        rules.append(("=>[^ ]", "missing space after =>",
-                      lambda match, line: match.end() == len(line)))
-        rules.append(("=>  ", "extra space after =>"))
-        # do not allow spaces before colons, but
-        # allow " ::crate::mod" and "trait Foo : Bar"
-        rules.append((" :[^:]", "extra space before :",
-                      lambda match, line: line[:match.start()].find('trait ') != -1))
-        # require spaces after colons, but
-        # allow "crate::mod" and allow flagging macros like "$t1:expr"
-        rules.append((r"[^:]:[A-Za-z]", "missing space after :",
-                      lambda match, line: line[:match.end()].rfind('$') != -1))
-        # require a space before opening braces
-        rules.append((r"[A-Za-z0-9\)]{", "missing space before {"))
-        # require a space before closing braces, but
-        # ignore cases like "{}", "}`", "}}" and "use::std::{Foo, Bar}"
-        rules.append((r"[^\s{}]}[^`]", "missing space before }",
-                      lambda match, line: re.match(r'^(pub )?use', line)))
-        # require a space after opening braces, but
-        # ignore cases like "{}", "`{", "{{" and "use::std::{Foo, Bar}"
-        rules.append((r"[^`]{[^\s{}]", "missing space after {",
-                      lambda match, line: re.match(r'^(pub )?use', line)))
-        # There should not be any extra pointer dereferencing
-        rules.append((r": &Vec<", "use &[T] instead of &Vec<T>"))
-        # No benefit over using &str
-        rules.append((": &String", "use &str instead of &String"))
+            (r'([\+/\%=])[A-Za-z0-9"]', "missing space after {0}",
+                lambda match, line: line_is_attribute(line) or is_associated_type(match, line)),
+            (r"\)->", "missing space before ->"),
+            (r"->[A-Za-z]", "missing space after ->"),
+            (r"[^ ]=>", "missing space before =>", lambda match, line: match.start() == 0),
+            (r"=>[^ ]", "missing space after =>", lambda match, line: match.end() == len(line)),
+            (r"=>  ", "extra space after =>"),
+            # ignore " ::crate::mod" and "trait Foo : Bar"
+            (r" :[^:]", "extra space before :",
+                lambda match, line: line[:match.start()].find('trait ') != -1),
+            # ignore "crate::mod" and ignore flagging macros like "$t1:expr"
+            (r"[^:]:[A-Za-z]", "missing space after :",
+                lambda match, line: line[:match.end()].rfind('$') != -1),
+            (r"[A-Za-z0-9\)]{", "missing space before {"),
+            # ignore cases like "{}", "}`", "}}" and "use::std::{Foo, Bar}"
+            (r"[^\s{}]}[^`]", "missing space before }",
+                lambda match, line: re.match(r'^(pub )?use', line)),
+            # ignore cases like "{}", "`{", "{{" and "use::std::{Foo, Bar}"
+            (r"[^`]{[^\s{}]", "missing space after {",
+                lambda match, line: re.match(r'^(pub )?use', line)),
+            # There should not be any extra pointer dereferencing
+            (r": &Vec<", "use &[T] instead of &Vec<T>"),
+            # No benefit over using &str
+            (r": &String", "use &str instead of &String"),
+        ]
 
         for rule in rules:
             for match in re.finditer(rule[0], line):
