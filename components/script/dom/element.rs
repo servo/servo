@@ -36,6 +36,7 @@ use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
@@ -1773,6 +1774,10 @@ impl Element {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let element = self.downcast::<HTMLInputElement>().unwrap();
+                Some(element as &Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
+                let element = self.downcast::<HTMLButtonElement>().unwrap();
                 Some(element as &Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {

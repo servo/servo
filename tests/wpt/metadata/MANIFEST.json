@@ -30152,7 +30152,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/forms/the-button-element/button-activate.html": [
+          {
+            "path": "html/semantics/forms/the-button-element/button-activate.html",
+            "url": "/html/semantics/forms/the-button-element/button-activate.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
