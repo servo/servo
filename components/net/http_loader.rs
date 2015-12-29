@@ -553,16 +553,16 @@ pub fn process_response_headers(response: &HttpResponse,
     update_sts_list_from_response(url, response, hsts_list);
 }
 
-pub fn load_response<A>(request_factory: &HttpRequestFactory<R=A>,
-                        url: &Url,
-                        method: &Method,
-                        request_headers: &mut Headers,
-                        cancel_listener: &CancellationListener,
-                        load_data: &LoadData,
-                        iters: u32,
-                        devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
-                        request_id: &String)
-                        -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
+pub fn process_response<A>(request_factory: &HttpRequestFactory<R=A>,
+                           url: &Url,
+                           method: &Method,
+                           request_headers: &mut Headers,
+                           cancel_listener: &CancellationListener,
+                           load_data: &LoadData,
+                           iters: u32,
+                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
+                           request_id: &str)
+                           -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
 
     let response;
 
@@ -610,8 +610,8 @@ pub fn load_response<A>(request_factory: &HttpRequestFactory<R=A>,
         };
         if let Some(pipeline_id) = load_data.pipeline_id {
             send_request_to_devtools(
-                devtools_chan.clone(), request_id.clone(), url.clone(),
-                method.clone(), request_headers.clone(),
+                devtools_chan.clone(), request_id.clone().into(),
+                url.clone(), method.clone(), request_headers.clone(),
                 cloned_data, pipeline_id, time::now()
             );
         }
@@ -706,7 +706,7 @@ pub fn load<A>(load_data: LoadData,
 
         modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
-        let response = try!(load_response(request_factory, &url, &method, &mut request_headers,
+        let response = try!(process_response(request_factory, &url, &method, &mut request_headers,
                                           &cancel_listener, &load_data, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list, &load_data);
