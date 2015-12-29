@@ -201,6 +201,27 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         panic!("assign_block_size not yet implemented")
     }
 
+    /// Like `assign_block_size`, but is recurses explicitly into descendants.
+    /// Fit as much content as possible within `available_block_size`.
+    /// If that’s not all of it,
+    /// return an indication of where in the tree to break and start the next fragment.
+    ///
+    /// FIXME: replace `()` in the return value with something meaningful.
+    ///
+    /// The default is to make a flow "atomic": it can not be fragmented.
+    fn fragment<'a>(&mut self, ctx: &'a LayoutContext<'a>, _available_block_size: Au)
+                    -> Option<()> {
+        fn recursive_assign_block_size<'a, F: ?Sized + Flow>
+                                      (flow: &mut F, ctx: &'a LayoutContext<'a>) {
+            for child in mut_base(flow).children.iter_mut() {
+                recursive_assign_block_size(child, ctx)
+            }
+            flow.assign_block_size(ctx);
+        }
+        recursive_assign_block_size(self, ctx);
+        None
+    }
+
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {}
 
@@ -621,6 +642,9 @@ bitflags! {
                  static` and `position: relative` as well as absolutely-positioned flows with \
                  unconstrained positions in the block direction."]
         const BLOCK_POSITION_IS_STATIC = 0b0100_0000_0000_0000_0000,
+
+        /// Whether any ancestor is a fragmentation container
+        const CAN_BE_FRAGMENTED = 0b1000_0000_0000_0000_0000,
     }
 }
 
