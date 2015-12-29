@@ -12,18 +12,21 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 pub struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
+    program_id: u32,
 }
 
 impl WebGLUniformLocation {
-    fn new_inherited(id: i32) -> WebGLUniformLocation {
+    fn new_inherited(id: i32, program_id: u32) -> WebGLUniformLocation {
         WebGLUniformLocation {
             reflector_: Reflector::new(),
             id: id,
+            program_id: program_id,
         }
     }
 
-    pub fn new(global: GlobalRef, id: i32) -> Root<WebGLUniformLocation> {
-        reflect_dom_object(box WebGLUniformLocation::new_inherited(id), global, WebGLUniformLocationBinding::Wrap)
+    pub fn new(global: GlobalRef, id: i32, program_id: u32) -> Root<WebGLUniformLocation> {
+        reflect_dom_object(
+            box WebGLUniformLocation::new_inherited(id, program_id), global, WebGLUniformLocationBinding::Wrap)
     }
 }
 
@@ -31,5 +34,9 @@ impl WebGLUniformLocation {
 impl WebGLUniformLocation {
     pub fn id(&self) -> i32 {
         self.id
+    }
+
+    pub fn program_id(&self) -> u32 {
+        self.program_id
     }
 }
