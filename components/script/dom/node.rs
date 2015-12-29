@@ -146,7 +146,7 @@ bitflags! {
         const SEQUENTIALLY_FOCUSABLE = 0x20,
 
         /// Whether any ancestor is a fragmentation container
-        const IN_FRAGMENTATION_CONTAINER = 0x40
+        const CAN_BE_FRAGMENTED = 0x40
     }
 }
 

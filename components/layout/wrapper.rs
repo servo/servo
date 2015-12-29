@@ -49,8 +49,8 @@ use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
-use script::dom::node::{IN_FRAGMENTATION_CONTAINER, LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
+use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
 use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
@@ -226,12 +226,12 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
     }
 
-    fn in_fragmentation_container(&self) -> bool {
-        unsafe { self.node.get_flag(IN_FRAGMENTATION_CONTAINER) }
+    fn can_be_fragmented(&self) -> bool {
+        unsafe { self.node.get_flag(CAN_BE_FRAGMENTED) }
     }
 
-    unsafe fn set_in_fragmentation_container(&self, value: bool) {
-        self.node.set_flag(IN_FRAGMENTATION_CONTAINER, value)
+    unsafe fn set_can_be_fragmented(&self, value: bool) {
+        self.node.set_flag(CAN_BE_FRAGMENTED, value)
     }
 
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
@@ -757,7 +757,7 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
         }
     }
 
-    fn in_fragmentation_container(&self) -> bool;
+    fn can_be_fragmented(&self) -> bool;
 
     /// If this is a text node, generated content, or a form element, copies out
     /// its content. Otherwise, panics.
@@ -935,8 +935,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn in_fragmentation_container(&self) -> bool {
-        self.node.in_fragmentation_container()
+    fn can_be_fragmented(&self) -> bool {
+        self.node.can_be_fragmented()
     }
 
     fn text_content(&self) -> TextContent {
