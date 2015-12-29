@@ -4590,6 +4590,16 @@
         "url": "/html/rendering/non-replaced-elements/tables/table-border-2.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/tables/table-cell-width.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/tables/table-cell-width-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/tables/table-cell-width.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/tables/table-layout.html",
         "references": [
           [
@@ -4608,6 +4618,16 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/tables/table-width-150percent.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/tables/table-width.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/tables/table-width-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/tables/table-width.html"
       },
       {
         "path": "html/rendering/non-replaced-elements/the-fieldset-element-0/min-width-not-important.html",
@@ -32277,6 +32297,18 @@
         "url": "/html/rendering/non-replaced-elements/tables/table-border-2.html"
       }
     ],
+    "html/rendering/non-replaced-elements/tables/table-cell-width.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/tables/table-cell-width.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/tables/table-cell-width-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/tables/table-cell-width.html"
+      }
+    ],
     "html/rendering/non-replaced-elements/tables/table-layout.html": [
       {
         "path": "html/rendering/non-replaced-elements/tables/table-layout.html",
@@ -32299,6 +32331,18 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/tables/table-width-150percent.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/tables/table-width.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/tables/table-width.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/tables/table-width-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/tables/table-width.html"
       }
     ],
     "html/rendering/non-replaced-elements/the-fieldset-element-0/min-width-not-important.html": [
