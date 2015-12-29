@@ -5,6 +5,7 @@
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -122,35 +123,52 @@ impl EventListenerType {
             EventListenerType::Inline(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
-                        if let Some(event) = event.downcast::<ErrorEvent>() {
+                        if let Some(error_event) = event.downcast::<ErrorEvent>() {
                             let global = global_root_from_reflector(object);
                             let cx = global.r().get_cx();
-                            let error = RootedValue::new(cx, event.Error(cx));
-                            let _ = handler.Call_(object,
-                                                  EventOrString::eString(event.Message()),
-                                                  Some(event.Filename()),
-                                                  Some(event.Lineno()),
-                                                  Some(event.Colno()),
-                                                  Some(error.handle()),
-                                                  exception_handle);
+                            let error = RootedValue::new(cx, error_event.Error(cx));
+                            let return_value = handler.Call_(object,
+                                                             EventOrString::eString(error_event.Message()),
+                                                             Some(error_event.Filename()),
+                                                             Some(error_event.Lineno()),
+                                                             Some(error_event.Colno()),
+                                                             Some(error.handle()),
+                                                             exception_handle);
+                            if let Ok(return_value) = return_value {
+                                let return_value = RootedValue::new(cx, return_value);
+                                if return_value.handle().is_boolean() && return_value.handle().to_boolean() == true {
+                                    event.PreventDefault();
+                                }
+                            }
                             return;
                         }
-
                         let _ = handler.Call_(object, EventOrString::eEvent(Root::from_ref(event)),
                                               None, None, None, None, exception_handle);
                     }
 
                     CommonEventHandler::EventHandler(ref handler) => {
-                        let _ = handler.Call_(object, event, exception_handle);
+                        if let Ok(value) = handler.Call_(object, event, exception_handle) {
+                            let global = global_root_from_reflector(object);
+                            let cx = global.r().get_cx();
+                            let value = RootedValue::new(cx, value);
+                            let value = value.handle();
+
+                            //Step 4
+                            let should_cancel = match event.type_() {
+                                atom!("mouseover") => value.is_boolean() && value.to_boolean() == true,
+                                atom!("beforeunload") => value.is_null(),
+                                _ => value.is_boolean() && value.to_boolean() == false
+                            };
+                            if should_cancel {
+                                event.PreventDefault();
+                            }
+                        }
                     }
                 }
-            },
+            }
         }
-
-        // TODO(#8490): step 4 (cancel event based on return value)
     }
 }
-
 #[derive(JSTraceable, Clone, PartialEq, HeapSizeOf)]
 #[privatize]
 pub struct EventListenerEntry {
@@ -179,7 +197,7 @@ impl EventTarget {
     }
 
     pub fn get_listeners_for(&self, type_: &Atom, desired_phase: ListenerPhase)
-        -> Option<Vec<EventListenerType>> {
+                             -> Option<Vec<EventListenerType>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.clone()).collect()
@@ -187,8 +205,8 @@ impl EventTarget {
     }
 
     pub fn dispatch_event_with_target(&self,
-                                  target: &EventTarget,
-                                  event: &Event) -> bool {
+                                      target: &EventTarget,
+                                      event: &Event) -> bool {
         dispatch_event(self, Some(target), event)
     }
 
@@ -202,14 +220,14 @@ impl EventTarget {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
-            Vacant(entry) => entry.insert(vec!()),
-        };
+        Vacant(entry) => entry.insert(vec!()),
+};
 
-        let idx = entries.iter().position(|ref entry| {
-            match entry.listener {
-                EventListenerType::Inline(_) => true,
-                _ => false,
-            }
+let idx = entries.iter().position(|ref entry| {
+    match entry.listener {
+        EventListenerType::Inline(_) => true,
+    _ => false,
+}
         });
 
         match idx {
@@ -246,11 +264,11 @@ impl EventTarget {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     pub fn set_event_handler_uncompiled(&self,
-                                    cx: *mut JSContext,
-                                    url: Url,
-                                    scope: HandleObject,
-                                    ty: &str,
-                                    source: DOMString) {
+                                        cx: *mut JSContext,
+                                        url: Url,
+                                        scope: HandleObject,
+                                        ty: &str,
+                                        source: DOMString) {
         let url = CString::new(url.serialize()).unwrap();
         let name = CString::new(ty).unwrap();
         let lineno = 0; //XXXjdm need to get a real number here
