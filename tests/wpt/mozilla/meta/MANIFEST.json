@@ -5853,6 +5853,12 @@
             "url": "/_mozilla/mozilla/webgl/bufferData.html"
           }
         ],
+        "mozilla/webgl/bufferSubData.html": [
+          {
+            "path": "mozilla/webgl/bufferSubData.html",
+            "url": "/_mozilla/mozilla/webgl/bufferSubData.html"
+          }
+        ],
         "mozilla/webgl/context_creation_error.html": [
           {
             "path": "mozilla/webgl/context_creation_error.html",

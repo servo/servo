@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>bufferSubData input array type check (issue #6791, #8738)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+    var texture_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texture_buffer);
+
+
+    //
+    // Issue #6791
+    //
+
+    // Bind to a 20 Int8 buffer
+    var longBuffer = new Int8Array([ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+                                     1, 0, 1, 0, 1, 0, 1, 0, 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, longBuffer, gl.STATIC_DRAW);
+
+    var coordI8 = new Int8Array([ 1, 0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordI8);
+
+    var coordU8 = new Uint8Array([ 1, 0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordU8);
+
+    var coordI16 = new Int16Array([ 1, 0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordI16);
+
+    var coordU16 = new Uint16Array([ 1, 0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordU16);
+
+    var coordI32 = new Int32Array([ 1, 0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordI32);
+
+    var coordU32 = new Uint32Array([ 1, 0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordU32);
+
+    var coordF32 = new Float32Array([ 1.0, 0.0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordF32);
+
+    var coordF64 = new Float64Array([ 1.0, 0.0 ]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordF64);
+
+
+    //
+    // Issue #8738
+    //
+
+    // Re-bind to a 10 Int8 buffer (so 10 bytes long)
+    var coordArrayI8_10 = new Int8Array([ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordArrayI8_10, gl.STATIC_DRAW);
+
+    //   - Setting two Int8 elements starting at offset 8 is OK
+    gl.bufferSubData(gl.ARRAY_BUFFER, 8, coordI8);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    //   - Setting two Int8 starting at offset 9 is an error
+    gl.bufferSubData(gl.ARRAY_BUFFER, 9, coordI8);
+    assert_equals(gl.INVALID_VALUE, gl.getError());
+
+    // Re-bind to a 2 Uint16 buffer (so 4 bytes long)
+    var coordArrayU16_10 = new Uint16Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordArrayU16_10, gl.STATIC_DRAW);
+
+    //   - Setting two Uint16 elements starting at offset 0 is OK
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, coordU16);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    //  - Setting two Int8 starting at offset 1 is OK
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordI8);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    //  - Setting two Uint16 starting at offset 1 is an error
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordU16);
+    assert_equals(gl.INVALID_VALUE, gl.getError());
+});
+</script>

@@ -80,6 +80,8 @@ pub struct WebGLRenderingContext {
     texture_unpacking_settings: Cell<TextureUnpacking>,
     bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
     bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
+    bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
+    bound_buffer_element_array: MutNullableHeap<JS<WebGLBuffer>>,
 }
 
 impl WebGLRenderingContext {
@@ -106,6 +108,8 @@ impl WebGLRenderingContext {
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
                 bound_texture_2d: MutNullableHeap::new(None),
                 bound_texture_cube_map: MutNullableHeap::new(None),
+                bound_buffer_array: MutNullableHeap::new(None),
+                bound_buffer_element_array: MutNullableHeap::new(None),
             }
         })
     }
@@ -174,6 +178,20 @@ impl WebGLRenderingContext {
             }
             let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
             Some(slice::from_raw_parts(data_f32, length as usize).to_vec())
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn byte_array_to_slice(&self, data: *mut JSObject) -> Option<Vec<u8>> {
+        unsafe {
+            let mut length = 0;
+            let mut ptr = ptr::null_mut();
+            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
+            if buffer_data.is_null() {
+                self.webgl_error(InvalidValue); // https://github.com/servo/servo/issues/5014
+                return None;
+            }
+            Some(slice::from_raw_parts(ptr, length as usize).to_vec())
         }
     }
 
@@ -358,15 +376,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
-        match target {
-            constants::ARRAY_BUFFER |
-            constants::ELEMENT_ARRAY_BUFFER => (),
+        let slot = match target {
+            constants::ARRAY_BUFFER => &self.bound_buffer_array,
+            constants::ELEMENT_ARRAY_BUFFER => &self.bound_buffer_element_array,
 
             _ => return self.webgl_error(InvalidEnum),
-        }
+        };
 
         if let Some(buffer) = buffer {
-            handle_potential_webgl_error!(self, buffer.bind(target))
+            match buffer.bind(target) {
+                Ok(_) => slot.set(Some(buffer)),
+                Err(e) => return self.webgl_error(e),
+            }
         } else {
             // Unbind the current buffer
             self.ipc_renderer
@@ -431,11 +452,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(&self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
-        match target {
-            constants::ARRAY_BUFFER |
-            constants::ELEMENT_ARRAY_BUFFER => (),
+        let bound_buffer = match target {
+            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
+            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
             _ => return self.webgl_error(InvalidEnum),
-        }
+        };
+        let bound_buffer = match bound_buffer {
+            Some(bound_buffer) => bound_buffer,
+            None => return self.webgl_error(InvalidValue),
+        };
         match usage {
             constants::STREAM_DRAW |
             constants::STATIC_DRAW |
@@ -446,21 +471,23 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
-        if let Some(data_vec) = self.float32_array_to_slice(data) {
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage)))
-                .unwrap()
+        if let Some(data_vec) = self.byte_array_to_slice(data) {
+            handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
         }
     }
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: Option<*mut JSObject>) {
-        match target {
-            constants::ARRAY_BUFFER |
-            constants::ELEMENT_ARRAY_BUFFER => (),
+        let bound_buffer = match target {
+            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
+            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
             _ => return self.webgl_error(InvalidEnum),
-        }
+        };
+        let bound_buffer = match bound_buffer {
+            Some(bound_buffer) => bound_buffer,
+            None => return self.webgl_error(InvalidOperation),
+        };
         let data = match data {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
@@ -468,20 +495,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if offset < 0 {
             return self.webgl_error(InvalidValue);
         }
-        let data_vec = unsafe {
-            let mut length = 0;
-            let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
-            if buffer_data.is_null() {
-                return self.webgl_error(InvalidValue) // https://github.com/servo/servo/issues/5014
+        if let Some(data_vec) = self.byte_array_to_slice(data) {
+            if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
+                return self.webgl_error(InvalidValue);
             }
-            slice::from_raw_parts(ptr, length as usize).to_vec()
-        };
-        // FIXME(simartin) Check that the defined region is inside the allocated one
-        // https://github.com/servo/servo/issues/8738
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferSubData(target, offset as isize, data_vec)))
-            .unwrap()
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferSubData(target, offset as isize, data_vec)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1061,13 +1082,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   format: u32,
                   data_type: u32,
                   source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement >) {
-        // TODO(ecoal95): Check for bound WebGLTexture, and validate more parameters
-        match target {
-            constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => (),
-
+        let texture = match target {
+            constants::TEXTURE_2D => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
             _ => return self.webgl_error(InvalidEnum),
+        };
+        if texture.is_none() {
+            return self.webgl_error(InvalidOperation);
         }
+        // TODO(ecoal95): Validate more parameters
 
         let source = match source {
             Some(s) => s,
