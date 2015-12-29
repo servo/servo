@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// For lazy_static
+#![allow(unsafe_code)]
+
 use cssparser::{Parser, SourcePosition};
 use dom::TElement;
 use log;
