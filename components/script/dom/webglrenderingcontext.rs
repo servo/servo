@@ -288,8 +288,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
-        // TODO(ecoal95) we actually do not support extensions.
-        // `getSupportedExtensions` cannot be implemented as of right now (see #544)
         0 as *mut JSObject
     }
 
@@ -642,8 +640,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         WebGLProgram::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
-    // TODO(ecoal95): Check if constants are cross-platform or if we must make a translation
-    // between WebGL constants and native ones.
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateShader(&self, shader_type: u32) -> Option<Root<WebGLShader>> {
         WebGLShader::maybe_new(self.global.root().r(), self.ipc_renderer.clone(), shader_type)
@@ -736,8 +732,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        // TODO ensure a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER
-        if self.current_program.get().is_none() {
+        if self.current_program.get().is_none() || self.bound_buffer_element_array.get().is_none() {
             return self.webgl_error(InvalidOperation);
         }
 
