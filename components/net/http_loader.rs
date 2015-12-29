@@ -554,15 +554,15 @@ pub fn process_response_headers(response: &HttpResponse,
 }
 
 pub fn load_response<A>(request_factory: &HttpRequestFactory<R=A>,
-                        url: Url,
-                        method: Method,
+                        url: &Url,
+                        method: &Method,
                         request_headers: &mut Headers,
                         cancel_listener: &CancellationListener,
-                        load_data: LoadData,
+                        load_data: &LoadData,
                         iters: u32,
-                        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                        devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
                         request_id: &String)
-                        -> Result<WrappedHttpResponse, LoadError> {
+                        -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
 
     let response;
 
@@ -575,7 +575,7 @@ pub fn load_response<A>(request_factory: &HttpRequestFactory<R=A>,
         *req.headers_mut() = request_headers.clone();
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+            return Err(LoadError::Cancelled(url.clone(), "load cancelled".to_owned()));
         }
 
         if log_enabled!(log::LogLevel::Info) {
@@ -628,6 +628,8 @@ pub fn load_response<A>(request_factory: &HttpRequestFactory<R=A>,
         // if no ConnectionAborted, break the loop
         break;
     }
+
+    Ok(response)
 }
 
 pub fn load<A>(load_data: LoadData,
@@ -704,8 +706,8 @@ pub fn load<A>(load_data: LoadData,
 
         modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
-        let response = load_response(&request_factory, &url, &method, &request_headers, &cancel_listener,
-                                     &load_data, iters, &devtools_chan, &request_id);
+        let response = try!(load_response(request_factory, &url, &method, &mut request_headers,
+                                          &cancel_listener, &load_data, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
