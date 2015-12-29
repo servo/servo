@@ -4,6 +4,7 @@
 
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
+use http_loader::create_http_connector;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
 use hyper::header::{Authorization, Basic};
@@ -728,6 +729,47 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
                       http_request: Rc<RefCell<Request>>,
                       credentials_flag: bool) -> Response {
     // TODO: Implement HTTP network fetch spec
+
+    // Step 1
+    // nothing to do here, since credentials_flag is already a boolean
+
+    // Step 2
+    let connection = create_http_connector();
+
+    // Step 3
+    // TODO how can I tell if the connection is a failure?
+
+    // Step 4
+    // TODO be able to get a response from HTTP request
+    // let response =
+
+        // TODO these substeps aren't possible yet
+        // Substep 1
+
+        // Substep 2
+
+    // Step 5
+
+    // Step 6
+    // TODO requires response
+    // response.url_list = request.borrow().url_list;
+
+    // Step 7
+
+    // Step 8
+
+    // Step 9
+
+        // Substep 1
+
+        // Substep 2
+
+        // Substep 3
+
+        // Substep 4
+
+    // Step 10
+    // response
     Response::network_error()
 }
 
