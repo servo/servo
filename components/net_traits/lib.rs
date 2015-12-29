@@ -72,6 +72,15 @@ pub enum ResponseBody {
     Done(Vec<u8>),
 }
 
+// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
+#[derive(Clone)]
+pub enum CacheState {
+    None,
+    Local,
+    Validated,
+    Partial
+}
+
 pub enum ResponseMsg {
     Chunk(Vec<u8>),
     Finished,
@@ -89,6 +98,7 @@ pub struct Response {
     pub status: Option<StatusCode>,
     pub headers: Headers,
     pub body: ResponseBody,
+    pub cache_state: CacheState,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Rc<RefCell<Response>>>,
@@ -104,6 +114,7 @@ impl Response {
             status: None,
             headers: Headers::new(),
             body: ResponseBody::Empty,
+            cache_state: CacheState::None,
             internal_response: None
         }
     }

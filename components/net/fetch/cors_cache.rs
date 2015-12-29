@@ -117,6 +117,11 @@ fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &CacheRequestDetails) ->
 }
 
 impl BasicCORSCache {
+
+    pub fn new() -> BasicCORSCache {
+        BasicCORSCache(vec![])
+    }
+
     fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails,
                                 header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
@@ -212,43 +217,43 @@ pub type CORSCacheSender = Sender<CORSCacheTaskMsg>;
 impl CORSCache for CORSCacheSender {
     fn clear (&mut self, request: CacheRequestDetails) {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::Clear(request, tx));
+        let _ = self.send(CORSCacheTaskMsg::Clear(request, tx));
         let _ = rx.recv();
     }
 
     fn cleanup(&mut self) {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::Cleanup(tx));
+        let _ = self.send(CORSCacheTaskMsg::Cleanup(tx));
         let _ = rx.recv();
     }
 
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_owned(), tx));
+        let _ = self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_owned(), tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_owned(), new_max_age, tx));
+        let _ = self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_owned(), new_max_age, tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchMethod(request, method, tx));
+        let _ = self.send(CORSCacheTaskMsg::MatchMethod(request, method, tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx));
+        let _ = self.send(CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx));
         rx.recv().unwrap_or(false)
     }
 
     fn insert(&mut self, entry: CORSCacheEntry) {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::Insert(entry, tx));
+        let _ = self.send(CORSCacheTaskMsg::Insert(entry, tx));
         let _ = rx.recv();
     }
 }
@@ -293,27 +298,27 @@ impl CORSCacheTask {
             match self.receiver.recv().unwrap() {
                 CORSCacheTaskMsg::Clear(request, tx) => {
                     self.cache.clear(request);
-                    tx.send(());
+                    let _ = tx.send(());
                 },
                 CORSCacheTaskMsg::Cleanup(tx) => {
                     self.cache.cleanup();
-                    tx.send(());
+                    let _ = tx.send(());
                 },
                 CORSCacheTaskMsg::MatchHeader(request, header, tx) => {
-                    tx.send(self.cache.match_header(request, &header));
+                    let _ = tx.send(self.cache.match_header(request, &header));
                 },
                 CORSCacheTaskMsg::MatchHeaderUpdate(request, header, new_max_age, tx) => {
-                    tx.send(self.cache.match_header_and_update(request, &header, new_max_age));
+                    let _ = tx.send(self.cache.match_header_and_update(request, &header, new_max_age));
                 },
                 CORSCacheTaskMsg::MatchMethod(request, method, tx) => {
-                    tx.send(self.cache.match_method(request, method));
+                    let _ = tx.send(self.cache.match_method(request, method));
                 },
                 CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx) => {
-                    tx.send(self.cache.match_method_and_update(request, method, new_max_age));
+                    let _ = tx.send(self.cache.match_method_and_update(request, method, new_max_age));
                 },
                 CORSCacheTaskMsg::Insert(entry, tx) => {
                     self.cache.insert(entry);
-                    tx.send(());
+                    let _ = tx.send(());
                 },
                 CORSCacheTaskMsg::ExitMsg => break
             }
