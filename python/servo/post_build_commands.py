@@ -95,8 +95,17 @@ class PostBuildCommands(CommandBase):
                 print("Could not find a suitable debugger in your PATH.")
                 return 1
 
+            command = self.debuggerInfo.path
+            if debugger == 'gdb' or debugger == 'lldb':
+                rustCommand = 'rust-' + debugger
+                try:
+                    subprocess.check_call([rustCommand, '--version'], env=env, stdout=open(os.devnull, 'w'))
+                    command = rustCommand
+                except (OSError, subprocess.CalledProcessError):
+                    pass
+
             # Prepend the debugger args.
-            args = ([self.debuggerInfo.path] + self.debuggerInfo.args +
+            args = ([command] + self.debuggerInfo.args +
                     args + params)
         else:
             args = args + params
