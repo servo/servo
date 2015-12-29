@@ -701,10 +701,10 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
             // scope first.
             self.set_restyle_damage(damage);
 
-            self.set_in_fragmentation_container(
-                parent.as_ref().map_or(false, |p| p.in_fragmentation_container()) ||
-                self.borrow_data().unwrap().style.as_ref().unwrap().is_multicol()
-            );
+            self.set_can_be_fragmented(parent.as_ref().map_or(false, |p| {
+                p.can_be_fragmented() ||
+                p.borrow_data().unwrap().style.as_ref().unwrap().is_multicol()
+            }));
         }
     }
 }
