@@ -82,6 +82,7 @@ pub struct WebGLRenderingContext {
     bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
     bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
     bound_buffer_element_array: MutNullableHeap<JS<WebGLBuffer>>,
+    current_program: MutNullableHeap<JS<WebGLProgram>>,
 }
 
 impl WebGLRenderingContext {
@@ -110,6 +111,7 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableHeap::new(None),
                 bound_buffer_array: MutNullableHeap::new(None),
                 bound_buffer_element_array: MutNullableHeap::new(None),
+                current_program: MutNullableHeap::new(None),
             }
         })
     }
@@ -831,7 +833,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                           name: DOMString) -> Option<Root<WebGLUniformLocation>> {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
-                .map(|location| WebGLUniformLocation::new(self.global.root().r(), location))
+                .map(|location| WebGLUniformLocation::new(self.global.root().r(), location, program.id()))
         } else {
             None
         }
@@ -961,13 +963,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
-        let uniform_id = match uniform {
-            Some(uniform) => uniform.id(),
+        let uniform = match uniform {
+            Some(uniform) => uniform,
             None => return,
         };
 
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform1f(uniform_id, val)))
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform1f(uniform.id(), val)))
             .unwrap()
     }
 
@@ -986,13 +993,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        let uniform_id = match uniform {
-            Some(uniform) => uniform.id(),
+        let uniform = match uniform {
+            Some(uniform) => uniform,
             None => return,
         };
 
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4f(uniform_id, x, y, z, w)))
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4f(uniform.id(), x, y, z, w)))
             .unwrap()
     }
 
@@ -1021,7 +1033,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            program.use_program()
+            program.use_program();
+            self.current_program.set(Some(program));
         }
     }
 

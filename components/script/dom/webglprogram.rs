@@ -55,6 +55,10 @@ impl WebGLProgram {
 
 
 impl WebGLProgram {
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
     /// glDeleteProgram
     pub fn delete(&self) {
         if !self.is_deleted.get() {
