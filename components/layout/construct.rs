@@ -18,7 +18,7 @@ use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PrivateLayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
-use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
+use flow::{MutableFlowUtils, MutableOwnedFlowUtils, CAN_BE_FRAGMENTED};
 use flow::{self, AbsoluteDescendants, Flow, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
@@ -1318,7 +1318,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
             return false
         }
 
-        if node.in_fragmentation_container() {
+        if node.can_be_fragmented() || node.style().is_multicol() {
             return false
         }
 
@@ -1616,7 +1616,13 @@ impl<'ln, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNo
     }
 
     #[inline(always)]
-    fn set_flow_construction_result(self, result: ConstructionResult) {
+    fn set_flow_construction_result(self, mut result: ConstructionResult) {
+        if self.can_be_fragmented() {
+            if let ConstructionResult::Flow(ref mut flow, _) = result {
+                flow::mut_base(flow_ref::deref_mut(flow)).flags.insert(CAN_BE_FRAGMENTED);
+            }
+        }
+
         let mut layout_data = self.mutate_layout_data().unwrap();
         let dst = self.construction_result_mut(&mut *layout_data);
 
