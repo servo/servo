@@ -1546,45 +1546,8 @@ impl BlockFlow {
             _ => {}
         }
     }
-}
 
-impl Flow for BlockFlow {
-    fn class(&self) -> FlowClass {
-        FlowClass::Block
-    }
-
-    fn as_mut_block(&mut self) -> &mut BlockFlow {
-        self
-    }
-
-    fn as_block(&self) -> &BlockFlow {
-        self
-    }
-
-    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
-    ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
-    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
-    /// This function must decide minimum/preferred inline-sizes based on its children's
-    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
-    fn bubble_inline_sizes(&mut self) {
-        // If this block has a fixed width, just use that for the minimum and preferred width,
-        // rather than bubbling up children inline width.
-        let consult_children = match self.fragment.style().get_box().width {
-            LengthOrPercentageOrAuto::Length(_) => false,
-            _ => true,
-        };
-        self.bubble_inline_sizes_for_block(consult_children)
-    }
-
-    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
-    /// When called on this context, the context has had its inline-size set by the parent context.
-    ///
-    /// Dual fragments consume some inline-size first, and the remainder is assigned to all child
-    /// (block) contexts.
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
-
+    pub fn compute_inline_sizes(&mut self, layout_context: &LayoutContext) {
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
@@ -1640,6 +1603,48 @@ impl Flow for BlockFlow {
                 self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
             }
         }
+    }
+}
+
+impl Flow for BlockFlow {
+    fn class(&self) -> FlowClass {
+        FlowClass::Block
+    }
+
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
+        self
+    }
+
+    fn as_block(&self) -> &BlockFlow {
+        self
+    }
+
+    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
+    ///
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
+    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
+    /// This function must decide minimum/preferred inline-sizes based on its children's
+    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
+    fn bubble_inline_sizes(&mut self) {
+        // If this block has a fixed width, just use that for the minimum and preferred width,
+        // rather than bubbling up children inline width.
+        let consult_children = match self.fragment.style().get_box().width {
+            LengthOrPercentageOrAuto::Length(_) => false,
+            _ => true,
+        };
+        self.bubble_inline_sizes_for_block(consult_children)
+    }
+
+    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
+    /// When called on this context, the context has had its inline-size set by the parent context.
+    ///
+    /// Dual fragments consume some inline-size first, and the remainder is assigned to all child
+    /// (block) contexts.
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+        let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
+
+        self.compute_inline_sizes(layout_context);
+
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.fragment.border_box.start.i +
             self.fragment.border_padding.inline_start;
