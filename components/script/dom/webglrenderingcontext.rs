@@ -698,8 +698,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {
-                // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
-                // null generate an InvalidOperation error
+                if self.current_program.get().is_none() {
+                    return self.webgl_error(InvalidOperation);
+                }
+
                 if first < 0 || count < 0 {
                     self.webgl_error(InvalidValue);
                 } else {
@@ -735,8 +737,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         // TODO ensure a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER
-        // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
-        // null generate an InvalidOperation error
+        if self.current_program.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
