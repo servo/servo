@@ -14,7 +14,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormDatum, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
@@ -78,6 +78,23 @@ impl HTMLSelectElement {
                 if let Some(first_enabled) = first_enabled {
                     first_enabled.set_selectedness(true);
                 }
+            }
+        }
+    }
+
+    pub fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
+        let node = self.upcast::<Node>();
+        if self.Name().is_empty() {
+            return;
+        }
+        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            let element = opt.upcast::<Element>();
+            if opt.Selected() && element.get_enabled_state() {
+                data_set.push(FormDatum {
+                    ty: self.Type(),
+                    name: self.Name(),
+                    value: opt.Value()
+                });
             }
         }
     }

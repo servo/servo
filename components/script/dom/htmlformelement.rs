@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -293,17 +294,18 @@ impl HTMLFormElement {
         let node = self.upcast::<Node>();
         // FIXME(#3553): This is an incorrect way of getting controls owned
         //               by the form, but good enough until html5ever lands
-        node.traverse_preorder().filter_map(|child| {
+        let mut data_set = Vec::new();
+        for child in node.traverse_preorder() {
             // Step 3.1: The field element is disabled.
             match child.downcast::<Element>() {
                 Some(el) if !el.get_disabled_state() => (),
-                _ => return None,
+                _ => continue,
             }
 
             // Step 3.1: The field element has a datalist element ancestor.
             if child.ancestors()
                     .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
-                return None;
+                continue;
             }
             match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
@@ -311,21 +313,37 @@ impl HTMLFormElement {
                         HTMLElementTypeId::HTMLInputElement => {
                             let input = child.downcast::<HTMLInputElement>().unwrap();
                             // Step 3.2-3.7
-                            input.get_form_datum(submitter)
+                            if let Some(datum) = input.get_form_datum(submitter) {
+                                data_set.push(datum);
+                            }
                         }
                         HTMLElementTypeId::HTMLButtonElement |
-                        HTMLElementTypeId::HTMLSelectElement |
-                        HTMLElementTypeId::HTMLObjectElement |
-                        HTMLElementTypeId::HTMLTextAreaElement => {
+                        HTMLElementTypeId::HTMLObjectElement => {
                             // Unimplemented
-                            None
+                            ()
                         }
-                        _ => None
+                        HTMLElementTypeId::HTMLSelectElement => {
+                            let select = child.downcast::<HTMLSelectElement>().unwrap();
+                            select.push_form_data(&mut data_set);
+                        }
+                        HTMLElementTypeId::HTMLTextAreaElement => {
+                            let textarea = child.downcast::<HTMLTextAreaElement>().unwrap();
+                            let name = textarea.Name();
+                            if !name.is_empty() {
+                                data_set.push(FormDatum {
+                                    ty: textarea.Type(),
+                                    name: name,
+                                    value: textarea.Value()
+                                });
+                            }
+                        }
+                        _ => ()
                     }
                 }
-                _ => None
+                _ => ()
             }
-        }).collect()
+        }
+        data_set
         // TODO: Handle `dirnames` (needs directionality support)
         //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
