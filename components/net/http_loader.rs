@@ -197,7 +197,7 @@ pub trait HttpResponse: Read {
 }
 
 
-struct WrappedHttpResponse {
+pub struct WrappedHttpResponse {
     response: Response
 }
 
@@ -234,7 +234,7 @@ pub trait HttpRequestFactory {
     fn create(&self, url: Url, method: Method) -> Result<Self::R, LoadError>;
 }
 
-struct NetworkHttpRequestFactory {
+pub struct NetworkHttpRequestFactory {
     connector: Arc<Pool<Connector>>,
 }
 
@@ -275,7 +275,7 @@ pub trait HttpRequest {
     fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
 }
 
-struct WrappedHttpRequest {
+pub struct WrappedHttpRequest {
     request: Request<Fresh>
 }
 
@@ -558,7 +558,9 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           method: &Method,
                           request_headers: &mut Headers,
                           cancel_listener: &CancellationListener,
-                          load_data: &LoadData,
+                          data: &Option<Vec<u8>>,
+                          load_data_method: &Method,
+                          pipeline_id: &Option<PipelineId>,
                           iters: u32,
                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
                           request_id: &str)
@@ -583,7 +585,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
             for header in req.headers_mut().iter() {
                 info!(" - {}", header);
             }
-            info!("{:?}", load_data.data);
+            info!("{:?}", data);
         }
 
         // Avoid automatically sending request body if a redirect has occurred.
@@ -594,21 +596,21 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         // https://tools.ietf.org/html/rfc7231#section-6.4
         let is_redirected_request = iters != 1;
         let cloned_data;
-        let maybe_response = match load_data.data {
-            Some(ref data) if !is_redirected_request => {
-                req.headers_mut().set(ContentLength(data.len() as u64));
-                cloned_data = load_data.data.clone();
-                req.send(&load_data.data)
-            }
+        let maybe_response = match data {
+            &Some(ref d) if !is_redirected_request => {
+                req.headers_mut().set(ContentLength(d.len() as u64));
+                cloned_data = data.clone();
+                req.send(data)
+            },
             _ => {
-                if load_data.method != Method::Get && load_data.method != Method::Head {
+                if *load_data_method != Method::Get && *load_data_method != Method::Head {
                     req.headers_mut().set(ContentLength(0))
                 }
                 cloned_data = None;
                 req.send(&None)
             }
         };
-        if let Some(pipeline_id) = load_data.pipeline_id {
+        if let Some(pipeline_id) = *pipeline_id {
             send_request_to_devtools(
                 devtools_chan.clone(), request_id.clone().into(),
                 url.clone(), method.clone(), request_headers.clone(),
@@ -707,7 +709,8 @@ pub fn load<A>(load_data: LoadData,
         modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
         let response = try!(obtain_response(request_factory, &url, &method, &mut request_headers,
-                                            &cancel_listener, &load_data, iters, &devtools_chan, &request_id));
+                                            &cancel_listener, &load_data.data, &load_data.method,
+                                            &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
