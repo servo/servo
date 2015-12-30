@@ -330,6 +330,7 @@ macro_rules! global_event_handlers(
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);
         event_handler!(input, GetOninput, SetOninput);
         event_handler!(change, GetOnchange, SetOnchange);
+        event_handler!(reset, GetOnreset, SetOnreset);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
     )
 );
