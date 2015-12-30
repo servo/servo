@@ -300,10 +300,9 @@ impl WebSocket {
         let address = Trusted::new(self, chan.clone());
 
         match data_byte_len.checked_add(self.buffered_amount.get()) {
-            None => return Ok(false),
+            None => panic!(),
             Some(new_amount) => self.buffered_amount.set(new_amount)
         };
-        // self.buffered_amount.set(self.buffered_amount.get() + data_byte_len);
 
         if return_after_buffer {
             return Ok(false);
