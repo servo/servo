@@ -4,7 +4,8 @@
 
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
-use http_loader::create_http_connector;
+use http_loader::{create_http_connector, obtain_response};
+use http_loader::{NetworkHttpRequestFactory};
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
 use hyper::header::{Authorization, Basic};
@@ -15,6 +16,7 @@ use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
 use net_traits::{AsyncFetchListener, CacheState, Response};
 use net_traits::{ResponseType, Metadata};
+use resource_task::CancellationListener;
 use std::ascii::AsciiExt;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -122,7 +124,7 @@ pub struct Request {
     pub use_url_credentials: bool,
     pub cache_mode: CacheMode,
     pub redirect_mode: RedirectMode,
-    pub redirect_count: usize,
+    pub redirect_count: u32,
     pub response_tainting: ResponseTainting
 }
 
@@ -740,8 +742,15 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
     // TODO how can I tell if the connection is a failure?
 
     // Step 4
-    // TODO be able to get a response from HTTP request
-    // let response =
+    let factory = NetworkHttpRequestFactory {
+        connector: connector,
+    };
+    let req = request.clone();
+    let url = req.current_url();
+    let cancellation_listener = CancellationListener::new(None);
+
+    let response = obtain_response(&factory, url, &req.method, &req.headers, cancellation_listener,
+                                   load_data, req.redirect_count, None, ""); 
 
         // TODO these substeps aren't possible yet
         // Substep 1
