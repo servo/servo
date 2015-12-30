@@ -30180,6 +30180,12 @@
             "url": "/html/semantics/forms/the-button-element/button-activate.html"
           }
         ]
+        "html/webappapis/scripting/events/event-handler-onresize.html": [
+          {
+            "path": "html/webappapis/scripting/events/event-handler-onresize.html",
+            "url": "/html/webappapis/scripting/events/event-handler-onresize.html"
+          }
+        ]
       }
     },
     "reftest_nodes": {}
