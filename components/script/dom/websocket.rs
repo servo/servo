@@ -299,7 +299,11 @@ impl WebSocket {
         let chan = global.r().networking_task_source();
         let address = Trusted::new(self, chan.clone());
 
-        self.buffered_amount.set(self.buffered_amount.get() + data_byte_len);
+        match data_byte_len.checked_add(self.buffered_amount.get()) {
+            None => return Ok(false),
+            Some(new_amount) => self.buffered_amount.set(new_amount)
+        };
+        // self.buffered_amount.set(self.buffered_amount.get() + data_byte_len);
 
         if return_after_buffer {
             return Ok(false);
