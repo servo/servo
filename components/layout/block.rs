@@ -39,8 +39,10 @@ use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
+use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, mut_base, FragmentationContext};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
+use flow_list::FlowList;
+use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
@@ -726,6 +728,18 @@ impl BlockFlow {
             block_end_margin_value;
     }
 
+    // FIXME: Record enough info to deal with fragmented decorations.
+    // See https://drafts.csswg.org/css-break/#break-decoration
+    // For borders, this might be `enum FragmentPosition { First, Middle, Last }`
+    fn clone_with_children(&self, new_children: FlowList) -> BlockFlow {
+        BlockFlow {
+            base: self.base.clone_with_children(new_children),
+            fragment: self.fragment.clone(),
+            float: self.float.clone(),
+            ..*self
+        }
+    }
+
     /// Assign block-size for current flow.
     ///
     /// * Collapse margins for flow's children and set in-flow child flows' block offsets now that
@@ -742,10 +756,13 @@ impl BlockFlow {
     #[inline(always)]
     pub fn assign_block_size_block_base<'a>(&mut self,
                                             layout_context: &'a LayoutContext<'a>,
-                                            margins_may_collapse: MarginsMayCollapseFlag) {
+                                            mut fragmentation_context: Option<FragmentationContext>,
+                                            margins_may_collapse: MarginsMayCollapseFlag)
+                                            -> Option<FlowRef> {
         let _scope = layout_debug_scope!("assign_block_size_block_base {:x}",
                                          self.base.debug_id());
 
+        let mut break_at = None;
         if self.base.restyle_damage.contains(REFLOW) {
             self.determine_if_layer_needed();
 
@@ -779,7 +796,7 @@ impl BlockFlow {
             // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
             let mut floats = self.base.floats.clone();
             let thread_id = self.base.thread_id;
-            for kid in self.base.child_iter() {
+            for (child_index, kid) in self.base.child_iter().enumerate() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
                     // after the block-end border edge of the previous flow.
@@ -797,6 +814,17 @@ impl BlockFlow {
                     // Skip the collapsing and float processing for absolute flow kids and continue
                     // with the next flow.
                     continue
+                }
+
+                let previous_b = cur_b;
+                if let Some(ctx) = fragmentation_context {
+                    let child_ctx = FragmentationContext {
+                        available_block_size: ctx.available_block_size - cur_b,
+                        this_fragment_is_empty: ctx.this_fragment_is_empty,
+                    };
+                    if let Some(remaining) = kid.fragment(layout_context, Some(child_ctx)) {
+                        break_at = Some((child_index + 1, Some(remaining)));
+                    }
                 }
 
                 // Assign block-size now for the child if it was impacted by floats and we couldn't
@@ -867,6 +895,19 @@ impl BlockFlow {
                 let delta =
                     margin_collapse_info.advance_block_end_margin(&kid_base.collapsible_margins);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
+
+                if break_at.is_some() {
+                    break
+                }
+
+                if let Some(ref mut ctx) = fragmentation_context {
+                    if cur_b > ctx.available_block_size && !ctx.this_fragment_is_empty {
+                        break_at = Some((child_index, None));
+                        cur_b = previous_b;
+                        break
+                    }
+                    ctx.this_fragment_is_empty = false
+                }
             }
 
             // Add in our block-end margin and compute our collapsible margins.
@@ -920,7 +961,7 @@ impl BlockFlow {
             }
 
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                return
+                return None
             }
 
             // Compute any explicitly-specified block size.
@@ -984,6 +1025,18 @@ impl BlockFlow {
                 !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
+
+        break_at.and_then(|(i, child_remaining)| {
+            if i == self.base.children.len() && child_remaining.is_none() {
+                None
+            } else {
+                let mut children = self.base.children.split_off(i);
+                if let Some(child) = child_remaining {
+                    children.push_front(child);
+                }
+                Some(Arc::new(self.clone_with_children(children)) as FlowRef)
+            }
+        })
     }
 
     /// Add placement information about current float flow for use by the parent.
@@ -1707,6 +1760,13 @@ impl Flow for BlockFlow {
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+        let remaining = Flow::fragment(self, ctx, None);
+        debug_assert!(remaining.is_none());
+    }
+
+    fn fragment(&mut self, layout_context: &LayoutContext,
+                fragmentation_context: Option<FragmentationContext>)
+                -> Option<FlowRef> {
         if self.is_replaced_content() {
             let _scope = layout_debug_scope!("assign_replaced_block_size_if_necessary {:x}",
                                              self.base.debug_id());
@@ -1718,15 +1778,22 @@ impl Flow for BlockFlow {
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
             }
+            None
         } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow {:?}",
                    flow::base(self).debug_id());
-            self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayNotCollapse);
+            self.assign_block_size_block_base(
+                layout_context,
+                fragmentation_context,
+                MarginsMayCollapseFlag::MarginsMayNotCollapse)
         } else {
             debug!("assign_block_size: assigning block_size for block {:?}",
                    flow::base(self).debug_id());
-            self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayCollapse);
+            self.assign_block_size_block_base(
+                layout_context,
+                fragmentation_context,
+                MarginsMayCollapseFlag::MarginsMayCollapse)
         }
     }
 

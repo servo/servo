@@ -35,7 +35,7 @@ use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use gfx_traits::LayerId;
-use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use msg::compositor_msg::LayerType;
@@ -204,22 +204,21 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     /// Like `assign_block_size`, but is recurses explicitly into descendants.
     /// Fit as much content as possible within `available_block_size`.
-    /// If that’s not all of it,
-    /// return an indication of where in the tree to break and start the next fragment.
-    ///
-    /// FIXME: replace `()` in the return value with something meaningful.
+    /// If that’s not all of it, truncate the contents of `self`
+    /// and return a new flow similar to `self` with the rest of the content.
     ///
     /// The default is to make a flow "atomic": it can not be fragmented.
-    fn fragment<'a>(&mut self, ctx: &'a LayoutContext<'a>, _available_block_size: Au)
-                    -> Option<()> {
-        fn recursive_assign_block_size<'a, F: ?Sized + Flow>
-                                      (flow: &mut F, ctx: &'a LayoutContext<'a>) {
+    fn fragment(&mut self,
+                layout_context: &LayoutContext,
+                _fragmentation_context: Option<FragmentationContext>)
+                -> Option<FlowRef> {
+        fn recursive_assign_block_size<F: ?Sized + Flow>(flow: &mut F, ctx: &LayoutContext) {
             for child in mut_base(flow).children.iter_mut() {
                 recursive_assign_block_size(child, ctx)
             }
             flow.assign_block_size(ctx);
         }
-        recursive_assign_block_size(self, ctx);
+        recursive_assign_block_size(self, layout_context);
         None
     }
 
@@ -546,6 +545,7 @@ pub enum FlowClass {
     TableCaption,
     TableCell,
     Multicol,
+    MulticolColumn,
     Flex,
 }
 
@@ -807,6 +807,7 @@ pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, Iter
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during block-size assignment.
+#[derive(Copy, Clone)]
 pub struct EarlyAbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -842,6 +843,12 @@ impl LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
         }
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct FragmentationContext {
+    pub available_block_size: Au,
+    pub this_fragment_is_empty: bool,
 }
 
 /// Data common to all flows.
@@ -1097,6 +1104,23 @@ impl BaseFlow {
             flags: flags,
             writing_mode: writing_mode,
             thread_id: 0,
+        }
+    }
+
+    /// Return a new BaseFlow like this one but with the given children list
+    pub fn clone_with_children(&self, children: FlowList) -> BaseFlow {
+        BaseFlow {
+            children: children,
+            restyle_damage: self.restyle_damage | REPAINT | REFLOW_OUT_OF_FLOW | REFLOW,
+            parallel: FlowParallelInfo::new(),
+            display_list_building_result: None,
+
+            floats: self.floats.clone(),
+            abs_descendants: self.abs_descendants.clone(),
+            absolute_cb: self.absolute_cb.clone(),
+            clip: self.clip.clone(),
+
+            ..*self
         }
     }
 
@@ -1462,6 +1486,7 @@ impl MutableOwnedFlowUtils for FlowRef {
 /// invalidation and use-after-free.
 ///
 /// FIXME(pcwalton): I think this would be better with a borrow flag instead of `unsafe`.
+#[derive(Clone)]
 pub struct ContainingBlockLink {
     /// The pointer up to the containing block.
     link: Option<WeakFlowRef>,

@@ -29,6 +29,17 @@ impl FlowList {
         self.flows.push_back(new_tail);
     }
 
+    /// Add an element first in the list
+    ///
+    /// O(1)
+    pub fn push_front(&mut self, new_tail: FlowRef) {
+        self.flows.push_front(new_tail);
+    }
+
+    pub fn pop_front(&mut self) -> Option<FlowRef> {
+        self.flows.pop_front()
+    }
+
     /// Create an empty list
     #[inline]
     pub fn new() -> FlowList {
@@ -63,6 +74,13 @@ impl FlowList {
     #[inline]
     pub fn len(&self) -> usize {
         self.flows.len()
+    }
+
+    #[inline]
+    pub fn split_off(&mut self, i: usize) -> Self {
+        FlowList {
+            flows: self.flows.split_off(i)
+        }
     }
 }
 

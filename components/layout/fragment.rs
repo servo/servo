@@ -162,6 +162,8 @@ pub enum SpecificFragmentInfo {
     TableColumn(TableColumnFragmentInfo),
     TableRow,
     TableWrapper,
+    Multicol,
+    MulticolColumn,
     UnscannedText(UnscannedTextFragmentInfo),
 }
 
@@ -179,6 +181,8 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::TableColumn(_) |
                 SpecificFragmentInfo::TableRow |
                 SpecificFragmentInfo::TableWrapper |
+                SpecificFragmentInfo::Multicol |
+                SpecificFragmentInfo::MulticolColumn |
                 SpecificFragmentInfo::UnscannedText(_) |
                 SpecificFragmentInfo::Generic => return RestyleDamage::empty(),
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => &info.flow_ref,
@@ -207,6 +211,8 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::TableColumn(_) => "SpecificFragmentInfo::TableColumn",
             SpecificFragmentInfo::TableRow => "SpecificFragmentInfo::TableRow",
             SpecificFragmentInfo::TableWrapper => "SpecificFragmentInfo::TableWrapper",
+            SpecificFragmentInfo::Multicol => "SpecificFragmentInfo::Multicol",
+            SpecificFragmentInfo::MulticolColumn => "SpecificFragmentInfo::MulticolColumn",
             SpecificFragmentInfo::UnscannedText(_) => "SpecificFragmentInfo::UnscannedText",
         }
     }
@@ -913,7 +919,8 @@ impl Fragment {
             SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::InlineAbsolute(_) => {
+            SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::Multicol => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
@@ -949,7 +956,8 @@ impl Fragment {
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::UnscannedText(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
-            SpecificFragmentInfo::InlineBlock(_) => {
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::MulticolColumn => {
                 QuantitiesIncludedInIntrinsicInlineSizes::empty()
             }
         }
@@ -1309,6 +1317,8 @@ impl Fragment {
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
@@ -1410,6 +1420,8 @@ impl Fragment {
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) => Au(0),
@@ -1668,7 +1680,9 @@ impl Fragment {
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper => return,
+            SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn => return,
             SpecificFragmentInfo::TableColumn(_) => {
                 panic!("Table column fragments do not have inline size")
             }
@@ -1760,7 +1774,9 @@ impl Fragment {
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper => return,
+            SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn => return,
             SpecificFragmentInfo::TableColumn(_) => {
                 panic!("Table column fragments do not have block size")
             }
@@ -1978,6 +1994,7 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::TableWrapper => false,
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Generic |
@@ -1989,6 +2006,7 @@ impl Fragment {
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::UnscannedText(_) => true,
         }
     }

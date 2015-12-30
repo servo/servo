@@ -31,7 +31,7 @@ use incremental::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
-use multicol::MulticolFlow;
+use multicol::{MulticolFlow, MulticolColumnFlow};
 use parallel;
 use script::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
@@ -754,12 +754,12 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
     /// to happen.
     fn build_flow_for_block(&mut self, node: &ConcreteThreadSafeLayoutNode, float_kind: Option<FloatKind>)
                             -> ConstructionResult {
-        let fragment = self.build_fragment_for_block(node);
-        let flow: FlowRef = if node.style().is_multicol() {
-            Arc::new(MulticolFlow::from_fragment(fragment, float_kind))
-        } else {
-            Arc::new(BlockFlow::from_fragment(fragment, float_kind))
-        };
+        if node.style().is_multicol() {
+            return self.build_flow_for_multicol(node, float_kind)
+        }
+
+        let flow: FlowRef = Arc::new(
+            BlockFlow::from_fragment(self.build_fragment_for_block(node), float_kind));
         self.build_flow_for_block_like(flow, node)
     }
 
@@ -1076,6 +1076,52 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
         // The flow is done.
         anonymous_flow.finish();
         flow.add_new_child(anonymous_flow);
+    }
+
+    /// Builds a flow for a node with `column-count` or `column-width` non-`auto`.
+    /// This yields a `MulticolFlow` with a single `MulticolColumnFlow` underneath it.
+    fn build_flow_for_multicol(&mut self, node: &ConcreteThreadSafeLayoutNode,
+                                    float_kind: Option<FloatKind>)
+                                    -> ConstructionResult {
+        let fragment = Fragment::new(node, SpecificFragmentInfo::Multicol);
+        let mut flow: FlowRef = Arc::new(MulticolFlow::from_fragment(fragment, float_kind));
+
+        let column_fragment = Fragment::new(node, SpecificFragmentInfo::MulticolColumn);
+        let column_flow = Arc::new(MulticolColumnFlow::from_fragment(column_fragment));
+
+        // First populate the column flow with its children.
+        let construction_result = self.build_flow_for_block_like(column_flow, node);
+
+        let mut abs_descendants = AbsoluteDescendants::new();
+        let mut fixed_descendants = AbsoluteDescendants::new();
+
+        if let ConstructionResult::Flow(column_flow, column_abs_descendants) = construction_result {
+            flow.add_new_child(column_flow);
+            abs_descendants.push_descendants(column_abs_descendants);
+        }
+
+        // The flow is done.
+        flow.finish();
+        let contains_positioned_fragments = flow.contains_positioned_fragments();
+        let is_fixed_positioned = flow.as_block().is_fixed();
+        let is_absolutely_positioned = flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
+        if contains_positioned_fragments {
+            // This is the containing block for all the absolute descendants.
+            flow.set_absolute_descendants(abs_descendants);
+
+            abs_descendants = AbsoluteDescendants::new();
+
+            if is_fixed_positioned {
+                // Send itself along with the other fixed descendants.
+                fixed_descendants.push(flow.clone());
+            } else if is_absolutely_positioned {
+                // This is now the only absolute flow in the subtree which hasn't yet
+                // reached its containing block.
+                abs_descendants.push(flow.clone());
+            }
+        }
+
+        ConstructionResult::Flow(flow, abs_descendants)
     }
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with

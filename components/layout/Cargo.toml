@@ -76,3 +76,4 @@ time = "0.1"
 unicode-bidi = "0.2"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
 url = "0.5.2"
+matches = "0.1.2"
