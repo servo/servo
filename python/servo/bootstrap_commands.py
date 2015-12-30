@@ -62,13 +62,6 @@ def download(desc, src, writer):
             print()
     except urllib2.HTTPError, e:
         print("Download failed (%d): %s - %s" % (e.code, e.reason, src))
-
-        cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
-        if e.code == 404 and cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-            # i686
-            print("Note: Servo does not currently bootstrap 32bit snapshots of Rust")
-            print("See https://github.com/servo/servo/issues/3899")
-
         sys.exit(1)
 
 
