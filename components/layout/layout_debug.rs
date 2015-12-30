@@ -5,6 +5,9 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
+// for thread_local
+#![allow(unsafe_code)]
+
 use flow;
 use flow_ref::FlowRef;
 use rustc_serialize::json;

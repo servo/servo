@@ -4,7 +4,8 @@
 
 //! Data needed by the layout task.
 
-#![deny(unsafe_code)]
+// for thread_local
+#![allow(unsafe_code)]
 
 use app_units::Au;
 use canvas_traits::CanvasMsg;
