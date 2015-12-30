@@ -1,0 +1,126 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL out of bounds uniform array access.</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"> </script>
+</head>
+<body style="background: #666;">
+<div id="description"></div>
+<div id="console"></div>
+<div>elem mult: <span id="elemMultDisplay"></span></div>
+<input type="range" id="elemMult" value="4" min="0" max="2048" style="width: 100%;"/>
+<div>line width: <span id="lineWidthDisplay"></span></div>
+<input type="range" id="lineWidth" value="512" min="0" max="2540" style="width: 100%;"/>
+<canvas id="example" width="256" height="256" style="background: black;">
+</canvas>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 v_color;
+uniform float lineWidth;
+uniform int elemMult;
+uniform vec4 someArray[2];
+void main()
+{
+    vec2 texcoord = vec2(vPosition.xy * 0.5 + vec2(0.5, 0.5));
+    int index = int(texcoord.x + texcoord.y * lineWidth) * elemMult;
+    v_color = someArray[index];
+    gl_Position = vPosition;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 v_color;
+void main()
+{
+  gl_FragColor = v_color * vec4(1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0) + vec4(0,0,0,0.5);
+}
+</script>
+<script>
+"use strict";
+window.onload = main;
+debug("Tests a WebGL program that accesses out of bounds uniform array elements");
+
+function main() {
+  var wtu = WebGLTestUtils;
+  var gl = wtu.create3DContext("example");
+  var program = wtu.setupProgram(
+      gl,
+      ['vshader', 'fshader'],
+      ['vPosition'], [0]);
+  var gridRes = 255;
+  wtu.setupIndexedQuad(gl, gridRes, 0);
+  var lineWidthLoc = gl.getUniformLocation(program, "lineWidth");
+  var elemMultLoc = gl.getUniformLocation(program, "elemMult");
+  assertMsg(gl.getError() == gl.NO_ERROR, "Should be no errors from setup.");
+
+  var lineWidth = 512;
+  var lineWidthElem = document.getElementById("lineWidth");
+  var lineWidthDisplayElem = document.getElementById("lineWidthDisplay");
+
+  lineWidthElem.value = lineWidth;
+
+  lineWidthElem.addEventListener('change', function(event) {
+      //console.log(event.target.value);
+      lineWidth = event.target.value;
+      draw();
+    }, false);
+
+  var elemMult = 4;
+  var elemMultElem = document.getElementById("elemMult");
+  var elemMultDisplayElem = document.getElementById("elemMultDisplay");
+
+  elemMultElem.value = elemMult;
+
+  elemMultElem.addEventListener('change', function(event) {
+      //console.log(event.target.value);
+      elemMult = event.target.value;
+      draw();
+    }, false);
+
+  draw();
+
+  function draw() {
+    lineWidthDisplayElem.innerText = lineWidth;
+    elemMultDisplayElem.innerText = elemMult;
+    gl.uniform1f(lineWidthLoc, lineWidth);
+    gl.uniform1i(elemMultLoc, elemMult);
+    gl.drawElements(gl.TRIANGLES, gridRes * gridRes * 6, gl.UNSIGNED_SHORT, 0);
+  }
+
+  var successfullyParsed = true;
+}
+
+</script>
+</body>
+</html>

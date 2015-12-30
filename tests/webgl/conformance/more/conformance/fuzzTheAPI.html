@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+
+<script type="application/javascript">
+
+Tests.autorun = false;
+Tests.message = "This will fuzz the API with random inputs for a [long] while."
+
+
+function randomCall(testProgress, gl, m, arities) {
+    doTestNotify(m);
+    var argcs = {};
+    var foundArity = false;
+    if (arities == null) {
+        testProgress.textContent += "            500 random arity calls on " + m + "\n";
+        for (var i=0; i<50; i++) {
+            for (var j=0; j<10; j++) {
+                var args = generateRandomArgs(j);
+//                 doTestNotify(m + ": " + args.toSource());
+                try {
+                    gl[m].apply(gl, args);
+                    argcs[j] = true;
+                    foundArity = true;
+                } catch (e) {
+                }
+            }
+        }
+        for (var j in argcs) {
+            testProgress.textContent += "200 arity " + j + " calls on " + m + "\n";
+            for (var i=0; i<200; i++) {
+                var args = generateRandomArgs(j);
+//                 doTestNotify(m + ": " + args.toSource());
+                try {
+                    gl[m].apply(gl, args);
+                    argcs[j] = true;
+                } catch (e) {
+                }
+            }
+        }
+    } else {
+        for (var k=0; k<arities.length; k++) {
+            var j = arities[k];
+            testProgress.textContent += "500 arity " + j + " calls on " + m + "\n";
+            for (var i=0; i<500; i++) {
+                var args = generateRandomArgs(j);
+//                 doTestNotify(m + ": " + args.toSource());
+                try {
+                    gl[m].apply(gl, args);
+                } catch (e) {
+                }
+            }
+        }
+    }
+//     doTestNotify(m+"--OK");
+}
+
+Tests.testGetGLWeb20 = function() {
+    var testProgress = document.getElementById('testProgress');
+    var funcnames = document.getElementById('funcnames').value.split(",");
+    var canvas = document.getElementById('glweb20');
+    var gl;
+    assertOk(function(){gl = getGLContext(canvas);});
+    var funcs = [];
+    for (var i=0; i<funcnames.length; i++) {
+        var fn = funcnames[i];
+        fn = fn.replace(/^\s+|\s+$/g, '');
+        if (fn.length > 0)
+            funcs.push(fn);
+    }
+    if (funcs.length == 0) {
+        for (var m in gl)
+            try{if (typeof gl[m] == 'function')
+                funcs.push(m);}catch(e){}
+    }
+    var idx = 0;
+    var count = 0;
+    var limit = 1000;
+    var iv1;
+    var iv2;
+    iv1 = setInterval(function(){
+        if (idx >= funcs.length) {
+            iv2 = setInterval(function(){
+                if (count >= limit) {
+                    clearInterval(iv2);
+                    return false;
+                }
+                count++;
+                var f = Math.floor(Math.random() * funcs.length);
+                randomCall(testProgress, gl, funcs[f]);
+            }, 50);
+            clearInterval(iv1);
+            return false;
+        }
+        randomCall(testProgress, gl, funcs[idx]);
+        idx++;
+    }, 50);
+}
+
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+  <canvas id="glweb20" width="16" height="16"></canvas>
+  <p>Optional: Enter a comma-separated list of functions to fuzz (leave blank for full API)</p>
+  <input type="text" size="40" id="funcnames" value="">
+  <pre id="testProgress"></pre>
+</body></html>

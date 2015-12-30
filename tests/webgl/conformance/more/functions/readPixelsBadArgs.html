@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript" src="../../../js/webgl-test-utils.js"></script>
+<script type="application/javascript">
+var wtu = WebGLTestUtils;
+var defaultImgUrl = "http://www.opengl.org/img/opengl_logo.jpg";
+var localImgUrl = "../../../resources/opengl_logo.jpg";
+
+Tests.autoinit = false; // Prevents the test from running until the image is loaded
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = wrapGLContext(getGLContext(canvas));
+  return [gl];
+}
+
+Tests.testReadPixels = function(gl) {
+  // we can't know if this is going to fail because of negative width
+  // or because the buffer size doesn't match the dimensions.
+  assertSomeGLError(gl, "negative width",
+      function(){gl.readPixels(0,0,-1,1, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(4));});
+  assertSomeGLError(gl,  "negative height",
+      function(){gl.readPixels(0,0,1,-1, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(4));});
+  assertOk("negative x",
+      function(){gl.readPixels(-1,0,1,1, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(4));});
+  assertOk("negative y",
+      function(){gl.readPixels(0,-1,1,1, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(4));});
+  assertOk("height > backbuffer height",
+      function(){gl.readPixels(0,0,16,17, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(16*17*4));});
+  assertOk("width > backbuffer width",
+      function(){gl.readPixels(0,0,17,16, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(17*16*4));});
+  assertOk("width, height = 0",
+      function(){gl.readPixels(0,0,0,0, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(0));});
+  // we can't know if this is going to fail because of negative width
+  // or because the buffer size doesn't match the dimensions.
+  assertSomeGLError(gl, "bad format",
+      function(){gl.readPixels(0,0,1,1, gl.FLOAT, gl.UNSIGNED_BYTE,
+          new Uint8Array(4*4));});
+  // we can't know if this is going to fail because of negative width
+  // or because the buffer size doesn't match the dimensions.
+  assertSomeGLError(gl, "bad type",
+      function(){gl.readPixels(0,0,1,1, gl.ALPHA, gl.FLOAT,
+          new Uint8Array(1*4));});
+}
+
+Tests.testReadPixelsSOPIMG = function(gl) {
+    var img = document.getElementById("i");
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    // SOP failure
+    assertThrowNoGLError(gl, "throw because img is from another domain",
+      function(){gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);});
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    assertOk("canvas still origin-clean",
+      function(){gl.readPixels(0,0,1,1, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(4));});
+    gl.deleteTexture(tex);
+}
+Tests.testReadPixelsSOPCanvas = function(gl) {
+    var img = document.getElementById("i");
+    var c = document.getElementById("c");
+    c.getContext("2d").drawImage(img, 0, 0);
+    assertFail("canvas throws because not origin clean",
+      function(){c.getContext("2d").getImageData(0,0,1,1);});
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    // SOP failure
+    assertThrowNoGLError(gl, "throw because canvas is not origin clean",
+      function(){gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);});
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    assertOk("canvas still origin-clean",
+      function(){gl.readPixels(0,0,1,1, gl.RGBA, gl.UNSIGNED_BYTE,
+          new Uint8Array(4));});
+    gl.deleteTexture(tex);
+}
+
+Tests.endUnit = function(gl) {
+}
+
+wtu.setupImageForCrossOriginTest("#i", defaultImgUrl, localImgUrl, initTests);
+</script>
+</head><body>
+<canvas id="gl" width="16" height="16"></canvas>
+<canvas id="c" width="128" height="128"></canvas>
+<img id="i">
+</body></html>

@@ -1,0 +1,115 @@
+<!--
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Tests the WebGLUniformLocation API");
+
+var wtu = WebGLTestUtils;
+var contextA = wtu.create3DContext();
+var contextB = wtu.create3DContext();
+var programA1 = wtu.loadStandardProgram(contextA);
+var programA2 = wtu.loadStandardProgram(contextA);
+var programB = wtu.loadStandardProgram(contextB);
+var programS = wtu.loadProgramFromFile(contextA, "../../resources/structUniformShader.vert", "../../resources/fragmentShader.frag");
+var programV = wtu.loadProgramFromFile(contextA, "../../resources/floatUniformShader.vert", "../../resources/noopUniformShader.frag");
+var locationA = contextA.getUniformLocation(programA1, 'u_modelViewProjMatrix');
+var locationB = contextB.getUniformLocation(programB, 'u_modelViewProjMatrix');
+var locationSx = contextA.getUniformLocation(programS, "u_struct.x");
+var locationSx2;
+var locationArray0 = contextA.getUniformLocation(programS, "u_array[0]");
+var locationArray1 = contextA.getUniformLocation(programS, "u_array[1]");
+var locationVec4 = contextA.getUniformLocation(programV, "fval4");
+
+var vec = [1, 2, 3, 4];
+var mat = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(programA2)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4fv(locationA, false, mat)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(programA1)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniformMatrix4fv(locationA, false, mat)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniformMatrix4fv(null, false, mat)");
+
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(programS)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniform1i(locationSx, 333)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniform1f(locationArray0, 4.0)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniform1f(locationArray1, 5.0)");
+
+shouldBe("contextA.getUniform(programS, locationSx)", "333");
+shouldBe("contextA.getUniform(programS, locationArray0)", "4.0");
+shouldBe("contextA.getUniform(programS, locationArray1)", "5.0");
+
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(programV)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniform4fv(locationVec4, vec)");
+shouldBe("contextA.getUniform(programV, locationVec4)", "vec");
+
+shouldBeNull("contextA.getUniformLocation(programV, \"IDontExist\")");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.linkProgram(programA1)");
+// After linking all boxes are bad.
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4fv(locationA, false, mat)");
+
+// after re-linking the same program, all uniform locations become invalid.
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(programS)");
+contextA.stencilMask(1);
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.linkProgram(programS)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1i(locationSx, 3)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getUniform(programS, locationSx)");
+
+// Retrieve the locations again, and they should be good.
+locationSx = contextA.getUniformLocation(programS, "u_struct.x");
+locationArray0 = contextA.getUniformLocation(programS, "u_array[0]");
+debug("here");
+contextA.stencilMask(0);
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniform1i(locationSx, 3)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.uniform1f(locationArray0, 123)");
+shouldBe("contextA.getUniform(programS, locationSx)", "3");
+shouldBe("contextA.getUniform(programS, locationArray0)", "123");
+
+// getUniformLocation should return a different object everytime, should not cache and return the same object
+debug("Testing that getUniformLocation returns a different object everytime");
+locationSx  = contextA.getUniformLocation(programS, "u_struct.x");
+locationSx2 = contextA.getUniformLocation(programS, "u_struct.x");
+shouldBeFalse("locationSx === locationSx2");
+locationSx.foo  = {};
+locationSx2.foo = {};
+shouldBeFalse("locationSx.foo === locationSx2.foo");
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

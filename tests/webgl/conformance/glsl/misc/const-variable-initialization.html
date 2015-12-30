@@ -1,0 +1,265 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>All valid constant expressions should be allowed in the initialization of const variables</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+<script id="VertexTemplate" type="x-shader/x-vertex">
+precision mediump float;
+
+$(init)
+
+void main() {
+    const $(constType) c = $(constantExpression);
+    gl_Position = vec4(float(c$(constTypeToScalar)));
+}
+</script>
+<script id="FragmentTemplate" type="x-shader/x-fragment">
+precision mediump float;
+
+$(init)
+
+void main() {
+    const $(constType) c = $(constantExpression);
+    gl_FragColor = vec4(float(c$(constTypeToScalar)));
+}
+</script>
+</head>
+<body onload="runTest()">
+<div id="description"></div>
+<div id="console"></div>
+<script type="application/javascript">
+"use strict";
+description();
+
+var wtu = WebGLTestUtils;
+
+// ESSL 1.00 spec section 4.3.2.
+// Initializers for const declarations must be a constant expression.
+
+// ESSL 1.00 spec section 5.10.
+// A constant expression is one of
+// * a literal value (e.g., 5 or true)
+// * a global or local variable qualified as const excluding function parameters
+// * an expression formed by an operator on operands that are constant expressions, including getting
+// an element of a constant vector or a constant matrix, or a field of a constant structure
+// * a constructor whose arguments are all constant expressions
+// * a built-in function call whose arguments are all constant expressions, with the exception of the
+// texture lookup functions.
+
+var binaryOpsGenTypeRValuesToGenType = [
+  '+',
+  '-',
+  '*',
+  '/'
+];
+
+var binaryOpsScalarsToBool = [
+  '<',
+  '>',
+  '<=',
+  '>='
+];
+
+var binaryOpsRValuesToBool = [
+  '==',
+  '!='
+];
+
+var binaryOpsBoolsToBool = [
+  '&&',
+  '^^',
+  '||'
+];
+
+var builtInsGenTypeToGenType = [
+  'radians',
+  'degrees',
+  'sin',
+  'cos',
+  'tan',
+  'asin',
+  'acos',
+  'atan',
+  'exp',
+  'log',
+  'exp2',
+  'log2',
+  'sqrt',
+  'inversesqrt',
+  'abs',
+  'sign',
+  'floor',
+  'ceil',
+  'fract'
+];
+
+var builtIns2VecToBvec = [
+  'lessThan',
+  'lessThanEqual',
+  'greaterThan',
+  'greaterThanEqual',
+  'equal',
+  'notEqual'
+];
+
+var builtIns2GenTypeToGenType = [
+  'atan',
+  'pow',
+  'mod',
+  'min',
+  'max',
+  'step'
+];
+
+var runTest = function() {
+  var vsTemplate = document.getElementById('VertexTemplate').text;
+  var fsTemplate = document.getElementById('FragmentTemplate').text;
+
+  var tests = [];
+  var i;
+  var op;
+  var builtIn;
+
+  var pushTest = function(constType, constantExpression, expectSuccess, opt_init) {
+    if (opt_init === undefined) {
+      opt_init = '';
+    }
+    var constTypeToScalar = '';
+    if (constType.substring(0, 3) == 'vec' || constType.substring(1, 4) == 'vec') {
+        constTypeToScalar = '.x';
+    } else if (constType.substring(0, 3) == 'mat') {
+        constTypeToScalar = '[0].x';
+    } else if (constType == 'my_struct') {
+        constTypeToScalar = '.field';
+    }
+    var vs = wtu.replaceParams(vsTemplate, {constType: constType, constantExpression: constantExpression, constTypeToScalar: constTypeToScalar, init: opt_init});
+    var fs = wtu.replaceParams(fsTemplate, {constType: constType, constantExpression: constantExpression, constTypeToScalar: constTypeToScalar, init: opt_init});
+    tests.push({
+      vShaderSource: vs,
+      vShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Assigning " + constantExpression + " to a const in a vertex shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+    tests.push({
+      fShaderSource: fs,
+      fShaderSuccess: expectSuccess,
+      linkSuccess: expectSuccess,
+      passMsg: "Assigning " + constantExpression + " to a const in a fragment shader should " + (expectSuccess ? "compile." : "fail compilation.")
+    });
+  }
+
+  // Handle some one of a kind cases first
+  pushTest('float', 'vec4(0.5).x', true);
+  pushTest('float', 'vec4(0.5)[0]', true);
+  pushTest('float', 'true ? 0.5 : 0.2', true);
+  pushTest('my_struct', 'my_struct(0.5, 0.2)', true, 'struct my_struct { float field; float field2; };');
+  pushTest('float', '(0.2, 0.5)', true);
+
+  pushTest('float', 'clamp(0.2, 0.3, 0.4)', true);
+  pushTest('float', 'mix(0.2, 0.3, 0.4)', true);
+  pushTest('float', 'smoothstep(0.2, 0.3, 0.4)', true);
+  pushTest('float', 'length(vec4(0.5))', true);
+  pushTest('float', 'distance(vec4(0.5), vec4(0.2))', true);
+  pushTest('float', 'dot(vec4(0.5), vec4(0.2))', true);
+  pushTest('vec3', 'cross(vec3(0.5), vec3(0.2))', true);
+  pushTest('vec4', 'normalize(vec4(0.5))', true);
+  pushTest('vec4', 'faceforward(vec4(0.2), vec4(0.3), vec4(0.4))', true);
+  pushTest('vec4', 'reflect(vec4(0.2), vec4(0.5))', true);
+  pushTest('vec4', 'refract(vec4(0.2), vec4(0.3), 0.4)', true);
+  pushTest('mat4', 'matrixCompMult(mat4(0.2), mat4(0.5))', true);
+
+  // Handle built-in constructors
+  for (i = 2; i <= 4; ++i) {
+    var vecType = 'vec' + i;
+    pushTest(vecType, vecType + '(0.5)', true);
+    pushTest('i' + vecType, 'i' + vecType + '(1)', true);
+    pushTest('b' + vecType, 'b' + vecType + '(true)', true);
+    pushTest('mat' + i, 'mat' + i + '(0.5)', true);
+  }
+
+  // Handle ops
+  for (i = 0; i < binaryOpsGenTypeRValuesToGenType.length; ++i) {
+    var op = binaryOpsGenTypeRValuesToGenType[i];
+    pushTest('float', '0.2 ' + op + ' 0.5', true);
+    pushTest('vec4', 'vec4(0.2) ' + op + ' vec4(0.5)', true);
+    pushTest('mat4', 'mat4(0.2) ' + op + ' mat4(0.5)', true);
+  }
+
+  for (i = 0; i < binaryOpsScalarsToBool.length; ++i) {
+    var op = binaryOpsScalarsToBool[i];
+    pushTest('bool', '0.2 ' + op + ' 0.5', true);
+  }
+
+  for (i = 0; i < binaryOpsRValuesToBool.length; ++i) {
+    var op = binaryOpsRValuesToBool[i];
+    pushTest('bool', '0.2 ' + op + ' 0.5', true);
+    pushTest('bool', 'vec4(0.2) ' + op + ' vec4(0.5)', true);
+  }
+
+  for (i = 0; i < binaryOpsBoolsToBool.length; ++i) {
+    var op = binaryOpsBoolsToBool[i];
+    pushTest('bool', 'false ' + op + ' true', true);
+  }
+
+  // Handle allowed built-ins
+  for (i = 0; i < builtInsGenTypeToGenType.length; ++i) {
+    builtIn = builtInsGenTypeToGenType[i];
+    pushTest('float', builtIn + '(0.5)', true);
+    pushTest('vec4', builtIn + '(vec4(0.5))', true);
+  }
+
+  for (i = 0; i < builtIns2VecToBvec.length; ++i) {
+    builtIn = builtIns2VecToBvec[i];
+    pushTest('bvec4', builtIn + '(vec4(0.2), vec4(0.5))', true);
+  }
+
+  for (i = 0; i < builtIns2GenTypeToGenType.length; ++i) {
+    builtIn = builtIns2GenTypeToGenType[i];
+    pushTest('float', builtIn + '(0.2, 0.5)', true);
+    pushTest('vec4', builtIn + '(vec4(0.2), vec4(0.5))', true);
+  }
+
+  // Include some expressions with a constant variable reference
+  pushTest('float', 'cc', true, 'const float cc = 0.5;');
+  pushTest('float', 'cc + cc2', true, 'const float cc = 0.5; const float cc2 = 0.2;');
+  pushTest('float', 'sqrt(cc)', true, 'const float cc = 0.5;');
+
+  GLSLConformanceTester.runTests(tests);
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

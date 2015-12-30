@@ -1,0 +1,223 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL FBO Lost Context Test</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../../devtools/src/debug/webgl-debug.js"></script>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec2 texCoord0;
+uniform mat4 world;
+varying vec2 texCoord;
+void main()
+{
+    gl_Position = vPosition * world;
+    texCoord = texCoord0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main()
+{
+    gl_FragColor = texture2D(tex, texCoord);
+}
+</script>
+<canvas id="canvas" width="1024" height="1024"> </canvas>
+<script>
+"use strict";
+description("This test is to help see if an WebGL app *can* get lost context.");
+
+debug("");
+debug("Canvas.getContext");
+var wtu = WebGLTestUtils;
+var g_worldLoc;
+var g_texLoc;
+var g_textures = [];
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking for out of memory handling.");
+
+  var program = wtu.setupProgram(["vshader", "fshader"], ["vPosition", "texCoord0"]);
+  var size = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+  debug("max render buffer size: " + size);
+  size = size / 2;
+  debug("size used: " + size);
+
+  var allocateFramebuffers = true;
+  var itervalId;
+  var count = 0;
+
+  gl = WebGLDebugUtils.makeDebugContext(gl, function(err, functionName, args) {
+        window.clearInterval(intervalId);
+        assertMsg(err == gl.OUT_OF_MEMORY,
+                  "correctly returns gl.OUT_OF_MEMORY when out of memory");
+        finish();
+      });
+
+  function createFBO() {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D,
+                  0,                 // level
+                  gl.RGBA,           // internalFormat
+                  size,              // width
+                  size,              // height
+                  0,                 // border
+                  gl.RGBA,           // format
+                  gl.UNSIGNED_BYTE,  // type
+                  null);             // data
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        tex,
+        0);
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+      testFailed("gl.checkFramebufferStatus() returned " + WebGLDebugUtils.glEnumToString(status));
+    }
+    return { fb: fb, tex: tex };
+  }
+
+  gl.disable(gl.DEPTH_TEST);
+
+  var numFBOs = 32;
+  for (var ii = 0; ii < numFBOs; ++ii) {
+    createFBO();
+    var t = createFBO();
+    tex = t.tex;
+    fb = t.fb;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.scissor(0, 0, size, size);
+    gl.clearColor(0, ii / numFBOs, 1 - ii / numFBOs, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    g_textures.push(tex);
+  }
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  var vertexObject = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+     -1,1,0, 1,1,0, -1,-1,0,
+     -1,-1,0, 1,1,0, 1,-1,0
+   ]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  var vertexObject = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+     0,0, 1,0, 0,1,
+     0,1, 1,0, 1,1
+   ]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  g_texLoc = gl.getUniformLocation(gl.program, "tex");
+  gl.uniform1i(g_texLoc, 0);
+  g_worldLoc = gl.getUniformLocation(gl.program, "world");
+  gl.uniformMatrix4fv(g_worldLoc, false, [
+     0, 0, 0, 0,
+     0, 0, 0, 0,
+     0, 0, 1, 0,
+     0, 0, 0, 1]);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  setInterval(render, 1000/60);
+}
+
+var g_angle = 0;
+var g_texIndex = 0;
+function render() {
+  g_angle += 0.1;
+  g_texIndex++;
+  if (g_texIndex >= g_textures.length) {
+    g_texIndex = 0;
+  }
+  gl.bindTexture(gl.TEXTURE_2D, g_textures[g_texIndex]);
+  gl.uniformMatrix4fv(g_worldLoc, false, rotationZ(g_angle));
+  gl.clearColor(1,0,0,1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+/**
+ * Creates a 4-by-4 matrix which rotates around the z-axis by the given angle.
+ * @param {number} angle The angle by which to rotate (in radians).
+ * @return {!o3djs.math.Matrix4} The rotation matrix.
+ */
+function rotationZ(angle) {
+  var c = Math.cos(angle);
+  var s = Math.sin(angle);
+
+  return [
+    c, s, 0, 0,
+    -s, c, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ];
+};
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script>
+"use strict";
+</script>
+
+</body>
+</html>

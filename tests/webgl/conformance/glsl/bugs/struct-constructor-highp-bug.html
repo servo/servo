@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Struct constructor highp bug.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="256" height="256"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main() {
+  gl_Position = a_position;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+
+struct Test {
+  vec3 color;
+};
+
+void main() {
+  vec3 color = vec3( 0.0, 1.0, 0.0 );
+  Test test = Test( color );
+  gl_FragColor = vec4( test.color, 1.0 );
+}
+</script>
+
+<script type="application/javascript">
+"use strict";
+description("Struct constructors should evaluate properly.");
+debug("Regression test for Three.js bug worked around in <a href='https://github.com/mrdoob/three.js/pull/7556'>https://github.com/mrdoob/three.js/pull/7556</a> that reproduced on Nexus 4 and 5 (Adreno 320 and 330).");
+debug("When high precision is used in the fragment shader on these devices, bugs occur in evaluation of structs' constructors. Thanks to Mr. doob for the reduced test case.");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+
+gl.clearColor(1, 0, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+var attribBuffers = wtu.setupUnitQuad(gl, 0, 1);
+var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['a_position'], [0], true);
+if (!program) {
+  testFailed("Shader compilation/link failed");
+} else {
+  // Draw
+  wtu.drawUnitQuad(gl);
+  // Verify output
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+}
+
+finishTest();
+</script>

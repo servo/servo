@@ -1,0 +1,28 @@
+Error: Threw TypeError in texImage2D
+argument could not be converted to any of: ImageData, HTMLImageElement, HTMLCanvasElement, HTMLVideoElement
+function (gl) {
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2,2,0,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 2,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,2,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 1,0, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,1, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 1,1, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+  gl.texImage2D(gl.TEXTURE_2D, 1,gl.RGBA, 1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+  gl.texSubImage2D(gl.TEXTURE_2D, 1, 0,0, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+  var valid_targets = [
+    gl.TEXTURE_2D,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+  ];
+  valid_targets.forEach(function(t) {
+    assertOk(function(){
+        gl.texImage2D(t, 0, gl.RGBA, 1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+        gl.texSubImage2D(t, 0, 0,0, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+  });
+}

@@ -1,0 +1,36 @@
+--min-version 1.0.3 --max-version 1.9.9 angle-instanced-arrays.html
+--min-version 1.0.3 --max-version 1.9.9 angle-instanced-arrays-out-of-bounds.html
+--min-version 1.0.3 --max-version 1.9.9 ext-blend-minmax.html
+--min-version 1.0.4 ext-disjoint-timer-query.html
+--min-version 1.0.3 --max-version 1.9.9 ext-frag-depth.html
+--min-version 1.0.3 --max-version 1.9.9 ext-shader-texture-lod.html
+--min-version 1.0.3 --max-version 1.9.9 ext-sRGB.html
+--min-version 1.0.2 ext-texture-filter-anisotropic.html
+--min-version 1.0.2 get-extension.html
+--max-version 1.9.9 oes-standard-derivatives.html
+--max-version 1.9.9 oes-texture-float-with-canvas.html
+--max-version 1.9.9 oes-texture-float-with-image-data.html
+--max-version 1.9.9 oes-texture-float-with-image.html
+--max-version 1.9.9 oes-texture-float-with-video.html
+--max-version 1.9.9 oes-texture-float.html
+--max-version 1.9.9 oes-vertex-array-object.html
+--min-version 1.0.3 --max-version 1.9.9 oes-vertex-array-object-bufferData.html
+--min-version 1.0.3 --max-version 1.9.9 oes-texture-half-float.html
+--min-version 1.0.3 oes-texture-float-linear.html
+--min-version 1.0.3 --max-version 1.9.9 oes-texture-half-float-linear.html
+--min-version 1.0.3 --max-version 1.9.9 oes-texture-half-float-with-canvas.html
+--min-version 1.0.3 --max-version 1.9.9 oes-texture-half-float-with-image-data.html
+--min-version 1.0.3 --max-version 1.9.9 oes-texture-half-float-with-image.html
+--min-version 1.0.3 --max-version 1.9.9 oes-texture-half-float-with-video.html
+--min-version 1.0.2 --max-version 1.9.9 oes-element-index-uint.html
+webgl-debug-renderer-info.html
+webgl-debug-shaders.html
+--min-version 1.0.3 webgl-compressed-texture-atc.html
+--min-version 1.0.3 webgl-compressed-texture-pvrtc.html
+--min-version 1.0.2 webgl-compressed-texture-s3tc.html
+--min-version 1.0.3 webgl-compressed-texture-size-limit.html
+--min-version 1.0.2 --max-version 1.9.9 webgl-depth-texture.html
+--min-version 1.0.3 --max-version 1.9.9 webgl-draw-buffers.html
+--min-version 1.0.4 --max-version 1.9.9 webgl-draw-buffers-max-draw-buffers.html
+--min-version 1.0.3 webgl-shared-resources.html
+

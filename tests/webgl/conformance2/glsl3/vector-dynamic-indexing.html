@@ -1,0 +1,382 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL dynamic vector and matrix indexing test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderIndexMatrixTwice" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main() {
+    mat2 m = mat2(0.0, 0.0, 0.0, 1.0);
+    float f = m[u_zero + 1][u_zero + 1];
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexWithValueFromIndexingExpression" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main() {
+    ivec2 i = ivec2(0, 2);
+    vec4 v = vec4(0.0, 0.2, 1.0, 0.4);
+    float f = v[i[u_zero + 1]];
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexLValue" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    v[u_zero + 1] = 5.0;
+    vec4 expected = vec4(1.0, 5.0, 3.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexLValueWithValueFromIndexingExpression" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main() {
+    ivec2 i = ivec2(0, 2);
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    v[i[u_zero + 1]] = 5.0;
+    vec4 expected = vec4(1.0, 2.0, 5.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexBuiltInFunctionCallOutParameter" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    modf(5.5, v[u_zero + 3]);
+    vec4 expected = vec4(1.0, 2.0, 3.0, 5.0);
+    float f = 1.0 - distance(v, expected);
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexUserDefinedFunctionCallOutParameter" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void foo(out float f) {
+    modf(5.5, f);
+}
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    foo(v[u_zero + 3]);
+    vec4 expected = vec4(1.0, 2.0, 3.0, 5.0);
+    float f = 1.0 - distance(v, expected);
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexUserDefinedFunctionCallInOutParameter" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void foo(inout float f) {
+    float g = f + 2.5;
+    modf(g, f);
+}
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    foo(v[u_zero + 2]);
+    vec4 expected = vec4(1.0, 2.0, 5.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexWithSideEffects" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+int sideEffectCounter = 0;
+
+int funcWithSideEffects() {
+    sideEffectCounter++;
+    return 2;
+}
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    v[funcWithSideEffects()] = 5.0;
+    vec4 expected = vec4(1.0, 2.0, 5.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    if (sideEffectCounter != 1) {
+        f = 0.0;
+    }
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexInOutWithSideEffects" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+int sideEffectCounter = 0;
+
+int funcWithSideEffects() {
+    sideEffectCounter++;
+    return 2;
+}
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    v[funcWithSideEffects()]++;
+    vec4 expected = vec4(1.0, 2.0, 4.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    if (sideEffectCounter != 1) {
+        f = 0.0;
+    }
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexUserDefinedFunctionCallInOutParameterWithIndexWithSideEffects" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+int sideEffectCounter = 0;
+
+void foo(inout float f) {
+    float g = f + 2.5;
+    modf(g, f);
+}
+
+int funcWithSideEffects() {
+    sideEffectCounter++;
+    return 2;
+}
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    foo(v[funcWithSideEffects()]);
+    vec4 expected = vec4(1.0, 2.0, 5.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    if (sideEffectCounter != 1) {
+        f = 0.0;
+    }
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderLValueVectorBeingIndexedHasSideEffects" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+int sideEffectCounter = 0;
+
+int funcWithSideEffects() {
+    sideEffectCounter++;
+    return 1;
+}
+
+void main() {
+    vec4 V[2];
+    V[0] = vec4(1.0, 2.0, 3.0, 4.0);
+    V[1] = vec4(5.0, 6.0, 7.0, 8.0);
+    // In case this is broken down to two expressions where one reads V[funcWithSideEffects()]
+    // and another writes it, it needs to be made sure that funcWithSideEffects() only gets called once.
+    V[funcWithSideEffects()][u_zero + 1]++;
+    vec4 expectedV0 = vec4(1.0, 2.0, 3.0, 4.0);
+    vec4 expectedV1 = vec4(5.0, 7.0, 7.0, 8.0);
+    float f = 1.0 - distance(V[0], expectedV0) - distance(V[1], expectedV1);
+    if (sideEffectCounter != 1) {
+        f = 0.0;
+    }
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexLValueWithUint" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform uint u_zero;
+
+void main() {
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    v[u_zero] = 5.0;
+    vec4 expected = vec4(5.0, 2.0, 3.0, 4.0);
+    float f = 1.0 - distance(v, expected);
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script id="fshaderIndexUniform" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform vec4 u_zeroVec;
+uniform uint u_zero;
+
+void main() {
+    // This test is just to catch a crash bug that occurred in ANGLE's workaround.
+    // Rendering result is not meaningful.
+    float f = u_zeroVec[u_zero];
+    my_FragColor = vec4(f, 1.0, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Dynamic indexing of vectors and matrices should work.");
+
+debug("Dynamic indexing of vectors and matrices requires complex workarounds on HLSL backends. Try to test possible bugs those workarounds might have.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderIndexMatrixTwice',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index matrix and then index the resulting vector in the same expression'
+},
+{
+  fShaderId: 'fshaderIndexWithValueFromIndexingExpression',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index a vector with an index that is the result of indexing'
+},
+{
+  fShaderId: 'fshaderIndexLValue',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index on the left-hand side of assignment'
+},
+{
+  fShaderId: 'fshaderIndexLValueWithValueFromIndexingExpression',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index on the left-hand side of assignment with an index that is the result of indexing'
+},
+{
+  fShaderId: 'fshaderIndexBuiltInFunctionCallOutParameter',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index the out parameter passed to built-in modf'
+},
+{
+  fShaderId: 'fshaderIndexUserDefinedFunctionCallOutParameter',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index an out parameter passed to an user-defined function'
+},
+{
+  fShaderId: 'fshaderIndexUserDefinedFunctionCallInOutParameter',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index an inout parameter passed to an user-defined function'
+},
+{
+  fShaderId: 'fshaderIndexWithSideEffects',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Use expression with side effects as an index of an l-value'
+},
+{
+  fShaderId: 'fshaderIndexInOutWithSideEffects',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Use expression with side effects as an index of an l-value that is both read and written'
+},
+{
+  fShaderId: 'fshaderIndexUserDefinedFunctionCallInOutParameterWithIndexWithSideEffects',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index an inout parameter passed to an user-defined function with an index with side effects'
+},
+{
+  fShaderId: 'fshaderLValueVectorBeingIndexedHasSideEffects',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index a vector expression that itself has side effects, in an l-value'
+},
+{
+  fShaderId: 'fshaderIndexLValueWithUint',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index on the left-hand side of assignment with an uint'
+},
+{
+  fShaderId: 'fshaderIndexUniform',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index a uniform with a uniform'
+}
+], 2);
+</script>
+</body>
+</html>
+

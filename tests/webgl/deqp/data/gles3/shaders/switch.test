@@ -1,0 +1,633 @@
+
+case empty_condition
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch ()
+			{
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case condition_float
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float c = 1.0;
+			switch (c)
+			{
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case condition_bool
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			bool c = true;
+			switch (c)
+			{
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case condition_ivec2
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			ivec2 c = ivec2(1, 1);
+			switch (c)
+			{
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case condition_struct
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		struct S { int m; };
+
+		void main ()
+		{
+			S c = S(1);
+			switch (c)
+			{
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case duplicate_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			int c = 1;
+			switch (c)
+			{
+				case 1:
+				case 1:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case float_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			int c = 1;
+			switch (c)
+			{
+				case 1.0:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case non_const_int_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			int c = 1;
+			int l = 2;
+			switch (c)
+			{
+				case l:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case statement_before_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case statement_before_default_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+				default:
+					${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case no_statement_after_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				case 0:
+					break;
+				case 1:
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case no_statement_after_default_label
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				case 0:
+					break;
+				default:
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case case_in_if
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					if (f > 0.0)
+					{
+						case 1:
+							f *= 2.0;
+					}
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case default_in_if
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					if (f > 0.0)
+					{
+						default:
+							f *= 2.0;
+					}
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case case_in_for_loop
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					for (int i = 0; i < 2; i++)
+					{
+						case 1:
+							f *= 2.0;
+					}
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case default_in_for_loop
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					for (int i = 0; i < 2; i++)
+					{
+						default:
+							f *= 2.0;
+					}
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case case_in_while_loop
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					while (f > 0.0)
+					{
+						case 1:
+							f *= 2.0;
+					}
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case default_in_while_loop
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					while (f > 0.0)
+					{
+						default:
+							f *= 2.0;
+					}
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case case_in_do_while_loop
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					do
+					{
+						case 1:
+							f *= 2.0;
+					} while (f > 0.0);
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case default_in_do_while_loop
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			float f = 1.0;
+			switch (1)
+			{
+				case 0:
+					f = 0.0;
+					do
+					{
+						default:
+							f *= 2.0;
+					} while (f > 0.0);
+					break;
+				case 2:
+					break;
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case missing_colon
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				case 1
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case missing_opening_brace
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case missing_closing_brace
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+
+			${OUTPUT}
+		}
+	""
+end
+
+case double_case
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				case case 1:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case double_default_1
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				default:
+					break;
+				default:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end
+
+case double_default_2
+	version 300 es
+	expect compile_fail
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+
+		void main ()
+		{
+			switch (1)
+			{
+				default default:
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			${OUTPUT}
+		}
+	""
+end

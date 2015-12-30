@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Floor + divide + cosine should not truncate intermediate results.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="256" height="256"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vshader" type="x-shader/x-vertex">
+precision highp float;
+
+attribute vec3 pos;
+
+// This divisor must be greater than the 32-bit floating point
+// representation of 1e6 / (2 * pi) to repro.
+const float magic = 159154.953125;
+
+void main(void) {
+  // This floor must be present to repro.
+  float x = floor(pos.x);
+
+  // This divide and cosine must be present to repro.
+  x = cos(x / magic);
+
+  // If the GPU truncated 'x / magic' to 0, then 'cos(x / magic)' will produce
+  // 1.0, the green square will be moved offscreen, and the red background
+  // will be visible.
+  gl_Position.x = pos.y + x * 2.0;
+  gl_Position.y = pos.z;
+  gl_Position.z = 0.0;
+  gl_Position.w = 1.0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision highp float;
+
+void main(void) {
+  gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+
+<script type="application/javascript">
+"use strict";
+description("Flooring a number, then dividing by a large number, then computing the cosine of that should not truncate the intermediate values.");
+debug("Regression test for <a href='https://code.google.com/p/angleproject/issues/detail?id=1179'>https://code.google.com/p/angleproject/issues/detail?id=1179</a>");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['pos'], undefined, true);
+
+gl.clearColor(1, 0, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+var magic = 159154.953125;
+var x = (Math.PI / 2.0) * magic;
+var data = [
+  x, -1, -1,
+  x, 1, -1,
+  x, 1, 1,
+  x, -1, -1,
+  x, 1, 1,
+  x, -1, 1
+];
+
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
+
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+wtu.checkCanvas(gl, [0,255,0,255], "should be 0,255,0,255");
+finishTest();
+</script>

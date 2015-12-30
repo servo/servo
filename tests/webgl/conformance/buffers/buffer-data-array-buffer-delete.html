@@ -1,0 +1,80 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test ARRAY_BUFFER deletion when a vertex attrib array with location != 0 is pointing to it and preserveDrawingBuffer is true.");
+
+var canvas = document.createElement('canvas');
+document.body.appendChild(canvas);
+
+canvas.addEventListener(
+    "webglcontextlost",
+    function(event) {
+        testFailed("Context lost");
+        event.preventDefault();
+    },
+    false);
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(canvas, {preserveDrawingBuffer: true});
+shouldBeNonNull("gl");
+
+var array = new Float32Array([0]);
+var buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, array, gl.STATIC_DRAW);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+var attribLocation = 1;
+gl.enableVertexAttribArray(attribLocation);
+gl.vertexAttribPointer(attribLocation, 1, gl.FLOAT, false, 0, 0);
+
+gl.deleteBuffer(buf);
+
+setTimeout(function() {
+    // Wait for possible context loss
+    finishTest();
+}, 2000);
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

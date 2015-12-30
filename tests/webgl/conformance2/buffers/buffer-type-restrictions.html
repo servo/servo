@@ -1,0 +1,141 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL buffer binding restrictions test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Test binding restrictions governed by the WebGL 2 spec. The test makes sure that bindBuffer,"
+  + "bindBufferRange, and bindBufferBase acts as expected with every target combination.");
+
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+var validTargets = [gl.ARRAY_BUFFER, gl.ELEMENT_ARRAY_BUFFER, gl.COPY_READ_BUFFER,
+                    gl.COPY_WRITE_BUFFER, gl.PIXEL_PACK_BUFFER, gl.PIXEL_UNPACK_BUFFER,
+                    gl.TRANSFORM_FEEDBACK_BUFFER, gl.UNIFORM_BUFFER];
+
+var bindFunctions = ["bindBuffer", "bindBufferRange", "bindBufferBase"];
+
+var isCopyTarget = function(target) {
+  return target == gl.COPY_READ_BUFFER || target == gl.COPY_WRITE_BUFFER;
+}
+
+var noElementArrayVsOtherDataConflicts = function(first, second) {
+  return isCopyTarget(second) || ((first == gl.ELEMENT_ARRAY_BUFFER) == (second == gl.ELEMENT_ARRAY_BUFFER));
+};
+
+
+var bind = function(bindFn, target, buffer) {
+  if (bindFn == "bindBuffer")
+    gl.bindBuffer(target, buffer);
+  else if (bindFn == "bindBufferRange")
+    gl.bindBufferRange(target, 0, buffer, 0, 4);
+  else if (bindFn == "bindBufferBase")
+    gl.bindBufferBase(target, 0, buffer);
+  else
+    throw new Error("Cannot bind unknown function: " + bindFn);
+}
+
+var testBindingFn = function(firstBindFn, secondBindFn, firstTarget, secondTarget) {
+  var firstTargetStr = wtu.glEnumToString(gl, firstTarget),
+    secondTargetStr = wtu.glEnumToString(gl, secondTarget);
+  var buffer = gl.createBuffer();
+
+  bind(firstBindFn, firstTarget, buffer);
+  bind(firstBindFn, firstTarget, null);
+  bind(secondBindFn, secondTarget, buffer);
+  bind(secondBindFn, secondTarget, null);
+
+  var messagePrefix = "Binding buffer first with " + firstBindFn + " to gl." + firstTargetStr
+    + " and then binding buffer with " + secondBindFn + " to gl." + secondTargetStr + " should ";
+  if (firstTarget == secondTarget || noElementArrayVsOtherDataConflicts(firstTarget, secondTarget))
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, messagePrefix + "WORK");
+  else
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, messagePrefix + "FAIL");
+
+  if ((firstTarget == gl.TRANSFORM_FEEDBACK_BUFFER && secondTarget != gl.TRANSFORM_FEEDBACK_BUFFER) ||
+      (firstTarget != gl.TRANSFORM_FEEDBACK_BUFFER && secondTarget == gl.TRANSFORM_FEEDBACK_BUFFER)) {
+    bind(firstBindFn, firstTarget, buffer);
+    bind(secondBindFn, secondTarget, buffer);
+
+    var message = "Binding buffer first with " + firstBindFn + " to gl." + firstTargetStr
+    + " and simultaneously binding buffer with " + secondBindFn + " to gl." + secondTargetStr + " should FAIL";
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, message);
+  }
+}
+
+var testBinding = function(firstTarget, secondTarget) {
+  for (var i = 0; i < bindFunctions.length; i++)
+    if (i == 0 || firstTarget == gl.UNIFORM_BUFFER || firstTarget == gl.TRANSFORM_FEEDBACK_BUFFER)
+      for (var j = 0; j < bindFunctions.length; j++)
+        if (j == 0 || secondTarget == gl.UNIFORM_BUFFER || secondTarget == gl.TRANSFORM_FEEDBACK_BUFFER)
+          testBindingFn(bindFunctions[i], bindFunctions[j], firstTarget, secondTarget);
+};
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+debug("");
+debug("Testing each binding function");
+
+var buffer1 = gl.createBuffer();
+bind("bindBuffer", gl.ARRAY_BUFFER, buffer1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "bindBuffer(gl.ARRAY_BUFFER, buffer1) should WORK");
+
+var buffer2 = gl.createBuffer();
+bind("bindBufferRange", gl.UNIFORM_BUFFER, buffer2);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "bindBufferRange(gl.UNIFORM_BUFFER, 0, buffer2, 0, 4) should WORK");
+
+var buffer3 = gl.createBuffer();
+bind("bindBufferBase", gl.UNIFORM_BUFFER, buffer3);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "bindBufferBase(gl.UNIFORM_BUFFER, 0, buffer3) should WORK");
+
+for (var i = 0; i < validTargets.length; i++) {
+  debug("");
+  debug("Testing binding a buffer first to " + wtu.glEnumToString(gl, validTargets[i])
+    + " and then to another target");
+  for (var j = 0; j < validTargets.length; j++)
+    testBinding(validTargets[i], validTargets[j]);
+}
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

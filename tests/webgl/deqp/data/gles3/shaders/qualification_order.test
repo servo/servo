@@ -1,0 +1,2714 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+
+group variables "Order of qualification in variable declarations."
+
+	group valid "Valid orderings."
+
+		case invariant_interp_storage_precision
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant smooth centroid out lowp float x0;
+
+				 flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 smooth centroid in lowp float x0;
+
+				 flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage_precision
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out lowp float x0;
+
+				flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth centroid in lowp float x0;
+
+				flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_interp_storage
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant smooth centroid out float x0;
+
+				 flat out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 smooth centroid in float x0;
+
+				 flat in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage_precision
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out lowp float x0;
+
+				 out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 centroid in lowp float x0;
+
+				 in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out lowp float x0;
+
+				out mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in lowp float x0;
+
+				in mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out float x0;
+
+				flat out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth centroid in float x0;
+
+				flat in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage
+			expect pass
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out float x0;
+
+				 out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 centroid in float x0;
+
+				 in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+
+	end # valid
+	group invalid "Invalid orderings."
+
+		case invariant_interp_precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant smooth lowp centroid out float x0;
+
+				 flat mediump out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 smooth lowp centroid in float x0;
+
+				 flat mediump in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage_interp_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out smooth lowp float x0;
+
+				 out flat mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 centroid in smooth lowp float x0;
+
+				 in flat mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage_precision_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out lowp smooth float x0;
+
+				 out mediump flat float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 centroid in lowp smooth float x0;
+
+				 in mediump flat float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_precision_interp_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant lowp smooth centroid out float x0;
+
+				 mediump flat out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 lowp smooth centroid in float x0;
+
+				 mediump flat in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_precision_storage_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant lowp centroid out smooth float x0;
+
+				 mediump out flat float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 lowp centroid in smooth float x0;
+
+				 mediump in flat float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_invariant_storage_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth invariant centroid out lowp float x0;
+
+				flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth  centroid in lowp float x0;
+
+				flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_invariant_precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth invariant lowp centroid out float x0;
+
+				flat mediump out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth  lowp centroid in float x0;
+
+				flat mediump in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage_invariant_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out invariant lowp float x0;
+
+				flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth centroid in  lowp float x0;
+
+				flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage_precision_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out lowp invariant float x0;
+
+				flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth centroid in lowp  float x0;
+
+				flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_precision_invariant_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth lowp invariant centroid out float x0;
+
+				flat mediump out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth lowp  centroid in float x0;
+
+				flat mediump in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_precision_storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth lowp centroid out invariant float x0;
+
+				flat mediump out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth lowp centroid in  float x0;
+
+				flat mediump in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant_interp_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out invariant smooth lowp float x0;
+
+				out flat mediump float x1;
+
+				uniform  highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in  smooth lowp float x0;
+
+				in flat mediump float x1;
+
+				uniform  highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant_precision_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out invariant lowp smooth float x0;
+
+				out mediump flat float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in  lowp smooth float x0;
+
+				in mediump flat float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_interp_invariant_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out smooth invariant lowp float x0;
+
+				out flat mediump float x1;
+
+				uniform  highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in smooth  lowp float x0;
+
+				in flat mediump float x1;
+
+				uniform  highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_interp_precision_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out smooth lowp invariant float x0;
+
+				out flat mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in smooth lowp  float x0;
+
+				in flat mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision_invariant_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out lowp invariant smooth float x0;
+
+				out mediump flat float x1;
+
+				uniform highp  float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in lowp  smooth float x0;
+
+				in mediump flat float x1;
+
+				uniform highp  float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision_interp_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out lowp smooth invariant float x0;
+
+				out mediump flat float x1;
+
+				uniform highp  float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in lowp smooth  float x0;
+
+				in mediump flat float x1;
+
+				uniform highp  float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_invariant_interp_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp invariant smooth centroid out float x0;
+
+				mediump flat out float x1;
+
+				highp  uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp  smooth centroid in float x0;
+
+				mediump flat in float x1;
+
+				highp  uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_invariant_storage_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp invariant centroid out smooth float x0;
+
+				mediump out flat float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp  centroid in smooth float x0;
+
+				mediump in flat float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_interp_invariant_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp smooth invariant centroid out float x0;
+
+				mediump flat out float x1;
+
+				highp  uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp smooth  centroid in float x0;
+
+				mediump flat in float x1;
+
+				highp  uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_interp_storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp smooth centroid out invariant float x0;
+
+				mediump flat out float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp smooth centroid in  float x0;
+
+				mediump flat in float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage_invariant_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp centroid out invariant smooth float x0;
+
+				mediump out flat float x1;
+
+				highp uniform  float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp centroid in  smooth float x0;
+
+				mediump in flat float x1;
+
+				highp uniform  float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage_interp_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp centroid out smooth invariant float x0;
+
+				mediump out flat float x1;
+
+				highp uniform  float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp centroid in smooth  float x0;
+
+				mediump in flat float x1;
+
+				highp uniform  float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth lowp centroid out float x0;
+
+				flat mediump out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth lowp centroid in float x0;
+
+				flat mediump in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_interp_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out smooth lowp float x0;
+
+				out flat mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in smooth lowp float x0;
+
+				in flat mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out lowp smooth float x0;
+
+				out mediump flat float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in lowp smooth float x0;
+
+				in mediump flat float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_interp_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp smooth centroid out float x0;
+
+				mediump flat out float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp smooth centroid in float x0;
+
+				mediump flat in float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp centroid out smooth float x0;
+
+				mediump out flat float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp centroid in smooth float x0;
+
+				mediump in flat float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out smooth float x0;
+
+				 out flat float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 centroid in smooth float x0;
+
+				 in flat float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_invariant_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth invariant centroid out float x0;
+
+				flat out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth  centroid in float x0;
+
+				flat in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out invariant float x0;
+
+				flat out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				smooth centroid in  float x0;
+
+				flat in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out invariant smooth float x0;
+
+				out flat float x1;
+
+				uniform  float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in  smooth float x0;
+
+				in flat float x1;
+
+				uniform  float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_interp_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out smooth invariant float x0;
+
+				out flat float x1;
+
+				uniform  float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in smooth  float x0;
+
+				in flat float x1;
+
+				uniform  float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant lowp centroid out float x0;
+
+				 mediump out float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				 lowp centroid in float x0;
+
+				 mediump in float x1;
+
+				 highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out invariant lowp float x0;
+
+				out mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in  lowp float x0;
+
+				in mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out lowp invariant float x0;
+
+				out mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in lowp  float x0;
+
+				in mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_invariant_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp invariant centroid out float x0;
+
+				mediump out float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp  centroid in float x0;
+
+				mediump in float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp centroid out invariant float x0;
+
+				mediump out float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp centroid in  float x0;
+
+				mediump in float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				lowp centroid out float x0;
+
+				mediump out float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				lowp centroid in float x0;
+
+				mediump in float x1;
+
+				highp uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_interp
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out smooth float x0;
+
+				out flat float x1;
+
+				uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in smooth float x0;
+
+				in flat float x1;
+
+				uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out invariant float x0;
+
+				out float x1;
+
+				uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				centroid in  float x0;
+
+				in float x1;
+
+				uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_interp_storage_precision_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant smooth centroid out lowp float x0;
+
+				 flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant  smooth centroid in lowp float x0;
+
+				 flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage_precision_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out lowp float x0;
+
+				flat out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant smooth centroid in lowp float x0;
+
+				flat in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_interp_storage_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant smooth centroid out float x0;
+
+				 flat out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant  smooth centroid in float x0;
+
+				 flat in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage_precision_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out lowp float x0;
+
+				 out mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant  centroid in lowp float x0;
+
+				 in mediump float x1;
+
+				 uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				centroid out lowp float x0;
+
+				out mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant centroid in lowp float x0;
+
+				in mediump float x1;
+
+				uniform highp float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case interp_storage_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				smooth centroid out float x0;
+
+				flat out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant smooth centroid in float x0;
+
+				flat in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage_invariant_input
+			expect compile_fail
+			values {}
+
+			vertex ""
+				#version 300 es
+				precision mediump float;
+				in highp vec4 dEQP_Position;
+
+				invariant centroid out float x0;
+
+				 out float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					x1 = 2.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				#version 300 es
+				precision mediump float;
+				layout(location = 0) out mediump vec4 dEQP_FragColor;
+
+				invariant  centroid in float x0;
+
+				 in float x1;
+
+				 uniform float x2;
+
+				void main()
+				{
+					float result = (x0 + x1 + x2) / 3.0;
+					dEQP_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+
+	end # invalid
+
+end # variables
+group parameters "Order of qualification in function parameters."
+
+	group valid "Valid orderings."
+
+		case storage_parameter_precision
+			expect pass
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const in lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( inout highp float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case storage_parameter
+			expect pass
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case storage_precision
+			expect pass
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( highp float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_precision
+			expect pass
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout highp float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+
+	end # valid
+	group invalid "Invalid orderings."
+
+		case storage_precision_parameter
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const lowp in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( highp inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_storage_precision
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in const lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout highp float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_precision_storage
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in lowp const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout highp float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_storage_parameter
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp const in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (highp inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_parameter_storage
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp in const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (highp inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_storage
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_storage
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (highp float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_parameter
+			expect compile_fail
+			version 300 es
+			values {}
+
+			both ""
+				#version 300 es
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (highp inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+
+	end # invalid
+
+end # parameters

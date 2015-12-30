@@ -1,0 +1,250 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<title>Testing resolution of texture uploads</title>
+<style>
+
+.result {
+    margin-bottom: 20px;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+}
+
+.description, .element, .render, .log {
+    border: 1px solid black;
+    margin: 5px;
+    width: 200px;
+    height: 200px;
+    max-width: 200px;
+    max-height: 200px;
+}
+
+.render canvas {
+    width: 200px;
+    height: 200px;
+}
+
+p {
+    margin: 0;
+    padding: 5px 10px;
+}
+.viacss {
+    width: 200px;
+    height: 200px;
+}
+</style>
+<script src="../js/webgl-test-utils.js"> </script>
+<script>
+
+var outOfPageSVG = new Image();
+outOfPageSVG.src = "sample.svg";
+
+function runTest() {
+  var wtu = WebGLTestUtils;
+  var results = document.querySelectorAll(".result");
+  for (var i = 0; i < results.length; i++) {
+    var result = results[i];
+    var img = result.querySelector("img");
+    if (result.classList.contains("out-of-page")) {
+      img = outOfPageSVG;
+    }
+    if (result.classList.contains("set-dimensions")) {
+      img.width = 200;
+      img.height = 200;
+    }
+    var out = result.querySelector(".output");
+    out.innerHTML = "img.width = " + img.width + "<br>img.height = " + img.height + "<br>img.naturalWidth = " + img.naturalWidth + "<br>img.naturalHeight = " + img.naturalHeight;
+
+    var canvas = document.createElement("canvas");
+    canvas.width = 200 * window.devicePixelRatio;
+    canvas.height = 200 * window.devicePixelRatio;
+    result.querySelector(".render").appendChild(canvas);
+    var gl = wtu.create3DContext(canvas);
+    gl.enable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
+
+    var program = wtu.setupSimpleTextureProgram(gl, 0, 1);
+    var buffers = wtu.setupUnitQuad(gl, 0, 1);
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    var loc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(loc, 0);
+
+    wtu.clearAndDrawUnitQuad(gl, [0, 255, 0, 255]);
+  }
+}
+
+window.addEventListener("load", function () {
+  runTest();
+}, false);
+</script>
+</head>
+<body>
+<div class="result">
+  <div class="description">
+    <p>IMG to SVG with 200x200 attributes</p>
+  </div>
+  <div class="element">
+    <img src="sample.svg" width="200" height="200">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>IMG to 100x100 PNG with 200x200 attributes</p>
+  </div>
+  <div class="element">
+    <img src="sample-100.png" width="200" height="200">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>IMG to 200x200 PNG with 200x200 attributes</p>
+  </div>
+  <div class="element">
+    <img src="sample-200.png" width="200" height="200">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>IMG to 400x400 PNG with 200x200 attributes</p>
+  </div>
+  <div class="element">
+    <img src="sample-400.png" width="200" height="200">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>IMG SRCSET to multiple PNGs with 200x200 attributes</p>
+  </div>
+  <div class="element">
+    <img src="sample-100.png" srcset="sample-200.png 1x, sample-400.png 2x" width="200" height="200">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>IMG to SVG with no attributes - 200x200 sizing via CSS</p>
+  </div>
+  <div class="element">
+    <img src="sample.svg" class="viacss">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>IMG to 400x400 PNG with no attributes - 200x200 sizing via CSS</p>
+  </div>
+  <div class="element">
+    <img src="sample-400.png" class="viacss">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result">
+  <div class="description">
+    <p>
+      IMG to SVG with no attributes and no sizing via CSS<br>
+      (although the width and height of the container set a size)
+    </p>
+  </div>
+  <div class="element">
+    <img src="sample.svg">
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result out-of-page">
+  <div class="description">
+    <p>Out of page SVG with no dimensions</p>
+  </div>
+  <div class="element">
+    Not a child of document
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+<div class="result out-of-page set-dimensions">
+  <div class="description">
+    <p>Out of page SVG with 200x200 specified</p>
+  </div>
+  <div class="element">
+    Not a child of document
+  </div>
+  <div class="render">
+  </div>
+  <div class="log">
+    <p class="output"></p>
+  </div>
+</div>
+
+</body>
+</html>

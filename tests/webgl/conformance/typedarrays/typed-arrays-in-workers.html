@@ -1,0 +1,278 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/test-eval.js"></script>
+<script src="../../js/tests/typed-array-test-cases.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var testQueue = [];
+var transferSupported = true;
+
+function nextTest() {
+  if (testQueue[0].subTests.length > 0) {
+    testQueue[0].subTests.shift();
+  }
+
+  while (testQueue.length > 0 && testQueue[0].subTests.length == 0) {
+    testQueue.shift();
+  }
+
+  if (testQueue.length == 0) {
+    finishTest();
+    return;
+  }
+
+  testQueue[0].subTests[0].runner();
+}
+
+function handleMessage(event) {
+  if (testQueue.length == 0)
+    return;
+
+  if (testQueue[0].subTests.length == 0)
+    return;
+
+  testQueue[0].subTests[0].checker(event);
+  nextTest();
+}
+
+function setupTest(testCase, runner, checker) {
+  testCase.subTests.push({ runner: runner.bind(null, testCase), checker: checker.bind(null, testCase) });
+}
+
+function arrayToString(arr) {
+  var result = "[ ";
+  for (var ii = 0; ii < arr.length; ++ii) {
+    if (ii > 0)
+      result += ", ";
+    result += arr[ii];
+  }
+  return result + " ]";
+}
+
+function constructTypedArray(type, data) {
+  if (type == 'Int8Array') {
+    return new Int8Array(data);
+  } else if (type == 'Uint8Array') {
+    return new Uint8Array(data);
+  } else if (type == 'Uint8ClampedArray') {
+    return new Uint8ClampedArray(data);
+  } else if (type == 'Int16Array') {
+    return new Int16Array(data);
+  } else if (type == 'Uint16Array') {
+    return new Uint16Array(data);
+  } else if (type == 'Int32Array') {
+    return new Int32Array(data);
+  } else if (type == 'Uint32Array') {
+    return new Uint32Array(data);
+  } else if (type == 'Float32Array') {
+    return new Float32Array(data);
+  } else if (type == 'Float64Array') {
+    return new Float64Array(data);
+  }
+}
+
+// Test runner / checker pairs
+function runTestWithData(command, testCase) {
+  worker.postMessage({command: command, type: testCase.name, subType: testCase.subType, elementSizeInBytes: testCase.elementSizeInBytes, data: testCase.testValues});
+}
+
+function checkArraysEqual(testKind, testCase, event) {
+  var array = event.data;
+  var testName = testKind + " " + testCase.name + " from worker to main thread";
+  if (areArraysEqual(array, testCase.expectedValues)) {
+    testPassed(testName);
+  } else {
+    testFailed(testName + ": expected " + arrayToString(testCase.expectedValues) + ", received " + arrayToString(array));
+  }
+}
+
+function checkBufferContentsEqual(testKind, testCase, event) {
+  var array = constructTypedArray(testCase.name, event.data);
+  var testName = testKind + " containing " + testCase.name + " values from worker to main thread";
+  if (areArraysEqual(array, testCase.expectedValues)) {
+    testPassed(testName);
+  } else {
+    testFailed(testName + ": expected " + arrayToString(testCase.expectedValues) + ", received " + arrayToString(array));
+  }
+}
+
+function checkDataViewContents(testKind, testCase, event) {
+  var dataView = event.data;
+  var testName = testKind + " " + testCase.name + " containing " + testCase.subType + " from worker to main thread";
+  var byteOffset = 0;
+  var allPassed = true;
+  for (var ii = 0; ii < testCase.expectedValues.length; ++ii) {
+    var expected = testCase.expectedValues[ii];
+    var received = dataView['get' + testCase.subType](byteOffset);
+    if (received != expected) {
+      allPassed = false;
+      testFailed(testName + ": at byte offset " + byteOffset + ": expected " + expected + ", received " + received);
+    }
+    byteOffset += testCase.elementSizeInBytes;
+  }
+  if (allPassed) {
+    testPassed(testName);
+  }
+}
+
+// Missing test: copy or transfer ArrayBuffer, wrap in DataView on this end, verify contents.
+
+function noop() {
+}
+
+function checkArraysEqualAndPingPong(testKind, transfer, testCase, event) {
+  checkArraysEqual(testKind, testCase, event);
+  var transferables = [];
+  if (transfer) {
+    transferables.push(event.data.buffer);
+  }
+  try {
+    worker.postMessage({ command: 'pong', data: event.data, transferables: transferables }, transferables);
+  } catch (e) {
+    testFailed("unexpected exception: " + e);
+  }
+}
+
+function checkBufferContentsEqualAndPingPong(testKind, transfer, testCase, event) {
+  checkBufferContentsEqual(testKind, testCase, event);
+  var transferables = [];
+  if (transfer) {
+    transferables.push(event.data);
+  }
+  try {
+    worker.postMessage({ command: 'pong', data: event.data, transferables: transferables }, transferables);
+  } catch (e) {
+    testFailed("unexpected exception: " + e);
+  }
+}
+
+function checkDataViewContentsAndPingPong(testKind, transfer, testCase, event) {
+  checkDataViewContents(testKind, testCase, event);
+  var transferables = [];
+  if (transfer) {
+    transferables.push(event.data.buffer);
+  }
+  try {
+    worker.postMessage({ command: 'pong', data: event.data, transferables: transferables }, transferables);
+  } catch (e) {
+    testFailed("unexpected exception: " + e);
+  }
+}
+
+description("Tests copying and transferring typed arrays and ArrayBuffers to and from workers");
+
+// See whether workers are supported at all
+if (window.Worker) {
+  // Start up the worker
+  var worker = new Worker('../../js/tests/typed-array-worker.js');
+  worker.onmessage = handleMessage;
+
+  // See whether transferables are supported
+  var buffer = new ArrayBuffer(16);
+  try {
+    worker.postMessage({ command: 'ignore', data: buffer }, [buffer]);
+    if (buffer.byteLength > 0)
+      transferSupported = false;
+  } catch (e) {
+    transferSupported = false;
+  }
+
+  // Iterate down the tests, queueing them up
+  for (var ii = 0; ii < testCases.length; ++ii) {
+    var testCase = testCases[ii];
+    testCase.subTests = [];
+    setupTest(testCase, runTestWithData.bind(null, 'copy'), checkArraysEqual.bind(null, 'copy'));
+    setupTest(testCase, runTestWithData.bind(null, 'copyBuffer'), checkBufferContentsEqual.bind(null, 'copy ArrayBuffer'));
+    setupTest(testCase, runTestWithData.bind(null, 'transfer'), checkArraysEqual.bind(null, 'transfer'));
+    setupTest(testCase, runTestWithData.bind(null, 'transferBuffer'), checkBufferContentsEqual.bind(null, 'transfer ArrayBuffer'));
+
+    // These two must run back-to-back
+    setupTest(testCase, runTestWithData.bind(null, 'copy'), checkArraysEqualAndPingPong.bind(null, 'copy', false));
+    setupTest(testCase, noop, checkArraysEqual.bind(null, 'ping-pong with copy'));
+
+    // These two must run back-to-back
+    setupTest(testCase, runTestWithData.bind(null, 'copyBuffer'), checkBufferContentsEqualAndPingPong.bind(null, 'copy ArrayBuffer', false));
+    setupTest(testCase, noop, checkBufferContentsEqual.bind(null, 'ping-pong with copy'));
+
+    // These two must run back-to-back
+    setupTest(testCase, runTestWithData.bind(null, 'transfer'), checkArraysEqualAndPingPong.bind(null, 'transfer', true));
+    setupTest(testCase, noop, checkArraysEqual.bind(null, 'ping-pong with transfer'));
+
+    // These two must run back-to-back
+    setupTest(testCase, runTestWithData.bind(null, 'transferBuffer'), checkBufferContentsEqualAndPingPong.bind(null, 'transfer ArrayBuffer', false));
+    setupTest(testCase, noop, checkBufferContentsEqual.bind(null, 'ping-pong with transfer'));
+
+    testQueue.push(testCase);
+
+    // Add just a couple of DataView tests; the behavior of that view type is thoroughly tested elsewhere
+    if (testCase.name == "Float32Array" || testCase.name == "Int32Array") {
+      var subTypeName = (testCase.name == "Float32Array" ? "Float32" : "Int32");
+      var dataViewTestCase = { name: "DataView",
+                               subType: subTypeName,
+                               elementSizeInBytes: testCase.elementSizeInBytes,
+                               testValues: testCase.testValues,
+                               expectedValues: testCase.expectedValues,
+                               subTests: [] };
+      setupTest(dataViewTestCase, runTestWithData.bind(null, 'copy'), checkDataViewContents.bind(null, 'copy'));
+      setupTest(dataViewTestCase, runTestWithData.bind(null, 'transfer'), checkDataViewContents.bind(null, 'transfer'));
+
+      // These two must run back-to-back
+      setupTest(dataViewTestCase, runTestWithData.bind(null, 'copy'), checkDataViewContentsAndPingPong.bind(null, 'copy', false));
+      setupTest(dataViewTestCase, noop, checkDataViewContents.bind(null, 'ping-pong with copy'));
+
+      // These two must run back-to-back
+      setupTest(dataViewTestCase, runTestWithData.bind(null, 'transfer'), checkDataViewContentsAndPingPong.bind(null, 'transfer', false));
+      setupTest(dataViewTestCase, noop, checkDataViewContents.bind(null, 'ping-pong with transfer'));
+
+      testQueue.push(dataViewTestCase);
+    }
+  }
+
+  // Kick things off
+  testQueue[0].subTests[0].runner();
+} else {
+  debug("Workers not supported -- skipping test");
+  finishTest();
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

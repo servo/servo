@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+var verts = [0.0, 0.0, 0.0,   1.0, 0.0, 0.0,   0.0, 1.0, 0.0];
+var normals = [0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0];
+var texcoords = [0.0,0.0,  1.0,0.0,  0.0,1.0];
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = wrapGLContext(getGLContext(canvas));
+  var prog = new Shader(gl, 'vert', 'frag');
+  prog.use();
+  var sh = prog.shader.program;
+//   log(gl.getShaderInfoLog(prog.shaders[1]));
+  var v = gl.getAttribLocation(sh, 'Vertex');
+  var n = gl.getAttribLocation(sh, 'Normal');
+  var t = gl.getAttribLocation(sh, 'Tex');
+  return [gl,prog,v,n,t];
+}
+
+Tests.setup = function(gl, prog, v,n,t) {
+  assert(0 == gl.getError());
+  return [gl, prog, v,n,t];
+}
+Tests.teardown = function(gl, prog, v,n,t) {
+  gl.disableVertexAttribArray(v);
+  gl.disableVertexAttribArray(n);
+  gl.disableVertexAttribArray(t);
+}
+
+Tests.endUnit = function(gl, prog, v,n,t) {
+  prog.destroy();
+}
+
+
+Tests.testVertexAttrib = function(gl, prog, v,n,t) {
+  var vbo = gl.createBuffer();
+  var vertsArr = new Float32Array(verts);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, vertsArr, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(v);
+  gl.vertexAttribPointer(v, 3, gl.FLOAT, false, 0, 0);
+  assertFail("bad index",
+      function(){gl.vertexAttrib1f(-1, 1);});
+  assertFail("bad index (big negative)",
+      function(){gl.vertexAttrib1f(-69092342, 1);});
+  assertFail("bad index (big positive)",
+      function(){gl.vertexAttrib1f(58928938, 1);});
+  assertOk("array too large",
+      function(){gl.vertexAttrib1fv(v, [1,2,3,4,5]);});
+  assertFail("array too small",
+      function(){gl.vertexAttrib1fv(v, []);});
+  assertOk("draw",
+      function(){gl.drawArrays(gl.TRIANGLES, 0, 3);});
+  throwError(gl);
+}
+
+</script>
+<script id="vert" type="x-shader/x-vertex">
+  attribute vec3 Vertex;
+  attribute vec3 Normal;
+  attribute vec2 Tex;
+
+  varying vec4 texCoord0;
+  void main()
+  {
+    gl_Position = vec4(Vertex * Normal, 1.0);
+    texCoord0 = vec4(Tex,0.0,0.0) + gl_Position;
+  }
+</script>
+<script id="frag" type="x-shader/x-fragment">
+  precision mediump float;
+
+  varying vec4 texCoord0;
+  void main()
+  {
+    vec4 c = texCoord0;
+    gl_FragColor = c;
+  }
+</script>
+
+
+<style>canvas{ position:absolute; }</style>
+</head><body>
+  <canvas id="gl" width="1" height="1"></canvas>
+</body></html>

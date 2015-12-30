@@ -1,0 +1,129 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL array constructor assignment test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshaderNonConstantConstructorParameter" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform int u;
+
+out vec4 my_FragColor;
+
+void main() {
+    // Test assigning a constructor result as opposed to initializing with a
+    // constructor result.
+    int a[3];
+    a = int[3](0, 1, u);
+    bool fail = false;
+    for (int i = 0; i < 2; ++i) {
+        if (a[i] != i) {
+            fail = true;
+        }
+    }
+    if (a[2] != u) {
+        fail = true;
+    }
+    my_FragColor = vec4(0.0, (fail ? 0.0 : 1.0), 0.0, 1.0);
+}
+</script>
+<script id="fshaderArrayOfStructs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+struct S {
+    int foo;
+};
+
+void main() {
+    // Test assigning a constructor result as opposed to initializing with a
+    // constructor result.
+    S a[3];
+    a = S[3](S(0), S(1), S(2));
+    bool fail = false;
+    for (int i = 0; i < 3; ++i) {
+        if (a[i].foo != i) {
+            fail = true;
+        }
+    }
+    my_FragColor = vec4(0.0, (fail ? 0.0 : 1.0), 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Assigning return values of array constructors should work.");
+debug("");
+var wtu = WebGLTestUtils;
+function test() {
+  var gl = wtu.create3DContext("canvas", undefined, 2);
+  if (!gl) {
+    testFailed("WebGL 2 context does not exist");
+    return;
+  }
+  wtu.setupUnitQuad(gl);
+
+  // This test only covers cases which are not covered by the dEQP tests.
+
+  debug("Testing with a non-constant integer");
+  var program = wtu.setupProgram(gl, ["vshader", "fshaderNonConstantConstructorParameter"], ["aPosition"], undefined, true);
+  var uniformLoc = gl.getUniformLocation(program, 'u');
+  gl.uniform1i(uniformLoc, 5);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 255, 0, 255]);
+
+  debug("");
+  debug("Testing with an array of structs");
+  wtu.setupProgram(gl, ["vshader", "fshaderArrayOfStructs"], ["aPosition"], undefined, true);
+  wtu.drawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 255, 0, 255]);
+};
+
+test();
+var successfullyParsed = true;
+finishTest();
+</script>
+</body>
+</html>
+

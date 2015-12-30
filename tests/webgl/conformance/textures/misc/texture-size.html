@@ -1,0 +1,234 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture size conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="32" height="32" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec3 texCoord0;
+varying vec3 texCoord;
+void main()
+{
+    gl_Position = vPosition;
+    texCoord = texCoord0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform samplerCube tex;
+varying vec3 texCoord;
+void main()
+{
+    gl_FragColor = textureCube(tex, normalize(texCoord));
+}
+</script>
+<script>
+"use strict";
+description("Checks that various sizes of textures render")
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var program2D = wtu.setupTexturedQuad(gl);
+var programCubeMap = wtu.setupProgram(
+    gl, ['vshader', 'fshader'], ['vPosition', 'texCoord0'], [0, 1]);
+gl.disable(gl.DEPTH_TEST);
+gl.disable(gl.BLEND);
+var tex = gl.createTexture();
+var max2DSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+var maxCubeMapSize = gl.getParameter(gl.MAX_CUBE_MAP_TEXTURE_SIZE);
+debug("MAX_TEXTURE_SIZE:" + max2DSize);
+debug("MAX_CUBE_MAP_TEXTURE_SIZE:" + maxCubeMapSize);
+// Assuming 2048x2048xRGBA (22meg with mips) will run on all WebGL platforms
+var max2DSquareSize = Math.min(max2DSize, 2048);
+// I'd prefer this to be 2048 but that's 16meg x 6 faces or 128meg (with mips)
+// 1024 is 33.5 meg (with mips)
+var maxCubeMapSize = Math.min(maxCubeMapSize, 1024);
+
+var colors = [
+  { name: "green", rgba: [0, 0, 255, 255] },
+  { name: "red", rgba: [255, 0, 0, 255] },
+  { name: "blue", rgba: [0, 255, 0, 255] },
+  { name: "yellow", rgba: [255, 255, 0, 255] },
+  { name: "magenta", rgba: [255, 0, 255, 255] },
+  { name: "cyan", rgba: [0, 255, 255, 255] }
+];
+
+var count = 0;
+var power = 0;
+runTest();
+
+function runTest() {
+  function doTest() {
+    var size = Math.pow(2, power);
+    if (size > max2DSize) {
+      return false;
+    }
+    gl.useProgram(program2D);
+    if (!checkTexture(size, 1, false)) return false;
+    if (!checkTexture(1, size, false)) return false;
+    if (size <= max2DSquareSize) {
+      if (!checkTexture(size, size, false)) {
+        return false;
+      }
+    }
+    if (size <= maxCubeMapSize) {
+      gl.useProgram(programCubeMap);
+      if (!checkTexture(size, size, true)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (doTest()) {
+    ++power;
+    setTimeout(runTest, 0);
+  } else {
+    finishTest();
+  }
+}
+
+function checkTexture(width, height, cubeMap) {
+  debug("");
+  count = (count + 1) % colors.length;
+  var color = colors[count];
+  var tex = gl.createTexture();
+  var target = cubeMap ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
+  var type = cubeMap ? "cube map" : "2D texture";
+  debug("check " + width + ", " + height + " " + type);
+  gl.bindTexture(target, tex);
+  gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  fillLevel(0, width, height, color.rgba, cubeMap);
+  var err = gl.getError();
+  if (err == gl.OUT_OF_MEMORY) {
+    debug("out of memory");
+    return false;
+  }
+  if (err != gl.NO_ERROR) {
+    testFailed("unexpected gl error: " + wtu.glEnumToString(gl, err));
+  }
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, color.rgba,
+      type + " of size " + width + "x" + height + " with no mips should draw with " + color.name);
+  count = (count + 1) % colors.length;
+  color = colors[count];
+  fillLevel(0, width, height, color.rgba, cubeMap);
+  gl.generateMipmap(target);
+  var err = gl.getError();
+  if (err == gl.OUT_OF_MEMORY) {
+    debug("out of memory");
+    return false;
+  }
+  if (err != gl.NO_ERROR) {
+    testFailed("unexpected gl error: " + wtu.glEnumToString(gl, err));
+  }
+  gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, color.rgba,
+      type + " of size " + width + "x" + height + " with mips should draw with " + color.name);
+
+  count = (count + 1) % colors.length;
+  color = colors[count];
+  fillLevel(0, width, height, color.rgba, cubeMap, true);
+  gl.generateMipmap(target);
+
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, color.rgba,
+      type + " of size " + width + "x" + height + " with mips should draw with " + color.name);
+
+  gl.deleteTexture(tex);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");
+  return true;
+}
+
+function fillLevel(level, width, height, color, opt_cubemap, opt_subTex) {
+  var numPixels = width * height;
+  var pixels = null;
+  var largeDim = Math.max(width, height);
+  var smallDim = Math.min(width, height);
+
+  var pixelRow = new Uint8Array(largeDim * 4);
+  for (var jj = 0; jj < largeDim; ++jj) {
+    var off = jj * 4;
+    pixelRow[off + 0] = color[0];
+    pixelRow[off + 1] = color[1];
+    pixelRow[off + 2] = color[2];
+    pixelRow[off + 3] = color[3];
+  }
+
+  if (largeDim == numPixels) {
+    pixels = pixelRow;
+  } else {
+    var pixels = new Uint8Array(numPixels * 4);
+    for (var jj = 0; jj < smallDim; ++jj) {
+      var off = jj * largeDim * 4;
+      pixels.set(pixelRow, off);
+    }
+  }
+ 
+  var targets = opt_cubemap ? [
+    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z] :
+    [gl.TEXTURE_2D];
+
+  for (var ii = 0; ii < targets.length; ++ii) {
+    // debug(wtu.glEnumToString(gl, targets[ii]));
+    var index = (ii + power) % targets.length;
+    var target = targets[index];
+    if (opt_subTex) {
+      gl.texSubImage2D(
+          target, level, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE,
+          pixels);
+    } else {
+      gl.texImage2D(
+          target, level, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+          pixels);
+    }
+  }
+}
+</script>
+</body>
+</html>
+

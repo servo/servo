@@ -1,0 +1,289 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Buffer allocation test</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="canvasParent"></div>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec2 inPosition;
+attribute vec4 inColor0;
+attribute vec4 inColor1;
+attribute vec4 inColor2;
+attribute vec4 inColor3;
+attribute vec4 inColor4;
+attribute vec4 inColor5;
+attribute vec4 inColor6;
+attribute vec4 inColor7;
+
+varying vec4 color;
+
+void main()
+{
+    color = abs(inColor0) + abs(inColor1) + abs(inColor2) + abs(inColor3) +
+            abs(inColor4) + abs(inColor5) + abs(inColor6) + abs(inColor7);
+
+    color = clamp(color, vec4(0.0), vec4(1.0));
+
+    gl_Position = vec4(inPosition, 0.0, 1.0);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 color;
+
+void main()
+{
+    if (color == vec4(0.0))
+        discard;
+
+    gl_FragColor = color;
+}
+</script>
+
+<script>
+description("Allocates a number of different sized buffers and checks that the buffers are cleared " +
+            "OR that the allocation results in gl.OUT_OF_MEMORY or context loss.");
+var wtu = WebGLTestUtils;
+
+// The shader processes eight vec4 attributes at once to reduce the amount of
+// draw calls.
+var numColorAttrs = 8;
+
+// Process 64 squares at once to also reduce the amount of draw calls.
+var vertices = [];
+var w = 0.25;
+for (var x = -1; x < 1; x += w) {
+    for (var y = -1; y < 1; y += w) {
+        vertices.push(x + w, y + w);
+        vertices.push(x,     y + w);
+        vertices.push(x,     y    );
+
+        vertices.push(x + w, y + w);
+        vertices.push(x,     y    );
+        vertices.push(x + w, y    );
+    }
+}
+var numVertices = (vertices.length / 2);
+
+var gl;
+var squareBuffer;
+var error = 0;
+var expectContextLost = false;
+
+function initGLForBufferSizesTest() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 40;
+    canvas.height = 40;
+    var parent = document.getElementById("canvasParent");
+    parent.innerHTML = '';
+    parent.appendChild(canvas);
+    gl = wtu.create3DContext(canvas);
+    var attribs = ["inPosition", "inColor0", "inColor1", "inColor2", "inColor3",
+                   "inColor4", "inColor5", "inColor6", "inColor7"];
+    wtu.setupProgram(gl, ["vshader", "fshader"], attribs);
+    gl.enableVertexAttribArray(0);
+    for (var i = 0; i < numColorAttrs; i++) {
+        gl.enableVertexAttribArray(1 + i);
+    }
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+
+    squareBuffer = gl.createBuffer();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+}
+
+function createBuffer(size, allowedToFail) {
+    var msg = "Calling bufferData with size=" + size;
+    var buffer = gl.createBuffer();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, size, gl.STATIC_DRAW);
+
+    error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+        gl.deleteBuffer(buffer);
+        if (allowedToFail) {
+            if (error === gl.OUT_OF_MEMORY) {
+                testPassed(msg + " failed with gl.OUT_OF_MEMORY (this is allowed)");
+                return null;
+            } else if (error === gl.CONTEXT_LOST_WEBGL) {
+                testPassed(msg + " failed with gl.CONTEXT_LOST_WEBGL (this is allowed)");
+                return null;
+            }
+        }
+        testFailed(msg + " failed with error " + wtu.glEnumToString(gl, error));
+        return null;
+    }
+
+    testPassed(msg + " did not result in any errors");
+    var reportedSize = gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE);
+    expectContextLost = false;
+    if (reportedSize === null) {
+        testPassed("Null size reported by gl, this should happen if the context is lost which is allowed.");
+        expectContextLost = true;
+    } else if (reportedSize !== size) {
+        if (size > Math.pow(2, 32)) {
+            testPassed("gl reported different size " + reportedSize + " for the buffer, but this is expected since " +
+                       "the requested size was above what the return value of getBufferParameter can represent.");
+        } else {
+            testFailed("gl reported different size " + reportedSize + " for the buffer.");
+        }
+    } else {
+        testPassed("Size reported by gl was the same as the requested size.");
+    }
+
+    return buffer;
+}
+
+// Draw a square on the canvas using attributes from the clear buffer created with bufferData.
+function drawWithBuffer(buffer, allowedToFail) {
+    gl.clearColor(0, 1, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    var size = gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE);
+    // Each vec4 is 16 bytes
+    var increment = numVertices * numColorAttrs * 16;
+    for (var offset = 0; offset + increment <= size; offset += increment) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        for (var i = 0; i < numColorAttrs; i++) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.vertexAttribPointer(1 + i, 4, gl.FLOAT, false, 0,
+                                   offset + increment * i / numColorAttrs);
+        }
+        gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+        error = gl.getError();
+
+        if (error !== gl.NO_ERROR) {
+            if (allowedToFail) {
+                if (error === gl.OUT_OF_MEMORY) {
+                    testPassed("drawArrays failed with gl.OUT_OF_MEMORY (this is allowed)");
+                    return;
+                } else if (error === gl.CONTEXT_LOST_WEBGL) {
+                    testPassed("drawArrays failed with gl.CONTEXT_LOST_WEBGL (this is allowed)");
+                    return;
+                }
+            }
+            testFailed("drawArrays failed with error " + wtu.glEnumToString(gl, error));
+            return;
+        }
+    }
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+}
+
+
+// To be able to confirm the whole buffer has been cleared, the size needs to
+// be divisible by the amount of vertices. Thus most sizes are multiples of 3.
+var tests = [
+    // Reasonable sized buffers.
+    { size: 3 * 1024,              allowedToFail: false, tryDrawing: true },
+    { size: 3 * 1024 * 1024,       allowedToFail: false, tryDrawing: true },
+    { size: 3 * 1024 * 1024 * 16,  allowedToFail: false, tryDrawing: true },
+
+    // Huge buffers, which are meant to test out of memory handling.
+    // Allowed failures are gl.OUT_OF_MEMORY or context loss.
+    // Succeeding in the allocations is allowed as well for forward compatibility.
+
+    // 1.5 GB allocation for stressing lower-end 32-bit systems.
+    // Allocation is likely to succeed on higher-end hardware.
+    { size: 3 * 1024 * 1024 * 512, allowedToFail: true,  tryDrawing: true },
+    // A buffer that no implementation will be able to allocate for some time
+    // to come. To do this, we use half of the lower 43-bit half of a 44-bit
+    // memory address space, so that the size is still valid on current common
+    // 64-bit implementations, and also below 52-bit limit for exact conversion
+    // from float to long long in WebIDL (though 2^n should be safe anyway).
+    // The 4 TB size is large enough that even extrapolating the historical
+    // exponential growth trend of memory sizes, hardware in 2020's should
+    // still have some trouble actually doing the allocation.
+    { size: (1 << 12) * (1 << 30), allowedToFail: true,  tryDrawing: false }
+];
+
+function finishBufferSizesTest() {
+    gl.deleteBuffer(squareBuffer);
+    finishTest();
+}
+
+var testIndex = -1;
+function runNextTest() {
+    ++testIndex;
+    if (testIndex > 0 && tests[testIndex - 1].allowedToFail) {
+        if (gl.isContextLost() || error === gl.OUT_OF_MEMORY) {
+            initGLForBufferSizesTest();
+        } else if (expectContextLost) {
+            testFailed("Context was not lost after timeout even though gl.getBufferParameter returned null.");
+        }
+    }
+    var buffer = createBuffer(tests[testIndex].size, tests[testIndex].allowedToFail);
+    if (buffer) {
+        if (tests[testIndex].tryDrawing) {
+            drawWithBuffer(buffer, tests[testIndex].allowedToFail);
+        }
+        gl.deleteBuffer(buffer);
+    }
+
+    if (testIndex + 1 >= tests.length) {
+        finishBufferSizesTest();
+    } else {
+        if (tests[testIndex + 1].allowedToFail && !tests[testIndex].allowedToFail) {
+            if (!confirm("The following tests can cause unresponsiveness or instability. Press OK to continue.")) {
+                testFailed("Tests aborted");
+                return;
+            }
+        }
+        if (tests[testIndex].allowedToFail) {
+            // Give plenty of time for possible context loss
+            setTimeout(runNextTest(), 5000);
+        } else {
+            runNextTest();
+        }
+    }
+};
+
+initGLForBufferSizesTest();
+runNextTest();
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>
+

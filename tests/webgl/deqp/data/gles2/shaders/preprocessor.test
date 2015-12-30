@@ -1,0 +1,4329 @@
+group basic "Basic Tests"
+
+	case correct_phases
+		expect compile_fail
+		both ""
+			#define e +1
+			void main()
+			{
+				mediump int n = 1e;
+			}
+		""
+	end
+
+	case invalid_identifier
+		expect compile_fail
+		both ""
+			#define e +1
+
+			void main()
+			{
+				mediump int 1xyz = 1;
+			}
+		""
+	end
+
+	case null_directive
+		values { output float out0 = 0.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+
+			#
+		# // comment
+	/*sfd*/		# /* */
+
+			void main()
+			{
+				out0 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invalid_directive
+		expect compile_fail
+		both ""
+			#defin AAA
+
+			void main()
+			{
+			}
+		""
+	end
+
+	case missing_identifier
+		expect compile_fail
+		both ""
+			#define
+
+			void main()
+			{
+			}
+		""
+	end
+
+	case empty_object
+		values { output float out0 = -1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+
+			# define VALUE
+
+			void main()
+			{
+				out0 = VALUE - 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case empty_function
+		values { output float out0 = -1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+
+			# define VALUE(a)
+
+			void main()
+			{
+				out0 = VALUE(2.0) - 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case empty_directive
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+
+			#
+
+			void main()
+			{
+				out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case identifier_with_double_underscore
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			# define __VALUE__	1
+
+			void main()
+			{
+				// __VALUE__ not used since it might be set by an "underlying software layer"
+				out0 = float(1.0);
+				${OUTPUT}
+			}
+		""
+	end
+end # basic
+
+group definitions "Symbol Definition Tests"
+
+	case define_value_and_function
+		values { output float out0 = 6.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS:single-line}
+			#	define		VALUE			(1.5 + 2.5)
+			#	define		FUNCTION(__LINE__, b)	__LINE__+b
+
+			void main()
+			{
+				out0 = FUNCTION(VALUE, ((0.2) + 1.8) );
+				${OUTPUT}
+			}
+		""
+	end
+
+	case undefine_object_invalid_syntax
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define		VAL			2.0
+			#undef		VAL	sdflkjfds
+			#define		VAL			1.0
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VAL);
+			}
+		""
+	end
+
+	case undefine_invalid_object_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#undef __LINE__
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(__LINE__);
+			}
+		""
+	end
+
+	case undefine_invalid_object_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#undef __FILE__
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(__FILE__);
+			}
+		""
+	end
+
+	case undefine_invalid_object_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#undef __VERSION__
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(__VERSION__);
+			}
+		""
+	end
+
+	case undefine_invalid_object_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#undef GL_ES
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(GL_ES);
+			}
+		""
+	end
+
+	case undefine_function
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define		FUNCTION(a,b) a+b
+			#undef		FUNCTION
+			#define 	FUNCTION(a,b) a-b
+
+			void main()
+			{
+				out0 = FUNCTION(3.0, 2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # definitions
+
+group invalid_definitions "Invalid Definition Tests"
+
+	case define_non_identifier
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define 123 321
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case undef_non_identifier_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#undef 123
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case undef_non_identifier_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#undef foo.bar
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+
+end # invalid_definitions
+
+group object_redefinitions "Object Redefinition Tests"
+
+	case invalid_object_ident
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2.0
+			# define AAAA 		2.1
+			# define VALUE (AAA - 1.0)
+			# define VALUE (AAAA - 1.0)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case invalid_object_whitespace
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2.0
+			# define VALUE (AAA - 1.0)
+			# define VALUE (AAA- 1.0)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case invalid_object_op
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2.0
+			# define VALUE (AAA - 1.0)
+			# define VALUE (AAA + 1.0)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case invalid_object_floatval_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2.0
+			# define VALUE (AAA - 1.0)
+			# define VALUE (AAA - 1.1)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case invalid_object_floatval_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2.0
+			# define VALUE (AAA - 1.0)
+			# define VALUE (AAA - 1.0e-1)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case invalid_object_intval_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2
+			# define VALUE (AAA - 1)
+			# define VALUE (AAA - 2)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case invalid_object_intval_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA 		2
+			# define VALUE (AAA - 1)
+			# define VALUE (AAA - 0x1)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(VALUE);
+			}
+		""
+	end
+
+	case redefine_object_1
+		values { output float out0 = 6.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#	define  VAL1 1.0
+			#define 	VAL2 2.0
+
+			#define RES2 (RES1 * VAL2)
+			#define RES1	(VAL2 / VAL1)
+			#define RES2	(RES1 * VAL2)
+			#define VALUE	(RES2 + RES1)
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_ifdef
+		values { output float out0 = 1.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define ADEFINE 1
+			#define ADEFINE 1
+
+			#ifdef ADEFINE
+			#define VALUE 1.0
+			#else
+			#define VALUE 0.0
+			#endif
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_undef_ifdef
+		values { output float out0 = 1.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define ADEFINE 1
+			#define ADEFINE 1
+			#undef ADEFINE
+
+			#ifdef ADEFINE
+			#define VALUE 0.0
+			#else
+			#define VALUE 1.0
+			#endif
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_ifndef
+		values { output float out0 = 1.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define ADEFINE 1
+			#define ADEFINE 1
+
+			#ifndef ADEFINE
+			#define VALUE 0.0
+			#else
+			#define VALUE 1.0
+			#endif
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_defined_1
+		values { output float out0 = 1.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define ADEFINE 1
+			#define ADEFINE 1
+
+			#if defined(ADEFINE)
+			#define VALUE 1.0
+			#else
+			#define VALUE 0.0
+			#endif
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_defined_2
+		values { output float out0 = 1.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define ADEFINE 1
+			#define ADEFINE 1
+
+			#if defined ADEFINE
+			#define VALUE 1.0
+			#else
+			#define VALUE 0.0
+			#endif
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_comment
+		values { output float out0 = 6.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#	define  VAL1 1.0
+			#define 	VAL2 2.0
+
+			#define RES2 /* fdsjklfdsjkl dsfjkhfdsjkh fdsjklhfdsjkh */ (RES1 * VAL2)
+			#define RES1	(VAL2 / VAL1)
+			#define RES2	/* ewrlkjhsadf */ (RES1 * VAL2)
+			#define VALUE	(RES2 + RES1)
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redefine_object_multiline_comment
+		values { output float out0 = 6.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#	define  VAL1 1.0
+			#define 	VAL2 2.0
+
+			#define RES2 /* fdsjklfdsjkl
+							dsfjkhfdsjkh
+							fdsjklhfdsjkh */ (RES1 * VAL2)
+			#define RES1	(VAL2 / VAL1)
+			#define RES2	/* ewrlkjhsadf */ (RES1 * VAL2)
+			#define VALUE	(RES2 + RES1)
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # object_redefinitions
+
+group invalid_redefinitions "Invalid Redefinitions Tests"
+
+	case invalid_identifier_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define GL_VALUE	1.0
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(GL_VALUE);
+			}
+		""
+	end
+
+end # invalid_redefinitions
+
+group comments "Comment Tests"
+
+	case multiline_comment_define
+		values { output float out0 = 4.2; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define VALUE /* current
+						value */ 4.2
+
+			void main()
+			{
+				out0 = VALUE;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_comment
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				/* /* */
+				out0 = 1.0;
+				// */
+				${OUTPUT}
+			}
+		""
+	end
+
+	case comment_trick_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				/*/
+				out0 = 0.0;
+				/*/
+				out0 = 1.0;
+				/**/
+				${OUTPUT}
+			}
+		""
+	end
+
+	case comment_trick_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				/**/
+				out0 = 1.0;
+				/*/
+				out0 = 0.0;
+				/**/
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invalid_comment
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+				/* /* */ */
+				${POSITION_FRAG_COLOR} = 1.0;
+			}
+		""
+	end
+
+	case unterminated_comment_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+				/*
+			}
+		""
+	end
+
+	case unterminated_comment_2
+		expect compile_fail
+		both ""
+			/*
+			precision mediump float;
+			void main()
+			{
+			}
+		""
+	end
+
+end # comments
+
+group function_definitions "Function Definitions Tests"
+
+	case same_object_and_function_param
+		values { output float out0 = 1.0; }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define VALUE 1.0
+			#define FUNCTION(VALUE, B)	(VALUE-B)
+
+			void main()
+			{
+				out0 = FUNCTION(3.0, 2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case complex_func
+		values { output float out0 = 518.5; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define AAA(a,b)	a*(BBB(a,b))
+			#define BBB(a,b)	a-b
+
+			void main()
+			{
+				out0 = BBB(AAA(8.0/4.0, 2.0)*BBB(2.0*2.0,0.75*2.0), AAA(40.0,10.0*BBB(5.0,3.0)));
+				${OUTPUT}
+			}
+		""
+	end
+
+	case function_definition_with_comments
+		values { output float out0 = 3.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			/* sdfljk */  	#/* sdfljk */define /* sdfljk */ FUNC( /* jklsfd*/a /*sfdjklh*/, /*sdfklj */b /*sdfklj*/)		a+b
+
+			void main()
+			{
+				out0 = FUNC(1.0, 2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # function_definitions
+
+group recursion "Recursions Tests"
+
+	case recursion_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA	AAA
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(AAA);
+			}
+		""
+	end
+
+	case recursion_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA	BBB
+			#define BBB 	AAA
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(AAA);
+			}
+		""
+	end
+
+	case recursion_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA	(1.0+BBB)
+			#define BBB 	(2.0+AAA)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(AAA);
+			}
+		""
+	end
+
+	case recursion_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA(a)	AAA(a)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(AAA(1.0));
+			}
+		""
+	end
+
+	case recursion_5
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define AAA(a, b)	AAA(b, a)
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(AAA(1.0, 2.0));
+			}
+		""
+	end
+
+end # recursion
+
+group function_redefinitions "Function Redefinition Tests"
+
+	case function_redefinition_1
+		values { output float out0 = 3.0; }
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+			# define FUNC( a, b)		a+b
+
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = FUNC(1.0, 2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case function_redefinition_2
+		values { output float out0 = 3.0; }
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		(a  +b)
+			# define FUNC( a, b )(a			+b)
+
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = FUNC(1.0, 2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case function_redefinition_3
+		values { output float out0 = 3.0; }
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		(a  +b)
+			# define FUNC(a,b)(a	/* comment
+									 */ +b)
+
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = FUNC(1.0, 2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invalid_function_redefinition_param_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+			# define FUNC(A,b)		A+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0, 2.0));
+			}
+		""
+	end
+
+	case invalid_function_redefinition_param_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+			# define FUNC(a,b,c)	a+b+c
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0, 2.0, 3.0));
+			}
+		""
+	end
+
+	case invalid_function_redefinition_param_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+			# define FUNC(a,b)		b+a
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0, 2.0));
+			}
+		""
+	end
+
+end # functions_redefinitions
+
+group invalid_function_definitions "Invalid Function Definition Tests"
+
+	case arguments_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC);
+			}
+		""
+	end
+
+	case arguments_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC());
+			}
+		""
+	end
+
+	case arguments_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC((();
+			}
+		""
+	end
+
+	case arguments_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC));
+			}
+		""
+	end
+
+	case arguments_5
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0));
+			}
+		""
+	end
+
+	case arguments_6
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0);
+			}
+		""
+	end
+
+	case arguments_7
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,));
+			}
+		""
+	end
+
+	case arguments_8
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0, 2.0, 3.0));
+			}
+		""
+	end
+
+	case unique_param_name
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a,a)		a+a
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case argument_list_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case argument_list_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(a + b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case argument_list_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(,a,b)		a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case no_closing_parenthesis_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case no_closing_parenthesis_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(A  a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case no_closing_parenthesis_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(A,B,C  a+b
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0));
+			}
+		""
+	end
+
+	case no_closing_parenthesis_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			# define FUNC(
+		""
+	end
+
+end # invalid_function_definitions
+
+group semantic "Semantic Tests"
+
+	case ops_as_arguments
+		values { output float out0 = 20.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define FOO(a, b)		(1 a 9) b 2
+
+			void main()
+			{
+				out0 = float(FOO(+, *));
+				${OUTPUT}
+			}
+		""
+	end
+
+	case correct_order
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define FUNC(A) A
+			#define A 2.0
+
+			void main()
+			{
+				out0 = FUNC(A - 1.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # semantic
+
+group predefined_macros "Predefined Macros Tests"
+
+	case version
+		values { output float out0 = 100.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define AAA __VERSION__
+				out0 = float(AAA);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case gl_es_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				out0 = float(GL_ES);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case gl_es_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define AAA(A) A
+
+			void main()
+			{
+				out0 = float(AAA(GL_ES));
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_1
+		values { output float out0 = 1.0; }
+		both ""
+			const mediump int line = __LINE__;
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = float(line);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_2
+		# Note: Arguments are macro replaced in the first stage.
+		# Macro replacement list is expanded in the last stage.
+		values { output vec4 out0 = vec4(11.0, 11.0, 9.0, 10.0); }
+
+		both ""
+			precision mediump float;
+			${DECLARATIONS:single-line}
+			#define BBB		__LINE__, /*
+				*/ __LINE__
+			#define AAA(a,b) BBB, a, b
+
+			void main()
+			{
+				out0 = vec4(AAA(__LINE__,
+						__LINE__
+						));
+				${OUTPUT}
+			}
+		""
+	end
+
+	case file
+		values { output float out0 = 0.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = float(__FILE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case if_gl_es
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if GL_ES
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case if_version
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if __VERSION__ == 100
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+end # predefined_macros
+
+group conditional_inclusion "Conditional Inclusion Tests"
+
+	case basic_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#define AAA asdf
+
+	#if defined AAA && !defined(BBB)
+				out0 = 1.0;
+	#else
+				out0 = 0.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case basic_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#define AAA defined(BBB)
+
+	#if !AAA
+				out0 = 1.0;
+	#else
+				out0 = 0.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case basic_3
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 0
+				out0 = -1.0;
+	#elif 0
+				out0 = -2.0;
+	#elif 1
+				out0 = 1.0;
+	#else
+				out0 = -3.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case basic_4
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 0
+				out0 = -1.0;
+	#elif 0
+				out0 = -2.0;
+	#else
+				out0 = 1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case basic_5
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 1
+				out0 = 1.0;
+	#elif 0
+				out0 = -2.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case unary_ops_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if !((~2 >> 1) & 1)
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case unary_ops_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if !((~(- - - - - 1 + + + + + +1) >> 1) & 1)
+				out0 = -1.0;
+	#else
+				out0 = 1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+end # conditional_inclusion
+
+group invalid_ops "Invalid Operations Tests"
+
+	case invalid_op_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if !((~(+ ++1 - - - -1) >> 1) & 1)
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_op_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if !((~(+ + +1 - -- -1) >> 1) & 1)
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_defined_expected_identifier_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define AAA 1
+
+			void main()
+			{
+	#if defined
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_defined_expected_identifier_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define AAA 1
+
+			void main()
+			{
+	#if defined()
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_defined_expected_identifier_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define AAA 1
+
+			void main()
+			{
+	#if defined(
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_defined_expected_identifier_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define AAA 1
+
+			void main()
+			{
+	#if defined)
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_defined_expected_identifier_5
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define AAA 1
+
+			void main()
+			{
+	#if defined((AAA))
+				${POSITION_FRAG_COLOR} = vec4(FUNC(1.0,2.0);
+	#endif
+			}
+		""
+	end
+
+	case invalid_defined_expected_rparen
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#define AAA 1
+
+			void main()
+			{
+	#if defined(AAA
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case defined_define
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+	#define define 1
+	#define AAA 1.0
+
+			void main()
+			{
+				out0 = AAA;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # invalid_ops
+
+group undefined_identifiers "Undefined Identifiers Tests"
+
+	case valid_undefined_identifier_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 1 || AAA
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case valid_undefined_identifier_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 0 && AAA
+				out0 = -1.0;
+	#else
+				out0 = 1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case undefined_identifier_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1 - CCC + (-AAA || BBB)
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if !A
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if -A
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if ~A
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_5
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if A && B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_6
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+    #define A 1
+	#if A && B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_7
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+    #define B 1
+	#if A && B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_8
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+    #define B 1
+	#define A 2
+	#undef A
+	#if A && B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_9
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if A || B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_10
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+    #define A 0
+	#if A || B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_11
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+    #define A 0
+	#define B 2
+	#undef B
+	#if A || B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case undefined_identifier_12
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+    #define B 1
+	#if A || B
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+end # undefined_identifiers
+
+group invalid_conditionals "Invalid Conditionals Tests"
+
+	case empty_if
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case empty_ifdef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifdef
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case empty_ifndef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifndef
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case empty_if_defined
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if defined
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_if_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_if_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 0
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_ifdef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifdef FOOBAR
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_ifndef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifndef GL_ES
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_else_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+	#else
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_else_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 0
+	#else
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_elif_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 0
+	#elif 1
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_elif_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+	#elif 0
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_elif_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 0
+	#elif 0
+				${POSITION_FRAG_COLOR} = vec4(2.0);
+			}
+		""
+	end
+
+	case elif_after_else
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 0
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+				${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#elif 1
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+	#endif
+			}
+		""
+	end
+
+	case else_without_if
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#else
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case elif_without_if
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#elif 1
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case endif_without_if
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case else_after_else
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if !GL_ES
+			${POSITION_FRAG_COLOR} = vec4(1.0);
+	#else
+			${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#else
+			${POSITION_FRAG_COLOR} = vec4(-1.0);
+	#endif
+			}
+		""
+	end
+
+	case nested_elif_without_if
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+			${POSITION_FRAG_COLOR} = vec4(1.0);
+	#	elif
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+	#	endif
+	#endif
+			}
+		""
+	end
+
+	case if_float
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1.231
+			${POSITION_FRAG_COLOR} = vec4(1.0);
+	#	elif
+			${POSITION_FRAG_COLOR} = vec4(0.0);
+	#	endif
+	#endif
+			}
+		""
+	end
+
+	case tokens_after_if
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1 foobar
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case tokens_after_elif
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 0
+	#elif foobar
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case tokens_after_else
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+	#else foobar 1.231
+	#endif
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case tokens_after_endif
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+	#else
+	#endif foobar
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case tokens_after_ifdef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifdef FOOBAR foobar
+	#else
+	#endif
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case tokens_after_ifndef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifndef FOOBAR ,, +- << barbar
+	#else
+	#endif
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+end # invalid_conditionals
+
+group conditionals "Conditionals Tests"
+
+	case unterminated_nested_blocks
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 1
+	#	if 1
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case ifdef_1
+		values { output float out0 = 1.0; }
+		both ""
+	#define AAA
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#ifdef AAA
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ifdef_2
+		values { output float out0 = 1.0; }
+		both ""
+	#define AAA
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if defined  ( AAA)
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ifdef_3
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#ifdef AAA
+				out0 = -1.0;
+	#else
+				out0 = 1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invalid_ifdef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifdef 1
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case ifndef_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#ifndef AAA
+				out0 = 1.0;
+	#else
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ifndef_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+	#define AAA
+			void main()
+			{
+	#ifndef AAA
+				out0 = -1.0;
+	#else
+				out0 = 1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invalid_ifndef
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#ifndef 1
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+	#endif
+			}
+		""
+	end
+
+	case mixed_conditional_inclusion
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#ifndef AAA
+				out0 = 1.0;
+	#elif 1
+				out0 = -1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_if_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if GL_ES
+	#	if __VERSION__ != 100
+				out0 = -1.0;
+	#	else
+				out0 = 1.0;
+	#	endif
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_if_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 1
+	#	if 0
+				out0 = -1.0;
+	#	else
+	#		if 0
+				out0 = -1.0;
+	#		elif 1
+				out0 = 1.0;
+	#		else
+				out0 = -1.0;
+	#		endif
+	#	endif
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_if_3
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#if 0
+	#	if 1
+				out0 = -1.0;
+	#	endif
+	#else
+				out0 = 1.0;
+	#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+end # conditionals
+
+group directive "Directive Tests"
+
+	case version
+		values { output float out0 = 1.0; }
+		both ""
+	/* asdf */
+	#version 100
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case version_is_less
+		expect compile_fail
+		both ""
+	#version 99
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case version_is_more
+		expect compile_fail
+		both ""
+	#version 101
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case version_missing
+		expect compile_fail
+		both ""
+	#version
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case version_not_first_statement_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			#version 100
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case version_not_first_statement_2
+		expect compile_fail
+		both ""
+			#define FOO BAR
+			#version 100
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case version_invalid_token_1
+		expect compile_fail
+		both ""
+	#version 100.0
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case version_invalid_token_2
+		expect compile_fail
+		both ""
+	#version foobar
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_version
+		expect compile_fail
+		both ""
+	#version AAA
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case additional_tokens
+		expect compile_fail
+		both ""
+	#version 100 foobar
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case error_with_no_tokens
+		expect compile_fail
+		both ""
+	#error
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case error
+		expect compile_fail
+		both ""
+	#define AAA asdf
+	#error 1 * AAA /* comment */
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+end # directive
+
+group builtin "Built-in Symbol Tests"
+
+	case line
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#line 1
+				out0 = float(__LINE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_and_file
+		values { output vec4 out0 = vec4(234.0, 234.0, 10.0, 10.0); }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#line 234 10
+				out0 = vec4(__LINE__, __LINE__, __FILE__, __FILE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_expression
+		values { output float out0 = 20.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+			#line +20
+				out0 = float(__LINE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_and_file_expression
+		values { output vec4 out0 = vec4(243.0, 243.0, 10.0, 10.0); }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+			#line (233 +10) (+10)
+				out0 = vec4(__LINE__, __LINE__, __FILE__, __FILE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_defined_1
+		values { output float out0 = 4.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#define A 4
+	#line A
+				out0 = float(__LINE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case line_defined_2
+		values { output vec4 out0 = vec4(234.0, 234.0, 10.0, 10.0); }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+	#define A 10
+	#line 234 A
+				out0 = vec4(__LINE__, __LINE__, __FILE__, __FILE__);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case empty_line
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#line
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_line_file_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#line 22 1.234
+				${POSITION_FRAG_COLOR} = vec4(__LINE__, __LINE__, __FILE__, __FILE__);
+			}
+		""
+	end
+
+	case invalid_line_file_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#line 233 10 2
+				${POSITION_FRAG_COLOR} = vec4(__LINE__, __LINE__, __FILE__, __FILE__);
+			}
+		""
+	end
+
+	case invalid_line_file_4
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#line foobar
+				${POSITION_FRAG_COLOR} = vec4(__LINE__, __LINE__, __FILE__, __FILE__);
+			}
+		""
+	end
+
+end # builtin
+
+group pragmas "Pragma Tests"
+
+	case pragma_vertex
+		values { output float out0 = 1.0; }
+
+		vertex ""
+			#pragma
+			#pragma STDGL invariant(all)
+			#pragma debug(off)
+			#pragma optimize(off)
+
+			precision mediump float;
+			${VERTEX_DECLARATIONS}
+			varying float v_val;
+			void main()
+			{
+				v_val = 1.0;
+				${VERTEX_OUTPUT}
+			}
+		""
+		fragment ""
+			precision mediump float;
+			${FRAGMENT_DECLARATIONS}
+			invariant varying float v_val;
+			void main()
+			{
+				out0 = v_val;
+				${FRAGMENT_OUTPUT}
+			}
+		""
+	end
+
+	case pragma_fragment
+		values { output float out0 = 1.0; }
+
+		vertex ""
+			precision mediump float;
+			${VERTEX_DECLARATIONS}
+			varying float v_val;
+			void main()
+			{
+				v_val = 1.0;
+				${VERTEX_OUTPUT}
+			}
+		""
+		fragment ""
+			#pragma
+			#pragma STDGL invariant(all)
+			#pragma debug(off)
+			#pragma optimize(off)
+
+			precision mediump float;
+			${FRAGMENT_DECLARATIONS}
+			varying float v_val;
+			void main()
+			{
+				out0 = v_val;
+				${FRAGMENT_OUTPUT}
+			}
+		""
+	end
+
+	case pragma_macro_exp
+		values { output float out0 = 1.0; }
+		both ""
+	#define off	INVALID
+	/* pragma line not macro expanded */
+	#pragma debug(off)
+
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case pragma_unrecognized_debug
+		expect build_successful
+		both ""
+			#pragma debug(1.23)
+
+			// unrecognized preprocessor token
+
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case pragma_unrecognized_token
+		expect build_successful
+		both ""
+			#pragma **%
+
+			// trailing bytes form a valid but unrecognized preprocessor token
+
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+end # pragmas
+
+group extensions "Extension Tests"
+
+	case basic
+		values { output float out0 = 1.0; }
+		both ""
+	#extension all : warn
+
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case macro_exp
+		values { output float out0 = 1.0; }
+		both ""
+	#define warn enable
+
+	#extension all : warn
+
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case missing_extension_name
+		expect compile_fail
+		both ""
+	#extension
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_extension_name
+		expect compile_fail
+		both ""
+	#extension 2 : all
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case missing_colon
+		expect compile_fail
+		both ""
+	#extension all
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case expected_colon
+		expect compile_fail
+		both ""
+	#extension all ;
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case missing_behavior
+		expect compile_fail
+		both ""
+	#extension all :
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_behavior_1
+		expect compile_fail
+		both ""
+	#extension all : WARN
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_behavior_2
+		expect compile_fail
+		both ""
+	#extension all : require
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_char_in_name
+		expect compile_fail
+		both ""
+	#extension all* : warn
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_char_in_behavior
+		expect compile_fail
+		both ""
+	#extension all : war*n
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unterminated_comment
+		expect compile_fail
+		both ""
+	#extension all : warn /*asd
+			precision mediump float;
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+end # extensions
+
+group expressions "Expression Tests"
+
+	case shift_left
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 4
+				out0 = 0.0;
+				#if (VAL << 2) == 16
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case shift_right
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 5
+				out0 = 0.0;
+				#if (VAL >> 1) == 2
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case cmp_less_than
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 5
+				out0 = 0.0;
+				#if (VAL < 6) && (-VAL < -4)
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case less_or_equal
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 6
+				out0 = 0.0;
+				#if (VAL <= 6) && (-VAL <= -6)
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case or
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 6
+				out0 = 0.0;
+				#if (VAL | 5) == 7
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case and
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 6
+				out0 = 0.0;
+				#if (VAL & 5) == 4
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case xor
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 6
+				out0 = 0.0;
+				#if (VAL ^ 5) == 3
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mod
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 12
+				out0 = 0.0;
+				#if (VAL % 5) == 2
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_value
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL ((  (4   ) )  )
+				out0 = 0.0;
+				#if VAL >= 4
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_tricky
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL ((  (4   ) )
+				out0 = 0.0;
+				#if VAL) >= 4
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_if_no
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 4
+				out0 = 0.0;
+				#if VAL >= 4
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_if
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 4
+				out0 = 0.0;
+				#if (VAL >= 4)
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_multi_if
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL (4)
+				out0 = 0.0;
+				#if (((VAL)) >= (4))
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_single_if
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 4
+				out0 = 0.0;
+				#if (VAL >= 4)
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_ifelse_true
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 4
+				#if (VAL >= 4)
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case parenthesis_ifelse_false
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#define VAL 4
+				#if (VAL > 4)
+					out0 = 0.0;
+				#else
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case eval_basic_0
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#if -4 + 5 == 1
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case eval_basic_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#if (2 * 2) - 3 >= 0
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case eval_simple_precedence_0
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#if 2 * 3 - 3 == 3
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case eval_simple_precedence_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				#if 2 - 2 / 2 == 1
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case defined_1
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define X 0
+			void main()
+			{
+				#if defined(X)
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case defined_2
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define X 0
+			#define Y 1
+			void main()
+			{
+				#if defined(X) == Y
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case defined_3
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define X 0
+			#define Y 1
+			void main()
+			{
+				#if defined(X) && defined(Y)
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case defined_4
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define X 0
+			#define Y 1
+			#undef X
+			void main()
+			{
+				#if defined(X) && defined(Y)
+					out0 = 0.0;
+				#else
+					out0 = 1.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case defined_5
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define X 0
+			#define Y 1
+			#undef X
+			void main()
+			{
+				#if defined(X) || defined(Y)
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+	case defined_6
+		values { output float out0 = 1.0; }
+		both ""
+			precision mediump float;
+			${DECLARATIONS}
+			#define X 0
+			#define Y 1
+			#undef Y
+			void main()
+			{
+				#if defined(X) && (defined(Y) || (X == 0))
+					out0 = 1.0;
+				#else
+					out0 = 0.0;
+				#endif
+				${OUTPUT}
+			}
+		""
+	end
+
+end # expressions
+
+group invalid_expressions "Invalid Expression Tests"
+
+	case invalid_unary_expr
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if !
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_binary_expr
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 3+4+
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case missing_expr
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_expr_1
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 4 4
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_expr_2
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 4 * * 4
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invalid_expr_3
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if (4)(4)
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unopened_parenthesis
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if 4)
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unclosed_parenthesis
+		expect compile_fail
+		both ""
+			precision mediump float;
+			void main()
+			{
+	#if ((4 + 7)
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+end # invalid_expressions
+
+group operator_precedence "Operator precedence"
+
+
+	case modulo_vs_not
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 % ! 0 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case div_vs_not
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 / ! 0 ) == 8
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mul_vs_not
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 * ! 0 ) == 8
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case modulo_vs_bit_invert
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 % ~ 4 ) == 3
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case modulo_vs_minus
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 % - 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case modulo_vs_plus
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 % + 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case div_vs_bit_invert
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 / ~ 2 ) == -2
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case div_vs_minus
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 / - 2 ) == -4
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case div_vs_plus
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 / + 2 ) == 4
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mul_vs_bit_invert
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 * ~ 2 ) == -24
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mul_vs_minus
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 * - 2 ) == -16
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mul_vs_plus
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 * + 2 ) == 16
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case sub_vs_modulo
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 - 3 % 2 ) == 7
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case sub_vs_div
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 - 3 / 2 ) == 7
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case sub_vs_mul
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 - 3 * 2 ) == 2
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case add_vs_modulo
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 + 3 % 2 ) == 9
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case add_vs_div
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 + 3 / 2 ) == 9
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case add_vs_mul
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 + 3 * 2 ) == 14
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case rshift_vs_sub
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 >> 3 - 2 ) == 4
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case rshift_vs_add
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 >> 3 + 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case lshift_vs_sub
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 << 3 - 2 ) == 16
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case lshift_vs_add
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 << 3 + 2 ) == 256
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case greater_or_equal_vs_rshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 >= 3 >> 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case greater_or_equal_vs_lshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 >= 3 << 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case less_or_equal_vs_rshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 <= 3 >> 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case less_or_equal_vs_lshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 <= 3 << 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case greater_vs_rshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 > 3 >> 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case greater_vs_lshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 > 3 << 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case less_vs_rshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 < 3 >> 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case less_vs_lshift
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 < 3 << 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case not_equal_vs_greater_or_equal
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 != 3 >= 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case not_equal_vs_less_or_equal
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 != 3 <= 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case not_equal_vs_greater
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 != 3 > 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case not_equal_vs_less
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 != 3 < 2 ) == 1
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case equal_vs_greater_or_equal
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 == 3 >= 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case equal_vs_less_or_equal
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 == 3 <= 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case equal_vs_greater
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 == 3 > 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case equal_vs_less
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 == 3 < 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bitwise_and_vs_not_equal
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 & 3 != 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bitwise_and_vs_equal
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 & 3 == 2 ) == 0
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case xor_vs_bitwise_and
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 ^ 3 & 2 ) == 10
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bitwise_or_vs_xor
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 8 | 3 ^ 2 ) == 9
+	#define VAL 1.0
+	#else
+	#define VAL 0.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case logical_and_vs_bitwise_or
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 0 && 3 | 2 )
+	#define VAL 0.0
+	#else
+	#define VAL 1.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case logical_and_vs_bitwise_and
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 0 && 4 & 2 )
+	#define VAL 0.0
+	#else
+	#define VAL 1.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case logical_or_vs_logical_and
+		values { output float out0 = 1.0; }
+		both ""
+
+	#if ( 0 || 4 && 0 )
+	#define VAL 0.0
+	#else
+	#define VAL 1.0
+	#endif
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = VAL;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # operator_precedence

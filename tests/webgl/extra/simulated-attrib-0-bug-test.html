@@ -1,0 +1,57 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Simulated Attrib 0 Bug Test</title>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div>Simulated Attrib 0 Bug Test</div>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var context = wtu.create3DContext();
+var program = wtu.loadStandardProgram(context);
+
+context.useProgram(program);
+debug("This line attempts to draw with 0x7FFFFFFF triangles with attrib 0 off");
+debug("A buggy simulated attrib 0 impl will probably mult 0x7FFFFFFF * sizeof(vec4)");
+shouldBe("context.drawArrays(context.TRIANGLES, 0, 0x7fffffff);", "undefined");
+debug("This line attempts to draw with 0x7ffffff triangles.");
+debug("A buggy simulated attrib 0 impl will probably pass 0x7FFFFFF0 to glBufferData and then not check that it failed");
+shouldBe("context.drawArrays(context.TRIANGLES, 0, 0x7ffffff);", "undefined");
+debug("")
+debug("NOTE!: You may not see any manifestation here. Check your impl for these issues");
+</script>
+</body>
+</html>
+

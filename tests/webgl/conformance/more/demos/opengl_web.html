@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<title>OpenGL for the web</title>
+
+<script type="application/javascript" src="../util.js"></script>
+
+    <script type="application/javascript">
+
+function log(msg) {
+  document.getElementById('note').textContent += "\n"+msg;
+}
+
+
+
+
+function init(ev) {
+    var canvas = document.getElementById('canvas');
+    var gl = getGLContext(canvas);
+
+    var shader = new Shader(gl, "ppix-vert", "ppix-frag");
+    shader.compile();
+    var fbo = new FBO(gl, canvas.width, canvas.height);
+    var fbo2 = new FBO(gl, canvas.width, canvas.height);
+    var fbo3 = new FBO(gl, canvas.width, canvas.height);
+    var depth = new Shader(gl, "depth-vert", "depth-frag");
+    var identity = new Filter(gl, "identity-vert", "identity-frag");
+    var unpremult = new Filter(gl, "identity-vert", "unpremult-frag");
+    var hblur = new Filter(gl, "identity-vert", "hblur-frag");
+    var vblur = new Filter(gl, "identity-vert", "vblur-frag");
+    var hdof = new Filter(gl, "identity-vert", "hdof-frag");
+    var vdof = new Filter(gl, "identity-vert", "vdof-frag");
+
+    redraw(canvas, gl, shader, fbo, fbo2, fbo3, depth, identity, unpremult, hblur, vblur, hdof, vdof);
+
+    setInterval(function(){
+        redraw(canvas, gl, shader, fbo, fbo2, fbo3, depth, identity, unpremult, hblur, vblur, hdof, vdof);
+    }, 33);
+}
+
+function drawCube (gl, shader, angle, axis, x,y,z, s, va, na, ta) {
+    Matrix.copyMatrix(look, vmat);
+    Matrix.translate3InPlace(x,y,z,vmat);
+    Matrix.scale1InPlace(s,vmat);
+    Matrix.rotateInPlace(angle, axis, vmat);
+
+    // Note: we could just use mat3(MVMatrix) as the normal matrix
+    // as MVMatrix has only rotations, translations and uniform scaling
+    // <=> MVMatrix is a scaled orthonormal matrix
+    // hence normalize(mat3(MVMatrix)*v) == normalize(mat3(transpose(inverse(MVMatrix))*v)
+    //
+    // But let's do it the hard way to see if Matrix.inverse3x3 works...
+    Matrix.inverseTo3x3InPlace(vmat, nmat);
+    Matrix.transpose3x3InPlace(nmat);
+
+    shader.uniformMatrix4fv("MVMatrix", vmat);
+    shader.uniformMatrix3fv("NMatrix", nmat);
+
+    var cube = Cube.getCachedVBO(gl);
+    cube.draw(va, na, ta);
+}
+
+var carr = [];
+for (var i=0; i<25; i++) {
+    carr.push([Math.random(), Math.random(), Math.random()]);
+}
+
+function drawScene (gl, shader, va, na, ta) {
+    var ot = new Date().getTime();
+    var t = ot;
+
+    shader.uniformMatrix4fv("PMatrix", pmat);
+    for (var i=0; i<carr.length; i++){
+        var c = carr[i];
+        var f = c[1] < 0.5 ? 1 : -1;
+        var t = ot;
+        drawCube(gl, shader,
+                (t/(f*400*(c[0]+0.5))) % (2*Math.PI), c,
+
+                0.45+0.8*c[2],
+                -0.4+Math.cos((i/carr.length*Math.PI*2)+t/1000),
+                0.8+Math.sin((i/carr.length*Math.PI*2)+t/1000)*3.2,
+
+                0.05 + Math.pow((c[0]+c[1]+c[2])*0.33, 2)*0.3,
+                va, na, ta);
+    }
+}
+
+var nmat = Matrix.newIdentity3x3();
+var vmat = Matrix.newIdentity();
+var vmat2 = Matrix.newIdentity();
+var pmat = null;
+var look = Matrix.lookAt([4,-1,8], [-0.2,0,0], [0,1,0]);
+var useDoF = false;
+
+var firstFrame = true;
+
+function redraw(canvas, gl, shader, fbo, fbo2, fbo3, depth, identity, unpremult, hblur, vblur, hdof, vdof) {
+
+    var doDoF = useDoF;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    fbo.use();
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    shader.use();
+
+    var va = shader.attrib("Vertex");
+    var na = shader.attrib("Normal");
+    var ta = shader.attrib("Tex");
+
+    if (pmat == null)
+        pmat = Matrix.perspective(30, canvas.width/canvas.height, 1, 100);
+
+    shader.uniform4f("MaterialSpecular", 0.95, 0.9, 0.6, 1);
+    shader.uniform4f("MaterialDiffuse", 0.50, 0.35, 0.35, 1);
+    shader.uniform4f("MaterialAmbient", 0.0, 0.1, 0.2, 1);
+    shader.uniform1f("MaterialShininess", 1.5);
+
+    shader.uniform4f("GlobalAmbient", 0.1, 0.1, 0.1, 1);
+
+    shader.uniform4f("LightPos", 1, 5, 3, 1.0);
+
+    shader.uniform4f("LightSpecular", 0.9, 0.9, 0.9, 1);
+    shader.uniform4f("LightDiffuse", 0.8, 0.8, 0.8, 1);
+    shader.uniform4f("LightAmbient", 0.0, 0.06, 0.2, 1);
+    shader.uniform1f("LightConstantAtt", 0.0);
+    shader.uniform1f("LightLinearAtt", 0.1);
+    shader.uniform1f("LightQuadraticAtt", 0.0);
+
+    drawScene(gl, shader, va, na);
+
+    if (doDoF || firstFrame) {
+
+        fbo3.use();
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        depth.use();
+        var dva = depth.attrib("Vertex");
+
+        drawScene(gl, depth, dva);
+
+        gl.disable(gl.DEPTH_TEST);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, fbo3.texture);
+        gl.activeTexture(gl.TEXTURE0);
+
+
+        for (var i=0; i<3; i++) {
+            fbo2.use();
+            gl.bindTexture(gl.TEXTURE_2D, fbo.texture);
+
+            hdof.apply(function(f){
+                f.uniform1i("Texture", 0);
+                f.uniform1i("Depth", 1);
+                f.uniform1f("iter", i);
+                f.uniform1f("step", 1.0/canvas.width);
+            });
+
+            fbo.use();
+            gl.bindTexture(gl.TEXTURE_2D, fbo2.texture);
+
+            vdof.apply(function(f){
+                f.uniform1i("Texture", 0);
+                f.uniform1i("Depth", 1);
+                f.uniform1f("iter", i);
+                f.uniform1f("step", 1.0/canvas.width);
+            });
+        }
+
+    }
+    firstFrame = false;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, fbo.texture);
+
+    // The DoF blur blurs the color from the transparent black background with
+    // the cubes. To get rid of the border, we can treat it as premultiplied alpha.
+    // To see the problem, try replacing unpremult with identity.
+    unpremult.apply(function(f){
+      f.uniform1i("Texture", 0);
+    });
+
+}
+
+window.addEventListener("load", init, false);
+    </script>
+
+    <script id="ppix-vert" type="x-shader/x-vertex">
+      attribute vec3 Vertex;
+      attribute vec3 Normal;
+      attribute vec2 Tex;
+
+      uniform mat4 PMatrix;
+      uniform mat4 MVMatrix;
+      uniform mat3 NMatrix;
+
+      uniform vec4 MaterialAmbient;
+      uniform vec4 MaterialDiffuse;
+
+      uniform vec4 LightAmbient;
+      uniform vec4 LightDiffuse;
+
+      uniform vec4 GlobalAmbient;
+
+      uniform vec4 LightPos;
+
+      varying vec4 diffuse, ambientGlobal, ambient;
+      varying vec3 normal, lightDir, halfVector;
+      varying float dist;
+
+      void main()
+      {
+        vec4 worldPos;
+        vec3 lightVector;
+        vec4 v = vec4(Vertex, 1.0);
+
+        /* transform vertex normal into world space and normalize */
+        normal = normalize(NMatrix * Normal);
+
+        /* transform vertex into world space and compute the vector
+          from it to the light */
+        worldPos = MVMatrix * v;
+        lightVector = vec3(LightPos - worldPos);
+        lightDir = normalize(lightVector);
+        dist = length(lightVector);
+
+        /* Half-vector used in Blinn-Phong shading due to computational efficiency */
+        halfVector = normalize(lightVector - vec3(worldPos));
+
+        diffuse = MaterialDiffuse * LightDiffuse;
+
+        /* The ambient terms have been separated since one of them */
+        /* suffers attenuation */
+        ambient = MaterialAmbient * LightAmbient;
+        ambientGlobal = GlobalAmbient * MaterialAmbient;
+
+        gl_Position = PMatrix * worldPos;
+      }
+    </script>
+
+    <script id="ppix-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform vec4 LightSpecular;
+      uniform vec4 MaterialSpecular;
+      uniform float MaterialShininess;
+
+      uniform float LightConstantAtt;
+      uniform float LightLinearAtt;
+      uniform float LightQuadraticAtt;
+
+      varying vec4 diffuse,ambientGlobal, ambient;
+      varying vec3 normal, lightDir, halfVector;
+      varying float dist;
+
+      void main()
+      {
+        vec3 n, halfV, viewV, ldir;
+        float NdotL, NdotHV;
+        vec4 color = ambientGlobal;
+        float att;
+
+        n = normalize(normal);
+
+        NdotL = max(dot(n, normalize(lightDir)), 0.0);
+
+        if (NdotL > 0.0) {
+
+          att = 1.0 / (LightConstantAtt + LightLinearAtt * dist + LightQuadraticAtt * dist * dist);
+
+          color += att * (diffuse * NdotL + ambient);
+
+          halfV = normalize(halfVector);
+          NdotHV = max( dot(normal, halfV), 0.0 );
+
+          color += att * MaterialSpecular * LightSpecular * pow(NdotHV, MaterialShininess);
+        }
+
+        gl_FragColor = color;
+      }
+    </script>
+    <script id="depth-vert" type="x-shader/x-vertex">
+      attribute vec3 Vertex;
+      uniform mat4 PMatrix;
+      uniform mat4 MVMatrix;
+      varying float depth;
+      void main()
+      {
+        gl_Position = PMatrix * (MVMatrix * vec4(Vertex, 1.0));
+        depth = 1.0-(gl_Position.z / gl_Position.w);
+      }
+    </script>
+    <script id="depth-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying float depth;
+      void main()
+      {
+        vec4 c = vec4(depth, 0.0, 0.0, 1.0);
+        gl_FragColor = c;
+      }
+    </script>
+
+    <script id="identity-vert" type="x-shader/x-vertex">
+      attribute vec3 Vertex;
+      attribute vec2 Tex;
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        texCoord0 = vec4(Tex,0.0,0.0);
+        gl_Position = vec4(Vertex, 1.0);
+      }
+    </script>
+    <script id="identity-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        vec4 c = texture2D(Texture, texCoord0.st);
+        gl_FragColor = c;
+      }
+    </script>
+    <script id="premult-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        vec4 c = texture2D(Texture, texCoord0.st);
+        float a = c.a;
+        c *= a;
+        c.a = a;
+        gl_FragColor = c;
+      }
+    </script>
+    <script id="unpremult-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        vec4 c = texture2D(Texture, texCoord0.st);
+        float a = c.a;
+        c /= a;
+        c.a = a;
+        gl_FragColor = c;
+      }
+    </script>
+
+    <script id="hblur-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+      uniform float step;
+      float kernel[7] = float[](0.046, 0.111, 0.202, 0.283, 0.202, 0.111, 0.046);
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        int i=0;
+        if (texture2D(Texture, texCoord0.st).a > 0.0) {
+          vec4 sum = vec4(0.0);
+          for (i=0; i<7; i++) {
+            vec4 tmp = texture2D(Texture, texCoord0.st + vec2(i*step,0));
+            sum += tmp * kernel[i];
+          }
+          gl_FragColor = sum;
+        } else {
+          gl_FragColor = texture2D(Texture, texCoord0.st);
+        }
+      }
+    </script>
+    <script id="vblur-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+      uniform float step;
+      float kernel[7] = float[](0.046, 0.111, 0.202, 0.283, 0.202, 0.111, 0.046);
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        int i=0;
+        if (texture2D(Texture, texCoord0.st).a > 0.0) {
+          vec4 sum = vec4(0.0);
+          for (i=0; i<7; i++) {
+            vec4 tmp = texture2D(Texture, texCoord0.st + vec2(0,i*step));
+            sum += tmp * kernel[i];
+          }
+          gl_FragColor = sum;
+        } else {
+          gl_FragColor = texture2D(Texture, texCoord0.st);
+        }
+      }
+    </script>
+    <script id="hdof-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+      uniform sampler2D Depth;
+      uniform float step;
+      uniform float iter;
+      float kernel[7] = { 0.046, 0.111, 0.202, 0.283, 0.202, 0.111, 0.046 };
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        vec4 tmp;
+        vec4 sum = vec4(0.0);
+        bool b = (iter < -26.0+36.0*(1.0-texture2D(Depth, texCoord0.st).r) && texture2D(Texture, texCoord0.st).a > 0.0);
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(0-3)*step,0));
+        sum += tmp * kernel[0];
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(1-3)*step,0));
+        sum += tmp * kernel[1];
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(2-3)*step,0));
+        sum += tmp * kernel[2];
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(3-3)*step,0));
+        sum += tmp * kernel[3];
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(4-3)*step,0));
+        sum += tmp * kernel[4];
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(5-3)*step,0));
+        sum += tmp * kernel[5];
+        tmp = texture2D(Texture, texCoord0.st + vec2(float(6-3)*step,0));
+        sum += tmp * kernel[6];
+        gl_FragColor = mix(texture2D(Texture, texCoord0.st), sum, b ? 1.0 : 0.0);
+      }
+    </script>
+    <script id="vdof-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D Texture;
+      uniform sampler2D Depth;
+      uniform float step;
+      uniform float iter;
+      float kernel[7] = float[7](0.046, 0.111, 0.202, 0.283, 0.202, 0.111, 0.046);
+
+      varying vec4 texCoord0;
+      void main()
+      {
+        vec4 tmp;
+        vec4 sum = vec4(0.0);
+        bool b = (iter < -26.0+36.0*(1.0-texture2D(Depth, texCoord0.st).r) && texture2D(Texture, texCoord0.st).a > 0.0);
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(0-3)*step));
+        sum += tmp * kernel[0];
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(1-3)*step));
+        sum += tmp * kernel[1];
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(2-3)*step));
+        sum += tmp * kernel[2];
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(3-3)*step));
+        sum += tmp * kernel[3];
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(4-3)*step));
+        sum += tmp * kernel[4];
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(5-3)*step));
+        sum += tmp * kernel[5];
+        tmp = texture2D(Texture, texCoord0.st + vec2(0,float(6-3)*step));
+        sum += tmp * kernel[6];
+        gl_FragColor = mix(texture2D(Texture, texCoord0.st), sum, b ? 1.0 : 0.0);
+      }
+    </script>
+
+    <style>
+      * { margin: 0px; padding: 0px; }
+      html {
+        background-color: #707888;
+        color: #222222;
+      }
+      #canvas {
+        position: absolute;
+        cursor: pointer;
+        top: 115px; left: 550px;
+      }
+      #note {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+      }
+      #content {
+        margin-left: 99px;
+        padding-left: 8px;
+        padding-right: 8px;
+        padding-bottom: 16px;
+        width: 600px;
+        background-color: rgba(255,255,255,1.0);
+        text-align: center;
+        border-left: 1px solid rgba(0,0,0,0.5);
+        border-right: 2px solid rgba(0,0,0,0.75);
+      }
+      h1 {
+        padding-top: 24px;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid black;
+        font-family: Times New Roman, Serif;
+        font-weight: bold;
+        font-size: 40px;
+      }
+      #content p {
+        text-indent: 24px;
+        margin-left: 24px;
+        margin-right: 32px;
+        text-align: justify;
+        font-family: Serif;
+        padding-bottom: 16px;
+      }
+      #above {
+        position: absolute;
+        top: 300px;
+        left: 716px;
+        padding: 10px 20px;
+        background-color: rgba(0,225,0,0.5);
+        border-left: 2px solid rgba(0,64,0,0.75);
+        color: white;
+        font-size: small;
+        font-family: sans-serif;
+      }
+      #above p {
+        text-align: center;
+      }
+    </style>
+
+</head><body>
+    <canvas id="canvas" width="400" height="400" title="Click to toggle DOF shader" onclick="useDoF = !useDoF"></canvas>
+    <pre id="note"></pre>
+
+    <div id="content">
+    <h1>OpenGL for the web</h1>
+    <p>
+The WebGL specification gives web developers access to an
+OpenGL ES 2.0 drawing context for the canvas tag. What that means is
+that you can finally harness the power of the GPU for awesome visuals
+and heavy-duty number crunching in your web apps. </p><p> OpenGL ES 2.0 is a subset of OpenGL 2.0 aimed at embedded
+devices and game consoles. As such, it's a very minimalistic low-level
+API, even more so than desktop OpenGL. In fact, if you took desktop
+OpenGL and stripped out everything but shaders, vertex arrays and
+textures, you'd get something quite like OpenGL ES 2.0. </p>
+    <p>
+      As there is no fixed-function pipeline, you need to write GLSL shaders to draw <i>anything</i>.
+And you need to do your own transformation math, including keeping
+track of the transformation matrix stack. So the raw API is really not
+for the faint of heart; you do need to know your 3D math and shading
+equations. </p>
+    <p> For example, to draw the spinning cubes on the
+right - around 200 lines of application code, 250 lines of shaders and
+800 lines of library code - I had to scrounge the internet for <a href="http://www.lighthouse3d.com/opengl/glsl/index.php?pointlight">GLSL shaders</a>
+to do the transformation and lighting, write a small matrix math
+library in JavaScript and a DOF blur shader. While highly educational,
+it was also a rather steep hill to climb. </p>
+    <p> So, the intended audience of the raw context
+interface are not really end-users, but library developers who can
+write easy-to-use interfaces to the functionality, and 3D developers
+who require a high level of control over the rendering pipeline. </p>
+    <p> The really cool thing about the OpenGL Canvas is
+that it doesn't make policy decisions. There's no single set-in-stone
+use case for it: In addition to 3D graphics, you can also use it for
+filtering images, visualizing fluid dynamics, doing real-time video
+effects, or just crunching a whole lot of FP math. If you can do it on
+the GPU, you're in luck! </p>
+    </div>
+    <div id="above">
+      <p>You can also place content above the canvas</p>
+    </div>
+  </body></html>

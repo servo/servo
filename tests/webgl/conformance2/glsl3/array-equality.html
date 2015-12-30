@@ -1,0 +1,106 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL array equality test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderSimple" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    // This simple test uses the ESSL1 style array initialization in order
+    // to be able to test array equality independently of array constructors.
+    int a[3];
+    int b[3];
+    int c[3];
+    for (int i = 0; i < 3; ++i) {
+        a[i] = i;
+        b[i] = i;
+        c[i] = i + 1;
+    }
+    bool success = (a == b) && (a != c);
+    my_FragColor = vec4(0.0, (success ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script id="fshaderArrayOfStructs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+struct S {
+    int foo;
+};
+
+void main() {
+    // This simple test uses the ESSL1 style array initialization in order
+    // to be able to test array equality independently of array constructors.
+    S a[3];
+    S b[3];
+    S c[3];
+    for (int i = 0; i < 3; ++i) {
+        a[i].foo = i;
+        b[i].foo = i;
+        c[i].foo = i + 1;
+    }
+    bool success = (a == b) && (a != c);
+    my_FragColor = vec4(0.0, (success ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Comparing arrays should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderSimple',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Arrays of integers'
+},
+{
+  fShaderId: 'fshaderArrayOfStructs',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Arrays of structs'
+}
+], 2);
+</script>
+</body>
+</html>
+

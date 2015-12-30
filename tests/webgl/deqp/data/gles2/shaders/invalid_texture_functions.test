@@ -1,0 +1,90 @@
+
+case texture2d_bias_in_vertex
+	expect compile_fail
+	values {}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		uniform lowp sampler2D s;
+
+		void main()
+		{
+			vec4 r = texture2D(s, vec2(1.0), 1.0);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+case texturecube_bias_in_vertex
+	expect compile_fail
+	values {}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		uniform lowp samplerCube s;
+
+		void main()
+		{
+			vec4 r = textureCube(s, vec3(1.0), 1.0);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+case texture2dlod_in_fragment
+	expect compile_fail
+	values {}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		uniform sampler2D s;
+
+		void main()
+		{
+			gl_FragColor = texture2DLod(s, vec2(0), 1.0);
+		}
+	""
+end
+
+case texturecubelod_in_fragment
+	expect compile_fail
+	values {}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		uniform samplerCube s;
+
+		void main()
+		{
+			gl_FragColor = textureCubeLod(s, vec3(0), 1.0);
+		}
+	""
+end

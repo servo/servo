@@ -1,0 +1,1962 @@
+#X1. Type: 					float[5] 								// An array type with 5 elements
+#X2. Return value:			float[5] func() { ... } 				// Function with a 5-element array return value
+#X3. Array constructor:		float[3] (1.0, 2.0, 5.5)				// 3-element array with given elements
+#																	// Fails with array of matrices!
+#X4. As unnamed parameter:	void func(float[5]);
+#X5. Variable declaration:	float[5] a;								// Equivalent to float a[5]; (?)
+#X6. Empty brackets:		float x[] = float[] (1.0, 2.0, 3.0);	// Size of x is 3
+#							float y[] = float[3] (1.0, 2.0, 3.0);	// Size of y is 3 (equivalent)
+#							float z[] = y;							// Size of z is 3
+#X7. Testing that 2-dimensional arrays don't work:	float a[5][3];	// Illegal
+#													float[5] a[3]; 	// Illegal
+#X8. Testing that array declaration with dynamic variables as array size won't work.
+#X9. Testing length() operator:	z.length(); 						// Returns 3 for z defined before
+#X10. Test C/C++ style {}-constructor
+#X11. Test struct arrays
+#X12. Test array element access at initialization with const/dynamic values
+
+group constructor "Array constructors"
+
+	case float3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(7.4, -1.0, 2.0) | vec3(3.0, 1.6, -2.0) ];
+			output vec3 out0 = [ vec3(2.0, 0.5, 1.0) | vec3(2.0, 7.4, -1.0) | vec3(-2.0, 3.0, 1.6) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float[3] x;
+				x = float[3] (in0.z, in0.x, in0.y);
+				out0 = vec3(x[0], x[1], x[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float4
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.5, 1.0, 2.0, 0.2) | vec4(7.4, -1.0, 2.0, -1.3) | vec4(3.0, 1.6, -2.0, 0.5) ];
+			output vec4 out0 = [ vec4(2.0, 0.5, 0.2, 1.0) | vec4(2.0, 7.4, -1.3, -1.0) | vec4(-2.0, 3.0, 0.5, 1.6) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float[4] x;
+				x = float[4] (in0.z, in0.x, in0.w, in0.y);
+				out0 = vec4(x[0], x[1], x[2], x[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(0, 1, 2) | ivec3(7, -1, 2) | ivec3(3, 1, -2) ];
+			output ivec3 out0 = [ ivec3(2, 0, 1) | ivec3(2, 7, -1) | ivec3(-2, 3, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				int[3] x;
+				x = int[3] (in0.z, in0.x, in0.y);
+				out0 = ivec3(x[0], x[1], x[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int4
+		version 300 es
+		values
+		{
+			input ivec4 in0 = [ ivec4(0, 1, 2, 0) | ivec4(7, -1, 2, -1) | ivec4(3, 1, -2, 0) ];
+			output ivec4 out0 = [ ivec4(2, 0, 0, 1) | ivec4(2, 7, -1, -1) | ivec4(-2, 3, 0, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				int[4] x;
+				x = int[4] (in0.z, in0.x, in0.w, in0.y);
+				out0 = ivec4(x[0], x[1], x[2], x[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, true, false) ];
+			output bvec3 out0 = [ bvec3(false, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bool[3] x;
+				x = bool[3] (in0.z, in0.x, in0.y);
+				out0 = bvec3(x[0], x[1], x[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool4
+		version 300 es
+		values
+		{
+			input bvec4 in0 = [ bvec4(true, true, false, false) ];
+			output bvec4 out0 = [ bvec4(false, true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bool[4] x;
+				x = bool[4] (in0.z, in0.x, in0.y, in0.w);
+				out0 = bvec4(x[0], x[1], x[2], x[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case struct3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			output vec3 out0 = [ vec3(2.0, -0.5, -1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+
+
+			void main()
+			{
+				${SETUP}
+
+				struct test
+				{
+					float f;
+					vec3 v;
+				};
+
+				test a = test(in0.z, vec3(in0.x, in0.y, in0.z));
+				test b = test(in0.y, vec3(-in0.z, -in0.x, -in0.y));
+				test c = test(in0.x, vec3(-in0.y, in0.z, -in0.x));
+
+				test[3] x = test[3] (a, b, c);
+
+				out0 = vec3(x[0].f, x[1].v.y, x[2].v.x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case struct4
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.5, 1.0, 2.0, 1.5) ];
+			output vec4 out0 = [ vec4(2.0, -0.5, -1.0, -1.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+
+			void main()
+			{
+				${SETUP}
+
+
+				struct test
+				{
+					float f;
+					vec3 v;
+				};
+
+				test a = test(in0.z, vec3(in0.x, in0.y, in0.z));
+				test b = test(in0.y, vec3(-in0.z, -in0.x, -in0.y));
+				test c = test(in0.x, vec3(-in0.y, in0.z, -in0.x));
+				test d = test(-in0.w, vec3(-in0.w, -in0.x, -in0.z));
+
+				test[4] x = test[4] (a, b, c, d);
+
+				out0 = vec4(x[0].f, x[1].v.y, x[2].v.x, x[3].v.x);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case float_vec3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(7.4, -1.0, 2.0) | vec3(3.0, 1.6, -2.0) ];
+			output vec3 out0 = [ vec3(0.5, -2.0, 1.0) | vec3(7.4, -2.0, -1.0) | vec3(3.0, 2.0, 1.6) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+
+				vec3[3] x;
+				x = vec3[3] ( 	vec3(in0.x, in0.y, in0.z)	,
+								vec3(-in0.y, -in0.z, -in0.x),
+								vec3(in0.z, in0.x, in0.y)	);
+				out0 = vec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_vec3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(5, 1, 2) | ivec3(7, -1, 2) | ivec3(3, 1, -2) ];
+			output ivec3 out0 = [ ivec3(5, -2, 1) | ivec3(7, -2, -1) | ivec3(3, 2, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+
+				ivec3[3] x;
+				x = ivec3[3] ( 	ivec3(in0.x, in0.y, in0.z)	,
+								ivec3(-in0.y, -in0.z, -in0.x),
+								ivec3(in0.z, in0.x, in0.y)	);
+				out0 = ivec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_vec3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, true) ];
+			output bvec3 out0 = [ bvec3(true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+
+				bvec3[3] x;
+				x = bvec3[3] ( 	bvec3(in0.x, in0.y, in0.z)	,
+								bvec3(in0.y, in0.z, in0.x),
+								bvec3(in0.z, in0.x, in0.y)	);
+				out0 = bvec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_mat3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(-1.5, 0.0, -2.3) ];
+			output vec3 out0 = [ vec3(0.5, -1.0, 1.0) | vec3(-1.5, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a = mat3[3] (	mat3(	in0.x, in0.y, in0.z,
+												in0.x, in0.y, in0.z,
+												in0.x, in0.y, in0.z)	,
+										mat3(	in0.z, in0.x, -in0.y,
+												in0.z, in0.x, -in0.y,
+												in0.z, in0.x, -in0.y)	,
+										mat3(	-in0.z, -in0.z, in0.z,
+												-in0.y, -in0.y, in0.y,
+												-in0.x, -in0.x, in0.x)	);
+
+				mat3 a0 = a[0];
+				mat3 a1 = a[1];
+				mat3 a2 = a[2];
+
+				float ret0 = a0[2][0];
+				float ret1 = a1[0][2];
+				float ret2 = a2[1][2];
+
+				out0 = vec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_mat3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(0, 1, 2) | ivec3(-1, 0, -2) ];
+			output ivec3 out0 = [ ivec3(0, -1, 1) | ivec3(-1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a = mat3[3] (	mat3(	in0.x, in0.y, in0.z,
+												in0.x, in0.y, in0.z,
+												in0.x, in0.y, in0.z)	,
+										mat3(	in0.z, in0.x, -in0.y,
+												in0.z, in0.x, -in0.y,
+												in0.z, in0.x, -in0.y)	,
+										mat3(	-in0.z, -in0.z, in0.z,
+												-in0.y, -in0.y, in0.y,
+												-in0.x, -in0.x, in0.x)	);
+
+				mat3 a0 = a[0];
+				mat3 a1 = a[1];
+				mat3 a2 = a[2];
+
+				float ret0 = a0[2][0];
+				float ret1 = a1[0][2];
+				float ret2 = a2[1][2];
+
+				out0 = ivec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_mat3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, true) ];
+			output bvec3 out0 = [ bvec3(true, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a = mat3[3] (	mat3(	in0.x, in0.y, in0.z,
+												in0.x, in0.y, in0.z,
+												in0.x, in0.y, in0.z)	,
+										mat3(	in0.z, in0.x, in0.y,
+												in0.z, in0.x, in0.y,
+												in0.z, in0.x, in0.y)	,
+										mat3(	in0.z, in0.z, in0.z,
+												in0.y, in0.y, in0.y,
+												in0.x, in0.x, in0.x)	);
+
+				mat3 a0 = a[0];
+				mat3 a1 = a[1];
+				mat3 a2 = a[2];
+
+				float ret0 = a0[2][0];
+				float ret1 = a1[0][2];
+				float ret2 = a2[1][2];
+
+				out0 = bvec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # type
+
+group return "Arrays as return value"
+
+	case float
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) | vec3(7.4, -1.0, 2.0) | vec3(3.0, 1.6, -2.0) ];
+			output vec3 out0 = [ vec3(2.0, -0.5, 1.0) | vec3(2.0, -7.4, -1.0) | vec3(-2.0, -3.0, 1.6) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float[3] func(vec3 a)
+			{
+				return float[3] (a.z, -a.x, a.y);
+			}
+
+			void main()
+			{
+				${SETUP}
+				float[3] x = func(in0);
+				out0 = vec3(x[0], x[1], x[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(4, 1, 2) | ivec3(7, -1, 2) | ivec3(3, 1, -2) ];
+			output ivec3 out0 =	[ ivec3(2, -4, 1) | ivec3(2, -7, -1) | ivec3(-2, -3, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			int[3] func(ivec3 a)
+			{
+				return int[3] (a.z, -a.x, a.y);
+			}
+
+			void main()
+			{
+				${SETUP}
+				int[3] x = func(in0);
+				out0 = ivec3(x[0], x[1], x[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool
+		version 300 es
+		values
+		{
+			input bvec3 in0 = 	[ bvec3(false, true, true) ];
+			output bvec3 out0 = [ bvec3(true, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool[3] func(bvec3 a)
+			{
+				return bool[3] (a.z, a.x, a.y);
+			}
+
+			void main()
+			{
+				${SETUP}
+				bool[3] x = func(in0);
+				out0 = bvec3(x[0], x[1], x[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+
+	case float_vec3
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) | vec3(-0.5, 11.2, -1.0) ];
+			output vec3 out0 = [ vec3(1.0, 0.5, -2.0) | vec3(11.2, -0.5, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec3[3] func(vec3[3] a)
+			{
+				return vec3[3] (a[1], a[2], a[0]);
+			}
+
+			void main()
+			{
+				${SETUP}
+				vec3[3] x = vec3[3](vec3(in0.x, in0.y, -in0.z)	,
+									vec3(in0.y, -in0.z, in0.x)	,
+									vec3(-in0.z, in0.x, in0.y)	);
+				x = func(x);
+				out0 = vec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case struct
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) ];
+			output vec3 out0 = [ vec3(-1.0, 2.0, 0.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct test
+			{
+				float f;
+				vec3 v;
+			};
+
+			test[3] func(test[3] a)
+			{
+				return test[3] (a[1], a[2], a[0]);
+			}
+
+			void main()
+			{
+				${SETUP}
+
+				test a = test(in0.z, vec3(in0.x, in0.y, in0.z));
+				test b = test(in0.y, vec3(-in0.z, -in0.x, -in0.y));
+				test c = test(in0.x, vec3(-in0.y, in0.z, -in0.x));
+
+				test[3] t = test[3] (a, b, c);
+				test[3] x = func(t);
+
+				out0 = vec3(x[0].v.z, x[1].v.y, x[2].v.x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_vec3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = 	[ ivec3(5, 1, 2) | ivec3(-5, 11, -1) ];
+			output ivec3 out0 = [ ivec3(1, 5, -2) | ivec3(11, -5, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			ivec3[3] func(ivec3[3] a)
+			{
+				return ivec3[3] (a[1], a[2], a[0]);
+			}
+
+			void main()
+			{
+				${SETUP}
+				ivec3[3] x = ivec3[3](	ivec3(in0.x, in0.y, -in0.z)	,
+										ivec3(in0.y, -in0.z, in0.x)	,
+										ivec3(-in0.z, in0.x, in0.y)	);
+				x = func(x);
+				out0 = ivec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_vec3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = 	[ bvec3(true, false, false) ];
+			output bvec3 out0 = [ bvec3(false, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			bvec3[3] func(bvec3[3] a)
+			{
+				return bvec3[3] (a[1], a[2], a[0]);
+			}
+
+			void main()
+			{
+				${SETUP}
+				bvec3[3] x = bvec3[3](	bvec3(in0.x, in0.y, in0.z)	,
+										bvec3(in0.y, in0.z, in0.x)	,
+										bvec3(in0.z, in0.x, in0.y)	);
+				x = func(x);
+				out0 = bvec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_mat3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(-1.5, 0.0, -2.3) ];
+			output vec3 out0 = [ vec3(2.0, -1.0, 2.0) | vec3(-2.3, 0.0, -2.3) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3[3] func(mat3[3] x)
+			{
+				mat3[3] r;
+				r[0] = x[1];
+				r[1] = x[2];
+				r[2] = x[0];
+				return r;
+			}
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a, b;
+				a[0] = mat3(in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z);
+				a[1] = mat3(in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y);
+				a[2] = mat3(-in0.z, -in0.z, in0.z,
+							-in0.y, -in0.y, in0.y,
+							-in0.x, -in0.x, in0.x);
+
+				b = func(a);
+
+				mat3 b0 = b[0];
+				mat3 b1 = b[1];
+				mat3 b2 = b[2];
+
+				float ret0 = b0[0][0];
+				float ret1 = b1[1][1];
+				float ret2 = b2[2][2];
+
+				out0 = vec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_mat3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(5, 1, 2) | ivec3(-1, 0, -2) ];
+			output ivec3 out0 = [ ivec3(2, -1, 2) | ivec3(-2, 0, -2) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3[3] func(mat3[3] x)
+			{
+				mat3[3] r;
+				r[0] = x[1];
+				r[1] = x[2];
+				r[2] = x[0];
+				return r;
+			}
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a, b;
+				a[0] = mat3(in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z);
+				a[1] = mat3(in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y);
+				a[2] = mat3(-in0.z, -in0.z, in0.z,
+							-in0.y, -in0.y, in0.y,
+							-in0.x, -in0.x, in0.x);
+
+				b = func(a);
+
+				mat3 b0 = b[0];
+				mat3 b1 = b[1];
+				mat3 b2 = b[2];
+
+				float ret0 = b0[0][0];
+				float ret1 = b1[1][1];
+				float ret2 = b2[2][2];
+
+				out0 = ivec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_mat3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, true) | bvec3(true, true, false) ];
+			output bvec3 out0 = [ bvec3(true, false, true) | bvec3(false, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3[3] func(mat3[3] x)
+			{
+				mat3[3] r;
+				r[0] = x[1];
+				r[1] = x[2];
+				r[2] = x[0];
+				return r;
+			}
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a, b;
+				a[0] = mat3(in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z);
+				a[1] = mat3(in0.z, in0.x, in0.y,
+							in0.z, in0.x, in0.y,
+							in0.z, in0.x, in0.y);
+				a[2] = mat3(in0.z, in0.z, in0.z,
+							in0.y, in0.y, in0.y,
+							in0.x, in0.x, in0.x);
+
+				b = func(a);
+
+				mat3 b0 = b[0];
+				mat3 b1 = b[1];
+				mat3 b2 = b[2];
+
+				float ret0 = b0[0][0];
+				float ret1 = b1[1][1];
+				float ret2 = b2[2][2];
+
+				out0 = bvec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # return
+
+group unnamed_parameter "Array type as unnamed parameter of a function prototype"
+
+	case float
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) | vec3(7.4, -1.0, 2.0) | vec3(3.0, 1.6, -2.0) ];
+			output vec3 out0 = [ vec3(2.0, 0.5, 1.0) | vec3(2.0, 7.4, -1.0) | vec3(-2.0, 3.0, 1.6) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float[3] func(float[3]);
+
+			void main()
+			{
+				${SETUP}
+				float[3] a = float[3] (in0.x, in0.y, in0.z);
+				float[3] b = func(a);
+				out0 = vec3(b[0], b[1], b[2]);
+				${OUTPUT}
+			}
+
+			float[3] func(float[3] a)
+			{
+				return float[3] (a[2], a[0], a[1]);
+			}
+
+		""
+	end
+
+	case int
+		version 300 es
+		values
+		{
+			input ivec3 in0 = 	[ ivec3(0, 1, 2) | ivec3(7, -1, 2) | ivec3(3, 1, -2) ];
+			output ivec3 out0 = [ ivec3(2, 0, 1) | ivec3(2, 7, -1) | ivec3(-2, 3, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			int[3] func(int[3]);
+
+			void main()
+			{
+				${SETUP}
+				int[3] a = int[3] (in0.x, in0.y, in0.z);
+				int[3] b = func(a);
+				out0 = ivec3(b[0], b[1], b[2]);
+				${OUTPUT}
+			}
+
+			int[3] func(int[3] a)
+			{
+				return int[3] (a[2], a[0], a[1]);
+			}
+
+		""
+	end
+
+	case bool
+		version 300 es
+		values
+		{
+			input bvec3 in0 = 	[ bvec3(false, true, true) ];
+			output bvec3 out0 = [ bvec3(true, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool[3] func(bool[3]);
+
+			void main()
+			{
+				${SETUP}
+				bool[3] a = bool[3] (in0.x, in0.y, in0.z);
+				bool[3] b = func(a);
+				out0 = bvec3(b[0], b[1], b[2]);
+				${OUTPUT}
+			}
+
+			bool[3] func(bool[3] a)
+			{
+				return bool[3] (a[2], a[0], a[1]);
+			}
+
+		""
+	end
+
+	case struct
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) ];
+			output vec3 out0 = [ vec3(-1.0, 2.0, 0.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct test
+			{
+				float f;
+				vec3 v;
+			};
+
+			test[3] func(test[3]);
+
+			void main()
+			{
+				${SETUP}
+
+				test a = test(in0.z, vec3(in0.x, in0.y, in0.z));
+				test b = test(in0.y, vec3(-in0.z, -in0.x, -in0.y));
+				test c = test(in0.x, vec3(-in0.y, in0.z, -in0.x));
+
+				test[3] t = test[3] (a, b, c);
+				test[3] x = func(t);
+				out0 = vec3(x[0].v.z, x[1].v.y, x[2].v.x);
+				${OUTPUT}
+			}
+
+			test[3] func(test[3] a)
+			{
+				return test[3] (a[1], a[2], a[0]);
+			}
+
+		""
+	end
+
+	case float_vec3
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) | vec3(-0.5, 11.2, -1.0) ];
+			output vec3 out0 = [ vec3(1.0, 0.5, -2.0) | vec3(11.2, -0.5, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec3[3] func(vec3[3]);
+
+			void main()
+			{
+				${SETUP}
+				vec3[3] x = vec3[3](vec3(in0.x, in0.y, -in0.z)	,
+									vec3(in0.y, -in0.z, in0.x)	,
+									vec3(-in0.z, in0.x, in0.y)	);
+				x = func(x);
+				out0 = vec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+
+			vec3[3] func(vec3[3] a)
+			{
+				return vec3[3] (a[1], a[2], a[0]);
+			}
+		""
+	end
+
+	case int_vec3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = 	[ ivec3(5, 1, 2) | ivec3(-5, 11, -1) ];
+			output ivec3 out0 = [ ivec3(1, 5, -2) | ivec3(11, -5, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			ivec3[3] func(ivec3[3]);
+
+			void main()
+			{
+				${SETUP}
+				ivec3[3] x = ivec3[3](	ivec3(in0.x, in0.y, -in0.z)	,
+										ivec3(in0.y, -in0.z, in0.x)	,
+										ivec3(-in0.z, in0.x, in0.y)	);
+				x = func(x);
+				out0 = ivec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+
+			ivec3[3] func(ivec3[3] a)
+			{
+				return ivec3[3] (a[1], a[2], a[0]);
+			}
+		""
+	end
+
+	case bool_vec3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = 	[ bvec3(true, false, false) ];
+			output bvec3 out0 = [ bvec3(false, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			bvec3[3] func(bvec3[3]);
+
+			void main()
+			{
+				${SETUP}
+				bvec3[3] x = bvec3[3](	bvec3(in0.x, in0.y, in0.z)	,
+										bvec3(in0.y, in0.z, in0.x)	,
+										bvec3(in0.z, in0.x, in0.y)	);
+				x = func(x);
+				out0 = bvec3(x[0].x, x[1].y, x[2].z);
+				${OUTPUT}
+			}
+
+			bvec3[3] func(bvec3[3] a)
+			{
+				return bvec3[3] (a[1], a[2], a[0]);
+			}
+
+		""
+	end
+
+	case float_mat3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(-1.5, 0.0, -2.3) ];
+			output vec3 out0 = [ vec3(2.0, -1.0, 2.0) | vec3(-2.3, 0.0, -2.3) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3[3] func(mat3[3]);
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a, b;
+				a[0] = mat3(in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z);
+				a[1] = mat3(in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y);
+				a[2] = mat3(-in0.z, -in0.z, in0.z,
+							-in0.y, -in0.y, in0.y,
+							-in0.x, -in0.x, in0.x);
+
+				b = func(a);
+
+				mat3 b0 = b[0];
+				mat3 b1 = b[1];
+				mat3 b2 = b[2];
+
+				float ret0 = b0[0][0];
+				float ret1 = b1[1][1];
+				float ret2 = b2[2][2];
+
+				out0 = vec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+
+			mat3[3] func(mat3[3] x)
+			{
+				mat3[3] r;
+				r[0] = x[1];
+				r[1] = x[2];
+				r[2] = x[0];
+				return r;
+			}
+		""
+	end
+
+	case int_mat3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(5, 1, 2) | ivec3(-1, 0, -2) ];
+			output ivec3 out0 = [ ivec3(2, -1, 2) | ivec3(-2, 0, -2) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3[3] func(mat3[3]);
+
+			void main()
+			{
+				${SETUP}
+				mat3[3] a, b;
+				a[0] = mat3(in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z);
+				a[1] = mat3(in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y,
+							in0.z, in0.x, -in0.y);
+				a[2] = mat3(-in0.z, -in0.z, in0.z,
+							-in0.y, -in0.y, in0.y,
+							-in0.x, -in0.x, in0.x);
+
+				b = func(a);
+
+				mat3 b0 = b[0];
+				mat3 b1 = b[1];
+				mat3 b2 = b[2];
+
+				float ret0 = b0[0][0];
+				float ret1 = b1[1][1];
+				float ret2 = b2[2][2];
+
+				out0 = ivec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+
+			mat3[3] func(mat3[3] x)
+			{
+				mat3[3] r;
+				r[0] = x[1];
+				r[1] = x[2];
+				r[2] = x[0];
+				return r;
+			}
+		""
+	end
+
+	case bool_mat3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, true) | bvec3(true, true, false) ];
+			output bvec3 out0 = [ bvec3(true, false, true) | bvec3(false, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3[3] func(mat3[3]);
+			void main()
+			{
+				${SETUP}
+				mat3[3] a, b;
+				a[0] = mat3(in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z,
+							in0.x, in0.y, in0.z);
+				a[1] = mat3(in0.z, in0.x, in0.y,
+							in0.z, in0.x, in0.y,
+							in0.z, in0.x, in0.y);
+				a[2] = mat3(in0.z, in0.z, in0.z,
+							in0.y, in0.y, in0.y,
+							in0.x, in0.x, in0.x);
+
+				b = func(a);
+
+				mat3 b0 = b[0];
+				mat3 b1 = b[1];
+				mat3 b2 = b[2];
+
+				float ret0 = b0[0][0];
+				float ret1 = b1[1][1];
+				float ret2 = b2[2][2];
+
+				out0 = bvec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+
+			mat3[3] func(mat3[3] x)
+			{
+				mat3[3] r;
+				r[0] = x[1];
+				r[1] = x[2];
+				r[2] = x[0];
+				return r;
+			}
+		""
+	end
+
+end # unnamed_parameter
+
+group declaration "Declaring arrays"
+
+	case implicit_size_float
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(7.4, -1.0, 2.0) | vec3(3.0, 1.6, -2.0) ];
+			output vec3 out0 = [ vec3(2.0, 0.5, 1.0) | vec3(2.0, 7.4, -1.0) | vec3(-2.0, 3.0, 1.6) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float[] x = float[] (in0.z, in0.x, in0.y);
+				float[] y = x;
+
+				out0 = vec3(y[0], y[1], y[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_int
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(0, 1, 2) | ivec3(7, -1, 2) | ivec3(3, 1, -2) ];
+			output ivec3 out0 = [ ivec3(2, 0, 1) | ivec3(2, 7, -1) | ivec3(-2, 3, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				int[] x = int[] (in0.z, in0.x, in0.y);
+				int[] y = x;
+
+				out0 = ivec3(y[0], y[1], y[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_bool
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(false, true, true) ];
+			output bvec3 out0 = [ bvec3(true, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bool[] x = bool[] (in0.z, in0.x, in0.y);
+				bool[] y = x;
+
+				out0 = bvec3(y[0], y[1], y[2]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_struct
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			output vec3 out0 = [ vec3(-1.0, -0.5, 2.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct test
+			{
+				float f;
+				vec3 v;
+			};
+
+			void main()
+			{
+				${SETUP}
+
+				test a = test(in0.z, vec3(in0.x, in0.y, in0.z));
+				test b = test(in0.y, vec3(-in0.z, -in0.x, -in0.y));
+				test c = test(in0.x, vec3(-in0.y, in0.z, -in0.x));
+
+				test[] x = test[] (c, b, a);
+				test[] y = x;
+
+				out0 = vec3(y[0].v.x, y[1].v.y, y[2].v.z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_float_vec3
+		version 300 es
+		values
+		{
+			input vec3 in0 = 	[ vec3(0.5, 1.0, 2.0) | vec3(-0.5, 11.2, -1.0) ];
+			output vec3 out0 = [ vec3(0.5, -2.0, 1.0) | vec3(-0.5, 1.0, 11.2) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec3[] x = vec3[] (	vec3(in0.x, in0.y, -in0.z)	,
+									vec3(in0.y, -in0.z, in0.x)	,
+									vec3(-in0.z, in0.x, in0.y)	);
+				vec3[] y = x;
+				out0 = vec3(y[0].x, y[1].y, y[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_int_ivec3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = 	[ ivec3(0, 1, 2) | ivec3(5, 11, -1) ];
+			output ivec3 out0 = [ ivec3(0, -2, 1) | ivec3(5, 1, 11) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec3[] x = ivec3[] (	ivec3(in0.x, in0.y, -in0.z)	,
+										ivec3(in0.y, -in0.z, in0.x)	,
+										ivec3(-in0.z, in0.x, in0.y)	);
+				ivec3[] y = x;
+				out0 = ivec3(y[0].x, y[1].y, y[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_bool_bvec3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = 	[ bvec3(true, false, true) ];
+			output bvec3 out0 = [ bvec3(true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec3[] x = bvec3[] (	bvec3(in0.x, in0.y, in0.z)	,
+										bvec3(in0.y, in0.z, in0.x)	,
+										bvec3(in0.z, in0.x, in0.y)	);
+				bvec3[] y = x;
+				out0 = bvec3(y[0].x, y[1].y, y[2].z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_float_mat3
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) | vec3(-1.5, 0.0, -2.3) ];
+			output vec3 out0 = [ vec3(0.5, -1.0, 1.0) | vec3(-1.5, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				mat3[] a = mat3[] (	mat3(	in0.x, in0.y, in0.z,
+											in0.x, in0.y, in0.z,
+											in0.x, in0.y, in0.z)	,
+									mat3(	in0.z, in0.x, -in0.y,
+											in0.z, in0.x, -in0.y,
+											in0.z, in0.x, -in0.y)	,
+									mat3(	-in0.z, -in0.z, in0.z,
+											-in0.y, -in0.y, in0.y,
+											-in0.x, -in0.x, in0.x)	);
+
+				mat3 a0 = a[0];
+				mat3 a1 = a[1];
+				mat3 a2 = a[2];
+
+				float ret0 = a0[2][0];
+				float ret1 = a1[0][2];
+				float ret2 = a2[1][2];
+
+				out0 = vec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_int_mat3
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(0, 1, 2) | ivec3(-1, 0, -2) ];
+			output ivec3 out0 = [ ivec3(0, -1, 1) | ivec3(-1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				mat3[] a = mat3[] (	mat3(	in0.x, in0.y, in0.z,
+											in0.x, in0.y, in0.z,
+											in0.x, in0.y, in0.z)	,
+									mat3(	in0.z, in0.x, -in0.y,
+											in0.z, in0.x, -in0.y,
+											in0.z, in0.x, -in0.y)	,
+									mat3(	-in0.z, -in0.z, in0.z,
+											-in0.y, -in0.y, in0.y,
+											-in0.x, -in0.x, in0.x)	);
+
+				mat3 a0 = a[0];
+				mat3 a1 = a[1];
+				mat3 a2 = a[2];
+
+				float ret0 = a0[2][0];
+				float ret1 = a1[0][2];
+				float ret2 = a2[1][2];
+
+				out0 = ivec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case implicit_size_bool_mat3
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, true) ];
+			output bvec3 out0 = [ bvec3(true, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				mat3[] a = mat3[] (	mat3(	in0.x, in0.y, in0.z,
+											in0.x, in0.y, in0.z,
+											in0.x, in0.y, in0.z)	,
+									mat3(	in0.z, in0.x, in0.y,
+											in0.z, in0.x, in0.y,
+											in0.z, in0.x, in0.y)	,
+									mat3(	in0.z, in0.z, in0.z,
+											in0.y, in0.y, in0.y,
+											in0.x, in0.x, in0.x)	);
+
+				mat3 a0 = a[0];
+				mat3 a1 = a[1];
+				mat3 a2 = a[2];
+
+				float ret0 = a0[2][0];
+				float ret1 = a1[0][2];
+				float ret2 = a2[1][2];
+
+				out0 = bvec3(ret0, ret1, ret2);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case constant_expression_array_size
+		version 300 es
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			const int a = 4;
+
+			void main ()
+			{
+				const int b = 5;
+				float[a] array1;
+				float[b] array2;
+				float[array1.length()] array3;
+				float[a+b] array4;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case constant_expression_array_access
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			output vec3 out0 = [ vec3(-2.0, -1.0, -0.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			const int a = 3;
+
+			void main ()
+			{
+				${SETUP}
+				const int b = 2;
+				float x = float[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x) [a];
+				float y = float[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x) [b+2];
+				float z = float[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x) [5];
+				out0 = vec3(x, y, z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case dynamic_expression_array_access
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			input ivec2 in1 = ivec2(3, 2);
+			output vec3 out0 = [ vec3(-2.0, -1.0, -0.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				${SETUP}
+				float x = float[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x) [in1.x];
+				float y = float[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x) [in1.y+2];
+				float z = float[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x) [in1.x+in1.y];
+				out0 = vec3(x, y, z);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case multiple_declarations_single_statement_explicit
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			output vec3 out0 = [ vec3(2.0, -1.0, 0.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				${SETUP}
+				float[] x = float[6] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x),
+						y = float[2] (in0.x, -in0.y);
+				out0 = vec3(x[2], y[1], x[0]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case multiple_declarations_single_statement_implicit
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(5, 1, 2) ];
+			output ivec3 out0 = [ ivec3(2, -1, 5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				${SETUP}
+				int[] x = int[] (in0.x, in0.y, in0.z, -in0.z, -in0.y, -in0.x),
+					  y = int[] (in0.x, -in0.y);
+				out0 = ivec3(x[2], y[1], x[0]);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # declaration
+
+group length "Array length method"
+
+	case float
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			output ivec3 out0 = [ ivec3(3, 5, 13) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float[] x = float[3] (in0.z, in0.x, in0.y);
+				float[] y = float[] (in0.z, in0.x, in0.y, in0.x, in0.y);
+				float[13] z;
+
+				out0 = ivec3(x.length(), y.length(), z.length());
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int
+		version 300 es
+		values
+		{
+			input ivec3 in0 = [ ivec3(0, 1, 2) ];
+			output ivec3 out0 = [ ivec3(3, 5, 13) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump int;
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				int[] x = int[3] (in0.z, in0.x, in0.y);
+				int[] y = int[] (in0.z, in0.x, in0.y, in0.x, in0.y);
+				int[13] z;
+
+				out0 = ivec3(x.length(), y.length(), z.length());
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, true) ];
+			output ivec3 out0 = [ ivec3(3, 5, 13) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bool[] x = bool[3] (in0.z, in0.x, in0.y);
+				bool[] y = bool[] (in0.z, in0.x, in0.y, in0.x, in0.y);
+				bool[13] z;
+
+				out0 = ivec3(x.length(), y.length(), z.length());
+				${OUTPUT}
+			}
+		""
+	end
+
+	case struct
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 1.0, 2.0) ];
+			output ivec3 out0 = [ ivec3(3, 5, 13) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct test
+			{
+				float f;
+				vec3 v;
+			};
+
+			void main()
+			{
+				${SETUP}
+
+				test a = test(in0.z, vec3(in0.x, in0.y, in0.z));
+				test b = test(in0.y, vec3(-in0.z, -in0.x, -in0.y));
+				test c = test(in0.x, vec3(-in0.y, in0.z, -in0.x));
+
+				test[] x = test[3] (a, b, c);
+				test[] y = test[] (c, a, b, b, a);
+				test[13] z;
+
+				out0 = ivec3(x.length(), y.length(), z.length());
+				${OUTPUT}
+			}
+		""
+	end
+
+end # length
+
+group invalid "Invalid Functions"
+
+	case multidimensional_array1
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				float a[5][3];
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case multidimensional_array2
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				float[5] a[3];
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case multidimensional_uniform_array
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			uniform float a[3][2];
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case multidimensional_array_in_uniform_block
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			uniform MyBlock
+			{
+				float a[3][2];
+			};
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case dynamic_expression_array_size
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				int a = 5;
+				float[a] array;
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case empty_declaration_without_var_name
+		version 300 es
+		expect compile_or_link_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				int[];
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case empty_declaration_with_var_name
+		version 300 es
+		expect compile_or_link_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				int[] a;
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case constructor_c-style1
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				float a[];
+				a = float[3] { 1.0, 2.0, 3.0 };
+
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case constructor_c-style2
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				float a[5] = { 1.0, 2.0, 3.0 };
+
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+end # invalid

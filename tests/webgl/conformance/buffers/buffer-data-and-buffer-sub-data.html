@@ -1,0 +1,191 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test bufferData/bufferSubData with or without ArrayBuffer input");
+
+debug('Regression test for <a href="https://bugs.webkit.org/show_bug.cgi?id=41884">https://bugs.webkit.org/show_bug.cgi?id=41884</a> : <code>Implement bufferData and bufferSubData with ArrayBuffer as input</code>');
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    bufferDataTest();
+    bufferDataSizesTest();    
+
+    bufferSubDataTest();
+}
+
+function bufferDataTest() {
+    debug("");
+    debug("Test bufferData without ArrayBuffer input");
+
+    var buf = gl.createBuffer();
+    shouldBeNonNull(buf);
+
+    gl.bufferData(gl.ARRAY_BUFFER, 4, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "no buffer bound");
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    gl.bufferData(gl.ARRAY_BUFFER, -4, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling bufferData when buffer size is negative should generate INVALID_VALUE");
+
+    gl.bufferData(gl.ARRAY_BUFFER, null, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling bufferData when BufferDataSource is null should generate INVALID_VALUE");
+
+    gl.bufferData(gl.ARRAY_BUFFER, undefined, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling bufferData when BufferDataSource is undefined should generate INVALID_VALUE");
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+function bufferDataSizesTest() {
+    debug("");
+    debug("Test bufferData overloads");
+
+    // bufferData has an integer overload and an ArrayBuffer overload.
+    // Per the WebIDL spec, the overload resolution algorithm should resolve types as follows:
+    // - If the argument is null or undefined, pick the nullable type, which is ArrayBuffer.
+    //   Per the WebGL spec, null should flag INVALID_VALUE.
+    // - If the argument is an ArrayBuffer, then pick the ArrayBuffer overload
+    // - Everything else should pick the numeric overload. This means things like objects, strings,
+    //   floating point numbers, arrays of numbers and strings, etc should convert themselves to a number.
+    var bufferDataParams = [
+        { parameter: 0, expectedBufferSize: 0 },
+        { parameter: 4, expectedBufferSize: 4 },
+        { parameter: 5.1, expectedBufferSize: 5 },
+        { parameter: 5.8, expectedBufferSize: 5 },
+        { parameter: 5.5, expectedBufferSize: 5 },
+
+        { parameter: "4", expectedBufferSize: 4 },
+        { parameter: "5.1", expectedBufferSize: 5 },
+        { parameter: "5.8", expectedBufferSize: 5 },
+        { parameter: "5.5", expectedBufferSize: 5 },
+        { parameter: "0", expectedBufferSize: 0 },
+
+        { parameter: [42, 64], expectedBufferSize: 0 },
+        { parameter: [42], expectedBufferSize: 42 },
+        { parameter: ["42"], expectedBufferSize: 42 },
+        { parameter: ["42", "64"], expectedBufferSize: 0 },
+
+        { parameter: new ArrayBuffer(0), expectedBufferSize: 0 },
+        { parameter: new ArrayBuffer(4), expectedBufferSize: 4 },
+
+        { parameter: "WebGL Rocks!", expectedBufferSize: 0 },
+        { parameter: { mystring: "WebGL Rocks!" }, expectedBufferSize: 0 },
+    ];
+
+    bufferDataParams.forEach(function (bufferDataParam) {
+        var buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+        gl.bufferData(gl.ARRAY_BUFFER, bufferDataParam.parameter, gl.STATIC_DRAW);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Passing " + bufferDataParam.parameter + " to bufferData");
+
+        shouldEvaluateTo("gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE)", bufferDataParam.expectedBufferSize);
+    });
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+function bufferSubDataTest() {
+    debug("");
+    debug("Test bufferSubData");
+
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new ArrayBuffer(1));
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Calling bufferSubData before bufferData should fail");
+
+    gl.bufferData(gl.ARRAY_BUFFER, 128, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    var array = new ArrayBuffer(64);
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, -10, array);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling bufferSubData with ArrayBuffer when offset is negative should INVALID_VALUE");
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, 65, array);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "buffer overflow");
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, -10, new Float32Array(8));
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling bufferSubData with ArrayBufferView when offset is negative should generate INVALID_VALUE");
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, 10, array);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "calling bufferSubData with ArrayBuffer should succeed");
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, 10, null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling bufferSubData when BufferDataSource is null should generate INVALID_VALUE");
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, "gl.bufferSubData(gl.ARRAY_BUFFER, 10, undefined)");
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, 10, new Float32Array(0));
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "calling bufferSubData with zero-sized ArrayBufferView should succeed");
+
+    // Arguments that are not ArrayBuffers, null or undefined should throw a TypeError exception
+    shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 0, 42);");
+    shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 0, 5.5);");
+    shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 0, \"5.5\");");
+    shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 0, [4]);");
+    shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 0, { mynumber: 42});");
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

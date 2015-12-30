@@ -1,0 +1,154 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL Array of Structs Containing Arrays</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main(void) {
+    gl_Position = a_position;
+}
+</script>
+<script id="fshader0" type="x-shader/x-fragment">
+precision mediump float;
+struct my_struct {
+  vec4 color[2];
+};
+uniform my_struct u_colors[2];
+void main(void) {
+    gl_FragColor = u_colors[0].color[0];
+}
+</script>
+<script id="fshader1" type="x-shader/x-fragment">
+precision mediump float;
+struct my_struct {
+  vec4 color[2];
+};
+uniform my_struct u_colors[2];
+void main(void) {
+    gl_FragColor = u_colors[0].color[1];
+}
+</script>
+<script id="fshader-with-one-element-arrays" type="x-shader/x-fragment">
+precision mediump float;
+struct my_struct {
+  vec4 color[1];
+};
+uniform my_struct u_colors[1];
+void main(void) {
+    gl_FragColor = u_colors[0].color[0];
+}
+</script>
+<script id="fshader3" type="x-shader/x-fragment">
+precision mediump float;
+struct my_struct {
+  vec4 color1[2];
+  vec4 color2[2];
+};
+uniform my_struct u_colors[2];
+void main(void) {
+    gl_FragColor = u_colors[0].color1[0] + u_colors[0].color2[0] + u_colors[1].color1[1] +u_colors[1].color2[1];
+}
+</script>
+</head>
+<body>
+<canvas id="canvas" width="50" height="50"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+wtu.setupUnitQuad(gl);
+
+for (var ii = 0; ii < 2; ++ii) {
+  var program = wtu.setupProgram(gl, ["vshader", "fshader" + ii], ["a_position"]);
+  var red_loc = gl.getUniformLocation(program, "u_colors[0].color[" + ii  + "]");
+  var green_loc = gl.getUniformLocation(program, "u_colors[0].color[" + (1 - ii) + "]");
+  gl.uniform4fv(red_loc, [1, 0, 0, 1]);
+  gl.uniform4fv(green_loc, [0, 1, 0, 1]);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "Should be red");
+}
+
+var program = wtu.setupProgram(gl, ["vshader", "fshader-with-one-element-arrays"], ["a_position"]);
+var green_loc = gl.getUniformLocation(program, "u_colors[0].color[0]");
+gl.uniform4fv(green_loc, [0, 1, 0, 1]);
+wtu.clearAndDrawUnitQuad(gl);
+wtu.checkCanvas(gl, [0, 255, 0, 255], "Should be green");
+
+var program = wtu.setupProgram(gl, ["vshader", "fshader3"], ["a_position"]);
+var numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+shouldBe("numUniforms", "4");
+var uniforms = []
+for (var ii = 0; ii < numUniforms; ++ii) {
+  uniforms.push(gl.getActiveUniform(program, ii).name);
+}
+uniforms.sort();
+shouldBe("uniforms[0]", '"u_colors[0].color1[0]"');
+shouldBe("uniforms[1]", '"u_colors[0].color2[0]"');
+shouldBe("uniforms[2]", '"u_colors[1].color1[0]"');
+shouldBe("uniforms[3]", '"u_colors[1].color2[0]"');
+var loc00 = gl.getUniformLocation(program, "u_colors[0].color1");
+var loc01 = gl.getUniformLocation(program, "u_colors[0].color2");
+var loc10 = gl.getUniformLocation(program, "u_colors[1].color1");
+var loc11 = gl.getUniformLocation(program, "u_colors[1].color2");
+shouldBeTrue("loc00 != undefined");
+shouldBeTrue("loc01 != undefined");
+shouldBeTrue("loc10 != undefined");
+shouldBeTrue("loc11 != undefined");
+gl.uniform4fv(loc00, [1, 0, 0, 0]);
+gl.uniform4fv(loc01, [0, 1, 0, 0]);
+gl.uniform4fv(loc10, [0, 0, 0, 0, 0, 0, 1, 0]);
+gl.uniform4fv(loc11, [0, 0, 0, 0, 0, 0, 0, 1]);
+var loc101 = gl.getUniformLocation(program, "u_colors[1].color1[1]");
+var loc111 = gl.getUniformLocation(program, "u_colors[1].color2[1]");
+shouldBeTrue("loc101 != undefined");
+shouldBeTrue("loc111 != undefined");
+wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 0]);
+gl.uniform4fv(loc101, [0, 0, 0, 0]);
+gl.uniform4fv(loc111, [0, 0, 0, 0]);
+wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 0]);
+wtu.checkCanvas(gl, [255, 255, 0, 0], "Should be yellow");
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

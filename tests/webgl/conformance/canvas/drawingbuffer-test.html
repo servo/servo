@@ -1,0 +1,138 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Canvas.drawingBufferWidth,drawingBufferHeight Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+debug("");
+
+var gl;
+var oldViewport;
+
+function getMaxViewportDimensions() {
+  // create a fresh canvas. This canvas will be discarded
+  // after exiting this function.
+  var canvas = document.createElement("canvas");
+  gl = wtu.create3DContext(canvas, {antialias: false});
+  if (!gl) {
+    testFailed("context does not exist");
+    return [0, 0];
+  } else {
+    testPassed("context exists");
+
+    // For a default size canvas these should be equal.
+    // WebGL contexts are not allowed to change the size of the drawingBuffer
+    // for things like hi-res displays.
+    shouldBe('gl.drawingBufferWidth', 'gl.canvas.width');
+    shouldBe('gl.drawingBufferHeight', 'gl.canvas.height');
+    return gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+  }
+}
+
+function test(desiredWidth, desiredHeight) {
+  debug("");
+  debug("testing canvas width = " + desiredWidth + ", height = " + desiredHeight);
+
+  // Make a fresh canvas.
+  var canvas = document.createElement("canvas");
+  canvas.width = desiredWidth;
+  canvas.height = desiredHeight;
+
+  // This 'gl' must be global for shouldBe to work.
+  gl = wtu.create3DContext(canvas, {antialias: false});
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    // Verify these stats didn't change since they come from a different
+    // context.
+    shouldBe('gl.getParameter(gl.MAX_VIEWPORT_DIMS)[0]', 'maxSize[0]');
+    shouldBe('gl.getParameter(gl.MAX_VIEWPORT_DIMS)[1]', 'maxSize[1]');
+
+    // check the initial viewport matches the drawingBufferWidth and drawingBufferHeight
+    shouldBe('gl.getParameter(gl.VIEWPORT)[0]', '0');
+    shouldBe('gl.getParameter(gl.VIEWPORT)[1]', '0');
+    shouldBe('gl.getParameter(gl.VIEWPORT)[2]', 'gl.drawingBufferWidth');
+    shouldBe('gl.getParameter(gl.VIEWPORT)[3]', 'gl.drawingBufferHeight');
+
+    debug("");
+    debug("testing resizing canvas to width = " + desiredWidth + ", height = " + desiredHeight);
+
+    oldViewport = gl.getParameter(gl.VIEWPORT);
+
+    // flip width and height
+    canvas.width = desiredHeight;
+    canvas.height = desiredWidth;
+
+    // Verify the viewport didn't change.
+    shouldBe('gl.getParameter(gl.VIEWPORT)[0]', 'oldViewport[0]');
+    shouldBe('gl.getParameter(gl.VIEWPORT)[1]', 'oldViewport[1]');
+    shouldBe('gl.getParameter(gl.VIEWPORT)[2]', 'oldViewport[2]');
+    shouldBe('gl.getParameter(gl.VIEWPORT)[3]', 'oldViewport[3]');
+
+    // fix the viewport
+//    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+    shouldBe('gl.getError()', 'gl.NO_ERROR');
+  }
+}
+
+var wtu = WebGLTestUtils;
+var maxSize = getMaxViewportDimensions();
+debug("MAX_VIEWPORT_DIMS: " + maxSize[0] + ", " + maxSize[1]);
+
+shouldBeTrue('maxSize[0] > 0');
+shouldBeTrue('maxSize[1] > 0');
+
+// test a small size to make sure it works at all.
+test(16, 32);
+
+// Make a canvas slightly larger than the max size WebGL can handle.
+// From section 2.2 of the spec the WebGL implementation should allow this to work.
+
+// test a size larger than MAX_VIEWPORT_DIMS in both dimensions
+test(maxSize[0] + 32, 8);
+
+debug("")
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

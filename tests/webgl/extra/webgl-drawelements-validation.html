@@ -1,0 +1,163 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Micro-benchmark for WebGL drawElements index validation</title>
+<style>
+canvas {
+    border: 1px solid #000;
+}
+</style>
+<script src="../js/webgl-test-utils.js"></script>
+<script type="application/javascript">
+"use strict";
+
+var wtu = WebGLTestUtils;
+
+var totalTimeTest1 = 0;
+var totalTimeTest2 = 0;
+var totalTimeTest3 = 0;
+var iterationsLeft = 10; // How many times to run the full test.
+var indexCount = 500001; // Divisible by 3.
+
+var indices = [];
+for (var i = 0; i < indexCount - 1; ++i) {
+    indices.push(0);
+    indices.push(1);
+    indices.push(2);
+    indices.push(3);
+}
+indices.push(4);
+
+var fullIndicesArray = new Uint16Array(indices);
+
+var drawIterations = 50;
+
+var errorsCorrect = true;
+
+var log = function(msg) {
+    console.log(msg);
+    var p = document.createElement('p');
+    p.textContent = msg;
+    document.body.appendChild(p);
+};
+
+var runTestIteration = function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    var gl = wtu.create3DContext(canvas);
+    document.body.appendChild(canvas);
+
+    var location = 0;
+    wtu.setupSimpleColorProgram(gl, location);
+
+    var verts = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, verts);
+    var vertData = new Float32Array([-1, -1,
+                                     -1, 1,
+                                     1, -1,
+                                     1, 1]);
+    gl.bufferData(gl.ARRAY_BUFFER, vertData, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(location);
+
+    var indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, fullIndicesArray, gl.DYNAMIC_DRAW);
+    gl.finish();
+
+    var measureTime = function(f) {
+        var startTime = new Date().getTime();
+        f();
+        var error = gl.getError();
+        var endTime = new Date().getTime();
+        errorsCorrect = errorsCorrect && error == gl.INVALID_OPERATION;
+        return endTime - startTime;
+    };
+
+    // The buffer has at least one out-of-range index from the start,
+    // so only validation will happen, not drawing.
+
+    totalTimeTest1 += measureTime(function() {
+        for (var i = 0; i < drawIterations; ++i) {
+            // Change all data, which will cause complete revalidation of the index buffer.
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, fullIndicesArray);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        }
+    });
+
+    totalTimeTest2 += measureTime(function() {
+        for (var i = 0; i < drawIterations; ++i) {
+            // Change only one index and vary the amount of referenced indices.
+            // These should not be a big problem to a smart implementation.
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, Math.floor(indices.length / 2), new Uint16Array([i + 5]));
+            gl.drawElements(gl.TRIANGLES, indices.length - i * 3, gl.UNSIGNED_SHORT, 0);
+        }
+    });
+
+    totalTimeTest3 += measureTime(function() {
+        for (var i = 0; i < drawIterations; ++i) {
+            // Change data at two indices to cause completely revalidating the index buffer in
+            // current implementations in Chrome and Firefox (as of March 17th 2014).
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, new Uint16Array([i + 5]));
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, indices.length - 1, new Uint16Array([i + 5]));
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        }
+    });
+
+    setTimeout(function() {
+        var lose = gl.getExtension('WEBGL_lose_context');
+        lose.loseContext();
+    }, 40);
+};
+
+var runTest = function() {
+    if (iterationsLeft > 0) {
+        runTestIteration();
+        --iterationsLeft;
+        setTimeout(runTest, 500);
+    } else {
+        log("Validation returned correct results: " + errorsCorrect);
+        log('1. Time spent on full buffer updates: ' + totalTimeTest1 + ' ms');
+        log('Indices uploaded and referenced by draw calls processed: ' + Math.round(indices.length * drawIterations / totalTimeTest1) + ' / ms');
+        log('2. Time spent on validating single index updates while range referenced also changes on every draw call: ' + totalTimeTest2 + ' ms');
+        log('Indices referenced by draw calls handled: ' + Math.round(indices.length * drawIterations / totalTimeTest2) + ' / ms');
+        log('3. Time spent on validating single index updates at each end of the buffer (worst case for Firefox implementation as of March 2014, not reflective of real world performance): ' + totalTimeTest3 + ' ms');
+        log('Indices referenced by draw calls handled: ' + Math.round(indices.length * drawIterations / totalTimeTest3) + ' / ms');
+    }
+};
+</script>
+</head>
+<body onload="setTimeout(runTest, 100)">
+<h1>Micro-benchmark for WebGL drawElements index validation</h1>
+<p>Note that these test cases are completely artificial, and their results only very rough indicators of the performance of a specific part of the system.</p>
+<p>The benchmark does not perform any drawing, but rather measures the time the browser takes to upload indices and to check if there are out-of-range indices.</p>
+</body>
+</html>

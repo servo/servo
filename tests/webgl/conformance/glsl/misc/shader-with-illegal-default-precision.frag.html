@@ -1,0 +1,259 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShaderVoid" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump void;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderBool" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump bool;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderVec2" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump vec2;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderVec3" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump vec3;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderVec4" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump vec4;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderBvec2" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump bvec2;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderBvec3" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump bvec3;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderBvec4" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump bvec4;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderIvec2" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump ivec2;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderIvec3" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump ivec3;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderIvec4" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump ivec4;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderMat2" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump mat2;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderMat3" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump mat3;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script id="fragmentShaderMat4" type="text/something-not-javascript">
+// fragment shader with default precision for illegal type should fail
+precision mediump mat4;
+void main()
+{
+    mediump vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = color;
+}
+</script>
+<script>
+"use strict";
+GLSLConformanceTester.runTests([
+    {
+      fShaderId: 'fragmentShaderVoid',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for void should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderBool',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bool should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderVec2',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for vec2 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderVec3',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for vec3 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderVec4',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for vec4 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderBvec2',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bvec2 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderBvec3',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bvec3 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderBvec4',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for bvec4 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderIvec2',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for ivec2 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderIvec3',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for ivec3 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderIvec4',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for ivec4 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderMat2',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for mat2 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderMat3',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for mat3 should fail'
+    },
+    {
+      fShaderId: 'fragmentShaderMat4',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'shader with default precision for mat4 should fail'
+    }
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

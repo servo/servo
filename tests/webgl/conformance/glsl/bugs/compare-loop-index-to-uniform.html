@@ -1,0 +1,87 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Driver bug - Comparing loop index against uniform in a fragment shader should work</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="256" height="256"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform int uCount;
+
+void main() {
+    float a = 0.0;
+    for (int i = 0; i < 5; ++i) {
+        if (i < uCount) {
+            a += 0.2;
+        }
+    }
+    gl_FragColor = vec4(1.0 - a, a, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Comparing loop index to an uniform in a fragment shader should work.");
+debug("");
+var wtu = WebGLTestUtils;
+function test() {
+  var gl = wtu.create3DContext("canvas");
+  if (!gl) {
+    testFailed("context does not exist");
+    return;
+  }
+  wtu.setupUnitQuad(gl);
+  var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["aPosition"], undefined, true);
+  var uniformLoc = gl.getUniformLocation(program, 'uCount');
+  gl.uniform1i(uniformLoc, 5);
+  wtu.drawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 255, 0, 255]);
+};
+
+test();
+var successfullyParsed = true;
+finishTest();
+</script>
+</body>
+</html>
+

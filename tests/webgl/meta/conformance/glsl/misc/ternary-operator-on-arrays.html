@@ -1,0 +1,16 @@
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:5: 'est' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) Using ternary operators with arrays is not allowed
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:7: ':' : ternary operator is not allowed for structures or arrays 
+ERROR: 0:7: '=' : first-class arrays (array initializer) supported in GLSL ES 3.00 only  
+ERROR: 0:7: '=' : Invalid operation for arrays 
+ERROR: 0:7: '=' :  cannot convert from 'mediump array[3] of float' to 'mediump array[3] of float'
+ERROR: 0:9: 'tml' : syntax error 
+
+*** Error compiling VERTEX_SHADER '[object WebGLShader]':ERROR: 0:5: 's' : syntax error 
+
+FAIL [unexpected vertex shader compile status] (expected: true) By implication, using ternary operators with structs containing arrays is not allowed
+*** Error compiling FRAGMENT_SHADER '[object WebGLShader]':ERROR: 0:11: ':' : ternary operator is not allowed for structures or arrays 
+ERROR: 0:11: '=' : undefined operation for structs containing arrays 
+ERROR: 0:11: '=' :  cannot convert from 'structure' to 'structure'
+ERROR: 0:13: 's' : syntax error 

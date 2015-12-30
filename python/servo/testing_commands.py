@@ -10,11 +10,14 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import glob
+import json
 import re
 import sys
 import os
 import os.path as path
 import subprocess
+import threading
 from collections import OrderedDict
 from time import time
 
@@ -413,6 +416,96 @@ class MachCommands(CommandBase):
                 else:
                     print ("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
                            str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
+
+    @Command('test-webgl',
+             description='Run WebGL tests',
+             category='testing')
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Run with a release build of servo")
+    @CommandArgument('--log_raw', default=None, help="Log results")
+    @CommandArgument('test_name', nargs=argparse.REMAINDER,
+                     help="Only run tests that match this pattern or file path")
+    def test_webgl(self, release, log_raw, test_name=None):
+        self.ensure_bootstrapped()
+
+        base_dir = os.getcwd()
+        webgl_dir = path.join(base_dir, 'tests', 'webgl')
+        test_dir = path.join(webgl_dir, 'deqp')
+
+        version = '-r' if release else '-d'
+
+        files = []
+        for dir, _, _ in os.walk(test_dir):
+            files.extend(glob.glob(os.path.join(dir, '*.html')))
+
+        class Command(object):
+            def __init__(self, cmd):
+                self.cmd = cmd
+
+            def run(self, timeout):
+                def target():
+                    self.process = subprocess.Popen(self.cmd,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    self.output, _ = self.process.communicate()
+
+                thread = threading.Thread(target=target)
+                thread.start()
+
+                thread.join(timeout)
+                if thread.is_alive():
+                    self.process.kill()
+                    output = 'TIMEOUT'
+                else:
+                    output = '\n'.join(self.output.split('\n')[:-3])
+
+                return output
+
+        results = {}
+        file_index = 0
+        for file in files:
+            cmd = Command(['./mach', 'run', version, file, '-o', '/dev/null'])
+            output = cmd.run(10)
+
+            print('got output for file %s: %s' % (file_index, file))
+            file_index += 1
+            meta_file = path.join(webgl_dir, 'meta') + file[len(webgl_dir):]
+            try:
+                with open(meta_file) as meta_file:
+                    expected_output = meta_file.read()
+            except Exception:
+                expected_output = ''
+
+            if expected_output != output:
+                results[file] = output
+
+        if not log_raw:
+            print(results)
+        else:
+            with open(log_raw, 'w') as log_file:
+                log_file.write(json.dumps(results))
+
+    @Command('update-webgl',
+             description='Update WebGL tests',
+             category='testing')
+    @CommandArgument('log', help="Test results file")
+    def update_webgl(self, log):
+        self.ensure_bootstrapped()
+
+        with open(log) as log:
+            results = json.loads(log.read())
+
+        for file in results:
+            index = file.find('webgl') + 5
+            meta_file = file[:index] + '/meta' + file[index:]
+
+            if results[file]:
+                meta_dir = meta_file[:meta_file.rfind('/')]
+                subprocess.check_output(['mkdir', '-p', meta_dir])
+                with open(meta_file, 'w') as meta:
+                    meta.write(results[file])
+            else:
+                subprocess.check_output(['rm', '-f', meta_file])
+
 
     def jquery_test_runner(self, cmd, release, dev):
         self.ensure_bootstrapped()

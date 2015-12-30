@@ -1,0 +1,149 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderWithMediumpGlobal" type="text/something-not-javascript">
+// There is no default float precision in fragment shaders, so specify mediump.
+precision mediump float;
+
+uniform vec4 foo;
+
+void main()
+{
+    gl_FragColor = foo;
+}
+</script>
+<script id="fshaderWithMediumpGlobalInt" type="text/something-not-javascript">
+// Default precision for int in fragment shaders is mediump.
+uniform int foo;
+
+void main()
+{
+    gl_FragColor = vec4(foo, 0, 0, 1);
+}
+</script>
+<script id="fshaderWithMediumpGlobalStruct" type="text/something-not-javascript">
+// There is no default float precision in fragment shaders, so specify mediump.
+precision mediump float;
+
+struct foo
+{
+   vec4 bar;
+};
+
+uniform foo baz;
+
+void main()
+{
+    gl_FragColor = baz.bar;
+}
+</script>
+<script id="vshaderWithHighpGlobal" type="x-shader/x-vertex">
+// Default precision for vertex shaders is highp.
+uniform vec4 foo;
+
+void main() {
+    gl_Position = foo;
+}
+</script>
+<script id="vshaderWithHighpGlobalInt" type="x-shader/x-vertex">
+// Default precision for int in vertex shaders is highp.
+uniform int foo;
+
+void main() {
+    gl_Position = vec4(foo, 0, 0, 1);
+}
+</script>
+<script id="vshaderWithHighpGlobalStruct" type="x-shader/x-vertex">
+// Default precision for vertex shaders is highp.
+struct foo
+{
+   vec4 bar;
+};
+
+uniform foo baz;
+
+void main()
+{
+    gl_Position = baz.bar;
+}
+</script>
+<script>
+"use strict";
+description("Checks shaders with global variables and precision qualifier mismatch.");
+
+var wtu = WebGLTestUtils;
+
+var glslTests = [];
+
+glslTests.push({
+  vShaderId: 'vshaderWithHighpGlobal',
+  vShaderSuccess: true,
+  fShaderId: 'fshaderWithMediumpGlobal',
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "mismatching precision for uniforms causes link error (as expected)",
+});
+
+glslTests.push({
+  vShaderId: 'vshaderWithHighpGlobalInt',
+  vShaderSuccess: true,
+  fShaderId: 'fshaderWithMediumpGlobalInt',
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "mismatching precision for int uniforms with default precision causes link error (as expected)",
+});
+
+glslTests.push({
+  vShaderId: 'vshaderWithHighpGlobalStruct',
+  vShaderSuccess: true,
+  fShaderId: 'fshaderWithMediumpGlobalStruct',
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "mismatching precision for structure uniforms causes link error (as expected)",
+});
+
+GLSLConformanceTester.runTests(glslTests);
+
+debug("");
+var successfullyParsed = true;
+</script>
+</body>
+</html>

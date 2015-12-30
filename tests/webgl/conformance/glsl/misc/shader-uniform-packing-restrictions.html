@@ -1,0 +1,272 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform packing restrctions Conformance Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main()
+{
+    gl_Position = a_position;
+}
+</script>
+<script id="fshader" type="x-shader/x-vertex">
+precision mediump float;
+varying vec4 v_varying;
+void main()
+{
+    gl_FragColor = v_varying;
+}
+</script>
+<script id="vshaderArrayTest" type="x-shader/x-vertex">
+attribute vec4 a_position;
+varying vec4 v_varying;
+uniform $(type) u_uniform[$(numTestType)];
+void main()
+{
+    v_varying = $(result);
+    gl_Position = a_position;
+}
+</script>
+<script id="fshaderArrayTest" type="x-shader/x-fragment">
+precision mediump float;
+uniform $(type) u_uniform[$(numTestType)];
+void main()
+{
+    gl_FragColor = $(result);
+}
+</script>
+<script id="vshaderUniformTest" type="x-shader/x-fragment">
+attribute vec4 a_position;
+varying vec4 v_varying;
+$(uniforms)
+void main()
+{
+    $(code)
+    v_varying = $(result);
+    gl_Position = a_position;
+}
+</script>
+<script id="fshaderUniformTest" type="x-shader/x-fragment">
+precision mediump float;
+$(uniforms)
+void main()
+{
+    $(code)
+    gl_FragColor = $(result);
+}
+</script>
+<script>
+"use strict";
+description();
+debug("");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+
+var uniformTypes = [
+  { type: "bool",        componentsPerRow: 1, rows: 1, fType: "float", uniToF: "float(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0, 0, 0)"},
+  { type: "float",       componentsPerRow: 1, rows: 1, fType: "float", uniToF: "u_uniform$(id)$(index)", fToVec4: "vec4($(f), 0, 0, 0)"},
+  { type: "int",         componentsPerRow: 1, rows: 1, fType: "float", uniToF: "float(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0, 0, 0)"},
+  { type: "vec2",        componentsPerRow: 2, rows: 1, fType: "vec2",  uniToF: "u_uniform$(id)$(index)", fToVec4: "vec4($(f), 0, 0)"},
+  { type: "ivec2",       componentsPerRow: 2, rows: 1, fType: "vec2",  uniToF: "vec2(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0, 0)"},
+  { type: "bvec2",       componentsPerRow: 2, rows: 1, fType: "vec2",  uniToF: "vec2(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0, 0)"},
+  { type: "vec3",        componentsPerRow: 3, rows: 1, fType: "vec3",  uniToF: "u_uniform$(id)$(index)", fToVec4: "vec4($(f), 0)"},
+  { type: "ivec3",       componentsPerRow: 3, rows: 1, fType: "vec3",  uniToF: "vec3(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0)"},
+  { type: "bvec3",       componentsPerRow: 3, rows: 1, fType: "vec3",  uniToF: "vec3(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0)"},
+  { type: "vec4",        componentsPerRow: 4, rows: 1, fType: "vec4",  uniToF: "u_uniform$(id)$(index)", fToVec4: "$(f)"},
+  { type: "ivec4",       componentsPerRow: 4, rows: 1, fType: "vec4",  uniToF: "vec4(u_uniform$(id)$(index))", fToVec4: "$(f)"},
+  { type: "bvec4",       componentsPerRow: 4, rows: 1, fType: "vec4",  uniToF: "vec4(u_uniform$(id)$(index))", fToVec4: "$(f)"},
+// Yes, the spec says mat2 takes 4 columns, 2 rows.
+  { type: "mat2",        componentsPerRow: 4, rows: 2, fType: "vec2",  uniToF: "vec2(u_uniform$(id)$(index)[0])", fToVec4: "vec4($(f), 0, 0)"},
+  { type: "mat3",        componentsPerRow: 3, rows: 3, fType: "vec3",  uniToF: "vec3(u_uniform$(id)$(index)[0])", fToVec4: "vec4($(f), 0)"},
+  { type: "mat4",        componentsPerRow: 4, rows: 4, fType: "vec4",  uniToF: "vec4(u_uniform$(id)$(index)[0])", fToVec4: "$(f)"},
+// Samplers generally have more restrictive limits.
+//  { type: "sampler2D",   componentsPerRow: 1, rows: 1, code: "vec4(texture2D(u_uniform[$(index)], vec2(0, 0)))", },
+//  { type: "samplerCube", componentsPerRow: 1, rows: 1, code: "vec4(textureCube(u_uniform[$(index)], vec3(0, 0, 0)))", },
+];
+
+var vBaseSource = wtu.getScript("vshader");
+var fBaseSource = wtu.getScript("fshader");
+var vArrayTestSource = wtu.getScript("vshaderArrayTest");
+var fArrayTestSource = wtu.getScript("fshaderArrayTest");
+var vUniformTestSource = wtu.getScript("vshaderUniformTest");
+var fUniformTestSource = wtu.getScript("fshaderUniformTest");
+
+var tests = [];
+var shaderTypes = [
+  { type: "vertex",
+    // For tests that expect failure which shader might fail.
+    vertExpectation: false,
+    fragExpectation: true,
+    vertArrayTest: vArrayTestSource,
+    fragArrayTest: fBaseSource,
+    vertUniformTest: vUniformTestSource,
+    fragUniformTest: fBaseSource,
+    maxVectors: gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS),
+    minVectors: 127,  // GLSL ES 1.0.17 Appendix A.7 and A.8. Reserve one row for constants in the code, hence 128 - 1.
+  },
+  { type: "fragment",
+    // For tests that expect failure which shader might fail.
+    vertExpectation: true,
+    fragExpectation: false,
+    vertArrayTest: vBaseSource,
+    fragArrayTest: fArrayTestSource,
+    vertUniformTest: vBaseSource,
+    fragUniformTest: fUniformTestSource,
+    maxVectors: gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS),
+    minVectors: 15,  // GLSL ES 1.0.17 Appendix A.8 - minimum value of gl_maxFragmentUniformVectors is 16. Again, reserve a row for constants.
+  },
+];
+for (var ss = 0; ss < shaderTypes.length; ++ss) {
+  var shaderType = shaderTypes[ss];
+  debug("max " + shaderType.type + ": " + shaderType.maxVectors);
+  for (var ii = 0; ii < uniformTypes.length; ++ii) {
+    var info = uniformTypes[ii];
+    wtu.log("checking: " + info.type);
+    // Compute the maximum amount of this type allowed in a single array.
+    var maxInArray = Math.floor(shaderType.maxVectors / info.rows);
+    // Compute the minimum required to work in a single array.
+    var minVars = Math.floor(shaderType.minVectors / info.rows);
+    // Compute the maximum allowed as single elements
+    var maxPerRow = Math.floor(4 / info.componentsPerRow);
+    var maxPacked = Math.floor(shaderType.maxVectors * maxPerRow / info.rows);
+
+    // Test array[1] of the type
+    var uniToF = wtu.replaceParams(info.uniToF, {id: "", index: "[0]"});
+    var vec4 = wtu.replaceParams(info.fToVec4, {f: uniToF});
+    tests.push({
+      vShaderSource: wtu.replaceParams(shaderType.vertArrayTest, {numTestType: 1, result: vec4}, info),
+      vShaderSuccess: true,
+      fShaderSource: wtu.replaceParams(shaderType.fragArrayTest, {numTestType: 1, result: vec4}, info),
+      fShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: shaderType.type + " shader with uniform array of " + info.type + " with 1 element should succeed",
+    });
+
+    // Note: We can't test an array filling all uniform space as actual GL drivers are
+    // only required to be able to do the minimum number. After that it can fail for
+    // multiple reasons, including uniform registers being reserved for the implementation's
+    // own use. Constants also take up uniform registers.
+
+    // Test required number of uniforms
+    var uniToF = wtu.replaceParams(info.uniToF, {id: "", index: "[" + (minVars - 1) + "]"});
+    var vec4 = wtu.replaceParams(info.fToVec4, {f: uniToF});
+    tests.push({
+      vShaderSource: wtu.replaceParams(shaderType.vertArrayTest, {numTestType: minVars, result: vec4}, info),
+      vShaderSuccess: true,
+      fShaderSource: wtu.replaceParams(shaderType.fragArrayTest, {numTestType: minVars, result: vec4}, info),
+      fShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: shaderType.type + " shader with uniform array of " + info.type + " with " + minVars + " elements (the minimum required) should succeed",
+    });
+
+    // Test array[max + 1] accessing last element. WebGL requires this to fail.
+    var uniToF = wtu.replaceParams(info.uniToF, {id: "", index: "[" + maxInArray + "]"});
+    var vec4 = wtu.replaceParams(info.fToVec4, {f: uniToF});
+    tests.push({
+      vShaderSource: wtu.replaceParams(shaderType.vertArrayTest, {numTestType: maxInArray + 1, result: vec4}, info),
+      vShaderSuccess: shaderType.vertExpectation,
+      fShaderSource: wtu.replaceParams(shaderType.fragArrayTest, {numTestType: maxInArray + 1, result: vec4}, info),
+      fShaderSuccess: shaderType.fragExpectation,
+      linkSuccess: false,
+      passMsg: shaderType.type + " shader with uniform array of " + info.type + " with " + (maxInArray + 1) + " elements (one past maximum) accessing last element should fail",
+    });
+
+    // Test array[max + 1] accessing first element. WebGL requires this to fail but ES allows truncating array.
+    var uniToF = wtu.replaceParams(info.uniToF, {id: "", index: "[0]"});
+    var vec4 = wtu.replaceParams(info.fToVec4, {f: uniToF});
+    tests.push({
+      vShaderSource: wtu.replaceParams(shaderType.vertArrayTest, {numTestType: maxInArray + 1, result: vec4}, info),
+      vShaderSuccess: shaderType.vertExpectation,
+      fShaderSource: wtu.replaceParams(shaderType.fragArrayTest, {numTestType: maxInArray + 1, result: vec4}, info),
+      fShaderSuccess: shaderType.fragExpectation,
+      linkSuccess: false,
+      passMsg: shaderType.type + " shader with uniform array of " + info.type + " with " + (maxInArray + 1) + " elements (one past maximum) accessing first element should fail",
+    });
+
+    // Note: We can't test max uniforms as actual GL drivers are only required to be able
+    // to do the minimum number. After that it can fail for multiple reasons, including
+    // uniform registers being reserved for the implementation's own use or also instruction
+    // space limitations. Strictly speaking, guaranteed supported length of a shader
+    // executable is defined by the GLES2 conformance tests according to GLSL ES 1.0.17
+    // Appendix A.2. This does not give us an exact limit: this test only aims to fit within
+    // instruction space limits imposed by existing GLES2 compliant hardware.
+
+    var generateCode = function(numVars) {
+      var uniforms = [];
+      var sumTerms = [];
+      for (var uu = 0; uu < numVars; ++uu) {
+        uniforms.push("    uniform " + info.type + " u_uniform" + uu + ";");
+        sumTerms.push(wtu.replaceParams(info.uniToF, {id: uu, index: ""}));
+      }
+      return {
+        uniforms: uniforms.join("\n"),
+        code: info.fType + " sum = " + sumTerms.join(" + \n            ") + ";",
+        result: wtu.replaceParams(info.fToVec4, {f: 'sum'})
+      };
+    };
+
+    // Test max+1 uniforms of type.
+    tests.push({
+      vShaderSource: wtu.replaceParams(shaderType.vertUniformTest, generateCode(maxPacked + 1), info),
+      vShaderSuccess: shaderType.vertExpectation,
+      fShaderSource: wtu.replaceParams(shaderType.fragUniformTest, generateCode(maxPacked + 1), info),
+      fShaderSuccess: shaderType.fragExpectation,
+      linkSuccess: false,
+      passMsg: shaderType.type + " shader with " + (maxPacked + 1) + " uniforms of " + info.type + " (one past maximum) should fail",
+    });
+
+    // Test required uniforms of type.
+    tests.push({
+      vShaderSource: wtu.replaceParams(shaderType.vertUniformTest, generateCode(minVars), info),
+      vShaderSuccess: true,
+      fShaderSource: wtu.replaceParams(shaderType.fragUniformTest, generateCode(minVars), info),
+      fShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: shaderType.type + " shader with " + minVars + " uniforms of " + info.type + " (the minimum required) should succeed",
+    });
+  }
+}
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

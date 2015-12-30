@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+
+<script type="application/javascript">
+
+Tests.testGetWebGL = function() {
+  var canvas = document.getElementById('webgl');
+  var gl;
+  assertOk(function(){gl = getGLContext(canvas)});
+  assertEquals("ctx.canvas === canvas", gl.canvas, canvas);
+  assertOk(function(){g2d = canvas.getContext('2d')});
+  assert("Should get a null 2d context after getting webgl context", g2d === null);
+}
+
+Tests.testGet2D = function() {
+  var canvas = document.getElementById('2d');
+  var g2d;
+  var gl;
+  assertOk(function(){g2d = canvas.getContext('2d')});
+  assertOk(function(){gl = getGLContext(canvas)});
+  assert("Should get a null WebGL context after getting 2D context", gl === null);
+}
+</script>
+<style>canvas{position:absolute;}</style>
+</head><body>
+  <canvas id="2d" width="1" height="1"></canvas>
+  <canvas id="webgl" width="1" height="1"></canvas>
+</body></html>

@@ -1,0 +1,171 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture size limit conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="32" height="32" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Checks various size limits of textures")
+var canvas;
+
+function numLevelsFromSize(size) {
+  var levels = 0;
+  while ((size >> levels) > 0) {
+    ++levels;
+  }
+  return levels;
+}
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var tests = [
+  { format: gl.ALPHA,           type: gl.UNSIGNED_BYTE,          size: 1, dataType: Uint8Array  },
+  { format: gl.LUMINANCE,       type: gl.UNSIGNED_BYTE,          size: 1, dataType: Uint8Array  },
+  { format: gl.LUMINANCE_ALPHA, type: gl.UNSIGNED_BYTE,          size: 2, dataType: Uint8Array  },
+  { format: gl.RGB,             type: gl.UNSIGNED_BYTE,          size: 3, dataType: Uint8Array  },
+  { format: gl.RGB,             type: gl.UNSIGNED_SHORT_5_6_5,   size: 1, dataType: Uint16Array },
+  { format: gl.RGBA,            type: gl.UNSIGNED_BYTE,          size: 4, dataType: Uint8Array  },
+  { format: gl.RGBA,            type: gl.UNSIGNED_SHORT_4_4_4_4, size: 1, dataType: Uint16Array },
+  { format: gl.RGBA,            type: gl.UNSIGNED_SHORT_5_5_5_1, size: 1, dataType: Uint16Array }
+];
+
+// Note: We expressly only use 2 textures because first a texture will be defined
+// using all mip levels of 1 format, then for a moment it will have mixed formats which
+// may uncover bugs.
+var targets = [
+  { target: gl.TEXTURE_2D,
+    maxSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    maxLevel: 1000,
+    tex: gl.createTexture(),
+    targets: [gl.TEXTURE_2D]
+  },
+  { target: gl.TEXTURE_CUBE_MAP,
+    maxSize: gl.getParameter(gl.MAX_CUBE_MAP_TEXTURE_SIZE),
+    maxLevel: 5,
+    tex: gl.createTexture(),
+    targets: [
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+    ]
+  }
+];
+
+gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+var trg = 0;
+var tt = 0;
+runNextTest();
+
+function runNextTest() {
+  var t = targets[trg];
+
+  if (tt == 0) {
+    var tex = t.tex;
+    gl.bindTexture(t.target, tex);
+
+    debug("");
+    debug("max size for " + wtu.glEnumToString(gl, t.target) + ": " + t.maxSize);
+    var numLevels = numLevelsFromSize(t.maxSize);
+    debug("num levels " + numLevels);
+  }
+
+  var test = tests[tt];
+  testFormatType(t, test);
+  ++tt;
+  if (tt == tests.length) {
+    tt = 0;
+    ++trg;
+    if (trg == targets.length) {
+      finishTest();
+      return;
+    }
+  }
+  wtu.waitForComposite(runNextTest)
+}
+
+function testFormatType(t, test) {
+  debug("");
+  debug("testing: " + wtu.glEnumToString(gl, test.format) + ", " + wtu.glEnumToString(gl, test.type));
+  for (var j = 0; j < t.targets.length; ++j) {
+    var target = t.targets[j];
+    debug("");
+    debug(wtu.glEnumToString(gl, target));
+    var numLevels = numLevelsFromSize(t.maxSize);
+    var numTestLevels = Math.min(numLevels, t.maxLevel);
+
+    // out of bounds tests
+    // level out of bounds
+    gl.texImage2D(target, numLevels, test.format, 1, 1, 0, test.format, test.type, null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "level out of bounds: should generate INVALID_VALUE: level is: "
+        + numLevels + ", size is 1x1.");
+    // width and height out of bounds
+    gl.texImage2D(target, 0, test.format, t.maxSize + 1, t.maxSize + 1, 0, test.format, test.type, null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "width or height out of bounds: should generate INVALID_VALUE: level is 0, size is "
+        + (t.maxSize + 1) + "x" + (t.maxSize + 1));
+    // width and height out of bounds for specified level
+    gl.texImage2D(target, (numLevels - 1), test.format, 4, 4, 0, test.format, test.type, null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "width or height out of bounds for specified level: should generate INVALID_VALUE: level is "
+        + (numLevels - 1) + ", size is 4x4.");
+
+    for (var l = 0; l < numTestLevels; ++l) {
+      // Do bottom levels first;
+      var size = 1 << l;
+      var level = numLevels - l - 1;
+      var otherDimension = t.target == gl.TEXTURE_2D ? 1 : size;
+      var badSize = size * 2;
+      var badOtherDimension = t.target == gl.TEXTURE_2D ? 1 : badSize;
+      var pixels = new test.dataType(badSize * badOtherDimension * test.size);
+      gl.texImage2D(target, level, test.format, size, otherDimension, 0, test.format, test.type, pixels);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no error for level: " + level + " " + size + "x" + otherDimension);
+      gl.texImage2D(target, level, test.format, otherDimension, size, 0, test.format, test.type, pixels);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no error for level: " + level + " " + otherDimension + "x" + size);
+      gl.texImage2D(target, level, test.format, badSize, badOtherDimension, 0, test.format, test.type, pixels);
+      wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "should generate INVALID_VALUE for level: " + level + " " + badSize + "x" + badOtherDimension);
+      gl.texImage2D(target, level, test.format, badOtherDimension, badSize, 0, test.format, test.type, pixels);
+      wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "should generate INVALID_VALUE for level: " + level + " " + badOtherDimension + "x" + badSize);
+    }
+  }
+}
+</script>
+</body>
+</html>
+

@@ -1,0 +1,133 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Viewport Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<style>
+canvas {
+    border: 1px solid #000;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas1" width="64" height="128"> </canvas>
+<canvas id="canvas2" width="64" height="128"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+var wtu = WebGLTestUtils;
+
+function test(canvas, attribs) {
+  var gl = wtu.create3DContext(canvas, attribs);
+
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    var blue = [0, 0, 255, 255];
+    var black = [0, 0, 0, 0];
+
+    var draw = function(viewportX, viewportY, viewportWidth, viewportHeight) {
+      gl.viewport(viewportX, viewportY, viewportWidth, viewportHeight);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      wtu.drawUByteColorQuad(gl, blue);
+    };
+
+    var drawAndCheck = function(viewportX, viewportY, viewportWidth, viewportHeight) {
+      var clipSpaceToPixelSpace = function(clip, viewportOffset, viewportSize, max) {
+        var pixel = viewportSize / 2 * clip + viewportOffset + viewportSize / 2;
+        return Math.min(max, Math.max(0, pixel));
+      };
+
+      var x1 = clipSpaceToPixelSpace(-0.5, viewportX, viewportWidth, gl.canvas.width);
+      var x2 = clipSpaceToPixelSpace( 0.5, viewportX, viewportWidth, gl.canvas.width);
+      var y1 = clipSpaceToPixelSpace(-0.5, viewportY, viewportHeight, gl.canvas.height);
+      var y2 = clipSpaceToPixelSpace( 0.5, viewportY, viewportHeight, gl.canvas.height);
+      var width = x2 - x1;
+      var height = y2 - y1;
+
+      debug("checking viewport: " + viewportX + ", " + viewportY + ", " + viewportWidth + ", " + viewportHeight);
+      debug("rect: " + x1 + ", " + y1 + ", " + width + ", " + height);
+      draw(viewportX, viewportY, viewportWidth, viewportHeight);
+      wtu.checkAreaInAndOut(gl, x1, y1, width, height, blue, black);
+    };
+
+    var program = wtu.setupSimpleColorProgram(gl);
+    wtu.setupQuad(gl, {scale: 0.5});
+
+    var w = gl.canvas.width;
+    var h = gl.canvas.height;
+
+    drawAndCheck(0, 0, w, h);
+    drawAndCheck(0, 0, w/2, h/4);
+    drawAndCheck(0, 0, w/4, h/2);
+    drawAndCheck(0, 0, w*2, h*2);
+
+    drawAndCheck(-w, 0, w, h);
+    drawAndCheck(0, -h, w, h);
+    drawAndCheck(w, 0, w, h);
+    drawAndCheck(0, h, w, h);
+
+    drawAndCheck(w/4, h/2, w, h);
+    drawAndCheck(w/4, h/2, w/2, h/4);
+    drawAndCheck(w/2, h/4, w/4, h/2);
+    drawAndCheck(w/2, h/4, w, h*2);
+
+    drawAndCheck(-w, 0, w*2, h);
+    drawAndCheck(0, -h/4, w/2, h);
+    drawAndCheck(-w/4, 0, w, h/2);
+    drawAndCheck(0, -h, w*2, h*2);
+
+    debug("");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+  }
+}
+
+debug("test antialias: false");
+test(document.getElementById("canvas1"), {antialias: false});
+
+debug("");
+debug("test antialias: true");
+test(document.getElementById("canvas2"), {antialias: true});
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

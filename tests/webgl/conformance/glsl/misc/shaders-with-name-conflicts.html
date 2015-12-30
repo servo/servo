@@ -1,0 +1,104 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+// fragment shader should succeed
+precision mediump float;
+uniform vec4 foo;
+void main()
+{
+    gl_FragColor = foo;
+}
+</script>
+<script id="vertexShader" type="text/something-not-javascript">
+// vertex shader should succeed
+attribute vec4 foo;
+void main()
+{
+    gl_Position = foo;
+}
+</script>
+<script>
+"use strict";
+
+/*
+GLSL 1.017 section 4.2.6
+
+...
+
+With the exception of uniform declarations, vertex and fragment shaders
+have separate name spaces.  Functions and global variables declared in a
+vertex shader cannot be referenced by a fragment shader and vice versa.
+Uniforms have a single name space.  Uniforms declared with the same name
+must have matching types and precisions.
+
+Section 4.3.3
+
+Attribute variables are required to have global scope
+
+Section 4.3.4
+
+The uniform qualifier is used to declare global variables
+
+QED: If both uniforms and attributes are in the global namespace they
+conflict across shaders
+
+Note: This was brought up on the OpenGL ES working group and confirmed
+that the spec required these conflicts to fail to link.
+
+Though most drivers allow this to work, some drivers to do no therefore
+WebGL implementation must enforce this restriction to provide consistent
+behavior.
+*/
+
+GLSLConformanceTester.runTests([
+    { vShaderId: 'vertexShader',
+      vShaderSuccess: true,
+      fShaderId: 'fragmentShader',
+      fShaderSuccess: true,
+      linkSuccess: false,
+      passMsg: 'shaders with conflicting uniform/attribute names should fail'
+    },
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

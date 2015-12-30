@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = getGLContext(canvas);
+  return [gl];
+}
+
+Tests.testOk = function(gl) {
+    var sh = new Filter(gl, 'okvert', 'frag');
+    assertOk(function(){sh.apply();});
+    sh.destroy();
+
+    var sh = new Filter(gl, 'vert', 'okfrag');
+    assertOk(function(){sh.apply();});
+    sh.destroy();
+
+    var sh = new Filter(gl, 'vert', 'frag');
+    assertOk(function(){sh.apply();});
+    sh.destroy();
+}
+
+var arr = ['cr', 'cw', 'vr', 'vw'];
+arr.forEach(function(e){
+    if (e == 'cr' || e == 'cw') {
+        Tests['test'+e+'vert'] = function(gl) {
+            var sh = new Filter(gl, e+'vert', 'frag');
+            assertFail(function(){sh.apply();});
+            sh.destroy();
+        }
+    }
+    Tests['test'+e+'frag'] = function(gl) {
+        var sh = new Filter(gl, 'vert', e+'frag');
+        assertFail(function(){sh.apply();});
+        sh.destroy();
+    }
+});
+
+
+</script>
+<script id="okvert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex;
+  attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex;
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    gl_Position = vec4(Vertex, x[2]);
+  }
+</script>
+<script id="crvert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex;
+  attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex;
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    gl_Position = vec4(Vertex, x[4]);
+  }
+</script>
+<script id="cwvert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex;
+  attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex;
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    x[4] = Vertex.z;
+    gl_Position = vec4(Vertex, x[4]);
+  }
+</script>
+<!-- This one can't be required to fail compilation, because vertex shaders must support arbitrary array indexing -->
+<script id="vrvert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex;
+  attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex;
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    int idx = 4 * int(max(1.0, Vertex.x*20.0));
+    gl_Position = vec4(Vertex, x[idx]);
+  }
+</script>
+<!-- This one can't be required to fail compilation, because vertex shaders must support arbitrary array indexing -->
+<script id="vwvert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex;
+  attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex;
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    int idx = 4 * int(max(1.0, Vertex.x*20.0));
+    x[idx] = Vertex.z;
+    gl_Position = vec4(Vertex, x[idx]);
+  }
+</script>
+<script id="vert" type="x-shader/x-vertex">
+
+
+  attribute vec3 Vertex;
+  attribute vec2 Tex;
+  varying vec2 TexCoord;
+  void main()
+  {
+    TexCoord = Tex;
+    gl_Position = vec4(Vertex, 0.0);
+  }
+</script>
+
+<script id="okfrag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  varying vec2 TexCoord;
+
+  void main()
+  {
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    gl_FragColor = vec4(1.0, 0.0, TexCoord.s, x[2]);
+  }
+</script>
+<script id="crfrag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  varying vec2 TexCoord;
+
+  void main()
+  {
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+    gl_FragColor = vec4(1.0, 0.0, TexCoord.s, x[4]);
+  }
+</script>
+<script id="cwfrag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  varying vec2 TexCoord;
+
+  void main()
+  {
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+
+    x[4] = 6.0;
+    gl_FragColor = vec4(1.0, 0.0, TexCoord.s, x[4]);
+  }
+</script>
+<!-- This one actually fails because of WebGL's restrictions on indexing expressions in fragment shaders -->
+<script id="vrfrag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  varying vec2 TexCoord;
+
+  void main()
+  {
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+
+    int idx = 4 * int(max(1.0, TexCoord.x*20.0));
+    gl_FragColor = vec4(1.0, 0.0, TexCoord.s, x[idx]);
+  }
+</script>
+<!-- This one actually fails because of WebGL's restrictions on indexing expressions in fragment shaders -->
+<script id="vwfrag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  varying vec2 TexCoord;
+
+  void main()
+  {
+    float x[3];
+    x[0] = 1.0;
+    x[1] = 2.0;
+    x[2] = 3.0;
+
+    int idx = 4 * int(max(1.0, TexCoord.x*20.0));
+    x[idx] = 6.0;
+    gl_FragColor = vec4(1.0, 0.0, TexCoord.s, x[idx]);
+  }
+</script>
+<script id="frag" type="x-shader/x-fragment">
+
+
+  precision mediump float;
+
+  varying vec2 TexCoord;
+
+  void main()
+  {
+    gl_FragColor = vec4(1.0, 0.0, TexCoord.s, 1.0);
+  }
+</script>
+
+
+<style>canvas{ position:absolute; }</style>
+</head><body>
+  <canvas id="gl" width="16" height="16"></canvas>
+</body></html>

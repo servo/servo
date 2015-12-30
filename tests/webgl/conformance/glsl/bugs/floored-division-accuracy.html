@@ -1,0 +1,95 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!-- author: Bill Baxter (wbaxter at google.com) -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Floored Division Accuracy Bug</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+
+<body>
+<canvas id="repro" style="border: none;" width="256" height="256"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec2 pos;
+uniform float divisor;
+varying vec4 vColor;
+void main(void) {
+  gl_Position = vec4(pos, 0.0, 1.0);
+  float index = 9.0;
+  // Floating point operations don't have any guaranteed precision, but they
+  // should at least be accurate to 1 part in 10^5.
+  float value = floor((index / divisor) * 1.00001);
+  vColor = (value == 3.) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 vColor;
+void main(void) {
+  gl_FragColor = vColor;
+}
+</script>
+<script>
+"use strict";
+
+description();
+debug("");
+// Reproduces bug seen on Mac OS X with AMD Radeon HD 6490 GPU
+debug("If things are working correctly, then the square will be green.");
+debug("If your card thinks floor(9. / 3.) is not 3 to within 1 part in 10^5, ");
+debug("then the square will be red.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("repro");
+var gl = wtu.create3DContext(canvas);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  wtu.setupUnitQuad(gl);
+  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], ["pos"], undefined, true);
+  gl.uniform1f(gl.getUniformLocation(program, "divisor"), 3);
+  wtu.drawUnitQuad(gl);
+  wtu.checkCanvasRect(gl, 128, 128, 128, 128, [ 0, 255, 0, 255 ], "should be green", 1);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

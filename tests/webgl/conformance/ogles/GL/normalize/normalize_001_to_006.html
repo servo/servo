@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- this file is auto-generated. DO NOT EDIT.
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL conformance test: normalize_001_to_006.html</title>
+<link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+<link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+<script src="../../../../js/js-test-pre.js"></script>
+<script src="../../../../js/webgl-test-utils.js"></script>
+<script src="../../ogles-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="500" height="500" style="width: 16px; height: 16px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+</body>
+<script>
+"use strict";
+OpenGLESTestRunner.run({
+  "tests": [
+    {
+      "referenceProgram": {
+        "vertexShader": "../default/default.vert", 
+        "fragmentShader": "normalize_float_frag_xvary_ref.frag"
+      }, 
+      "model": null, 
+      "testProgram": {
+        "vertexShader": "../default/default.vert", 
+        "fragmentShader": "normalize_float_frag_xvary.frag"
+      }, 
+      "name": "normalize_float_frag_xvary.test.html", 
+      "pattern": "compare"
+    }, 
+    {
+      "referenceProgram": {
+        "vertexShader": "../default/default.vert", 
+        "fragmentShader": "normalize_vec2_frag_xvary_ref.frag"
+      }, 
+      "model": null, 
+      "testProgram": {
+        "vertexShader": "../default/default.vert", 
+        "fragmentShader": "normalize_vec2_frag_xvary.frag"
+      }, 
+      "name": "normalize_vec2_frag_xvary.test.html", 
+      "pattern": "compare"
+    }, 
+    {
+      "referenceProgram": {
+        "vertexShader": "../default/default.vert", 
+        "fragmentShader": "normalize_vec3_frag_xvary_ref.frag"
+      }, 
+      "model": null, 
+      "testProgram": {
+        "vertexShader": "../default/default.vert", 
+        "fragmentShader": "normalize_vec3_frag_xvary.frag"
+      }, 
+      "name": "normalize_vec3_frag_xvary.test.html", 
+      "pattern": "compare"
+    }, 
+    {
+      "referenceProgram": {
+        "vertexShader": "normalize_float_vert_xvary_ref.vert", 
+        "fragmentShader": "../default/default.frag"
+      }, 
+      "model": "grid", 
+      "testProgram": {
+        "vertexShader": "normalize_float_vert_xvary.vert", 
+        "fragmentShader": "../default/default.frag"
+      }, 
+      "name": "normalize_float_vert_xvary.test.html", 
+      "pattern": "compare"
+    }, 
+    {
+      "referenceProgram": {
+        "vertexShader": "normalize_vec2_vert_xvary_ref.vert", 
+        "fragmentShader": "../default/default.frag"
+      }, 
+      "model": "grid", 
+      "testProgram": {
+        "vertexShader": "normalize_vec2_vert_xvary.vert", 
+        "fragmentShader": "../default/default.frag"
+      }, 
+      "name": "normalize_vec2_vert_xvary.test.html", 
+      "pattern": "compare"
+    }, 
+    {
+      "referenceProgram": {
+        "vertexShader": "normalize_vec3_vert_xvary_ref.vert", 
+        "fragmentShader": "../default/default.frag"
+      }, 
+      "model": "grid", 
+      "testProgram": {
+        "vertexShader": "normalize_vec3_vert_xvary.vert", 
+        "fragmentShader": "../default/default.frag"
+      }, 
+      "name": "normalize_vec3_vert_xvary.test.html", 
+      "pattern": "compare"
+    }
+  ]
+});
+var successfullyParsed = true;
+</script>
+</html>

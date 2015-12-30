@@ -1,0 +1,58 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Multisample Renderbuffer Corruption Test</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../jss/webgl-test-utils.js"> </script>
+<script src="../js/tests/iterable-test.js"> </script>
+</head>
+<body>
+<canvas id="example" width="2048" height="2048" style="width: 128px; height: 128px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+description(document.title);
+
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext("example", {antialias: true, preserveDrawingBuffer: true});
+var test = IterableTest.createMultisampleCorruptionTest(gl);
+var iterations = parseInt(wtu.getUrlOptions().iterations, 10) || 100;
+IterableTest.run(test, iterations);
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

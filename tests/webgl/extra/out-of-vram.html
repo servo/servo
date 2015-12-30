@@ -1,0 +1,135 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Out Of VRAM Test</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+debug("This tests WebGL running out of vram.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+try {
+  var gl = wtu.create3DContext(canvas);
+} catch(e) {
+}
+if (!gl) {
+  testFailed("could not create context");
+} else {
+  testPassed("context exists");
+
+  var args = wtu.getUrlArguments();
+
+  canvas.addEventListener('webglcontextlost', contextLost, false);
+
+  function contextLost(e) {
+    e.preventDefault();
+    debug("***context lost***");
+  }
+
+  function contextRestored(e) {
+    debug("***context restored***");
+  }
+
+  var program = wtu.setupTexturedQuad(gl);
+  gl.useProgram(program);
+
+  debug("");
+  debug("Allocating textures.");
+
+  var intervalId;
+  var count = 0;
+  var textureMem = 0;
+  var textures = [];
+  var size = 2048;
+  var limit = (args.limit ? args.limit : 8192) * 1024 * 1024;
+
+  debug("limit: " + InMB(limit))
+
+  function InMB(v) {
+    return "" + Math.floor(v / 1024 / 1024) + "MB";
+  }
+
+  function makeTexture() {
+    if (gl.isContextLost()) {
+      stop("out of memory");
+      return;
+    }
+    ++count;
+    textureMem += size * size * 4;
+    if (textureMem > limit) {
+      stop("reached limit");
+      return;
+    }
+    debug ("creating texture #" + count + " mem = " + InMB(textureMem));
+    var texture = gl.createTexture();
+    textures.push(texture);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D,
+                  0,                 // level
+                  gl.RGBA,           // internalFormat
+                  size,              // width
+                  size,              // height
+                  0,                 // border
+                  gl.RGBA,           // format
+                  gl.UNSIGNED_BYTE,  // type
+                  null);             // data
+    var err = gl.getError();
+    if (err != gl.NO_ERROR) {
+      stop("got error: " + wtu.glEnumToString(gl, err));
+      return;
+    }
+	// use the texture
+    wtu.clearAndDrawUnitQuad(gl);
+  }
+
+  intervalId = window.setInterval(makeTexture, 1000 / 15);
+
+}
+
+function stop(msg) {
+  window.clearInterval(intervalId);
+  testPassed(msg);
+  finishTest();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Out Of Resources Test</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../../devtools/src/debug/webgl-debug.js"></script>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<canvas id="canvas2" width="2" height="2"> </canvas>
+<script>
+"use strict";
+wtu = WebGLTestUtils;
+window.onload = init;
+debug("Tests a WebGL program that tries to use all of vram.");
+
+function init() {
+  if (confirm(
+      "After clicking OK your machine may become unresponsive or crash.")) {
+    main();
+  } else {
+    debug("cancelled");
+  }
+}
+
+function main() {
+  debug("");
+  debug("Canvas.getContext");
+
+  var gl = wtu.create3DContext("canvas");
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    var program = wtu.setupColorQuad(gl);
+    gl.useProgram(program);
+
+    debug("");
+    debug("Checking for out of memory handling.");
+
+    var size = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+    debug("max render buffer size: " + size);
+
+    var allocateFramebuffers = true;
+    var itervalId;
+    var count = 0;
+
+    gl = WebGLDebugUtils.makeDebugContext(gl, function(err, functionName, args) {
+          assertMsg(err == gl.OUT_OF_MEMORY,
+                    "correctly returns gl.OUT_OF_MEMORY when out of memory");
+          stop("got: " + wtu.glEnumToString(gl, err));
+        });
+
+    var fbos = [];
+
+    intervalId = window.setInterval(function() {
+      ++count;
+      var mem = count * size * size * 4;
+      debug("#" + count + " : memory allocated so far " + (mem / 1024 / 1024) + "MB");
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D,
+                    0,                 // level
+                    gl.RGBA,           // internalFormat
+                    size,              // width
+                    size,              // height
+                    0,                 // border
+                    gl.RGBA,           // format
+                    gl.UNSIGNED_BYTE,  // type
+                    null);             // data
+      var err = gl.getError();
+      if (err != gl.NO_ERROR) {
+        stop("got error: " + wtu.glEnumToString(gl, err));
+        return;
+      }
+      if (allocateFramebuffers) {
+        var fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            tex,
+            0);
+        var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status != gl.FRAMEBUFFER_COMPLETE) {
+          stop("got: " + wtu.glEnumToString(gl, status));
+          return;
+        }
+        // use the framebuffer
+        wtu.drawFloatColorQuad(gl, [1, Math.random(), 1, 1]);
+      }
+    }, 200);
+
+    function stop(msg) {
+      debug(msg);
+      window.clearInterval(intervalId);
+      finishTest();
+    }
+  }
+}
+</script>
+</body>
+</html>

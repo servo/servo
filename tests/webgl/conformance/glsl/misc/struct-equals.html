@@ -1,0 +1,238 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL Structure Equals Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+
+<script id="simple-vs" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main(void) {
+    gl_Position = a_position;
+}
+</script>
+<script id="simple-struct-fs" type="x-shader/x-fragment">
+precision mediump float;
+struct my_struct {
+  float f;
+};
+
+my_struct a = my_struct(1.0);
+my_struct b = my_struct(1.0);
+
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        gl_FragColor.y = 1.0;
+    }
+}
+</script>
+<script id="vec-struct-fs" type="x-shader/x-fragment">
+precision mediump float;
+struct my_struct {
+  vec3 v;
+};
+
+my_struct a = my_struct(vec3(1.0, 2.0, 3.0));
+my_struct b = my_struct(vec3(1.0, 2.0, 3.0));
+
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        gl_FragColor.y = 1.0;
+    }
+}
+</script>
+<script id="nested-struct-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+struct s1
+{
+    float f;
+};
+
+struct s2
+{
+    s1 s;
+};
+
+s2 a = s2(s1(1.0));
+s2 b = s2(s1(1.0));
+
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        gl_FragColor.y = 1.0;
+    }
+}
+</script>
+<script id="nested-vec-struct-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+struct s1
+{
+    vec3 v;
+};
+
+struct s2
+{
+    s1 s;
+};
+
+s2 a = s2(s1(vec3(1.0, 2.0, 3.0)));
+s2 b = s2(s1(vec3(1.0, 2.0, 3.0)));
+
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        gl_FragColor.y = 1.0;
+    }
+}
+</script>
+<script id="array-struct-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+struct my_struct
+{
+    float f[3];
+};
+
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    my_struct a;
+    my_struct b;
+    for (int i = 0; i < 3; ++i) {
+        a.f[i] = 0.0;
+        b.f[i] = 1.0;
+    }
+
+    if (a == b) {
+        gl_FragColor.x = 1.0;
+    }
+}
+</script>
+<script id="sampler-struct-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+struct my_struct
+{
+    sampler2D s;
+};
+
+uniform my_struct a;
+uniform my_struct b;
+
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        gl_FragColor.x = 1.0;
+    }
+}
+</script>
+</head>
+<body>
+<canvas id="canvas" width="50" height="50"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Testing struct equals");
+
+var wtu = WebGLTestUtils;
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderId: "simple-struct-fs",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Simple struct with one float",
+  },
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderId: "vec-struct-fs",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Simple struct with a vector",
+  },
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderId: "nested-struct-fs",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Nested struct with a float",
+  },
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderId: "nested-vec-struct-fs",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Nested struct with a vector",
+  },
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderId: "array-struct-fs",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Comparing a struct containing an array should not compile",
+  },
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderId: "sampler-struct-fs",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Comparing a struct containing a sampler should not compile",
+  }
+]);
+debug("");
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

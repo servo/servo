@@ -1,0 +1,176 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Lots of polygons example.</title>
+<link rel="stylesheet" href="../resources/js-test-style.css"/>
+<script src="../js/js-test-pre.js"></script>
+<script src="../js/webgl-test-utils.js"> </script>
+<style>
+html, body {
+	width: 100%;
+	height: 100%;
+}
+canvas {
+	border: 1px solid black;
+	width: 95%;
+	height: 80%;
+}
+</style
+</head>
+<body>
+<canvas id="example"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+window.onload = init;
+debug("Tests a WebGL program that draws a bunch of large polygons from a quad mesh");
+
+function init() {
+  if (confirm(
+      "After clicking OK your machine may become unresponsive or crash.")) {
+    main();
+  } else {
+    debug("cancelled");
+  }
+}
+
+function main() {
+  var wtu = WebGLTestUtils;
+  var canvas = document.getElementById("example");
+  var gridRes = 1000;
+  canvas.width = canvas.clientWidth;
+  canvas.heigt = canvas.clientHeight;
+  canvas.addEventListener("webglcontextlost", function(e) { e.preventDefault(); }, false);
+  canvas.addEventListener("webglcontextrestored", function(e) { }, false);
+
+  var gl = wtu.create3DContext(canvas);
+  var program = wtu.setupProgram(
+      gl, ['vshader', 'fshader'], ['vPosition'], [0]);
+
+  wtu.setupIndexedQuad(gl, gridRes, 0, true);
+
+  // make 1 texture since we'd have at least that in CSS shaders
+  var size = 256;
+  var pixels = new Uint8Array(size * size * 4);
+  for (var y = 0; y < size; ++y) {
+	for (var x = 0; x < size; ++x) {
+      var offset = (y * size + x) * 4;
+	  pixels[offset + 0] = x * 255 / size;
+	  pixels[offset + 1] = y * 255 / size;
+	  pixels[offset + 2] = x * y * 255 / (size * size);
+	  pixels[offset + 3] = 255;
+    }
+  }
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  // add test colors.
+  if (false) {
+    var vertsAcross = gridRes + 1;
+    var numQuads = vertsAcross * vertsAcross;
+    var colors = new Float32Array(numQuads * 4);
+    for (var ii = 0; ii < numQuads; ++ii) {
+      var offset = ii * 4;
+      colors[offset + 0] = Math.random();
+      colors[offset + 1] = Math.random();
+      colors[offset + 2] = Math.random();
+      colors[offset + 3] = 1;
+    }
+    var colorLocation = gl.getAttribLocation(program, "color")
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(colorLocation);
+    gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
+  }
+
+  var gridResLoc = gl.getUniformLocation(program, "gridRes");
+  gl.uniform1f(gridResLoc, gridRes);
+
+  assertMsg(gl.getError() == gl.NO_ERROR, "Should be no errors from setup.");
+
+  gl.enable(gl.BLEND);
+  //gl.enable(gl.CULL_FACE);
+  //gl.cullFace(gl.FRONT);
+
+  gl.drawElements(gl.TRIANGLES, gridRes * gridRes * 6, gl.UNSIGNED_SHORT, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawing");
+
+  var successfullyParsed = true;
+}
+</script>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec2 v_texCoord;
+uniform float gridRes;
+
+#ifdef ADD_TEST_COLORS
+  attribute vec4 color;
+  varying vec4 v_color;
+#endif
+
+void main()
+{
+    // expand each quad to cover the entire element.
+    vec2 p = mod((vPosition.xy * 0.5 + 0.5) * gridRes, 2.0) * 2.0 - 1.0;
+    gl_Position = vec4(p, 0, 1);
+    v_texCoord = vPosition.xy;
+
+#ifdef ADD_TEST_COLORS
+	v_color = color;
+#endif
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 v_color;
+varying vec2 v_texCoord;
+uniform sampler2D tex;
+void main()
+{
+#ifdef ADD_TEST_COLORS
+    gl_FragColor = v_color;
+#else
+    gl_FragColor = texture2D(tex, v_texCoord);
+#endif
+}
+</script>
+</body>
+</html>
+
+

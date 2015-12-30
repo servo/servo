@@ -1,0 +1,294 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>texStorage2D conformance test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+
+
+<script>
+"use strict";
+description("This test verifies the functionality of texStorage2D.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var vao = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runTexStorage2DTest();
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function enumToString(value) {
+  return wtu.glEnumToString(gl, value);
+}
+
+function runTexStorage2DTest()
+{
+    var texStorage2DTestCases = [
+        {
+            target: gl.TEXTURE_2D,
+            mipmap: false,
+            sizedformat: gl.RGBA8,
+            unsizedformat: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            alpha: true,
+            redpixel: new Uint8Array([0xff, 0x00, 0x00, 0x00]),
+        },
+        {
+            target: gl.TEXTURE_2D,
+            mipmap: true,
+            sizedformat: gl.R11F_G11F_B10F,
+            unsizedformat: gl.RGB,
+            type: gl.UNSIGNED_INT_10F_11F_11F_REV,
+            alpha: false,
+            // Red is unsigned floating point with 5 exponent bits followed by 6 mantissa bits.
+            // The effective value is 2^(exponent - 15) * (1 + mantissa / 64)
+            // See OpenGL ES 3.0.3 spec, section 2.1.3
+            // Here we want to encode the value 1.0, which we achieve with a zero mantissa
+            // and an exponent of 15.
+            redpixel: new Uint32Array([15<<6]),
+        },
+        {
+            target: gl.TEXTURE_2D,
+            mipmap: true,
+            sizedformat: gl.RGBA32F,
+            unsizedformat: gl.RGBA,
+            type: gl.FLOAT,
+            alpha: true,
+            redpixel: new Float32Array([1, 0, 0, 0]),
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP,
+            mipmap: true,
+            sizedformat: gl.RGBA8,
+            unsizedformat: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            alpha: true,
+            redpixel: new Uint8Array([0xff, 0x00, 0x00, 0x00]),
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP,
+            mipmap: false,
+            sizedformat: gl.RGB8,
+            unsizedformat: gl.RGB,
+            type: gl.UNSIGNED_BYTE,
+            alpha: false,
+            redpixel: new Uint8Array([0xff, 0x00, 0x00]),
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP,
+            mipmap: true,
+            sizedformat: gl.RGB10_A2UI,
+            unsizedformat: gl.UNSIGNED_INT_2_10_10_10_REV, // type enum, bad as format
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP,
+            mipmap: false,
+            sizedformat: gl.R11F_G11F_B10F,
+            unsizedformat: gl.RGB,
+        }
+    ];
+
+    texStorage2DTestCases.forEach(function(testcase){
+        var target = testcase.target;
+        var imageTargets;
+
+        if (target == gl.TEXTURE_2D) {
+            imageTargets = [ gl.TEXTURE_2D ];
+        } else {
+            imageTargets = [ gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+                             gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+                             gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+                             gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                             gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+                             gl.TEXTURE_CUBE_MAP_NEGATIVE_Z ];
+        }
+
+        var tex = gl.createTexture();
+        gl.bindTexture(target, tex);
+        var texsize = 4;
+        var levels = testcase.mipmap
+                     ? Math.floor(Math.log(texsize) / Math.log(2)) + 1
+                     : 1;
+
+        debug("");
+        debug("Testing texStorage2D with target " + enumToString(target) + ", " +
+              (testcase.mipmap ? "mipmap" : "no mipmap") + ", " +
+              "internalformat: " + enumToString(testcase.sizedformat));
+
+        gl.texStorage2D(target, levels, testcase.sizedformat,
+                        0, texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texStorage2D should fail for zero width");
+        gl.texStorage2D(target, levels, testcase.sizedformat,
+                        texsize, 0);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texStorage2D should fail for zero height");
+        gl.texStorage2D(target, levels, testcase.sizedformat,
+                        texsize, -texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texStorage2D should fail for negative height");
+        gl.texStorage2D(target, 0, testcase.sizedformat,
+                        texsize, texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texStorage2D should fail for zero levels");
+        gl.texStorage2D(target,
+                        Math.ceil(Math.log(texsize) / Math.log(2)) + 2,
+                        testcase.sizedformat,
+                        texsize, texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texStorage2D should fail for too many levels");
+        gl.texStorage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, levels, testcase.sizedformat,
+                    texsize, texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "texStorage2D should fail for bad target TEXTURE_CUBE_MAP_NEGATIVE_X");
+
+        gl.bindTexture(target, null);
+        gl.texStorage2D(target, levels, testcase.sizedformat,
+                        texsize, texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texStorage2D should fail when no texture is bound");
+        gl.bindTexture(target, tex);
+
+        // texStorage2D should only accept sized internalformats
+        gl.texStorage2D(target, levels, testcase.unsizedformat,
+                        texsize, texsize);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "texStorage2D should fail for bad internalformat " + enumToString(testcase.unsizedformat));
+
+        // OK, now let's finally do the successfull texStorage2D call
+        gl.texStorage2D(target, levels, testcase.sizedformat,
+                        texsize, texsize);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texStorage2D should succeed with a good sized internalformat");
+
+        // check TEXTURE_IMMUTABLE_FORMAT
+        var immutable = gl.getTexParameter(target, gl.TEXTURE_IMMUTABLE_FORMAT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "getTexParameter should succeed with TEXTURE_IMMUTABLE_FORMAT");
+        assertMsg(immutable != 0, "getTexParameter with TEXTURE_IMMUTABLE_FORMAT should not return 0");
+
+        // check operations disallowed on immutable texture
+        gl.texImage2D(imageTargets[0], 0, gl.RGBA, texsize, texsize, 0,
+                      gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage2D should fail on immutable texture");
+        var s3tc = gl.getExtension("WEBGL_compressed_texture_s3tc");
+        // FIXME - should eventually use a compressed format that's core in WebGL2, but
+        // I wanted something that I can run in Firefox today, which doesn't support the new formats yet.
+        if (s3tc) {
+            gl.compressedTexImage2D(imageTargets[0], 0, s3tc.COMPRESSED_RGBA_S3TC_DXT3_EXT,
+                                    texsize, texsize, 0,
+                                    new Uint8Array(texsize * texsize));
+        }
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "compressedTexImage2D should fail on immutable texture");
+        gl.copyTexImage2D(imageTargets[0], 0, gl.RGBA, 0, 0, texsize, texsize, 0);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "copyTexImage2D should fail on immutable texture");
+
+        if ('redpixel' in testcase) {
+            // At this point, the texture images have only been defined by
+            // texStorage2D, which per spec should be equivalent to having
+            // defined texture images with null data, which should sample as RGBA 0,0,0,0.
+            gl.texParameteri(target, gl.TEXTURE_MIN_FILTER,
+                             testcase.mipmap ? gl.NEAREST_MIPMAP_NEAREST : gl.NEAREST);
+            if (testcase.type == gl.FLOAT) {
+                gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            }
+
+            // Now upload some red texture data
+            var s = texsize;
+            var pixels;
+            if (testcase.redpixel instanceof Uint8Array) {
+                pixels = new Uint8Array(texsize * texsize * testcase.redpixel.length);
+            } else if (testcase.redpixel instanceof Uint16Array) {
+                pixels = new Uint16Array(texsize * texsize * testcase.redpixel.length);
+            } else if (testcase.redpixel instanceof Uint32Array) {
+                pixels = new Uint32Array(texsize * texsize * testcase.redpixel.length);
+            } else if (testcase.redpixel instanceof Float32Array) {
+                pixels = new Float32Array(texsize * texsize * testcase.redpixel.length);
+            }
+            for (var i = 0; i < texsize * texsize; i++) {
+                for (var j = 0; j < testcase.redpixel.length; j++) {
+                    pixels[i * testcase.redpixel.length + j] = testcase.redpixel[j];
+                }
+            }
+
+            if (target == gl.TEXTURE_2D) {
+                wtu.setupTexturedQuad(gl);
+            } else if (target == gl.TEXTURE_CUBE_MAP) {
+                wtu.setupTexturedQuadWithCubeMap(gl);
+            }
+
+            wtu.clearAndDrawUnitQuad(gl);
+            var alpha = testcase.alpha ? 0 : 255;
+            wtu.checkCanvas(gl, [0, 0, 0, alpha], "texture should sample as uninitialized texture after texStorage2D");
+
+            if (target == gl.TEXTURE_2D) {
+                for (var l = 0; l < levels; l++) {
+                    gl.texSubImage2D(gl.TEXTURE_2D,
+                                     l, 0, 0,
+                                     s, s,
+                                     testcase.unsizedformat, testcase.type,
+                                     pixels);
+                    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D should succeed on immutable texture as long as the format is compatible");
+                    s /= 2;
+                }
+            } else if (target == gl.TEXTURE_CUBE_MAP) {
+                for (var l = 0; l < levels; l++) {
+                    for (var f = 0; f < 6; f++) {
+                        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + f,
+                                         l, 0, 0,
+                                         s, s,
+                                         testcase.unsizedformat, testcase.type,
+                                         pixels);
+                        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D should succeed on immutable texture as long as the format is compatible");
+                    }
+                    s /= 2;
+                }
+            }
+
+            wtu.clearAndDrawUnitQuad(gl);
+            wtu.checkCanvas(gl, [255, 0, 0, alpha], "texture should sample as red after uploading red pixels with texSubImage2D");
+        }
+    });
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

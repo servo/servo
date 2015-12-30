@@ -1,0 +1,132 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests - empty declarations</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertexEmptyDeclaration" type="text/something-not-javascript">
+// Vertex shader with an empty declaration should succeed.
+// See shading language grammar rules init_declarator_list and single_declaration
+// in ESSL specs.
+// Empty declarations are a side effect of how grammar for structs is defined.
+void main() {
+    float;
+    gl_Position = vec4(0.0);
+}
+</script>
+<script id="vertexEmptyDeclarationPlus" type="text/something-not-javascript">
+// Vertex shader with an empty declaration followed by declarator should succeed.
+// See shading language grammar rules init_declarator_list and single_declaration
+// in ESSL specs.
+void main() {
+    float, a = 0.0;
+    gl_Position = vec4(a);
+}
+</script>
+<script id="vertexEmptyStructDeclarationPlus" type="text/something-not-javascript">
+// Vertex shader with an empty declaration followed by declarator should succeed.
+// See shading language grammar rules init_declarator_list and single_declaration
+// in ESSL specs.
+
+struct S {
+    float member;
+}, a;
+
+void main() {
+    a.member = 0.0;
+    gl_Position = vec4(a.member);
+}
+</script>
+<script id="vertexEmptyDeclarationInStruct" type="text/something-not-javascript">
+// Vertex shader with an empty declaration inside struct should fail.
+// In-struct declarations have different grammar from declarations outside structs.
+struct S {
+    float;
+    float a;
+};
+
+void main() {
+    gl_Position = vec4(0.0);
+}
+</script>
+<script id="vertexEmptyDeclarationPlusInStruct" type="text/something-not-javascript">
+// Vertex shader with an empty declaration inside struct should fail.
+// In-struct declarations have different grammar from declarations outside structs.
+struct S {
+    float, a;
+    float b;
+};
+
+void main() {
+    gl_Position = vec4(0.0);
+}
+</script>
+<script>
+"use strict";
+GLSLConformanceTester.runTests([
+    { vShaderId: 'vertexEmptyDeclaration',
+      vShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: 'Vertex shader with an empty declaration should succeed'
+    },
+    { vShaderId: 'vertexEmptyDeclarationPlus',
+      vShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: 'Vertex shader with an empty declaration followed by declarator should succeed'
+    },
+    { vShaderId: 'vertexEmptyStructDeclarationPlus',
+      vShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: 'Vertex shader with an empty struct declaration followed by declarator should succeed'
+    },
+    { vShaderId: 'vertexEmptyDeclarationInStruct',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'Vertex shader with an empty declaration in a struct should fail'
+    },
+    { vShaderId: 'vertexEmptyDeclarationPlusInStruct',
+      vShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'Vertex shader with an empty declaration followed by declarator in a struct should fail'
+    }
+]);
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

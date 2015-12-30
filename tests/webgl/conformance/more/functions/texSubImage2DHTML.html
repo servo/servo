@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript" src="../../../js/webgl-test-utils.js"></script>
+<script type="application/javascript">
+var wtu = WebGLTestUtils;
+var defaultImgUrl = "http://mashable.com/wp-content/uploads/2008/08/thunderbird-logo-64x64.png";
+var localImgUrl = "../../../resources/thunderbird-logo-64x64.png";
+
+Tests.autoinit = false; // Prevents the test from running until the image is loaded
+
+Tests.startUnit = function () {
+    var canvas = document.getElementById('gl');
+    var gl = wrapGLContext(getGLContext(canvas));
+
+    gl.viewport(0,0,canvas.width,canvas.height);
+    gl.clearColor(0,0,1,1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST);
+    return [gl];
+}
+
+Tests.setup = function(gl) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    var texCubeMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCubeMap);
+    return [gl]
+}
+
+Tests.teardown = function(gl, tex, texCubeMap) {
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.deleteTexture(tex);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+    gl.deleteTexture(texCubeMap);
+}
+
+Tests.testTexImage2D = function(gl) {
+    gl.enable(gl.BLEND);
+    var img = document.getElementById('i');
+    var c = document.getElementById('c');
+    var ctx = c.getContext('2d');
+    ctx.drawImage(img,0,0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    var f = new Filter(gl, 'identity-flip-vert', 'identity-frag');
+    gl.blendFunc(gl.ONE, gl.ZERO);
+    f.apply();
+    f.destroy();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    f = new Filter(gl, 'identity-hflip-vert', 'identity-frag');
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    f.apply();
+    f.destroy();
+    var valid_targets = [
+        gl.TEXTURE_2D,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+    ];
+    valid_targets.forEach(function(t) {
+        assertOk(function(){
+                gl.texImage2D(t, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+                gl.texSubImage2D(t, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+        });
+        assertOk(function(){
+                gl.texImage2D(t, 1, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+                gl.texSubImage2D(t, 1, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+        });
+    });
+}
+
+Tests.testTexImage2DNonSOP = function(gl) {
+    var img = document.getElementById('i2');
+    while (!img.complete) {}
+    var c = document.getElementById('c');
+    var ctx = c.getContext('2d');
+    ctx.drawImage(img,0,0);
+    assertThrowNoGLError(gl, "texImage2D with cross-origin image should throw exception.",
+      function(){gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);});
+    assertThrowNoGLError(gl, "texSubImage2D with cross-origin image should throw exception.",
+      function(){gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, gl.RGBA, gl.UNSIGNED_BYTE, img);});
+    assertThrowNoGLError(gl, "texImage2D with dirty origin canvas should throw exception.",
+      function(){gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);});
+    assertThrowNoGLError(gl, "texSubImage2D with dirty origin canvas should throw exception.",
+      function(){gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, gl.RGBA, gl.UNSIGNED_BYTE, c);});
+}
+
+Tests.endUnit = function(gl) {
+}
+
+wtu.setupImageForCrossOriginTest("#i2", defaultImgUrl, localImgUrl, initTests);
+</script>
+<script id="identity-flip-vert" type="x-shader/x-vertex">
+attribute vec3 Vertex;
+attribute vec2 Tex;
+
+varying vec4 texCoord0;
+void main()
+{
+    texCoord0 = vec4(Tex.s, 1.0-Tex.t, 0.0, 0.0);
+    gl_Position = vec4(Vertex, 1.0);
+}
+</script>
+<script id="identity-hflip-vert" type="x-shader/x-vertex">
+attribute vec3 Vertex;
+attribute vec2 Tex;
+
+varying vec4 texCoord0;
+void main()
+{
+    texCoord0 = vec4(1.0-Tex.s, Tex.t, 0.0, 0.0);
+    gl_Position = vec4(Vertex, 1.0);
+}
+</script>
+<script id="identity-frag" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform sampler2D Texture;
+
+varying vec4 texCoord0;
+void main()
+{
+    vec4 c = texture2D(Texture, texCoord0.st);
+    gl_FragColor = c;
+}
+</script>
+</head><body>
+<canvas id="gl" width="256" height="256"></canvas>
+<canvas id="c" width="256" height="256"></canvas>
+<img id="i" width="256" height="256"  src="data:image/png;base64,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">
+<img id="i2">
+
+</body></html>

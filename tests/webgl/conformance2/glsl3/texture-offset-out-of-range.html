@@ -1,0 +1,110 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL out-of-range texture offset test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderInvalidOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec2 u_texCoord;
+uniform int x;
+
+void main() {
+    my_FragColor = textureOffset(u_sampler, u_texCoord, ivec2(0, $(yoffset)));
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Out-of-range texture offset should not compile.");
+
+var wtu = WebGLTestUtils;
+
+var shaderTemplate = wtu.getScript('fshaderInvalidOffset');
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+if (!gl) {
+  testFailed("Unable to initialize WebGL 2.0 context.");
+} else {
+  var minOffset = gl.getParameter(gl.MIN_PROGRAM_TEXEL_OFFSET);
+  var maxOffset = gl.getParameter(gl.MAX_PROGRAM_TEXEL_OFFSET);
+
+  var shaderSrcValidMin = wtu.replaceParams(shaderTemplate, {'yoffset': minOffset});
+  var shaderSrcValidMax = wtu.replaceParams(shaderTemplate, {'yoffset': maxOffset});
+  var shaderSrcBelowMin = wtu.replaceParams(shaderTemplate, {'yoffset': (minOffset - 1)});
+  var shaderSrcAboveMax = wtu.replaceParams(shaderTemplate, {'yoffset': (maxOffset + 1)});
+  var shaderSrcDynamic = wtu.replaceParams(shaderTemplate, {'yoffset': 'x'});
+
+  GLSLConformanceTester.runTests([
+  {
+    fShaderSource: shaderSrcValidMin,
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Minimum in-range texture offset should compile'
+  },
+  {
+    fShaderSource: shaderSrcValidMax,
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Maximum in-range texture offset should compile'
+  },
+  {
+    fShaderSource: shaderSrcBelowMin,
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Texture offset below minimum valid value should not compile'
+  },
+  {
+    fShaderSource: shaderSrcAboveMax,
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Texture offset above maximum valid value should not compile'
+  },
+  {
+    fShaderSource: shaderSrcDynamic,
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Dynamic texture offset should not compile'
+  }
+  ], 2);
+}
+</script>
+</body>
+</html>

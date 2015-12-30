@@ -1,0 +1,197 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL buffer copying contents test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Test copying a buffer's contents to another buffer governed by the WebGL 2 spec.");
+
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+var vertices = [
+     1.1,  1.0,  1.3,
+    -1.0, -1.0,  -5.0,
+     5.3, -1.0,  1.0
+];
+
+debug("");
+debug("Test copying between buffers returns correct data");
+
+function testCopyBuffers(srcTarget, dstTarget, copyRead, copyWrite) {
+  var msg = "Copying from " + targetToString(gl, srcTarget) +
+      " to " + targetToString(gl, dstTarget)
+  if (copyRead && copyWrite)
+    msg += " via COPY_READ_BUFFER and COPY_WRITE_BUFFER"
+  else if (copyRead)
+    msg += " via COPY_READ_BUFFER"
+  else if (copyWrite)
+    msg += " via COPY_WRITE_BUFFER"
+  else
+    msg += " directly"
+  debug("")
+  debug(msg)
+
+  var srcBuffer = gl.createBuffer(), dstBuffer = gl.createBuffer();
+  var originalData = new Float32Array(vertices);
+  var length = vertices.length * 4;
+
+  gl.bindBuffer(srcTarget, srcBuffer);
+  gl.bufferData(srcTarget, originalData, gl.STATIC_DRAW);
+  if (copyRead)
+    gl.bindBuffer(gl.COPY_READ_BUFFER, srcBuffer);
+
+  gl.bindBuffer(dstTarget, dstBuffer);
+  gl.bufferData(dstTarget, new Float32Array(length), gl.STATIC_DRAW);
+  if (copyWrite)
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, dstBuffer);
+
+  var expectedGLError = gl.NO_ERROR;
+
+  if (srcTarget == dstTarget) {
+    if (!copyRead && copyWrite) {
+      // srcBuffer isn't bound to any targets because of setting up dstBuffer.
+      gl.bindBuffer(srcTarget, srcBuffer);
+    }
+    if (!copyRead && !copyWrite) {
+      // Same buffer object, overlapping range.
+      expectedGLError = gl.INVALID_VALUE;
+    }
+  }
+  if ((srcTarget == gl.ELEMENT_ARRAY_BUFFER &&
+       dstTarget != gl.ELEMENT_ARRAY_BUFFER) ||
+      (srcTarget != gl.ELEMENT_ARRAY_BUFFER &&
+       dstTarget == gl.ELEMENT_ARRAY_BUFFER)) {
+    expectedGLError = gl.INVALID_OPERATION;
+  }
+
+  gl.copyBufferSubData(copyRead ? gl.COPY_READ_BUFFER : srcTarget,
+                       copyWrite ? gl.COPY_WRITE_BUFFER : dstTarget,
+                       0, 0, length);
+  if (expectedGLError == gl.NO_ERROR) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Copying should work");
+
+    var retBuffer = new ArrayBuffer(length);
+    gl.getBufferSubData(dstTarget, 0, retBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "gl.getBufferSubData(" + targetToString(gl, dstTarget) +
+        ", 0, retBuffer) should work");
+
+    var failed = false;
+    var retArray = new Float32Array(retBuffer);
+    for (var i = 0; i < vertices.length; i++) {
+      if (originalData[i] != retArray[i]) {
+        failed = true;
+        break;
+      }
+    }
+    if (failed)
+      testFailed("The returned array buffer fails to match original data");
+    else
+      testPassed("The returned array buffer matches original data");
+  } else {
+    wtu.glErrorShouldBe(gl, expectedGLError, "Copying should fail");
+  }
+
+  gl.deleteBuffer(srcBuffer);
+  gl.deleteBuffer(dstBuffer);
+  shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.COPY_READ_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.COPY_WRITE_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)");
+  shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+}
+
+function targetToString(gl, target) {
+  switch (target) {
+    case gl.ARRAY_BUFFER:
+      return "ARRAY_BUFFER";
+    case gl.COPY_READ_BUFFER:
+      return "COPY_READ_BUFFER";
+    case gl.COPY_WRITE_BUFFER:
+      return "COPY_WRITE_BUFFER";
+    case gl.ELEMENT_ARRAY_BUFFER:
+      return "ELEMENT_ARRAY_BUFFER";
+    case gl.PIXEL_PACK_BUFFER:
+      return "PIXEL_PACK_BUFFER";
+    case gl.PIXEL_UNPACK_BUFFER:
+      return "PIXEL_UNPACK_BUFFER";
+    case gl.TRANSFORM_FEEDBACK_BUFFER:
+      return "TRANSFORM_FEEDBACK_BUFFER";
+    case gl.UNIFORM_BUFFER:
+      return "UNIFORM_BUFFER";
+    default:
+      return "UNKNOWN BUFFER";
+  }
+}
+
+var targets = [
+  gl.ARRAY_BUFFER,
+  gl.ELEMENT_ARRAY_BUFFER,
+  gl.PIXEL_PACK_BUFFER,
+  gl.PIXEL_UNPACK_BUFFER,
+  gl.TRANSFORM_FEEDBACK_BUFFER,
+  gl.UNIFORM_BUFFER,
+]
+
+for (var srcIndex in targets) {
+  for (var dstIndex in targets) {
+    if (targets[srcIndex] != gl.TRANSFORM_FEEDBACK_BUFFER &&
+        targets[dstIndex] != gl.TRANSFORM_FEEDBACK_BUFFER) {
+      testCopyBuffers(targets[srcIndex], targets[dstIndex], true, true);
+    }
+    if (targets[srcIndex] != gl.TRANSFORM_FEEDBACK_BUFFER) {
+      testCopyBuffers(targets[srcIndex], targets[dstIndex], true, false);
+    }
+    if (targets[dstIndex] != gl.TRANSFORM_FEEDBACK_BUFFER) {
+      testCopyBuffers(targets[srcIndex], targets[dstIndex], false, true);
+    }
+    testCopyBuffers(targets[srcIndex], targets[dstIndex], false, false);
+  }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

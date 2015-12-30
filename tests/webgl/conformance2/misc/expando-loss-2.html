@@ -1,0 +1,148 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<title>WebGL 2 Object Expandos Conformance Test</title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="8" height="8" style="width: 8px; height: 8px;"></canvas>
+<script>
+"use strict";
+description("This test verifies that WebGL object expandos are preserved across garbage collections.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false}, 2);
+
+// Helpers that set expandos and verify they are set to the correct value.
+var expandoValue = "WebGL is awesome!"
+function setTestExpandos(instance) {
+    instance.expando1 = expandoValue;
+    instance.expando2 = { subvalue : expandoValue };
+}
+function verifyTestExpandos(instance, msg) {
+    assertMsg(instance.expando1 === expandoValue, msg + ": Expect basic expando to survive despite GC.");
+    assertMsg(instance.expando2 && instance.expando2.subvalue === expandoValue, msg + ": Expect subobject expando to survive despite GC.");
+}
+
+// Tests that we don't get expando loss for bound resources where the
+// only remaining reference is internal to WebGL
+function testBasicBindings() {
+    debug('Basic Bindings');
+
+    // Test data that describes how to create, bind, and retrieve an object off of the context
+    var glProt = Object.getPrototypeOf(gl);
+    var simpleData = [
+        {
+            typeName: 'WebGLSampler',
+            creationFn: glProt.createSampler,
+            bindFn: glProt.bindSampler,
+            bindConstant: 0,
+            retrieveConstant: glProt.SAMPLER_BINDING,
+            name: "SAMPLER_BINDING",
+        },
+        {
+            typeName: 'WebGLTransformFeedback',
+            creationFn: glProt.createTransformFeedback,
+            bindFn: glProt.bindTransformFeedback,
+            bindConstant: glProt.TRANSFORM_FEEDBACK,
+            retrieveConstant: glProt.TRANSFORM_FEEDBACK_BINDING,
+            name: "TRANSFORM_FEEDBACK_BINDING",
+        },
+        {
+            typeName: 'WebGLVertexArrayObject',
+            creationFn: glProt.createVertexArray,
+            bindFn: glProt.bindVertexArray,
+            bindConstant: null,
+            retrieveConstant: glProt.VERTEX_ARRAY_BINDING,
+            name: "VERTEX_ARRAY_BINDING",
+        },
+    ];
+
+    simpleData.forEach(function(test) {
+        var instance = test.creationFn.call(gl);
+        var msg = "getParameter(" + test.name + ")";
+        setTestExpandos(instance);
+
+        if (test.bindConstant === null) {
+            test.bindFn.call(gl, instance);
+        } else {
+            test.bindFn.call(gl, test.bindConstant, instance);
+        }
+        assertMsg(instance === gl.getParameter(test.retrieveConstant), msg + " returns instance that was bound.");
+
+        // Garbage collect Javascript references.  Remaining references should be internal to WebGL.
+        instance = null;
+        webglHarnessCollectGarbage();
+
+        var retrievedObject = gl.getParameter(test.retrieveConstant);
+        verifyTestExpandos(retrievedObject, msg);
+        shouldBeType(retrievedObject, test.typeName);
+        debug('');
+    });
+}
+
+function testQueries() {
+    debug('Query');
+
+    var query = gl.createQuery();
+    setTestExpandos(query);
+    gl.beginQuery(gl.ANY_SAMPLES_PASSED, query);
+
+    assertMsg(query === gl.getQuery(gl.ANY_SAMPLES_PASSED, gl.CURRENT_QUERY), "CURRENT_QUERY returns instance that was bound.");
+
+    // Garbage collect Javascript references. Remaining references should be internal to WebGL.
+    query = null;
+    webglHarnessCollectGarbage();
+
+    var retrievedQuery = gl.getQuery(gl.ANY_SAMPLES_PASSED, gl.CURRENT_QUERY);
+    verifyTestExpandos(retrievedQuery, "Query");
+    shouldBeType(retrievedQuery, 'WebGLQuery'); 
+
+    gl.endQuery(gl.ANY_SAMPLES_PASSED);
+
+    debug('');
+}
+
+// Run tests
+testBasicBindings();
+testQueries();
+
+// FYI: There's no need to test WebGLSync objects because there is no notion of an "active" sync,
+// and thus no way to query them back out of the context.
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

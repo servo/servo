@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = wrapGLContext(getGLContext(canvas));
+  return [gl];
+}
+
+Tests.testUniformf = function(gl) {
+  var sh = new Filter(gl, 'foobar-vert', 'foobar-frag');
+  sh.apply(function(f){
+    var foo = f.uniform('foo');
+    var bar = f.uniform('bar');
+    var bar3 = f.uniform('bar3');
+    gl.uniformMatrix4fv(foo, false, [1,0,0,0, 0,2,0,0, 0,0,3,0, 0,0,0,4]);
+    gl.uniformMatrix2fv(bar, false, [2,1, 2,2]);
+    gl.uniformMatrix3fv(bar3, false, [2,2,2, 2,2,2, 2,1,2]);
+  });
+  var d = new Uint8Array(4);
+  gl.readPixels(0,0,1,1,gl.RGBA, gl.UNSIGNED_BYTE, d);
+  assertEquals([1,2,3,8], [d[0], d[1], d[2], d[3]]);
+  sh.destroy();
+}
+
+Tests.endUnit = function(gl) {
+}
+
+</script>
+<script id="foobar-vert" type="x-shader/x-vertex">
+attribute vec3 Vertex;
+attribute vec2 Tex;
+
+uniform mat2 bar;
+uniform mat3 bar3;
+
+varying vec4 texCoord0;
+void main()
+{
+    texCoord0 = vec4(Tex.s, 1.0-Tex.t, bar[0][1]+bar3[2][1], 0.0);
+    gl_Position = vec4(Vertex, 1.0);
+}
+</script>
+<script id="foobar-frag" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform mat4 foo;
+
+varying vec4 texCoord0;
+void main()
+{
+    gl_FragColor = vec4(foo[0][0]/256.0, foo[1][1]/256.0, foo[2][2]/256.0, foo[3][3]*texCoord0.z/256.0);
+}
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+<canvas id="gl" width="16" height="16"></canvas>
+</body></html>

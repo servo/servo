@@ -1,0 +1,135 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform unused array elements get truncated Conformance Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshader" type="x-shader/x-vertex">
+    attribute vec4 a_position;
+    void main()
+    {
+        gl_Position = a_position;
+    }
+</script>
+<script id="fshader-max" type="x-shader/x-fragment">
+    precision mediump float;
+    uniform vec4 colora[$(numUniformVectors)];
+    void main()
+    {
+        gl_FragColor = vec4(colora[$(usedUniformVector)]);
+    }
+</script>
+<script>
+"use strict";
+description();
+debug("");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var vSrc = wtu.getScript("vshader");
+var uniforms;
+// This test is to test drivers the have bugs related to optimizing
+// an array of uniforms when only 1 of those uniforms is used.
+debug("");
+var maxUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
+var tests = [
+ { desc: "using 5th element",
+   maxUniformVectors: maxUniformVectors,
+   numUniformVectors: maxUniformVectors * 2,
+   usedUniformVector: 5,
+   shader: "fshader-max",
+   color: [0, 1, 0, 1],
+   arrayName: "colora",
+ },
+];
+
+// According to the spec unused array elements must be truncated.
+var requiredUniformLocationsExist;
+function testUniformIssues(testIndex) {
+  var test = tests[testIndex];
+  debug("");
+  debug(test.desc);
+  var fSrc = test.source;
+  if (!fSrc) {
+    fSrc = wtu.replaceParams(wtu.getScript(test.shader), test);
+  }
+
+  var consoleElem = document.getElementById("console");
+  wtu.addShaderSource(
+      consoleElem, "vertex shader", vSrc);
+  wtu.addShaderSource(
+      consoleElem, "fragment shader", fSrc);
+
+  var program = wtu.loadProgram(gl, vSrc, fSrc);
+  gl.useProgram(program);
+  uniforms = wtu.getUniformMap(gl, program);
+  shouldBe('uniforms["' + test.arrayName + '[0]"].size', (test.usedUniformVector + 1).toString());
+
+  requiredUniformLocationsExist = true;
+  for (var ii = 0; ii <= test.usedUniformVector + 1; ++ii) {
+    var name = test.arrayName + "[" + ii + "]";
+    var colorLocation = gl.getUniformLocation(program, name);
+    if (ii <= test.usedUniformVector) {
+      if (!colorLocation) {
+        requiredUniformLocationsExist = false
+      }
+    } else {
+      if (colorLocation) {
+        testFailed("uniform array was not truncated as specified in OpenGL ES 2.0.25 section 2.10.4");
+      }
+    }
+  }
+  shouldBeTrue("requiredUniformLocationsExist");
+}
+
+var testIndex = 0;
+function runNextTest() {
+  testUniformIssues(testIndex++);
+  if (testIndex < tests.length) {
+    setTimeout(runNextTest, 0);
+  } else {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+    debug("");
+    finishTest();
+  }
+}
+runNextTest();
+
+var successfullyParsed = true;
+
+</script>
+</body>
+</html>
