@@ -97,7 +97,7 @@ class CommandBase(object):
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
-                context.sharedir, "rust", self.rust_snapshot_path())
+                context.sharedir, "rust", self.rust_path())
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
@@ -119,17 +119,16 @@ class CommandBase(object):
         self.config["gonk"].setdefault("b2g", "")
         self.config["gonk"].setdefault("product", "flame")
 
-    _rust_snapshot_path = None
+    _rust_path = None
     _cargo_build_id = None
 
-    def rust_snapshot_path(self):
-        if self._rust_snapshot_path is None:
-            filename = path.join(self.context.topdir, "rust-snapshot-hash")
+    def rust_path(self):
+        if self._rust_path is None:
+            filename = path.join(self.context.topdir, "rust-nightly-date")
             with open(filename) as f:
-                snapshot_hash = f.read().strip()
-            self._rust_snapshot_path = ("%s/rustc-nightly-%s" %
-                                        (snapshot_hash, host_triple()))
-        return self._rust_snapshot_path
+                date = f.read().strip()
+            self._rust_path = ("%s/rustc-nightly-%s" % (date, host_triple()))
+        return self._rust_path
 
     def cargo_build_id(self):
         if self._cargo_build_id is None:
