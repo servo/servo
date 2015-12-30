@@ -1,12 +1,12 @@
 # Copy this file to .servobuild in the Servo root directory
-# Be sure to set the cache-dir correctly, otherwise extra snapshots
-# may get downloaded
+# Be sure to set the cache-dir correctly, otherwise extra
+# copies of the Rust compiler may get downloaded
 
 # Paths starting with "./" are relative to the repo root
 
 # Tool options
 [tools]
-# Where Rust compiler snapshots and other downloads will be stored.  Can be
+# Where Rust compiler and other downloads will be stored.  Can be
 # shared by multiple Servo repositories.  Defaults to <servo-repo>/.servo
 cache-dir = "./.servo"
 
