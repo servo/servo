@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>fillStyle/strokeStyle setters store the value for retrieval by getters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="c">
+<script>
+var ctx = document.getElementById('c').getContext('2d');
+
+function roundtrip(property, vals) {
+  for (var i = 0; i < vals.length; i++) {
+    test(function() {
+      ctx[property] = vals[i];
+      assert_equals(ctx[property], vals[i]);
+    }, property + ' roundtrips with ' + vals[i]);
+  }
+}
+
+var img = document.createElement('img');
+img.src = '../2x2.png';
+var pattern = ctx.createPattern(img, 'repeat');
+
+var gradient = ctx.createLinearGradient(0.0, 0.0, 1.0, 1.0);
+
+roundtrip('strokeStyle', ['#ff0000', gradient, pattern]);
+roundtrip('fillStyle', ['#ff0000', gradient, pattern]);
+</script>
