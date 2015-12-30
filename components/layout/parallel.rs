@@ -89,6 +89,7 @@ pub trait ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
             top_down_func: ChunkedDomTraversalFunction,
             bottom_up_func: DomTraversalFunction) {
         let mut discovered_child_nodes = Vec::new();
+
         for unsafe_node in *unsafe_nodes.0 {
             // Get a real layout node.
             let node = unsafe { ConcreteLayoutNode::from_unsafe(&unsafe_node) };
