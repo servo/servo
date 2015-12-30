@@ -103,16 +103,16 @@ class MachCommands(CommandBase):
             print("export LD_LIBRARY_PATH=%s" % env["LD_LIBRARY_PATH"])
 
     @Command('bootstrap-rust',
-             description='Download the Rust compiler snapshot',
+             description='Download the Rust compiler',
              category='bootstrap')
     @CommandArgument('--force', '-f',
                      action='store_true',
-                     help='Force download even if a snapshot already exists')
+                     help='Force download even if a copy already exists')
     def bootstrap_rustc(self, force=False):
         rust_dir = path.join(
-            self.context.sharedir, "rust", self.rust_snapshot_path())
+            self.context.sharedir, "rust", self.rust_path())
         if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc")):
-            print("Snapshot Rust compiler already downloaded.", end=" ")
+            print("Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap-rust --force| to download again.")
             return
 
@@ -120,18 +120,18 @@ class MachCommands(CommandBase):
             shutil.rmtree(rust_dir)
         os.makedirs(rust_dir)
 
-        date = self.rust_snapshot_path().split("/")[0]
+        date = self.rust_path().split("/")[0]
         install_dir = path.join(self.context.sharedir, "rust", date)
 
         # The Rust compiler is hosted on the nightly server under the date with a name
         # rustc-nightly-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
         # giving a directory name that will be the same as the tarball name (rustc is
         # in that directory).
-        snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
-                        % self.rust_snapshot_path())
+        rustc_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
+                        % self.rust_path())
         tgz_file = rust_dir + '-rustc.tar.gz'
 
-        download_file("Rust compiler", snapshot_url, tgz_file)
+        download_file("Rust compiler", rustc_url, tgz_file)
 
         print("Extracting Rust compiler...")
         extract(tgz_file, install_dir)
@@ -144,11 +144,11 @@ class MachCommands(CommandBase):
         # list.
         stdlibs = [host_triple(), "arm-linux-androideabi"]
         for target in stdlibs:
-            snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
+            std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
                             % (date, target))
             tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target)
 
-            download_file("Host rust library for target %s" % target, snapshot_url, tgz_file)
+            download_file("Host rust library for target %s" % target, std_url, tgz_file)
             print("Extracting Rust stdlib for target %s..." % target)
             extract(tgz_file, install_dir)
             shutil.copytree(path.join(install_dir, "rust-std-nightly-%s" % target,
@@ -157,7 +157,7 @@ class MachCommands(CommandBase):
                                       "rustc", "lib", "rustlib", target))
             shutil.rmtree(path.join(install_dir, "rust-std-nightly-%s" % target))
 
-        print("Snapshot Rust ready.")
+        print("Rust ready.")
 
     @Command('bootstrap-rust-docs',
              description='Download the Rust documentation',
@@ -170,18 +170,18 @@ class MachCommands(CommandBase):
         rust_root = self.config["tools"]["rust-root"]
         docs_dir = path.join(rust_root, "doc")
         if not force and path.exists(docs_dir):
-            print("Snapshot Rust docs already downloaded.", end=" ")
+            print("Rust docs already downloaded.", end=" ")
             print("Use |bootstrap-rust-docs --force| to download again.")
             return
 
         if path.isdir(docs_dir):
             shutil.rmtree(docs_dir)
-        docs_name = self.rust_snapshot_path().replace("rustc-", "rust-docs-")
-        snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
+        docs_name = self.rust_path().replace("rustc-", "rust-docs-")
+        docs_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
                         % host_triple())
         tgz_file = path.join(rust_root, 'doc.tar.gz')
 
-        download_file("Rust docs", snapshot_url, tgz_file)
+        download_file("Rust docs", docs_url_url, tgz_file)
 
         print("Extracting Rust docs...")
         temp_dir = path.join(rust_root, "temp_docs")
@@ -294,14 +294,14 @@ class MachCommands(CommandBase):
         subprocess.check_call(
             ["git", "submodule", "update", "--init", "--recursive"])
 
-    @Command('clean-snapshots',
-             description='Clean unused snapshots of Rust and Cargo',
+    @Command('clean-nightlies',
+             description='Clean unused nightly builds of Rust and Cargo',
              category='bootstrap')
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Actually remove stuff')
-    def clean_snapshots(self, force=False):
-        rust_current = self.rust_snapshot_path().split('/')[0]
+    def clean_nightlies(self, force=False):
+        rust_current = self.rust_path().split('/')[0]
         cargo_current = self.cargo_build_id()
         print("Current Rust version: " + rust_current)
         print("Current Cargo version: " + cargo_current)
@@ -321,4 +321,4 @@ class MachCommands(CommandBase):
             print("Nothing to remove.")
         elif not force:
             print("Nothing done. "
-                  "Run `./mach clean-snapshots -f` to actually remove.")
+                  "Run `./mach clean-nightlies -f` to actually remove.")
