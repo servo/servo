@@ -408,9 +408,11 @@ impl Flow for TableWrapperFlow {
 
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_wrapper");
-        self.block_flow
-            .assign_block_size_block_base(layout_context,
-                                          MarginsMayCollapseFlag::MarginsMayNotCollapse);
+        let remaining = self.block_flow.assign_block_size_block_base(
+            layout_context,
+            None,
+            MarginsMayCollapseFlag::MarginsMayNotCollapse);
+        debug_assert!(remaining.is_none());
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
