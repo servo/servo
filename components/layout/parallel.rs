@@ -348,10 +348,10 @@ impl<'a, 'ln, ConcreteLayoutNode> ParallelPreorderDomTraversal<'ln, ConcreteLayo
                     unsafe_nodes: UnsafeNodeList,
                     proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>) {
         // Not exactly sure why we need UFCS here, but we seem to.
-        <RecalcStyleForNode<'a> as ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>>
+        <RecalcStyleForNode as ParallelPreorderDomTraversal<ConcreteLayoutNode>>
           ::run_parallel_helper(self, unsafe_nodes, proxy,
-                                recalc_style::<'ln, ConcreteLayoutNode>,
-                                construct_flows::<'ln, ConcreteLayoutNode>)
+                                recalc_style::<ConcreteLayoutNode>,
+                                construct_flows::<ConcreteLayoutNode>)
     }
 }
 
@@ -447,7 +447,7 @@ pub fn traverse_dom_preorder<'ln, ConcreteLayoutNode: LayoutNode<'ln>>(root: Con
                              queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
-            fun:  recalc_style::<'ln, ConcreteLayoutNode>,
+            fun:  recalc_style::<ConcreteLayoutNode>,
             data: (box vec![root.to_unsafe()], root.opaque()),
         });
     }, shared_layout_context);
