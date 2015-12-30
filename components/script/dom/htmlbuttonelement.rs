@@ -50,7 +50,6 @@ impl HTMLButtonElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
-            //TODO: implement button_type in attribute_mutated
             button_type: Cell::new(ButtonType::Submit)
         }
     }
@@ -162,6 +161,22 @@ impl VirtualMethods for HTMLButtonElement {
                     }
                 }
             },
+            &atom!("type") => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        let value = match &**attr.value() {
+                            "reset" => ButtonType::Reset,
+                            "button" => ButtonType::Button,
+                            "menu" => ButtonType::Menu,
+                            _ => ButtonType::Submit,
+                        };
+                        self.button_type.set(value);
+                    }
+                    AttributeMutation::Removed => {
+                        self.button_type.set(ButtonType::Submit);
+                    }
+                }
+            }
             _ => {},
         }
     }

@@ -31,6 +31,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onkeypress;
            attribute EventHandler onkeyup;
            attribute EventHandler onchange;
+           attribute EventHandler onreset;
            attribute EventHandler onsubmit;
 };
 
