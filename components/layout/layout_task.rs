@@ -39,7 +39,7 @@ use msg::ParseErrorReporter;
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
-use parallel::{self, WorkQueueData};
+use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
@@ -174,7 +174,7 @@ pub struct LayoutTask {
     canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+    parallel_traversal: Option<WorkQueue>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -808,7 +808,7 @@ impl LayoutTask {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints_parallel(traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
+    fn solve_constraints_parallel(traversal: &mut WorkQueue,
                                   layout_root: &mut FlowRef,
                                   profiler_metadata: Option<TimerMetadata>,
                                   time_profiler_chan: time::ProfilerChan,
