@@ -277,6 +277,7 @@ impl ViewportRule {
         Ok(ViewportRule { declarations: valid_declarations.iter().cascade() })
     }
 
+    #[allow(unsafe_code)]
     pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = HashMap::new();
         macro_rules! push_descriptor {
@@ -458,6 +459,7 @@ impl ViewportDescriptorDeclaration {
     }
 }
 
+#[allow(unsafe_code)]
 fn cascade<'a, I>(iter: I) -> Vec<ViewportDescriptorDeclaration>
     where I: Iterator<Item=&'a ViewportDescriptorDeclaration>
 {

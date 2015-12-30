@@ -14,6 +14,8 @@
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
+#![deny(unsafe_code)]
+
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
@@ -61,6 +63,7 @@ pub mod viewport;
 
 // Generated from the properties.mako.rs template by build.rs
 #[macro_use]
+#[allow(unsafe_code)]
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
