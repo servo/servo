@@ -6,7 +6,7 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use css::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
+use css::matching::{ElementMatchMethods, MatchMethods, StyleSharingResult};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
@@ -15,7 +15,9 @@ use script::layout_interface::ReflowGoal;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use std::mem;
+use style::context::StyleContext;
 use style::dom::UnsafeNode;
+use style::matching::ApplicableDeclarations;
 use util::opts;
 use util::tid::tid;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
@@ -72,7 +74,7 @@ fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
             // Found cached bloom filter.
             (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
                 if old_node == parent.to_unsafe() &&
-                    old_generation == layout_context.shared.generation {
+                    old_generation == layout_context.shared_context().generation {
                     // Hey, the cached parent is our parent! We can reuse the bloom filter.
                     debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
                 } else {
@@ -93,7 +95,7 @@ fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken task-local bloom filter");
-        *style_bloom.borrow_mut() = Some((bf, *unsafe_node, layout_context.shared.generation));
+        *style_bloom.borrow_mut() = Some((bf, *unsafe_node, layout_context.shared_context().generation));
     })
 }
 
@@ -192,7 +194,7 @@ impl<'a, 'ln, ConcreteLayoutNode> PreorderDomTraversal<'ln, ConcreteLayoutNode>
                     let shareable_element = match node.as_element() {
                         Some(element) => {
                             // Perform the CSS selector matching.
-                            let stylist = unsafe { &*self.layout_context.shared.stylist.0 };
+                            let stylist = unsafe { &*self.layout_context.shared_context().stylist.0 };
                             if element.match_element(stylist,
                                                      Some(&*bf),
                                                      &mut applicable_declarations) {
@@ -216,7 +218,7 @@ impl<'a, 'ln, ConcreteLayoutNode> PreorderDomTraversal<'ln, ConcreteLayoutNode>
                                           parent_opt,
                                           &applicable_declarations,
                                           &mut self.layout_context.applicable_declarations_cache(),
-                                          &self.layout_context.shared.new_animations_sender);
+                                          &self.layout_context.shared_context().new_animations_sender);
                     }
 
                     // Add ourselves to the LRU cache.
@@ -292,7 +294,7 @@ impl<'a, 'ln, ConcreteLayoutNode> PostorderDomTraversal<'ln, ConcreteLayoutNode>
             });
 
         assert_eq!(old_node, unsafe_layout_node);
-        assert_eq!(old_generation, self.layout_context.shared.generation);
+        assert_eq!(old_generation, self.layout_context.shared_context().generation);
 
         match node.layout_parent_node(self.root) {
             None => {
@@ -401,6 +403,6 @@ impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
 
     #[inline]
     fn should_process(&self, _: &mut Flow) -> bool {
-        self.layout_context.shared.goal == ReflowGoal::ForDisplay
+        self.layout_context.shared_context().goal == ReflowGoal::ForDisplay
     }
 }

@@ -8,34 +8,30 @@
 
 use app_units::Au;
 use canvas_traits::CanvasMsg;
-use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use euclid::{Rect, Size2D};
+use euclid::Rect;
 use fnv::FnvHasher;
-use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
-use msg::ParseErrorReporter;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
 use net_traits::image_cache_task::{UsePlaceholder};
-use script::layout_interface::{Animation, ReflowGoal};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
-use std::sync::{Arc, Mutex, RwLock};
-use style::selector_matching::Stylist;
+use std::sync::{Arc, Mutex};
+use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
+use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use url::Url;
 use util::mem::HeapSizeOf;
 use util::opts;
 
 struct LocalLayoutContext {
+    style_context: LocalStyleContext,
     font_context: RefCell<FontContext>,
-    applicable_declarations_cache: RefCell<ApplicableDeclarationsCache>,
-    style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
 }
 
 impl HeapSizeOf for LocalLayoutContext {
@@ -58,16 +54,18 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
     LOCAL_CONTEXT_KEY.with(|r| {
         let mut r = r.borrow_mut();
         if let Some(context) = r.clone() {
-            if shared_layout_context.screen_size_changed {
-                context.applicable_declarations_cache.borrow_mut().evict_all();
+            if shared_layout_context.style_context.screen_size_changed {
+                context.style_context.applicable_declarations_cache.borrow_mut().evict_all();
             }
             context
         } else {
             let font_cache_task = shared_layout_context.font_cache_task.lock().unwrap().clone();
             let context = Rc::new(LocalLayoutContext {
+                style_context: LocalStyleContext {
+                    applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
+                    style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
+                },
                 font_context: RefCell::new(FontContext::new(font_cache_task)),
-                applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
-                style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             });
             *r = Some(context.clone());
             context
@@ -75,67 +73,43 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
     })
 }
 
-pub struct StylistWrapper(pub *const Stylist);
-
-// FIXME(#6569) This implementation is unsound.
-#[allow(unsafe_code)]
-unsafe impl Sync for StylistWrapper {}
-
 /// Layout information shared among all workers. This must be thread-safe.
 pub struct SharedLayoutContext {
+    /// Bits shared by the layout and style system.
+    pub style_context: SharedStyleContext,
+
     /// The shared image cache task.
     pub image_cache_task: ImageCacheTask,
 
     /// A channel for the image cache to send responses to.
     pub image_cache_sender: Mutex<ImageCacheChan>,
 
-    /// The current viewport size.
-    pub viewport_size: Size2D<Au>,
-
-    /// Screen sized changed?
-    pub screen_size_changed: bool,
-
     /// Interface to the font cache task.
     pub font_cache_task: Mutex<FontCacheTask>,
 
-    /// The CSS selector stylist.
-    ///
-    /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    pub stylist: StylistWrapper,
-
     /// The URL.
     pub url: Url,
-
-    /// Starts at zero, and increased by one every time a layout completes.
-    /// This can be used to easily check for invalid stale data.
-    pub generation: u32,
-
-    /// A channel on which new animations that have been triggered by style recalculation can be
-    /// sent.
-    pub new_animations_sender: Mutex<Sender<Animation>>,
 
     /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
     pub canvas_layers_sender: Mutex<Sender<(LayerId, IpcSender<CanvasMsg>)>>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
-
-    /// The animations that are currently running.
-    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The list of animations that have expired since the last style recalculation.
-    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// Why is this reflow occurring
-    pub goal: ReflowGoal,
-
-    ///The CSS error reporter for all CSS loaded in this layout thread
-    pub error_reporter: Box<ParseErrorReporter + Sync>
 }
 
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
     cached_local_layout_context: Rc<LocalLayoutContext>,
+}
+
+impl<'a> StyleContext<'a> for LayoutContext<'a> {
+    fn shared_context(&self) -> &'a SharedStyleContext {
+        &self.shared.style_context
+    }
+
+    fn local_context(&self) -> &LocalStyleContext {
+        &self.cached_local_layout_context.style_context
+    }
 }
 
 impl<'a> LayoutContext<'a> {
@@ -156,12 +130,12 @@ impl<'a> LayoutContext<'a> {
 
     #[inline(always)]
     pub fn applicable_declarations_cache(&self) -> RefMut<ApplicableDeclarationsCache> {
-        self.cached_local_layout_context.applicable_declarations_cache.borrow_mut()
+        self.local_context().applicable_declarations_cache.borrow_mut()
     }
 
     #[inline(always)]
     pub fn style_sharing_candidate_cache(&self) -> RefMut<StyleSharingCandidateCache> {
-        self.cached_local_layout_context.style_sharing_candidate_cache.borrow_mut()
+        self.local_context().style_sharing_candidate_cache.borrow_mut()
     }
 
     pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)

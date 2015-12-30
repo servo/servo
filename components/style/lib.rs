@@ -43,10 +43,12 @@ extern crate util;
 
 pub mod animation;
 pub mod attr;
+pub mod context;
 mod custom_properties;
 pub mod data;
 pub mod dom;
 pub mod font_face;
+pub mod matching;
 pub mod media_queries;
 pub mod parser;
 pub mod restyle_hints;
