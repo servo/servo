@@ -4,18 +4,15 @@
 
 use construct::ConstructionResult;
 use incremental::RestyleDamage;
-use parallel::DomParallelInfo;
-use script::dom::node::SharedLayoutData;
-use std::sync::Arc;
-use style::properties::ComputedValues;
+use style::data::PrivateStyleData;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
-    /// The results of CSS styling for this node's `before` pseudo-element, if any.
-    pub before_style: Option<Arc<ComputedValues>>,
-
-    /// The results of CSS styling for this node's `after` pseudo-element, if any.
-    pub after_style: Option<Arc<ComputedValues>>,
+    /// Data that the style system associates with a node. When the
+    /// style system is being used standalone, this is all that hangs
+    /// off the node. This must be first to permit the various
+    /// transmuations between PrivateStyleData PrivateLayoutData.
+    pub style_data: PrivateStyleData,
 
     /// Description of how to account for recent style changes.
     pub restyle_damage: RestyleDamage,
@@ -28,9 +25,6 @@ pub struct PrivateLayoutData {
 
     pub after_flow_construction_result: ConstructionResult,
 
-    /// Information needed during parallel traversals.
-    pub parallel: DomParallelInfo,
-
     /// Various flags.
     pub flags: LayoutDataFlags,
 }
@@ -39,13 +33,11 @@ impl PrivateLayoutData {
     /// Creates new layout data.
     pub fn new() -> PrivateLayoutData {
         PrivateLayoutData {
-            before_style: None,
-            after_style: None,
+            style_data: PrivateStyleData::new(),
             restyle_damage: RestyleDamage::empty(),
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
             after_flow_construction_result: ConstructionResult::None,
-            parallel: DomParallelInfo::new(),
             flags: LayoutDataFlags::empty(),
         }
     }
@@ -55,18 +47,5 @@ bitflags! {
     flags LayoutDataFlags: u8 {
         #[doc = "Whether a flow has been newly constructed."]
         const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01
-    }
-}
-
-pub struct LayoutDataWrapper {
-    pub shared_data: SharedLayoutData,
-    pub data: Box<PrivateLayoutData>,
-}
-
-#[allow(dead_code, unsafe_code)]
-fn static_assertion(x: Option<LayoutDataWrapper>) {
-    unsafe {
-        let _: Option<::script::dom::node::LayoutData> =
-            ::std::intrinsics::transmute(x);
     }
 }

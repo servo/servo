@@ -15,6 +15,7 @@ use gfx::display_list::OpaqueNode;
 use profile_traits::time::{self, TimerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
+use style::dom::UnsafeNode;
 use traversal::PostorderNodeMutTraversal;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
@@ -22,17 +23,17 @@ use traversal::{ConstructFlows, RecalcStyleForNode};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
-use wrapper::{LayoutNode, UnsafeLayoutNode};
+use wrapper::LayoutNode;
 
 const CHUNK_SIZE: usize = 64;
 
 pub struct WorkQueueData(usize, usize);
 
 #[allow(dead_code)]
-fn static_assertion(node: UnsafeLayoutNode) {
+fn static_assertion(node: UnsafeNode) {
     unsafe {
         let _: UnsafeFlow = ::std::intrinsics::transmute(node);
-        let _: UnsafeLayoutNodeList = ::std::intrinsics::transmute(node);
+        let _: UnsafeNodeList = ::std::intrinsics::transmute(node);
     }
 }
 
@@ -55,31 +56,17 @@ pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
     }
 }
 
-/// Information that we need stored in each DOM node.
-pub struct DomParallelInfo {
-    /// The number of children that still need work done.
-    pub children_count: AtomicIsize,
-}
+pub type UnsafeNodeList = (Box<Vec<UnsafeNode>>, OpaqueNode);
 
-impl DomParallelInfo {
-    pub fn new() -> DomParallelInfo {
-        DomParallelInfo {
-            children_count: AtomicIsize::new(0),
-        }
-    }
-}
-
-pub type UnsafeLayoutNodeList = (Box<Vec<UnsafeLayoutNode>>, OpaqueNode);
-
-pub type UnsafeFlowList = (Box<Vec<UnsafeLayoutNode>>, usize);
+pub type UnsafeFlowList = (Box<Vec<UnsafeNode>>, usize);
 
 pub type ChunkedDomTraversalFunction =
-    extern "Rust" fn(UnsafeLayoutNodeList,
-                     &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
+    extern "Rust" fn(UnsafeNodeList,
+                     &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>);
 
 pub type DomTraversalFunction =
-    extern "Rust" fn(OpaqueNode, UnsafeLayoutNode,
-                     &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
+    extern "Rust" fn(OpaqueNode, UnsafeNode,
+                     &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>);
 
 pub type ChunkedFlowTraversalFunction =
     extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>);
@@ -91,14 +78,14 @@ pub trait ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
         : PreorderDomTraversal<'ln, ConcreteLayoutNode>
           where ConcreteLayoutNode: LayoutNode<'ln> {
     fn run_parallel(&self,
-                    nodes: UnsafeLayoutNodeList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>);
+                    nodes: UnsafeNodeList,
+                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>);
 
     #[inline(always)]
     fn run_parallel_helper(
             &self,
-            unsafe_nodes: UnsafeLayoutNodeList,
-            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>,
+            unsafe_nodes: UnsafeNodeList,
+            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>,
             top_down_func: ChunkedDomTraversalFunction,
             bottom_up_func: DomTraversalFunction) {
         let mut discovered_child_nodes = Vec::new();
@@ -113,10 +100,9 @@ pub trait ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
 
             // Reset the count of children.
             {
-                let mut layout_data_ref = node.mutate_layout_data();
-                let layout_data = layout_data_ref.as_mut().expect("no layout data");
-                layout_data.data.parallel.children_count.store(child_count as isize,
-                                                               Ordering::Relaxed);
+                let data = node.mutate_data().unwrap();
+                data.parallel.children_count.store(child_count as isize,
+                                                   Ordering::Relaxed);
             }
 
             // Possibly enqueue the children.
@@ -156,7 +142,7 @@ trait ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>
     ///
     /// The only communication between siblings is that they both
     /// fetch-and-subtract the parent's children count.
-    fn run_parallel(&self, unsafe_node: UnsafeLayoutNode) {
+    fn run_parallel(&self, unsafe_node: UnsafeNode) {
         // Get a real layout node.
         let mut node = unsafe { ConcreteLayoutNode::from_unsafe(&unsafe_node) };
         loop {
@@ -168,13 +154,11 @@ trait ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>
                 Some(parent) => parent,
             };
 
-            let parent_layout_data = unsafe {
-                &*parent.borrow_layout_data_unchecked()
+            let parent_data = unsafe {
+                &*parent.borrow_data_unchecked().unwrap()
             };
-            let parent_layout_data = parent_layout_data.as_ref().expect("no layout data");
 
-            if parent_layout_data
-                .data
+            if parent_data
                 .parallel
                 .children_count
                 .fetch_sub(1, Ordering::Relaxed) != 1 {
@@ -360,8 +344,8 @@ impl<'a, 'ln, ConcreteLayoutNode> ParallelPreorderDomTraversal<'ln, ConcreteLayo
                                   for RecalcStyleForNode<'a>
                                   where ConcreteLayoutNode: LayoutNode<'ln> {
     fn run_parallel(&self,
-                    unsafe_nodes: UnsafeLayoutNodeList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
+                    unsafe_nodes: UnsafeNodeList,
+                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>) {
         // Not exactly sure why we need UFCS here, but we seem to.
         <RecalcStyleForNode<'a> as ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>>
           ::run_parallel_helper(self, unsafe_nodes, proxy,
@@ -370,8 +354,8 @@ impl<'a, 'ln, ConcreteLayoutNode> ParallelPreorderDomTraversal<'ln, ConcreteLayo
     }
 }
 
-fn recalc_style<'ln, ConcreteLayoutNode>(unsafe_nodes: UnsafeLayoutNodeList,
-                                         proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>)
+fn recalc_style<'ln, ConcreteLayoutNode>(unsafe_nodes: UnsafeNodeList,
+                                         proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
                                          where ConcreteLayoutNode: LayoutNode<'ln> {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
@@ -388,8 +372,8 @@ fn recalc_style<'ln, ConcreteLayoutNode>(unsafe_nodes: UnsafeLayoutNodeList,
 
 fn construct_flows<'ln, ConcreteLayoutNode: LayoutNode<'ln>>(
         root: OpaqueNode,
-        unsafe_node: UnsafeLayoutNode,
-        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
+        unsafe_node: UnsafeNode,
+        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let construct_flows_traversal = ConstructFlows {

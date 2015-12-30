@@ -17,6 +17,7 @@
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
+extern crate core;
 #[macro_use]
 extern crate cssparser;
 extern crate encoding;
@@ -43,9 +44,10 @@ extern crate util;
 pub mod animation;
 pub mod attr;
 mod custom_properties;
+pub mod data;
+pub mod dom;
 pub mod font_face;
 pub mod media_queries;
-pub mod node;
 pub mod parser;
 pub mod restyle_hints;
 pub mod selector_matching;

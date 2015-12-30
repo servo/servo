@@ -8,7 +8,7 @@
 
 use animation;
 use context::SharedLayoutContext;
-use data::LayoutDataWrapper;
+use data::PrivateLayoutData;
 use incremental::{self, RestyleDamage};
 use msg::ParseErrorReporter;
 use script::layout_interface::Animation;
@@ -20,18 +20,19 @@ use selectors::{Element};
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
+use std::mem::transmute;
 use std::slice::Iter;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use string_cache::{Atom, Namespace};
-use style::node::TElementAttributes;
+use style::data::PrivateStyleData;
+use style::dom::{TElement, TNode};
 use style::properties::{ComputedValues, PropertyDeclaration, cascade};
 use style::selector_matching::{DeclarationBlock, Stylist};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
-use wrapper::{LayoutElement, LayoutNode};
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
@@ -160,7 +161,7 @@ pub struct StyleSharingCandidateCache {
     cache: LRUCache<StyleSharingCandidate, ()>,
 }
 
-fn create_common_style_affecting_attributes_from_element<'le, E: LayoutElement<'le>>(element: &E)
+fn create_common_style_affecting_attributes_from_element<'le, E: TElement<'le>>(element: &E)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
     for attribute_info in &common_style_affecting_attributes() {
@@ -211,17 +212,17 @@ impl StyleSharingCandidate {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
-    fn new<'le, E: LayoutElement<'le>>(element: &E) -> Option<StyleSharingCandidate> {
+    fn new<'le, E: TElement<'le>>(element: &E) -> Option<StyleSharingCandidate> {
         let parent_element = match element.parent_element() {
             None => return None,
             Some(parent_element) => parent_element,
         };
 
         let style = unsafe {
-            match *element.as_node().borrow_layout_data_unchecked() {
+            match element.as_node().borrow_data_unchecked() {
                 None => return None,
-                Some(ref layout_data_ref) => {
-                    match layout_data_ref.shared_data.style {
+                Some(data_ref) => {
+                    match (*data_ref).style {
                         None => return None,
                         Some(ref data) => (*data).clone(),
                     }
@@ -229,10 +230,10 @@ impl StyleSharingCandidate {
             }
         };
         let parent_style = unsafe {
-            match *parent_element.as_node().borrow_layout_data_unchecked() {
+            match parent_element.as_node().borrow_data_unchecked() {
                 None => return None,
-                Some(ref parent_layout_data_ref) => {
-                    match parent_layout_data_ref.shared_data.style {
+                Some(parent_data_ref) => {
+                    match (*parent_data_ref).style {
                         None => return None,
                         Some(ref data) => (*data).clone(),
                     }
@@ -257,7 +258,7 @@ impl StyleSharingCandidate {
         })
     }
 
-    fn can_share_style_with<'a, E: LayoutElement<'a>>(&self, element: &E) -> bool {
+    fn can_share_style_with<'a, E: TElement<'a>>(&self, element: &E) -> bool {
         if *element.get_local_name() != self.local_name {
             return false
         }
@@ -342,7 +343,7 @@ impl StyleSharingCandidateCache {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible<'le, E: LayoutElement<'le>>(&mut self, element: &E) {
+    pub fn insert_if_possible<'le, E: TElement<'le>>(&mut self, element: &E) {
         match StyleSharingCandidate::new(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
@@ -363,7 +364,7 @@ pub enum StyleSharingResult {
     StyleWasShared(usize, RestyleDamage),
 }
 
-pub trait ElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
+pub trait ElementMatchMethods<'le, ConcreteElement: TElement<'le>> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -376,11 +377,11 @@ pub trait ElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<ConcreteLayoutElement::ConcreteLayoutNode>)
+                                      parent: Option<ConcreteElement::ConcreteNode>)
                                       -> StyleSharingResult;
 }
 
-pub trait MatchMethods<'ln, ConcreteLayoutNode: LayoutNode<'ln>> {
+pub trait MatchMethods<'ln, ConcreteNode: TNode<'ln>> {
     /// Inserts and removes the matching `Descendant` selectors from a bloom
     /// filter. This is used to speed up CSS selector matching to remove
     /// unnecessary tree climbs for `Descendant` queries.
@@ -396,7 +397,7 @@ pub trait MatchMethods<'ln, ConcreteLayoutNode: LayoutNode<'ln>> {
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<ConcreteLayoutNode>,
+                           parent: Option<ConcreteNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>);
@@ -420,15 +421,15 @@ trait PrivateMatchMethods {
                                      -> bool;
 }
 
-trait PrivateElementMatchMethods<'le, ConcreteLayoutElement: LayoutElement<'le>> {
+trait PrivateElementMatchMethods<'le, ConcreteElement: TElement<'le>> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<ConcreteLayoutElement::ConcreteLayoutNode>,
+                                              parent_node: Option<ConcreteElement::ConcreteNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>>;
 }
 
-impl<'ln, ConcreteLayoutNode> PrivateMatchMethods for ConcreteLayoutNode
-                                                  where ConcreteLayoutNode: LayoutNode<'ln> {
+impl<'ln, ConcreteNode> PrivateMatchMethods for ConcreteNode
+                                            where ConcreteNode: TNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
@@ -547,11 +548,11 @@ impl<'ln, ConcreteLayoutNode> PrivateMatchMethods for ConcreteLayoutNode
     }
 }
 
-impl<'le, ConcreteLayoutElement> PrivateElementMatchMethods<'le, ConcreteLayoutElement>
-                                 for ConcreteLayoutElement
-                                 where ConcreteLayoutElement: LayoutElement<'le> {
+impl<'le, ConcreteElement> PrivateElementMatchMethods<'le, ConcreteElement>
+                           for ConcreteElement
+                           where ConcreteElement: TElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<ConcreteLayoutElement::ConcreteLayoutNode>,
+                                              parent_node: Option<ConcreteElement::ConcreteNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
         let parent_node = match parent_node {
@@ -559,13 +560,13 @@ impl<'le, ConcreteLayoutElement> PrivateElementMatchMethods<'le, ConcreteLayoutE
             Some(_) | None => return None,
         };
 
-        let parent_layout_data: &Option<LayoutDataWrapper> = unsafe {
-            &*parent_node.borrow_layout_data_unchecked()
+        let parent_data: Option<&PrivateStyleData> = unsafe {
+            parent_node.borrow_data_unchecked().map(|d| &*d)
         };
-        match *parent_layout_data {
-            Some(ref parent_layout_data_ref) => {
+        match parent_data {
+            Some(parent_data_ref) => {
                 // Check parent style.
-                let parent_style = parent_layout_data_ref.shared_data.style.as_ref().unwrap();
+                let parent_style = (*parent_data_ref).style.as_ref().unwrap();
                 if !arc_ptr_eq(parent_style, &candidate.parent_style) {
                     return None
                 }
@@ -584,9 +585,9 @@ impl<'le, ConcreteLayoutElement> PrivateElementMatchMethods<'le, ConcreteLayoutE
     }
 }
 
-impl<'le, ConcreteLayoutElement> ElementMatchMethods<'le, ConcreteLayoutElement>
-                                 for ConcreteLayoutElement
-                                 where ConcreteLayoutElement: LayoutElement<'le> {
+impl<'le, ConcreteElement> ElementMatchMethods<'le, ConcreteElement>
+                           for ConcreteElement
+                           where ConcreteElement: TElement<'le> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -619,7 +620,7 @@ impl<'le, ConcreteLayoutElement> ElementMatchMethods<'le, ConcreteLayoutElement>
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<ConcreteLayoutElement::ConcreteLayoutNode>)
+                                      parent: Option<ConcreteElement::ConcreteNode>)
                                       -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
@@ -637,9 +638,7 @@ impl<'le, ConcreteLayoutElement> ElementMatchMethods<'le, ConcreteLayoutElement>
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
                     let node = self.as_node();
-                    let mut layout_data_ref = node.mutate_layout_data();
-                    let shared_data = &mut layout_data_ref.as_mut().unwrap().shared_data;
-                    let style = &mut shared_data.style;
+                    let style = &mut node.mutate_data().unwrap().style;
                     let damage = incremental::compute_damage(style, &*shared_style);
                     *style = Some(shared_style);
                     return StyleSharingResult::StyleWasShared(i, damage)
@@ -652,9 +651,9 @@ impl<'le, ConcreteLayoutElement> ElementMatchMethods<'le, ConcreteLayoutElement>
     }
 }
 
-impl<'ln, ConcreteLayoutNode> MatchMethods<'ln, ConcreteLayoutNode>
-                              for ConcreteLayoutNode
-                              where ConcreteLayoutNode: LayoutNode<'ln> {
+impl<'ln, ConcreteNode> MatchMethods<'ln, ConcreteNode>
+                        for ConcreteNode
+                        where ConcreteNode: TNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -696,7 +695,7 @@ impl<'ln, ConcreteLayoutNode> MatchMethods<'ln, ConcreteLayoutNode>
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<ConcreteLayoutNode>,
+                           parent: Option<ConcreteNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>) {
@@ -708,63 +707,57 @@ impl<'ln, ConcreteLayoutNode> MatchMethods<'ln, ConcreteLayoutNode>
         let parent_style = match parent {
             None => None,
             Some(parent_node) => {
-                let parent_layout_data_ref = parent_node.borrow_layout_data_unchecked();
-                let parent_layout_data = (&*parent_layout_data_ref).as_ref()
-                                                                   .expect("no parent data!?");
-                let parent_style = parent_layout_data.shared_data
-                                                     .style
-                                                     .as_ref()
-                                                     .expect("parent hasn't been styled yet!");
+                let parent_style = (*parent_node.borrow_data_unchecked().unwrap()).style.as_ref().unwrap();
                 Some(parent_style)
             }
         };
 
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref {
-            None => panic!("no layout data"),
-            Some(ref mut layout_data) => {
-                if self.is_text_node() {
-                    // Text nodes get a copy of the parent style. This ensures
-                    // that during fragment construction any non-inherited
-                    // CSS properties (such as vertical-align) are correctly
-                    // set on the fragment(s).
-                    let cloned_parent_style = parent_style.unwrap().clone();
-                    layout_data.shared_data.style = Some(cloned_parent_style);
-                } else {
-                    let mut damage = self.cascade_node_pseudo_element(
-                        layout_context,
-                        parent_style,
-                        &applicable_declarations.normal,
-                        &mut layout_data.shared_data.style,
-                        applicable_declarations_cache,
-                        new_animations_sender,
-                        applicable_declarations.normal_shareable,
-                        true);
-                    if !applicable_declarations.before.is_empty() {
-                        damage = damage | self.cascade_node_pseudo_element(
-                            layout_context,
-                            Some(layout_data.shared_data.style.as_ref().unwrap()),
-                            &*applicable_declarations.before,
-                            &mut layout_data.data.before_style,
-                            applicable_declarations_cache,
-                            new_animations_sender,
-                            false,
-                            false);
-                    }
-                    if !applicable_declarations.after.is_empty() {
-                        damage = damage | self.cascade_node_pseudo_element(
-                            layout_context,
-                            Some(layout_data.shared_data.style.as_ref().unwrap()),
-                            &*applicable_declarations.after,
-                            &mut layout_data.data.after_style,
-                            applicable_declarations_cache,
-                            new_animations_sender,
-                            false,
-                            false);
-                    }
-                    layout_data.data.restyle_damage = damage;
-                }
+        let mut data_ref = self.mutate_data().unwrap();
+        let mut data = &mut *data_ref;
+        if self.is_text_node() {
+            // Text nodes get a copy of the parent style. This ensures
+            // that during fragment construction any non-inherited
+            // CSS properties (such as vertical-align) are correctly
+            // set on the fragment(s).
+            let cloned_parent_style = parent_style.unwrap().clone();
+            data.style = Some(cloned_parent_style);
+        } else {
+            let mut damage = self.cascade_node_pseudo_element(
+                layout_context,
+                parent_style,
+                &applicable_declarations.normal,
+                &mut data.style,
+                applicable_declarations_cache,
+                new_animations_sender,
+                applicable_declarations.normal_shareable,
+                true);
+            if !applicable_declarations.before.is_empty() {
+                damage = damage | self.cascade_node_pseudo_element(
+                    layout_context,
+                    Some(data.style.as_ref().unwrap()),
+                    &*applicable_declarations.before,
+                    &mut data.before_style,
+                    applicable_declarations_cache,
+                    new_animations_sender,
+                    false,
+                    false);
             }
+            if !applicable_declarations.after.is_empty() {
+                damage = damage | self.cascade_node_pseudo_element(
+                    layout_context,
+                    Some(data.style.as_ref().unwrap()),
+                    &*applicable_declarations.after,
+                    &mut data.after_style,
+                    applicable_declarations_cache,
+                    new_animations_sender,
+                    false,
+                    false);
+            }
+
+            // FIXME(bholley): This is the only dependency in this file on non-style
+            // stuff.
+            let layout_data: &mut PrivateLayoutData = transmute(data);
+            layout_data.restyle_damage = damage;
         }
     }
 }

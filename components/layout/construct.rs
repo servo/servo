@@ -15,7 +15,7 @@
 
 use block::BlockFlow;
 use context::LayoutContext;
-use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
+use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PrivateLayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
@@ -58,7 +58,7 @@ use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::linked_list;
 use util::opts;
-use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, PseudoElementType, TextContent, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -1326,10 +1326,9 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
 
 
         let mut style = node.style().clone();
-        let mut layout_data_ref = node.mutate_layout_data();
-        let layout_data = layout_data_ref.as_mut().expect("no layout data");
-        let damage = layout_data.data.restyle_damage;
-        match *node.construction_result_mut(layout_data) {
+        let mut data = node.mutate_layout_data().unwrap();
+        let damage = data.restyle_damage;
+        match *node.construction_result_mut(&mut *data) {
             ConstructionResult::None => true,
             ConstructionResult::Flow(ref mut flow, _) => {
                 // The node's flow is of the same type and has the same set of children and can
@@ -1580,7 +1579,7 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(&self) -> bool;
 
-    fn construction_result_mut(self, layout_data: &mut LayoutDataWrapper) -> &mut ConstructionResult;
+    fn construction_result_mut(self, layout_data: &mut PrivateLayoutData) -> &mut ConstructionResult;
 
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
@@ -1611,30 +1610,26 @@ impl<'ln, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNo
         }
     }
 
-    fn construction_result_mut(self, layout_data: &mut LayoutDataWrapper) -> &mut ConstructionResult {
+    fn construction_result_mut(self, data: &mut PrivateLayoutData) -> &mut ConstructionResult {
         match self.get_pseudo_element_type() {
-            PseudoElementType::Before(_) => &mut layout_data.data.before_flow_construction_result,
-            PseudoElementType::After (_) => &mut layout_data.data.after_flow_construction_result,
-            PseudoElementType::Normal    => &mut layout_data.data.flow_construction_result,
+            PseudoElementType::Before(_) => &mut data.before_flow_construction_result,
+            PseudoElementType::After (_) => &mut data.after_flow_construction_result,
+            PseudoElementType::Normal    => &mut data.flow_construction_result,
         }
     }
 
     #[inline(always)]
     fn set_flow_construction_result(self, result: ConstructionResult) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let layout_data = layout_data_ref.as_mut().expect("no layout data");
-
-        let dst = self.construction_result_mut(layout_data);
+        let mut layout_data = self.mutate_layout_data().unwrap();
+        let dst = self.construction_result_mut(&mut *layout_data);
 
         *dst = result;
     }
 
     #[inline(always)]
     fn swap_out_construction_result(self) -> ConstructionResult {
-        let mut layout_data_ref = self.mutate_layout_data();
-        let layout_data = layout_data_ref.as_mut().expect("no layout data");
-
-        self.construction_result_mut(layout_data).swap_out()
+        let mut layout_data = self.mutate_layout_data().unwrap();
+        self.construction_result_mut(&mut *layout_data).swap_out()
     }
 }
 

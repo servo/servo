@@ -35,6 +35,7 @@ use std::mem::{size_of, transmute};
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicIsize, AtomicUsize};
 use str::{DOMString, LengthOrPercentageOrAuto};
 use string_cache::atom::Atom;
 use string_cache::namespace::{QualName, Namespace};
@@ -418,6 +419,7 @@ impl HeapSizeOf for Value {
 known_heap_size!(0, u8, u16, u32, u64, usize);
 known_heap_size!(0, i8, i16, i32, i64, isize);
 known_heap_size!(0, bool, f32, f64);
+known_heap_size!(0, AtomicIsize, AtomicUsize);
 
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Range<T>);
 known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
