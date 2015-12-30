@@ -1652,7 +1652,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
-                println!("was ready to save, resetting ready_to_save_state");
+                if opts::get().is_running_problem_test {
+                    println!("was ready to save, resetting ready_to_save_state");
+                }
                 self.ready_to_save_state = ReadyState::Unknown;
                 Ok(())
             }
