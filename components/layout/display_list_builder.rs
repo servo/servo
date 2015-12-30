@@ -1082,6 +1082,8 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) => {

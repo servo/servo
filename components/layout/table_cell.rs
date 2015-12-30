@@ -69,9 +69,11 @@ impl TableCellFlow {
     /// methods.
     #[inline(always)]
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size_block_base(
+        let remaining = self.block_flow.assign_block_size_block_base(
             layout_context,
-            MarginsMayCollapseFlag::MarginsMayNotCollapse)
+            None,
+            MarginsMayCollapseFlag::MarginsMayNotCollapse);
+        debug_assert!(remaining.is_none());
     }
 }
 

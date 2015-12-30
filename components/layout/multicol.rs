@@ -11,23 +11,43 @@ use block::BlockFlow;
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
 use floats::FloatKind;
-use flow::{Flow, FlowClass, OpaqueFlow, mut_base};
+use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
+use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
+use style::context::StyleContext;
 use style::properties::ComputedValues;
+use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use util::logical_geometry::LogicalSize;
 use util::print_tree::PrintTree;
 
 pub struct MulticolFlow {
+    pub block_flow: BlockFlow,
+
+    /// Length between the inline-start edge of a column and that of the next.
+    /// That is, the used column-width + used column-gap.
+    pub column_pitch: Au,
+}
+
+pub struct MulticolColumnFlow {
     pub block_flow: BlockFlow,
 }
 
 impl MulticolFlow {
     pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> MulticolFlow {
         MulticolFlow {
-            block_flow: BlockFlow::from_fragment(fragment, float_kind)
+            block_flow: BlockFlow::from_fragment(fragment, float_kind),
+            column_pitch: Au(0),
+        }
+    }
+}
+
+impl MulticolColumnFlow {
+    pub fn from_fragment(fragment: Fragment) -> MulticolColumnFlow {
+        MulticolColumnFlow {
+            block_flow: BlockFlow::from_fragment(fragment, None),
         }
     }
 }
@@ -37,16 +57,16 @@ impl Flow for MulticolFlow {
         FlowClass::Multicol
     }
 
-    fn as_mut_multicol(&mut self) -> &mut MulticolFlow {
-        self
-    }
-
     fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 
     fn as_block(&self) -> &BlockFlow {
         &self.block_flow
+    }
+
+    fn as_mut_multicol(&mut self) -> &mut MulticolFlow {
+        self
     }
 
     fn bubble_inline_sizes(&mut self) {
@@ -90,6 +110,7 @@ impl Flow for MulticolFlow {
             }
             column_width =
                 max(Au(0), (content_inline_size + column_gap) / column_count - column_gap);
+            self.column_pitch = column_width + column_gap;
         }
 
         self.block_flow.fragment.border_box.size.inline = content_inline_size + padding_and_borders;
@@ -101,15 +122,51 @@ impl Flow for MulticolFlow {
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for multicol");
-        let available_block_size = Au(0);
-        for child in mut_base(self).children.iter_mut() {
-            child.fragment(ctx, available_block_size);
-        }
+
+        let fragmentation_context = Some(FragmentationContext {
+            this_fragment_is_empty: true,
+            available_block_size: {
+                let style = &self.block_flow.fragment.style;
+                if let LengthOrPercentageOrAuto::Length(length) = style.content_block_size() {
+                    length
+                } else if let LengthOrPercentageOrNone::Length(length) = style.max_block_size() {
+                    length
+                } else {
+                    // FIXME: do column balancing instead
+                    // FIXME: (until column balancing) substract margins/borders/padding
+                    LogicalSize::from_physical(
+                        self.block_flow.base.writing_mode,
+                        ctx.shared_context().viewport_size,
+                    ).block
+                }
+            }
+        });
+
+        // Before layout, everything is in a single "column"
+        assert!(self.block_flow.base.children.len() == 1);
+        let mut column = self.block_flow.base.children.pop_front().unwrap();
+
+        // Pretend there is no children for this:
         self.block_flow.assign_block_size(ctx);
+
+        loop {
+            let remaining = flow_ref::deref_mut(&mut column).fragment(ctx, fragmentation_context);
+            self.block_flow.base.children.push_back(column);
+            column = match remaining {
+                Some(remaining) => remaining,
+                None => break
+            };
+        }
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context)
+        self.block_flow.compute_absolute_position(layout_context);
+        let pitch = LogicalSize::new(self.block_flow.base.writing_mode, self.column_pitch, Au(0));
+        let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
+        for (i, child) in self.block_flow.base.children.iter_mut().enumerate() {
+            let point = &mut mut_base(child).stacking_relative_position;
+            *point = *point + pitch * i as i32;
+        }
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
@@ -121,8 +178,8 @@ impl Flow for MulticolFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_multicol: same process as block flow");
-        self.block_flow.build_display_list(layout_context)
+        debug!("build_display_list_multicol");
+        self.block_flow.build_display_list(layout_context);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
@@ -141,11 +198,89 @@ impl Flow for MulticolFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              level: i32,
                                              stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position)
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
     }
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
-        self.block_flow.mutate_fragments(mutator)
+        self.block_flow.mutate_fragments(mutator);
+    }
+
+    fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
+        self.block_flow.print_extra_flow_children(print_tree);
+    }
+}
+
+impl Flow for MulticolColumnFlow {
+    fn class(&self) -> FlowClass {
+        FlowClass::MulticolColumn
+    }
+
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
+        &mut self.block_flow
+    }
+
+    fn as_block(&self) -> &BlockFlow {
+        &self.block_flow
+    }
+
+    fn bubble_inline_sizes(&mut self) {
+        self.block_flow.bubble_inline_sizes();
+    }
+
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+        debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol column");
+        self.block_flow.assign_inline_sizes(layout_context);
+    }
+
+    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+        debug!("assign_block_size: assigning block_size for multicol column");
+        self.block_flow.assign_block_size(ctx);
+    }
+
+    fn fragment(&mut self, layout_context: &LayoutContext,
+                fragmentation_context: Option<FragmentationContext>)
+                -> Option<FlowRef> {
+        Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
+    }
+
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_absolute_position(layout_context)
+    }
+
+    fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
+        self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
+    }
+
+    fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
+        self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        debug!("build_display_list_multicol column");
+        self.block_flow.build_display_list(layout_context);
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.block_flow.repair_style(new_style)
+    }
+
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             level: i32,
+                                             stacking_context_position: &Point2D<Au>) {
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
+    }
+
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        self.block_flow.mutate_fragments(mutator);
     }
 
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
@@ -156,5 +291,11 @@ impl Flow for MulticolFlow {
 impl fmt::Debug for MulticolFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MulticolFlow: {:?}", self.block_flow)
+    }
+}
+
+impl fmt::Debug for MulticolColumnFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MulticolColumnFlow: {:?}", self.block_flow)
     }
 }
