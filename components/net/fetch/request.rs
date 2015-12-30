@@ -4,8 +4,7 @@
 
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
-use http_loader::{create_http_connector, obtain_response};
-use http_loader::{NetworkHttpRequestFactory};
+use http_loader::{create_http_connector, NetworkHttpRequestFactory, obtain_response};
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
 use hyper::header::{Authorization, Basic};
@@ -546,7 +545,6 @@ fn http_fetch(request: Rc<RefCell<Request>>,
 fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
                                credentials_flag: bool,
                                authentication_fetch_flag: bool) -> Response {
-    // TODO: Implement HTTP network or cache fetch spec
 
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
@@ -743,14 +741,15 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
 
     // Step 4
     let factory = NetworkHttpRequestFactory {
-        connector: connector,
+        connector: connection,
     };
-    let req = request.clone();
+    let req = request.borrow();
     let url = req.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
-    let response = obtain_response(&factory, url, &req.method, &req.headers, cancellation_listener,
-                                   load_data, req.redirect_count, None, ""); 
+    let response = obtain_response(&factory, &url, &req.method, &mut request.borrow_mut().headers,
+                                   &cancellation_listener, None, &req.method,
+                                   None, req.redirect_count, None, "");
 
         // TODO these substeps aren't possible yet
         // Substep 1
