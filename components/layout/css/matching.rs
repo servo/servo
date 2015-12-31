@@ -7,7 +7,6 @@
 #![allow(unsafe_code)]
 
 use animation;
-use context::SharedLayoutContext;
 use msg::ParseErrorReporter;
 use script::layout_interface::Animation;
 use selectors::bloom::BloomFilter;
@@ -15,6 +14,7 @@ use selectors::parser::PseudoElement;
 use selectors::{Element};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
 use style::dom::{TElement, TNode, TRestyleDamage};
 use style::matching::{ApplicableDeclarations, ApplicableDeclarationsCache};
@@ -35,7 +35,7 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
 
 trait PrivateMatchMethods<'ln>: TNode<'ln> {
     fn cascade_node_pseudo_element(&self,
-                                   layout_context: &SharedLayoutContext,
+                                   context: &SharedStyleContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
@@ -47,7 +47,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
                                    -> Self::ConcreteRestyleDamage {
         let mut cacheable = true;
         if animate_properties {
-            cacheable = !self.update_animations_for_cascade(layout_context, style) && cacheable;
+            cacheable = !self.update_animations_for_cascade(context, style) && cacheable;
         }
 
         let mut this_style;
@@ -58,22 +58,22 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
                     None => None,
                     Some(ref style) => Some(&**style),
                 };
-                let (the_style, is_cacheable) = cascade(layout_context.style_context.viewport_size,
+                let (the_style, is_cacheable) = cascade(context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
                                                         cached_computed_values,
-                                                        layout_context.style_context.error_reporter.clone());
+                                                        context.error_reporter.clone());
                 cacheable = cacheable && is_cacheable;
                 this_style = the_style
             }
             None => {
-                let (the_style, is_cacheable) = cascade(layout_context.style_context.viewport_size,
+                let (the_style, is_cacheable) = cascade(context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         None,
                                                         None,
-                                                        layout_context.style_context.error_reporter.clone());
+                                                        context.error_reporter.clone());
                 cacheable = cacheable && is_cacheable;
                 this_style = the_style
             }
@@ -108,7 +108,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
     }
 
     fn update_animations_for_cascade(&self,
-                                     layout_context: &SharedLayoutContext,
+                                     context: &SharedStyleContext,
                                      style: &mut Option<Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
@@ -120,7 +120,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
         let this_opaque = self.opaque();
         let had_animations_to_expire;
         {
-            let all_expired_animations = layout_context.style_context.expired_animations.read().unwrap();
+            let all_expired_animations = context.expired_animations.read().unwrap();
             let animations_to_expire = all_expired_animations.get(&this_opaque);
             had_animations_to_expire = animations_to_expire.is_some();
             if let Some(ref animations) = animations_to_expire {
@@ -131,18 +131,17 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
         }
 
         if had_animations_to_expire {
-            layout_context.style_context.expired_animations.write().unwrap().remove(&this_opaque);
+            context.expired_animations.write().unwrap().remove(&this_opaque);
         }
 
         // Merge any running transitions into the current style, and cancel them.
-        let had_running_animations = layout_context.style_context
-                                                   .running_animations
-                                                   .read()
-                                                   .unwrap()
-                                                   .get(&this_opaque)
-                                                   .is_some();
+        let had_running_animations = context.running_animations
+                                            .read()
+                                            .unwrap()
+                                            .get(&this_opaque)
+                                            .is_some();
         if had_running_animations {
-            let mut all_running_animations = layout_context.style_context.running_animations.write().unwrap();
+            let mut all_running_animations = context.running_animations.write().unwrap();
             for running_animation in all_running_animations.get(&this_opaque).unwrap() {
                 animation::update_style_for_animation::<Self::ConcreteRestyleDamage>(running_animation, style, None);
             }
@@ -311,7 +310,7 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
     }
 
     unsafe fn cascade_node(&self,
-                           layout_context: &SharedLayoutContext,
+                           context: &SharedStyleContext,
                            parent: Option<Self>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
@@ -344,7 +343,7 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                 let mut data_ref = self.mutate_data().unwrap();
                 let mut data = &mut *data_ref;
                 damage = self.cascade_node_pseudo_element(
-                    layout_context,
+                    context,
                     parent_style,
                     &applicable_declarations.normal,
                     &mut data.style,
@@ -354,7 +353,7 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                     true);
                 if !applicable_declarations.before.is_empty() {
                     damage = damage | self.cascade_node_pseudo_element(
-                        layout_context,
+                        context,
                         Some(data.style.as_ref().unwrap()),
                         &*applicable_declarations.before,
                         &mut data.before_style,
@@ -365,7 +364,7 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                 }
                 if !applicable_declarations.after.is_empty() {
                     damage = damage | self.cascade_node_pseudo_element(
-                        layout_context,
+                        context,
                         Some(data.style.as_ref().unwrap()),
                         &*applicable_declarations.after,
                         &mut data.after_style,

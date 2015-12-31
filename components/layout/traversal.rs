@@ -217,7 +217,7 @@ fn recalc_style_at<'a, 'ln, N: LayoutNode<'ln>> (context: &'a DomTraversalContex
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(context.layout_context.shared,
+                    node.cascade_node(&context.layout_context.shared.style_context,
                                       parent_opt,
                                       &applicable_declarations,
                                       &mut context.layout_context.applicable_declarations_cache(),
