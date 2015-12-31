@@ -22,6 +22,7 @@ use string_cache::Atom;
 use style::font_face::Source;
 use style::properties::longhands::font_family::computed_value::FontFamily;
 use url::Url;
+use util::prefs;
 use util::str::LowercaseString;
 use util::task::spawn_named;
 
@@ -390,6 +391,10 @@ impl FontCacheTask {
 
 // derived from http://stackoverflow.com/a/10864297/3830
 fn is_supported_font_type(toplevel: &TopLevel, sublevel: &SubLevel) -> bool {
+    if !prefs::get_pref("net.mime.sniff").as_boolean().unwrap_or(false) {
+        return true;
+    }
+
     match (toplevel, sublevel) {
         (&TopLevel::Application, &SubLevel::Ext(ref ext)) => {
             match &ext[..] {
