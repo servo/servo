@@ -33724,6 +33724,18 @@
             "path": "websockets/Send-data.worker.js",
             "url": "/websockets/Send-data.worker"
           }
+        ],
+        "html/webappapis/scripting/events/inline-event-handler-ordering.html": [
+          {
+            "path": "html/webappapis/scripting/events/inline-event-handler-ordering.html",
+            "url": "/html/webappapis/scripting/events/inline-event-handler-ordering.html"
+          }
+        ],
+        "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html": [
+          {
+            "path": "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html",
+            "url": "/html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html"
+          }
         ]
       }
     },

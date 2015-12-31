@@ -5868,6 +5868,12 @@
             "url": "/_mozilla/mozilla/img_width_height.html"
           }
         ],
+        "mozilla/inline-event-listener-panic.html": [
+          {
+            "path": "mozilla/inline-event-listener-panic.html",
+            "url": "/_mozilla/mozilla/inline-event-listener-panic.html"
+          }
+        ],
         "mozilla/inline_event_handler.html": [
           {
             "path": "mozilla/inline_event_handler.html",
