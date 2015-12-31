@@ -15,14 +15,13 @@ use gfx::display_list::OpaqueNode;
 use profile_traits::time::{self, TimerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use style::dom::UnsafeNode;
+use style::dom::{TNode, UnsafeNode};
 use traversal::PostorderNodeMutTraversal;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
 use traversal::{DomTraversal, DomTraversalContext};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
-use wrapper::LayoutNode;
 
 const CHUNK_SIZE: usize = 64;
 
@@ -236,7 +235,7 @@ impl<'a> ParallelPostorderFlowTraversal for BuildDisplayList<'a> {}
 #[inline(always)]
 fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
                            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
-                           where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
+                           where N: TNode<'ln>, T: DomTraversal<'ln, N> {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let traversal_context = DomTraversalContext {
@@ -294,7 +293,7 @@ fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
 fn bottom_up_dom<'ln, N, T>(root: OpaqueNode,
                             unsafe_node: UnsafeNode,
                             proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
-                            where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
+                            where N: TNode<'ln>, T: DomTraversal<'ln, N> {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let traversal_context = DomTraversalContext {
@@ -388,7 +387,7 @@ pub fn traverse_dom_preorder<'ln, N, T>(
                              root: N,
                              shared_layout_context: &SharedLayoutContext,
                              queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>)
-                             where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
+                             where N: TNode<'ln>, T: DomTraversal<'ln, N> {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
             fun:  top_down_dom::<N, T>,

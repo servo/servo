@@ -15,7 +15,7 @@ use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use std::mem;
 use style::context::StyleContext;
-use style::dom::{TRestyleDamage, UnsafeNode};
+use style::dom::{TNode, TRestyleDamage, UnsafeNode};
 use style::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use util::opts;
 use util::tid::tid;
@@ -56,7 +56,7 @@ fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
                                         root: OpaqueNode,
                                         layout_context: &LayoutContext)
                                         -> Box<BloomFilter>
-                                        where N: LayoutNode<'ln> {
+                                        where N: TNode<'ln> {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -102,7 +102,7 @@ fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
 fn insert_ancestors_into_bloom_filter<'ln, N>(bf: &mut Box<BloomFilter>,
                                               mut n: N,
                                               root: OpaqueNode)
-                                              where N: LayoutNode<'ln> {
+                                              where N: TNode<'ln> {
     debug!("[{}] Inserting ancestors.", tid());
     let mut ancestors = 0;
     loop {
@@ -123,7 +123,7 @@ pub struct DomTraversalContext<'a> {
     pub root: OpaqueNode,
 }
 
-pub trait DomTraversal<'ln, N: LayoutNode<'ln>>  {
+pub trait DomTraversal<'ln, N: TNode<'ln>>  {
     fn process_preorder<'a>(context: &'a DomTraversalContext<'a>, node: N);
     fn process_postorder<'a>(context: &'a DomTraversalContext<'a>, node: N);
 }
@@ -132,7 +132,7 @@ pub trait DomTraversal<'ln, N: LayoutNode<'ln>>  {
 /// This is currently unused, but will be used shortly.
 #[allow(dead_code)]
 pub struct RecalcStyleOnly;
-impl<'ln, N: LayoutNode<'ln>> DomTraversal<'ln, N> for RecalcStyleOnly {
+impl<'ln, N: TNode<'ln>> DomTraversal<'ln, N> for RecalcStyleOnly {
     fn process_preorder<'a>(context: &'a DomTraversalContext<'a>, node: N) { recalc_style_at(context, node); }
     fn process_postorder<'a>(_: &'a DomTraversalContext<'a>, _: N) {}
 }
@@ -153,7 +153,7 @@ pub trait PostorderNodeMutTraversal<'ln, ConcreteThreadSafeLayoutNode: ThreadSaf
 /// layout computation. This computes the styles applied to each node.
 #[inline]
 #[allow(unsafe_code)]
-fn recalc_style_at<'a, 'ln, N: LayoutNode<'ln>> (context: &'a DomTraversalContext<'a>, node: N) {
+fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>, node: N) {
     // Initialize layout data.
     //
     // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
@@ -171,7 +171,6 @@ fn recalc_style_at<'a, 'ln, N: LayoutNode<'ln>> (context: &'a DomTraversalContex
         // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
         // to force non-incremental reflow.
         if node.has_changed() {
-            let node = node.to_threadsafe();
             node.unstyle();
         }
 

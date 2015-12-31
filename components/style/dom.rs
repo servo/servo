@@ -156,6 +156,14 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
     fn prev_sibling(&self) -> Option<Self>;
 
     fn next_sibling(&self) -> Option<Self>;
+
+
+    /// Returns the style results for the given node. If CSS selector matching
+    /// has not yet been performed, fails.
+    fn style(&self) -> Ref<Arc<ComputedValues>>;
+
+    /// Removes the style from this node.
+    fn unstyle(self);
 }
 
 pub trait TDocument<'ld> : Sized + Copy + Clone {

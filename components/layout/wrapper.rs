@@ -275,6 +275,14 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
+
+    fn style(&self) -> Ref<Arc<ComputedValues>> {
+        Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
+    }
+
+    fn unstyle(self) {
+        self.mutate_data().unwrap().style = None;
+    }
 }
 
 impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
@@ -696,6 +704,8 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
+    ///
+    /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
     fn style(&self) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
@@ -709,6 +719,8 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     }
 
     /// Removes the style from this node.
+    ///
+    /// Unlike the version on TNode, this handles pseudo-elements.
     fn unstyle(self) {
         let mut data = self.mutate_layout_data().unwrap();
         let style =
