@@ -18,7 +18,7 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::LayerId;
-use incremental::{self, RECONSTRUCT_FLOW, RestyleDamage};
+use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
@@ -40,6 +40,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
 use style::computed_values::{overflow_x, position, text_decoration, transform_style};
 use style::computed_values::{white_space, word_break, z_index};
+use style::dom::TRestyleDamage;
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -833,7 +834,7 @@ impl Fragment {
                                                           self.border_box.start,
                                                           size);
 
-        let mut restyle_damage = incremental::rebuild_and_reflow();
+        let mut restyle_damage = RestyleDamage::rebuild_and_reflow();
         restyle_damage.remove(RECONSTRUCT_FLOW);
 
         Fragment {

@@ -5,13 +5,15 @@
 #![allow(unsafe_code)]
 
 use data::PrivateStyleData;
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selectors::matching::DeclarationBlock;
 use selectors::states::ElementState;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
+use std::ops::BitOr;
+use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
@@ -39,10 +41,15 @@ impl OpaqueNode {
     }
 }
 
+pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
+    fn compute(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> Self;
+    fn rebuild_and_reflow() -> Self;
+}
 
 pub trait TNode<'ln> : Sized + Copy + Clone {
     type ConcreteElement: TElement<'ln, ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<'ln, ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
+    type ConcreteRestyleDamage: TRestyleDamage;
 
     fn to_unsafe(&self) -> UnsafeNode;
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
@@ -133,6 +140,12 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
     /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
     #[inline(always)]
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>>;
+
+    /// Get the description of how to account for recent style changes.
+    fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
+
+    /// Set the restyle damage field.
+    fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage);
 
     fn parent_node(&self) -> Option<Self>;
 

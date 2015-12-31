@@ -10,13 +10,13 @@ use css::matching::{ElementMatchMethods, MatchMethods, StyleSharingResult};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
-use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
+use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script::layout_interface::ReflowGoal;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use std::mem;
 use style::context::StyleContext;
-use style::dom::UnsafeNode;
+use style::dom::{TRestyleDamage, UnsafeNode};
 use style::matching::ApplicableDeclarations;
 use util::opts;
 use util::tid::tid;
@@ -209,8 +209,7 @@ fn recalc_style_at<'a, 'ln, N: LayoutNode<'ln>> (context: &'a DomTraversalContex
                     },
                     None => {
                         if node.has_changed() {
-                            node.to_threadsafe().set_restyle_damage(
-                                incremental::rebuild_and_reflow())
+                            node.set_restyle_damage(N::ConcreteRestyleDamage::rebuild_and_reflow())
                         }
                         None
                     },

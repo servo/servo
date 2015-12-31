@@ -35,7 +35,7 @@ use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use gfx_traits::LayerId;
-use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use msg::compositor_msg::LayerType;
@@ -48,6 +48,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, text_align};
+use style::dom::TRestyleDamage;
 use style::properties::{self, ComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
@@ -1046,7 +1047,7 @@ impl BaseFlow {
         }
 
         // New flows start out as fully damaged.
-        let mut damage = incremental::rebuild_and_reflow();
+        let mut damage = RestyleDamage::rebuild_and_reflow();
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
