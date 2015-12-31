@@ -9,7 +9,7 @@ use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageResponse, UsePlaceholder};
 use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
-use net_traits::{ResponseAction, LoadContext};
+use net_traits::{ResponseAction, LoadContext, NetworkError};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -39,7 +39,7 @@ struct PendingLoad {
     bytes: Vec<u8>,
 
     // Once loading is complete, the result of the operation.
-    result: Option<Result<(), String>>,
+    result: Option<Result<(), NetworkError>>,
     listeners: Vec<ImageListener>,
 
     // The url being loaded. Do not forget that this may be several Mb
