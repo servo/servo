@@ -954,9 +954,6 @@ impl LayoutTask {
             node.dump();
         }
 
-        let stylesheets: Vec<&Stylesheet> = data.document_stylesheets.iter().map(|entry| &**entry)
-                                                                            .collect();
-        let stylesheets_changed = data.stylesheets_changed;
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = self.viewport_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
@@ -964,7 +961,7 @@ impl LayoutTask {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
-        rw_data.stylist.set_device(device, &stylesheets);
+        rw_data.stylist.set_device(device, &data.document_stylesheets);
 
         let constraints = rw_data.stylist.viewport_constraints().clone();
         self.viewport_size = match constraints {
@@ -990,7 +987,8 @@ impl LayoutTask {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = rw_data.stylist.update(&stylesheets, stylesheets_changed);
+        let needs_dirtying = rw_data.stylist.update(&data.document_stylesheets,
+                                                    data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {

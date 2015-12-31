@@ -21,6 +21,7 @@ use selectors::parser::PseudoElement;
 use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
+use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
@@ -144,7 +145,7 @@ impl Stylist {
         stylist
     }
 
-    pub fn update(&mut self, doc_stylesheets: &[&Stylesheet],
+    pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet>],
                       stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
@@ -242,7 +243,7 @@ impl Stylist {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[&Stylesheet]) {
+    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = stylesheets.iter()
             .flat_map(|s| s.effective_rules(&self.device).viewport())
             .cascade();
