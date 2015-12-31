@@ -283,77 +283,61 @@ def check_rust(file_name, lines):
         # get rid of attributes that do not contain =
         line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
 
-        match = re.search(r",[^\s]", line)
-        if match and '$' not in line:
-            yield (idx + 1, "missing space after ,")
-
-        if line_is_attribute(line):
-            pre_space_re = r"[A-Za-z0-9]="
-            post_space_re = r"=[A-Za-z0-9\"]"
-        else:
-            # - not included because of scientific notation (1e-6)
-            pre_space_re = r"[A-Za-z0-9][\+/\*%=]"
+        # flag this line if it matches one of the following regular expressions
+        # tuple format: (pattern, format_message, filter_function(match, line))
+        no_filter = lambda match, line: True
+        regex_rules = [
+            (r",[^\s]", "missing space after ,", lambda match, line: '$' not in line),
+            (r"[A-Za-z0-9\"]=", "missing space before =",
+                lambda match, line: line_is_attribute(line)),
+            (r"=[A-Za-z0-9\"]", "missing space after =",
+                lambda match, line: line_is_attribute(line)),
+            # ignore scientific notation patterns like 1e-6
+            (r"[A-DF-Za-df-z0-9]-", "missing space before -",
+                lambda match, line: not line_is_attribute(line)),
+            (r"[A-Za-z0-9]([\+/\*%=])", "missing space before {0}",
+                lambda match, line: (not line_is_attribute(line) and
+                                     not is_associated_type(match, line))),
             # * not included because of dereferencing and casting
             # - not included because of unary negation
-            post_space_re = r"[\+/\%=][A-Za-z0-9\"]"
+            (r'([\+/\%=])[A-Za-z0-9"]', "missing space after {0}",
+                lambda match, line: (not line_is_attribute(line) and
+                                     not is_associated_type(match, line))),
+            (r"\)->", "missing space before ->", no_filter),
+            (r"->[A-Za-z]", "missing space after ->", no_filter),
+            (r"[^ ]=>", "missing space before =>", lambda match, line: match.start() != 0),
+            (r"=>[^ ]", "missing space after =>", lambda match, line: match.end() != len(line)),
+            (r"=>  ", "extra space after =>", no_filter),
+            # ignore " ::crate::mod" and "trait Foo : Bar"
+            (r" :[^:]", "extra space before :",
+                lambda match, line: 'trait ' not in line[:match.start()]),
+            # ignore "crate::mod" and ignore flagging macros like "$t1:expr"
+            (r"[^:]:[A-Za-z]", "missing space after :",
+                lambda match, line: '$' not in line[:match.end()]),
+            (r"[A-Za-z0-9\)]{", "missing space before {", no_filter),
+            # ignore cases like "{}", "}`", "}}" and "use::std::{Foo, Bar}"
+            (r"[^\s{}]}[^`]", "missing space before }",
+                lambda match, line: not re.match(r'^(pub )?use', line)),
+            # ignore cases like "{}", "`{", "{{" and "use::std::{Foo, Bar}"
+            (r"[^`]{[^\s{}]", "missing space after {",
+                lambda match, line: not re.match(r'^(pub )?use', line)),
+            # There should not be any extra pointer dereferencing
+            (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
+            # No benefit over using &str
+            (r": &String", "use &str instead of &String", no_filter),
+        ]
 
-        match = re.search(pre_space_re, line)
-        if match and not is_associated_type(match, line, 1):
-            yield (idx + 1, "missing space before %s" % match.group(0)[1])
+        for pattern, message, filter_func in regex_rules:
+            for match in re.finditer(pattern, line):
+                if not filter_func(match, line):
+                    continue
+                yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
 
-        match = re.search(post_space_re, line)
-        if match and not is_associated_type(match, line, 0):
-            yield (idx + 1, "missing space after %s" % match.group(0)[0])
-
-        match = re.search(r"\)->", line)
-        if match:
-            yield (idx + 1, "missing space before ->")
-
-        match = re.search(r"->[A-Za-z]", line)
-        if match:
-            yield (idx + 1, "missing space after ->")
-
-        line_len = len(line)
-        arrow_pos = line.find("=>")
-        if arrow_pos != -1:
-            if arrow_pos and line[arrow_pos - 1] != ' ':
-                yield (idx + 1, "missing space before =>")
-            if arrow_pos + 2 < line_len and line[arrow_pos + 2] != ' ':
-                yield (idx + 1, "missing space after =>")
-            elif arrow_pos + 3 < line_len and line[arrow_pos + 3] == ' ':
-                yield (idx + 1, "extra space after =>")
-
-        # Avoid flagging ::crate::mod and `trait Foo : Bar`
-        match = line.find(" :")
-        if match != -1:
-            if line[0:match].find('trait ') == -1 and line[match + 2] != ':':
-                yield (idx + 1, "extra space before :")
-
-        # Avoid flagging crate::mod
-        match = re.search(r"[^:]:[A-Za-z]", line)
-        if match:
-            # Avoid flagging macros like $t1:expr
-            if line[0:match.end()].rfind('$') == -1:
-                yield (idx + 1, "missing space after :")
-
-        match = re.search(r"[A-Za-z0-9\)]{", line)
-        if match:
-            yield (idx + 1, "missing space before {")
-
-        # ignored cases like {}, }` and }}
-        match = re.search(r"[^\s{}]}[^`]", line)
-        if match and not (line.startswith("use") or line.startswith("pub use")):
-            yield (idx + 1, "missing space before }")
-
-        # ignored cases like {}, `{ and {{
-        match = re.search(r"[^`]{[^\s{}]", line)
-        if match and not (line.startswith("use") or line.startswith("pub use")):
-            yield (idx + 1, "missing space after {")
-
-        # check extern crates
+        # check alphabetical order of extern crates
         if line.startswith("extern crate "):
-            crate_name = line[len("extern crate "):-1]
-            indent = len(original_line) - line_len
+            # strip "extern crate " from the begin and ";" from the end
+            crate_name = line[13:-1]
+            indent = len(original_line) - len(line)
             if indent not in prev_crate:
                 prev_crate[indent] = ""
             if prev_crate[indent] > crate_name:
@@ -364,13 +348,13 @@ def check_rust(file_name, lines):
 
         # imports must be in the same line, alphabetically sorted, and merged
         # into a single import block
-        elif line.startswith("use "):
+        if line.startswith("use "):
             import_block = True
-            use = line[4:]
-            indent = len(original_line) - line_len
-            if not use.endswith(";"):
+            indent = len(original_line) - len(line)
+            if not line.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
-            current_use = use[:len(use) - 1]
+            # strip "use" from the begin and ";" from the end
+            current_use = line[4:-1]
             if indent == current_indent and prev_use and current_use < prev_use:
                 yield(idx + 1, decl_message.format("use statement")
                       + decl_expected.format(prev_use)
@@ -381,22 +365,23 @@ def check_rust(file_name, lines):
         if whitespace or not import_block:
             current_indent = 0
 
+        # do not allow blank lines in an import block
         if import_block and whitespace and line.startswith("use "):
             whitespace = False
             yield(idx, "encountered whitespace following a use statement")
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
-            indent = len(original_line) - line_len
-            mod = line[4:] if line.startswith("mod ") else line[8:]
+            indent = len(original_line) - len(line)
+            # strip /(pub )?mod/ from the left and ";" from the right
+            mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
 
-            if idx < 0 or "#[macro_use]" not in lines[idx - 1]:
+            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1]:
                 match = line.find(" {")
                 if indent not in prev_mod:
                     prev_mod[indent] = ""
-                if match == -1 and not mod.endswith(";"):
+                if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
-                mod = mod[:len(mod) - 1]
                 if len(prev_mod[indent]) > 0 and mod < prev_mod[indent]:
                     yield(idx + 1, decl_message.format("mod declaration")
                           + decl_expected.format(prev_mod[indent])
@@ -406,23 +391,16 @@ def check_rust(file_name, lines):
             # we now erase previous entries
             prev_mod = {}
 
-        # There should not be any extra pointer dereferencing
-        if ": &Vec<" in line:
-            yield (idx + 1, "use &[T] instead of &Vec<T>")
-
-        # No benefit over using &str
-        if ": &String" in line:
-            yield (idx + 1, "use &str instead of &String")
-
 
 # Avoid flagging <Item=Foo> constructs
-def is_associated_type(match, line, index):
+def is_associated_type(match, line):
+    if match.group(1) != '=':
+        return False
     open_angle = line[0:match.end()].rfind('<')
     close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
-    is_equals = match.group(0)[index] == '='
     generic_open = open_angle != -1 and open_angle < match.start()
     generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
-    return is_equals and generic_open and generic_close
+    return generic_open and generic_close
 
 
 def line_is_attribute(line):
