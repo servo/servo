@@ -33,7 +33,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_runtime::ScriptChan;
 use script_thread::MainThreadScriptChan;
@@ -124,7 +124,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
     Internal(DOMString, Url),
-    External(Result<(Metadata, Vec<u8>), String>),
+    External(Result<(Metadata, Vec<u8>), NetworkError>),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -138,23 +138,25 @@ struct ScriptContext {
     /// The initial URL requested.
     url: Url,
     /// Indicates whether the request failed, and why
-    status: Result<(), String>
+    status: Result<(), NetworkError>
 }
 
 impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&mut self, metadata: Metadata) {
-        let status_code = match metadata.status {
-            Some(RawStatus(c, _)) => c,
-            _ => 0
-        };
+    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+        self.metadata = metadata.ok();
+
+        let status_code = self.metadata.as_ref().and_then(|m| {
+            match m.status {
+                Some(RawStatus(c, _)) => Some(c),
+                _ => None,
+            }
+        }).unwrap_or(0);
 
         self.status = match status_code {
-            0 => Err("No http status code received".to_owned()),
+            0 => Err(NetworkError::Internal("No http status code received".to_owned())),
             200...299 => Ok(()), // HTTP ok status codes
-            _ => Err(format!("HTTP error code {}", status_code))
+            _ => Err(NetworkError::Internal(format!("HTTP error code {}", status_code)))
         };
-
-        self.metadata = Some(metadata);
     }
 
     fn data_available(&mut self, payload: Vec<u8>) {
@@ -164,7 +166,7 @@ impl AsyncResponseListener for ScriptContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let load = status.and(self.status.clone()).map(|_| {
             let data = mem::replace(&mut self.data, vec!());
             let metadata = self.metadata.take().unwrap();
@@ -398,7 +400,7 @@ impl HTMLScriptElement {
         let (source, external, url) = match load {
             // Step 2.a.
             ScriptOrigin::External(Err(e)) => {
-                error!("error loading script {}", e);
+                error!("error loading script {:?}", e);
                 self.dispatch_error_event();
                 return;
             }

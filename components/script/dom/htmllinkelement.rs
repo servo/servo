@@ -24,7 +24,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
@@ -271,8 +271,8 @@ struct StylesheetContext {
 impl PreInvoke for StylesheetContext {}
 
 impl AsyncResponseListener for StylesheetContext {
-    fn headers_available(&mut self, metadata: Metadata) {
-        self.metadata = Some(metadata);
+    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+        self.metadata = metadata.ok();
     }
 
     fn data_available(&mut self, payload: Vec<u8>) {
@@ -280,9 +280,12 @@ impl AsyncResponseListener for StylesheetContext {
         self.data.append(&mut payload);
     }
 
-    fn response_complete(&mut self, _status: Result<(), String>) {
+    fn response_complete(&mut self, _status: Result<(), NetworkError>) {
         let data = mem::replace(&mut self.data, vec!());
-        let metadata = self.metadata.take().unwrap();
+        let metadata = match self.metadata.take() {
+            Some(meta) => meta,
+            None => return,
+        };
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
         let environment_encoding = UTF_8 as EncodingRef;
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
