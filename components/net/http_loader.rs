@@ -554,6 +554,85 @@ pub fn process_response_headers(response: &HttpResponse,
     update_sts_list_from_response(url, response, hsts_list);
 }
 
+pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
+                          url: &Url,
+                          method: &Method,
+                          request_headers: &mut Headers,
+                          cancel_listener: &CancellationListener,
+                          load_data: &LoadData,
+                          iters: u32,
+                          devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
+                          request_id: &str)
+                          -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
+
+    let response;
+
+    // loop trying connections in connection pool
+    // they may have grown stale (disconnected), in which case we'll get
+    // a ConnectionAborted error. this loop tries again with a new
+    // connection.
+    loop {
+        let mut req = try!(request_factory.create(url.clone(), method.clone()));
+        *req.headers_mut() = request_headers.clone();
+
+        if cancel_listener.is_cancelled() {
+            return Err(LoadError::Cancelled(url.clone(), "load cancelled".to_owned()));
+        }
+
+        if log_enabled!(log::LogLevel::Info) {
+            info!("{}", method);
+            for header in req.headers_mut().iter() {
+                info!(" - {}", header);
+            }
+            info!("{:?}", load_data.data);
+        }
+
+        // Avoid automatically sending request body if a redirect has occurred.
+        //
+        // TODO - This is the wrong behaviour according to the RFC. However, I'm not
+        // sure how much "correctness" vs. real-world is important in this case.
+        //
+        // https://tools.ietf.org/html/rfc7231#section-6.4
+        let is_redirected_request = iters != 1;
+        let cloned_data;
+        let maybe_response = match load_data.data {
+            Some(ref data) if !is_redirected_request => {
+                req.headers_mut().set(ContentLength(data.len() as u64));
+                cloned_data = load_data.data.clone();
+                req.send(&load_data.data)
+            }
+            _ => {
+                if load_data.method != Method::Get && load_data.method != Method::Head {
+                    req.headers_mut().set(ContentLength(0))
+                }
+                cloned_data = None;
+                req.send(&None)
+            }
+        };
+        if let Some(pipeline_id) = load_data.pipeline_id {
+            send_request_to_devtools(
+                devtools_chan.clone(), request_id.clone().into(),
+                url.clone(), method.clone(), request_headers.clone(),
+                cloned_data, pipeline_id, time::now()
+            );
+        }
+
+        response = match maybe_response {
+            Ok(r) => r,
+            Err(LoadError::ConnectionAborted(reason)) => {
+                debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
+                continue;
+            }
+            Err(e) => return Err(e),
+        };
+
+        // if no ConnectionAborted, break the loop
+        break;
+    }
+
+    Ok(response)
+}
+
 pub fn load<A>(load_data: LoadData,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
@@ -624,74 +703,12 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
-
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
-        let response;
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
-        // loop trying connections in connection pool
-        // they may have grown stale (disconnected), in which case we'll get
-        // a ConnectionAborted error. this loop tries again with a new
-        // connection.
-        loop {
-            let mut req = try!(request_factory.create(url.clone(), method.clone()));
-            *req.headers_mut() = request_headers.clone();
-
-            if cancel_listener.is_cancelled() {
-                return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
-            }
-
-            if log_enabled!(log::LogLevel::Info) {
-                info!("{}", method);
-                for header in req.headers_mut().iter() {
-                    info!(" - {}", header);
-                }
-                info!("{:?}", load_data.data);
-            }
-
-            // Avoid automatically sending request body if a redirect has occurred.
-            //
-            // TODO - This is the wrong behaviour according to the RFC. However, I'm not
-            // sure how much "correctness" vs. real-world is important in this case.
-            //
-            // https://tools.ietf.org/html/rfc7231#section-6.4
-            let is_redirected_request = iters != 1;
-            let cloned_data;
-            let maybe_response = match load_data.data {
-                Some(ref data) if !is_redirected_request => {
-                    req.headers_mut().set(ContentLength(data.len() as u64));
-                    cloned_data = load_data.data.clone();
-                    req.send(&load_data.data)
-                }
-                _ => {
-                    if load_data.method != Method::Get && load_data.method != Method::Head {
-                        req.headers_mut().set(ContentLength(0))
-                    }
-                    cloned_data = None;
-                    req.send(&None)
-                }
-            };
-            if let Some(pipeline_id) = load_data.pipeline_id {
-                send_request_to_devtools(
-                    devtools_chan.clone(), request_id.clone(), url.clone(),
-                    method.clone(), request_headers.clone(),
-                    cloned_data, pipeline_id, time::now()
-                );
-            }
-
-            response = match maybe_response {
-                Ok(r) => r,
-                Err(LoadError::ConnectionAborted(reason)) => {
-                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
-                    continue;
-                }
-                Err(e) => return Err(e),
-            };
-
-            // if no ConnectionAborted, break the loop
-            break;
-        }
+        let response = try!(obtain_response(request_factory, &url, &method, &mut request_headers,
+                                            &cancel_listener, &load_data, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
