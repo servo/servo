@@ -8,7 +8,6 @@ use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
-use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HSTSEntry, HSTSList, secure_url};
 use hyper::Error as HttpError;
@@ -26,7 +25,8 @@ use mime_classifier::MIMEClassifier;
 use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
-use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
+use net_traits::{Metadata, NetworkError};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
@@ -140,32 +140,15 @@ fn load_for_consumer(load_data: LoadData,
                                      cookie_jar, devtools_chan,
                                      &factory, user_agent,
                                      &cancel_listener) {
-        Err(LoadError::UnsupportedScheme(url)) => {
-            let s = format!("{} request, but we don't support that scheme", &*url.scheme);
-            send_error(url, s, start_chan)
+        Err(error) => {
+            match error.error {
+                LoadErrorType::ConnectionAborted => unreachable!(),
+                LoadErrorType::Ssl => send_error(error.url.clone(),
+                                                 NetworkError::SslValidation(error.url),
+                                                 start_chan),
+                _ => send_error(error.url, NetworkError::Internal(error.reason), start_chan)
+            }
         }
-        Err(LoadError::Connection(url, e)) => {
-            send_error(url, e, start_chan)
-        }
-        Err(LoadError::MaxRedirects(url)) => {
-            send_error(url, "too many redirects".to_owned(), start_chan)
-        }
-        Err(LoadError::Cors(url, msg)) |
-        Err(LoadError::Cancelled(url, msg)) |
-        Err(LoadError::InvalidRedirect(url, msg)) |
-        Err(LoadError::Decoding(url, msg)) => {
-            send_error(url, msg, start_chan)
-        }
-        Err(LoadError::Ssl(url, msg)) => {
-            info!("ssl validation error {}, '{}'", url.serialize(), msg);
-
-            let mut image = resources_dir_path();
-            image.push("badcert.html");
-            let load_data = LoadData::new(context, Url::from_file_path(&*image).unwrap(), None);
-
-            file_loader::factory(load_data, start_chan, classifier, cancel_listener)
-        }
-        Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
             send_data(context, &mut load_response, start_chan, metadata, classifier, &cancel_listener)
@@ -249,20 +232,15 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             let error: &(Error + Send + 'static) = &**error;
             if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
                 if errors.iter().any(is_cert_verify_error) {
-                    return Err(
-                        LoadError::Ssl(url, format!("ssl error: {:?} {:?}",
-                                                    error.description(),
-                                                    error.cause())));
+                    let msg = format!("ssl error: {:?} {:?}", error.description(), error.cause());
+                    return Err(LoadError::new(url, LoadErrorType::Ssl, msg));
                 }
             }
         }
 
         let request = match connection {
             Ok(req) => req,
-
-            Err(e) => {
-                 return Err(LoadError::Connection(url, e.description().to_owned()))
-            }
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
         };
 
         Ok(WrappedHttpRequest { request: request })
@@ -291,24 +269,24 @@ impl HttpRequest for WrappedHttpRequest {
         let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
         };
 
         if let Some(ref data) = *body {
             match request_writer.write_all(&data) {
-                Err(e) => {
-                    return Err(LoadError::Connection(url, e.description().to_owned()))
-                }
-                _ => {}
+                Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
+                _ => (),
             }
         }
 
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                return Err(LoadError::ConnectionAborted(io_error.description().to_owned()));
+                return Err(LoadError::new(url, LoadErrorType::ConnectionAborted,
+                                          io_error.description().to_owned()));
             },
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection,
+                                                e.description().to_owned())),
         };
 
         Ok(WrappedHttpResponse { response: response })
@@ -316,16 +294,33 @@ impl HttpRequest for WrappedHttpRequest {
 }
 
 #[derive(Debug)]
-pub enum LoadError {
-    UnsupportedScheme(Url),
-    Connection(Url, String),
-    Cors(Url, String),
-    Ssl(Url, String),
-    InvalidRedirect(Url, String),
-    Decoding(Url, String),
-    MaxRedirects(Url),
-    ConnectionAborted(String),
-    Cancelled(Url, String),
+pub struct LoadError {
+    url: Url,
+    error: LoadErrorType,
+    reason: String,
+}
+
+impl LoadError {
+    fn new(url: Url, error: LoadErrorType, reason: String) -> LoadError {
+        LoadError {
+            url: url,
+            error: error,
+            reason: reason,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum LoadErrorType {
+    Cancelled,
+    Connection,
+    ConnectionAborted,
+    Cors,
+    Decoding,
+    InvalidRedirect,
+    MaxRedirects,
+    Ssl,
+    UnsupportedScheme,
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -444,12 +439,8 @@ impl<R: HttpResponse> StreamedResponse<R> {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
                 match result {
-                    Ok(response_decoding) => {
-                        Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)))
-                    }
-                    Err(err) => {
-                        Err(LoadError::Decoding(m.final_url, err.to_string()))
-                    }
+                    Ok(response_decoding) => Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding))),
+                    Err(err) => Err(LoadError::new(m.final_url, LoadErrorType::Decoding, err.to_string())),
                 }
             }
             Some(Encoding::Deflate) => {
@@ -576,7 +567,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         *req.headers_mut() = request_headers.clone();
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::Cancelled(url.clone(), "load cancelled".to_owned()));
+            return Err(LoadError::new(url.clone(), LoadErrorType::Cancelled, "load cancelled".to_owned()));
         }
 
         if log_enabled!(log::LogLevel::Info) {
@@ -619,11 +610,14 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 
         response = match maybe_response {
             Ok(r) => r,
-            Err(LoadError::ConnectionAborted(reason)) => {
-                debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
-                continue;
-            }
-            Err(e) => return Err(e),
+            Err(e) => {
+                if let LoadErrorType::ConnectionAborted = e.error {
+                    debug!("connection aborted ({:?}), possibly stale, trying new connection", e.reason);
+                    continue;
+                } else {
+                    return Err(e)
+                }
+            },
         };
 
         // if no ConnectionAborted, break the loop
@@ -655,7 +649,7 @@ pub fn load<A>(load_data: LoadData,
     let mut method = load_data.method.clone();
 
     if cancel_listener.is_cancelled() {
-        return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+        return Err(LoadError::new(url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -678,15 +672,16 @@ pub fn load<A>(load_data: LoadData,
         }
 
         if iters > max_redirects {
-            return Err(LoadError::MaxRedirects(url));
+            return Err(LoadError::new(url, LoadErrorType::MaxRedirects, "too many redirects".to_owned()));
         }
 
         if &*url.scheme != "http" && &*url.scheme != "https" {
-            return Err(LoadError::UnsupportedScheme(url));
+            let s = format!("{} request, but we don't support that scheme", &*url.scheme);
+            return Err(LoadError::new(url, LoadErrorType::UnsupportedScheme, s));
         }
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::Cancelled(url, "load cancelled".to_owned()));
+            return Err(LoadError::new(url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
         }
 
         info!("requesting {}", url.serialize());
@@ -718,10 +713,9 @@ pub fn load<A>(load_data: LoadData,
                 // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                 if let Some(ref c) = load_data.cors {
                     if c.preflight {
-                        return Err(
-                            LoadError::Cors(
-                                url,
-                                "Preflight fetch inconsistent with main fetch".to_owned()));
+                        return Err(LoadError::new(url,
+                                                  LoadErrorType::Cors,
+                                                  "Preflight fetch inconsistent with main fetch".to_owned()));
                     } else {
                         // XXXManishearth There are some CORS-related steps here,
                         // but they don't seem necessary until credentials are implemented
@@ -730,9 +724,7 @@ pub fn load<A>(load_data: LoadData,
 
                 let new_doc_url = match doc_url.join(&new_url) {
                     Ok(u) => u,
-                    Err(e) => {
-                        return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
-                    }
+                    Err(e) => return Err(LoadError::new(doc_url, LoadErrorType::InvalidRedirect, e.to_string())),
                 };
 
                 info!("redirecting to {}", new_doc_url);
@@ -748,7 +740,7 @@ pub fn load<A>(load_data: LoadData,
                 }
 
                 if redirected_to.contains(&url) {
-                    return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_owned()));
+                    return Err(LoadError::new(doc_url, LoadErrorType::InvalidRedirect, "redirect loop".to_owned()));
                 }
 
                 redirected_to.insert(doc_url.clone());
@@ -803,7 +795,7 @@ fn send_data<R: Read>(context: LoadContext,
 
     loop {
         if cancel_listener.is_cancelled() {
-            let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+            let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
             return;
         }
 

@@ -45,7 +45,7 @@ use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::ControlMsg::Load;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceTask};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
@@ -243,7 +243,7 @@ impl XMLHttpRequest {
                           resource_task: ResourceTask,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
-            fn headers_available(&mut self, metadata: Metadata) {
+            fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
                 let xhr = self.xhr.root();
                 let rv = xhr.process_headers_available(self.cors_request.clone(),
                                                        self.gen_id,
@@ -258,7 +258,7 @@ impl XMLHttpRequest {
                 self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn response_complete(&mut self, status: Result<(), String>) {
+            fn response_complete(&mut self, status: Result<(), NetworkError>) {
                 let rv = self.xhr.root().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
@@ -798,22 +798,26 @@ impl XMLHttpRequest {
     }
 
     fn process_headers_available(&self, cors_request: Option<CORSRequest>,
-                                 gen_id: GenerationId, metadata: Metadata) -> Result<(), Error> {
-
+                                 gen_id: GenerationId, metadata: Result<Metadata, NetworkError>)
+                                 -> Result<(), Error> {
         if let Some(ref req) = cors_request {
-            match metadata.headers {
-                Some(ref h) if allow_cross_origin_request(req, h) => {},
-                _ => {
-                    self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
-                    return Err(Error::Network);
-                }
+            match metadata {
+                Ok(meta) => {
+                    match meta.headers {
+                        Some(ref h) if allow_cross_origin_request(req, h) => (),
+                        _ => {
+                            self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
+                            return Err(Error::Network);
+                        }
+                    }
+
+                    // XXXManishearth Clear cache entries in case of a network error
+                    self.process_partial_response(XHRProgress::HeadersReceived(gen_id, meta.headers, meta.status));
+                },
+                Err(_) => return Err(Error::Network),
             }
         }
 
-        // XXXManishearth Clear cache entries in case of a network error
-        self.process_partial_response(XHRProgress::HeadersReceived(gen_id,
-                                                                   metadata.headers,
-                                                                   metadata.status));
         Ok(())
     }
 
@@ -821,7 +825,7 @@ impl XMLHttpRequest {
         self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
     }
 
-    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), String>)
+    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), NetworkError>)
                                  -> ErrorResult {
         match status {
             Ok(()) => {

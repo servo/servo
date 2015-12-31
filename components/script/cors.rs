@@ -18,7 +18,7 @@ use hyper::header::{HeaderView, Headers};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusClass::Success;
-use net_traits::{AsyncResponseListener, Metadata, ResponseAction};
+use net_traits::{AsyncResponseListener, Metadata, NetworkError, ResponseAction};
 use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptChan;
 use std::ascii::AsciiExt;
@@ -119,13 +119,15 @@ impl CORSRequest {
         // This is shoe-horning the CORSReponse stuff into the rest of the async network
         // framework right now. It would be worth redesigning http_fetch to do this properly.
         impl AsyncResponseListener for CORSContext {
-            fn headers_available(&mut self, _metadata: Metadata) {
+            fn headers_available(&mut self, _metadata: Result<Metadata, NetworkError>) {
+
             }
 
             fn data_available(&mut self, _payload: Vec<u8>) {
+
             }
 
-            fn response_complete(&mut self, _status: Result<(), String>) {
+            fn response_complete(&mut self, _status: Result<(), NetworkError>) {
                 let response = self.response.take().unwrap();
                 self.listener.response_available(response);
             }

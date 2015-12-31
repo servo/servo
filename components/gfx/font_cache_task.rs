@@ -174,7 +174,7 @@ impl FontCache {
                             ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
                                 let response: ResponseAction = message.to().unwrap();
                                 match response {
-                                    ResponseAction::HeadersAvailable(metadata) => {
+                                    ResponseAction::HeadersAvailable(Ok(metadata)) => {
                                         let is_response_valid =
                                             metadata.content_type.as_ref().map_or(false, |content_type| {
                                                 let mime = &content_type.0;
@@ -185,6 +185,7 @@ impl FontCache {
                                               metadata.content_type);
                                         *response_valid.lock().unwrap() = is_response_valid;
                                     }
+                                    ResponseAction::HeadersAvailable(Err(_)) => {}
                                     ResponseAction::ResponseComplete(Err(_)) => {}
                                     ResponseAction::DataAvailable(new_bytes) => {
                                         if *response_valid.lock().unwrap() {

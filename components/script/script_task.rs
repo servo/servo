@@ -711,7 +711,7 @@ pub struct CSSError {
 }
 
 impl ScriptTask {
-    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
+    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Option<Metadata>)
                                -> Option<ParserRoot> {
         SCRIPT_TASK_ROOT.with(|root| {
             let script_task = unsafe { &*root.borrow().unwrap() };
@@ -1546,18 +1546,18 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  metadata: Metadata) -> Option<ParserRoot> {
+                                  metadata: Option<Metadata>) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
-        match idx {
-            Some(idx) => {
+        match (idx, metadata) {
+            (Some(idx), Some(meta)) => {
                 let load = self.incomplete_loads.borrow_mut().remove(idx);
-                Some(self.load(metadata, load))
+                Some(self.load(meta, load))
             }
-            None => {
+            _ => {
                 assert!(self.closed_pipelines.borrow().contains(&id));
                 None
             }

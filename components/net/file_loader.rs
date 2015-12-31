@@ -6,7 +6,7 @@ use about_loader;
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_task::{CancellationListener, ProgressSender};
 use resource_task::{send_error, start_sending_sniffed, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -100,9 +100,7 @@ pub fn factory(load_data: LoadData,
                                     let _ = chan.send(Done(Ok(())));
                                 }
                             }
-                            Err(e) => {
-                                send_error(url, e, senders);
-                            }
+                            Err(e) => send_error(url, NetworkError::Internal(e), senders),
                         };
                     }
                     Err(_) => {
@@ -115,9 +113,7 @@ pub fn factory(load_data: LoadData,
                     }
                 }
             }
-            Err(_) => {
-                send_error(url, "Could not parse path".to_owned(), senders);
-            }
+            Err(_) =>  send_error(url, NetworkError::Internal("Could not parse path".to_owned()), senders),
         }
     });
 }
