@@ -1742,6 +1742,7 @@ dependencies = [
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
+ "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]

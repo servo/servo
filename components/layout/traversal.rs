@@ -6,7 +6,6 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use css::matching::{ElementMatchMethods, MatchMethods, StyleSharingResult};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
@@ -17,7 +16,7 @@ use std::cell::RefCell;
 use std::mem;
 use style::context::StyleContext;
 use style::dom::{TRestyleDamage, UnsafeNode};
-use style::matching::ApplicableDeclarations;
+use style::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use util::opts;
 use util::tid::tid;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
