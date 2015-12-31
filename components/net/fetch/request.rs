@@ -4,7 +4,9 @@
 
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
-use http_loader::{create_http_connector, NetworkHttpRequestFactory, obtain_response};
+use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
+use http_loader::{create_http_connector, obtain_response};
+use hyper::client::response::Response as HyperResponse;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
 use hyper::header::{Authorization, Basic};
@@ -14,7 +16,7 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
 use net_traits::{AsyncFetchListener, CacheState, Response};
-use net_traits::{ResponseType, Metadata};
+use net_traits::{ResponseType, Metadata, TerminationReason};
 use resource_task::CancellationListener;
 use std::ascii::AsciiExt;
 use std::cell::RefCell;
@@ -734,10 +736,11 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
     // nothing to do here, since credentials_flag is already a boolean
 
     // Step 2
+    // TODO be able to create connection using current url's origin and credentials
     let connection = create_http_connector();
 
     // Step 3
-    // TODO how can I tell if the connection is a failure?
+    // TODO be able to tell if the connection is a failure
 
     // Step 4
     let factory = NetworkHttpRequestFactory {
@@ -747,9 +750,21 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
     let url = req.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
-    let response = obtain_response(&factory, &url, &req.method, &mut request.borrow_mut().headers,
-                                   &cancellation_listener, None, &req.method,
-                                   None, req.redirect_count, None, "");
+    let wrapped_response = obtain_response(&factory, &url, &req.method, &mut request.borrow_mut().headers,
+                                           &cancellation_listener, &None, &req.method,
+                                           &None, req.redirect_count, &None, "");
+
+    let mut response = Response::new();
+    match wrapped_response {
+        Ok(res) => {
+            // is it okay for res.version to be unused?
+            response.status = Some(res.response.status);
+            response.headers = res.response.headers.clone();
+            response.url = Some(res.response.url.clone());
+        },
+        Err(e) =>
+            response.termination_reason = Some(TerminationReason::Fatal)
+    };
 
         // TODO these substeps aren't possible yet
         // Substep 1

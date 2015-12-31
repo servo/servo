@@ -198,7 +198,7 @@ pub trait HttpResponse: Read {
 
 
 pub struct WrappedHttpResponse {
-    response: Response
+    pub response: Response
 }
 
 impl Read for WrappedHttpResponse {
@@ -235,7 +235,7 @@ pub trait HttpRequestFactory {
 }
 
 pub struct NetworkHttpRequestFactory {
-    connector: Arc<Pool<Connector>>,
+    pub connector: Arc<Pool<Connector>>,
 }
 
 impl HttpRequestFactory for NetworkHttpRequestFactory {
