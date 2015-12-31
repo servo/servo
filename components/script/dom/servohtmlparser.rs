@@ -26,7 +26,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
 use msg::constellation_msg::{PipelineId, SubpageId};
-use net_traits::{AsyncResponseListener, Metadata};
+use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use parse::Parser;
 use script_runtime::ScriptChan;
@@ -36,6 +36,7 @@ use std::cell::UnsafeCell;
 use std::default::Default;
 use std::ptr;
 use url::Url;
+use util::resource_files::read_resource_file;
 
 #[must_root]
 #[derive(JSTraceable, HeapSizeOf)]
@@ -239,12 +240,23 @@ impl ParserContext {
 }
 
 impl AsyncResponseListener for ParserContext {
-    fn headers_available(&mut self, metadata: Metadata) {
-        let content_type = metadata.content_type.clone();
-
-        let parser = ScriptThread::page_fetch_complete(self.id.clone(), self.subpage.clone(),
-                                                     metadata);
-        let parser = match parser {
+    fn headers_available(&mut self, meta_result: Result<Metadata, NetworkError>) {
+        let mut is_ssl_error = false;
+        let metadata = match meta_result {
+            Ok(meta) => Some(meta),
+            Err(NetworkError::SslValidation(url)) => {
+                is_ssl_error = true;
+                let mut meta = Metadata::default(url);
+                let mime: Option<Mime> = "text/html".parse().ok();
+                meta.set_content_type(mime.as_ref());
+                Some(meta)
+            },
+            Err(_) => None,
+        };
+        let content_type = metadata.clone().and_then(|meta| meta.content_type);
+        let parser = match ScriptThread::page_fetch_complete(self.id.clone(),
+                                                             self.subpage.clone(),
+                                                             metadata) {
             Some(parser) => parser,
             None => return,
         };
@@ -274,7 +286,15 @@ impl AsyncResponseListener for ParserContext {
                 parser.parse_sync();
                 parser.set_plaintext_state();
             },
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {}, // Handle text/html
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => { // Handle text/html
+                if is_ssl_error {
+                    self.is_synthesized_document = true;
+                    let page_bytes = read_resource_file("badcert.html").unwrap();
+                    let page = String::from_utf8(page_bytes).unwrap();
+                    parser.pending_input().borrow_mut().push(page);
+                    parser.parse_sync();
+                }
+            },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {}, // Handle text/xml
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
                 if toplevel.as_str() == "application" && sublevel.as_str() == "xhtml+xml" {
@@ -308,7 +328,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
@@ -316,7 +336,7 @@ impl AsyncResponseListener for ParserContext {
         parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
-            debug!("Failed to load page URL {}, error: {}", self.url.serialize(), err);
+            debug!("Failed to load page URL {}, error: {:?}", self.url.serialize(), err);
             // TODO(Savago): we should send a notification to callers #5463.
         }
 

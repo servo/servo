@@ -113,13 +113,13 @@ pub trait AsyncFetchListener {
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
 pub trait AsyncResponseListener {
     /// The response headers for a request have been received.
-    fn headers_available(&mut self, metadata: Metadata);
+    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>);
     /// A portion of the response body has been received. This data is unavailable after
     /// this method returned, and must be stored accordingly.
     fn data_available(&mut self, payload: Vec<u8>);
     /// The response is complete. If the provided status is an Err value, there is no guarantee
     /// that the response body was completely read.
-    fn response_complete(&mut self, status: Result<(), String>);
+    fn response_complete(&mut self, status: Result<(), NetworkError>);
 }
 
 /// Data for passing between threads/processes to indicate a particular action to
@@ -127,11 +127,11 @@ pub trait AsyncResponseListener {
 #[derive(Deserialize, Serialize)]
 pub enum ResponseAction {
     /// Invoke headers_available
-    HeadersAvailable(Metadata),
+    HeadersAvailable(Result<Metadata, NetworkError>),
     /// Invoke data_available
     DataAvailable(Vec<u8>),
     /// Invoke response_complete
-    ResponseComplete(Result<(), String>)
+    ResponseComplete(Result<(), NetworkError>)
 }
 
 impl ResponseAction {
@@ -376,7 +376,7 @@ pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(Result<(), String>)
+    Done(Result<(), NetworkError>),
 }
 
 /// Convenience function for synchronously loading a whole resource.
@@ -384,7 +384,7 @@ pub fn load_whole_resource(context: LoadContext,
                            resource_thread: &ResourceThread,
                            url: Url,
                            pipeline_id: Option<PipelineId>)
-        -> Result<(Metadata, Vec<u8>), String> {
+        -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
     resource_thread.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id),
                        LoadConsumer::Channel(start_chan), None)).unwrap();
@@ -412,4 +412,14 @@ pub struct ResourceId(pub u32);
 pub enum ConstellationMsg {
     /// Queries whether a pipeline or its ancestors are private
     IsPrivate(PipelineId, Sender<bool>),
+}
+
+/// Network errors that have to be exported out of the loaders
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub enum NetworkError {
+    /// Could be any of the internal errors, like unsupported scheme, load
+    /// cancellation, connection errors, etc.
+    Internal(String),
+    /// SSL validation error that has to be handled in the HTML parser
+    SslValidation(Url),
 }
