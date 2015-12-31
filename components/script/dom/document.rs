@@ -1285,8 +1285,8 @@ impl Document {
         };
 
         if self.script_blocking_stylesheets_count.get() == 0 && script.is_ready_to_be_executed() {
-            script.execute();
             self.pending_parsing_blocking_script.set(None);
+            script.execute();
             return ParserBlockedByScript::Unblocked;
         }
         ParserBlockedByScript::Blocked
