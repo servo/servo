@@ -19,8 +19,7 @@ use style::dom::UnsafeNode;
 use traversal::PostorderNodeMutTraversal;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
-use traversal::{ConstructFlows, RecalcStyleForNode};
-use traversal::{PostorderDomTraversal, PreorderDomTraversal};
+use traversal::{DomTraversal, DomTraversalContext};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use wrapper::LayoutNode;
@@ -72,105 +71,6 @@ pub type ChunkedFlowTraversalFunction =
     extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>);
 
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
-
-/// A parallel top-down DOM traversal.
-pub trait ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
-        : PreorderDomTraversal<'ln, ConcreteLayoutNode>
-          where ConcreteLayoutNode: LayoutNode<'ln> {
-    fn run_parallel(&self,
-                    nodes: UnsafeNodeList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>);
-
-    #[inline(always)]
-    fn run_parallel_helper(
-            &self,
-            unsafe_nodes: UnsafeNodeList,
-            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>,
-            top_down_func: ChunkedDomTraversalFunction,
-            bottom_up_func: DomTraversalFunction) {
-        let mut discovered_child_nodes = Vec::new();
-        for unsafe_node in *unsafe_nodes.0 {
-            // Get a real layout node.
-            let node = unsafe { ConcreteLayoutNode::from_unsafe(&unsafe_node) };
-
-            // Perform the appropriate traversal.
-            self.process(node);
-
-            let child_count = node.children_count();
-
-            // Reset the count of children.
-            {
-                let data = node.mutate_data().unwrap();
-                data.parallel.children_count.store(child_count as isize,
-                                                   Ordering::Relaxed);
-            }
-
-            // Possibly enqueue the children.
-            if child_count != 0 {
-                for kid in node.children() {
-                    discovered_child_nodes.push(kid.to_unsafe())
-                }
-            } else {
-                // If there were no more children, start walking back up.
-                bottom_up_func(unsafe_nodes.1, unsafe_node, proxy)
-            }
-        }
-
-        for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
-            proxy.push(WorkUnit {
-                fun:  top_down_func,
-                data: (box chunk.iter().cloned().collect(), unsafe_nodes.1),
-            });
-        }
-    }
-}
-
-/// A parallel bottom-up DOM traversal.
-trait ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>
-        : PostorderDomTraversal<'ln, ConcreteLayoutNode>
-          where ConcreteLayoutNode: LayoutNode<'ln> {
-    fn root(&self) -> OpaqueNode;
-
-    /// Process current node and potentially traverse its ancestors.
-    ///
-    /// If we are the last child that finished processing, recursively process
-    /// our parent. Else, stop. Also, stop at the root.
-    ///
-    /// Thus, if we start with all the leaves of a tree, we end up traversing
-    /// the whole tree bottom-up because each parent will be processed exactly
-    /// once (by the last child that finishes processing).
-    ///
-    /// The only communication between siblings is that they both
-    /// fetch-and-subtract the parent's children count.
-    fn run_parallel(&self, unsafe_node: UnsafeNode) {
-        // Get a real layout node.
-        let mut node = unsafe { ConcreteLayoutNode::from_unsafe(&unsafe_node) };
-        loop {
-            // Perform the appropriate operation.
-            self.process(node);
-
-            let parent = match node.layout_parent_node(self.root()) {
-                None => break,
-                Some(parent) => parent,
-            };
-
-            let parent_data = unsafe {
-                &*parent.borrow_data_unchecked().unwrap()
-            };
-
-            if parent_data
-                .parallel
-                .children_count
-                .fetch_sub(1, Ordering::Relaxed) != 1 {
-                // Get out of here and find another node to work on.
-                break
-            }
-
-            // We were the last child of our parent. Construct flows for our parent.
-            node = parent;
-        }
-    }
-}
 
 /// Information that we need stored in each flow.
 pub struct FlowParallelInfo {
@@ -332,59 +232,102 @@ impl<'a> ParallelPreorderFlowTraversal for ComputeAbsolutePositions<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for BuildDisplayList<'a> {}
 
-impl<'a, 'ln, ConcreteLayoutNode> ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>
-                                  for ConstructFlows<'a>
-                                  where ConcreteLayoutNode: LayoutNode<'ln> {
-    fn root(&self) -> OpaqueNode {
-        self.root
-    }
-}
-
-impl<'a, 'ln, ConcreteLayoutNode> ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>
-                                  for RecalcStyleForNode<'a>
-                                  where ConcreteLayoutNode: LayoutNode<'ln> {
-    fn run_parallel(&self,
-                    unsafe_nodes: UnsafeNodeList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>) {
-        // Not exactly sure why we need UFCS here, but we seem to.
-        <RecalcStyleForNode<'a> as ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>>
-          ::run_parallel_helper(self, unsafe_nodes, proxy,
-                                recalc_style::<'ln, ConcreteLayoutNode>,
-                                construct_flows::<'ln, ConcreteLayoutNode>)
-    }
-}
-
-fn recalc_style<'ln, ConcreteLayoutNode>(unsafe_nodes: UnsafeNodeList,
-                                         proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
-                                         where ConcreteLayoutNode: LayoutNode<'ln> {
+/// A parallel top-down DOM traversal.
+#[inline(always)]
+fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
+                           proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
+                           where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
-    let recalc_style_for_node_traversal = RecalcStyleForNode {
+    let traversal_context = DomTraversalContext {
         layout_context: &layout_context,
         root: unsafe_nodes.1,
     };
 
-    // The UFCS is necessary here to select the proper set of generic routines which
-    // will eventually cast the UnsafeNode to a concrete LayoutNode implementation.
-    <RecalcStyleForNode as ParallelPreorderDomTraversal<'ln, ConcreteLayoutNode>>
-        ::run_parallel(&recalc_style_for_node_traversal, unsafe_nodes, proxy)
+    let mut discovered_child_nodes = Vec::new();
+    for unsafe_node in *unsafe_nodes.0 {
+        // Get a real layout node.
+        let node = unsafe { N::from_unsafe(&unsafe_node) };
+
+        // Perform the appropriate traversal.
+        T::process_preorder(&traversal_context, node);
+
+        let child_count = node.children_count();
+
+        // Reset the count of children.
+        {
+            let data = node.mutate_data().unwrap();
+            data.parallel.children_count.store(child_count as isize,
+                                               Ordering::Relaxed);
+        }
+
+        // Possibly enqueue the children.
+        if child_count != 0 {
+            for kid in node.children() {
+                discovered_child_nodes.push(kid.to_unsafe())
+            }
+        } else {
+            // If there were no more children, start walking back up.
+            bottom_up_dom::<N, T>(unsafe_nodes.1, unsafe_node, proxy)
+        }
+    }
+
+    for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
+        proxy.push(WorkUnit {
+            fun:  top_down_dom::<N, T>,
+            data: (box chunk.iter().cloned().collect(), unsafe_nodes.1),
+        });
+    }
 }
 
-fn construct_flows<'ln, ConcreteLayoutNode: LayoutNode<'ln>>(
-        root: OpaqueNode,
-        unsafe_node: UnsafeNode,
-        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>) {
+/// Process current node and potentially traverse its ancestors.
+///
+/// If we are the last child that finished processing, recursively process
+/// our parent. Else, stop. Also, stop at the root.
+///
+/// Thus, if we start with all the leaves of a tree, we end up traversing
+/// the whole tree bottom-up because each parent will be processed exactly
+/// once (by the last child that finishes processing).
+///
+/// The only communication between siblings is that they both
+/// fetch-and-subtract the parent's children count.
+fn bottom_up_dom<'ln, N, T>(root: OpaqueNode,
+                            unsafe_node: UnsafeNode,
+                            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
+                            where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
-    let construct_flows_traversal = ConstructFlows {
+    let traversal_context = DomTraversalContext {
         layout_context: &layout_context,
         root: root,
     };
 
-    // The UFCS is necessary here to select the proper set of generic routines which
-    // will eventually cast the UnsafeNode to a concrete LayoutNode implementation.
-    <ConstructFlows as ParallelPostorderDomTraversal<'ln, ConcreteLayoutNode>>
-        ::run_parallel(&construct_flows_traversal, unsafe_node)
+    // Get a real layout node.
+    let mut node = unsafe { N::from_unsafe(&unsafe_node) };
+    loop {
+        // Perform the appropriate operation.
+        T::process_postorder(&traversal_context, node);
+
+        let parent = match node.layout_parent_node(traversal_context.root) {
+            None => break,
+            Some(parent) => parent,
+        };
+
+        let parent_data = unsafe {
+            &*parent.borrow_data_unchecked().unwrap()
+        };
+
+        if parent_data
+            .parallel
+            .children_count
+            .fetch_sub(1, Ordering::Relaxed) != 1 {
+            // Get out of here and find another node to work on.
+            break
+        }
+
+        // We were the last child of our parent. Construct flows for our parent.
+        node = parent;
+    }
 }
 
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
@@ -441,12 +384,14 @@ fn run_queue_with_custom_work_data_type<To, F>(
     queue.run(shared_layout_context);
 }
 
-pub fn traverse_dom_preorder<'ln, ConcreteLayoutNode: LayoutNode<'ln>>(root: ConcreteLayoutNode,
+pub fn traverse_dom_preorder<'ln, N, T>(
+                             root: N,
                              shared_layout_context: &SharedLayoutContext,
-                             queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
+                             queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>)
+                             where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
-            fun:  recalc_style::<'ln, ConcreteLayoutNode>,
+            fun:  top_down_dom::<N, T>,
             data: (box vec![root.to_unsafe()], root.opaque()),
         });
     }, shared_layout_context);
