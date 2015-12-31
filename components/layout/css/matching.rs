@@ -8,18 +8,15 @@
 
 use animation;
 use context::SharedLayoutContext;
-use data::PrivateLayoutData;
-use incremental::{self, RestyleDamage};
 use msg::ParseErrorReporter;
 use script::layout_interface::Animation;
 use selectors::bloom::BloomFilter;
 use selectors::parser::PseudoElement;
 use selectors::{Element};
-use std::mem::transmute;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use style::data::PrivateStyleData;
-use style::dom::{TElement, TNode};
+use style::dom::{TElement, TNode, TRestyleDamage};
 use style::matching::{ApplicableDeclarations, ApplicableDeclarationsCache};
 use style::matching::{StyleSharingCandidate, StyleSharingCandidateCache};
 use style::properties::{ComputedValues, cascade};
@@ -28,54 +25,15 @@ use util::arc_ptr_eq;
 use util::opts;
 
 /// The results of attempting to share a style.
-pub enum StyleSharingResult {
+pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     /// We didn't find anybody to share the style with.
     CannotShare,
     /// The node's style can be shared. The integer specifies the index in the LRU cache that was
     /// hit and the damage that was done.
-    StyleWasShared(usize, RestyleDamage),
+    StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-pub trait ElementMatchMethods<'le, ConcreteElement: TElement<'le>> {
-    fn match_element(&self,
-                     stylist: &Stylist,
-                     parent_bf: Option<&BloomFilter>,
-                     applicable_declarations: &mut ApplicableDeclarations)
-                     -> bool;
-
-    /// Attempts to share a style with another node. This method is unsafe because it depends on
-    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
-    /// guarantee that at the type system level yet.
-    unsafe fn share_style_if_possible(&self,
-                                      style_sharing_candidate_cache:
-                                        &mut StyleSharingCandidateCache,
-                                      parent: Option<ConcreteElement::ConcreteNode>)
-                                      -> StyleSharingResult;
-}
-
-pub trait MatchMethods<'ln, ConcreteNode: TNode<'ln>> {
-    /// Inserts and removes the matching `Descendant` selectors from a bloom
-    /// filter. This is used to speed up CSS selector matching to remove
-    /// unnecessary tree climbs for `Descendant` queries.
-    ///
-    /// A bloom filter of the local names, namespaces, IDs, and classes is kept.
-    /// Therefore, each node must have its matching selectors inserted _after_
-    /// its own selector matching and _before_ its children start.
-    fn insert_into_bloom_filter(&self, bf: &mut BloomFilter);
-
-    /// After all the children are done css selector matching, this must be
-    /// called to reset the bloom filter after an `insert`.
-    fn remove_from_bloom_filter(&self, bf: &mut BloomFilter);
-
-    unsafe fn cascade_node(&self,
-                           layout_context: &SharedLayoutContext,
-                           parent: Option<ConcreteNode>,
-                           applicable_declarations: &ApplicableDeclarations,
-                           applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                           new_animations_sender: &Mutex<Sender<Animation>>);
-}
-
-trait PrivateMatchMethods {
+trait PrivateMatchMethods<'ln>: TNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
@@ -86,33 +44,7 @@ trait PrivateMatchMethods {
                                    new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
-                                   -> RestyleDamage;
-    fn update_animations_for_cascade(&self,
-                                     layout_context: &SharedLayoutContext,
-                                     style: &mut Option<Arc<ComputedValues>>)
-                                     -> bool;
-}
-
-trait PrivateElementMatchMethods<'le, ConcreteElement: TElement<'le>> {
-    fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<ConcreteElement::ConcreteNode>,
-                                              candidate: &StyleSharingCandidate)
-                                              -> Option<Arc<ComputedValues>>;
-}
-
-impl<'ln, ConcreteNode> PrivateMatchMethods for ConcreteNode
-                                            where ConcreteNode: TNode<'ln> {
-    fn cascade_node_pseudo_element(&self,
-                                   layout_context: &SharedLayoutContext,
-                                   parent_style: Option<&Arc<ComputedValues>>,
-                                   applicable_declarations: &[DeclarationBlock],
-                                   style: &mut Option<Arc<ComputedValues>>,
-                                   applicable_declarations_cache:
-                                    &mut ApplicableDeclarationsCache,
-                                   new_animations_sender: &Mutex<Sender<Animation>>,
-                                   shareable: bool,
-                                   animate_properties: bool)
-                                   -> RestyleDamage {
+                                   -> Self::ConcreteRestyleDamage {
         let mut cacheable = true;
         if animate_properties {
             cacheable = !self.update_animations_for_cascade(layout_context, style) && cacheable;
@@ -162,7 +94,7 @@ impl<'ln, ConcreteNode> PrivateMatchMethods for ConcreteNode
 
         // Calculate style difference.
         let this_style = Arc::new(this_style);
-        let damage = incremental::compute_damage(style, &*this_style);
+        let damage = Self::ConcreteRestyleDamage::compute(style, &*this_style);
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
@@ -212,7 +144,7 @@ impl<'ln, ConcreteNode> PrivateMatchMethods for ConcreteNode
         if had_running_animations {
             let mut all_running_animations = layout_context.style_context.running_animations.write().unwrap();
             for running_animation in all_running_animations.get(&this_opaque).unwrap() {
-                animation::update_style_for_animation(running_animation, style, None);
+                animation::update_style_for_animation::<Self::ConcreteRestyleDamage>(running_animation, style, None);
             }
             all_running_animations.remove(&this_opaque);
         }
@@ -221,11 +153,11 @@ impl<'ln, ConcreteNode> PrivateMatchMethods for ConcreteNode
     }
 }
 
-impl<'le, ConcreteElement> PrivateElementMatchMethods<'le, ConcreteElement>
-                           for ConcreteElement
-                           where ConcreteElement: TElement<'le> {
+impl<'ln, N: TNode<'ln>> PrivateMatchMethods<'ln> for N {}
+
+trait PrivateElementMatchMethods<'le>: TElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<ConcreteElement::ConcreteNode>,
+                                              parent_node: Option<Self::ConcreteNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
         let parent_node = match parent_node {
@@ -254,9 +186,9 @@ impl<'le, ConcreteElement> PrivateElementMatchMethods<'le, ConcreteElement>
     }
 }
 
-impl<'le, ConcreteElement> ElementMatchMethods<'le, ConcreteElement>
-                           for ConcreteElement
-                           where ConcreteElement: TElement<'le> {
+impl<'le, E: TElement<'le>> PrivateElementMatchMethods<'le> for E {}
+
+pub trait ElementMatchMethods<'le> : TElement<'le> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -286,11 +218,14 @@ impl<'le, ConcreteElement> ElementMatchMethods<'le, ConcreteElement>
         applicable_declarations.after.is_empty()
     }
 
+    /// Attempts to share a style with another node. This method is unsafe because it depends on
+    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
+    /// guarantee that at the type system level yet.
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      parent: Option<ConcreteElement::ConcreteNode>)
-                                      -> StyleSharingResult {
+                                      parent: Option<Self::ConcreteNode>)
+                                      -> StyleSharingResult<<Self::ConcreteNode as TNode<'le>>::ConcreteRestyleDamage> {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
         }
@@ -308,7 +243,7 @@ impl<'le, ConcreteElement> ElementMatchMethods<'le, ConcreteElement>
                     // Yay, cache hit. Share the style.
                     let node = self.as_node();
                     let style = &mut node.mutate_data().unwrap().style;
-                    let damage = incremental::compute_damage(style, &*shared_style);
+                    let damage = <<Self as TElement<'le>>::ConcreteNode as TNode<'le>>::ConcreteRestyleDamage::compute(style, &*shared_style);
                     *style = Some(shared_style);
                     return StyleSharingResult::StyleWasShared(i, damage)
                 }
@@ -320,9 +255,9 @@ impl<'le, ConcreteElement> ElementMatchMethods<'le, ConcreteElement>
     }
 }
 
-impl<'ln, ConcreteNode> MatchMethods<'ln, ConcreteNode>
-                        for ConcreteNode
-                        where ConcreteNode: TNode<'ln> {
+impl<'le, E: TElement<'le>> ElementMatchMethods<'le> for E {}
+
+pub trait MatchMethods<'ln> : TNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -338,6 +273,13 @@ impl<'ln, ConcreteNode> MatchMethods<'ln, ConcreteNode>
     //   - `SimpleSelector::ID`
     //   - `SimpleSelector::Class`
 
+    /// Inserts and removes the matching `Descendant` selectors from a bloom
+    /// filter. This is used to speed up CSS selector matching to remove
+    /// unnecessary tree climbs for `Descendant` queries.
+    ///
+    /// A bloom filter of the local names, namespaces, IDs, and classes is kept.
+    /// Therefore, each node must have its matching selectors inserted _after_
+    /// its own selector matching and _before_ its children start.
     fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.
         if let Some(element) = self.as_element() {
@@ -350,6 +292,8 @@ impl<'ln, ConcreteNode> MatchMethods<'ln, ConcreteNode>
         }
     }
 
+    /// After all the children are done css selector matching, this must be
+    /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.
         if let Some(element) = self.as_element() {
@@ -364,7 +308,7 @@ impl<'ln, ConcreteNode> MatchMethods<'ln, ConcreteNode>
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
-                           parent: Option<ConcreteNode>,
+                           parent: Option<Self>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                            new_animations_sender: &Mutex<Sender<Animation>>) {
@@ -381,52 +325,58 @@ impl<'ln, ConcreteNode> MatchMethods<'ln, ConcreteNode>
             }
         };
 
-        let mut data_ref = self.mutate_data().unwrap();
-        let mut data = &mut *data_ref;
         if self.is_text_node() {
             // Text nodes get a copy of the parent style. This ensures
             // that during fragment construction any non-inherited
             // CSS properties (such as vertical-align) are correctly
             // set on the fragment(s).
+            let mut data_ref = self.mutate_data().unwrap();
+            let mut data = &mut *data_ref;
             let cloned_parent_style = parent_style.unwrap().clone();
             data.style = Some(cloned_parent_style);
         } else {
-            let mut damage = self.cascade_node_pseudo_element(
-                layout_context,
-                parent_style,
-                &applicable_declarations.normal,
-                &mut data.style,
-                applicable_declarations_cache,
-                new_animations_sender,
-                applicable_declarations.normal_shareable,
-                true);
-            if !applicable_declarations.before.is_empty() {
-                damage = damage | self.cascade_node_pseudo_element(
+            let mut damage;
+            {
+                let mut data_ref = self.mutate_data().unwrap();
+                let mut data = &mut *data_ref;
+                damage = self.cascade_node_pseudo_element(
                     layout_context,
-                    Some(data.style.as_ref().unwrap()),
-                    &*applicable_declarations.before,
-                    &mut data.before_style,
+                    parent_style,
+                    &applicable_declarations.normal,
+                    &mut data.style,
                     applicable_declarations_cache,
                     new_animations_sender,
-                    false,
-                    false);
-            }
-            if !applicable_declarations.after.is_empty() {
-                damage = damage | self.cascade_node_pseudo_element(
-                    layout_context,
-                    Some(data.style.as_ref().unwrap()),
-                    &*applicable_declarations.after,
-                    &mut data.after_style,
-                    applicable_declarations_cache,
-                    new_animations_sender,
-                    false,
-                    false);
+                    applicable_declarations.normal_shareable,
+                    true);
+                if !applicable_declarations.before.is_empty() {
+                    damage = damage | self.cascade_node_pseudo_element(
+                        layout_context,
+                        Some(data.style.as_ref().unwrap()),
+                        &*applicable_declarations.before,
+                        &mut data.before_style,
+                        applicable_declarations_cache,
+                        new_animations_sender,
+                        false,
+                        false);
+                }
+                if !applicable_declarations.after.is_empty() {
+                    damage = damage | self.cascade_node_pseudo_element(
+                        layout_context,
+                        Some(data.style.as_ref().unwrap()),
+                        &*applicable_declarations.after,
+                        &mut data.after_style,
+                        applicable_declarations_cache,
+                        new_animations_sender,
+                        false,
+                        false);
+                }
             }
 
-            // FIXME(bholley): This is the only dependency in this file on non-style
-            // stuff.
-            let layout_data: &mut PrivateLayoutData = transmute(data);
-            layout_data.restyle_damage = damage;
+            // This method needs to borrow the data as mutable, so make sure data_ref goes out of
+            // scope first.
+            self.set_restyle_damage(damage);
         }
     }
 }
+
+impl<'ln, N: TNode<'ln>> MatchMethods<'ln> for N {}

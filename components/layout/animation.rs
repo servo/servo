@@ -6,7 +6,7 @@
 
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
-use incremental::{self, RestyleDamage};
+use incremental::RestyleDamage;
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use script::layout_interface::Animation;
 use script_traits::LayoutMsg as ConstellationMsg;
@@ -15,6 +15,7 @@ use std::collections::hash_map::Entry;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use style::animation::{GetMod, PropertyAnimation};
+use style::dom::TRestyleDamage;
 use style::properties::ComputedValues;
 use time;
 
@@ -142,9 +143,9 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
 
 /// Updates a single animation and associated style based on the current time. If `damage` is
 /// provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation(animation: &Animation,
-                                  style: &mut Arc<ComputedValues>,
-                                  damage: Option<&mut RestyleDamage>) {
+pub fn update_style_for_animation<ConcreteRestyleDamage: TRestyleDamage>(animation: &Animation,
+                                                                         style: &mut Arc<ComputedValues>,
+                                                                         damage: Option<&mut ConcreteRestyleDamage>) {
     let now = time::precise_time_s();
     let mut progress = (now - animation.start_time) / animation.duration();
     if progress > 1.0 {
@@ -157,7 +158,7 @@ pub fn update_style_for_animation(animation: &Animation,
     let mut new_style = (*style).clone();
     animation.property_animation.update(&mut *Arc::make_mut(&mut new_style), progress);
     if let Some(damage) = damage {
-        damage.insert(incremental::compute_damage(&Some((*style).clone()), &new_style));
+        *damage = *damage | ConcreteRestyleDamage::compute(&Some((*style).clone()), &new_style);
     }
 
     *style = new_style
