@@ -242,21 +242,22 @@ fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str
     }
 }
 
-struct AssertRequestMustNotHaveHeaders {
+struct AssertRequestMustNotIncludeHeaders {
     headers_not_expected: Vec<String>,
     request_headers: Headers,
     t: ResponseType
 }
 
-impl AssertRequestMustNotHaveHeaders {
+impl AssertRequestMustNotIncludeHeaders {
     fn new(t: ResponseType, headers_not_expected: Vec<String>) -> Self {
-        AssertRequestMustNotHaveHeaders {
+        assert!(headers_not_expected.len() != 0);
+        AssertRequestMustNotIncludeHeaders {
             headers_not_expected: headers_not_expected,
             request_headers: Headers::new(), t: t }
     }
 }
 
-impl HttpRequest for AssertRequestMustNotHaveHeaders {
+impl HttpRequest for AssertRequestMustNotIncludeHeaders {
     type R = MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
@@ -270,17 +271,17 @@ impl HttpRequest for AssertRequestMustNotHaveHeaders {
     }
 }
 
-struct AssertMustNotHaveHeadersRequestFactory {
+struct AssertMustNotIncludeHeadersRequestFactory {
     headers_not_expected: Vec<String>,
     body: Vec<u8>
 }
 
-impl HttpRequestFactory for AssertMustNotHaveHeadersRequestFactory {
-    type R = AssertRequestMustNotHaveHeaders;
+impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
+    type R = AssertRequestMustNotIncludeHeaders;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustNotHaveHeaders, LoadError> {
+    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustNotIncludeHeaders, LoadError> {
         Ok(
-            AssertRequestMustNotHaveHeaders::new(
+            AssertRequestMustNotIncludeHeaders::new(
                 ResponseType::Text(self.body.clone()),
                 self.headers_not_expected.clone()
             )
@@ -906,9 +907,9 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 
     assert_cookie_for_domain(cookie_jar.clone(), "https://mozilla.com", "mozillaIs=theBest");
 
-    let _ = load::<AssertRequestMustNotHaveHeaders>(
+    let _ = load::<AssertRequestMustNotIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustNotHaveHeadersRequestFactory {
+        &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Cookie".to_owned()],
             body: <[_]>::to_vec(&*load_data.data.unwrap())
         }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
