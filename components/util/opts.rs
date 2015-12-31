@@ -171,9 +171,6 @@ pub struct Opts {
     /// Whether to show an error when display list geometry escapes flow overflow regions.
     pub validate_display_list_geometry: bool,
 
-    /// Whether MIME sniffing should be used
-    pub sniff_mime_types: bool,
-
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
 
@@ -491,7 +488,6 @@ pub fn default_opts() -> Opts {
         profile_tasks: false,
         profile_script_events: false,
         profile_heartbeats: false,
-        sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
         convert_mouse_to_touch: false,
@@ -536,7 +532,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 "A comma-separated string of debug options. Pass help to show available options.", "");
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
-    opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
     opts.optopt("", "content-process" , "Run as a content process and connect to the given pipe",
                 "servo-ipc-channel.abcdefg");
     opts.optmulti("", "pref",
@@ -726,7 +721,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         validate_display_list_geometry: debug_options.validate_display_list_geometry,
-        sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.disable_share_style_cache,
         parallel_display_list_building: debug_options.parallel_display_list_building,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,

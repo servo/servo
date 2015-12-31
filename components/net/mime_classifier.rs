@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use net_traits::LoadContext;
 use std::borrow::ToOwned;
 
 pub struct MIMEClassifier {
@@ -11,7 +12,8 @@ pub struct MIMEClassifier {
     plaintext_classifier: GroupedClassifier,
     archive_classifier: GroupedClassifier,
     binary_or_plaintext: BinaryOrPlaintextClassifier,
-    feeds_classifier: FeedsClassifier
+    feeds_classifier: FeedsClassifier,
+    font_classifier: GroupedClassifier,
 }
 
 pub enum MediaType {
@@ -33,35 +35,105 @@ pub enum NoSniffFlag {
 }
 
 impl MIMEClassifier {
-    //Performs MIME Type Sniffing Algorithm (section 7)
+    //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
     pub fn classify(&self,
+                    context: LoadContext,
                     no_sniff_flag: NoSniffFlag,
                     apache_bug_flag: ApacheBugFlag,
                     supplied_type: &Option<(String, String)>,
                     data: &[u8]) -> (String, String) {
-        match *supplied_type {
-            None => self.sniff_unknown_type(no_sniff_flag, data),
-            Some(ref supplied_type) => {
-                let &(ref media_type, ref media_subtype) = supplied_type;
-                if MIMEClassifier::is_explicit_unknown(media_type, media_subtype) {
-                    self.sniff_unknown_type(no_sniff_flag, data)
-                } else {
-                    match no_sniff_flag {
-                        NoSniffFlag::ON => supplied_type.clone(),
-                        NoSniffFlag::OFF => match apache_bug_flag {
-                            ApacheBugFlag::ON => self.sniff_text_or_data(data),
-                            ApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
-                                                                                       media_subtype) {
-                                Some(MediaType::Xml) => None,
-                                Some(MediaType::Html) => self.feeds_classifier.classify(data),
-                                Some(MediaType::Image) => self.image_classifier.classify(data),
-                                Some(MediaType::AudioVideo) => self.audio_video_classifier.classify(data),
-                                None => None
-                            }.unwrap_or(supplied_type.clone())
+        let supplied_type_or_octet_stream = supplied_type.clone()
+                                                         .unwrap_or(("application".to_owned(),
+                                                                     "octet-stream".to_owned()));
+        match context {
+            LoadContext::Browsing => match *supplied_type {
+                None => self.sniff_unknown_type(no_sniff_flag, data),
+                Some(ref supplied_type) => {
+                    let &(ref media_type, ref media_subtype) = supplied_type;
+                    if MIMEClassifier::is_explicit_unknown(media_type, media_subtype) {
+                        self.sniff_unknown_type(no_sniff_flag, data)
+                    } else {
+                        match no_sniff_flag {
+                            NoSniffFlag::ON => supplied_type.clone(),
+                            NoSniffFlag::OFF => match apache_bug_flag {
+                                ApacheBugFlag::ON => self.sniff_text_or_data(data),
+                                ApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
+                                                                                           media_subtype) {
+                                    Some(MediaType::Html) => self.feeds_classifier.classify(data),
+                                    Some(MediaType::Image) => self.image_classifier.classify(data),
+                                    Some(MediaType::AudioVideo) => self.audio_video_classifier.classify(data),
+                                    Some(MediaType::Xml) | None => None,
+                                }.unwrap_or(supplied_type.clone())
+                            }
                         }
                     }
                 }
-            }
+            },
+            LoadContext::Image => {
+                // Section 8.2 Sniffing an image context
+                match MIMEClassifier::maybe_get_media_type(supplied_type) {
+                    Some(MediaType::Xml) => None,
+                    _ => self.image_classifier.classify(data),
+                }.unwrap_or(supplied_type_or_octet_stream)
+            },
+            LoadContext::AudioVideo => {
+                // Section 8.3 Sniffing an image context
+                match MIMEClassifier::maybe_get_media_type(supplied_type) {
+                    Some(MediaType::Xml) => None,
+                    _ => self.audio_video_classifier.classify(data),
+                }.unwrap_or(supplied_type_or_octet_stream)
+            },
+            LoadContext::Plugin => {
+                // 8.4 Sniffing in a plugin context
+                //
+                // This section was *not* finalized in the specs at the time
+                // of this implementation.
+                match *supplied_type {
+                    None => ("application".to_owned(), "octet-stream".to_owned()),
+                    _ => supplied_type_or_octet_stream,
+                }
+            },
+            LoadContext::Style => {
+                // 8.5 Sniffing in a style context
+                //
+                // This section was *not* finalized in the specs at the time
+                // of this implementation.
+                match *supplied_type {
+                    None => ("text".to_owned(), "css".to_owned()),
+                    _ => supplied_type_or_octet_stream,
+                }
+            },
+            LoadContext::Script => {
+                // 8.6 Sniffing in a script context
+                //
+                // This section was *not* finalized in the specs at the time
+                // of this implementation.
+                match *supplied_type {
+                    None => ("text".to_owned(), "javascript".to_owned()),
+                    _ => supplied_type_or_octet_stream,
+                }
+            },
+            LoadContext::Font => {
+                // 8.7 Sniffing in a font context
+                match MIMEClassifier::maybe_get_media_type(supplied_type) {
+                    Some(MediaType::Xml) => None,
+                    _ => self.font_classifier.classify(data),
+                }.unwrap_or(supplied_type_or_octet_stream)
+            },
+            LoadContext::TextTrack => {
+                // 8.8 Sniffing in a text track context
+                //
+                // This section was *not* finalized in the specs at the time
+                // of this implementation.
+                ("text".to_owned(), "vtt".to_owned())
+            },
+            LoadContext::CacheManifest => {
+                // 8.9 Sniffing in a cache manifest context
+                //
+                // This section was *not* finalized in the specs at the time
+                // of this implementation.
+                ("text".to_owned(), "cache-manifest".to_owned())
+            },
         }
     }
 
@@ -73,7 +145,8 @@ impl MIMEClassifier {
              plaintext_classifier: GroupedClassifier::plaintext_classifier(),
              archive_classifier: GroupedClassifier::archive_classifier(),
              binary_or_plaintext: BinaryOrPlaintextClassifier,
-             feeds_classifier: FeedsClassifier
+             feeds_classifier: FeedsClassifier,
+             font_classifier: GroupedClassifier::font_classifier()
          }
     }
 
@@ -142,6 +215,12 @@ impl MIMEClassifier {
         } else {
             None
         }
+    }
+
+    fn maybe_get_media_type(supplied_type: &Option<(String, String)>) -> Option<MediaType> {
+        supplied_type.as_ref().and_then(|&(ref media_type, ref media_subtype)| {
+            MIMEClassifier::get_media_type(media_type, media_subtype)
+        })
     }
 }
 
@@ -375,8 +454,6 @@ impl GroupedClassifier {
         }
     }
 
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn font_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
@@ -873,8 +950,6 @@ impl ByteMatcher {
         }
     }
     //34 bytes followed by the string "LP", the Embedded OpenType signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn application_vnd_ms_font_object() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
@@ -888,41 +963,33 @@ impl ByteMatcher {
         }
     }
     //4 bytes representing the version number 1.0, a TrueType signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn true_type() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: ("(TrueType)", ""),
+            content_type: ("application", "font-sfnt"),
             leading_ignore: &[]
         }
     }
     //The string "OTTO", the OpenType signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn open_type() -> ByteMatcher {
         ByteMatcher {
             pattern: b"OTTO",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: ("(OpenType)", ""),
+            content_type: ("application", "font-sfnt"),
             leading_ignore: &[]
         }
     }
     // The string "ttcf", the TrueType Collection signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn true_type_collection() -> ByteMatcher {
         ByteMatcher {
             pattern: b"ttcf",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: ("(TrueType Collection)", ""),
+            content_type: ("application", "font-sfnt"),
             leading_ignore: &[]
         }
     }
     // The string "wOFF", the Web Open Font Format signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn application_font_woff() -> ByteMatcher {
         ByteMatcher {
             pattern: b"wOFF",

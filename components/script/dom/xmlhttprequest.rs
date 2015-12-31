@@ -46,7 +46,7 @@ use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::ControlMsg::Load;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
-use net_traits::{LoadConsumer, LoadData, ResourceCORSData, ResourceTask};
+use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceTask};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -521,7 +521,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         let global = self.global.root();
         let pipeline_id = global.r().pipeline();
-        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), Some(pipeline_id));
+        let mut load_data =
+            LoadData::new(LoadContext::Browsing,
+                          self.request_url.borrow().clone().unwrap(),
+                          Some(pipeline_id));
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }

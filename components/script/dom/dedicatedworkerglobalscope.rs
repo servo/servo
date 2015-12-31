@@ -26,7 +26,7 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::load_whole_resource;
+use net_traits::{LoadContext, load_whole_resource};
 use rand::random;
 use script_task::ScriptTaskEventCategory::WorkerEvent;
 use script_task::{ScriptTask, ScriptChan, ScriptPort, StackRootTLS, CommonScriptMsg};
@@ -220,7 +220,7 @@ impl DedicatedWorkerGlobalScope {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (url, source) = match load_whole_resource(&init.resource_task, worker_url, None) {
+            let (url, source) = match load_whole_resource(LoadContext::Script, &init.resource_task, worker_url, None) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
