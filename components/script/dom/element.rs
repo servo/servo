@@ -51,7 +51,7 @@ use dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
 use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
 use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers};
 use dom::htmltemplateelement::HTMLTemplateElement;
-use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
+use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
@@ -440,7 +440,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
-            match (*this.unsafe_get()).get_cols_for_layout() {
+            match this.get_cols() {
                 0 => None,
                 c => Some(c as i32),
             }
@@ -462,7 +462,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
-            match (*this.unsafe_get()).get_rows_for_layout() {
+            match this.get_rows() {
                 0 => None,
                 r => Some(r as i32),
             }

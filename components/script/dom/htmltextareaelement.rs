@@ -13,6 +13,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
+use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -39,8 +40,6 @@ pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
-    cols: Cell<u32>,
-    rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
 }
@@ -50,13 +49,10 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     unsafe fn get_value_for_layout(self) -> String;
     #[allow(unsafe_code)]
     unsafe fn get_absolute_insertion_point_for_layout(self) -> usize;
-}
-
-pub trait RawLayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_cols_for_layout(self) -> u32;
+    fn get_cols(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn get_rows_for_layout(self) -> u32;
+    fn get_rows(self) -> u32;
 }
 
 impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
@@ -71,19 +67,25 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     unsafe fn get_absolute_insertion_point_for_layout(self) -> usize {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_absolute_insertion_point()
     }
-}
 
-impl<'a> RawLayoutHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_cols_for_layout(self) -> u32 {
-        self.cols.get()
+    fn get_cols(self) -> u32 {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("cols"))
+                .map(AttrValue::as_uint)
+                .unwrap_or(DEFAULT_COLS)
+        }
     }
 
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_rows_for_layout(self) -> u32 {
-        self.rows.get()
+    fn get_rows(self) -> u32 {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("rows"))
+                .map(AttrValue::as_uint)
+                .unwrap_or(DEFAULT_ROWS)
+        }
     }
 }
 
@@ -100,8 +102,6 @@ impl HTMLTextAreaElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, DOMString::new(), chan, None)),
-            cols: Cell::new(DEFAULT_COLS),
-            rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
         }
     }
@@ -267,18 +267,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     }
                 }
-            },
-            atom!("cols") => {
-                let cols = mutation.new_value(attr).map(|value| {
-                    value.as_uint()
-                });
-                self.cols.set(cols.unwrap_or(DEFAULT_COLS));
-            },
-            atom!("rows") => {
-                let rows = mutation.new_value(attr).map(|value| {
-                    value.as_uint()
-                });
-                self.rows.set(rows.unwrap_or(DEFAULT_ROWS));
             },
             _ => {},
         }
