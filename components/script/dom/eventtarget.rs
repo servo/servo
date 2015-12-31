@@ -98,11 +98,20 @@ impl EventTargetTypeId {
     }
 }
 
-/// A representation of an event handler, either compiled or uncompiled raw source.
+/// https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler
+#[derive(JSTraceable, Clone, PartialEq)]
+pub struct InternalRawUncompiledHandler {
+    source: DOMString,
+    url: Url,
+    line: usize,
+}
+
+/// A representation of an event handler, either compiled or uncompiled raw source, or null.
 #[derive(JSTraceable, PartialEq, Clone)]
 pub enum InlineEventListener {
-    Uncompiled(Option<(DOMString, Url, usize)>),
+    Uncompiled(Option<InternalRawUncompiledHandler>),
     Compiled(CommonEventHandler),
+    Null,
 }
 
 impl InlineEventListener {
@@ -110,13 +119,34 @@ impl InlineEventListener {
     /// raw source if necessary.
     fn get_compiled_handler(&mut self, owner: &EventTarget, ty: &Atom)
                             -> Option<CommonEventHandler> {
-        match self {
-            &mut InlineEventListener::Uncompiled(ref mut inner) => {
-                let (source, url, line) = inner.take().unwrap();
-                owner.get_compiled_event_handler(url, line, ty, source)
-            }
-            &mut InlineEventListener::Compiled(ref handler) => Some(handler.clone()),
+        enum Action {
+            StoreCompiled(CommonEventHandler),
+            StoreNull,
         }
+
+        let (action, rv) = match self {
+            &mut InlineEventListener::Null => (None, None),
+            &mut InlineEventListener::Uncompiled(ref mut inner) => {
+                let handler = inner.take().unwrap();
+                let result = owner.get_compiled_event_handler(handler, ty);
+
+                if let Some(compiled) = result {
+                    (Some(Action::StoreCompiled(compiled.clone())), Some(compiled))
+                } else {
+                    (Some(Action::StoreNull), None)
+                }
+            }
+            &mut InlineEventListener::Compiled(ref handler) => (None, Some(handler.clone())),
+        };
+
+        if let Some(action) = action {
+            match action {
+                Action::StoreNull => *self = InlineEventListener::Null,
+                Action::StoreCompiled(compiled) => *self = InlineEventListener::Compiled(compiled),
+            }
+        }
+
+        rv
     }
 }
 
@@ -224,26 +254,11 @@ impl DerefMut for EventListeners {
 impl EventListeners {
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_inline_listener(&mut self, owner: &EventTarget, ty: &Atom) -> Option<CommonEventHandler> {
-        let mut to_remove = None;
-
-        for (idx, entry) in self.0.iter_mut().enumerate() {
+        for entry in &mut self.0 {
             if let EventListenerType::Inline(ref mut inline) = entry.listener {
-                // Step 1.1-1.7
-                let result = inline.get_compiled_handler(owner, ty);
-                if result.is_some() {
-                    // Step 2
-                    return result;
-                }
-
-                // Step 1.8
-                to_remove = Some(idx);
-                break;
+                // Step 1.1-1.8 and Step 2
+                return inline.get_compiled_handler(owner, ty);
             }
-        }
-
-        // Step 1.8.1
-        if let Some(idx) = to_remove {
-            self.0.remove(idx);
         }
 
         // Step 2
@@ -253,30 +268,14 @@ impl EventListeners {
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_listeners(&mut self, phase: Option<ListenerPhase>, owner: &EventTarget, ty: &Atom)
                      -> Vec<CompiledEventListener> {
-        let mut to_remove = vec![];
-        let result = self.0.iter_mut().enumerate().filter_map(|(idx, entry)| {
+        self.0.iter_mut().filter_map(|entry| {
             if phase.is_none() || Some(entry.phase) == phase {
-                // Step 1.1-1.7
-                if let Some(listener) = entry.listener.get_compiled_listener(owner, ty) {
-                    // Step 2
-                    Some(listener)
-                } else {
-                    // Step 1.8
-                    to_remove.push(idx);
-                    None
-                }
+                // Step 1.1-1.8, 2
+                entry.listener.get_compiled_listener(owner, ty)
             } else {
                 None
             }
-        }).collect();
-
-        // Step 1.8.1
-        for (position, idx) in to_remove.iter().enumerate() {
-            self.0.remove(idx - position);
-        }
-
-        // Step 2
-        result
+        }).collect()
     }
 }
 
@@ -337,10 +336,10 @@ impl EventTarget {
         match idx {
             Some(idx) => {
                 match listener {
-                    Some(listener) => entries[idx].listener = EventListenerType::Inline(listener),
-                    None => {
-                        entries.remove(idx);
-                    }
+                    Some(listener) =>
+                        entries[idx].listener = EventListenerType::Inline(listener),
+                    None =>
+                        entries[idx].listener = EventListenerType::Inline(InlineEventListener::Null),
                 }
             }
             None => {
@@ -366,18 +365,20 @@ impl EventTarget {
                                         line: usize,
                                         ty: &str,
                                         source: DOMString) {
+        let handler = InternalRawUncompiledHandler {
+            source: source,
+            line: line,
+            url: url,
+        };
         self.set_inline_event_listener(Atom::from(ty),
-                                       Some(InlineEventListener::Uncompiled(
-                                           Some((source, url, line)))));
+                                       Some(InlineEventListener::Uncompiled(Some(handler))));
     }
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     #[allow(unsafe_code)]
     pub fn get_compiled_event_handler(&self,
-                                      url: Url,
-                                      lineno: usize,
-                                      ty: &Atom,
-                                      source: DOMString)
+                                      handler: InternalRawUncompiledHandler,
+                                      ty: &Atom)
                                       -> Option<CommonEventHandler> {
         // Step 1.1
         let element = self.downcast::<Element>();
@@ -389,14 +390,14 @@ impl EventTarget {
         // TODO step 1.2 (browsing context/scripting enabled)
 
         // Step 1.3
-        let body: Vec<u16> = source.utf16_units().collect();
+        let body: Vec<u16> = handler.source.utf16_units().collect();
 
         // TODO step 1.5 (form owner)
 
         // Step 1.6
         let window = document.window();
 
-        let url_serialized = CString::new(url.serialize()).unwrap();
+        let url_serialized = CString::new(handler.url.serialize()).unwrap();
         let name = CString::new(&**ty).unwrap();
 
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];
@@ -416,7 +417,7 @@ impl EventTarget {
         };
 
         let cx = window.get_cx();
-        let options = CompileOptionsWrapper::new(cx, url_serialized.as_ptr(), lineno as u32);
+        let options = CompileOptionsWrapper::new(cx, url_serialized.as_ptr(), handler.line as u32);
         // TODO step 1.10.1-3 (document, form owner, element in scope chain)
 
         let scopechain = AutoObjectVectorWrapper::new(cx);
