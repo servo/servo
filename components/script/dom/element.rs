@@ -326,7 +326,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 PropertyDeclaration::FontFamily(
                     DeclaredValue::Value(
                         font_family::computed_value::T(vec![
-                            font_family::computed_value::FontFamily::FamilyName(
+                            font_family::computed_value::FontFamily::from_atom(
                                 font_family)])))));
         }
 
