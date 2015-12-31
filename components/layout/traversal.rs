@@ -231,7 +231,7 @@ fn recalc_style_at<'a, 'ln, N: LayoutNode<'ln>> (context: &'a DomTraversalContex
             }
             StyleSharingResult::StyleWasShared(index, damage) => {
                 style_sharing_candidate_cache.touch(index);
-                node.to_threadsafe().set_restyle_damage(damage);
+                node.set_restyle_damage(damage);
             }
         }
     }
