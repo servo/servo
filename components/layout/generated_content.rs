@@ -13,12 +13,13 @@ use flow::{InorderFlowTraversal};
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use incremental::{self, RESOLVE_GENERATED_CONTENT};
+use incremental::{RESOLVE_GENERATED_CONTENT, RestyleDamage};
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
 use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
+use style::dom::TRestyleDamage;
 use style::properties::ComputedValues;
 use text::TextRunScanner;
 use wrapper::PseudoElementType;
@@ -431,7 +432,7 @@ fn render_text(layout_context: &LayoutContext,
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              pseudo,
                                                              style,
-                                                             incremental::rebuild_and_reflow(),
+                                                             RestyleDamage::rebuild_and_reflow(),
                                                              info));
     // FIXME(pcwalton): This should properly handle multiple marker fragments. This could happen
     // due to text run splitting.

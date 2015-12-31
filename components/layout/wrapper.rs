@@ -132,6 +132,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
+    type ConcreteRestyleDamage = RestyleDamage;
 
     fn to_unsafe(&self) -> UnsafeNode {
         unsafe {
@@ -235,6 +236,14 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
 
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
         unsafe { self.mutate_layout_data().map(|d| transmute(d)) }
+    }
+
+    fn restyle_damage(self) -> RestyleDamage {
+        self.borrow_layout_data().unwrap().restyle_damage
+    }
+
+    fn set_restyle_damage(self, damage: RestyleDamage) {
+        self.mutate_layout_data().unwrap().restyle_damage = damage;
     }
 
     fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
@@ -714,16 +723,9 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     fn is_ignorable_whitespace(&self) -> bool;
 
-    /// Get the description of how to account for recent style changes.
-    /// This is a simple bitfield and fine to copy by value.
-    fn restyle_damage(self) -> RestyleDamage {
-        self.borrow_layout_data().unwrap().restyle_damage
-    }
+    fn restyle_damage(self) -> RestyleDamage;
 
-    /// Set the restyle damage field.
-    fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.mutate_layout_data().unwrap().restyle_damage = damage;
-    }
+    fn set_restyle_damage(self, damage: RestyleDamage);
 
     /// Returns the layout data flags for this node.
     fn flags(self) -> LayoutDataFlags;
@@ -907,6 +909,14 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
             // want to update this check.
             !self.style().get_inheritedtext().white_space.preserve_newlines()
         }
+    }
+
+    fn restyle_damage(self) -> RestyleDamage {
+        self.node.restyle_damage()
+    }
+
+    fn set_restyle_damage(self, damage: RestyleDamage) {
+        self.node.set_restyle_damage(damage)
     }
 
     fn flags(self) -> LayoutDataFlags {
