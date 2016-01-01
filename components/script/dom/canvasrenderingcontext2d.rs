@@ -1154,7 +1154,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
     fn CreatePattern(&self,
                      image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
-                     repetition: DOMString)
+                     mut repetition: DOMString)
                      -> Fallible<Root<CanvasPattern>> {
         let (image_data, image_size) = match image {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(ref image) => {
@@ -1175,6 +1175,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
             }
         };
+
+        if repetition.is_empty() {
+            repetition.push_str("repeat");
+        }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
             Ok(CanvasPattern::new(self.global.root().r(),
