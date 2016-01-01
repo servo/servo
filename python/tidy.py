@@ -554,45 +554,46 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
-def check_wpt_lint_errors():
+def check_wpt_lint_errors(only_changed_files=False):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     lint_cmd = os.path.join(wpt_working_dir, "lint")
     try:
-        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
+        args = [lint_cmd, '--changes'] if only_changed_files else [lint_cmd]
+        # lint must run from wpt's working dir
+        subprocess.check_call(args, cwd=wpt_working_dir)
     except subprocess.CalledProcessError as e:
         yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
 
 
-def scan(faster):
-    if faster:
-        # only check the files that have been changed since FETCH_HEAD
-        file_list = subprocess.check_output(['git', 'diff', '--name-only', 'FETCH_HEAD', '.'])
+def get_file_list(directory, only_changed_files=False):
+    if only_changed_files:
+        # only check the files that have been changed since the last merge
+        args = ['git', 'diff', '--name-only', 'FETCH_HEAD', directory]
+        file_list = subprocess.check_output(args)
         # also check untracked files
-        file_list += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard', '.'])
-        all_files = (os.path.join('.', f) for f in file_list.splitlines())
+        args = ['git', 'ls-files', '--others', '--exclude-standard', directory]
+        file_list += subprocess.check_output(args)
+        return (os.path.join('.', f) for f in file_list.splitlines())
     else:
-        all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
+        return (os.path.join(r, f) for r, _, files in os.walk(directory) for f in files)
 
-    files_to_check = filter(should_check, all_files)
 
+def scan(only_changed_files):
+    # standard checks
+    files_to_check = filter(should_check, get_file_list('.', only_changed_files))
     checking_functions = (check_flake8, check_lock, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    if faster:
-        reftest_files = subprocess.check_output(['git', 'diff', '--name-only',
-                                                 'FETCH_HEAD', reftest_dir])
-        reftest_files += subprocess.check_output(['git', 'ls-files', '--others',
-                                                  '--exclude-standard', reftest_dir])
-    else:
-        reftest_files = (os.path.join(r, f) for r, _, files in os.walk(reftest_dir)
-                         for f in files)
-    reftest_to_check = filter(should_check_reftest, reftest_files)
+    # reftest checks
+    reftest_to_check = filter(should_check_reftest, get_file_list(reftest_dir, only_changed_files))
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
 
-    wpt_lint_errors = check_wpt_lint_errors() if not faster else iter([])
+    # wpt lint checks
+    wpt_lint_errors = check_wpt_lint_errors(only_changed_files)
 
+    # collect errors
     errors = itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors)
 
     error = None
