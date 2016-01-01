@@ -354,6 +354,102 @@ impl MainThreadScriptChan {
     }
 }
 
+// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+#[derive(JSTraceable)]
+pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl ScriptChan for DOMManipulationTaskSource {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let DOMManipulationTaskSource(ref chan) = *self;
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        let DOMManipulationTaskSource(ref chan) = *self;
+        box DOMManipulationTaskSource((*chan).clone())
+    }
+}
+
+// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+#[derive(JSTraceable)]
+pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl ScriptChan for UserInteractionTaskSource {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let UserInteractionTaskSource(ref chan) = *self;
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        let UserInteractionTaskSource(ref chan) = *self;
+        box UserInteractionTaskSource((*chan).clone())
+    }
+}
+
+// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+#[derive(JSTraceable)]
+pub struct NetworkingTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl ScriptChan for NetworkingTaskSource {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let NetworkingTaskSource(ref chan) = *self;
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        let NetworkingTaskSource(ref chan) = *self;
+        box NetworkingTaskSource((*chan).clone())
+    }
+}
+
+// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+#[derive(JSTraceable)]
+pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl ScriptChan for HistoryTraversalTaskSource {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let HistoryTraversalTaskSource(ref chan) = *self;
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        let HistoryTraversalTaskSource(ref chan) = *self;
+        box HistoryTraversalTaskSource((*chan).clone())
+    }
+}
+
+// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+#[derive(JSTraceable)]
+pub struct FileReadingTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl ScriptChan for FileReadingTaskSource {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let FileReadingTaskSource(ref chan) = *self;
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        let FileReadingTaskSource(ref chan) = *self;
+        box FileReadingTaskSource((*chan).clone())
+    }
+}
+
+// FIXME: Use a task source specific message instead of MainThreadScriptMsg
+#[derive(JSTraceable)]
+pub struct ProfilerTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl ScriptChan for ProfilerTaskSource {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let ProfilerTaskSource(ref chan) = *self;
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        let ProfilerTaskSource(ref chan) = *self;
+        box ProfilerTaskSource((*chan).clone())
+    }
+}
+
 pub struct StackRootTLS<'a>(PhantomData<&'a u32>);
 
 impl<'a> StackRootTLS<'a> {
@@ -395,6 +491,15 @@ pub struct ScriptTask {
     /// A channel to hand out to script task-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
+    dom_manipulation_task_source: DOMManipulationTaskSource,
+
+    user_interaction_task_source: UserInteractionTaskSource,
+
+    networking_task_source: NetworkingTaskSource,
+
+    history_traversal_task_source: HistoryTraversalTaskSource,
+
+    file_reading_task_source: FileReadingTaskSource,
 
     /// A channel to hand out to tasks that need to respond to a message from the script task.
     control_chan: IpcSender<ConstellationControlMsg>,
@@ -509,7 +614,7 @@ impl ScriptTaskFactory for ScriptTask {
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let chan = MainThreadScriptChan(script_chan);
+            let chan = MainThreadScriptChan(script_chan.clone());
             let channel_for_reporter = chan.clone();
             let id = state.id;
             let parent_info = state.parent_info;
@@ -517,7 +622,7 @@ impl ScriptTaskFactory for ScriptTask {
             let window_size = state.window_size;
             let script_task = ScriptTask::new(state,
                                               script_port,
-                                              chan);
+                                              script_chan);
 
             SCRIPT_TASK_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_task as *const _);
@@ -633,7 +738,7 @@ impl ScriptTask {
     /// Creates a new script task.
     pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
-               chan: MainThreadScriptChan)
+               chan: Sender<MainThreadScriptMsg>)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
 
@@ -668,7 +773,13 @@ impl ScriptTask {
             storage_task: state.storage_task,
 
             port: port,
-            chan: chan,
+            chan: MainThreadScriptChan(chan.clone()),
+            dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
+            user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
+            networking_task_source: NetworkingTaskSource(chan.clone()),
+            history_traversal_task_source: HistoryTraversalTaskSource(chan.clone()),
+            file_reading_task_source: FileReadingTaskSource(chan),
+
             control_chan: state.control_chan,
             control_port: control_port,
             constellation_chan: state.constellation_chan,
@@ -1621,6 +1732,11 @@ impl ScriptTask {
         };
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
         let MainThreadScriptChan(ref sender) = self.chan;
+        let DOMManipulationTaskSource(ref dom_sender) = self.dom_manipulation_task_source;
+        let UserInteractionTaskSource(ref user_sender) = self.user_interaction_task_source;
+        let NetworkingTaskSource(ref network_sender) = self.networking_task_source;
+        let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
+        let FileReadingTaskSource(ref file_sender) = self.file_reading_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
@@ -1630,6 +1746,11 @@ impl ScriptTask {
         let window = Window::new(self.js_runtime.clone(),
                                  page.clone(),
                                  MainThreadScriptChan(sender.clone()),
+                                 DOMManipulationTaskSource(dom_sender.clone()),
+                                 UserInteractionTaskSource(user_sender.clone()),
+                                 NetworkingTaskSource(network_sender.clone()),
+                                 HistoryTraversalTaskSource(history_sender.clone()),
+                                 FileReadingTaskSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_task.clone(),
