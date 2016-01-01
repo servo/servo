@@ -257,7 +257,7 @@ class MachCommands(CommandBase):
              description='Run the source code tidiness check',
              category='testing')
     @CommandArgument('--changes', default=False, action="store_true",
-                     help="Check only files that have been modified since FETCH_HEAD")
+                     help="Only check files that have been modified since FETCH_HEAD")
     def test_tidy(self, changes):
         return tidy.scan(changes)
 
