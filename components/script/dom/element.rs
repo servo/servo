@@ -366,13 +366,26 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
             //                a text field
             match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(), &atom!("type")) {
-                Some("text") | Some("password") => {
+                // Text entry widget
+                Some("text") | Some("search") | Some("tel") | Some("url") |
+                Some("email") | Some("password") => {
                     match this.get_size_for_layout() {
                         0 => None,
                         s => Some(s as i32),
                     }
-                }
-                _ => None,
+                },
+                // Not text entry widget
+                Some("hidden") | Some("date") | Some("month") | Some("week") |
+                Some("time") | Some("datetime-local") | Some("number") | Some("range") |
+                Some("color") | Some("checkbox") | Some("radio") | Some("file") |
+                Some("submit") | Some("image") | Some("reset") | Some("button") => None,
+                // Others and unspecified
+                _ => {
+                    match this.get_size_for_layout() {
+                        0 => None,
+                        s => Some(s as i32),
+                    }
+                },
             }
         } else {
             None
