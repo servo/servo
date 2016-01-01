@@ -13,6 +13,7 @@ import fnmatch
 import itertools
 import re
 import StringIO
+import subprocess
 import sys
 from licenseck import licenses
 
@@ -554,7 +555,6 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
 
 
 def check_wpt_lint_errors():
-    import subprocess
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     lint_cmd = os.path.join(wpt_working_dir, "lint")
     try:
@@ -563,20 +563,41 @@ def check_wpt_lint_errors():
         yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
 
 
-def scan():
-    all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
-    files_to_check = filter(should_check, all_files)
+def get_file_list(directory, only_changed_files=False):
+    if only_changed_files:
+        # only check the files that have been changed since the last merge
+        args = ["git", "log", "-n1", "--author=bors-servo", "--format=%H"]
+        last_merge = subprocess.check_output(args).strip()
+        args = ["git", "diff", "--name-only", last_merge, directory]
+        file_list = subprocess.check_output(args)
+        # also check untracked files
+        args = ["git", "ls-files", "--others", "--exclude-standard", directory]
+        file_list += subprocess.check_output(args)
+        return (os.path.join(".", f) for f in file_list.splitlines())
+    else:
+        return (os.path.join(r, f) for r, _, files in os.walk(directory) for f in files)
 
+
+def scan(faster=False):
+    # standard checks
+    files_to_check = filter(should_check, get_file_list(".", faster))
     checking_functions = (check_flake8, check_lock, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    reftest_files = (os.path.join(r, f) for r, _, files in os.walk(reftest_dir) for f in files)
-    reftest_to_check = filter(should_check_reftest, reftest_files)
+    # reftest checks
+    reftest_to_check = filter(should_check_reftest, get_file_list(reftest_dir, faster))
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
-    wpt_lint_errors = check_wpt_lint_errors()
 
+    # wpt lint checks
+    if faster:
+        print "\033[93mUsing test-tidy \033[01m--faster\033[22m, skipping WPT lint\033[0m"
+        wpt_lint_errors = iter([])
+    else:
+        wpt_lint_errors = check_wpt_lint_errors()
+
+    # collect errors
     errors = itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors)
 
     error = None
