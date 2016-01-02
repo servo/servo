@@ -535,7 +535,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetNativeDisplay(chan),
              ShutdownState::NotShuttingDown) => {
-                chan.send(Some(self.native_display.clone())).unwrap();
+                chan.send(self.native_display.clone()).unwrap();
             }
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
@@ -634,8 +634,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 reply.send(img).unwrap();
             }
 
-            (Msg::PaintThreadExited(pipeline_id), ShutdownState::NotShuttingDown) => {
+            (Msg::PaintThreadExited(pipeline_id, channel), _) => {
                 self.remove_pipeline_root_layer(pipeline_id);
+                channel.send(()).unwrap();
             }
 
             (Msg::ViewportConstrained(pipeline_id, constraints),
