@@ -840,12 +840,12 @@ impl WindowMethods for Window {
     fn handle_key(&self, _: Key, _: KeyModifiers) {
     }
 
-    fn create_compositor_channel(window: &Option<Rc<Window>>)
+    fn create_compositor_channel(&self)
                                  -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
         (box GonkCompositorProxy {
              sender: sender,
-             event_sender: window.as_ref().unwrap().event_send.clone(),
+             event_sender: self.event_send.clone(),
          } as Box<CompositorProxy + Send>,
          box receiver as Box<CompositorReceiver>)
     }

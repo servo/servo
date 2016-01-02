@@ -32,20 +32,10 @@ extern crate offscreen_gl_context;
 // The Servo engine
 extern crate servo;
 
-use gleam::gl;
-use offscreen_gl_context::{GLContext, NativeGLContext};
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::util::opts::{self, ArgumentParsingResult};
 use std::rc::Rc;
-
-#[cfg(not(target_os = "android"))]
-fn load_gl_when_headless() {
-    gl::load_with(|addr| GLContext::<NativeGLContext>::get_proc_address(addr) as *const _);
-}
-
-#[cfg(target_os = "android")]
-fn load_gl_when_headless() {}
 
 fn main() {
     // Parse the command line options and store them globally
@@ -69,14 +59,7 @@ fn main() {
         return servo::run_content_process(token)
     }
 
-    let window = if opts::get().headless {
-        // Load gl functions even when in headless mode,
-        // to avoid crashing with WebGL
-        load_gl_when_headless();
-        None
-    } else {
-        Some(app::create_window(None))
-    };
+    let window = app::create_window(None);
 
     // Our wrapper around `Browser` that also implements some
     // callbacks required by the glutin window implementation.
@@ -84,45 +67,32 @@ fn main() {
         browser: Browser::new(window.clone()),
     };
 
-    maybe_register_glutin_resize_handler(&window, &mut browser);
+    register_glutin_resize_handler(&window, &mut browser);
 
     browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
 
     // Feed events from the window to the browser until the browser
     // says to stop.
     loop {
-        let should_continue = match window {
-            None => browser.browser.handle_events(Vec::new()),
-            Some(ref window) => browser.browser.handle_events(window.wait_events()),
-        };
+        let should_continue = browser.browser.handle_events(window.wait_events());
         if !should_continue {
             break
         }
     };
 
-    maybe_unregister_glutin_resize_handler(&window);
+    unregister_glutin_resize_handler(&window);
 }
 
-fn maybe_register_glutin_resize_handler(window: &Option<Rc<app::window::Window>>,
+fn register_glutin_resize_handler(window: &Rc<app::window::Window>,
                                         browser: &mut BrowserWrapper) {
-    match *window {
-        None => {}
-        Some(ref window) => {
-            unsafe {
-                window.set_nested_event_loop_listener(browser);
-            }
-        }
+    unsafe {
+        window.set_nested_event_loop_listener(browser);
     }
 }
 
-fn maybe_unregister_glutin_resize_handler(window: &Option<Rc<app::window::Window>>) {
-    match *window {
-        None => {}
-        Some(ref window) => {
-            unsafe {
-                window.remove_nested_event_loop_listener();
-            }
-        }
+fn unregister_glutin_resize_handler(window: &Rc<app::window::Window>) {
+    unsafe {
+        window.remove_nested_event_loop_listener();
     }
 }
 
