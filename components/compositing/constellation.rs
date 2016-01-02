@@ -641,8 +641,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
             // Update pipeline url after redirections
             Request::Script(FromScriptMsg::SetFinalUrl(pipeline_id, final_url)) => {
-                debug!("constellation got set final url message");
-                self.mut_pipeline(pipeline_id).url = final_url;
+                // The script may have finished loading after we already started shutting down.
+                if let Some(ref mut pipeline) = self.pipelines.get_mut(&pipeline_id) {
+                    debug!("constellation got set final url message");
+                    pipeline.url = final_url;
+                } else {
+                    debug!("constellation got set final url message for dead pipeline");
+                }
             }
             Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
                                               subpage_id,

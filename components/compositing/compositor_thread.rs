@@ -9,7 +9,6 @@ use compositor::{self, CompositingReason};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
-use headless;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -123,7 +122,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
         // just return None in this case, since the paint thread
         // will exit shortly and never actually be requested
         // to paint buffers by the compositor.
-        port.recv().unwrap_or(None)
+        port.recv().ok()
     }
 
     fn assign_painted_buffers(&mut self,
@@ -157,7 +156,9 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
     }
 
     fn notify_paint_thread_exiting(&mut self, pipeline_id: PipelineId) {
-        self.send(Msg::PaintThreadExited(pipeline_id))
+        let (sender, receiver) = channel();
+        self.send(Msg::PaintThreadExited(pipeline_id, sender));
+        receiver.recv().unwrap();
     }
 }
 
@@ -174,9 +175,7 @@ pub enum Msg {
     /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
-    ///
-    /// The headless compositor returns `None`.
-    GetNativeDisplay(Sender<Option<NativeDisplay>>),
+    GetNativeDisplay(Sender<NativeDisplay>),
 
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
@@ -210,7 +209,7 @@ pub enum Msg {
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(IpcSender<Option<Image>>),
     /// Informs the compositor that the paint thread for the given pipeline has exited.
-    PaintThreadExited(PipelineId),
+    PaintThreadExited(PipelineId, Sender<()>),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
@@ -276,20 +275,12 @@ impl Debug for Msg {
 pub struct CompositorThread;
 
 impl CompositorThread {
-    pub fn create<Window>(window: Option<Rc<Window>>,
+    pub fn create<Window>(window: Rc<Window>,
                           state: InitialCompositorState)
                           -> Box<CompositorEventListener + 'static>
                           where Window: WindowMethods + 'static {
-        match window {
-            Some(window) => {
-                box compositor::IOCompositor::create(window, state)
-                    as Box<CompositorEventListener>
-            }
-            None => {
-                box headless::NullCompositor::create(state)
-                    as Box<CompositorEventListener>
-            }
-        }
+        box compositor::IOCompositor::create(window, state)
+            as Box<CompositorEventListener>
     }
 }
 
