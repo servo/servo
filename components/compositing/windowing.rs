@@ -15,7 +15,6 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{MouseButton, TouchEventType, TouchId};
 use std::fmt::{Debug, Error, Formatter};
-use std::rc::Rc;
 use style_traits::cursor::Cursor;
 use url::Url;
 use util::geometry::ScreenPx;
@@ -142,7 +141,7 @@ pub trait WindowMethods {
     ///
     /// This is part of the windowing system because its implementation often involves OS-specific
     /// magic to wake the up window's event loop.
-    fn create_compositor_channel(_: &Option<Rc<Self>>)
+    fn create_compositor_channel(&self)
                                  -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>);
 
     /// Requests that the window system prepare a composite. Typically this will involve making
