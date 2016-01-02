@@ -23,7 +23,7 @@ def update_tests(**kwargs):
     logger = update.setup_logging(kwargs, {"mach": sys.stdout})
 
     rv = update.run_update(logger, **kwargs)
-    return 0 if rv is update.exit_unclean else 1
+    return 1 if rv is update.exit_unclean else 0
 
 
 def set_defaults(kwargs):
