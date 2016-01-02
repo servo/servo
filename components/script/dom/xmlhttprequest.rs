@@ -271,7 +271,7 @@ impl XMLHttpRequest {
         }
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let listener = box NetworkListener {
+        let listener = NetworkListener {
             context: context,
             script_chan: script_chan,
         };
@@ -483,7 +483,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => data
         };
         let extracted = data.as_ref().map(|d| d.extract());
-        self.request_body_len.set(extracted.as_ref().map(|e| e.len()).unwrap_or(0));
+        self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.len()));
 
         // Step 6
         self.upload_events.set(false);
@@ -1120,13 +1120,12 @@ impl XMLHttpRequest {
         let content_type = mime_type.map(|mime|{
             DOMString::from(format!("{}", mime))
         });
-        let document = Document::new(win,
-                                     parsed_url,
-                                     is_html_document,
-                                     content_type,
-                                     None,
-                                     DocumentSource::FromParser, docloader);
-       document
+        Document::new(win,
+                      parsed_url,
+                      is_html_document,
+                      content_type,
+                      None,
+                      DocumentSource::FromParser, docloader)
     }
 
     fn filter_response_headers(&self) -> Headers {

@@ -33,7 +33,7 @@ pub fn resources_dir_path() -> PathBuf {
             // FIXME: Find a way to not rely on the executable being
             // under `<servo source>[/$target_triple]/target/debug`
             // or `<servo source>[/$target_triple]/target/release`.
-            let mut path = env::current_exe().ok().expect("can't get exe path");
+            let mut path = env::current_exe().expect("can't get exe path");
             path.pop();
             path.push("resources");
             if !path.is_dir() {   // resources dir not in same dir as exe?

@@ -61,9 +61,9 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> 
 
 pub fn replace_hosts(url: &Url) -> Url {
     unsafe {
-        HOST_TABLE.map(|host_table| {
+        HOST_TABLE.map_or_else(|| url.clone(), |host_table| {
             host_replacement(host_table, url)
-        }).unwrap_or_else(|| url.clone())
+        })
     }
 }
 

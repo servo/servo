@@ -2006,24 +2006,18 @@ impl Fragment {
     }
 
     pub fn update_late_computed_inline_position_if_necessary(&mut self) {
-        match self.specific {
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                let position = self.border_box.start.i;
-                flow_ref::deref_mut(&mut info.flow_ref)
-                    .update_late_computed_inline_position_if_necessary(position)
-            }
-            _ => {}
+        if let SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) = self.specific {
+            let position = self.border_box.start.i;
+            flow_ref::deref_mut(&mut info.flow_ref)
+                .update_late_computed_inline_position_if_necessary(position)
         }
     }
 
     pub fn update_late_computed_block_position_if_necessary(&mut self) {
-        match self.specific {
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                let position = self.border_box.start.b;
-                flow_ref::deref_mut(&mut info.flow_ref)
-                    .update_late_computed_block_position_if_necessary(position)
-            }
-            _ => {}
+        if let SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) = self.specific {
+            let position = self.border_box.start.b;
+            flow_ref::deref_mut(&mut info.flow_ref)
+                .update_late_computed_block_position_if_necessary(position)
         }
     }
 

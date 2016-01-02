@@ -236,24 +236,20 @@ impl<'le, ConcreteElement> PrivateElementMatchMethods<'le, ConcreteElement>
         let parent_data: Option<&PrivateStyleData> = unsafe {
             parent_node.borrow_data_unchecked().map(|d| &*d)
         };
-        match parent_data {
-            Some(parent_data_ref) => {
-                // Check parent style.
-                let parent_style = (*parent_data_ref).style.as_ref().unwrap();
-                if !arc_ptr_eq(parent_style, &candidate.parent_style) {
-                    return None
-                }
-
-                // Check tag names, classes, etc.
-                if !candidate.can_share_style_with(self) {
-                    return None
-                }
-
-                return Some(candidate.style.clone())
+        if let Some(parent_data_ref) = parent_data {
+            // Check parent style.
+            let parent_style = (*parent_data_ref).style.as_ref().unwrap();
+            if !arc_ptr_eq(parent_style, &candidate.parent_style) {
+                return None
             }
-            _ => {}
-        }
 
+            // Check tag names, classes, etc.
+            if !candidate.can_share_style_with(self) {
+                return None
+            }
+
+            return Some(candidate.style.clone())
+        }
         None
     }
 }

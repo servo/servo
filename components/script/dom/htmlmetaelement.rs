@@ -53,9 +53,8 @@ impl HTMLMetaElement {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
-            match name {
-                "viewport" => self.apply_viewport(),
-                _ => {}
+            if name == "viewport" {
+                self.apply_viewport();
             }
         }
     }

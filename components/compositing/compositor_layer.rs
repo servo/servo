@@ -359,9 +359,9 @@ impl CompositorLayer for Layer<CompositorData> {
         }
 
         if result {
-            return ScrollEventResult::ScrollPositionChanged;
+            ScrollEventResult::ScrollPositionChanged
         } else {
-            return ScrollEventResult::ScrollPositionUnchanged;
+            ScrollEventResult::ScrollPositionUnchanged
         }
     }
 
@@ -414,7 +414,7 @@ impl CompositorLayer for Layer<CompositorData> {
             result |= child.scroll_layer_and_all_child_layers(offset_for_children);
         }
 
-        return result;
+        result
     }
 
     fn wants_scroll_events(&self) -> WantsScrollEventsFlag {

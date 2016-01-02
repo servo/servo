@@ -654,7 +654,7 @@ impl LayoutTask {
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
         let stacking_context = rw_data.stacking_context.as_ref();
-        let ref formatted_url = format!("url({})", *self.url.borrow());
+        let formatted_url = &format!("url({})", *self.url.borrow());
         reports.push(Report {
             path: path![formatted_url, "layout-task", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
@@ -731,7 +731,7 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now<'a, 'b>(&mut self) {
+    fn exit_now(&mut self) {
         if let Some(ref mut traversal) = self.parallel_traversal {
             traversal.shutdown()
         }

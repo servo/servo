@@ -12,7 +12,7 @@ plugin = true
 git = "https://github.com/Manishearth/rust-tenacious"
 
 [dependencies.clippy]
-git = "https://github.com/Manishearth/rust-clippy"
+git = "https://github.com/karyon/rust-clippy"
 branch = "servo"
 optional = true
 

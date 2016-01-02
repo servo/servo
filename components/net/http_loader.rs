@@ -178,7 +178,7 @@ pub trait HttpResponse: Read {
     fn status(&self) -> StatusCode;
     fn status_raw(&self) -> &RawStatus;
     fn http_version(&self) -> String {
-        return "HTTP/1.1".to_owned()
+        "HTTP/1.1".to_owned()
     }
     fn content_encoding(&self) -> Option<Encoding> {
         self.headers().get::<ContentEncoding>().and_then(|h| {
@@ -295,11 +295,8 @@ impl HttpRequest for WrappedHttpRequest {
         };
 
         if let Some(ref data) = *body {
-            match request_writer.write_all(&data) {
-                Err(e) => {
-                    return Err(LoadError::Connection(url, e.description().to_owned()))
-                }
-                _ => {}
+            if let Err(e) = request_writer.write_all(&data) {
+                return Err(LoadError::Connection(url, e.description().to_owned()))
             }
         }
 

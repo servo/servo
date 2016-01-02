@@ -323,7 +323,7 @@ impl Window {
     }
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
-        return self.error_reporter.clone();
+        self.error_reporter.clone()
     }
 }
 
@@ -782,9 +782,7 @@ impl WindowMethods for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
     fn DevicePixelRatio(&self) -> Finite<f64> {
-        let dpr = self.window_size.get()
-                                  .map(|data| data.device_pixel_ratio.get())
-                                  .unwrap_or(1.0f32);
+        let dpr = self.window_size.get().map_or(1.0f32, |data| data.device_pixel_ratio.get());
         Finite::wrap(dpr as f64)
     }
 }
@@ -904,10 +902,10 @@ impl Window {
         let point = Point2D::new(x, y);
         let smooth = match behavior {
             ScrollBehavior::Auto => {
-                element.map(|_element| {
+                element.map_or(false, |_element| {
                     // TODO check computed scroll-behaviour CSS property
                     true
-                }).unwrap_or(false)
+                })
             }
             ScrollBehavior::Instant => false,
             ScrollBehavior::Smooth => true

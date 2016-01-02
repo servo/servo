@@ -581,11 +581,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let is_running_problem_test =
         url_opt
         .as_ref()
-        .map(|url|
+        .map_or(false, |url|
              url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
              url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
-             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"))
-        .unwrap_or(false);
+             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"));
 
     let url = match url_opt {
         Some(url_string) => {
