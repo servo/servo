@@ -344,7 +344,7 @@ pub enum Msg {
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, Arc<DisplayList>),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
-    Exit(IpcSender<()>),
+    Exit,
 }
 
 pub enum ChromeToPaintMsg {
@@ -515,21 +515,20 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                     // FIXME(njn): should eventually measure the paint thread.
                     channel.send(Vec::new())
                 }
-                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel)) => {
+                Msg::FromLayout(LayoutToPaintMsg::Exit) => {
                     // Ask the compositor to remove any layers it is holding for this paint thread.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
+                    debug!("PaintThread: Exiting.");
                     self.compositor.notify_paint_thread_exiting(self.id);
 
-                    debug!("PaintThread: Exiting.");
-                    let _ = response_channel.send(());
                     break;
                 }
                 Msg::FromChrome(ChromeToPaintMsg::Exit) => {
                     // Ask the compositor to remove any layers it is holding for this paint thread.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
+                    debug!("PaintThread: Exiting.");
                     self.compositor.notify_paint_thread_exiting(self.id);
 
-                    debug!("PaintThread: Exiting.");
                     break;
                 }
             }
