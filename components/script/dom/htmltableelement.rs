@@ -23,7 +23,6 @@ use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<RGBA>>,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
 }
@@ -33,7 +32,6 @@ impl HTMLTableElement {
                      -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            background_color: Cell::new(None),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
         }
@@ -114,7 +112,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
     make_getter!(BgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
-    make_setter!(SetBgColor, "bgcolor");
+    make_legacy_color_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-table-width
     make_getter!(Width, "width");
@@ -134,7 +132,10 @@ impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            (*self.unsafe_get()).background_color.get()
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
+                .and_then(AttrValue::as_color)
+                .cloned()
         }
     }
 
@@ -172,11 +173,6 @@ impl VirtualMethods for HTMLTableElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!("bgcolor") => {
-                self.background_color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
             atom!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
@@ -196,6 +192,7 @@ impl VirtualMethods for HTMLTableElement {
         match *local_name {
             atom!("border") => AttrValue::from_u32(value, 1),
             atom!("width") => AttrValue::from_nonzero_dimension(value),
+            atom!("bgcolor") => AttrValue::from_legacy_color(value),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
