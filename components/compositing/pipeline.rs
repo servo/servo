@@ -28,13 +28,13 @@ use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
 use script_traits::{ScriptToCompositorMsg, ScriptThreadFactory, TimerEventRequest};
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::thread;
 use url::Url;
 use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs;
+use util::thread;
 use webrender_traits;
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
@@ -290,6 +290,13 @@ impl Pipeline {
     pub fn exit(&self) {
         debug!("pipeline {:?} exiting", self.id);
 
+        // The compositor wants to know when pipelines shut down too.
+        // It may still have messages to process from these other threads
+        // before they can be safely shut down.
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id, sender));
+        receiver.recv().unwrap();
+
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
         if self.script_chan
@@ -300,9 +307,6 @@ impl Pipeline {
             let _ = self.paint_shutdown_port.recv();
             let _ = self.layout_shutdown_port.recv();
         }
-
-        // The compositor wants to know when pipelines shut down too.
-        self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id))
     }
 
     pub fn freeze(&self) {
@@ -472,7 +476,7 @@ impl PrivilegedPipelineContent {
         let compositor_proxy_for_script_listener_thread =
             self.compositor_proxy.clone_compositor_proxy();
         let script_to_compositor_port = self.script_to_compositor_port;
-        thread::spawn(move || {
+        thread::spawn_named("CompositorScriptListener".to_owned(), move || {
             compositor_thread::run_script_listener_thread(
                 compositor_proxy_for_script_listener_thread,
                 script_to_compositor_port)

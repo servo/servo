@@ -6,7 +6,6 @@
 
 use NestedEventLoopListener;
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
-#[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
@@ -14,34 +13,25 @@ use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
 use gleam::gl;
 use glutin;
-#[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-#[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
-#[cfg(feature = "window")]
 use script_traits::TouchEventType;
-#[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
 use std::os::raw::c_void;
-#[cfg(all(feature = "headless", target_os = "linux"))]
-use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use style_traits::cursor::Cursor;
 use url::Url;
 use util::geometry::ScreenPx;
-#[cfg(feature = "window")]
 use util::opts::{self, RenderApi};
 
-#[cfg(feature = "window")]
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
-#[cfg(feature = "window")]
 bitflags! {
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
@@ -56,25 +46,23 @@ bitflags! {
 }
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
-#[cfg(all(feature = "window", target_os = "macos"))]
+#[cfg(target_os = "macos")]
 const CMD_OR_CONTROL: constellation_msg::KeyModifiers = SUPER;
-#[cfg(all(feature = "window", not(target_os = "macos")))]
+#[cfg(not(target_os = "macos"))]
 const CMD_OR_CONTROL: constellation_msg::KeyModifiers = CONTROL;
 
 // Some shortcuts use Cmd on Mac and Alt on other systems.
-#[cfg(all(feature = "window", target_os = "macos"))]
+#[cfg(target_os = "macos")]
 const CMD_OR_ALT: constellation_msg::KeyModifiers = SUPER;
-#[cfg(all(feature = "window", not(target_os = "macos")))]
+#[cfg(not(target_os = "macos"))]
 const CMD_OR_ALT: constellation_msg::KeyModifiers = ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
-#[cfg(feature = "window")]
 const LINE_HEIGHT: f32 = 38.0;
 
 const MULTISAMPLES: u16 = 16;
 
 /// The type of a window.
-#[cfg(feature = "window")]
 pub struct Window {
     window: glutin::Window,
 
@@ -86,7 +74,6 @@ pub struct Window {
     key_modifiers: Cell<KeyModifiers>,
 }
 
-#[cfg(feature = "window")]
 impl Window {
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
@@ -389,7 +376,7 @@ impl Window {
         // When writing to a file then exiting, use event
         // polling so that we don't block on a GUI event
         // such as mouse click.
-        if opts::get().output_file.is_some() || opts::get().exit_after_load {
+        if opts::get().output_file.is_some() || opts::get().exit_after_load || opts::get().headless {
             while let Some(event) = self.window.poll_events().next() {
                 close_event = self.handle_window_event(event) || close_event;
             }
@@ -521,7 +508,7 @@ impl Window {
         result
     }
 
-    #[cfg(all(feature = "window", not(target_os = "win")))]
+    #[cfg(not(target_os = "win"))]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match (mods, key) {
             (CMD_OR_CONTROL, Key::LeftBracket) => {
@@ -534,24 +521,23 @@ impl Window {
         }
     }
 
-    #[cfg(all(feature = "window", target_os = "win"))]
+    #[cfg(target_os = "win")]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
     }
 }
 
 // WindowProxy is not implemented for android yet
 
-#[cfg(all(feature = "window", target_os = "android"))]
-fn create_window_proxy(_: &Rc<Window>) -> Option<glutin::WindowProxy> {
+#[cfg(target_os = "android")]
+fn create_window_proxy(_: &Window) -> Option<glutin::WindowProxy> {
     None
 }
 
-#[cfg(all(feature = "window", not(target_os = "android")))]
-fn create_window_proxy(window: &Rc<Window>) -> Option<glutin::WindowProxy> {
+#[cfg(not(target_os = "android"))]
+fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
     Some(window.window.create_window_proxy())
 }
 
-#[cfg(feature = "window")]
 impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
         let scale_factor = self.window.hidpi_factor() as u32;
@@ -584,14 +570,11 @@ impl WindowMethods for Window {
         self.window.swap_buffers().unwrap();
     }
 
-    fn create_compositor_channel(window: &Option<Rc<Window>>)
+    fn create_compositor_channel(&self)
                                  -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
 
-        let window_proxy = match window {
-            &Some(ref window) => create_window_proxy(window),
-            &None => None,
-        };
+        let window_proxy = create_window_proxy(self);
 
         (box GlutinCompositorProxy {
              sender: sender,
@@ -793,139 +776,6 @@ impl WindowMethods for Window {
     }
 }
 
-/// The type of a window.
-#[cfg(feature = "headless")]
-pub struct Window {
-    #[allow(dead_code)]
-    context: glutin::HeadlessContext,
-    width: u32,
-    height: u32,
-}
-
-#[cfg(feature = "headless")]
-impl Window {
-    pub fn new(_is_foreground: bool,
-               window_size: TypedSize2D<DevicePixel, u32>,
-               _parent: Option<glutin::WindowID>) -> Rc<Window> {
-        let window_size = window_size.to_untyped();
-        let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
-                                                                    window_size.height);
-        let headless_context = headless_builder.build().unwrap();
-        unsafe { headless_context.make_current().expect("Failed to make context current!") };
-
-        gl::load_with(|s| headless_context.get_proc_address(s) as *const c_void);
-
-        let window = Window {
-            context: headless_context,
-            width: window_size.width,
-            height: window_size.height,
-        };
-
-        Rc::new(window)
-    }
-
-    pub fn wait_events(&self) -> Vec<WindowEvent> {
-        vec![WindowEvent::Idle]
-    }
-
-    pub unsafe fn set_nested_event_loop_listener(
-            &self,
-            _listener: *mut (NestedEventLoopListener + 'static)) {
-    }
-
-    pub unsafe fn remove_nested_event_loop_listener(&self) {
-    }
-}
-
-#[cfg(feature = "headless")]
-impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
-        Size2D::typed(self.width, self.height)
-    }
-
-    fn size(&self) -> TypedSize2D<ScreenPx, f32> {
-        Size2D::typed(self.width as f32, self.height as f32)
-    }
-
-    fn present(&self) {
-    }
-
-    fn set_inner_size(&self, _: Size2D<u32>) {
-
-    }
-
-    fn set_position(&self, _: Point2D<i32>) {
-
-    }
-
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        let width = self.width;
-        let height = self.height;
-        (Size2D::new(width, height), Point2D::zero())
-    }
-
-    fn create_compositor_channel(_: &Option<Rc<Window>>)
-                                 -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
-        let (sender, receiver) = channel();
-
-        (box GlutinCompositorProxy {
-             sender: sender,
-             window_proxy: None,
-         } as Box<CompositorProxy + Send>,
-         box receiver as Box<CompositorReceiver>)
-    }
-
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        ScaleFactor::new(1.0)
-    }
-
-    fn set_page_title(&self, _: Option<String>) {
-    }
-
-    fn set_page_url(&self, _: Url) {
-    }
-
-    fn load_start(&self, _: bool, _: bool) {
-    }
-    fn load_end(&self, _: bool, _: bool, _: bool) {
-    }
-    fn load_error(&self, _: NetError, _: String) {
-    }
-    fn head_parsed(&self) {
-    }
-
-    fn set_cursor(&self, _: Cursor) {
-    }
-
-    fn set_favicon(&self, _: Url) {
-    }
-
-    fn status(&self, _: Option<String>) {
-    }
-
-    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
-        true
-    }
-
-    #[cfg(target_os = "linux")]
-    fn native_display(&self) -> NativeDisplay {
-        NativeDisplay::new(ptr::null_mut())
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    fn native_display(&self) -> NativeDisplay {
-        NativeDisplay::new()
-    }
-
-    /// Helper function to handle keyboard events.
-    fn handle_key(&self, _: Key, _: constellation_msg::KeyModifiers) {
-    }
-
-    fn supports_clipboard(&self) -> bool {
-        false
-    }
-}
-
 struct GlutinCompositorProxy {
     sender: Sender<compositor_thread::Msg>,
     window_proxy: Option<glutin::WindowProxy>,
@@ -950,7 +800,6 @@ impl CompositorProxy for GlutinCompositorProxy {
     }
 }
 
-#[cfg(feature = "window")]
 fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
     match phase {
         TouchPhase::Started => TouchEventType::Down,
