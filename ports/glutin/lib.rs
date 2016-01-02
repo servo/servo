@@ -16,7 +16,7 @@ extern crate glutin;
 extern crate layers;
 extern crate msg;
 extern crate net_traits;
-#[cfg(feature = "window")] extern crate script_traits;
+extern crate script_traits;
 extern crate style_traits;
 extern crate url;
 extern crate util;
@@ -39,7 +39,7 @@ pub trait NestedEventLoopListener {
 pub fn create_window(parent: Option<WindowID>) -> Rc<Window> {
     // Read command-line options.
     let opts = opts::get();
-    let foreground = opts.output_file.is_none();
+    let foreground = opts.output_file.is_none() && !opts.headless;
     let scale_factor = ScaleFactor::new(opts.device_pixels_per_px.unwrap_or(1.0));
     let size = opts.initial_window_size.as_f32() * scale_factor;
 

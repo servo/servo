@@ -126,19 +126,15 @@ impl ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
         let mut window_handle: cef_window_handle_t = get_null_window_handle();
-        let mut glutin_window: Option<Rc<glutin_app::window::Window>> = None;
 
-        let servo_browser = if window_info.windowless_rendering_enabled == 0 {
+        let (glutin_window, servo_browser) = if window_info.windowless_rendering_enabled == 0 {
             let parent_window = glutin_app::WindowID::new(window_info.parent_window as *mut _);
-            glutin_window = Some(glutin_app::create_window(Some(parent_window)));
+            let glutin_window = glutin_app::create_window(Some(parent_window));
             let servo_browser = Browser::new(glutin_window.clone());
-            window_handle = match glutin_window {
-                Some(ref win) => win.platform_window().window as cef_window_handle_t,
-                None => get_null_window_handle()
-            };
-            ServoBrowser::OnScreen(servo_browser)
+            window_handle = glutin_window.platform_window().window as cef_window_handle_t;
+            (Some(glutin_window), ServoBrowser::OnScreen(servo_browser))
         } else {
-            ServoBrowser::Invalid
+            (None, ServoBrowser::Invalid)
         };
 
         let id = ID_COUNTER.with(|counter| {
@@ -175,7 +171,7 @@ impl ServoCefBrowserExtensions for CefBrowser {
         if window_info.windowless_rendering_enabled != 0 {
             let window = window::Window::new(window_info.width, window_info.height);
             window.set_browser(self.clone());
-            let servo_browser = Browser::new(Some(window.clone()));
+            let servo_browser = Browser::new(window.clone());
             *self.downcast().servo_browser.borrow_mut() = ServoBrowser::OffScreen(servo_browser);
         }
 
