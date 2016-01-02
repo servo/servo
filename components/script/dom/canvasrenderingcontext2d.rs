@@ -949,6 +949,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.ipc_renderer.send(msg).unwrap();
             },
             StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+                self.state.borrow_mut().stroke_style =
+                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(pattern.r()));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetStrokeStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
@@ -996,6 +998,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+                self.state.borrow_mut().fill_style =
+                    CanvasFillOrStrokeStyle::Pattern(JS::from_rooted(&pattern));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
