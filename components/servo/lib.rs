@@ -78,7 +78,6 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use std::borrow::Borrow;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::opts;
@@ -121,7 +120,7 @@ pub struct Browser {
 }
 
 impl Browser {
-    pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
+    pub fn new<Window>(window: Rc<Window>) -> Browser
                        where Window: WindowMethods + 'static {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
@@ -133,14 +132,8 @@ impl Browser {
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
-            WindowMethods::create_compositor_channel(&window);
-        let supports_clipboard = match window {
-            Some(ref win_rc) => {
-                let win: &Window = win_rc.borrow();
-                win.supports_clipboard()
-            }
-            None => false
-        };
+            window.create_compositor_channel();
+        let supports_clipboard = window.supports_clipboard();
         let time_profiler_chan = profile_time::Profiler::create(opts.time_profiler_period);
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {

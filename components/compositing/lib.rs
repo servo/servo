@@ -64,7 +64,6 @@ mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;
 pub mod constellation;
-mod headless;
 pub mod pipeline;
 #[cfg(not(target_os = "windows"))]
 pub mod sandboxing;
