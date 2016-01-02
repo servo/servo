@@ -695,14 +695,7 @@ impl VirtualMethods for HTMLInputElement {
                             self.value_changed.set(true);
 
                             if event.IsTrusted() {
-                                let window = window_from_node(self);
-                                let window = window.r();
-                                let chan = window.user_interaction_task_source();
-                                let handler = Trusted::new(self.upcast::<Node>(), chan.clone());
-                                let dispatcher = ChangeEventRunnable {
-                                    element: handler,
-                                };
-                                let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
+                                ChangeEventRunnable::send(self.upcast::<Node>());
                             }
 
                             self.force_relayout();
@@ -937,7 +930,20 @@ impl Activatable for HTMLInputElement {
 }
 
 pub struct ChangeEventRunnable {
-    pub element: Trusted<Node>,
+    element: Trusted<Node>,
+}
+
+impl ChangeEventRunnable {
+    pub fn send(node: &Node) {
+        let window = window_from_node(node);
+        let window = window.r();
+        let chan = window.user_interaction_task_source();
+        let handler = Trusted::new(node, chan.clone());
+        let dispatcher = ChangeEventRunnable {
+            element: handler,
+        };
+        let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
+    }
 }
 
 impl Runnable for ChangeEventRunnable {

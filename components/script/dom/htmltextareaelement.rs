@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable};
 use dom::document::Document;
 use dom::element::RawLayoutElementHelpers;
@@ -22,12 +21,10 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlinputelement::ChangeEventRunnable;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
-use dom::node::{document_from_node, window_from_node};
+use dom::node::{document_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use script_task::ScriptTaskEventCategory::InputEvent;
-use script_task::{CommonScriptMsg};
 use script_traits::ScriptMsg as ConstellationMsg;
 use selectors::states::*;
 use std::cell::Cell;
@@ -316,14 +313,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         self.value_changed.set(true);
 
                         if event.IsTrusted() {
-                            let window = window_from_node(self);
-                            let window = window.r();
-                            let chan = window.user_interaction_task_source();
-                            let handler = Trusted::new(self.upcast::<Node>(), chan.clone());
-                            let dispatcher = ChangeEventRunnable {
-                                element: handler,
-                            };
-                            let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
+                            ChangeEventRunnable::send(self.upcast::<Node>());
                         }
 
                         self.force_relayout();
