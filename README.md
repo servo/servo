@@ -28,7 +28,7 @@ sudo port install python27 py27-virtualenv cmake
 On Debian-based Linuxes:
 
 ``` sh
-sudo apt-get install curl freeglut3-dev \
+sudo apt-get install curl freeglut3-dev autoconf \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ cmake virtualenv python-pip \
     libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
