@@ -27,7 +27,8 @@ def git(command, *args):
 
 def iter_files(only_changed_files=False):
     if only_changed_files == True:
-        items = git("diff", "--name-only", "--relative", "FETCH_HEAD", ".").splitlines()
+        last_merge = git("log", "-n1", "--author=bors-servo", "--format=%H").strip()
+        items = git("diff", "--name-only", "--relative", last_merge, ".").splitlines()
     else:
         items = git("ls-tree", "-r", "--name-only", "HEAD").splitlines()
     for item in items:

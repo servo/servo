@@ -568,7 +568,9 @@ def check_wpt_lint_errors(only_changed_files=False):
 def get_file_list(directory, only_changed_files=False):
     if only_changed_files:
         # only check the files that have been changed since the last merge
-        args = ['git', 'diff', '--name-only', 'FETCH_HEAD', directory]
+        args = ['git', 'log', '-n1', '--author=bors-servo', '--format=%H']
+        last_merge = subprocess.check_output(args).strip()
+        args = ['git', 'diff', '--name-only', last_merge, directory]
         file_list = subprocess.check_output(args)
         # also check untracked files
         args = ['git', 'ls-files', '--others', '--exclude-standard', directory]
