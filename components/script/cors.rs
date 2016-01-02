@@ -92,10 +92,9 @@ impl CORSRequest {
            method: Method,
            headers: Headers)
            -> CORSRequest {
-        match referer.scheme_data {
-            SchemeData::Relative(ref mut data) => data.path = vec![],
-            _ => {}
-        };
+        if let SchemeData::Relative(ref mut data) = referer.scheme_data {
+            data.path = vec![];
+        }
         referer.fragment = None;
         referer.query = None;
         CORSRequest {
@@ -167,12 +166,11 @@ impl CORSRequest {
         let cache = &mut CORSCache(vec!()); // XXXManishearth Should come from user agent
         if self.preflight_flag &&
            !cache.match_method(self, &self.method) &&
-           !self.headers.iter().all(|h| is_simple_header(&h) && cache.match_header(self, h.name())) {
-            if !is_simple_method(&self.method) || self.mode == RequestMode::ForcedPreflight {
-                return self.preflight_fetch();
-                // Everything after this is part of XHR::fetch()
-                // Expect the organization of code to improve once we have a fetch crate
-            }
+           !self.headers.iter().all(|h| is_simple_header(&h) && cache.match_header(self, h.name())) &&
+           (!is_simple_method(&self.method) || self.mode == RequestMode::ForcedPreflight) {
+            return self.preflight_fetch();
+            // Everything after this is part of XHR::fetch()
+            // Expect the organization of code to improve once we have a fetch crate
         }
         response
     }
@@ -398,12 +396,11 @@ impl CORSCache {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
-        let entry = buf.iter_mut().find(|e| {
+        buf.iter_mut().find(|e| {
             e.origin.scheme == request.origin.scheme && e.origin.host() == request.origin.host() &&
             e.origin.port() == request.origin.port() && e.url == request.destination &&
             e.header_or_method.match_header(header_name)
-        });
-        entry
+        })
     }
 
     fn match_header(&mut self, request: &CORSRequest, header_name: &str) -> bool {
@@ -426,12 +423,11 @@ impl CORSCache {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
-        let entry = buf.iter_mut().find(|e| {
+        buf.iter_mut().find(|e| {
             e.origin.scheme == request.origin.scheme && e.origin.host() == request.origin.host() &&
             e.origin.port() == request.origin.port() && e.url == request.destination &&
             e.header_or_method.match_method(method)
-        });
-        entry
+        })
     }
 
     /// https://fetch.spec.whatwg.org/#concept-cache-match-method

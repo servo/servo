@@ -47,7 +47,7 @@ impl ParseErrorReporter for StdoutErrorReporter {
     }
 
     fn pipeline(&self) -> PipelineId {
-       return PipelineId::fake_root_pipeline_id();
+       PipelineId::fake_root_pipeline_id()
      }
 }
 
@@ -129,7 +129,7 @@ pub struct Stylist {
 impl Stylist {
     #[inline]
     pub fn new(device: Device) -> Stylist {
-        let stylist = Stylist {
+        Stylist {
             viewport_constraints: None,
             device: device,
             is_device_dirty: true,
@@ -140,9 +140,8 @@ impl Stylist {
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
-        };
+        }
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
-        stylist
     }
 
     pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet>],

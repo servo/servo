@@ -155,14 +155,14 @@ impl TimerScheduler {
 
             let ret = sel.wait();
             if ret == scheduler_handle.id() {
-                port.recv().ok().map(|req| Task::HandleRequest(req))
+                port.recv().ok().map(Task::HandleRequest)
             } else if ret == timer_handle.id() {
                 timer_port.recv().ok().map(|_| Task::DispatchDueEvents)
             } else {
                 panic!("unexpected select result!")
             }
         } else {
-            port.recv().ok().map(|req| Task::HandleRequest(req))
+            port.recv().ok().map(Task::HandleRequest)
         }
     }
 
@@ -172,8 +172,7 @@ impl TimerScheduler {
         let schedule_for = precise_time_ns() + duration_ns;
 
         let previously_earliest = self.scheduled_events.borrow().peek()
-                .map(|scheduled| scheduled.for_time)
-                .unwrap_or(Length::new(u64::max_value()));
+                .map_or(Length::new(u64::max_value()), |scheduled| scheduled.for_time);
 
         self.scheduled_events.borrow_mut().push(ScheduledEvent {
             request: request,

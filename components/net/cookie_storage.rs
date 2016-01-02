@@ -69,8 +69,8 @@ impl CookieStorage {
     }
 
     pub fn cookie_comparator(a: &Cookie, b: &Cookie) -> Ordering {
-        let a_path_len = a.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
-        let b_path_len = b.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
+        let a_path_len = a.cookie.path.as_ref().map_or(0, |p| p.len());
+        let b_path_len = b.cookie.path.as_ref().map_or(0, |p| p.len());
         match a_path_len.cmp(&b_path_len) {
             Ordering::Equal => {
                 let a_creation_time = a.creation_time.to_timespec();

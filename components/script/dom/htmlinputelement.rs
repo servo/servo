@@ -596,7 +596,7 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("value") if !self.value_changed.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
-                    value.map(DOMString::from).unwrap_or(DOMString::from("")));
+                    value.map_or(DOMString::new(), DOMString::from));
             },
             &atom!("name") if self.input_type.get() == InputType::InputRadio => {
                 self.radio_group_updated(
@@ -663,9 +663,8 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
-            match self.input_type.get() {
-                InputType::InputRadio => self.update_checked_state(true, true),
-                _ => {}
+            if let InputType::InputRadio = self.input_type.get() {
+                self.update_checked_state(true, true);
             }
 
             // TODO: Dispatch events for non activatable inputs

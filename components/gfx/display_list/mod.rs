@@ -941,7 +941,7 @@ impl StackingContextLayerCreator {
             return Some(LayerInfo::new(layer.id, ScrollPolicy::Scrollable, None));
         }
 
-        return self.last_child_layer_info;
+        self.last_child_layer_info
     }
 
     #[inline]

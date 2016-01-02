@@ -287,8 +287,8 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
     type Item = Root<Element>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ref filter = self.filter;
-        let ref root = self.root;
+        let filter = &self.filter;
+        let root = &self.root;
         self.node_iter.by_ref()
                       .filter_map(Root::downcast)
                       .filter(|element| filter.filter(&element, root))
@@ -306,8 +306,8 @@ impl<'a> Iterator for HTMLCollectionElementsRevIter<'a> {
     type Item = Root<Element>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ref filter = self.filter;
-        let ref root = self.root;
+        let filter = &self.filter;
+        let root = &self.root;
         self.node_iter.by_ref()
             .filter_map(Root::downcast)
             .filter(|element| filter.filter(&element, root))

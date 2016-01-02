@@ -49,7 +49,7 @@ impl Activatable for HTMLLabelElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        return true;
+        true
     }
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps

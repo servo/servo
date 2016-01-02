@@ -148,9 +148,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
             return XMLName::InvalidXMLName;
         }
         if c == ':' {
-            match seen_colon {
-                true => non_qname_colons = true,
-                false => seen_colon = true,
+            if seen_colon {
+                non_qname_colons = true;
+            } else {
+                seen_colon = true;
             }
         }
         last = c
@@ -160,9 +161,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
         non_qname_colons = true
     }
 
-    match non_qname_colons {
-        false => XMLName::QName,
-        true => XMLName::Name,
+    if non_qname_colons {
+        XMLName::Name
+    } else {
+        XMLName::QName
     }
 }
 

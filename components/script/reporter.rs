@@ -22,10 +22,9 @@ impl ParseErrorReporter for CSSErrorReporter {
      }
 
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-         let error_reporter = box CSSErrorReporter { pipelineid: self.pipelineid, } ;
-         return error_reporter;
+         box CSSErrorReporter { pipelineid: self.pipelineid, }
      }
      fn pipeline(&self) -> PipelineId {
-         return self.pipelineid;
+         self.pipelineid
      }
 }

@@ -137,7 +137,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
         });
 
-        result.map(DOMString::from).unwrap_or(DOMString::new())
+        result.map_or(DOMString::new(), DOMString::from)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -175,11 +175,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 3 & 4
-        let result = match owner.get_inline_style_declaration(&property) {
+        match owner.get_inline_style_declaration(&property) {
             Some(declaration) => DOMString::from(declaration.value()),
             None => DOMString::new(),
-        };
-        result
+        }
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority

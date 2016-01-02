@@ -39,7 +39,7 @@ impl FontTemplates {
     }
 
     /// Find a font in this family that matches a given descriptor.
-    fn find_font_for_style<'a>(&'a mut self, desc: &FontTemplateDescriptor, fctx: &FontContextHandle)
+    fn find_font_for_style(&mut self, desc: &FontTemplateDescriptor, fctx: &FontContextHandle)
                                -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #189): optimize lookup for
         // regular/bold/italic/bolditalic with fixed offsets and a
@@ -251,7 +251,7 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_local_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
+    fn find_font_in_local_family(&mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
@@ -275,14 +275,13 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_web_family<'a>(&'a mut self, family: &FontFamily, desc: &FontTemplateDescriptor)
+    fn find_font_in_web_family(&mut self, family: &FontFamily, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         let family_name = LowercaseString::new(family.name());
 
         if self.web_families.contains_key(&family_name) {
             let templates = self.web_families.get_mut(&family_name).unwrap();
-            let maybe_font = templates.find_font_for_style(desc, &self.font_context);
-            maybe_font
+            templates.find_font_for_style(desc, &self.font_context)
         } else {
             None
         }

@@ -172,9 +172,10 @@ impl Profiler {
                 let mut start_energy = read_energy_uj();
                 loop {
                     for _ in 0..loop_count {
-                        match run_ap_thread() {
-                            true => thread::sleep(Duration::from_millis(SLEEP_MS as u64)),
-                            false => return,
+                        if run_ap_thread() {
+                            thread::sleep(Duration::from_millis(SLEEP_MS as u64))
+                        } else {
+                            return
                         }
                     }
                     let end_time = precise_time_ns();
@@ -258,7 +259,7 @@ impl Profiler {
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, min, max) =
-                    (data.iter().map(|&x|x).sum::<f64>() / (data_len as f64),
+                    (data.iter().sum::<f64>() / (data_len as f64),
                      data[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));

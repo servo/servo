@@ -31,7 +31,7 @@ pub fn load_script(head: &HTMLHeadElement) {
             PathBuf::from(path_str)
         };
 
-        let mut files = read_dir(&path).ok().expect("Bad path passed to --userscripts")
+        let mut files = read_dir(&path).expect("Bad path passed to --userscripts")
                                        .filter_map(|e| e.ok())
                                        .map(|e| e.path()).collect::<Vec<_>>();
 

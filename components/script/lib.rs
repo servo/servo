@@ -130,7 +130,7 @@ fn perform_platform_specific_initialization() {
                         }
                     }
                 };
-                match libc::setrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
+                match libc::setrlimit(libc::RLIMIT_NOFILE, &rlim) {
                     0 => (),
                     _ => warn!("Failed to set file count limit"),
                 };

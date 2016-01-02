@@ -307,40 +307,37 @@ impl HTMLFormElement {
                     .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
                 continue;
             }
-            match child.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
-                    match element {
-                        HTMLElementTypeId::HTMLInputElement => {
-                            let input = child.downcast::<HTMLInputElement>().unwrap();
-                            // Step 3.2-3.7
-                            if let Some(datum) = input.get_form_datum(submitter) {
-                                data_set.push(datum);
-                            }
+            if let NodeTypeId::Element(ElementTypeId::HTMLElement(element)) = child.type_id() {
+                match element {
+                    HTMLElementTypeId::HTMLInputElement => {
+                        let input = child.downcast::<HTMLInputElement>().unwrap();
+                        // Step 3.2-3.7
+                        if let Some(datum) = input.get_form_datum(submitter) {
+                            data_set.push(datum);
                         }
-                        HTMLElementTypeId::HTMLButtonElement |
-                        HTMLElementTypeId::HTMLObjectElement => {
-                            // Unimplemented
-                            ()
-                        }
-                        HTMLElementTypeId::HTMLSelectElement => {
-                            let select = child.downcast::<HTMLSelectElement>().unwrap();
-                            select.push_form_data(&mut data_set);
-                        }
-                        HTMLElementTypeId::HTMLTextAreaElement => {
-                            let textarea = child.downcast::<HTMLTextAreaElement>().unwrap();
-                            let name = textarea.Name();
-                            if !name.is_empty() {
-                                data_set.push(FormDatum {
-                                    ty: textarea.Type(),
-                                    name: name,
-                                    value: textarea.Value()
-                                });
-                            }
-                        }
-                        _ => ()
                     }
+                    HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLObjectElement => {
+                        // Unimplemented
+                        ()
+                    }
+                    HTMLElementTypeId::HTMLSelectElement => {
+                        let select = child.downcast::<HTMLSelectElement>().unwrap();
+                        select.push_form_data(&mut data_set);
+                    }
+                    HTMLElementTypeId::HTMLTextAreaElement => {
+                        let textarea = child.downcast::<HTMLTextAreaElement>().unwrap();
+                        let name = textarea.Name();
+                        if !name.is_empty() {
+                            data_set.push(FormDatum {
+                                ty: textarea.Type(),
+                                name: name,
+                                value: textarea.Value()
+                            });
+                        }
+                    }
+                    _ => ()
                 }
-                _ => ()
             }
         }
         data_set
@@ -603,14 +600,11 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         if !owner.is_empty() {
             let doc = document_from_node(elem);
             let owner = doc.GetElementById(owner);
-            match owner {
-                Some(ref o) => {
-                    let maybe_form = o.downcast::<HTMLFormElement>();
-                    if maybe_form.is_some() {
-                        return maybe_form.map(Root::from_ref);
-                    }
-                },
-                _ => ()
+            if let Some(ref o) = owner {
+                let maybe_form = o.downcast::<HTMLFormElement>();
+                if maybe_form.is_some() {
+                    return maybe_form.map(Root::from_ref);
+                }
             }
         }
         elem.upcast::<Node>().ancestors().filter_map(Root::downcast).next()

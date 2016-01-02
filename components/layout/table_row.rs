@@ -747,33 +747,27 @@ fn set_inline_position_of_child_flow(
                 inline_start_border: border_collapse_info.collapsed_borders_for_row
                                                          .inline
                                                          .get(child_index)
-                                                         .map(|x| *x)
-                                                         .unwrap_or(CollapsedBorder::new()),
+                                                         .map_or(CollapsedBorder::new(), |x| *x),
                 inline_end_border: border_collapse_info.collapsed_borders_for_row
                                                        .inline
                                                        .get(child_index + 1)
-                                                       .map(|x| *x)
-                                                       .unwrap_or(CollapsedBorder::new()),
+                                                       .map_or(CollapsedBorder::new(), |x| *x),
                 block_start_border: border_collapse_info.collapsed_borders_for_row
                                                         .block_start
                                                         .get(child_index)
-                                                        .map(|x| *x)
-                                                        .unwrap_or(CollapsedBorder::new()),
+                                                        .map_or(CollapsedBorder::new(), |x| *x),
                 block_end_border: border_collapse_info.collapsed_borders_for_row
                                                       .block_end
                                                       .get(child_index)
-                                                      .map(|x| *x)
-                                                      .unwrap_or(CollapsedBorder::new()),
+                                                      .map_or(CollapsedBorder::new(), |x| *x),
                 inline_start_width: border_collapse_info.collapsed_border_spacing_for_row
                                                         .inline
                                                         .get(child_index)
-                                                        .map(|x| *x)
-                                                        .unwrap_or(Au(0)),
+                                                        .map_or(Au(0), |x| *x),
                 inline_end_width: border_collapse_info.collapsed_border_spacing_for_row
                                                       .inline
                                                       .get(child_index + 1)
-                                                      .map(|x| *x)
-                                                      .unwrap_or(Au(0)),
+                                                      .map_or(Au(0), |x| *x),
                 block_start_width: border_collapse_info.collapsed_border_spacing_for_row
                                                        .block_start,
                 block_end_width: border_collapse_info.collapsed_border_spacing_for_row.block_end,

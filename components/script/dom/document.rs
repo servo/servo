@@ -1926,9 +1926,10 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        let clone_children = match deep {
-            true => CloneChildrenFlag::CloneChildren,
-            false => CloneChildrenFlag::DoNotCloneChildren,
+        let clone_children = if deep {
+            CloneChildrenFlag::CloneChildren
+        } else {
+            CloneChildrenFlag::DoNotCloneChildren
         };
 
         Ok(Node::clone(node, Some(self), clone_children))
@@ -2325,7 +2326,7 @@ impl DocumentMethods for Document {
         let (tx, rx) = ipc::channel().unwrap();
         let _ = self.window.resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
-        Ok(cookies.map(DOMString::from).unwrap_or(DOMString::from("")))
+        Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie

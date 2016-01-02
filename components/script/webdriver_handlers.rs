@@ -191,7 +191,7 @@ pub fn handle_get_text(page: &Rc<Page>,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(ref node) => {
-            Ok(node.GetTextContent().map(String::from).unwrap_or("".to_owned()))
+            Ok(node.GetTextContent().map_or("".to_owned(), String::from))
         },
         None => Err(())
     }).unwrap();

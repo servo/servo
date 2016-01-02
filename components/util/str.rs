@@ -461,19 +461,17 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
 
     // Step 6.
     if input.len() == 4 {
-        match (input.as_bytes()[0],
-               hex(input.as_bytes()[1] as char),
-               hex(input.as_bytes()[2] as char),
-               hex(input.as_bytes()[3] as char)) {
-            (b'#', Ok(r), Ok(g), Ok(b)) => {
-                return Ok(RGBA {
-                    red: (r as f32) * 17.0 / 255.0,
-                    green: (g as f32) * 17.0 / 255.0,
-                    blue: (b as f32) * 17.0 / 255.0,
-                    alpha: 1.0,
-                })
-            }
-            _ => {}
+        if let (b'#', Ok(r), Ok(g), Ok(b)) =
+                (input.as_bytes()[0],
+                hex(input.as_bytes()[1] as char),
+                hex(input.as_bytes()[2] as char),
+                hex(input.as_bytes()[3] as char)) {
+            return Ok(RGBA {
+                red: (r as f32) * 17.0 / 255.0,
+                green: (g as f32) * 17.0 / 255.0,
+                blue: (b as f32) * 17.0 / 255.0,
+                alpha: 1.0,
+            })
         }
     }
 

@@ -320,10 +320,8 @@ impl CanvasRenderingContext2D {
             }
         };
 
-        if result.is_ok() {
-            if !self.is_origin_clean(image) {
-                self.set_origin_unclean()
-            }
+        if result.is_ok() && !self.is_origin_clean(image) {
+            self.set_origin_unclean()
         }
         result
     }

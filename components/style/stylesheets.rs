@@ -201,19 +201,16 @@ impl<'a> Iterator for Rules<'a> {
             let top = self.stack.len() - 1;
             while let Some(rule) = self.stack[top].next() {
                 // handle conditional group rules
-                match rule {
-                    &CSSRule::Media(ref rule) => {
-                        if let Some(device) = self.device {
-                            if rule.evaluate(device) {
-                                self.stack.push(rule.rules.iter());
-                            } else {
-                                continue
-                            }
-                        } else {
+                if let &CSSRule::Media(ref rule) = rule {
+                    if let Some(device) = self.device {
+                        if rule.evaluate(device) {
                             self.stack.push(rule.rules.iter());
+                        } else {
+                            continue
                         }
+                    } else {
+                        self.stack.push(rule.rules.iter());
                     }
-                    _ => {}
                 }
 
                 return Some(rule)
