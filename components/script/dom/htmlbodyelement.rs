@@ -84,6 +84,17 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         window_from_node(self).SetOnstorage(listener)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-background
+    make_getter!(Background, "background");
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-background
+    fn SetBackground(&self, value: DOMString) {
+        let document = document_from_node(self);
+        let base = document.url();
+        *self.background.borrow_mut() = base.join(&value).ok();
+        self.upcast::<Element>().set_string_attribute(&atom!("background"), value);
+    }
 }
 
 pub trait HTMLBodyElementLayoutHelpers {
