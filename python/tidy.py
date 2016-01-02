@@ -558,7 +558,7 @@ def check_wpt_lint_errors(only_changed_files=False):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     lint_cmd = os.path.join(wpt_working_dir, "lint")
     try:
-        args = [lint_cmd, '--changes'] if only_changed_files else [lint_cmd]
+        args = [lint_cmd, "--changes"] if only_changed_files else [lint_cmd]
         # lint must run from wpt's working dir
         subprocess.check_call(args, cwd=wpt_working_dir)
     except subprocess.CalledProcessError as e:
@@ -568,21 +568,21 @@ def check_wpt_lint_errors(only_changed_files=False):
 def get_file_list(directory, only_changed_files=False):
     if only_changed_files:
         # only check the files that have been changed since the last merge
-        args = ['git', 'log', '-n1', '--author=bors-servo', '--format=%H']
+        args = ["git", "log", "-n1", "--author=bors-servo", "--format=%H"]
         last_merge = subprocess.check_output(args).strip()
-        args = ['git', 'diff', '--name-only', last_merge, directory]
+        args = ["git", "diff", "--name-only", last_merge, directory]
         file_list = subprocess.check_output(args)
         # also check untracked files
-        args = ['git', 'ls-files', '--others', '--exclude-standard', directory]
+        args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
-        return (os.path.join('.', f) for f in file_list.splitlines())
+        return (os.path.join(".", f) for f in file_list.splitlines())
     else:
         return (os.path.join(r, f) for r, _, files in os.walk(directory) for f in files)
 
 
 def scan(only_changed_files):
     # standard checks
-    files_to_check = filter(should_check, get_file_list('.', only_changed_files))
+    files_to_check = filter(should_check, get_file_list(".", only_changed_files))
     checking_functions = (check_flake8, check_lock, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
