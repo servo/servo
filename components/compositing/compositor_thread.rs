@@ -9,7 +9,6 @@ use compositor::{self, CompositingReason};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
-use headless;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -98,6 +97,8 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
             ScriptToCompositorMsg::TouchEventProcessed(result) => {
                 compositor_proxy.send(Msg::TouchEventProcessed(result))
             }
+
+            ScriptToCompositorMsg::Exited => break,
         }
     }
 }
@@ -123,7 +124,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
         // just return None in this case, since the paint thread
         // will exit shortly and never actually be requested
         // to paint buffers by the compositor.
-        port.recv().unwrap_or(None)
+        port.recv().ok()
     }
 
     fn assign_painted_buffers(&mut self,
@@ -174,9 +175,7 @@ pub enum Msg {
     /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
-    ///
-    /// The headless compositor returns `None`.
-    GetNativeDisplay(Sender<Option<NativeDisplay>>),
+    GetNativeDisplay(Sender<NativeDisplay>),
 
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
@@ -233,7 +232,11 @@ pub enum Msg {
     /// Resize the window to size
     ResizeTo(Size2D<u32>),
     /// A pipeline was shut down.
-    PipelineExited(PipelineId),
+    // This message acts as a synchronization point between the constellation,
+    // when it shuts down a pipeline, to the compositor; when the compositor
+    // sends a reply on the IpcSender, the constellation knows it's safe to
+    // tear down the other threads associated with this pipeline.
+    PipelineExited(PipelineId, IpcSender<()>),
 }
 
 impl Debug for Msg {
@@ -276,20 +279,12 @@ impl Debug for Msg {
 pub struct CompositorThread;
 
 impl CompositorThread {
-    pub fn create<Window>(window: Option<Rc<Window>>,
+    pub fn create<Window>(window: Rc<Window>,
                           state: InitialCompositorState)
                           -> Box<CompositorEventListener + 'static>
                           where Window: WindowMethods + 'static {
-        match window {
-            Some(window) => {
-                box compositor::IOCompositor::create(window, state)
-                    as Box<CompositorEventListener>
-            }
-            None => {
-                box headless::NullCompositor::create(state)
-                    as Box<CompositorEventListener>
-            }
-        }
+        box compositor::IOCompositor::create(window, state)
+            as Box<CompositorEventListener>
     }
 }
 

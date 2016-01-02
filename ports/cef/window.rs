@@ -297,7 +297,7 @@ impl WindowMethods for Window {
         NativeDisplay::new()
     }
 
-    fn create_compositor_channel(_: &Option<Rc<Window>>)
+    fn create_compositor_channel(&self)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
         (box CefCompositorProxy {

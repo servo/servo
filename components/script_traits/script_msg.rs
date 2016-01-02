@@ -74,7 +74,7 @@ pub enum ScriptMsg {
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
     /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId),
+    RemoveIFrame(PipelineId, Option<IpcSender<()>>),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfo),
     /// Requests that the constellation set the contents of the clipboard
