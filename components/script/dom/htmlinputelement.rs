@@ -14,6 +14,7 @@ use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
+use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -28,6 +29,8 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use script_task::ScriptTaskEventCategory::InputEvent;
+use script_task::{CommonScriptMsg, Runnable};
 use script_traits::ScriptMsg as ConstellationMsg;
 use selectors::states::*;
 use std::borrow::ToOwned;
@@ -690,6 +693,18 @@ impl VirtualMethods for HTMLInputElement {
                         },
                         DispatchInput => {
                             self.value_changed.set(true);
+
+                            if event.IsTrusted() {
+                                let window = window_from_node(self);
+                                let window = window.r();
+                                let chan = window.user_interaction_task_source();
+                                let handler = Trusted::new(self.upcast::<Node>(), chan.clone());
+                                let dispatcher = ChangeEventRunnable {
+                                    element: handler,
+                                };
+                                let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
+                            }
+
                             self.force_relayout();
                             event.PreventDefault();
                         }
@@ -918,5 +933,22 @@ impl Activatable for HTMLInputElement {
                             FormSubmitter::FormElement(form.r()));
             }
         }
+    }
+}
+
+pub struct ChangeEventRunnable {
+    pub element: Trusted<Node>,
+}
+
+impl Runnable for ChangeEventRunnable {
+    fn handler(self: Box<ChangeEventRunnable>) {
+        let target = self.element.root();
+        let window = window_from_node(target.r());
+        let window = window.r();
+        let event = Event::new(GlobalRef::Window(window),
+                               atom!("input"),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        target.upcast::<EventTarget>().dispatch_event(&event);
     }
 }
