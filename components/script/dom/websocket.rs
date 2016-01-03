@@ -138,7 +138,7 @@ pub struct WebSocket {
     url: Url,
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
-    buffered_amount: Cell<u32>,
+    buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
     sender: DOMRefCell<Option<IpcSender<WebSocketDomAction>>>,
@@ -299,17 +299,10 @@ impl WebSocket {
         let chan = global.r().networking_task_source();
         let address = Trusted::new(self, chan.clone());
 
-        let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
-        if new_buffer_amount > (u32::max_value() as u64) {
-            self.buffered_amount.set(u32::max_value());
-            self.full.set(true);
-
-            let _ = self.Close(None, None);
-            return Ok(false);
-
-        }
-
-        self.buffered_amount.set(new_buffer_amount as u32);
+        match data_byte_len.checked_add(self.buffered_amount.get()) {
+            None => panic!(),
+            Some(new_amount) => self.buffered_amount.set(new_amount)
+        };
 
         if return_after_buffer {
             return Ok(false);
@@ -353,7 +346,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
-    fn BufferedAmount(&self) -> u32 {
+    fn BufferedAmount(&self) -> u64 {
         self.buffered_amount.get()
     }
 
