@@ -121,31 +121,29 @@ impl OneshotTimers {
                              duration: MsDuration,
                              source: TimerSource)
                              -> OneshotTimerHandle {
-        let OneshotTimerHandle(new_handle) = self.next_timer_handle.get();
-        self.next_timer_handle.set(OneshotTimerHandle(new_handle + 1));
+        let new_handle = self.next_timer_handle.get();
+        self.next_timer_handle.set(OneshotTimerHandle(new_handle.0 + 1));
 
         let scheduled_for = self.base_time() + duration;
 
         let timer = OneshotTimer {
-            handle: OneshotTimerHandle(new_handle),
+            handle: new_handle,
             source: source,
             callback: callback,
             scheduled_for: scheduled_for,
         };
 
-        let OneshotTimerHandle(max_handle) = {
+        {
             let mut timers = self.timers.borrow_mut();
             let insertion_index = timers.binary_search(&timer).err().unwrap();
             timers.insert(insertion_index, timer);
+        }
 
-            timers.last().unwrap().handle
-        };
-
-        if max_handle == new_handle {
+        if self.is_next_timer(new_handle) {
             self.schedule_timer_call();
         }
 
-        OneshotTimerHandle(new_handle)
+        new_handle
     }
 
     pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
