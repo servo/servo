@@ -46,12 +46,6 @@ pub struct HTMLElement {
     dataset: MutNullableHeap<JS<DOMStringMap>>,
 }
 
-impl PartialEq for HTMLElement {
-    fn eq(&self, other: &HTMLElement) -> bool {
-        self as *const HTMLElement == &*other
-    }
-}
-
 impl HTMLElement {
     pub fn new_inherited(tag_name: Atom, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {

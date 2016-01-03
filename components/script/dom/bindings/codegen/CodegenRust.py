@@ -2339,6 +2339,12 @@ impl IDLInterface for %(name)s {
         %(check)s
     }
 }
+
+impl PartialEq for %(name)s {
+    fn eq(&self, other: &%(name)s) -> bool {
+        self as *const %(name)s == &*other
+    }
+}
 """ % {'check': check, 'name': name}
 
 

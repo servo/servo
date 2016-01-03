@@ -208,12 +208,6 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
 }
 
-impl PartialEq for Document {
-    fn eq(&self, other: &Document) -> bool {
-        self as *const Document == &*other
-    }
-}
-
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {

@@ -104,12 +104,6 @@ pub struct Element {
     state: Cell<ElementState>,
 }
 
-impl PartialEq for Element {
-    fn eq(&self, other: &Element) -> bool {
-        self as *const Element == &*other
-    }
-}
-
 #[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
     ParserCreated,
