@@ -39,7 +39,7 @@ impl Cookie {
             _ => (false, None)
         };
 
-        let url_host = request.host().map(|host| host.serialize()).unwrap_or("".to_owned());
+        let url_host = request.host().map_or("".to_owned(), |host| host.serialize());
 
         // Step 4
         let mut domain = cookie.domain.clone().unwrap_or("".to_owned());

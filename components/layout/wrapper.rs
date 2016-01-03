@@ -198,7 +198,7 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
     }
 
     fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
-        self.node.downcast().map(|document| ServoLayoutDocument::from_layout_js(document))
+        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
     }
 
     fn has_changed(&self) -> bool {
@@ -432,7 +432,7 @@ impl<'le> ServoLayoutElement<'le> {
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
-    node.downcast().map(|element| ServoLayoutElement::from_layout_js(element))
+    node.downcast().map(ServoLayoutElement::from_layout_js)
 }
 
 macro_rules! state_getter {

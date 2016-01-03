@@ -1948,13 +1948,11 @@ impl ScriptTask {
 
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
-                    if !mouse_over_targets.contains(target) {
-                        if target.is::<HTMLAnchorElement>() {
-                            let event = ConstellationMsg::NodeStatus(None);
-                            let ConstellationChan(ref chan) = self.constellation_chan;
-                            chan.send(event).unwrap();
-                            break;
-                        }
+                    if !mouse_over_targets.contains(target) && target.is::<HTMLAnchorElement>() {
+                        let event = ConstellationMsg::NodeStatus(None);
+                        let ConstellationChan(ref chan) = self.constellation_chan;
+                        chan.send(event).unwrap();
+                        break;
                     }
                 }
 
@@ -2108,7 +2106,7 @@ impl ScriptTask {
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
                                                              load_data.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let listener = box NetworkListener {
+        let listener = NetworkListener {
             context: context,
             script_chan: script_chan.clone(),
         };

@@ -70,8 +70,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &atom!("cols"))
-                .map(AttrValue::as_uint)
-                .unwrap_or(DEFAULT_COLS)
+                .map_or(DEFAULT_COLS, AttrValue::as_uint)
         }
     }
 
@@ -80,8 +79,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &atom!("rows"))
-                .map(AttrValue::as_uint)
-                .unwrap_or(DEFAULT_ROWS)
+                .map_or(DEFAULT_ROWS, AttrValue::as_uint)
         }
     }
 }

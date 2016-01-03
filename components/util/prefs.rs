@@ -146,7 +146,7 @@ fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
 }
 
 pub fn get_pref(name: &str) -> Arc<PrefValue> {
-    PREFS.lock().unwrap().get(name).map(|x| x.value().clone()).unwrap_or(Arc::new(PrefValue::Missing))
+    PREFS.lock().unwrap().get(name).map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
 }
 
 pub fn set_pref(name: &str, value: PrefValue) {

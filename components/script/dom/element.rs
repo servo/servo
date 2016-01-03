@@ -924,9 +924,8 @@ impl Element {
     // https://html.spec.whatwg.org/multipage/#attr-data-*
     pub fn set_custom_attribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
-        match xml_name_type(&name) {
-            InvalidXMLName => return Err(Error::InvalidCharacter),
-            _ => {}
+        if let InvalidXMLName = xml_name_type(&name) {
+            return Err(Error::InvalidCharacter);
         }
 
         // Steps 2-5.
@@ -1012,8 +1011,7 @@ impl Element {
             }
         };
         self.get_attribute(&ns!(), &atom!("class"))
-            .map(|attr| attr.value().as_tokens().iter().any(|atom| is_equal(name, atom)))
-            .unwrap_or(false)
+            .map_or(false, |attr| attr.value().as_tokens().iter().any(|atom| is_equal(name, atom)))
     }
 
     pub fn set_atomic_attribute(&self, local_name: &Atom, value: DOMString) {
@@ -1884,10 +1882,11 @@ impl Element {
         }
         let node = self.upcast::<Node>();
         node.owner_doc().element_state_will_change(self);
-        match value {
-            true => state.insert(which),
-            false => state.remove(which),
-        };
+        if value {
+            state.insert(which);
+        } else {
+            state.remove(which);
+        }
         self.state.set(state);
     }
 

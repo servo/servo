@@ -54,10 +54,10 @@ impl DOMTokenList {
 impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(&self) -> u32 {
-        self.attribute().map(|attr| {
+        self.attribute().map_or(0, |attr| {
             let attr = attr.r();
             attr.value().as_tokens().len()
-        }).unwrap_or(0) as u32
+        }) as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
@@ -71,13 +71,13 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(&self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(&token).map(|token| {
-            self.attribute().map(|attr| {
+            self.attribute().map_or(false, |attr| {
                 let attr = attr.r();
                 attr.value()
                     .as_tokens()
                     .iter()
                     .any(|atom: &Atom| *atom == token)
-            }).unwrap_or(false)
+            })
         })
     }
 

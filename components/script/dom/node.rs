@@ -768,7 +768,7 @@ impl Node {
         NodeInfo {
             uniqueId: self.get_unique_id(),
             baseURI: String::from(self.BaseURI()),
-            parent: self.GetParentNode().map(|node| node.get_unique_id()).unwrap_or("".to_owned()),
+            parent: self.GetParentNode().map_or("".to_owned(), |node| node.get_unique_id()),
             nodeType: self.NodeType(),
             namespaceURI: String::new(), //FIXME
             nodeName: String::from(self.NodeName()),
@@ -783,8 +783,7 @@ impl Node {
             isDocumentElement:
                 self.owner_doc()
                     .GetDocumentElement()
-                    .map(|elem| elem.upcast::<Node>() == self)
-                    .unwrap_or(false),
+                    .map_or(false, |elem| elem.upcast::<Node>() == self),
 
             shortValue: self.GetNodeValue().map(String::from).unwrap_or_default(), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
@@ -1602,9 +1601,10 @@ impl Node {
             },
             NodeTypeId::Document(_) => {
                 let document = node.downcast::<Document>().unwrap();
-                let is_html_doc = match document.is_html_document() {
-                    true => IsHTMLDocument::HTMLDocument,
-                    false => IsHTMLDocument::NonHTMLDocument,
+                let is_html_doc = if document.is_html_document() {
+                    IsHTMLDocument::HTMLDocument
+                } else {
+                    IsHTMLDocument::NonHTMLDocument
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
@@ -2435,8 +2435,7 @@ impl<'a> UnbindContext<'a> {
         if let Some(index) = self.index.get() {
             return index;
         }
-        let index =
-            self.prev_sibling.map(|sibling| sibling.index() + 1).unwrap_or(0);
+        let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
         self.index.set(Some(index));
         index
     }

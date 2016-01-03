@@ -191,7 +191,7 @@ impl Attr {
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
     pub fn set_owner(&self, owner: Option<&Element>) {
-        let ref ns = self.identifier.namespace;
+        let ns = &self.identifier.namespace;
         match (self.owner().r(), owner) {
             (None, Some(new)) => {
                 // Already in the list of attributes of new owner.

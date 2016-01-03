@@ -112,27 +112,27 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
     state_pseudo_classes!(snapshot_state_accessors);
 
     fn parent_element(&self) -> Option<Self> {
-        self.element.parent_element().map(|el| ElementWrapper::new(el))
+        self.element.parent_element().map(ElementWrapper::new)
     }
     fn first_child_element(&self) -> Option<Self> {
-        self.element.first_child_element().map(|el| ElementWrapper::new(el))
+        self.element.first_child_element().map(ElementWrapper::new)
     }
     fn last_child_element(&self) -> Option<Self> {
-        self.element.last_child_element().map(|el| ElementWrapper::new(el))
+        self.element.last_child_element().map(ElementWrapper::new)
     }
     fn prev_sibling_element(&self) -> Option<Self> {
-        self.element.prev_sibling_element().map(|el| ElementWrapper::new(el))
+        self.element.prev_sibling_element().map(ElementWrapper::new)
     }
     fn next_sibling_element(&self) -> Option<Self> {
-        self.element.next_sibling_element().map(|el| ElementWrapper::new(el))
+        self.element.next_sibling_element().map(ElementWrapper::new)
     }
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()
     }
-    fn get_local_name<'b>(&'b self) -> &'b Atom {
+    fn get_local_name(&self) -> &Atom {
         self.element.get_local_name()
     }
-    fn get_namespace<'b>(&'b self) -> &'b Namespace {
+    fn get_namespace<'b>(&self) -> &Namespace {
         self.element.get_namespace()
     }
     fn get_id(&self) -> Option<Atom> {

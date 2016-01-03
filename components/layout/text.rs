@@ -38,15 +38,12 @@ fn text(fragments: &LinkedList<Fragment>) -> String {
     let mut text = String::new();
 
     for fragment in fragments {
-        match fragment.specific {
-            SpecificFragmentInfo::UnscannedText(ref info) => {
-                if fragment.white_space().preserve_newlines() {
-                    text.push_str(&info.text);
-                } else {
-                    text.push_str(&info.text.replace("\n", " "));
-                }
+        if let SpecificFragmentInfo::UnscannedText(ref info) = fragment.specific {
+            if fragment.white_space().preserve_newlines() {
+                text.push_str(&info.text);
+            } else {
+                text.push_str(&info.text.replace("\n", " "));
             }
-            _ => {}
         }
     }
     text

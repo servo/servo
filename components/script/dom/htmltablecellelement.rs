@@ -72,7 +72,7 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
         parent_children.filter(|c| c.is::<HTMLTableCellElement>())
                        .position(|c| c.r() == self_node)
-                       .map(|p| p as i32).unwrap_or(-1)
+                       .map_or(-1, |p| p as i32)
     }
 }
 

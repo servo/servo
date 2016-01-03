@@ -1102,12 +1102,9 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
                                                              node,
                                                              caption_side::T::top);
 
-        match construction_result {
-            ConstructionResult::Flow(table_flow, table_abs_descendants) => {
-                wrapper_flow.add_new_child(table_flow);
-                abs_descendants.push_descendants(table_abs_descendants);
-            }
-            _ => {}
+        if let ConstructionResult::Flow(table_flow, table_abs_descendants) = construction_result {
+            wrapper_flow.add_new_child(table_flow);
+            abs_descendants.push_descendants(table_abs_descendants);
         }
 
         // If the value of `caption-side` is `bottom`, place it now.
@@ -1271,12 +1268,9 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
-            match kid.swap_out_construction_result() {
-                ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(
-                        fragment)) => {
-                    col_fragments.push(fragment);
-                }
-                _ => {}
+            if let ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(fragment))
+                   = kid.swap_out_construction_result() {
+                col_fragments.push(fragment)
             }
         }
         if col_fragments.is_empty() {

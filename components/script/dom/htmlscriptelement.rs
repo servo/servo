@@ -287,7 +287,7 @@ impl HTMLScriptElement {
                         }));
 
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
-                        let listener = box NetworkListener {
+                        let listener = NetworkListener {
                             context: context,
                             script_chan: script_chan,
                         };
@@ -354,7 +354,7 @@ impl HTMLScriptElement {
                 parser.r().suspend();
             }
         }
-        return NextParserState::Suspend;
+        NextParserState::Suspend
     }
 
     pub fn is_ready_to_be_executed(&self) -> bool {

@@ -1520,12 +1520,10 @@ impl BlockFlow {
     }
 
     fn determine_if_layer_needed(&mut self) {
-        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            // Fixed position layers get layers.
-            if self.is_fixed() {
-                self.base.flags.insert(NEEDS_LAYER);
-                return
-            }
+        // Fixed position layers get layers.
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) && self.is_fixed() {
+            self.base.flags.insert(NEEDS_LAYER);
+            return
         }
 
         // This flow needs a layer if it has a 3d transform, or provides perspective

@@ -649,8 +649,7 @@ mod system_reporter {
         // Note that the sum of all these segments' RSS values differs from the "resident"
         // measurement obtained via /proc/<pid>/statm in resident(). It's unclear why this
         // difference occurs; for some processes the measurements match, but for Servo they do not.
-        let segs: Vec<(String, usize)> = seg_map.into_iter().collect();
-        segs
+        seg_map.into_iter().collect()
     }
 
     #[cfg(not(target_os = "linux"))]
