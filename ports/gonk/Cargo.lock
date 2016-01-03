@@ -72,7 +72,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.2.1"
-source = "git+https://github.com/servo/rust-azure#b05ba4bb70aefb319c7f168fc83a9fd04a1aa1ef"
+source = "git+https://github.com/servo/rust-azure#7662f94f0b8c368134a04edac936328d603c7ad8"
 dependencies = [
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -800,12 +800,12 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.1.0"
-source = "git+https://github.com/servo/ipc-channel#6900611d5f00c7405ae886d75841fe37df6bfc38"
+source = "git+https://github.com/servo/ipc-channel#1b95d5490d7b7f49576577315bdb5b4c834d08d0"
 dependencies = [
  "bincode 0.4.0 (git+https://github.com/TyOverby/bincode)",
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",

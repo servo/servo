@@ -6141,7 +6141,7 @@ pub mod style_structs {
 
     % for style_struct in STYLE_STRUCTS:
         % if style_struct.name == "Font":
-        #[derive(Clone, HeapSizeOf)]
+        #[derive(Clone, HeapSizeOf, Debug)]
         % else:
         #[derive(PartialEq, Clone, HeapSizeOf)]
         % endif
