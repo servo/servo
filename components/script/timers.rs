@@ -475,8 +475,9 @@ impl JsTimerTask {
         // step 4.3
         // Since we choose proactively prevent execution (see 4.1 above), we must only
         // reschedule repeating timers when they were not canceled as part of step 4.2.
-        if self.is_interval == IsInterval::Interval
-            && self.timers.active_timers.borrow().contains_key(&self.handle) {
+        if self.is_interval == IsInterval::Interval &&
+            self.timers.active_timers.borrow().contains_key(&self.handle) {
+
             initialize_and_schedule(self);
         }
     }
