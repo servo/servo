@@ -570,14 +570,14 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        let value = match &**attr.value() {
-                            "button" => InputType::InputButton,
-                            "submit" => InputType::InputSubmit,
-                            "reset" => InputType::InputReset,
-                            "file" => InputType::InputFile,
-                            "radio" => InputType::InputRadio,
-                            "checkbox" => InputType::InputCheckbox,
-                            "password" => InputType::InputPassword,
+                        let value = match attr.value().as_atom() {
+                            &atom!("button") => InputType::InputButton,
+                            &atom!("submit") => InputType::InputSubmit,
+                            &atom!("reset") => InputType::InputReset,
+                            &atom!("file") => InputType::InputFile,
+                            &atom!("radio") => InputType::InputRadio,
+                            &atom!("checkbox") => InputType::InputCheckbox,
+                            &atom!("password") => InputType::InputPassword,
                             _ => InputType::InputText,
                         };
                         self.input_type.set(value);
