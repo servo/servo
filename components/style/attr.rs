@@ -5,6 +5,7 @@
 use cssparser::RGBA;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
+use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto, parse_unsigned_integer, parse_legacy_color, parse_length};
 use util::str::{parse_nonzero_length, split_html_space_chars, str_join, parse_integer};
 use values::specified::{Length};
@@ -22,6 +23,7 @@ pub enum AttrValue {
     Length(DOMString, Option<Length>),
     Color(DOMString, Option<RGBA>),
     Dimension(DOMString, LengthOrPercentageOrAuto),
+    Url(DOMString, Option<Url>),
 }
 
 impl AttrValue {
@@ -84,6 +86,11 @@ impl AttrValue {
         // FIXME(ajeffrey): convert directly from DOMString to Atom
         let value = Atom::from(&*string);
         AttrValue::Atom(value)
+    }
+
+    pub fn from_url(base: &Url, url: DOMString) -> AttrValue {
+        let joined = base.join(&url).ok();
+        AttrValue::Url(url, joined)
     }
 
     pub fn from_legacy_color(string: DOMString) -> AttrValue {
@@ -161,6 +168,18 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `Url` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `Url`
+    pub fn as_url(&self) -> Option<&Url> {
+        match *self {
+            AttrValue::Url(_, ref url) => url.as_ref(),
+            _ => panic!("Url not found"),
+        }
+    }
+
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.
@@ -188,6 +207,7 @@ impl Deref for AttrValue {
                 AttrValue::Length(ref value, _) |
                 AttrValue::Color(ref value, _) |
                 AttrValue::Int(ref value, _) |
+                AttrValue::Url(ref value, _) |
                 AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }
