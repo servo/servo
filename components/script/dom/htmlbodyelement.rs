@@ -4,7 +4,6 @@
 
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -32,7 +31,6 @@ const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 #[dom_struct]
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
-    background: DOMRefCell<Option<Url>>
 }
 
 impl HTMLBodyElement {
@@ -40,7 +38,6 @@ impl HTMLBodyElement {
                      -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            background: DOMRefCell::new(None)
         }
     }
 
@@ -84,6 +81,12 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         window_from_node(self).SetOnstorage(listener)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-background
+    make_getter!(Background, "background");
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-background
+    make_url_setter!(SetBackground, "background");
 }
 
 pub trait HTMLBodyElementLayoutHelpers {
@@ -116,7 +119,10 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     #[allow(unsafe_code)]
     fn get_background(&self) -> Option<Url> {
         unsafe {
-            (*self.unsafe_get()).background.borrow_for_layout().clone()
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("background"))
+                .and_then(AttrValue::as_url)
+                .cloned()
         }
     }
 }
@@ -147,20 +153,13 @@ impl VirtualMethods for HTMLBodyElement {
         match *name {
             atom!("bgcolor") |
             atom!("text") => AttrValue::from_legacy_color(value),
+            atom!("background") => AttrValue::from_url(document_from_node(self).url(), value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         let do_super_mutate = match (attr.local_name(), mutation) {
-            (&atom!("background"), _) => {
-                *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
-                    let document = document_from_node(self);
-                    let base = document.url();
-                    base.join(&value).ok()
-                });
-                true
-            },
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = window_from_node(self);
                 let (cx, url, reflector) = (window.get_cx(),

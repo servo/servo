@@ -153,6 +153,20 @@ macro_rules! make_bool_setter(
 );
 
 #[macro_export]
+macro_rules! make_url_setter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: DOMString) {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            use dom::node::document_from_node;
+            let value = AttrValue::from_url(document_from_node(self).url(), value);
+            let element = self.upcast::<Element>();
+            element.set_attribute(&atom!($htmlname), value);
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) {

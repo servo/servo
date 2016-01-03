@@ -23,5 +23,5 @@ partial interface HTMLBodyElement {
   //[TreatNullAs=EmptyString] attribute DOMString aLink;
 
     [TreatNullAs=EmptyString] attribute DOMString bgColor;
-  //                          attribute DOMString background;
+  attribute DOMString background;
 };
