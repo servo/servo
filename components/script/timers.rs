@@ -278,7 +278,7 @@ struct JsTimersState {
 
 #[derive(JSTraceable, HeapSizeOf)]
 struct JsTimerEntry {
-    oneshot_handle: Option<OneshotTimerHandle>,
+    oneshot_handle: OneshotTimerHandle,
 }
 
 // Holder for the various JS values associated with setTimeout
@@ -364,13 +364,7 @@ impl JsTimers {
         let JsTimerHandle(new_handle) = self.state.next_timer_handle.get();
         self.state.next_timer_handle.set(JsTimerHandle(new_handle + 1));
 
-        // step 3
-        {
-            let mut active_timers = self.state.active_timers.borrow_mut();
-            active_timers.insert(JsTimerHandle(new_handle), JsTimerEntry {
-                oneshot_handle: None,
-            });
-        }
+        // step 3 as part of initialize_and_schedule below
 
         // step 4
         let mut task = JsTimerTask {
@@ -386,7 +380,7 @@ impl JsTimers {
         // step 5
         task.duration = Length::new(cmp::max(0, timeout) as u64);
 
-        // step 6-9, 11-14
+        // step 3, 6-9, 11-14
         initialize_and_schedule(task);
 
         // step 10
@@ -397,19 +391,16 @@ impl JsTimers {
         let mut active_timers = self.state.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
-            let oneshot_handle = entry.oneshot_handle
-                .expect("Should always be Some after initial scheduling.");
-
-            self.state.oneshots.unschedule_callback(oneshot_handle);
+            self.state.oneshots.unschedule_callback(entry.oneshot_handle);
         }
     }
 }
 
 // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
 fn initialize_and_schedule(mut task: JsTimerTask) {
+    let handle = task.handle;
     let timers = task.timers.clone();
     let mut active_timers = timers.active_timers.borrow_mut();
-    let mut entry = active_timers.get_mut(&task.handle).expect("Timer expected to be active.");
 
     // step 6
     let nesting_level = task.timers.nesting_level.get();
@@ -425,7 +416,11 @@ fn initialize_and_schedule(mut task: JsTimerTask) {
     let callback = OneshotTimerCallback::JsTimer(task);
     let oneshot_handle = timers.oneshots.schedule_callback(callback, duration, source);
 
-    entry.oneshot_handle = Some(oneshot_handle);
+    // step 3
+    let entry = active_timers.entry(handle).or_insert(JsTimerEntry {
+        oneshot_handle: oneshot_handle,
+    });
+    entry.oneshot_handle = oneshot_handle;
 }
 
 // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
