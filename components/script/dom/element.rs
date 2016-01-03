@@ -12,6 +12,7 @@ use dom::attr::AttrValue;
 use dom::attr::{Attr, AttrHelpersForLayout};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -772,11 +773,18 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#root-element
     pub fn get_root_element(&self) -> Root<Element> {
-        self.upcast::<Node>()
-            .inclusive_ancestors()
-            .filter_map(Root::downcast)
-            .last()
-            .expect("We know inclusive_ancestors will return `self` which is an element")
+        if self.node.is_in_doc() {
+            self.upcast::<Node>()
+                .owner_doc()
+                .GetDocumentElement()
+                .unwrap()
+        } else {
+            self.upcast::<Node>()
+                .inclusive_ancestors()
+                .filter_map(Root::downcast)
+                .last()
+                .expect("We know inclusive_ancestors will return `self` which is an element")
+        }
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
