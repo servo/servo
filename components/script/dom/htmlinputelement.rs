@@ -157,12 +157,7 @@ pub trait LayoutHTMLInputElementHelpers {
 
 #[allow(unsafe_code)]
 unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> DOMString {
-    let textinput = (*input.unsafe_get()).textinput.borrow_for_layout().get_content();
-    if !textinput.is_empty() {
-        textinput
-    } else {
-        (*input.unsafe_get()).placeholder.borrow_for_layout().clone()
-    }
+    (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
@@ -184,11 +179,23 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputSubmit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::InputReset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
             InputType::InputPassword => {
-                let raw = get_raw_textinput_value(self);
-                // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
-                raw.chars().map(|_| '●').collect()
-            }
-            _ => String::from(get_raw_textinput_value(self)),
+                let text = get_raw_textinput_value(self);
+                if !text.is_empty() {
+                    // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
+                    text.chars().map(|_| '●').collect()
+                } else {
+                    String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
+                }
+            },
+            _ => {
+                let text = get_raw_textinput_value(self);
+                if !text.is_empty() {
+                    // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
+                    String::from(text)
+                } else {
+                    String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
+                }
+            },
         }
     }
 
