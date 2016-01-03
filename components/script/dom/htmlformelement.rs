@@ -45,12 +45,6 @@ pub struct HTMLFormElement {
     marked_for_reset: Cell<bool>,
 }
 
-impl PartialEq for HTMLFormElement {
-    fn eq(&self, other: &HTMLFormElement) -> bool {
-        self as *const HTMLFormElement == &*other
-    }
-}
-
 impl HTMLFormElement {
     fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,

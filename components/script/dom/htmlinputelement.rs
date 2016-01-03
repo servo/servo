@@ -73,12 +73,6 @@ pub struct HTMLInputElement {
     activation_state: DOMRefCell<InputActivationState>,
 }
 
-impl PartialEq for HTMLInputElement {
-    fn eq(&self, other: &HTMLInputElement) -> bool {
-        self as *const HTMLInputElement == &*other
-    }
-}
-
 #[derive(JSTraceable)]
 #[must_root]
 #[derive(HeapSizeOf)]

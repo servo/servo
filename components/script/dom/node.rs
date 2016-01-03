@@ -122,12 +122,6 @@ pub struct Node {
     unique_id: DOMRefCell<Option<Box<Uuid>>>,
 }
 
-impl PartialEq for Node {
-    fn eq(&self, other: &Node) -> bool {
-        self as *const Node == &*other
-    }
-}
-
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, HeapSizeOf)]

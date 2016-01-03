@@ -53,12 +53,6 @@ pub struct HTMLCanvasElement {
     context: DOMRefCell<Option<CanvasContext>>,
 }
 
-impl PartialEq for HTMLCanvasElement {
-    fn eq(&self, other: &HTMLCanvasElement) -> bool {
-        self as *const HTMLCanvasElement == &*other
-    }
-}
-
 impl HTMLCanvasElement {
     fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
