@@ -150,8 +150,8 @@ impl WorkerGlobalScope {
 
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.oneshot_timers.schedule_callback(callback,
-                                      duration,
-                                      TimerSource::FromWorker)
+                                              duration,
+                                              TimerSource::FromWorker)
     }
 
     pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
@@ -255,19 +255,19 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWorker)
+                                               args,
+                                               timeout,
+                                               IsInterval::NonInterval,
+                                               TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWorker)
+                                               args,
+                                               timeout,
+                                               IsInterval::NonInterval,
+                                               TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -278,19 +278,19 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWorker)
+                                               args,
+                                               timeout,
+                                               IsInterval::Interval,
+                                               TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWorker)
+                                               args,
+                                               timeout,
+                                               IsInterval::Interval,
+                                               TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval

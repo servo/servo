@@ -464,19 +464,19 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                               args,
+                                               timeout,
+                                               IsInterval::NonInterval,
+                                               TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                               args,
+                                               timeout,
+                                               IsInterval::NonInterval,
+                                               TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
@@ -487,19 +487,19 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                               args,
+                                               timeout,
+                                               IsInterval::Interval,
+                                               TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.js_timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                               args,
+                                               timeout,
+                                               IsInterval::Interval,
+                                               TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
