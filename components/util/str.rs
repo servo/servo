@@ -565,3 +565,37 @@ pub fn search_index(index: usize, indices: CharIndices) -> isize {
     }
     character_count
 }
+
+/// Returns whether `s` is a `token`, as defined by
+/// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
+pub fn is_token(s: &[u8]) -> bool {
+    if s.is_empty() {
+        return false; // A token must be at least a single character
+    }
+    s.iter().all(|&x| {
+        // http://tools.ietf.org/html/rfc2616#section-2.2
+        match x {
+            0...31 | 127 => false, // CTLs
+            40 |
+            41 |
+            60 |
+            62 |
+            64 |
+            44 |
+            59 |
+            58 |
+            92 |
+            34 |
+            47 |
+            91 |
+            93 |
+            63 |
+            61 |
+            123 |
+            125 |
+            32 => false, // separators
+            x if x > 127 => false, // non-CHARs
+            _ => true,
+        }
+    })
+}

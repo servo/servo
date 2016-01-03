@@ -11,6 +11,7 @@ use std::ops;
 use std::str;
 use std::str::FromStr;
 use util::mem::HeapSizeOf;
+use util::str::is_token;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(JSTraceable, Clone, Eq, PartialEq, HeapSizeOf)]
@@ -49,35 +50,7 @@ impl ByteString {
     /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
     pub fn is_token(&self) -> bool {
         let ByteString(ref vec) = *self;
-        if vec.is_empty() {
-            return false; // A token must be at least a single character
-        }
-        vec.iter().all(|&x| {
-            // http://tools.ietf.org/html/rfc2616#section-2.2
-            match x {
-                0...31 | 127 => false, // CTLs
-                40 |
-                41 |
-                60 |
-                62 |
-                64 |
-                44 |
-                59 |
-                58 |
-                92 |
-                34 |
-                47 |
-                91 |
-                93 |
-                63 |
-                61 |
-                123 |
-                125 |
-                32 => false, // separators
-                x if x > 127 => false, // non-CHARs
-                _ => true,
-            }
-        })
+        is_token(vec)
     }
 
     /// Returns whether `self` is a `field-value`, as defined by
