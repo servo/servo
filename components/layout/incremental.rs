@@ -6,6 +6,7 @@ use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, IS_ABSO
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::float;
+use style::dom::TRestyleDamage;
 use style::properties::ComputedValues;
 
 bitflags! {
@@ -44,6 +45,18 @@ bitflags! {
         #[doc = "If this flag is set, we need to reflow the entire document. This is more or less a \
                  temporary hack to deal with cases that we don't handle incrementally yet."]
         const REFLOW_ENTIRE_DOCUMENT = 0x01,
+    }
+}
+
+impl TRestyleDamage for RestyleDamage {
+    fn compute(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage { compute_damage(old, new) }
+
+    /// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
+    ///
+    /// Use this instead of `RestyleDamage::all()` because `RestyleDamage::all()` will result in
+    /// unnecessary sequential resolution of generated content.
+    fn rebuild_and_reflow() -> RestyleDamage {
+        REPAINT | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
     }
 }
 
@@ -130,18 +143,10 @@ macro_rules! add_if_not_equal(
     })
 );
 
-/// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
-///
-/// Use this instead of `RestyleDamage::all()` because `RestyleDamage::all()` will result in
-/// unnecessary sequential resolution of generated content.
-pub fn rebuild_and_reflow() -> RestyleDamage {
-    REPAINT | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
-}
-
 pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage {
     let old: &ComputedValues =
         match old.as_ref() {
-            None => return rebuild_and_reflow(),
+            None => return RestyleDamage::rebuild_and_reflow(),
             Some(cv) => &**cv,
         };
 
@@ -195,7 +200,7 @@ pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -
     // If the layer requirements of this flow have changed due to the value
     // of the transform, then reflow is required to rebuild the layers.
     if old.transform_requires_layer() != new.transform_requires_layer() {
-        damage.insert(rebuild_and_reflow());
+        damage.insert(RestyleDamage::rebuild_and_reflow());
     }
 
     // FIXME: test somehow that we checked every CSS property
@@ -256,7 +261,7 @@ impl<'a> LayoutDamageComputation for &'a mut Flow {
 
     fn reflow_entire_document(self) {
         let self_base = flow::mut_base(self);
-        self_base.restyle_damage.insert(rebuild_and_reflow());
+        self_base.restyle_damage.insert(RestyleDamage::rebuild_and_reflow());
         self_base.restyle_damage.remove(RECONSTRUCT_FLOW);
         for kid in self_base.children.iter_mut() {
             kid.reflow_entire_document();

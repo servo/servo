@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use cssparser::{Color, RGBA};
-use dom::OpaqueNode;
+use dom::{OpaqueNode, TRestyleDamage};
 use euclid::point::Point2D;
 use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
@@ -26,6 +26,9 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp::Ordering;
 use std::iter::repeat;
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
+use time;
 use util::bezier::Bezier;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
@@ -921,4 +924,63 @@ impl<T> GetMod for Vec<T> {
     fn get_mod(&self, i: usize) -> &T {
         &(*self)[i % self.len()]
     }
+}
+
+/// Inserts transitions into the queue of running animations as applicable for the given style
+/// difference. This is called from the layout worker threads. Returns true if any animations were
+/// kicked off and false otherwise.
+pub fn start_transitions_if_applicable(new_animations_sender: &Mutex<Sender<Animation>>,
+                                       node: OpaqueNode,
+                                       old_style: &ComputedValues,
+                                       new_style: &mut ComputedValues)
+                                       -> bool {
+    let mut had_animations = false;
+    for i in 0..new_style.get_animation().transition_property.0.len() {
+        // Create any property animations, if applicable.
+        let property_animations = PropertyAnimation::from_transition(i, old_style, new_style);
+        for property_animation in property_animations {
+            // Set the property to the initial value.
+            property_animation.update(new_style, 0.0);
+
+            // Kick off the animation.
+            let now = time::precise_time_s();
+            let animation_style = new_style.get_animation();
+            let start_time =
+                now + (animation_style.transition_delay.0.get_mod(i).seconds() as f64);
+            new_animations_sender.lock().unwrap().send(Animation {
+                node: node,
+                property_animation: property_animation,
+                start_time: start_time,
+                end_time: start_time +
+                    (animation_style.transition_duration.0.get_mod(i).seconds() as f64),
+            }).unwrap();
+
+            had_animations = true
+        }
+    }
+
+    had_animations
+}
+
+/// Updates a single animation and associated style based on the current time. If `damage` is
+/// provided, inserts the appropriate restyle damage.
+pub fn update_style_for_animation<ConcreteRestyleDamage: TRestyleDamage>(animation: &Animation,
+                                                                         style: &mut Arc<ComputedValues>,
+                                                                         damage: Option<&mut ConcreteRestyleDamage>) {
+    let now = time::precise_time_s();
+    let mut progress = (now - animation.start_time) / animation.duration();
+    if progress > 1.0 {
+        progress = 1.0
+    }
+    if progress <= 0.0 {
+        return
+    }
+
+    let mut new_style = (*style).clone();
+    animation.property_animation.update(&mut *Arc::make_mut(&mut new_style), progress);
+    if let Some(damage) = damage {
+        *damage = *damage | ConcreteRestyleDamage::compute(&Some((*style).clone()), &new_style);
+    }
+
+    *style = new_style
 }
