@@ -26,7 +26,7 @@ interface HTMLAnchorElement : HTMLElement {
 
   // also has obsolete members
 };
-//HTMLAnchorElement implements HTMLHyperlinkElementUtils;
+HTMLAnchorElement implements HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {
