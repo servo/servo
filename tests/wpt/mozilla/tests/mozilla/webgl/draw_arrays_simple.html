@@ -11,6 +11,8 @@
 </style>
 <canvas id="c" width="512" height="512"></canvas>
 <script id="vertex_shader" type="x-shader/x-vertex">
+precision mediump float;
+
 attribute vec2 a_position;
 
 void main() {
@@ -19,6 +21,8 @@ void main() {
 </script>
 
 <script id="fragment_shader" type="x-shader/x-fragment">
+precision mediump float;
+
 void main() {
   gl_FragColor = vec4(0, 1, 0, 1);  // green
 }
@@ -67,5 +71,5 @@ void main() {
 
   gl.enableVertexAttribArray(position);
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-  gl.drawArrays(gl.TRIANGLES, 0, square_data.length);
+  gl.drawArrays(gl.TRIANGLES, 0, square_data.length / 2);
 </script>
