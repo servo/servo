@@ -2374,7 +2374,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
-create_callback_interface_object(cx, receiver, throwing_constructor, 0, sConstants, %s);""" % str_to_const_array(name))
+create_callback_interface_object(cx, receiver, sConstants, %s);""" % str_to_const_array(name))
 
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:

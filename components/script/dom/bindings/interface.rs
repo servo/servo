@@ -5,10 +5,11 @@
 //! Machinery to initialise interface prototype objects and interface objects.
 
 use dom::bindings::utils::{ConstantSpec, NonNullJSNative, define_constants};
-use js::jsapi::{HandleObject, JSClass, JSContext, JSFunctionSpec, JSObject};
-use js::jsapi::{JSPropertySpec, JS_DefineProperty1, JS_GetFunctionObject};
-use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction};
-use js::jsapi::{JS_NewObjectWithUniqueType, MutableHandleObject, RootedObject};
+use js::jsapi::{HandleObject, JSClass, JSContext, JSFunctionSpec};
+use js::jsapi::{JSObject, JSPropertySpec, JS_DefineProperty1, JS_DefineProperty2};
+use js::jsapi::{JS_GetFunctionObject, JS_InternString, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType};
+use js::jsapi::{MutableHandleObject, RootedObject, RootedString};
 use js::rust::{define_methods, define_properties};
 use js::{JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
@@ -18,15 +19,13 @@ use std::ptr;
 pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
         receiver: HandleObject,
-        constructor_native: NonNullJSNative,
-        length: u32,
         constants: &'static [ConstantSpec],
         name: &'static [u8]) {
     assert!(!constants.is_empty());
-    let interface_object =
-        RootedObject::new(cx, create_constructor(cx, constructor_native, length, name));
+    let interface_object = RootedObject::new(cx, JS_NewObject(cx, ptr::null()));
     assert!(!interface_object.ptr.is_null());
     define_constants(cx, interface_object.handle(), constants);
+    define_name(cx, interface_object.handle(), name);
     define_on_global_object(cx, receiver, name, interface_object.handle());
 }
 
@@ -138,6 +137,19 @@ unsafe fn create_object(
         define_properties(cx, rval.handle(), properties).unwrap();
     }
     define_constants(cx, rval.handle(), constants);
+}
+
+unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &'static [u8]) {
+    assert!(*name.last().unwrap() == b'\0');
+    let name =
+        RootedString::new(cx, JS_InternString(cx, name.as_ptr() as *const libc::c_char));
+    assert!(!name.ptr.is_null());
+    assert!(JS_DefineProperty2(cx,
+                               obj,
+                               b"name\0".as_ptr() as *const libc::c_char,
+                               name.handle(),
+                               JSPROP_READONLY,
+                               None, None));
 }
 
 unsafe fn define_on_global_object(
