@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::conversions::array_buffer_view_data;
 use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
+use dom::bindings::conversions::array_buffer_view_data;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;

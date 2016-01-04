@@ -46,9 +46,10 @@ use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
+use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
 use js::jsapi::{JS_StringHasLatin1Chars, JS_WrapValue};
-use js::jsapi::{JS_GetObjectAsArrayBufferView};
+use js::jsapi::{Type};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::ToString;
 use libc;
@@ -348,7 +349,8 @@ unsafe impl ArrayBufferViewContents for i32 {}
 unsafe impl ArrayBufferViewContents for f32 {}
 unsafe impl ArrayBufferViewContents for f64 {}
 
-/// Returns a mutable slice of the Array Buffer View data, viewed as T
+/// Returns a mutable slice of the Array Buffer View data, viewed as T, without checking the real
+/// type of it.
 pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<&'a mut [T]> {
     let mut byte_length = 0;
     let mut ptr = ptr::null_mut();
@@ -359,9 +361,31 @@ pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut J
     Some(slice::from_raw_parts_mut(ptr as *mut T, byte_length as usize / mem::size_of::<T>()))
 }
 
-/// Returns a copy of the ArrayBufferView data
+/// Returns a copy of the ArrayBufferView data, viewed as T, without checking the real type of it.
 pub fn array_buffer_view_to_vec<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
     unsafe {
         array_buffer_view_data(abv).map(|data| data.to_vec())
+    }
+}
+
+/// Returns a mutable slice of the Array Buffer View data, viewed as T, checking that the real type
+/// of it is ty.
+pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv: *mut JSObject,
+                                                                             ty: Type) -> Option<&'a mut [T]> {
+    array_buffer_view_data::<T>(abv).and_then(|data| {
+        let real_ty = JS_GetArrayBufferViewType(abv);
+        if real_ty as i32 == ty as i32 {
+            Some(data)
+        } else {
+            None
+        }
+    })
+}
+
+/// Returns a copy of the ArrayBufferView data, viewed as T, checking that the real type
+/// of it is ty.
+pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JSObject, ty: Type) -> Option<Vec<T>> {
+    unsafe {
+        array_buffer_view_data_checked(abv, ty).map(|data| data.to_vec())
     }
 }

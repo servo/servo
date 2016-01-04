@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_to_vec};
+use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
@@ -28,7 +28,7 @@ use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, RootedValue};
+use js::jsapi::{JSContext, JSObject, RootedValue, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
@@ -948,7 +948,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return,
         };
 
-        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data, Type::Float32) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -976,7 +976,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data, Type::Float32) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -994,7 +994,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data, Type::Float32) {
             if data_vec.len() < 2 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1012,7 +1012,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data, Type::Float32) {
             if data_vec.len() < 3 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1027,10 +1027,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.vertex_attrib(indx, x, y, z, w)
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data, Type::Float32) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
