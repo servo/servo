@@ -1861,33 +1861,25 @@ static PrototypeClass: JSClass = JSClass {
 
 class CGInterfaceObjectJSClass(CGThing):
     def __init__(self, descriptor):
+        assert descriptor.interface.hasInterfaceObject() and not descriptor.interface.isCallback()
         CGThing.__init__(self)
         self.descriptor = descriptor
 
     def define(self):
-        if True:
-            return ""
-        ctorname = "0 as *const u8" if not self.descriptor.interface.ctor() else CONSTRUCT_HOOK_NAME
-        hasinstance = HASINSTANCE_HOOK_NAME
+        if self.descriptor.interface.ctor():
+            constructor = CONSTRUCT_HOOK_NAME
+        else:
+            constructor = "throwing_constructor"
+        args = {
+            "constructor": constructor,
+            "hasInstance": HASINSTANCE_HOOK_NAME,
+            "name": self.descriptor.interface.identifier.name,
+        }
         return """\
-const InterfaceObjectClass: JSClass = {
-    %s, 0,
-    JS_PropertyStub,
-    JS_PropertyStub,
-    JS_PropertyStub,
-    JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
-    0 as *const u8,
-    0 as *const u8,
-    %s,
-    %s,
-    %s,
-    0 as *const u8,
-    JSCLASS_NO_INTERNAL_MEMBERS
-};
-""" % (str_to_const_array("Function"), ctorname, hasinstance, ctorname)
+static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
+    NonCallbackInterfaceObjectClass::new(%(constructor)s, %(hasInstance)s,
+                                         fun_to_string);
+""" % args
 
 
 class CGList(CGThing):
@@ -2420,12 +2412,14 @@ assert!(!rval.ptr.is_null());""" % properties))
             else:
                 properties["constructor"] = "throwing_constructor"
                 properties["length"] = 0
-
-            code.append(CGGeneric("""\
+            code.append(CGGeneric("""
+let interface_proto = RootedObject::new(cx, JS_GetFunctionPrototype(cx, global));
+assert!(!interface_proto.ptr.is_null());
 
 create_noncallback_interface_object(cx,
                                     receiver,
-                                    %(constructor)s,
+                                    interface_proto.handle(),
+                                    &InterfaceObjectClass,
                                     %(static_methods)s,
                                     %(static_attrs)s,
                                     %(consts)s,
@@ -4693,6 +4687,44 @@ let args = CallArgs::from_vp(vp, argc);
         return CGList([preamble, callGenerator])
 
 
+class CGClassHasInstanceHook(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('HandleObject', 'obj'),
+                Argument('MutableHandleValue', 'value'),
+                Argument('*mut bool', 'rval')]
+        assert descriptor.interface.hasInterfaceObject() and not descriptor.interface.isCallback()
+        CGAbstractExternMethod.__init__(self, descriptor, HASINSTANCE_HOOK_NAME,
+                                        'bool', args)
+
+    def definition_body(self):
+        id = "PrototypeList::ID::%s" % self.descriptor.interface.identifier.name
+        return CGGeneric("""\
+match has_instance(cx, obj, value.handle(), %(id)s, %(index)s) {
+    Ok(result) => {
+        *rval = result;
+        true
+    }
+    Err(()) => false,
+}
+""" % {"id": id, "index": self.descriptor.prototypeDepth})
+
+
+class CGClassFunToStringHook(CGAbstractExternMethod):
+    """
+    A hook to convert functions to strings.
+    """
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_obj'),
+                Argument('u32', '_indent')]
+        CGAbstractExternMethod.__init__(self, descriptor, "fun_to_string", '*mut JSString', args)
+
+    def definition_body(self):
+        name = self.descriptor.interface.identifier.name
+        string = str_to_const_array("function %s() {\\n    [native code]\\n}" % name)
+        return CGGeneric("JS_NewStringCopyZ(cx, %s as *const _ as *const libc::c_char)" % string)
+
+
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
@@ -4860,7 +4892,10 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGClassConstructHook(descriptor))
             for ctor in descriptor.interface.namedConstructors:
                 cgThings.append(CGClassConstructHook(descriptor, ctor))
-            cgThings.append(CGInterfaceObjectJSClass(descriptor))
+            if not descriptor.interface.isCallback():
+                cgThings.append(CGInterfaceObjectJSClass(descriptor))
+                cgThings.append(CGClassHasInstanceHook(descriptor))
+                cgThings.append(CGClassFunToStringHook(descriptor))
 
         if not descriptor.interface.isCallback():
             cgThings.append(CGPrototypeJSClass(descriptor))
@@ -5258,8 +5293,8 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
             'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot, JS_HasProperty}',
             'js::jsapi::{JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
-            'js::jsapi::{JS_InternString, JS_IsExceptionPending, JS_NewObject}',
-            'js::jsapi::{JS_NewObjectWithGivenProto, JS_NewObjectWithoutMetadata, JS_SetProperty}',
+            'js::jsapi::{JS_InternString, JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
+            'js::jsapi::{JS_NewObjectWithoutMetadata, JS_NewStringCopyZ, JS_SetProperty}',
             'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment}',
             'js::jsapi::{JSAutoRequest, JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
@@ -5279,8 +5314,9 @@ class CGBindingRoot(CGThing):
             'js::rust::{GCMethods, define_methods, define_properties}',
             'dom::bindings',
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
-            'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
-            'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
+            'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
+            'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
+            'dom::bindings::interface::{create_noncallback_interface_object, has_instance}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
