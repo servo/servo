@@ -73,8 +73,19 @@ impl WebGLProgram {
     }
 
     /// glUseProgram
-    pub fn use_program(&self) {
+    pub fn use_program(&self) -> WebGLResult<()> {
+        match self.fragment_shader.get() {
+            Some(ref shader) if shader.successfully_compiled() => {},
+            _ => return Err(WebGLError::InvalidOperation),
+        }
+
+        match self.vertex_shader.get() {
+            Some(ref shader) if shader.successfully_compiled() => {},
+            _ => return Err(WebGLError::InvalidOperation),
+        }
+
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::UseProgram(self.id))).unwrap();
+        Ok(())
     }
 
     /// glAttachShader

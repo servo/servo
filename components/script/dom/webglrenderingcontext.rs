@@ -1004,8 +1004,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            program.use_program();
-            self.current_program.set(Some(program));
+            match program.use_program() {
+                Ok(()) => self.current_program.set(Some(program)),
+                Err(e) => self.webgl_error(e),
+            }
         }
     }
 
