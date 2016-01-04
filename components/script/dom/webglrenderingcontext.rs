@@ -29,7 +29,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
-use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
+use js::jsapi::{JS_GetObjectAsArrayBufferView};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
@@ -37,7 +37,7 @@ use offscreen_gl_context::GLContextAttributes;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::sync::mpsc::channel;
-use std::{ptr, slice};
+use std::{ptr, slice, mem};
 use util::str::DOMString;
 use util::vec::byte_swap;
 
@@ -167,31 +167,16 @@ impl WebGLRenderingContext {
     }
 
     #[allow(unsafe_code)]
-    fn float32_array_to_slice(&self, data: *mut JSObject) -> Option<Vec<f32>> {
+    fn array_buffer_view_to_vec<T: Clone>(&self, data: *mut JSObject) -> Option<Vec<T>> {
         unsafe {
-            let mut length = 0;
+            let mut byte_length = 0;
             let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
+            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut byte_length, &mut ptr);
             if buffer_data.is_null() {
                 self.webgl_error(InvalidValue); // https://github.com/servo/servo/issues/5014
                 return None;
             }
-            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
-            Some(slice::from_raw_parts(data_f32, length as usize).to_vec())
-        }
-    }
-
-    #[allow(unsafe_code)]
-    fn byte_array_to_slice(&self, data: *mut JSObject) -> Option<Vec<u8>> {
-        unsafe {
-            let mut length = 0;
-            let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
-            if buffer_data.is_null() {
-                self.webgl_error(InvalidValue); // https://github.com/servo/servo/issues/5014
-                return None;
-            }
-            Some(slice::from_raw_parts(ptr, length as usize).to_vec())
+            Some(slice::from_raw_parts(ptr as *mut T, byte_length as usize / mem::size_of::<T>()).to_vec())
         }
     }
 
@@ -471,7 +456,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
-        if let Some(data_vec) = self.byte_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<u8>(data) {
             handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
         }
     }
@@ -495,7 +480,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if offset < 0 {
             return self.webgl_error(InvalidValue);
         }
-        if let Some(data_vec) = self.byte_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<u8>(data) {
             if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
                 return self.webgl_error(InvalidValue);
             }
@@ -973,7 +958,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return,
         };
 
-        if let Some(data_vec) = self.float32_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -999,7 +984,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.float32_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1015,7 +1000,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.float32_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 2 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1031,7 +1016,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.float32_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 3 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1047,7 +1032,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.float32_array_to_slice(data) {
+        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
