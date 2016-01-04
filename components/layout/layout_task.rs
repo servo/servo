@@ -69,6 +69,7 @@ use style::dom::{TDocument, TElement, TNode};
 use style::media_queries::{Device, MediaType};
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
+use traversal::RecalcStyleAndConstructFlows;
 use url::Url;
 use util::geometry::MAX_RECT;
 use util::ipc::OptionalIpcSender;
@@ -1024,10 +1025,12 @@ impl LayoutTask {
                 // Perform CSS selector matching and flow construction.
                 match self.parallel_traversal {
                     None => {
-                        sequential::traverse_dom_preorder(node, &shared_layout_context);
+                        sequential::traverse_dom_preorder::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                            node, &shared_layout_context);
                     }
                     Some(ref mut traversal) => {
-                        parallel::traverse_dom_preorder(node, &shared_layout_context, traversal);
+                        parallel::traverse_dom_preorder::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                            node, &shared_layout_context, traversal);
                     }
                 }
             });
