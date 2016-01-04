@@ -9,12 +9,12 @@ use dom::bindings::conversions::get_dom_class;
 use dom::bindings::utils::{ConstantSpec, NonNullJSNative, define_constants};
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, HandleObject, HandleValue, JSClass};
-use js::jsapi::{JSContext, JSFunctionSpec, JSObject, JSPropertySpec, JSString};
-use js::jsapi::{JS_DefineProperty1, JS_DefineProperty2, JS_DefineProperty4};
-use js::jsapi::{JS_GetFunctionObject, JS_GetPrototype, JS_InternString};
-use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
-use js::jsapi::{JS_NewObjectWithUniqueType, MutableHandleObject, MutableHandleValue};
-use js::jsapi::{ObjectOps, RootedObject, RootedString, Value};
+use js::jsapi::{JSContext, JSFunctionSpec, JSPropertySpec, JSString, JS_DefineProperty1};
+use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetFunctionObject};
+use js::jsapi::{JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType};
+use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject};
+use js::jsapi::{RootedString, Value};
 use js::rust::{define_methods, define_properties};
 use js::{JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
@@ -171,7 +171,13 @@ pub unsafe fn create_named_constructors(
     for &(native, name, arity) in named_constructors {
         assert!(*name.last().unwrap() == b'\0');
 
-        constructor.ptr = create_constructor(cx, native, arity, name);
+        let fun = JS_NewFunction(cx,
+                                 Some(native),
+                                 arity,
+                                 JSFUN_CONSTRUCTOR,
+                                 name.as_ptr() as *const libc::c_char);
+        assert!(!fun.is_null());
+        constructor.ptr = JS_GetFunctionObject(fun);
         assert!(!constructor.ptr.is_null());
 
         assert!(JS_DefineProperty1(cx,
@@ -221,27 +227,6 @@ pub unsafe fn has_instance(
     }
     // JS_GetPrototype threw an exception.
     Err(())
-}
-
-unsafe fn create_constructor(
-        cx: *mut JSContext,
-        constructor_native: NonNullJSNative,
-        ctor_nargs: u32,
-        name: &'static [u8])
-        -> *mut JSObject {
-    assert!(*name.last().unwrap() == b'\0');
-
-    let fun = JS_NewFunction(cx,
-                             Some(constructor_native),
-                             ctor_nargs,
-                             JSFUN_CONSTRUCTOR,
-                             name.as_ptr() as *const _);
-    assert!(!fun.is_null());
-
-    let constructor = JS_GetFunctionObject(fun);
-    assert!(!constructor.is_null());
-
-    constructor
 }
 
 unsafe fn create_object(
