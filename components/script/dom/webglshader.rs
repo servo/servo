@@ -147,6 +147,10 @@ impl WebGLShader {
     pub fn set_source(&self, source: DOMString) {
         *self.source.borrow_mut() = Some(source);
     }
+
+    pub fn successfully_compiled(&self) -> bool {
+        self.compilation_status.get() == ShaderCompilationStatus::Succeeded
+    }
 }
 
 impl Drop for WebGLShader {
