@@ -21,6 +21,7 @@ impl UrlHelper {
     }
 
     pub fn SetHash(url: &mut Url, value: USVString) {
+        url.fragment = Some(String::new());
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_fragment(&value.0);
     }
@@ -101,6 +102,7 @@ impl UrlHelper {
     }
 
     pub fn SetPathname(url: &mut Url, value: USVString) {
+        url.path_mut().map(|path| {path.clear();});
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_path(&value.0);
     }
@@ -149,6 +151,7 @@ impl UrlHelper {
     }
 
     pub fn SetSearch(url: &mut Url, value: USVString) {
+        url.query = Some(String::new());
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_query(&value.0);
     }
