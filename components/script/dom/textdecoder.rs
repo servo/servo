@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::TextDecoderBinding;
 use dom::bindings::codegen::Bindings::TextDecoderBinding::TextDecoderMethods;
+use dom::bindings::conversions::array_buffer_view_data;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -13,10 +14,8 @@ use dom::bindings::trace::JSTraceable;
 use encoding::Encoding;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
-use js::jsapi::JS_GetObjectAsArrayBufferView;
 use js::jsapi::{JSContext, JSObject};
 use std::borrow::ToOwned;
-use std::{ptr, slice};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -89,21 +88,20 @@ impl TextDecoderMethods for TextDecoder {
             None => return Ok(USVString("".to_owned())),
         };
 
-        let mut length = 0;
-        let mut data = ptr::null_mut();
-        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
-            return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
-        }
-
-        let buffer = unsafe {
-            slice::from_raw_parts(data as *const _, length as usize)
+        let data = match unsafe { array_buffer_view_data::<u8>(input) } {
+            Some(data) => data,
+            None => {
+                return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
+            }
         };
+
         let trap = if self.fatal {
             DecoderTrap::Strict
         } else {
             DecoderTrap::Replace
         };
-        match self.encoding.decode(buffer, trap) {
+
+        match self.encoding.decode(data, trap) {
             Ok(s) => Ok(USVString(s)),
             Err(_) => Err(Error::Type("Decoding failed".to_owned())),
         }

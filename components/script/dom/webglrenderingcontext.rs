@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_to_vec};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
@@ -29,7 +29,6 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
-use js::jsapi::{JS_GetObjectAsArrayBufferView};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
@@ -37,7 +36,6 @@ use offscreen_gl_context::GLContextAttributes;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::sync::mpsc::channel;
-use std::{ptr, slice, mem};
 use util::str::DOMString;
 use util::vec::byte_swap;
 
@@ -164,20 +162,6 @@ impl WebGLRenderingContext {
 
     fn mark_as_dirty(&self) {
         self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-    }
-
-    #[allow(unsafe_code)]
-    fn array_buffer_view_to_vec<T: Clone>(&self, data: *mut JSObject) -> Option<Vec<T>> {
-        unsafe {
-            let mut byte_length = 0;
-            let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut byte_length, &mut ptr);
-            if buffer_data.is_null() {
-                self.webgl_error(InvalidValue); // https://github.com/servo/servo/issues/5014
-                return None;
-            }
-            Some(slice::from_raw_parts(ptr as *mut T, byte_length as usize / mem::size_of::<T>()).to_vec())
-        }
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -456,8 +440,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<u8>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<u8>(data) {
             handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
+        } else {
+            // NB: array_buffer_view_to_vec should never fail when
+            // we have WebIDL support for Float32Array etc.
+            self.webgl_error(InvalidValue);
         }
     }
 
@@ -480,13 +468,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if offset < 0 {
             return self.webgl_error(InvalidValue);
         }
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<u8>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<u8>(data) {
             if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
                 return self.webgl_error(InvalidValue);
             }
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferSubData(target, offset as isize, data_vec)))
                 .unwrap()
+        } else {
+            self.webgl_error(InvalidValue);
         }
     }
 
@@ -958,7 +948,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return,
         };
 
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -966,6 +956,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
                 .unwrap()
+        } else {
+            self.webgl_error(InvalidValue);
         }
     }
 
@@ -984,11 +976,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
             self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
+        } else {
+            self.webgl_error(InvalidValue);
         }
     }
 
@@ -1000,11 +994,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 2 {
                 return self.webgl_error(InvalidOperation);
             }
             self.vertex_attrib(indx, data_vec[0], data_vec[1], 0f32, 1f32)
+        } else {
+            self.webgl_error(InvalidValue);
         }
     }
 
@@ -1016,11 +1012,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 3 {
                 return self.webgl_error(InvalidOperation);
             }
             self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], 1f32)
+        } else {
+            self.webgl_error(InvalidValue);
         }
     }
 
@@ -1032,11 +1030,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = self.array_buffer_view_to_vec::<f32>(data) {
+        if let Some(data_vec) = array_buffer_view_to_vec::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
             self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], data_vec[3])
+        } else {
+            self.webgl_error(InvalidValue);
         }
     }
 

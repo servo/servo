@@ -48,11 +48,12 @@ use js::jsapi::{JSClass, JSContext, JSObject, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
 use js::jsapi::{JS_StringHasLatin1Chars, JS_WrapValue};
+use js::jsapi::{JS_GetObjectAsArrayBufferView};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::ToString;
 use libc;
 use num::Float;
-use std::{ptr, slice};
+use std::{ptr, mem, slice};
 use util::str::DOMString;
 pub use util::str::{StringificationBehavior, jsstring_to_str};
 
@@ -333,5 +334,34 @@ pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
+    }
+}
+
+/// A JS ArrayBufferView contents can only be viewed as the types marked with this trait
+pub unsafe trait ArrayBufferViewContents: Clone {}
+unsafe impl ArrayBufferViewContents for u8 {}
+unsafe impl ArrayBufferViewContents for i8 {}
+unsafe impl ArrayBufferViewContents for u16 {}
+unsafe impl ArrayBufferViewContents for i16 {}
+unsafe impl ArrayBufferViewContents for u32 {}
+unsafe impl ArrayBufferViewContents for i32 {}
+unsafe impl ArrayBufferViewContents for f32 {}
+unsafe impl ArrayBufferViewContents for f64 {}
+
+/// Returns a mutable slice of the Array Buffer View data, viewed as T
+pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<&'a mut [T]> {
+    let mut byte_length = 0;
+    let mut ptr = ptr::null_mut();
+    let ret = JS_GetObjectAsArrayBufferView(abv, &mut byte_length, &mut ptr);
+    if ret.is_null() {
+        return None;
+    }
+    Some(slice::from_raw_parts_mut(ptr as *mut T, byte_length as usize / mem::size_of::<T>()))
+}
+
+/// Returns a copy of the ArrayBufferView data
+pub fn array_buffer_view_to_vec<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
+    unsafe {
+        array_buffer_view_data(abv).map(|data| data.to_vec())
     }
 }
