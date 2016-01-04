@@ -46,6 +46,8 @@ impl WebGLPaintThread {
     /// NB: Not gl-related validations (names, lengths, accepted parameters...) are
     /// done in the corresponding DOM interfaces
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
+        debug!("WebGL message: {:?}", message);
+
         match message {
             CanvasWebGLMsg::GetContextAttributes(sender) =>
                 self.context_attributes(sender),
@@ -181,8 +183,11 @@ impl WebGLPaintThread {
                 self.send_drawing_buffer_height(sender),
         }
 
-        // FIXME: Convert to `debug_assert!` once tests are run with debug assertions
-        assert!(gl::get_error() == gl::NO_ERROR);
+        // FIXME: Use debug_assertions once tests are run with them
+        let error = gl::get_error();
+        if error != gl::NO_ERROR {
+            panic!("Unexpected WebGL error: {:x}", error);
+        }
     }
 
     /// Creates a new `WebGLPaintThread` and returns the out-of-process sender and the in-process
@@ -297,6 +302,7 @@ impl WebGLPaintThread {
         } else {
             Some(unsafe { NonZero::new(program) })
         };
+
         chan.send(program).unwrap();
     }
 
