@@ -30,6 +30,7 @@ impl MediaError {
 }
 
 impl MediaErrorMethods for MediaError {
+    // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
     fn Code(&self) -> u16 {
         self.code
     }

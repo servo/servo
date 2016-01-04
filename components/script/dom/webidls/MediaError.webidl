@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://html.spec.whatwg.org/multipage/embedded-content.html#mediaerror
+// https://html.spec.whatwg.org/multipage/#mediaerror
 
 interface MediaError {
   const unsigned short MEDIA_ERR_ABORTED = 1;

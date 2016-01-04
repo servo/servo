@@ -7,8 +7,8 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
-use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants::*;
+use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -388,7 +388,7 @@ impl HTMLMediaElement {
         // Step 4
         if let Resource::Url(url) = resource {
             // 4.1
-            if self.Preload() == "none" && !self.autoplaying.get(){
+            if self.Preload() == "none" && !self.autoplaying.get() {
                 // 4.1.1
                 self.network_state.set(NETWORK_IDLE);
 
@@ -503,10 +503,12 @@ impl HTMLMediaElement {
 }
 
 impl HTMLMediaElementMethods for HTMLMediaElement {
+    // https://html.spec.whatwg.org/multipage/#dom-media-networkstate
     fn NetworkState(&self) -> u16 {
         self.network_state.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-readystate
     fn ReadyState(&self) -> u16 {
         self.ready_state.get()
     }
