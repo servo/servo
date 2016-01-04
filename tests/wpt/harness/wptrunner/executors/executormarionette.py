@@ -385,7 +385,10 @@ class MarionetteRefTestExecutor(RefTestExecutor):
 
         return self.convert_result(test, result)
 
-    def screenshot(self, test):
+    def screenshot(self, test, viewport_size):
+        # https://github.com/w3c/wptrunner/issues/166
+        assert viewport_size is None
+
         timeout =  self.timeout_multiplier * test.timeout if self.debug_info is None else None
 
         test_url = self.test_url(test)

@@ -6,10 +6,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html
-resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
-# resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
-resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
-# resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 
 # This file must be sorted alphabetically.
 # Please run `./mach test-tidy` to check your changes.

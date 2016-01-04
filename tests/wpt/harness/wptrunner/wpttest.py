@@ -214,7 +214,9 @@ class ReftestTest(Test):
     result_cls = ReftestResult
     test_type = "reftest"
 
-    def __init__(self, url, inherit_metadata, test_metadata, references, timeout=DEFAULT_TIMEOUT, path=None, protocol="http"):
+    def __init__(self, url, inherit_metadata, test_metadata, references,
+                 timeout=DEFAULT_TIMEOUT, path=None, viewport_size=None,
+                 protocol="http"):
         Test.__init__(self, url, inherit_metadata, test_metadata, timeout, path, protocol)
 
         for _, ref_type in references:
@@ -222,6 +224,7 @@ class ReftestTest(Test):
                 raise ValueError
 
         self.references = references
+        self.viewport_size = viewport_size
 
     @classmethod
     def from_manifest(cls,
@@ -246,6 +249,7 @@ class ReftestTest(Test):
                    [],
                    timeout=timeout,
                    path=manifest_test.path,
+                   viewport_size=manifest_test.viewport_size,
                    protocol="https" if hasattr(manifest_test, "https") and manifest_test.https else "http")
 
         nodes[url] = node
