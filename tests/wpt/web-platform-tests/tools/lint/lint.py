@@ -25,13 +25,8 @@ def git(command, *args):
         raise
 
 
-def iter_files(only_changed_files=False):
-    if only_changed_files == True:
-        last_merge = git("log", "-n1", "--author=bors-servo", "--format=%H").strip()
-        items = git("diff", "--name-only", "--relative", last_merge, ".").splitlines()
-    else:
-        items = git("ls-tree", "-r", "--name-only", "HEAD").splitlines()
-    for item in items:
+def iter_files():
+    for item in git("ls-tree", "-r", "--name-only", "HEAD").split("\n"):
         yield item
 
 
@@ -241,12 +236,9 @@ def output_error_count(error_count):
     else:
         print "There were %d errors (%s)" % (count, by_type)
 
-def main(only_changed_files=None):
+def main():
     error_count = defaultdict(int)
     last = None
-
-    if only_changed_files is None:
-        only_changed_files = '--changes' in sys.argv[1:]
 
     def run_lint(path, fn, last, *args):
         errors = whitelist_errors(path, fn(path, *args))
@@ -258,7 +250,7 @@ def main(only_changed_files=None):
             error_count[error_type] += 1
         return last
 
-    for path in iter_files(only_changed_files):
+    for path in iter_files():
         abs_path = os.path.join(repo_root, path)
         if not os.path.exists(path):
             continue

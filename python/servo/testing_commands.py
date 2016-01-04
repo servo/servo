@@ -256,10 +256,14 @@ class MachCommands(CommandBase):
     @Command('test-tidy',
              description='Run the source code tidiness check',
              category='testing')
-    @CommandArgument('--changes', default=False, action="store_true",
-                     help="Only check files that have been modified since FETCH_HEAD")
-    def test_tidy(self, changes):
-        return tidy.scan(changes)
+    def test_tidy(self):
+        return tidy.scan()
+
+    @Command('test-tidy-faster',
+             description='Run the source code tidiness check, but only check changed files, and skip the WPT lint',
+             category='testing')
+    def test_tidy_faster(self):
+        return tidy.scan(faster=True)
 
     @Command('test-wpt-failure',
              description='Run the web platform tests',

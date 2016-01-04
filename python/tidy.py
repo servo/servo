@@ -554,13 +554,11 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
             yield (file_path, "", "not found in basic.list")
 
 
-def check_wpt_lint_errors(only_changed_files=False):
+def check_wpt_lint_errors():
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     lint_cmd = os.path.join(wpt_working_dir, "lint")
     try:
-        args = [lint_cmd, "--changes"] if only_changed_files else [lint_cmd]
-        # lint must run from wpt's working dir
-        subprocess.check_call(args, cwd=wpt_working_dir)
+        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
     except subprocess.CalledProcessError as e:
         yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
 
@@ -580,20 +578,24 @@ def get_file_list(directory, only_changed_files=False):
         return (os.path.join(r, f) for r, _, files in os.walk(directory) for f in files)
 
 
-def scan(only_changed_files):
+def scan(faster=False):
     # standard checks
-    files_to_check = filter(should_check, get_file_list(".", only_changed_files))
+    files_to_check = filter(should_check, get_file_list(".", faster))
     checking_functions = (check_flake8, check_lock, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
     # reftest checks
-    reftest_to_check = filter(should_check_reftest, get_file_list(reftest_dir, only_changed_files))
+    reftest_to_check = filter(should_check_reftest, get_file_list(reftest_dir, faster))
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
 
     # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(only_changed_files)
+    if faster:
+        print "Using test-tidy-faster, skipping WPT lint"
+        wpt_lint_errors = iter([])
+    else:
+        wpt_lint_errors = check_wpt_lint_errors()
 
     # collect errors
     errors = itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors)
