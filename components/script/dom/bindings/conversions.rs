@@ -339,15 +339,62 @@ impl<T: Reflectable> ToJSValConvertible for Root<T> {
 }
 
 /// A JS ArrayBufferView contents can only be viewed as the types marked with this trait
-pub unsafe trait ArrayBufferViewContents: Clone {}
-unsafe impl ArrayBufferViewContents for u8 {}
-unsafe impl ArrayBufferViewContents for i8 {}
-unsafe impl ArrayBufferViewContents for u16 {}
-unsafe impl ArrayBufferViewContents for i16 {}
-unsafe impl ArrayBufferViewContents for u32 {}
-unsafe impl ArrayBufferViewContents for i32 {}
-unsafe impl ArrayBufferViewContents for f32 {}
-unsafe impl ArrayBufferViewContents for f64 {}
+pub unsafe trait ArrayBufferViewContents: Clone {
+    /// Check if the JS ArrayBufferView type is compatible with the implementor of the
+    /// trait
+    fn is_type_compatible(ty: Type) -> bool;
+}
+
+unsafe impl ArrayBufferViewContents for u8 {
+    fn is_type_compatible(ty: Type) -> bool {
+        match ty {
+            Type::Uint8 |
+            Type::Uint8Clamped => true,
+            _ => false,
+        }
+    }
+}
+
+unsafe impl ArrayBufferViewContents for i8 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Int8 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for u16 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Uint16 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for i16 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Int16 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for u32 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Uint32 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for i32 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Int32 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for f32 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Float32 as i32
+    }
+}
+unsafe impl ArrayBufferViewContents for f64 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Float64 as i32
+    }
+}
 
 /// Returns a mutable slice of the Array Buffer View data, viewed as T, without checking the real
 /// type of it.
@@ -370,11 +417,10 @@ pub fn array_buffer_view_to_vec<T: ArrayBufferViewContents>(abv: *mut JSObject) 
 
 /// Returns a mutable slice of the Array Buffer View data, viewed as T, checking that the real type
 /// of it is ty.
-pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv: *mut JSObject,
-                                                                             ty: Type) -> Option<&'a mut [T]> {
+pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv: *mut JSObject)
+                                                                             -> Option<&'a mut [T]> {
     array_buffer_view_data::<T>(abv).and_then(|data| {
-        let real_ty = JS_GetArrayBufferViewType(abv);
-        if real_ty as i32 == ty as i32 {
+        if T::is_type_compatible(JS_GetArrayBufferViewType(abv)) {
             Some(data)
         } else {
             None
@@ -384,8 +430,8 @@ pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv
 
 /// Returns a copy of the ArrayBufferView data, viewed as T, checking that the real type
 /// of it is ty.
-pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JSObject, ty: Type) -> Option<Vec<T>> {
+pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
     unsafe {
-        array_buffer_view_data_checked(abv, ty).map(|data| data.to_vec())
+        array_buffer_view_data_checked(abv).map(|data| data.to_vec())
     }
 }
