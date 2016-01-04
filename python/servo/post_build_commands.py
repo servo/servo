@@ -41,7 +41,7 @@ class PostBuildCommands(CommandBase):
                      help='Run the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Run the dev build')
-    @CommandArgument('--android', action='store_true',
+    @CommandArgument('--android', action='store_true', default=None,
                      help='Run on an Android device through `adb shell`')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
@@ -53,9 +53,12 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, android=False, debug=False, debugger=None):
+    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
+
+        if android is None:
+            android = self.config["build"]["android"]
 
         if android:
             if debug:
