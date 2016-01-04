@@ -37,6 +37,7 @@ use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::default::Default;
+use std::fmt;
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use util::mem::HeapSizeOf;
@@ -191,6 +192,82 @@ pub enum CanvasWebGLMsg {
     TexParameterf(u32, u32, f32),
     DrawingBufferWidth(IpcSender<i32>),
     DrawingBufferHeight(IpcSender<i32>),
+}
+
+impl fmt::Debug for CanvasWebGLMsg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use CanvasWebGLMsg::*;
+        let name = match *self {
+            GetContextAttributes(..) => "GetContextAttributes",
+            ActiveTexture(..) => "ActiveTexture",
+            BlendColor(..) => "BlendColor",
+            BlendEquation(..) => "BlendEquation",
+            BlendEquationSeparate(..) => "BlendEquationSeparate",
+            BlendFunc(..) => "BlendFunc",
+            BlendFuncSeparate(..) => "BlendFuncSeparate",
+            AttachShader(..) => "AttachShader",
+            BindAttribLocation(..) => "BindAttribLocation",
+            BufferData(..) => "BufferData",
+            BufferSubData(..) => "BufferSubData",
+            Clear(..) => "Clear",
+            ClearColor(..) => "ClearColor",
+            ClearDepth(..) => "ClearDepth",
+            ClearStencil(..) => "ClearStencil",
+            ColorMask(..) => "ColorMask",
+            CullFace(..) => "CullFace",
+            FrontFace(..) => "FrontFace",
+            DepthFunc(..) => "DepthFunc",
+            DepthMask(..) => "DepthMask",
+            DepthRange(..) => "DepthRange",
+            Enable(..) => "Enable",
+            Disable(..) => "Disable",
+            CompileShader(..) => "CompileShader",
+            CreateBuffer(..) => "CreateBuffer",
+            CreateFramebuffer(..) => "CreateFramebuffer",
+            CreateRenderbuffer(..) => "CreateRenderbuffer",
+            CreateTexture(..) => "CreateTexture",
+            CreateProgram(..) => "CreateProgram",
+            CreateShader(..) => "CreateShader",
+            DeleteBuffer(..) => "DeleteBuffer",
+            DeleteFramebuffer(..) => "DeleteFramebuffer",
+            DeleteRenderbuffer(..) => "DeleteRenderBuffer",
+            DeleteTexture(..) => "DeleteTexture",
+            DeleteProgram(..) => "DeleteProgram",
+            DeleteShader(..) => "DeleteShader",
+            BindBuffer(..) => "BindBuffer",
+            BindFramebuffer(..) => "BindFramebuffer",
+            BindRenderbuffer(..) => "BindRenderbuffer",
+            BindTexture(..) => "BindTexture",
+            DrawArrays(..) => "DrawArrays",
+            DrawElements(..) => "DrawElements",
+            EnableVertexAttribArray(..) => "EnableVertexAttribArray",
+            GetBufferParameter(..) => "GetBufferParameter",
+            GetParameter(..) => "GetParameter",
+            GetProgramParameter(..) => "GetProgramParameter",
+            GetShaderParameter(..) => "GetShaderParameter",
+            GetAttribLocation(..) => "GetAttribLocation",
+            GetUniformLocation(..) => "GetUniformLocation",
+            PolygonOffset(..) => "PolygonOffset",
+            Scissor(..) => "Scissor",
+            Hint(..) => "Hint",
+            LineWidth(..) => "LineWidth",
+            PixelStorei(..) => "PixelStorei",
+            LinkProgram(..) => "LinkProgram",
+            Uniform1f(..) => "Uniform1f",
+            Uniform4f(..) => "Uniform4f",
+            UseProgram(..) => "UseProgram",
+            VertexAttrib(..) => "VertexAttrib",
+            VertexAttribPointer2f(..) => "VertexAttribPointer2f",
+            Viewport(..) => "Viewport",
+            TexImage2D(..) => "TexImage2D",
+            TexParameteri(..) => "TexParameteri",
+            TexParameterf(..) => "TexParameterf",
+            DrawingBufferWidth(..) => "DrawingBufferWidth",
+            DrawingBufferHeight(..) => "DrawingBufferHeight",
+        };
+
+        write!(f, "CanvasWebGLMsg::{}(..)", name)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Deserialize, Serialize, HeapSizeOf)]
