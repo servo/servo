@@ -4,8 +4,10 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
+#![allow(unsafe_code)]
+
 use construct::FlowConstructor;
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
@@ -14,7 +16,8 @@ use script::layout_interface::ReflowGoal;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use std::mem;
-use style::context::StyleContext;
+use std::rc::Rc;
+use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::dom::{TNode, TRestyleDamage, UnsafeNode};
 use style::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use util::opts;
@@ -54,7 +57,7 @@ thread_local!(
 /// it will be cleared and reused.
 fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
                                         root: OpaqueNode,
-                                        layout_context: &LayoutContext)
+                                        context: &SharedStyleContext)
                                         -> Box<BloomFilter>
                                         where N: TNode<'ln> {
     STYLE_BLOOM.with(|style_bloom| {
@@ -73,7 +76,7 @@ fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
             // Found cached bloom filter.
             (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
                 if old_node == parent.to_unsafe() &&
-                    old_generation == layout_context.shared_context().generation {
+                    old_generation == context.generation {
                     // Hey, the cached parent is our parent! We can reuse the bloom filter.
                     debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
                 } else {
@@ -90,11 +93,11 @@ fn take_task_local_bloom_filter<'ln, N>(parent_node: Option<N>,
 
 fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
                                unsafe_node: &UnsafeNode,
-                               layout_context: &LayoutContext) {
+                               context: &SharedStyleContext) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken task-local bloom filter");
-        *style_bloom.borrow_mut() = Some((bf, *unsafe_node, layout_context.shared_context().generation));
+        *style_bloom.borrow_mut() = Some((bf, *unsafe_node, context.generation));
     })
 }
 
@@ -117,30 +120,98 @@ fn insert_ancestors_into_bloom_filter<'ln, N>(bf: &mut Box<BloomFilter>,
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
 }
 
-#[derive(Copy, Clone)]
-pub struct DomTraversalContext<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
-    pub root: OpaqueNode,
-}
-
-pub trait DomTraversal<'ln, N: TNode<'ln>>  {
-    fn process_preorder<'a>(context: &'a DomTraversalContext<'a>, node: N);
-    fn process_postorder<'a>(context: &'a DomTraversalContext<'a>, node: N);
+pub trait DomTraversalContext<'ln, N: TNode<'ln>>  {
+    type SharedContext: Sync + 'static;
+    fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
+    fn process_preorder(&self, node: N);
+    fn process_postorder(&self, node: N);
 }
 
 /// FIXME(bholley): I added this now to demonstrate the usefulness of the new design.
 /// This is currently unused, but will be used shortly.
+
 #[allow(dead_code)]
-pub struct RecalcStyleOnly;
-impl<'ln, N: TNode<'ln>> DomTraversal<'ln, N> for RecalcStyleOnly {
-    fn process_preorder<'a>(context: &'a DomTraversalContext<'a>, node: N) { recalc_style_at(context, node); }
-    fn process_postorder<'a>(_: &'a DomTraversalContext<'a>, _: N) {}
+pub struct StandaloneStyleContext<'a> {
+    pub shared: &'a SharedStyleContext,
+    cached_local_style_context: Rc<LocalStyleContext>,
 }
 
-pub struct RecalcStyleAndConstructFlows;
-impl<'ln, N: LayoutNode<'ln>> DomTraversal<'ln, N> for RecalcStyleAndConstructFlows {
-    fn process_preorder<'a>(context: &'a DomTraversalContext<'a>, node: N) { recalc_style_at(context, node); }
-    fn process_postorder<'a>(context: &'a DomTraversalContext<'a>, node: N) { construct_flows_at(context, node); }
+impl<'a> StandaloneStyleContext<'a> {
+    pub fn new(_: &'a SharedStyleContext) -> Self { panic!("Not implemented") }
+}
+
+impl<'a> StyleContext<'a> for StandaloneStyleContext<'a> {
+    fn shared_context(&self) -> &'a SharedStyleContext {
+        &self.shared
+    }
+
+    fn local_context(&self) -> &LocalStyleContext {
+        &self.cached_local_style_context
+    }
+}
+
+#[allow(dead_code)]
+pub struct RecalcStyleOnly<'lc> {
+    context: StandaloneStyleContext<'lc>,
+    root: OpaqueNode,
+}
+
+impl<'lc, 'ln, N: TNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleOnly<'lc> {
+    type SharedContext = SharedStyleContext;
+    fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
+        // See the comment in RecalcStyleAndConstructFlows::new for an explanation of why this is
+        // necessary.
+        let shared_lc: &'lc SharedStyleContext = unsafe { mem::transmute(shared) };
+        RecalcStyleOnly {
+            context: StandaloneStyleContext::new(shared_lc),
+            root: root,
+        }
+    }
+
+    fn process_preorder(&self, node: N) { recalc_style_at(&self.context, self.root, node); }
+    fn process_postorder(&self, _: N) {}
+}
+
+pub struct RecalcStyleAndConstructFlows<'lc> {
+    context: LayoutContext<'lc>,
+    root: OpaqueNode,
+}
+
+impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAndConstructFlows<'lc> {
+    type SharedContext = SharedLayoutContext;
+    fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
+        // FIXME(bholley): This transmutation from &'a to &'lc is very unfortunate, but I haven't
+        // found a way to avoid it despite spending several days on it (and consulting Manishearth,
+        // brson, and nmatsakis).
+        //
+        // The crux of the problem is that parameterizing DomTraversalContext on the lifetime of
+        // the SharedContext doesn't work for a variety of reasons [1]. However, the code in
+        // parallel.rs needs to be able to use the DomTraversalContext trait (or something similar)
+        // to stack-allocate a struct (a generalized LayoutContext<'a>) that holds a borrowed
+        // SharedContext, which means that the struct needs to be parameterized on a lifetime.
+        // Given the aforementioned constraint, the only way to accomplish this is to avoid
+        // propagating the borrow lifetime from the struct to the trait, but that means that the
+        // new() method on the trait cannot require the lifetime of its argument to match the
+        // lifetime of the Self object it creates.
+        //
+        // This could be solved with an associated type with an unbound lifetime parameter, but
+        // that would require higher-kinded types, which don't exist yet and probably aren't coming
+        // for a while.
+        //
+        // So we transmute. :-(
+        //
+        // [1] For example, the WorkQueue type needs to be parameterized on the concrete type of
+        // DomTraversalContext::SharedContext, and the WorkQueue lifetime is similar to that of the
+        // LayoutTask, generally much longer than that of a given SharedLayoutContext borrow.
+        let shared_lc: &'lc SharedLayoutContext = unsafe { mem::transmute(shared) };
+        RecalcStyleAndConstructFlows {
+            context: LayoutContext::new(shared_lc),
+            root: root,
+        }
+    }
+
+    fn process_preorder(&self, node: N) { recalc_style_at(&self.context, self.root, node); }
+    fn process_postorder(&self, node: N) { construct_flows_at(&self.context, self.root, node); }
 }
 
 /// A bottom-up, parallelizable traversal.
@@ -153,7 +224,7 @@ pub trait PostorderNodeMutTraversal<'ln, ConcreteThreadSafeLayoutNode: ThreadSaf
 /// layout computation. This computes the styles applied to each node.
 #[inline]
 #[allow(unsafe_code)]
-fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>, node: N) {
+fn recalc_style_at<'a, 'ln, N: TNode<'ln>, C: StyleContext<'a>> (context: &'a C, root: OpaqueNode, node: N) {
     // Initialize layout data.
     //
     // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
@@ -161,10 +232,10 @@ fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>
     node.initialize_data();
 
     // Get the parent node.
-    let parent_opt = node.layout_parent_node(context.root);
+    let parent_opt = node.layout_parent_node(root);
 
     // Get the style bloom filter.
-    let mut bf = take_task_local_bloom_filter(parent_opt, context.root, context.layout_context);
+    let mut bf = take_task_local_bloom_filter(parent_opt, root, context.shared_context());
 
     let nonincremental_layout = opts::get().nonincremental_layout;
     if nonincremental_layout || node.is_dirty() {
@@ -176,7 +247,7 @@ fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>
 
         // Check to see whether we can share a style with someone.
         let style_sharing_candidate_cache =
-            &mut context.layout_context.style_sharing_candidate_cache();
+            &mut context.local_context().style_sharing_candidate_cache.borrow_mut();
 
         let sharing_result = match node.as_element() {
             Some(element) => {
@@ -196,7 +267,7 @@ fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>
                 let shareable_element = match node.as_element() {
                     Some(element) => {
                         // Perform the CSS selector matching.
-                        let stylist = unsafe { &*context.layout_context.shared_context().stylist.0 };
+                        let stylist = unsafe { &*context.shared_context().stylist.0 };
                         if element.match_element(stylist,
                                                  Some(&*bf),
                                                  &mut applicable_declarations) {
@@ -215,11 +286,11 @@ fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(&context.layout_context.shared.style_context,
+                    node.cascade_node(&context.shared_context(),
                                       parent_opt,
                                       &applicable_declarations,
-                                      &mut context.layout_context.applicable_declarations_cache(),
-                                      &context.layout_context.shared_context().new_animations_sender);
+                                      &mut context.local_context().applicable_declarations_cache.borrow_mut(),
+                                      &context.shared_context().new_animations_sender);
                 }
 
                 // Add ourselves to the LRU cache.
@@ -242,13 +313,13 @@ fn recalc_style_at<'a, 'ln, N: TNode<'ln>> (context: &'a DomTraversalContext<'a>
     node.insert_into_bloom_filter(&mut *bf);
 
     // NB: flow construction updates the bloom filter on the way up.
-    put_task_local_bloom_filter(bf, &unsafe_layout_node, context.layout_context);
+    put_task_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
 }
 
 /// The flow construction traversal, which builds flows for styled nodes.
 #[inline]
 #[allow(unsafe_code)]
-fn construct_flows_at<'a, 'ln, N: LayoutNode<'ln>>(context: &'a DomTraversalContext<'a>, node: N) {
+fn construct_flows_at<'a, 'ln, N: LayoutNode<'ln>>(context: &'a LayoutContext<'a>, root: OpaqueNode, node: N) {
     // Construct flows for this node.
     {
         let tnode = node.to_threadsafe();
@@ -256,7 +327,7 @@ fn construct_flows_at<'a, 'ln, N: LayoutNode<'ln>>(context: &'a DomTraversalCont
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.has_dirty_descendants() {
-            let mut flow_constructor = FlowConstructor::new(context.layout_context);
+            let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
                 debug!("Constructed flow for {:x}: {:x}",
@@ -285,9 +356,9 @@ fn construct_flows_at<'a, 'ln, N: LayoutNode<'ln>>(context: &'a DomTraversalCont
         });
 
     assert_eq!(old_node, unsafe_layout_node);
-    assert_eq!(old_generation, context.layout_context.shared_context().generation);
+    assert_eq!(old_generation, context.shared_context().generation);
 
-    match node.layout_parent_node(context.root) {
+    match node.layout_parent_node(root) {
         None => {
             debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
             // If this is the reflow root, eat the task-local bloom filter.
@@ -296,7 +367,7 @@ fn construct_flows_at<'a, 'ln, N: LayoutNode<'ln>>(context: &'a DomTraversalCont
             // Otherwise, put it back, but remove this node.
             node.remove_from_bloom_filter(&mut *bf);
             let unsafe_parent = parent.to_unsafe();
-            put_task_local_bloom_filter(bf, &unsafe_parent, context.layout_context);
+            put_task_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
         },
     };
 }

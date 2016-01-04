@@ -19,7 +19,7 @@ use style::dom::{TNode, UnsafeNode};
 use traversal::PostorderNodeMutTraversal;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
-use traversal::{DomTraversal, DomTraversalContext};
+use traversal::DomTraversalContext;
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
@@ -233,15 +233,10 @@ impl<'a> ParallelPostorderFlowTraversal for BuildDisplayList<'a> {}
 
 /// A parallel top-down DOM traversal.
 #[inline(always)]
-fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
-                           proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
-                           where N: TNode<'ln>, T: DomTraversal<'ln, N> {
-    let shared_layout_context = proxy.user_data();
-    let layout_context = LayoutContext::new(shared_layout_context);
-    let traversal_context = DomTraversalContext {
-        layout_context: &layout_context,
-        root: unsafe_nodes.1,
-    };
+fn top_down_dom<'ln, N, C>(unsafe_nodes: UnsafeNodeList,
+                           proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
+                           where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
+    let context = C::new(proxy.user_data(), unsafe_nodes.1);
 
     let mut discovered_child_nodes = Vec::new();
     for unsafe_node in *unsafe_nodes.0 {
@@ -249,7 +244,7 @@ fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
         let node = unsafe { N::from_unsafe(&unsafe_node) };
 
         // Perform the appropriate traversal.
-        T::process_preorder(&traversal_context, node);
+        context.process_preorder(node);
 
         let child_count = node.children_count();
 
@@ -267,13 +262,13 @@ fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
             }
         } else {
             // If there were no more children, start walking back up.
-            bottom_up_dom::<N, T>(unsafe_nodes.1, unsafe_node, proxy)
+            bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
         }
     }
 
     for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
         proxy.push(WorkUnit {
-            fun:  top_down_dom::<N, T>,
+            fun:  top_down_dom::<N, C>,
             data: (box chunk.iter().cloned().collect(), unsafe_nodes.1),
         });
     }
@@ -290,24 +285,19 @@ fn top_down_dom<'ln, N, T>(unsafe_nodes: UnsafeNodeList,
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
-fn bottom_up_dom<'ln, N, T>(root: OpaqueNode,
+fn bottom_up_dom<'ln, N, C>(root: OpaqueNode,
                             unsafe_node: UnsafeNode,
-                            proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeNodeList>)
-                            where N: TNode<'ln>, T: DomTraversal<'ln, N> {
-    let shared_layout_context = proxy.user_data();
-    let layout_context = LayoutContext::new(shared_layout_context);
-    let traversal_context = DomTraversalContext {
-        layout_context: &layout_context,
-        root: root,
-    };
+                            proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
+                            where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
+    let context = C::new(proxy.user_data(), root);
 
     // Get a real layout node.
     let mut node = unsafe { N::from_unsafe(&unsafe_node) };
     loop {
         // Perform the appropriate operation.
-        T::process_postorder(&traversal_context, node);
+        context.process_postorder(node);
 
-        let parent = match node.layout_parent_node(traversal_context.root) {
+        let parent = match node.layout_parent_node(root) {
             None => break,
             Some(parent) => parent,
         };
@@ -371,29 +361,29 @@ fn build_display_list(unsafe_flow: UnsafeFlow,
     build_display_list_traversal.run_parallel(unsafe_flow);
 }
 
-fn run_queue_with_custom_work_data_type<To, F>(
-        queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
+fn run_queue_with_custom_work_data_type<To, F, SharedContext: Sync>(
+        queue: &mut WorkQueue<SharedContext, WorkQueueData>,
         callback: F,
-        shared_layout_context: &SharedLayoutContext)
-        where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedLayoutContext, To>) {
-    let queue: &mut WorkQueue<SharedLayoutContext, To> = unsafe {
+        shared: &SharedContext)
+        where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedContext, To>) {
+    let queue: &mut WorkQueue<SharedContext, To> = unsafe {
         mem::transmute(queue)
     };
     callback(queue);
-    queue.run(shared_layout_context);
+    queue.run(shared);
 }
 
-pub fn traverse_dom_preorder<'ln, N, T>(
+pub fn traverse_dom_preorder<'ln, N, C>(
                              root: N,
-                             shared_layout_context: &SharedLayoutContext,
-                             queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>)
-                             where N: TNode<'ln>, T: DomTraversal<'ln, N> {
+                             queue_data: &C::SharedContext,
+                             queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
+                             where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
-            fun:  top_down_dom::<N, T>,
+            fun:  top_down_dom::<N, C>,
             data: (box vec![root.to_unsafe()], root.opaque()),
         });
-    }, shared_layout_context);
+    }, queue_data);
 }
 
 pub fn traverse_flow_tree_preorder(

@@ -15,32 +15,27 @@ use generated_content::ResolveGeneratedContent;
 use traversal::PostorderNodeMutTraversal;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
-use traversal::{DomTraversal, DomTraversalContext};
+use traversal::DomTraversalContext;
 use util::opts;
 use wrapper::LayoutNode;
 
-pub fn traverse_dom_preorder<'ln, N, T>(root: N,
-                                        shared_layout_context: &SharedLayoutContext)
+pub fn traverse_dom_preorder<'ln, N, C>(root: N,
+                                        shared: &C::SharedContext)
                                         where N: LayoutNode<'ln>,
-                                              T: DomTraversal<'ln, N> {
-    fn doit<'a, 'ln, N, T>(context: &'a DomTraversalContext<'a>, node: N)
-                           where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
-        T::process_preorder(context, node);
+                                              C: DomTraversalContext<'ln, N> {
+    fn doit<'a, 'ln, N, C>(context: &'a C, node: N)
+                           where N: LayoutNode<'ln>, C: DomTraversalContext<'ln, N> {
+        context.process_preorder(node);
 
         for kid in node.children() {
-            doit::<N, T>(context, kid);
+            doit::<N, C>(context, kid);
         }
 
-        T::process_postorder(context, node);
+        context.process_postorder(node);
     }
 
-    let layout_context = LayoutContext::new(shared_layout_context);
-    let traversal_context = DomTraversalContext {
-        layout_context: &layout_context,
-        root: root.opaque(),
-    };
-
-    doit::<N, T>(&traversal_context, root);
+    let context = C::new(shared, root.opaque());
+    doit::<N, C>(&context, root);
 }
 
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
