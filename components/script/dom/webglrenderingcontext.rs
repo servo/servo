@@ -1007,7 +1007,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             program.use_program();
-            self.current_program.set(Some(program));
+            match program.use_program() {
+                Ok(()) => self.current_program.set(Some(program)),
+                Err(e) => self.webgl_error(e),
+            }
         }
     }
 
