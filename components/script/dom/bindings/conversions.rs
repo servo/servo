@@ -46,13 +46,15 @@ use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
+use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
 use js::jsapi::{JS_StringHasLatin1Chars, JS_WrapValue};
+use js::jsapi::{Type};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::ToString;
 use libc;
 use num::Float;
-use std::{ptr, slice};
+use std::{ptr, mem, slice};
 use util::str::DOMString;
 pub use util::str::{StringificationBehavior, jsstring_to_str};
 
@@ -333,5 +335,103 @@ pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
+    }
+}
+
+/// A JS ArrayBufferView contents can only be viewed as the types marked with this trait
+pub unsafe trait ArrayBufferViewContents: Clone {
+    /// Check if the JS ArrayBufferView type is compatible with the implementor of the
+    /// trait
+    fn is_type_compatible(ty: Type) -> bool;
+}
+
+unsafe impl ArrayBufferViewContents for u8 {
+    fn is_type_compatible(ty: Type) -> bool {
+        match ty {
+            Type::Uint8 |
+            Type::Uint8Clamped => true,
+            _ => false,
+        }
+    }
+}
+
+unsafe impl ArrayBufferViewContents for i8 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Int8 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for u16 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Uint16 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for i16 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Int16 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for u32 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Uint32 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for i32 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Int32 as i32
+    }
+}
+
+unsafe impl ArrayBufferViewContents for f32 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Float32 as i32
+    }
+}
+unsafe impl ArrayBufferViewContents for f64 {
+    fn is_type_compatible(ty: Type) -> bool {
+        ty as i32 == Type::Float64 as i32
+    }
+}
+
+/// Returns a mutable slice of the Array Buffer View data, viewed as T, without checking the real
+/// type of it.
+pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<&'a mut [T]> {
+    let mut byte_length = 0;
+    let mut ptr = ptr::null_mut();
+    let ret = JS_GetObjectAsArrayBufferView(abv, &mut byte_length, &mut ptr);
+    if ret.is_null() {
+        return None;
+    }
+    Some(slice::from_raw_parts_mut(ptr as *mut T, byte_length as usize / mem::size_of::<T>()))
+}
+
+/// Returns a copy of the ArrayBufferView data, viewed as T, without checking the real type of it.
+pub fn array_buffer_view_to_vec<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
+    unsafe {
+        array_buffer_view_data(abv).map(|data| data.to_vec())
+    }
+}
+
+/// Returns a mutable slice of the Array Buffer View data, viewed as T, checking that the real type
+/// of it is ty.
+pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv: *mut JSObject)
+                                                                             -> Option<&'a mut [T]> {
+    array_buffer_view_data::<T>(abv).and_then(|data| {
+        if T::is_type_compatible(JS_GetArrayBufferViewType(abv)) {
+            Some(data)
+        } else {
+            None
+        }
+    })
+}
+
+/// Returns a copy of the ArrayBufferView data, viewed as T, checking that the real type
+/// of it is ty.
+pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
+    unsafe {
+        array_buffer_view_data_checked(abv).map(|data| data.to_vec())
     }
 }

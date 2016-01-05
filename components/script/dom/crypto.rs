@@ -5,14 +5,14 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
+use dom::bindings::conversions::array_buffer_view_data;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetArrayBufferViewType, JS_GetObjectAsArrayBufferView, Type};
+use js::jsapi::{JS_GetArrayBufferViewType, Type};
 use rand::{OsRng, Rng};
-use std::{ptr, slice};
 
 no_jsmanaged_fields!(OsRng);
 
@@ -43,24 +43,23 @@ impl CryptoMethods for Crypto {
                        _cx: *mut JSContext,
                        input: *mut JSObject)
                        -> Fallible<*mut JSObject> {
-        let mut length = 0;
-        let mut data = ptr::null_mut();
-        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
-            return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
+        let mut data = match unsafe { array_buffer_view_data::<u8>(input) } {
+            Some(data) => data,
+            None => {
+                return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
                                        .to_owned()));
-        }
+            }
+        };
+
         if !is_integer_buffer(input) {
             return Err(Error::TypeMismatch);
         }
-        if length > 65536 {
+
+        if data.len() > 65536 {
             return Err(Error::QuotaExceeded);
         }
 
-        let mut buffer = unsafe {
-            slice::from_raw_parts_mut(data, length as usize)
-        };
-
-        self.rng.borrow_mut().fill_bytes(&mut buffer);
+        self.rng.borrow_mut().fill_bytes(&mut data);
 
         Ok(input)
     }
