@@ -16,9 +16,7 @@ import toml
 
 from mach.registrar import Registrar
 
-BIN_SUFFIX = ""
-if sys.platform == "win32":
-    BIN_SUFFIX = ".exe"
+BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
 
 @contextlib.contextmanager
@@ -59,10 +57,8 @@ def host_triple():
 
 
 def use_nightly_rust():
-    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST")
-    if envvar:
-        return envvar != "0"
-    return False
+    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST", "0")
+    return envvar != "0"
 
 
 def call(*args, **kwargs):
@@ -70,11 +66,9 @@ def call(*args, **kwargs):
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
-    if sys.platform == "win32":
-        # we have to use shell=True in order to get PATH handling
-        # when looking for the binary on Windows
-        return subprocess.call(*args, shell=True, **kwargs)
-    return subprocess.call(*args, **kwargs)
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
 def check_call(*args, **kwargs):
@@ -82,11 +76,9 @@ def check_call(*args, **kwargs):
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
-    if sys.platform == "win32":
-        # we have to use shell=True in order to get PATH handling
-        # when looking for the binary on Windows
-        return subprocess.check_call(*args, shell=True, **kwargs)
-    return subprocess.check_call(*args, **kwargs)
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.check_call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
 class CommandBase(object):

@@ -10,6 +10,7 @@
 from __future__ import print_function, unicode_literals
 from os import path, getcwd, listdir
 
+import subprocess
 import sys
 
 from mach.decorators import (

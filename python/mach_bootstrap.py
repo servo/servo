@@ -92,7 +92,9 @@ def _activate_virtualenv(topdir):
     if python is None:
         sys.exit("Python is not installed. Please install it prior to running mach.")
 
-    activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
+    # Virtualenv calls its scripts folder "bin" on linux/OSX but "Scripts" on Windows, detect which one then use that
+    script_dir = "Scripts" if os.name == "nt" else "bin"
+    activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
         virtualenv = _get_exec(*VIRTUALENV_NAMES)
         if virtualenv is None:

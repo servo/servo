@@ -63,7 +63,22 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
-[dependencies.gaol]
+[target.arm-linux-androideabi.dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[target.x86_64-apple-darwin.dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[target.x86_64-unknown-linux-gnu.dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[target.i686-unknown-linux-gnu.dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[target.arm-unknown-linux-gnueabihf.dependencies.gaol]
+git = "https://github.com/pcwalton/gaol"
+
+[target.aarch64-unknown-linux-gnueabihf.dependencies.gaol]
 git = "https://github.com/pcwalton/gaol"
 
 [dependencies]

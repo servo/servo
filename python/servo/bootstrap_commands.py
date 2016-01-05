@@ -28,7 +28,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, host_triple, use_nightly_rust, check_call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, host_triple, check_call, BIN_SUFFIX
 
 
 def download(desc, src, writer):
