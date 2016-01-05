@@ -2283,8 +2283,8 @@ class CGIDLInterface(CGThing):
         name = self.descriptor.name
         if (interface.getUserData("hasConcreteDescendant", False) or
                 interface.getUserData("hasProxyDescendant", False)):
-            depth = len(self.descriptor.prototypeChain)
-            check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth - 1, name)
+            depth = self.descriptor.prototypeDepth
+            check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth, name)
         elif self.descriptor.proxy:
             check = "class as *const _ == &Class as *const _"
         else:

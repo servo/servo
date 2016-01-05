@@ -296,6 +296,7 @@ class Descriptor(DescriptorProvider):
         while parent:
             self.prototypeChain.insert(0, parent.identifier.name)
             parent = parent.parent
+        self.prototypeDepth = len(self.prototypeChain) - 1
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
 
