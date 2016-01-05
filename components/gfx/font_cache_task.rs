@@ -185,14 +185,13 @@ impl FontCache {
                                               metadata.content_type);
                                         *response_valid.lock().unwrap() = is_response_valid;
                                     }
-                                    ResponseAction::ResponseComplete(Err(_)) => {}
                                     ResponseAction::DataAvailable(new_bytes) => {
                                         if *response_valid.lock().unwrap() {
                                             bytes.lock().unwrap().extend(new_bytes.into_iter())
                                         }
                                     }
-                                    ResponseAction::ResponseComplete(Ok(_)) => {
-                                        if !*response_valid.lock().unwrap() {
+                                    ResponseAction::ResponseComplete(response) => {
+                                        if response.is_err() || !*response_valid.lock().unwrap() {
                                             drop(result.send(()));
                                             return;
                                         }
