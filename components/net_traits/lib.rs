@@ -81,6 +81,14 @@ pub enum CacheState {
     Partial
 }
 
+// [[Https state]](https://fetch.spec.whatwg.org/#concept-response-https-state)
+#[derive(Clone)]
+pub enum HttpsState {
+    None,
+    Deprecated,
+    Modern
+}
+
 pub enum ResponseMsg {
     Chunk(Vec<u8>),
     Finished,
@@ -99,6 +107,7 @@ pub struct Response {
     pub headers: Headers,
     pub body: ResponseBody,
     pub cache_state: CacheState,
+    pub https_state: HttpsState,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Rc<RefCell<Response>>>,
@@ -115,6 +124,7 @@ impl Response {
             headers: Headers::new(),
             body: ResponseBody::Empty,
             cache_state: CacheState::None,
+            https_state: HttpsState::None,
             internal_response: None
         }
     }

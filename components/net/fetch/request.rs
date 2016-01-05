@@ -9,13 +9,13 @@ use http_loader::{create_http_connector, obtain_response};
 use hyper::client::response::Response as HyperResponse;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
-use hyper::header::{Authorization, Basic};
+use hyper::header::{Authorization, Basic, ContentEncoding, Encoding};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
-use net_traits::{AsyncFetchListener, CacheState, Response};
+use net_traits::{AsyncFetchListener, CacheState, HttpsState, Response};
 use net_traits::{ResponseType, Metadata, TerminationReason};
 use resource_task::CancellationListener;
 use std::ascii::AsciiExt;
@@ -758,9 +758,9 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
     match wrapped_response {
         Ok(res) => {
             // is it okay for res.version to be unused?
+            response.url = Some(res.response.url.clone());
             response.status = Some(res.response.status);
             response.headers = res.response.headers.clone();
-            response.url = Some(res.response.url.clone());
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
@@ -771,29 +771,53 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
 
         // Substep 2
 
+    // TODO how can I tell if response was retrieved over HTTPS?
+    // TODO: Servo needs to decide what ciphers are to be treated as "deprecated"
+    response.https_state = HttpsState::None;
+
+    // TODO how do I read request?
+
     // Step 5
+    // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
+    // is resolved, this step will become uneccesary
+    // TODO this step
+    match response.headers.get::<ContentEncoding>() {
+        Some(encoding) => {
+            if encoding.contains(&Encoding::Gzip) {
+                
+            }
+
+            if encoding.contains(&Encoding::Compress) {
+
+            }            
+        },
+        _ => { }
+    };
 
     // Step 6
-    // TODO requires response
-    // response.url_list = request.borrow().url_list;
+    response.url_list = request.borrow().url_list.clone();
 
     // Step 7
 
     // Step 8
 
     // Step 9
-
         // Substep 1
-
         // Substep 2
-
         // Substep 3
-
         // Substep 4
 
     // Step 10
-    // response
-    Response::network_error()
+        // Substep 1
+        // Substep 2
+            // Sub-substep 1
+            // Sub-substep 2
+            // Sub-substep 3
+            // Sub-substep 4
+        // Substep 3
+
+    // Step 11
+    response
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
