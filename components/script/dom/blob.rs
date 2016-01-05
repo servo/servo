@@ -16,7 +16,7 @@ use std::cmp::{max, min};
 use std::sync::mpsc::Sender;
 use util::str::DOMString;
 
-// http://dev.w3.org/2006/webapi/FileAPI/#blob
+// https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
@@ -28,7 +28,7 @@ pub struct Blob {
 
 fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
-    // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
+    // https://w3c.github.io/FileAPI/#constructorBlob
     string.chars().all(|c| c >= '\x20' && c <= '\x7E')
 }
 
@@ -49,12 +49,12 @@ impl Blob {
                            BlobBinding::Wrap)
     }
 
-    // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
+    // https://w3c.github.io/FileAPI/#constructorBlob
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<Blob>> {
         Ok(Blob::new(global, None, ""))
     }
 
-    // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
+    // https://w3c.github.io/FileAPI/#constructorBlob
     pub fn Constructor_(global: GlobalRef,
                         blobParts: DOMString,
                         blobPropertyBag: &BlobBinding::BlobPropertyBag)
@@ -81,7 +81,7 @@ impl Blob {
 }
 
 impl BlobMethods for Blob {
-    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-size
+    // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
         match self.bytes {
             None => 0,
@@ -89,12 +89,12 @@ impl BlobMethods for Blob {
         }
     }
 
-    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-type
+    // https://w3c.github.io/FileAPI/#dfn-type
     fn Type(&self) -> DOMString {
         DOMString::from(self.typeString.clone())
     }
 
-    // https://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
+    // https://w3c.github.io/FileAPI/#slice-method-algo
     fn Slice(&self,
              start: Option<i64>,
              end: Option<i64>,
@@ -146,12 +146,12 @@ impl BlobMethods for Blob {
         }
     }
 
-    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-isClosed
+    // https://w3c.github.io/FileAPI/#dfn-isClosed
     fn IsClosed(&self) -> bool {
         self.isClosed_.get()
     }
 
-    // https://dev.w3.org/2006/webapi/FileAPI/#dfn-close
+    // https://w3c.github.io/FileAPI/#dfn-close
     fn Close(&self) {
         // Step 1
         if self.isClosed_.get() {
