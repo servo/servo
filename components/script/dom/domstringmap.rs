@@ -48,16 +48,9 @@ impl DOMStringMapMethods for DOMStringMap {
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem
     fn NamedGetter(&self, name: DOMString, found: &mut bool) -> DOMString {
-        match self.element.get_custom_attr(name) {
-            Some(value) => {
-                *found = true;
-                value.clone()
-            },
-            None => {
-                *found = false;
-                DOMString::new()
-            }
-        }
+        let attr = self.element.get_custom_attr(name);
+        *found = attr.is_some();
+        attr.unwrap_or_default()
     }
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
