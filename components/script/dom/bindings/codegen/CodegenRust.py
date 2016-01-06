@@ -1810,6 +1810,7 @@ static Class: DOMJSClass = DOMJSClass {
             getElements: None,
             enumerate: None,
             thisObject: %s,
+            funToString: None,
         },
     },
     dom_class: %s
@@ -1853,7 +1854,7 @@ static PrototypeClass: JSClass = JSClass {
     hasInstance: None,
     construct: None,
     trace: None,
-    reserved: [0 as *mut libc::c_void; 25]
+    reserved: [0 as *mut libc::c_void; 26]
 };
 """ % {'name': name, 'slotCount': slotCount}
 
