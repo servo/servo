@@ -48,22 +48,15 @@ impl UIEvent {
                view: Option<&Window>,
                detail: i32) -> Root<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
-        ev.InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
-                       cancelable == EventCancelable::Cancelable, view, detail);
+        ev.InitUIEvent(type_, can_bubble.0, cancelable.0, view, detail);
         ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Root<UIEvent>> {
-        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
         let event = UIEvent::new(global.as_window(), type_,
-                                 bubbles, cancelable,
+                                 EventBubbles(init.parent.bubbles), EventCancelable(init.parent.cancelable),
                                  init.view.r(), init.detail);
         Ok(event)
     }

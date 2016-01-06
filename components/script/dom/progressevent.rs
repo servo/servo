@@ -39,7 +39,7 @@ impl ProgressEvent {
                                     ProgressEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, can_bubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            event.init_event(type_, can_bubble.0, cancelable.0);
         }
         ev
     }
@@ -47,10 +47,8 @@ impl ProgressEvent {
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Root<ProgressEvent>> {
-        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable }
-                         else { EventCancelable::NotCancelable };
-        let ev = ProgressEvent::new(global, Atom::from(&*type_), bubbles, cancelable,
+        let ev = ProgressEvent::new(global, Atom::from(&*type_), EventBubbles(init.parent.bubbles),
+                                    EventCancelable(init.parent.cancelable),
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }

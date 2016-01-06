@@ -57,7 +57,7 @@ impl StorageEvent {
                                     StorageEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            event.init_event(type_, bubbles.0, cancelable.0);
         }
         ev
     }
@@ -70,14 +70,8 @@ impl StorageEvent {
         let newValue = init.newValue.clone();
         let url = init.url.clone();
         let storageArea = init.storageArea.r();
-        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
         let event = StorageEvent::new(global, Atom::from(&*type_),
-                                      bubbles, cancelable,
+                                      EventBubbles(init.parent.bubbles), EventCancelable(init.parent.cancelable),
                                       key, oldValue, newValue,
                                       url, storageArea);
         Ok(event)

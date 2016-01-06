@@ -332,8 +332,8 @@ impl EventTarget {
 
     /// Implements https://html.spec.whatwg.org/multipage/#fire-a-simple-event
     pub fn fire_simple_event(&self, name: &str, win: GlobalRef) -> Root<Event> {
-        self.fire_simple_event_params(name, EventBubbles::DoesNotBubble,
-                                      EventCancelable::NotCancelable, win)
+        self.fire_simple_event_params(name, EventBubbles(false),
+                                      EventCancelable(false), win)
     }
 
     /// Implements more customizable variant of EventTarget::fire_simple_event.

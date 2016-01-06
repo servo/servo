@@ -530,8 +530,8 @@ impl Runnable for CloseTask {
             //A Bad close
             ws.clean_close.set(false);
             ws.upcast().fire_simple_event_params("error",
-                                                 EventBubbles::DoesNotBubble,
-                                                 EventCancelable::Cancelable,
+                                                 EventBubbles(false),
+                                                 EventCancelable(true),
                                                  global.r());
         }
         let reason = ws.reason.borrow().clone();
@@ -540,8 +540,8 @@ impl Runnable for CloseTask {
         */
         let close_event = CloseEvent::new(global.r(),
                                           atom!("close"),
-                                          EventBubbles::DoesNotBubble,
-                                          EventCancelable::NotCancelable,
+                                          EventBubbles(false),
+                                          EventCancelable(false),
                                           ws.clean_close.get(),
                                           ws.code.get(),
                                           DOMString::from(reason));

@@ -74,7 +74,7 @@ impl MouseEvent {
                button: i16,
                relatedTarget: Option<&EventTarget>) -> Root<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
-        ev.InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable,
+        ev.InitMouseEvent(type_, canBubble.0, cancelable.0,
                           view, detail,
                           screenX, screenY, clientX, clientY,
                           ctrlKey, altKey, shiftKey, metaKey,
@@ -85,19 +85,9 @@ impl MouseEvent {
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Root<MouseEvent>> {
-        let bubbles = if init.parent.parent.parent.bubbles {
-            EventBubbles::Bubbles
-        } else {
-            EventBubbles::DoesNotBubble
-        };
-        let cancelable = if init.parent.parent.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-        EventCancelable::NotCancelable
-        };
         let event = MouseEvent::new(global.as_window(), type_,
-                                    bubbles,
-                                    cancelable,
+                                    EventBubbles(init.parent.parent.parent.bubbles),
+                                    EventCancelable(init.parent.parent.parent.cancelable),
                                     init.parent.parent.view.r(),
                                     init.parent.parent.detail,
                                     init.screenX, init.screenY,

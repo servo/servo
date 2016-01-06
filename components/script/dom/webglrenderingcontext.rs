@@ -122,8 +122,8 @@ impl WebGLRenderingContext {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(global,
                                                    atom!("webglcontextcreationerror"),
-                                                   EventBubbles::DoesNotBubble,
-                                                   EventCancelable::Cancelable,
+                                                   EventBubbles(false),
+                                                   EventCancelable(true),
                                                    DOMString::from(msg));
                 event.upcast::<Event>().fire(canvas.upcast());
                 None

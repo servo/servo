@@ -479,26 +479,26 @@ impl HTMLScriptElement {
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
         self.dispatch_event(atom!("beforescriptexecute"),
-                            EventBubbles::Bubbles,
-                            EventCancelable::Cancelable)
+                            EventBubbles(true),
+                            EventCancelable(true))
     }
 
     pub fn dispatch_after_script_execute_event(&self) {
         self.dispatch_event(atom!("afterscriptexecute"),
-                            EventBubbles::Bubbles,
-                            EventCancelable::NotCancelable);
+                            EventBubbles(true),
+                            EventCancelable(false));
     }
 
     pub fn dispatch_load_event(&self) {
         self.dispatch_event(atom!("load"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::NotCancelable);
+                            EventBubbles(false),
+                            EventCancelable(false));
     }
 
     pub fn dispatch_error_event(&self) {
         self.dispatch_event(atom!("error"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::NotCancelable);
+                            EventBubbles(false),
+                            EventCancelable(false));
     }
 
     pub fn is_javascript(&self) -> bool {

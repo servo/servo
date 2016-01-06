@@ -45,9 +45,7 @@ impl CloseEvent {
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_,
-                             bubbles == EventBubbles::Bubbles,
-                             cancelable == EventCancelable::Cancelable);
+            event.init_event(type_, bubbles.0, cancelable.0);
         }
         ev
     }
@@ -56,20 +54,10 @@ impl CloseEvent {
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Root<CloseEvent>> {
-        let bubbles = if init.parent.bubbles {
-            EventBubbles::Bubbles
-        } else {
-            EventBubbles::DoesNotBubble
-        };
-        let cancelable = if init.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
         Ok(CloseEvent::new(global,
                            Atom::from(&*type_),
-                           bubbles,
-                           cancelable,
+                           EventBubbles(init.parent.bubbles),
+                           EventCancelable(init.parent.cancelable),
                            init.wasClean,
                            init.code,
                            init.reason.clone()))
