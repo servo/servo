@@ -592,7 +592,7 @@ def scan(faster=False):
 
     # wpt lint checks
     if faster:
-        print "Using test-tidy-faster, skipping WPT lint"
+        print "\033[93mUsing test-tidy \033[01m--faster\033[22m, skipping WPT lint\033[0m"
         wpt_lint_errors = iter([])
     else:
         wpt_lint_errors = check_wpt_lint_errors()
