@@ -4,7 +4,7 @@
 
 use hyper::header::Headers;
 use hyper::status::StatusCode;
-use net_traits::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
 use std::ascii::AsciiExt;
 use std::cell::RefCell;
 use std::rc::Rc;
