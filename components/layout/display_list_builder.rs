@@ -335,7 +335,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Some(computed::Image::LinearGradient(ref gradient)) => {
                 self.build_display_list_for_background_linear_gradient(display_list,
                                                                        level,
-                                                                       absolute_bounds,
+                                                                       &bounds,
                                                                        &clip,
                                                                        gradient,
                                                                        style)
@@ -345,7 +345,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                              display_list,
                                                              layout_context,
                                                              level,
-                                                             absolute_bounds,
+                                                             &bounds,
                                                              &clip,
                                                              image_url)
             }
