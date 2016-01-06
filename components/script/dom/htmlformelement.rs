@@ -37,12 +37,12 @@ use hyper::header::ContentType;
 use hyper::method::Method;
 use hyper::mime;
 use msg::constellation_msg::{LoadData, PipelineId};
-use script_thread::ScriptThreadEventCategory::FormPlannedNavigation;
-use script_thread::{CommonScriptMsg, MainThreadScriptMsg, Runnable, ScriptChan};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, ScriptChan};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
+use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded::serialize;
 use util::str::DOMString;
 
@@ -75,6 +75,10 @@ impl HTMLFormElement {
                document: &Document) -> Root<HTMLFormElement> {
         let element = HTMLFormElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFormElementBinding::Wrap)
+    }
+
+    pub fn generation_id(&self) -> GenerationId {
+        self.generation_id.get()
     }
 }
 
@@ -322,17 +326,20 @@ impl HTMLFormElement {
         // generation ID is the same as its own generation ID.
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
+
         // Step 2
+        let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
         let nav = box PlannedNavigation {
             load_data: load_data,
             pipeline_id: window.pipeline(),
             script_chan: window.main_thread_script_chan().clone(),
             generation_id: self.generation_id.get(),
-            form: Trusted::new(self, window.dom_manipulation_task_source())
+            form: Trusted::new(self, chan)
         };
+
         // Step 3
-        window.dom_manipulation_task_source().send(
-            CommonScriptMsg::RunnableMsg(FormPlannedNavigation, nav)).unwrap();
+        window.dom_manipulation_task_source().queue(
+            DOMManipulationTask::PlannedNavigation(nav)).unwrap();
     }
 
     /// Interactively validate the constraints of form elements
