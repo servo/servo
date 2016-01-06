@@ -693,8 +693,8 @@ impl Document {
         let clickCount = 1;
         let event = MouseEvent::new(&self.window,
                                     DOMString::from(mouse_event_type_string),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
+                                    EventBubbles(true),
+                                    EventCancelable(true),
                                     Some(&self.window),
                                     clickCount,
                                     client_x,
@@ -734,8 +734,8 @@ impl Document {
 
         let mouse_event = MouseEvent::new(&self.window,
                                           DOMString::from(event_name),
-                                          EventBubbles::Bubbles,
-                                          EventCancelable::Cancelable,
+                                          EventBubbles(true),
+                                          EventCancelable(true),
                                           Some(&self.window),
                                           0i32,
                                           client_x,
@@ -922,8 +922,8 @@ impl Document {
 
         let event = TouchEvent::new(window,
                                     DOMString::from(event_name),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
+                                    EventBubbles(true),
+                                    EventCancelable(true),
                                     Some(window),
                                     0i32,
                                     &TouchList::new(window, touches.r()),
@@ -1352,8 +1352,8 @@ impl Document {
 
         let event = Event::new(GlobalRef::Window(self.window()),
                                atom!("DOMContentLoaded"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
+                               EventBubbles(false),
+                               EventCancelable(false));
         let doctarget = self.upcast::<EventTarget>();
         let _ = doctarget.DispatchEvent(event.r());
         self.window().reflow(ReflowGoal::ForDisplay,
@@ -2502,8 +2502,8 @@ impl DocumentProgressHandler {
         let window = document.window();
         let event = Event::new(GlobalRef::Window(window),
                                atom!("load"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
+                               EventBubbles(false),
+                               EventCancelable(false));
         let wintarget = window.upcast::<EventTarget>();
         event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);

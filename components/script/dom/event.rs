@@ -27,16 +27,10 @@ pub enum EventPhase {
 }
 
 #[derive(PartialEq, HeapSizeOf)]
-pub enum EventBubbles {
-    Bubbles,
-    DoesNotBubble
-}
+pub struct EventBubbles(pub bool);
 
 #[derive(PartialEq, HeapSizeOf)]
-pub enum EventCancelable {
-    Cancelable,
-    NotCancelable
-}
+pub struct EventCancelable(pub bool);
 
 #[dom_struct]
 pub struct Event {
@@ -87,16 +81,14 @@ impl Event {
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<Event> {
         let event = Event::new_uninitialized(global);
-        event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        event.init_event(type_, bubbles.0, cancelable.0);
         event
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
-        let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-        Ok(Event::new(global, Atom::from(&*type_), bubbles, cancelable))
+        Ok(Event::new(global, Atom::from(&*type_), EventBubbles(init.bubbles), EventCancelable(init.cancelable)))
     }
 
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {

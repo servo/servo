@@ -135,7 +135,7 @@ impl Worker {
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
         let errorevent = ErrorEvent::new(global.r(), atom!("error"),
-                                         EventBubbles::Bubbles, EventCancelable::Cancelable,
+                                         EventBubbles(true), EventCancelable(true),
                                          message, filename, lineno, colno, error.handle());
         errorevent.upcast::<Event>().fire(worker.upcast());
     }

@@ -792,8 +792,8 @@ impl XMLHttpRequest {
         let global = self.global.root();
         let event = Event::new(global.r(),
                                atom!("readystatechange"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable);
+                               EventBubbles(false),
+                               EventCancelable(true));
         event.fire(self.upcast());
     }
 
@@ -973,8 +973,8 @@ impl XMLHttpRequest {
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
                                                type_,
-                                               EventBubbles::DoesNotBubble,
-                                               EventCancelable::NotCancelable,
+                                               EventBubbles(false),
+                                               EventCancelable(false),
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {

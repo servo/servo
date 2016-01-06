@@ -60,8 +60,7 @@ impl ErrorEvent {
         let ev = ErrorEvent::new_uninitialized(global);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, bubbles == EventBubbles::Bubbles,
-                             cancelable == EventCancelable::Cancelable);
+            event.init_event(type_, bubbles.0, cancelable.0);
             *ev.message.borrow_mut() = message;
             *ev.filename.borrow_mut() = filename;
             ev.lineno.set(lineno);
@@ -88,19 +87,12 @@ impl ErrorEvent {
 
         let col_num = init.colno.unwrap_or(0);
 
-        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-
-        let cancelable = if init.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
-
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         let error = RootedValue::new(global.get_cx(), init.error);
         let event = ErrorEvent::new(global, Atom::from(&*type_),
-                                bubbles, cancelable,
+                                EventBubbles(init.parent.bubbles),
+                                EventCancelable(init.parent.cancelable),
                                 msg, file_name,
                                 line_num, col_num,
                                 error.handle());

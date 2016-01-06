@@ -867,12 +867,12 @@ impl Activatable for HTMLInputElement {
                     let target = self.upcast::<EventTarget>();
 
                     target.fire_simple_event_params("input",
-                                                    EventBubbles::Bubbles,
-                                                    EventCancelable::NotCancelable,
+                                                    EventBubbles(true),
+                                                    EventCancelable(false),
                                                     GlobalRef::Window(win.r()));
                     target.fire_simple_event_params("change",
-                                                    EventBubbles::Bubbles,
-                                                    EventCancelable::NotCancelable,
+                                                    EventBubbles(true),
+                                                    EventCancelable(false),
                                                     GlobalRef::Window(win.r()));
                 }
             },
@@ -953,8 +953,8 @@ impl Runnable for ChangeEventRunnable {
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
                                atom!("input"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
+                               EventBubbles(false),
+                               EventCancelable(false));
         target.upcast::<EventTarget>().dispatch_event(&event);
     }
 }

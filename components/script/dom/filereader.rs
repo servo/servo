@@ -324,7 +324,7 @@ impl FileReader {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            type_, EventBubbles(false), EventCancelable(false),
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
     }
