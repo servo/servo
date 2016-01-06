@@ -177,7 +177,11 @@ pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchLi
 }
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
+<<<<<<< HEAD
 pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
+=======
+pub fn fetch(request: Rc<RefCell<Request>>, cors_flag: bool) -> Response {
+>>>>>>> first draft of a basic test for fetch
 
     // Step 1
     if request.context != Context::Fetch && !request.headers.borrow().has::<Accept>() {
