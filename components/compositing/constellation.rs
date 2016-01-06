@@ -622,6 +622,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got activate document message");
                 self.handle_activate_document_msg(pipeline_id);
             }
+            // Update pipeline url after redirections
+            Request::Script(FromScriptMsg::SetFinalUrl(pipeline_id, final_url)) => {
+                debug!("constellation got set final url message");
+                self.mut_pipeline(pipeline_id).url = final_url;
+            }
             Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
                                               subpage_id,
                                               event)) => {

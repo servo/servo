@@ -79,4 +79,6 @@ pub enum ScriptMsg {
     ActivateDocument(PipelineId),
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(PipelineId, DocumentState),
+    /// Update the pipeline Url, which can change after redirections.
+    SetFinalUrl(PipelineId, Url),
 }

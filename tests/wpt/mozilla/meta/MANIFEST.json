@@ -5785,6 +5785,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html"
           }
         ],
+        "mozilla/mozbrowser/redirect.html": [
+          {
+            "path": "mozilla/mozbrowser/redirect.html",
+            "url": "/_mozilla/mozilla/mozbrowser/redirect.html"
+          }
+        ],
         "mozilla/mozbrowser/reload.html": [
           {
             "path": "mozilla/mozbrowser/reload.html",
