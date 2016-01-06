@@ -231,7 +231,7 @@ dependencies = [
  "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gaol 0.0.1 (git+https://github.com/adamncasey/gaol)",
+ "gaol 0.0.1 (git+https://github.com/pcwalton/gaol)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "gleam 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -543,7 +543,7 @@ dependencies = [
 [[package]]
 name = "gaol"
 version = "0.0.1"
-source = "git+https://github.com/adamncasey/gaol#53a1af134df736ea4c980560b3bd52c3471f74e3"
+source = "git+https://github.com/pcwalton/gaol#e1349d8d3d933b3a90f9c86baa390261c510e019"
 dependencies = [
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -602,6 +602,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-fontconfig 0.2.0 (git+https://github.com/servo/rust-fontconfig)",
  "servo-fontconfig 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-skia 0.20130412.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "simd 0.1.0 (git+https://github.com/huonw/simd)",
@@ -819,7 +820,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-mozjs#63bb31db39b0112d1d2604e8f731159b63f7d34c"
+source = "git+https://github.com/servo/rust-mozjs#b96675b217534c7742cbfda8150ea0536aedbdfb"
 dependencies = [
  "heapsize 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -827,6 +828,15 @@ dependencies = [
  "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
  "num 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "kernel32-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1527,7 +1537,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "env_logger 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gaol 0.0.1 (git+https://github.com/adamncasey/gaol)",
+ "gaol 0.0.1 (git+https://github.com/pcwalton/gaol)",
  "gfx 0.0.1",
  "gleam 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
@@ -1554,6 +1564,15 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "servo-fontconfig"
+version = "0.2.0"
+source = "git+https://github.com/servo/rust-fontconfig#0dd4c4496295ac58ef2f8248d896b19a369767d4"
+dependencies = [
+ "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-fontconfig-sys 2.11.2-really.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1863,6 +1882,7 @@ dependencies = [
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
  "js 0.1.1 (git+https://github.com/servo/rust-mozjs)",
+ "kernel32-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",

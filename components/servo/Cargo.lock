@@ -643,6 +643,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-fontconfig 0.2.0 (git+https://github.com/servo/rust-fontconfig)",
  "servo-fontconfig 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-skia 0.20130412.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "simd 0.1.0 (git+https://github.com/huonw/simd)",
@@ -889,7 +890,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-mozjs#63bb31db39b0112d1d2604e8f731159b63f7d34c"
+source = "git+https://github.com/servo/rust-mozjs#b96675b217534c7742cbfda8150ea0536aedbdfb"
 dependencies = [
  "heapsize 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -904,7 +905,7 @@ name = "kernel32-sys"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
