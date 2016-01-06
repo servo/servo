@@ -89,7 +89,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
-use script_thread::{MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, ScriptChan};
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
 use script_traits::{TouchEventType, TouchId};
@@ -108,6 +108,7 @@ use string_cache::{Atom, QualName};
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
+use task_source::dom_manipulation::DOMManipulationTask;
 use time;
 use url::percent_encoding::percent_decode;
 use url::{Host, Url};
@@ -1406,11 +1407,11 @@ impl Document {
 
         update_with_current_time(&self.dom_content_loaded_event_start);
 
-        let doctarget = self.upcast::<EventTarget>();
-        let _ = doctarget.fire_event("DOMContentLoaded",
-                                     EventBubbles::Bubbles,
-                                     EventCancelable::NotCancelable);
-
+        let chan = MainThreadScriptChan(self.window().main_thread_script_chan().clone()).clone();
+        let doctarget = Trusted::new(self.upcast::<EventTarget>(), chan);
+        let task_source = self.window().dom_manipulation_task_source();
+        let _ = task_source.queue(DOMManipulationTask::FireEvent(
+            atom!("DOMContentLoaded"), doctarget, EventBubbles::Bubbles, EventCancelable::NotCancelable));
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);
@@ -2590,13 +2591,13 @@ fn update_with_current_time(marker: &Cell<u64>) {
 }
 
 pub struct DocumentProgressHandler {
-    addr: Trusted<Document>,
+    addr: Trusted<Document>
 }
 
 impl DocumentProgressHandler {
-    pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
+     pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
         DocumentProgressHandler {
-            addr: addr,
+            addr: addr
         }
     }
 

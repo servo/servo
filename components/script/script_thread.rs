@@ -99,6 +99,12 @@ use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use style::context::ReflowGoal;
+use task_source::TaskSource;
+use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
+use task_source::file_reading::FileReadingTaskSource;
+use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::networking::NetworkingTaskSource;
+use task_source::user_interaction::UserInteractionTaskSource;
 use time::{Tm, now};
 use url::Url;
 use util::opts;
@@ -251,11 +257,11 @@ pub enum MainThreadScriptMsg {
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
-    /// Generic message for running threads in the ScriptThread
-    MainThreadRunnableMsg(Box<MainThreadRunnable + Send>),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptThread).
     Navigate(PipelineId, LoadData),
+    /// Tasks that originate from the DOM manipulation task source
+    DOMManipulation(DOMManipulationTask),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -357,102 +363,6 @@ impl MainThreadScriptChan {
     }
 }
 
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
-#[derive(JSTraceable)]
-pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for DOMManipulationTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let DOMManipulationTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        let DOMManipulationTaskSource(ref chan) = *self;
-        box DOMManipulationTaskSource((*chan).clone())
-    }
-}
-
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
-#[derive(JSTraceable)]
-pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for UserInteractionTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let UserInteractionTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        let UserInteractionTaskSource(ref chan) = *self;
-        box UserInteractionTaskSource((*chan).clone())
-    }
-}
-
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
-#[derive(JSTraceable)]
-pub struct NetworkingTaskSource(pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for NetworkingTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let NetworkingTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        let NetworkingTaskSource(ref chan) = *self;
-        box NetworkingTaskSource((*chan).clone())
-    }
-}
-
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
-#[derive(JSTraceable)]
-pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for HistoryTraversalTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let HistoryTraversalTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        let HistoryTraversalTaskSource(ref chan) = *self;
-        box HistoryTraversalTaskSource((*chan).clone())
-    }
-}
-
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
-#[derive(JSTraceable)]
-pub struct FileReadingTaskSource(pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for FileReadingTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let FileReadingTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        let FileReadingTaskSource(ref chan) = *self;
-        box FileReadingTaskSource((*chan).clone())
-    }
-}
-
-// FIXME: Use a task source specific message instead of MainThreadScriptMsg
-#[derive(JSTraceable)]
-pub struct ProfilerThreadSource(pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for ProfilerThreadSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let ProfilerThreadSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        let ProfilerThreadSource(ref chan) = *self;
-        box ProfilerThreadSource((*chan).clone())
-    }
-}
-
 pub struct StackRootTLS<'a>(PhantomData<&'a u32>);
 
 impl<'a> StackRootTLS<'a> {
@@ -494,6 +404,7 @@ pub struct ScriptThread {
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
+
     dom_manipulation_task_source: DOMManipulationTaskSource,
 
     user_interaction_task_source: UserInteractionTaskSource,
@@ -1155,8 +1066,6 @@ impl ScriptThread {
                 self.handle_navigate(id, None, load_data),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            MainThreadScriptMsg::MainThreadRunnableMsg(runnable) =>
-                runnable.handler(self),
             MainThreadScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
@@ -1170,6 +1079,8 @@ impl ScriptThread {
                 LiveDOMReferences::cleanup(addr),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
+            MainThreadScriptMsg::DOMManipulation(msg) =>
+                msg.handle_msg(self),
         }
     }
 
@@ -1366,7 +1277,7 @@ impl ScriptThread {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
         let handler = box DocumentProgressHandler::new(addr.clone());
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DocumentEvent, handler)).unwrap();
+        self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();

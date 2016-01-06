@@ -71,7 +71,7 @@ impl Worker {
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
-        let worker_ref = Trusted::new(worker.r(), global.dom_manipulation_task_source());
+        let worker_ref = Trusted::new(worker.r(), global.script_chan());
         let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -102,7 +102,7 @@ impl Worker {
         };
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker_ref,
-            global.dom_manipulation_task_source(), sender, receiver);
+            global.script_chan(), sender, receiver);
 
         Ok(worker)
     }
@@ -138,15 +138,15 @@ impl Worker {
 }
 
 impl WorkerMethods for Worker {
-    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(self, self.global().r().dom_manipulation_task_source());
+        let address = Trusted::new(self, self.global().r().script_chan());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
+    // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 
     // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror

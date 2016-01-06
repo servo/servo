@@ -53,9 +53,8 @@ use page::Page;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_thread::{DOMManipulationTaskSource, UserInteractionTaskSource, NetworkingTaskSource};
-use script_thread::{HistoryTraversalTaskSource, FileReadingTaskSource, SendableMainThreadScriptChan};
-use script_thread::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
+use script_thread::{SendableMainThreadScriptChan, ScriptChan, ScriptPort};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
@@ -75,6 +74,12 @@ use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::selector_impl::PseudoElement;
+use task_source::TaskSource;
+use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
+use task_source::file_reading::FileReadingTaskSource;
+use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::networking::NetworkingTaskSource;
+use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
@@ -258,7 +263,7 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
         self.dom_manipulation_task_source.clone()
     }
 
@@ -279,8 +284,7 @@ impl Window {
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
-        let MainThreadScriptChan(ref sender) = self.script_chan;
-        sender
+        &self.script_chan.0
     }
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
