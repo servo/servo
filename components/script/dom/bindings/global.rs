@@ -21,8 +21,10 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::ResourceThread;
 use profile_traits::mem;
-use script_thread::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThread};
+use script_thread::{CommonScriptMsg, MainThreadScriptChan, ScriptChan, ScriptPort, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
+use task_source::TaskSource;
+use task_source::dom_manipulation::DOMManipulationTask;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 
@@ -142,10 +144,21 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+        match *self {
+            GlobalRef::Window(ref window) => {
+                MainThreadScriptChan(window.main_thread_script_chan().clone()).clone()
+            }
+            GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `TaskSource` used to queue DOM manipulation messages to the event loop of this global's
+    /// thread.
+    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
+            GlobalRef::Worker(_) => unimplemented!(),
         }
     }
 
