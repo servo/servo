@@ -177,11 +177,7 @@ pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchLi
 }
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-<<<<<<< HEAD
 pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
-=======
-pub fn fetch(request: Rc<RefCell<Request>>, cors_flag: bool) -> Response {
->>>>>>> first draft of a basic test for fetch
 
     // Step 1
     if request.context != Context::Fetch && !request.headers.borrow().has::<Accept>() {
@@ -309,6 +305,7 @@ fn http_fetch(request: Rc<Request>,
     if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
 
         // TODO: Substep 1 (handle fetch unimplemented)
+        
         if let Some(ref res) = response {
 
             // Substep 2
@@ -365,7 +362,7 @@ fn http_fetch(request: Rc<Request>,
                     destination: url.clone(),
                     credentials: credentials
                 }, view.name()) && !is_simple_header(&view)
-                );
+            );
 
             if method_mismatch || header_mismatch {
                 let preflight_result = preflight_fetch(request.clone());
@@ -447,7 +444,7 @@ fn http_fetch(request: Rc<Request>,
 
                 // Step 9
                 RedirectMode::Manual => {
-                    response = actual_response.to_filtered(ResponseType::Opaque);
+                    *response.borrow_mut() = actual_response.to_filtered(ResponseType::Opaque);
                 }
 
                 // Step 10
@@ -748,10 +745,7 @@ fn http_network_fetch(request: Rc<Request>,
     let cancellation_listener = CancellationListener::new(None);
 
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
-                                           // TODO nikkisquared: use this line instead
-                                           // after merging with another branch
-                                           // &request.headers.borrow()
-                                           &mut *request.headers.borrow_mut(),
+                                           &request.headers.borrow(),
                                            &cancellation_listener, &None, &request.method.borrow(),
                                            &None, request.redirect_count.get(), &None, "");
 

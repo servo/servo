@@ -1,5 +1,5 @@
 use hyper::server::{Server, Request as HyperRequest, Response as HyperResponse};
-use net::fetch::request::{Context, fetch, Request};
+use net::fetch::request::{Context, fetch, Referer, Request};
 use net_traits::{ResponseBody};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -19,10 +19,13 @@ fn test_fetch_response_body_matches_const_message() {
     let mut url_string = "http://localhost:".to_owned();
     url_string.push_str(&port);
     let url = Url::parse(&url_string).unwrap();
-    let request = Rc::new(RefCell::new(Request::new(url, Context::Fetch, false)));
+    
+    let mut request = Request::new(url, Context::Fetch, false);
+    request.referer = Referer::NoReferer;
+    let wrapped_request = Rc::new(RefCell::new(request));
 
-    println!("calling request");
-    let fetch_response = fetch(request, false);
+    println!("calling fetch");
+    let fetch_response = fetch(wrapped_request, false);
     match fetch_response.body {
         ResponseBody::Receiving(body) | ResponseBody::Done(body) => {
             assert_eq!(body, MESSAGE);
