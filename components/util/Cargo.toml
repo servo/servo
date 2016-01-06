@@ -68,4 +68,4 @@ url = {version = "0.5.2", features = ["serde_serialization"]}
 uuid = "0.1.17"
 
 [target.x86_64-pc-windows-gnu.dependencies]
-kernel32-sys = "0.1.4"
+kernel32-sys = "0.2"
