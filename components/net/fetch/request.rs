@@ -116,7 +116,7 @@ pub struct Request {
     pub origin: Option<Url>, // FIXME: Use Url::Origin
     pub force_origin_header: bool,
     pub omit_origin_header: bool,
-    pub same_origin_data: bool,
+    pub same_origin_data: Cell<bool>,
     pub referer: Referer,
     pub authentication: bool,
     pub sync: bool,
@@ -145,7 +145,7 @@ impl Request {
             origin: None,
             force_origin_header: false,
             omit_origin_header: false,
-            same_origin_data: false,
+            same_origin_data: Cell::new(false),
             referer: Referer::Client,
             authentication: false,
             sync: false,
@@ -235,8 +235,8 @@ pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 fn main_fetch(request: Rc<Request>, _cors_flag: bool) -> Response {
     // TODO: Implement main fetch spec
-    let _ = basic_fetch(request);
-    Response::network_error()
+    let response = basic_fetch(request);
+    response
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -305,6 +305,7 @@ fn http_fetch(request: Rc<Request>,
     if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
 
         // TODO: Substep 1 (handle fetch unimplemented)
+
         if let Some(ref res) = response {
 
             // Substep 2
@@ -361,7 +362,7 @@ fn http_fetch(request: Rc<Request>,
                     destination: url.clone(),
                     credentials: credentials
                 }, view.name()) && !is_simple_header(&view)
-                );
+            );
 
             if method_mismatch || header_mismatch {
                 let preflight_result = preflight_fetch(request.clone());
@@ -396,10 +397,11 @@ fn http_fetch(request: Rc<Request>,
         actual_response = response.clone();
     }
 
-    // Step 5
-    let actual_response = Rc::try_unwrap(actual_response.unwrap()).ok().unwrap();
-    let mut response = Rc::try_unwrap(response.unwrap()).ok().unwrap();
+    // response and actual_response are guaranteed to be something by now
+    let mut response = response.unwrap();
+    let actual_response = actual_response.unwrap();
 
+    // Step 5
     match actual_response.status.unwrap() {
 
         // Code 301, 302, 303, 307, 308
@@ -411,13 +413,16 @@ fn http_fetch(request: Rc<Request>,
                 return Response::network_error();
             }
 
-            // Step 2-4
+            // Step 3
             if !actual_response.headers.has::<Location>() {
-                return actual_response;
+                drop(actual_response);
+                return Rc::try_unwrap(response).ok().unwrap();
             }
 
+            // Step 2
             let location = match actual_response.headers.get::<Location>() {
                 Some(&Location(ref location)) => location.clone(),
+                // Step 4
                 _ => return Response::network_error(),
             };
 
@@ -426,7 +431,6 @@ fn http_fetch(request: Rc<Request>,
 
             // Step 6
             let location_url = match location_url {
-                Ok(ref url) if url.scheme == "data" => { return Response::network_error(); }
                 Ok(url) => url,
                 _ => { return Response::network_error(); }
             };
@@ -439,14 +443,17 @@ fn http_fetch(request: Rc<Request>,
             // Step 8
             request.redirect_count.set(request.redirect_count.get() + 1);
 
+            // Step 9
+            request.same_origin_data.set(false);
+
             match request.redirect_mode {
 
-                // Step 9
+                // Step 10
                 RedirectMode::Manual => {
-                    response = actual_response.to_filtered(ResponseType::Opaque);
+                    response = Rc::new(Response::to_filtered(actual_response, ResponseType::Opaque));
                 }
 
-                // Step 10
+                // Step 11
                 RedirectMode::Follow => {
 
                     // Substep 1
@@ -493,7 +500,8 @@ fn http_fetch(request: Rc<Request>,
             // Step 1
             // FIXME: Figure out what to do with request window objects
             if cors_flag {
-                return response;
+                drop(actual_response);
+                return Rc::try_unwrap(response).ok().unwrap();
             }
 
             // Step 2
@@ -526,7 +534,7 @@ fn http_fetch(request: Rc<Request>,
                               authentication_fetch_flag);
         }
 
-        _ => { }
+        _ => drop(actual_response)
     }
 
     // Step 6
@@ -535,7 +543,7 @@ fn http_fetch(request: Rc<Request>,
     }
 
     // Step 7
-    response
+    Rc::try_unwrap(response).ok().unwrap()
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
@@ -744,10 +752,7 @@ fn http_network_fetch(request: Rc<Request>,
     let cancellation_listener = CancellationListener::new(None);
 
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
-                                           // TODO nikkisquared: use this line instead
-                                           // after merging with another branch
-                                           // &request.headers.borrow()
-                                           &mut *request.headers.borrow_mut(),
+                                           &request.headers.borrow(),
                                            &cancellation_listener, &None, &request.method.borrow(),
                                            &None, request.redirect_count.get(), &None, "");
 
