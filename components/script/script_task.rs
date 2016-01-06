@@ -1648,6 +1648,10 @@ impl ScriptTask {
             // send the final url to the layout task.
             let LayoutChan(ref chan) = incomplete.layout_chan;
             chan.send(layout_interface::Msg::SetFinalUrl(final_url.clone())).unwrap();
+
+            // update the pipeline url
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
         }
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
