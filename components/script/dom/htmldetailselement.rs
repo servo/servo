@@ -10,14 +10,13 @@ use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use script_thread::ScriptThreadEventCategory::DomEvent;
-use script_thread::{CommonScriptMsg, Runnable};
+use script_thread::{MainThreadScriptChan, ScriptChan};
 use std::cell::Cell;
 use string_cache::Atom;
+use task_source::dom_manipulation::DOMManipulationTask;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -69,35 +68,12 @@ impl VirtualMethods for HTMLDetailsElement {
         if attr.local_name() == &atom!("open") {
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
-            ToggleEventRunnable::send(&self, counter);
-        }
-    }
-}
-
-pub struct ToggleEventRunnable {
-    element: Trusted<HTMLDetailsElement>,
-    toggle_number: u32
-}
-
-impl ToggleEventRunnable {
-    pub fn send(node: &HTMLDetailsElement, toggle_number: u32) {
-        let window = window_from_node(node);
-        let window = window.r();
-        let chan = window.dom_manipulation_task_source();
-        let handler = Trusted::new(node, chan.clone());
-        let dispatcher = ToggleEventRunnable {
-            element: handler,
-            toggle_number: toggle_number,
-        };
-        let _ = chan.send(CommonScriptMsg::RunnableMsg(DomEvent, box dispatcher));
-    }
-}
-
-impl Runnable for ToggleEventRunnable {
-    fn handler(self: Box<ToggleEventRunnable>) {
-        let target = self.element.root();
-        if target.check_toggle_count(self.toggle_number) {
-            target.upcast::<EventTarget>().fire_simple_event("toggle");
+            let window = window_from_node(self);
+            let window = window.r();
+            let task_source = window.dom_manipulation_task_source();
+            let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
+            let details = Trusted::new(self, chan);
+            let _ = task_source.queue(DOMManipulationTask::FireToggleEvent(details, counter));
         }
     }
 }

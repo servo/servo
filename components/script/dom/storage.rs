@@ -16,7 +16,8 @@ use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use page::IterablePage;
-use script_thread::{MainThreadRunnable, MainThreadScriptMsg, ScriptThread};
+use script_thread::{MainThreadRunnable, MainThreadScriptChan, ScriptChan, ScriptThread};
+use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 use util::str::DOMString;
 
@@ -153,10 +154,10 @@ impl Storage {
                                      new_value: Option<String>) {
         let global_root = self.global();
         let global_ref = global_root.r();
-        let main_script_chan = global_ref.as_window().main_thread_script_chan();
-        let script_chan = global_ref.dom_manipulation_task_source();
-        let trusted_storage = Trusted::new(self, script_chan);
-        main_script_chan.send(MainThreadScriptMsg::MainThreadRunnableMsg(
+        let task_source = global_ref.as_window().dom_manipulation_task_source();
+        let chan = MainThreadScriptChan(global_ref.as_window().main_thread_script_chan().clone()).clone();
+        let trusted_storage = Trusted::new(self, chan);
+        task_source.queue(DOMManipulationTask::SendStorageNotification(
             box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }
 }

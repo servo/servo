@@ -92,6 +92,7 @@ pub mod parse;
 pub mod reporter;
 #[allow(unsafe_code)]
 pub mod script_thread;
+mod task_source;
 pub mod textinput;
 mod timers;
 mod unpremultiplytable;
