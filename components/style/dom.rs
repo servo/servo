@@ -129,6 +129,10 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
         }
     }
 
+    fn can_be_fragmented(&self) -> bool;
+
+    unsafe fn set_can_be_fragmented(&self, value: bool);
+
     /// Borrows the PrivateStyleData without checks.
     #[inline(always)]
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData>;
