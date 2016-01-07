@@ -85,8 +85,6 @@ pub struct FontContext {
     /// per frame. TODO: Make this weak when incremental redraw is done.
     paint_font_cache: Vec<PaintFontCacheEntry>,
 
-    layout_font_group_address_cache: HashMap<usize, Rc<FontGroup>, DefaultState<FnvHasher>>,
-
     layout_font_group_cache:
         HashMap<LayoutFontGroupCacheKey, Rc<FontGroup>, DefaultState<FnvHasher>>,
 
@@ -102,7 +100,6 @@ impl FontContext {
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
             paint_font_cache: vec!(),
-            layout_font_group_address_cache: HashMap::with_hash_state(Default::default()),
             layout_font_group_cache: HashMap::with_hash_state(Default::default()),
             epoch: 0,
         }
@@ -150,7 +147,6 @@ impl FontContext {
         self.layout_font_cache.clear();
         self.fallback_font_cache.clear();
         self.paint_font_cache.clear();
-        self.layout_font_group_address_cache.clear();
         self.layout_font_group_cache.clear();
         self.epoch = current_epoch
     }
@@ -162,18 +158,12 @@ impl FontContext {
                                        -> Rc<FontGroup> {
         self.expire_font_caches_if_necessary();
 
-        let address = &*style as *const SpecifiedFontStyle as usize;
-        if let Some(ref cached_font_group) = self.layout_font_group_address_cache.get(&address) {
-            return (*cached_font_group).clone()
-        }
-
         let layout_font_group_cache_key = LayoutFontGroupCacheKey {
             pointer: style.clone(),
             size: style.font_size,
         };
         if let Some(ref cached_font_group) = self.layout_font_group_cache.get(
                 &layout_font_group_cache_key) {
-            self.layout_font_group_address_cache.insert(address, (*cached_font_group).clone());
             return (*cached_font_group).clone()
         }
 
@@ -281,7 +271,6 @@ impl FontContext {
 
         let font_group = Rc::new(FontGroup::new(fonts));
         self.layout_font_group_cache.insert(layout_font_group_cache_key, font_group.clone());
-        self.layout_font_group_address_cache.insert(address, font_group.clone());
         font_group
     }
 
