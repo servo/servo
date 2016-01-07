@@ -22,7 +22,7 @@ use traversal::{BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTrav
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
-pub use style::parallel::traverse_dom_preorder;
+pub use style::parallel::traverse_dom;
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeNode) {

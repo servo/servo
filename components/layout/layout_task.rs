@@ -1026,11 +1026,11 @@ impl LayoutTask {
                 // Perform CSS selector matching and flow construction.
                 match self.parallel_traversal {
                     None => {
-                        sequential::traverse_dom_preorder::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                        sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
                             node, &shared_layout_context);
                     }
                     Some(ref mut traversal) => {
-                        parallel::traverse_dom_preorder::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                        parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
                             node, &shared_layout_context, traversal);
                     }
                 }

@@ -39,11 +39,10 @@ pub fn run_queue_with_custom_work_data_type<To, F, SharedContext: Sync>(
     queue.run(shared);
 }
 
-pub fn traverse_dom_preorder<'ln, N, C>(
-                             root: N,
-                             queue_data: &C::SharedContext,
-                             queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
-                             where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
+pub fn traverse_dom<'ln, N, C>(root: N,
+                               queue_data: &C::SharedContext,
+                               queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
+                               where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
             fun:  top_down_dom::<N, C>,

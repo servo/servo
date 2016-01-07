@@ -7,10 +7,10 @@
 use dom::TNode;
 use traversal::DomTraversalContext;
 
-pub fn traverse_dom_preorder<'ln, N, C>(root: N,
-                                        shared: &C::SharedContext)
-                                        where N: TNode<'ln>,
-                                              C: DomTraversalContext<'ln, N> {
+pub fn traverse_dom<'ln, N, C>(root: N,
+                               shared: &C::SharedContext)
+                               where N: TNode<'ln>,
+                                     C: DomTraversalContext<'ln, N> {
     fn doit<'a, 'ln, N, C>(context: &'a C, node: N)
                            where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
         context.process_preorder(node);

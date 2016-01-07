@@ -18,7 +18,7 @@ use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
 
-pub use style::sequential::traverse_dom_preorder;
+pub use style::sequential::traverse_dom;
 
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
