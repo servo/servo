@@ -861,6 +861,8 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
+        use self::MixedMessage::{FromScript, FromConstellation, FromScheduler, FromDevtools, FromImageCache};
+
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
         let mut resizes = vec!();
@@ -906,15 +908,15 @@ impl ScriptTask {
             }
             let ret = sel.wait();
             if ret == script_port.id() {
-                MixedMessage::FromScript(self.port.recv().unwrap())
+                FromScript(self.port.recv().unwrap())
             } else if ret == control_port.id() {
-                MixedMessage::FromConstellation(self.control_port.recv().unwrap())
+                FromConstellation(self.control_port.recv().unwrap())
             } else if ret == timer_event_port.id() {
-                MixedMessage::FromScheduler(self.timer_event_port.recv().unwrap())
+                FromScheduler(self.timer_event_port.recv().unwrap())
             } else if ret == devtools_port.id() {
-                MixedMessage::FromDevtools(self.devtools_port.recv().unwrap())
+                FromDevtools(self.devtools_port.recv().unwrap())
             } else if ret == image_cache_port.id() {
-                MixedMessage::FromImageCache(self.image_cache_port.recv().unwrap())
+                FromImageCache(self.image_cache_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -928,30 +930,30 @@ impl ScriptTask {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(
+                FromConstellation(ConstellationControlMsg::AttachLayout(
                         new_layout_info)) => {
                     self.profile_event(ScriptTaskEventCategory::AttachLayout, || {
                         self.handle_new_layout(new_layout_info);
                     })
                 }
-                MixedMessage::FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
+                FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
                     self.profile_event(ScriptTaskEventCategory::Resize, || {
                         self.handle_resize(id, size);
                     })
                 }
-                MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
+                FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
                     self.profile_event(ScriptTaskEventCategory::SetViewport, || {
                         self.handle_viewport(id, rect);
                     })
                 }
-                MixedMessage::FromConstellation(ConstellationControlMsg::TickAllAnimations(
+                FromConstellation(ConstellationControlMsg::TickAllAnimations(
                         pipeline_id)) => {
                     if !animation_ticks.contains(&pipeline_id) {
                         animation_ticks.insert(pipeline_id);
                         sequential.push(event);
                     }
                 }
-                MixedMessage::FromConstellation(ConstellationControlMsg::SendEvent(
+                FromConstellation(ConstellationControlMsg::SendEvent(
                         _,
                         MouseMoveEvent(_))) => {
                     match mouse_move_event_index {
@@ -978,15 +980,15 @@ impl ScriptTask {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {
                                 Err(_) => break,
-                                Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                                Ok(ev) => event = FromImageCache(ev),
                             },
-                            Ok(ev) => event = MixedMessage::FromDevtools(ev),
+                            Ok(ev) => event = FromDevtools(ev),
                         },
-                        Ok(ev) => event = MixedMessage::FromScheduler(ev),
+                        Ok(ev) => event = FromScheduler(ev),
                     },
-                    Ok(ev) => event = MixedMessage::FromScript(ev),
+                    Ok(ev) => event = FromScript(ev),
                 },
-                Ok(ev) => event = MixedMessage::FromConstellation(ev),
+                Ok(ev) => event = FromConstellation(ev),
             }
         }
 
@@ -996,16 +998,16 @@ impl ScriptTask {
 
             let result = self.profile_event(category, move || {
                 match msg {
-                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id)) => {
+                    FromConstellation(ConstellationControlMsg::ExitPipeline(id)) => {
                         if self.handle_exit_pipeline_msg(id) {
                             return Some(false)
                         }
                     },
-                    MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
-                    MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                    MixedMessage::FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
-                    MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
-                    MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+                    FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
+                    FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
+                    FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                    FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                 }
 
                 None
