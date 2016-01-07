@@ -984,12 +984,19 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: Rect<Au>, metadata: DisplayItemMetadata, clip: ClippingRegion)
+    pub fn new(bounds: &Rect<Au>, metadata: DisplayItemMetadata, clip: &ClippingRegion)
                -> BaseDisplayItem {
+        // Detect useless clipping regions here and optimize them to `ClippingRegion::max()`.
+        // The painting backend may want to optimize out clipping regions and this makes it easier
+        // for it to do so.
         BaseDisplayItem {
-            bounds: bounds,
+            bounds: *bounds,
             metadata: metadata,
-            clip: clip,
+            clip: if clip.does_not_clip_rect(bounds) {
+                ClippingRegion::max()
+            } else {
+                (*clip).clone()
+            }
         }
     }
 }
@@ -1083,6 +1090,14 @@ impl ClippingRegion {
             self.complex.iter().all(|complex| complex.rect.intersects(rect))
     }
 
+    /// Returns true if this clipping region completely surrounds the given rect.
+    #[inline]
+    pub fn does_not_clip_rect(&self, rect: &Rect<Au>) -> bool {
+        self.main.contains(&rect.origin) && self.main.contains(&rect.bottom_right()) &&
+            self.complex.iter().all(|complex| {
+                complex.rect.contains(&rect.origin) && complex.rect.contains(&rect.bottom_right())
+            })
+    }
 
     /// Returns a bounding rect that surrounds this entire clipping region.
     #[inline]
