@@ -53,6 +53,7 @@ pub mod dom;
 pub mod font_face;
 pub mod matching;
 pub mod media_queries;
+pub mod parallel;
 pub mod parser;
 pub mod restyle_hints;
 pub mod selector_matching;
