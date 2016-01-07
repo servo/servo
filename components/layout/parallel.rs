@@ -16,10 +16,9 @@ use profile_traits::time::{self, TimerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::{TNode, UnsafeNode};
-use traversal::PostorderNodeMutTraversal;
+use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
-use traversal::{BuildDisplayList, ComputeAbsolutePositions};
-use traversal::DomTraversalContext;
+use traversal::{BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 

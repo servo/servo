@@ -12,10 +12,9 @@ use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtil
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use traversal::PostorderNodeMutTraversal;
+use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
-use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
-use traversal::DomTraversalContext;
+use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
 use wrapper::LayoutNode;
 

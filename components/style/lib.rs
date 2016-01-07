@@ -57,6 +57,7 @@ pub mod parser;
 pub mod restyle_hints;
 pub mod selector_matching;
 pub mod stylesheets;
+pub mod traversal;
 #[macro_use]
 #[allow(non_camel_case_types)]
 pub mod values;
