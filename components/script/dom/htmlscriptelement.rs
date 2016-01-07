@@ -192,33 +192,33 @@ impl HTMLScriptElement {
         if !self.upcast::<Node>().is_in_doc() {
             return NextParserState::Continue;
         }
-        // Step 6, 7.
+        // Step 6.
         if !self.is_javascript() {
             return NextParserState::Continue;
         }
-        // Step 8.
+        // Step 7.
         if was_parser_inserted {
             self.parser_inserted.set(true);
             self.non_blocking.set(false);
         }
-        // Step 9.
+        // Step 8.
         self.already_started.set(true);
 
-        // Step 10.
+        // Step 9.
         let doc = document_from_node(self);
         let document_from_node_ref = doc.r();
         if self.parser_inserted.get() && &*self.parser_document != document_from_node_ref {
             return NextParserState::Continue;
         }
 
-        // Step 11.
+        // Step 10.
         if !document_from_node_ref.is_scripting_enabled() {
             return NextParserState::Continue;
         }
 
-        // TODO: Step 12.
+        // TODO(#4577): Step 11: CSP.
 
-        // Step 13.
+        // Step 12.
         let for_attribute = element.get_attribute(&ns!(), &atom!("for"));
         let event_attribute = element.get_attribute(&ns!(), &atom!("event"));
         match (for_attribute.r(), event_attribute.r()) {
@@ -238,44 +238,40 @@ impl HTMLScriptElement {
             (_, _) => (),
         }
 
-        // Step 14.
+        // Step 13.
         if let Some(ref charset) = element.get_attribute(&ns!(), &atom!("charset")) {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }
         }
 
-        // Step 15.
         let window = window_from_node(self);
         let window = window.r();
         let base_url = window.get_url();
 
+        // Step 14.
         let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
-            // Step 15.
             Some(ref src) => {
-                // Step 15.1
+                // Step 14.1.
                 let src = src.value();
 
-                // Step 15.2
+                // Step 14.2.
                 if src.is_empty() {
                     self.queue_error_event();
                     return NextParserState::Continue;
                 }
 
-                // Step 15.3
+                // Step 14.3.
                 match base_url.join(&src) {
                     Err(_) => {
-                        // Step 15.4
+                        // Step 14.4.
                         error!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
                     }
                     Ok(url) => {
-                        // Step 15.5
-                        // TODO: Do a potentially CORS-enabled fetch with the mode being the current
-                        // state of the element's `crossorigin` content attribute, the origin being
-                        // the origin of the script element's node document, and the default origin
-                        // behaviour set to taint.
+                        // Step 14.5-7.
+                        // TODO(#9186): use the fetch infrastructure.
                         let script_chan = window.networking_task_source();
                         let elem = Trusted::new(self, script_chan.clone());
 
@@ -306,9 +302,9 @@ impl HTMLScriptElement {
             None => false,
         };
 
-        // Step 16.
+        // Step 15.
         let deferred = element.has_attribute(&atom!("defer"));
-        // Step 16.a, has src, has defer, was parser-inserted, is not async.
+        // Step 15.a: has src, has defer, was parser-inserted, is not async.
         if is_external &&
            deferred &&
            was_parser_inserted &&
@@ -316,13 +312,13 @@ impl HTMLScriptElement {
             doc.add_deferred_script(self);
             // Second part implemented in Document::process_deferred_scripts.
             return NextParserState::Continue;
-        // Step 16.b, has src, was parser-inserted, is not async.
+        // Step 15.b: has src, was parser-inserted, is not async.
         } else if is_external &&
                   was_parser_inserted &&
                   !async {
             doc.set_pending_parsing_blocking_script(Some(self));
             // Second part implemented in the load result handler.
-        // Step 16.c, doesn't have src, was parser-inserted, is blocked on stylesheet.
+        // Step 15.c: doesn't have src, was parser-inserted, is blocked on stylesheet.
         } else if !is_external &&
                   was_parser_inserted &&
                   // TODO: check for script nesting levels.
@@ -330,17 +326,17 @@ impl HTMLScriptElement {
             doc.set_pending_parsing_blocking_script(Some(self));
             *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
             self.ready_to_be_parser_executed.set(true);
-        // Step 16.d, has src, isn't async, isn't non-blocking.
+        // Step 15.d: has src, isn't async, isn't non-blocking.
         } else if is_external &&
                   !async &&
                   !self.non_blocking.get() {
             doc.push_asap_in_order_script(self);
             // Second part implemented in Document::process_asap_scripts.
-        // Step 16.e, has src.
+        // Step 15.e: has src.
         } else if is_external {
             doc.add_asap_script(self);
             // Second part implemented in Document::process_asap_scripts.
-        // Step 16.f, otherwise.
+        // Step 15.f: otherwise.
         } else {
             assert!(!text.is_empty());
             self.ready_to_be_parser_executed.set(true);
@@ -384,26 +380,7 @@ impl HTMLScriptElement {
 
             // Step 2.b.1.a.
             ScriptOrigin::External(Ok((metadata, bytes))) => {
-                // Step 1.
-                // TODO: If the resource's Content Type metadata, if any,
-                // specifies a character encoding, and the user agent supports
-                // that encoding, then let character encoding be that encoding,
-                // and jump to the bottom step in this series of steps.
-
-                // Step 2.
-                // TODO: If the algorithm above set the script block's
-                // character encoding, then let character encoding be that
-                // encoding, and jump to the bottom step in this series of
-                // steps.
-
-                // Step 3.
-                // TODO: Let character encoding be the script block's fallback
-                // character encoding.
-
-                // Step 4.
-                // TODO: Otherwise, decode the file to Unicode, using character
-                // encoding as the fallback encoding.
-
+                // TODO(#9185): implement encoding determination.
                 (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
                  true,
                  metadata.final_url)
