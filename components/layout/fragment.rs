@@ -1019,9 +1019,19 @@ impl Fragment {
     }
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
-        let font_style = self.style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(), font_style);
-        text::line_height_from_style(&*self.style, &font_metrics)
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+                text::line_height_from_style(&*self.style, &text_fragment.run.font_metrics)
+            }
+            _ => {
+                // `font_metrics_for_style()` can be slow, so we call it only if it's the only way
+                // to get the font metrics.
+                let font_style = self.style.get_font_arc();
+                let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
+                                                                font_style);
+                text::line_height_from_style(&*self.style, &font_metrics)
+            }
+        }
     }
 
     /// Returns the sum of the inline-sizes of all the borders of this fragment. Note that this
@@ -1849,7 +1859,8 @@ impl Fragment {
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
                 // See CSS 2.1 § 10.8.1.
-                let line_height = self.calculate_line_height(layout_context);
+                let line_height = text::line_height_from_style(&*self.style,
+                                                               &text_fragment.run.font_metrics);
                 let font_derived_metrics =
                     InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height);
                 InlineMetrics {
