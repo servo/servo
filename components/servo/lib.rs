@@ -17,6 +17,7 @@
 //! The `Browser` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+#[cfg(not(target_os = "windows"))]
 extern crate gaol;
 #[macro_use]
 extern crate util as _util;
@@ -60,10 +61,12 @@ use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
 use compositing::pipeline::UnprivilegedPipelineContent;
+#[cfg(not(target_os = "windows"))]
 use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorThread, Constellation};
+#[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
@@ -243,7 +246,7 @@ pub fn run_content_process(token: String) {
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {
-        ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+       create_sandbox();
     }
 
     script::init();
@@ -260,4 +263,14 @@ pub fn run_content_process(token: String) {
 pub unsafe extern fn __errno_location() -> *mut i32 {
     extern { fn __errno() -> *mut i32; }
     __errno()
+}
+
+#[cfg(not(target_os = "windows"))]
+fn create_sandbox() {
+    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+}
+
+#[cfg(target_os = "windows")]
+fn create_sandbox() {
+    panic!("Sandboxing is not supported on Windows.");
 }

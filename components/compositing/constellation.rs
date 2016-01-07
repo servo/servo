@@ -19,7 +19,9 @@ use compositor_thread::Msg as ToCompositorMsg;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
+#[cfg(not(target_os = "windows"))]
 use gaol;
+#[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{self, Sandbox, SandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::{Epoch, PaintMsg as FromPaintMsg};
@@ -40,6 +42,7 @@ use offscreen_gl_context::GLContextAttributes;
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
+#[cfg(not(target_os = "windows"))]
 use sandboxing;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
@@ -282,6 +285,7 @@ enum ExitPipelineMode {
 }
 
 enum ChildProcess {
+#[cfg(not(target_os = "windows"))]
     Sandboxed(gaol::platform::process::Process),
     Unsandboxed(process::Child),
 }
