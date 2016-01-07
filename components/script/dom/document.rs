@@ -72,7 +72,6 @@ use dom::touchevent::TouchEvent;
 use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
-use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::{ReflowReason, Window};
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
@@ -594,8 +593,6 @@ impl Document {
 
         if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(false);
-            let node = vtable_for(&elem.upcast::<Node>());
-            node.handle_blur();
         }
 
         self.focused.set(self.possibly_focused.get().r());

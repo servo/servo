@@ -719,13 +719,6 @@ impl VirtualMethods for HTMLInputElement {
                 }
         }
     }
-
-    fn handle_blur(&self) {
-        if let Some(s) = self.super_type() {
-            s.handle_blur();
-        }
-        self.force_relayout();
-    }
 }
 
 impl FormControl for HTMLInputElement {}
