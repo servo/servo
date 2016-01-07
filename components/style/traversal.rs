@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unsafe_code)]
-
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
@@ -148,6 +146,7 @@ pub struct RecalcStyleOnly<'lc> {
 
 impl<'lc, 'ln, N: TNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleOnly<'lc> {
     type SharedContext = SharedStyleContext;
+    #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
         // See the comment in RecalcStyleAndConstructFlows::new for an explanation of why this is
         // necessary.

@@ -4,8 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-#![allow(unsafe_code)]
-
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
@@ -29,6 +27,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
 
 impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAndConstructFlows<'lc> {
     type SharedContext = SharedLayoutContext;
+    #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
         // FIXME(bholley): This transmutation from &'a to &'lc is very unfortunate, but I haven't
         // found a way to avoid it despite spending several days on it (and consulting Manishearth,
@@ -48,7 +47,13 @@ impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAn
         // that would require higher-kinded types, which don't exist yet and probably aren't coming
         // for a while.
         //
-        // So we transmute. :-(
+        // So we transmute. :-( This is safe because the DomTravesalContext is stack-allocated on
+        // the worker thread while processing a WorkUnit, whereas the borrowed SharedContext is
+        // live for the entire duration of the restyle. This really could _almost_ compile: all
+        // we'd need to do is change the signature to to |new<'a: 'lc>|, and everything would
+        // work great. But we can't do that, because that would cause a mismatch with the signature
+        // in the trait we're implementing, and we can't mention 'lc in that trait at all for the
+        // reasons described above.
         //
         // [1] For example, the WorkQueue type needs to be parameterized on the concrete type of
         // DomTraversalContext::SharedContext, and the WorkQueue lifetime is similar to that of the
