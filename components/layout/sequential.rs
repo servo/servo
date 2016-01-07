@@ -18,24 +18,7 @@ use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
 
-pub fn traverse_dom_preorder<'ln, N, C>(root: N,
-                                        shared: &C::SharedContext)
-                                        where N: TNode<'ln>,
-                                              C: DomTraversalContext<'ln, N> {
-    fn doit<'a, 'ln, N, C>(context: &'a C, node: N)
-                           where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
-        context.process_preorder(node);
-
-        for kid in node.children() {
-            doit::<N, C>(context, kid);
-        }
-
-        context.process_postorder(node);
-    }
-
-    let context = C::new(shared, root.opaque());
-    doit::<N, C>(&context, root);
-}
+pub use style::sequential::traverse_dom_preorder;
 
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {

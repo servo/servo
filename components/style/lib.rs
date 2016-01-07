@@ -57,6 +57,7 @@ pub mod parallel;
 pub mod parser;
 pub mod restyle_hints;
 pub mod selector_matching;
+pub mod sequential;
 pub mod stylesheets;
 pub mod traversal;
 #[macro_use]
