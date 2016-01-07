@@ -44,7 +44,7 @@ impl CustomEvent {
                detail: HandleValue)
                -> Root<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global);
-        ev.init_custom_event(global.get_cx(), type_, bubbles, cancelable, detail);
+        ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
     #[allow(unsafe_code)]
@@ -60,7 +60,6 @@ impl CustomEvent {
     }
 
     fn init_custom_event(&self,
-                         _cx: *mut JSContext,
                          type_: Atom,
                          can_bubble: bool,
                          cancelable: bool,
@@ -88,7 +87,7 @@ impl CustomEventMethods for CustomEvent {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: HandleValue) {
-        self.init_custom_event(_cx, Atom::from(&*type_), can_bubble, cancelable, detail)
+        self.init_custom_event(Atom::from(&*type_), can_bubble, cancelable, detail)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

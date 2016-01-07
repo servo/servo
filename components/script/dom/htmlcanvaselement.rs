@@ -239,7 +239,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                     .map(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D)
             }
             "webgl" | "experimental-webgl" => {
-                self.get_or_init_webgl_context(cx, attributes.get(0).map(|p| *p))
+                self.get_or_init_webgl_context(cx, attributes.get(0).cloned())
                     .map(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext)
             }
             _ => None
