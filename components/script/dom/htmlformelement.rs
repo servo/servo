@@ -172,10 +172,10 @@ impl HTMLFormElement {
         // Step 5
         if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod {
             let event = self.upcast::<EventTarget>()
-                .fire_simple_event_params("submit",
-                                          EventBubbles::Bubbles,
-                                          EventCancelable::Cancelable,
-                                          GlobalRef::Window(win.r()));
+                .fire_event("submit",
+                            EventBubbles::Bubbles,
+                            EventCancelable::Cancelable,
+                            GlobalRef::Window(win.r()));
             if event.DefaultPrevented() {
                 return;
             }
@@ -271,10 +271,10 @@ impl HTMLFormElement {
         let win = window_from_node(self);
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
             let event = field.as_event_target()
-                .fire_simple_event_params("invalid",
-                                          EventBubbles::DoesNotBubble,
-                                          EventCancelable::Cancelable,
-                                          GlobalRef::Window(win.r()));
+                .fire_event("invalid",
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::Cancelable,
+                            GlobalRef::Window(win.r()));
             if !event.DefaultPrevented() { return Some(field); }
             None
         }).collect::<Vec<FormSubmittableElement>>();
@@ -398,10 +398,10 @@ impl HTMLFormElement {
 
         let win = window_from_node(self);
         let event = self.upcast::<EventTarget>()
-            .fire_simple_event_params("reset",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::Cancelable,
-                                      GlobalRef::Window(win.r()));
+            .fire_event("reset",
+                        EventBubbles::Bubbles,
+                        EventCancelable::Cancelable,
+                        GlobalRef::Window(win.r()));
         if event.DefaultPrevented() {
             return;
         }

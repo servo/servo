@@ -8,6 +8,9 @@
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
+ *
+ * WebIDL specification for this interface:
+ * https://dom.spec.whatwg.org/#event
  */
 
 [Constructor(DOMString type, optional EventInit eventInitDict)]
