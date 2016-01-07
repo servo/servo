@@ -32,8 +32,6 @@ def main():
     o = OptionParser(usage=usageString)
     o.add_option("--cachedir", dest='cachedir', default=None,
                  help="Directory in which to cache lex/parse tables.")
-    o.add_option("--verbose-errors", action='store_true', default=False,
-                 help="When an error happens, display the Python traceback.")
     (options, args) = o.parse_args()
 
     if len(args) < 2:

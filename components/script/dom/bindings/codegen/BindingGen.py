@@ -30,8 +30,6 @@ def main():
     from optparse import OptionParser
     usagestring = "usage: %prog configFile outputdir outputPrefix webIDLFile"
     o = OptionParser(usage=usagestring)
-    o.add_option("--verbose-errors", action='store_true', default=False,
-                 help="When an error happens, display the Python traceback.")
     (options, args) = o.parse_args()
 
     if len(args) != 4:
