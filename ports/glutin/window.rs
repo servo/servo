@@ -285,7 +285,7 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn handle_next_event(&self) -> bool {
         let event = self.window.wait_events().next().unwrap();
         let mut close = self.handle_window_event(event);
