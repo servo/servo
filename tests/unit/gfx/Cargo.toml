@@ -10,3 +10,9 @@ doctest = false
 
 [dependencies.gfx]
 path = "../../../components/gfx"
+
+[dependencies.ipc-channel]
+git = "https://github.com/servo/ipc-channel"
+
+[dependencies.style]
+path = "../../../components/style"

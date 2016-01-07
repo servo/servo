@@ -152,7 +152,7 @@ impl FontCache {
                     let family_name = LowercaseString::new(family.name());
                     if !self.web_families.contains_key(&family_name) {
                         let templates = FontTemplates::new();
-                        self.web_families.insert(family_name, templates);
+                        self.web_families.insert(family_name.clone(), templates);
                     }
 
                     match src {
@@ -207,10 +207,10 @@ impl FontCache {
                                 }
                             });
                         }
-                        Source::Local(ref family) => {
-                            let family_name = LowercaseString::new(family.name());
+                        Source::Local(ref font) => {
+                            let font_face_name = LowercaseString::new(font.name());
                             let templates = &mut self.web_families.get_mut(&family_name).unwrap();
-                            for_each_variation(&family_name, |path| {
+                            for_each_variation(&font_face_name, |path| {
                                 templates.add_template(Atom::from(&*path), None);
                             });
                             result.send(()).unwrap();

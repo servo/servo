@@ -650,6 +650,8 @@ name = "gfx_tests"
 version = "0.0.1"
 dependencies = [
  "gfx 0.0.1",
+ "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
+ "style 0.0.1",
 ]
 
 [[package]]
