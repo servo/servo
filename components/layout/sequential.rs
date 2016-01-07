@@ -12,18 +12,18 @@ use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtil
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
+use style::dom::TNode;
 use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
-use wrapper::LayoutNode;
 
 pub fn traverse_dom_preorder<'ln, N, C>(root: N,
                                         shared: &C::SharedContext)
-                                        where N: LayoutNode<'ln>,
+                                        where N: TNode<'ln>,
                                               C: DomTraversalContext<'ln, N> {
     fn doit<'a, 'ln, N, C>(context: &'a C, node: N)
-                           where N: LayoutNode<'ln>, C: DomTraversalContext<'ln, N> {
+                           where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
         context.process_preorder(node);
 
         for kid in node.children() {
