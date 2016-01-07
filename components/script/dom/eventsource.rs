@@ -17,6 +17,7 @@ use util::str::DOMString;
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum EventSourceReadyState {
     Connecting = 0,
+    #[allow(dead_code)]
     Open = 1,
     Closed = 2
 }
