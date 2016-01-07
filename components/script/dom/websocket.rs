@@ -381,19 +381,20 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send_(&self, data: &Blob) -> Fallible<()> {
+    fn Send_(&self, blob: &Blob) -> Fallible<()> {
 
         /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
            If the buffer limit is reached in the first place, there are likely other major problems
         */
-        let data_byte_len = data.Size();
+        let data_byte_len = blob.Size();
         let send_data = try!(self.send_impl(data_byte_len));
 
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(data.clone_bytes())));
+            let bytes = blob.get_data().get_bytes().to_vec();
+            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
         Ok(())
@@ -579,7 +580,7 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let blob = Blob::new(global.r(), Some(data), "");
+                            let blob = Blob::new(global.r(), data, "");
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {
