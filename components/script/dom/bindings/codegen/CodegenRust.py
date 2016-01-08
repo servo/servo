@@ -6,7 +6,6 @@
 
 from collections import defaultdict
 
-import operator
 import re
 import string
 import textwrap
@@ -1983,23 +1982,6 @@ def getAllTypes(descriptors, dictionaries, callbacks):
             yield (t, None, None)
 
 
-def SortedTuples(l):
-    """
-    Sort a list of tuples based on the first item in the tuple
-    """
-    return sorted(l, key=operator.itemgetter(0))
-
-
-def SortedDictValues(d):
-    """
-    Returns a list of values from the dict sorted by key.
-    """
-    # Create a list of tuples containing key and value, sorted on key.
-    d = SortedTuples(d.items())
-    # We're only interested in the values.
-    return (i[1] for i in d)
-
-
 def UnionTypes(descriptors, dictionaries, callbacks, config):
     """
     Returns a CGList containing CGUnionStructs for every union.
@@ -2038,7 +2020,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                 CGUnionConversionStruct(t, provider)
             ])
 
-    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], [], imports, ignored_warnings=[])
+    # Sort unionStructs by key, retrieve value
+    unionStructs = (i[1] for i in sorted(unionStructs.items()))
+
+    return CGImports(CGList(unionStructs, "\n\n"), [], [], imports, ignored_warnings=[])
 
 
 class Argument():
