@@ -119,11 +119,6 @@ pub struct Opts {
     /// and paint.
     pub trace_layout: bool,
 
-    /// If true, instrument the runtime for each task created and dump
-    /// that information to a JSON file that can be viewed in the task
-    /// profile viewer.
-    pub profile_tasks: bool,
-
     /// Periodically print out on which events script tasks spend their processing time.
     pub profile_script_events: bool,
 
@@ -229,9 +224,6 @@ pub struct DebugOptions {
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
 
-    /// Instrument each task, writing the output to a file.
-    pub profile_tasks: bool,
-
     /// Profile which events script tasks spend their time on.
     pub profile_script_events: bool,
 
@@ -299,7 +291,6 @@ impl DebugOptions {
                 "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
                 "dump-layer-tree" => debug_options.dump_layer_tree = true,
                 "relayout-event" => debug_options.relayout_event = true,
-                "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
                 "profile-heartbeats" => debug_options.profile_heartbeats = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
@@ -342,7 +333,6 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-display-list-optimized", "Print optimized display list (at paint time).");
     print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
-    print_option("profile-tasks", "Instrument each task, writing the output to a file.");
     print_option("profile-script-events", "Enable profiling of script-related events.");
     print_option("profile-heartbeats", "Enable heartbeats for all task categories.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
@@ -485,7 +475,6 @@ pub fn default_opts() -> Opts {
         dump_layer_tree: false,
         relayout_event: false,
         validate_display_list_geometry: false,
-        profile_tasks: false,
         profile_script_events: false,
         profile_heartbeats: false,
         disable_share_style_cache: false,
@@ -696,7 +685,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
-        profile_tasks: debug_options.profile_tasks,
         profile_script_events: debug_options.profile_script_events,
         profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
