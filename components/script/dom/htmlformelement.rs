@@ -460,7 +460,7 @@ impl HTMLFormElement {
                     datum.name = clean_crlf(&datum.name);
                     datum.value = BlobOrString::eString(clean_crlf( match datum.value {
                         BlobOrString::eString(ref s) => s,
-                        BlobOrString::eBlob(_) => ""  // Unimplemented
+                        BlobOrString::eBlob(_) =>"" // Unimplemented
                     }));
                 }
             }
