@@ -23,10 +23,6 @@ pub struct WebGLPaintTask {
     gl_context: GLContext<NativeGLContext>,
 }
 
-// This allows trying to create the PaintTask
-// before creating the thread
-unsafe impl Send for WebGLPaintTask {}
-
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintTask, &'static str> {
         let context = try!(GLContext::new(size, attrs, ColorAttachmentType::Texture, None));
@@ -193,9 +189,19 @@ impl WebGLPaintTask {
                  -> Result<(IpcSender<CanvasMsg>, Sender<CanvasMsg>), &'static str> {
         let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
+        let (result_chan, result_port) = channel();
         ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
-        let mut painter = try!(WebGLPaintTask::new(size, attrs));
         spawn_named("WebGLTask".to_owned(), move || {
+            let mut painter = match WebGLPaintTask::new(size, attrs) {
+                Ok(task) => {
+                    result_chan.send(Ok(())).unwrap();
+                    task
+                },
+                Err(e) => {
+                    result_chan.send(Err(e)).unwrap();
+                    return
+                }
+            };
             painter.init();
             loop {
                 match in_process_port.recv().unwrap() {
@@ -224,7 +230,7 @@ impl WebGLPaintTask {
             }
         });
 
-        Ok((out_of_process_chan, in_process_chan))
+        result_port.recv().unwrap().map(|_| (out_of_process_chan, in_process_chan))
     }
 
     #[inline]
