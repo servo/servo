@@ -38,6 +38,7 @@ ignored_files = [
     os.path.join(".", "target", "*"),
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "cef", "*"),
+    os.path.join(".", "ports", "geckolib", "*"),
 
     # MIT license
     os.path.join(".", "components", "util", "deque", "mod.rs"),
