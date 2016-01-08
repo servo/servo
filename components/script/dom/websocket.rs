@@ -530,10 +530,10 @@ impl Runnable for CloseTask {
             ws.full.set(false);
             //A Bad close
             ws.clean_close.set(false);
-            ws.upcast().fire_simple_event_params("error",
-                                                 EventBubbles::DoesNotBubble,
-                                                 EventCancelable::Cancelable,
-                                                 global.r());
+            ws.upcast().fire_event("error",
+                                   EventBubbles::DoesNotBubble,
+                                   EventCancelable::Cancelable,
+                                   global.r());
         }
         let reason = ws.reason.borrow().clone();
         /*In addition, we also have to fire a close even if error event fired

@@ -866,14 +866,14 @@ impl Activatable for HTMLInputElement {
                     let win = window_from_node(self);
                     let target = self.upcast::<EventTarget>();
 
-                    target.fire_simple_event_params("input",
-                                                    EventBubbles::Bubbles,
-                                                    EventCancelable::NotCancelable,
-                                                    GlobalRef::Window(win.r()));
-                    target.fire_simple_event_params("change",
-                                                    EventBubbles::Bubbles,
-                                                    EventCancelable::NotCancelable,
-                                                    GlobalRef::Window(win.r()));
+                    target.fire_event("input",
+                                      EventBubbles::Bubbles,
+                                      EventCancelable::NotCancelable,
+                                      GlobalRef::Window(win.r()));
+                    target.fire_event("change",
+                                      EventBubbles::Bubbles,
+                                      EventCancelable::NotCancelable,
+                                      GlobalRef::Window(win.r()));
                 }
             },
             _ => ()
