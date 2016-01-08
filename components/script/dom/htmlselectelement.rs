@@ -8,13 +8,14 @@ use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormControl, FormDatum, HTMLFormElement, StringOrBlob};
+use dom::htmlformelement::{FormControl, FormDatum, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
@@ -93,7 +94,7 @@ impl HTMLSelectElement {
                 data_set.push(FormDatum {
                     ty: self.Type(),
                     name: self.Name(),
-                    value:  StringOrBlob::StringData((*opt.Value()).to_owned())
+                    value:  BlobOrString::eString(opt.Value())
                 });
             }
         }
