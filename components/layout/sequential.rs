@@ -12,36 +12,13 @@ use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtil
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use traversal::PostorderNodeMutTraversal;
+use style::dom::TNode;
+use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
-use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
-use traversal::{DomTraversal, DomTraversalContext};
+use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
-use wrapper::LayoutNode;
 
-pub fn traverse_dom_preorder<'ln, N, T>(root: N,
-                                        shared_layout_context: &SharedLayoutContext)
-                                        where N: LayoutNode<'ln>,
-                                              T: DomTraversal<'ln, N> {
-    fn doit<'a, 'ln, N, T>(context: &'a DomTraversalContext<'a>, node: N)
-                           where N: LayoutNode<'ln>, T: DomTraversal<'ln, N> {
-        T::process_preorder(context, node);
-
-        for kid in node.children() {
-            doit::<N, T>(context, kid);
-        }
-
-        T::process_postorder(context, node);
-    }
-
-    let layout_context = LayoutContext::new(shared_layout_context);
-    let traversal_context = DomTraversalContext {
-        layout_context: &layout_context,
-        root: root.opaque(),
-    };
-
-    doit::<N, T>(&traversal_context, root);
-}
+pub use style::sequential::traverse_dom;
 
 pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {

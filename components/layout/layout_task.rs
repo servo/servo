@@ -38,7 +38,7 @@ use msg::ParseErrorReporter;
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
-use parallel::{self, WorkQueueData};
+use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
@@ -67,6 +67,7 @@ use style::computed_values::{filter, mix_blend_mode};
 use style::context::{SharedStyleContext, StylistWrapper};
 use style::dom::{TDocument, TElement, TNode};
 use style::media_queries::{Device, MediaType};
+use style::parallel::WorkQueueData;
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
 use traversal::RecalcStyleAndConstructFlows;
@@ -1025,11 +1026,11 @@ impl LayoutTask {
                 // Perform CSS selector matching and flow construction.
                 match self.parallel_traversal {
                     None => {
-                        sequential::traverse_dom_preorder::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                        sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
                             node, &shared_layout_context);
                     }
                     Some(ref mut traversal) => {
-                        parallel::traverse_dom_preorder::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                        parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
                             node, &shared_layout_context, traversal);
                     }
                 }

@@ -128,16 +128,6 @@ impl<'a> LayoutContext<'a> {
         self.cached_local_layout_context.font_context.borrow_mut()
     }
 
-    #[inline(always)]
-    pub fn applicable_declarations_cache(&self) -> RefMut<ApplicableDeclarationsCache> {
-        self.local_context().applicable_declarations_cache.borrow_mut()
-    }
-
-    #[inline(always)]
-    pub fn style_sharing_candidate_cache(&self) -> RefMut<StyleSharingCandidateCache> {
-        self.local_context().style_sharing_candidate_cache.borrow_mut()
-    }
-
     pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<Arc<Image>> {
         // See if the image is already available
