@@ -22,7 +22,7 @@ impl ResponseMethods for Response {
             response_type: ResponseType::Default,
             termination_reason: None,
             url: None,
-            url_list: Vec::new(),
+            url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
             headers: Headers::new(),
             body: ResponseBody::Empty,
@@ -42,7 +42,7 @@ impl ResponseMethods for Response {
         }
         let old_headers = self.headers.clone();
         let mut response = self.clone();
-        response.internal_response = Some(Rc::new(RefCell::new(self)));
+        response.internal_response = Some(Rc::new(self));
         match filter_type {
             ResponseType::Default | ResponseType::Error => unreachable!(),
             ResponseType::Basic => {
