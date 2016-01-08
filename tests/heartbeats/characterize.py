@@ -18,10 +18,12 @@ GUARD_TIME = 10
 HEARTBEAT_DEFAULT_WINDOW_SIZE = 20
 # Use a larger window sizes to reduce or prevent writing log files until benchmark completion
 # (profiler name, window size)
+# These categories need to be kept aligned with ProfilerCategory in components/profile_traits/time.rs
 HEARTBEAT_PROFILER_CATEGORIES = [
     ("Compositing", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutPerform", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutStyleRecalc", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("LayoutTextShaping", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutRestyleDamagePropagation", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutNonIncrementalReset", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutSelectorMatch", HEARTBEAT_DEFAULT_WINDOW_SIZE),
@@ -30,7 +32,6 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("LayoutGeneratedContent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutMain", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutParallelWarmup", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("LayoutShaping", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutDispListBuild", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("PaintingPerTile", 50),
     ("PaintingPrepBuff", HEARTBEAT_DEFAULT_WINDOW_SIZE),
@@ -41,18 +42,19 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("ScriptDevtoolsMsg", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptDocumentEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptDomEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptFileRead", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptImageCacheMsg", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptInputEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptNetworkEvent", 200),
     ("ScriptResize", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("ScriptEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("ScriptUpdateReplacedElement", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptSetViewport", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptTimerEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptStylesheetLoad", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptUpdateReplacedElement", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptWebSocketEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptWorkerEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("ScriptXhrEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("ApplicationHeartbeat", 100)
+    ("ApplicationHeartbeat", 100),
 ]
 ENERGY_READER_BIN = "energymon"
 ENERGY_READER_TEMP_OUTPUT = "energymon.txt"
