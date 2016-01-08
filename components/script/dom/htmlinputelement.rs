@@ -21,7 +21,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormControl, FormDatum, FormSubmitter, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormDatum, FormSubmitter, HTMLFormElement, StringOrBlob};
 use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
@@ -472,7 +472,7 @@ impl HTMLInputElement {
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
-            value: value
+            value: StringOrBlob::StringData((*value).to_owned())
         })
     }
 

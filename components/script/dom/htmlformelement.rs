@@ -15,6 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{Root};
 use dom::bindings::reflector::Reflectable;
+use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
@@ -207,7 +208,11 @@ impl HTMLFormElement {
             FormEncType::UrlEncoded => {
                 let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
                 load_data.headers.set(ContentType(mime));
-                serialize(form_data.iter().map(|d| (&*d.name, &*d.value)))
+
+                serialize(form_data.iter().map(|d| (&*d.name, match &d.value{
+                    &StringOrBlob::StringData(ref s) => {s.to_owned()},
+                    &StringOrBlob::BlobData(_) => {"".to_owned()}   // Should not be found in FormEnctype::UrlEncoded
+                })))
             }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
         };
@@ -326,7 +331,7 @@ impl HTMLFormElement {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
                                 name: name,
-                                value: textarea.Value()
+                                value: StringOrBlob::StringData((*textarea.Value()).to_owned())
                             });
                         }
                     }
@@ -380,7 +385,10 @@ impl HTMLFormElement {
                 "file" | "textarea" => (),
                 _ => {
                     datum.name = clean_crlf(&datum.name);
-                    datum.value = clean_crlf(&datum.value);
+                    datum.value = StringOrBlob::StringData((*clean_crlf(match datum.value {
+                        StringOrBlob::StringData(ref s) => {s},
+                        StringOrBlob::BlobData(_) => {""}   // Unimplemented
+                    })).to_owned());
                 }
             }
         };
@@ -437,12 +445,18 @@ impl HTMLFormElement {
 
 }
 
+#[derive(HeapSizeOf)]
+pub enum StringOrBlob {
+    StringData(String),
+    BlobData(Root<Blob>)
+}
+
 // TODO: add file support
 #[derive(HeapSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
-    pub value: DOMString
+    pub value: StringOrBlob
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
