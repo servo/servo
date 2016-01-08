@@ -304,6 +304,43 @@ class MachCommands(CommandBase):
 
         return ret
 
+    @Command('build-geckolib',
+             description='Build a static library of components used by Gecko',
+             category='build')
+    @CommandArgument('--jobs', '-j',
+                     default=None,
+                     help='Number of jobs to run in parallel')
+    @CommandArgument('--verbose', '-v',
+                     action='store_true',
+                     help='Print verbose output')
+    @CommandArgument('--release', '-r',
+                     action='store_true',
+                     help='Build in release mode')
+    def build_geckolib(self, jobs=None, verbose=False, release=False):
+        self.ensure_bootstrapped()
+
+        ret = None
+        opts = []
+        if jobs is not None:
+            opts += ["-j", jobs]
+        if verbose:
+            opts += ["-v"]
+        if release:
+            opts += ["--release"]
+
+        build_start = time()
+        with cd(path.join("ports", "geckolib")):
+            ret = call(["cargo", "build"] + opts,
+                       env=self.build_env(), verbose=verbose)
+        elapsed = time() - build_start
+
+        # Generate Desktop Notification if elapsed-time > some threshold value
+        notify_build_done(elapsed)
+
+        print("GeckoLib build completed in %0.2fs" % elapsed)
+
+        return ret
+
     @Command('build-gonk',
              description='Build the Gonk port',
              category='build')

@@ -1,0 +1,21 @@
+[package]
+name = "geckoservo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "geckoservo"
+path = "lib.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+log = "0.3"
+url = "0.5.2"
+libc = "0.2"
+euclid = {version = "0.4", features = ["plugins"]}
+
+[dependencies.util]
+path = "../../components/util"
+
+[dependencies.style]
+path = "../../components/style"
