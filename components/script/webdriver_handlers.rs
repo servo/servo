@@ -240,7 +240,6 @@ pub fn handle_get_css(page: &Rc<Page>,
 }
 
 pub fn handle_get_url(page: &Rc<Page>,
-                      _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
     let document = page.document();
     let url = document.url();
@@ -248,11 +247,26 @@ pub fn handle_get_url(page: &Rc<Page>,
 }
 
 pub fn handle_get_window_size(page: &Rc<Page>,
-                              _pipeline: PipelineId,
                               reply: IpcSender<Option<WindowSizeData>>) {
     let window = page.window();
     let size = window.window_size();
     reply.send(size).unwrap();
+}
+
+pub fn handle_set_window_size(page: &Rc<Page>,
+                              width: i32,
+                              height: i32,
+                              reply: IpcSender<WebDriverJSResult>) {
+    let window = page.window();
+    window.ResizeTo(width, height);
+    reply.send(Ok(WebDriverJSValue::Null)).unwrap();
+}
+
+pub fn handle_close(page: &Rc<Page>,
+                              reply: IpcSender<Result<(), ()>>) {
+    let window = page.window();
+    window.Close();
+    reply.send(Ok(())).unwrap();
 }
 
 pub fn handle_is_enabled(page: &Rc<Page>,

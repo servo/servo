@@ -47,7 +47,7 @@ use util::task::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
 use webdriver::command::{Parameters, SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
-use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
+use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowSizeParameters};
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
@@ -348,7 +348,7 @@ impl Handler {
         Ok(WebDriverResponse::Generic(ValueResponse::new(url.serialize().to_json())))
     }
 
-    fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_get_window_size(&self) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.root_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -364,6 +364,38 @@ impl Handler {
                 Ok(WebDriverResponse::WindowSize(window_size_response))
             },
             None => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "Unable to determine window size"))
+        }
+    }
+
+    fn handle_set_window_size(&self, size: &WindowSizeParameters) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::SetWindowSize(size.width as i32,
+                                                                                               size.height as i32,
+                                                                                               sender));
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        match receiver.recv().unwrap() {
+            Ok(response) => Ok(WebDriverResponse::Generic(ValueResponse::new(response.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "Unable to set window size"))
+        }
+    }
+
+    fn handle_close(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::Close(sender));
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        match receiver.recv().unwrap() {
+            Ok(response) => self.handle_window_handles(),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "Unable to close window"))
         }
     }
 
@@ -784,7 +816,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
-            WebDriverCommand::GetWindowSize => self.handle_window_size(),
+            WebDriverCommand::GetWindowSize => self.handle_get_window_size(),
+            WebDriverCommand::SetWindowSize(ref size) => self.handle_set_window_size(size),
+            WebDriverCommand::Close => self.handle_close(),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),

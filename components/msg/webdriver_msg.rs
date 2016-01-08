@@ -22,6 +22,8 @@ pub enum WebDriverScriptCommand {
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
     GetUrl(IpcSender<Url>),
     GetWindowSize(IpcSender<Option<WindowSizeData>>),
+    SetWindowSize(i32, i32, IpcSender<WebDriverJSResult>),
+    Close(IpcSender<Result<(), ()>>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>)
