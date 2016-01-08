@@ -19,7 +19,7 @@ use net_traits::response::{CacheState, HttpsState, Response, ResponseType, Termi
 use net_traits::{AsyncFetchListener, Metadata};
 use resource_task::CancellationListener;
 use std::ascii::AsciiExt;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
@@ -100,17 +100,17 @@ pub enum ResponseTainting {
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 #[derive(Clone)]
 pub struct Request {
-    pub method: Method,
+    pub method: RefCell<Method>,
     // Use the last method on url_list to act as spec url field
-    pub url_list: Vec<Url>,
-    pub headers: Headers,
+    pub url_list: RefCell<Vec<Url>>,
+    pub headers: RefCell<Headers>,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
     pub preserve_content_codings: bool,
     // pub client: GlobalRef, // XXXManishearth copy over only the relevant fields of the global scope,
                               // not the entire scope to avoid the libscript dependency
     pub is_service_worker_global_scope: bool,
-    pub skip_service_worker: bool,
+    pub skip_service_worker: Cell<bool>,
     pub context: Context,
     pub context_frame_type: ContextFrameType,
     pub origin: Option<Url>, // FIXME: Use Url::Origin
@@ -123,23 +123,23 @@ pub struct Request {
     pub mode: RequestMode,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
-    pub cache_mode: CacheMode,
+    pub cache_mode: Cell<CacheMode>,
     pub redirect_mode: RedirectMode,
-    pub redirect_count: u32,
+    pub redirect_count: Cell<u32>,
     pub response_tainting: ResponseTainting
 }
 
 impl Request {
     pub fn new(url: Url, context: Context, is_service_worker_global_scope: bool) -> Request {
          Request {
-            method: Method::Get,
-            url_list: vec![url],
-            headers: Headers::new(),
+            method: RefCell::new(Method::Get),
+            url_list: RefCell::new(vec![url]),
+            headers: RefCell::new(Headers::new()),
             unsafe_request: false,
             body: None,
             preserve_content_codings: false,
             is_service_worker_global_scope: is_service_worker_global_scope,
-            skip_service_worker: false,
+            skip_service_worker: Cell::new(false),
             context: context,
             context_frame_type: ContextFrameType::ContextNone,
             origin: None,
@@ -152,38 +152,38 @@ impl Request {
             mode: RequestMode::NoCORS,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
-            cache_mode: CacheMode::Default,
+            cache_mode: Cell::new(CacheMode::Default),
             redirect_mode: RedirectMode::Follow,
-            redirect_count: 0,
+            redirect_count: Cell::new(0),
             response_tainting: ResponseTainting::Basic,
         }
     }
 
     fn get_last_url_string(&self) -> String {
-        self.url_list.last().unwrap().serialize()
+        self.url_list.borrow().last().unwrap().serialize()
     }
 
-    fn current_url(&self) -> &Url {
-        self.url_list.last().unwrap()
+    fn current_url(&self) -> Url {
+        self.url_list.borrow().last().unwrap().clone()
     }
 }
 
 pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchListener + Send>) {
     spawn_named(format!("fetch for {:?}", request.get_last_url_string()), move || {
-        let request = Rc::new(RefCell::new(request));
+        let request = Rc::new(request);
         let res = fetch(request, cors_flag);
         listener.response_available(res);
     })
 }
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-fn fetch(request: Rc<RefCell<Request>>, cors_flag: bool) -> Response {
+pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
 
     // Step 1
-    if request.borrow().context != Context::Fetch && !request.borrow().headers.has::<Accept>() {
+    if request.context != Context::Fetch && !request.headers.borrow().has::<Accept>() {
 
         // Substep 1
-        let value = match request.borrow().context {
+        let value = match request.context {
 
             Context::Favicon | Context::Image | Context::ImageSet
                 => vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
@@ -203,7 +203,7 @@ fn fetch(request: Rc<RefCell<Request>>, cors_flag: bool) -> Response {
                     QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
 
-            Context::Internal if request.borrow().context_frame_type != ContextFrameType::ContextNone
+            Context::Internal if request.context_frame_type != ContextFrameType::ContextNone
                 => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                     // FIXME: This should properly generate a MimeType that has a
                     // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
@@ -218,12 +218,12 @@ fn fetch(request: Rc<RefCell<Request>>, cors_flag: bool) -> Response {
         };
 
         // Substep 2
-        request.borrow_mut().headers.set(Accept(value));
+        request.headers.borrow_mut().set(Accept(value));
     }
 
     // Step 2
-    if request.borrow().context != Context::Fetch && !request.borrow().headers.has::<AcceptLanguage>() {
-        request.borrow_mut().headers.set(AcceptLanguage(vec![qitem("en-US".parse().unwrap())]));
+    if request.context != Context::Fetch && !request.headers.borrow().has::<AcceptLanguage>() {
+        request.headers.borrow_mut().set(AcceptLanguage(vec![qitem("en-US".parse().unwrap())]));
     }
 
     // TODO: Figure out what a Priority object is
@@ -233,17 +233,16 @@ fn fetch(request: Rc<RefCell<Request>>, cors_flag: bool) -> Response {
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<RefCell<Request>>, _cors_flag: bool) -> Response {
+fn main_fetch(request: Rc<Request>, _cors_flag: bool) -> Response {
     // TODO: Implement main fetch spec
     let _ = basic_fetch(request);
     Response::network_error()
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: Rc<RefCell<Request>>) -> Response {
+fn basic_fetch(request: Rc<Request>) -> Response {
 
-    let req = request.borrow();
-    let url = req.url_list.last().unwrap();
+    let url = request.current_url();
     let scheme = url.scheme.clone();
 
     match &*scheme {
@@ -281,7 +280,7 @@ fn http_fetch_async(request: Request,
                     listener: Box<AsyncFetchListener + Send>) {
 
     spawn_named(format!("http_fetch for {:?}", request.get_last_url_string()), move || {
-        let request = Rc::new(RefCell::new(request));
+        let request = Rc::new(request);
         let res = http_fetch(request, BasicCORSCache::new(),
                              cors_flag, cors_preflight_flag,
                              authentication_fetch_flag);
@@ -290,7 +289,7 @@ fn http_fetch_async(request: Request,
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
-fn http_fetch(request: Rc<RefCell<Request>>,
+fn http_fetch(request: Rc<Request>,
               mut cache: BasicCORSCache,
               cors_flag: bool,
               cors_preflight_flag: bool,
@@ -303,7 +302,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
     let mut actual_response: Option<Rc<RefCell<Response>>> = None;
 
     // Step 3
-    if !request.borrow().skip_service_worker && !request.borrow().is_service_worker_global_scope {
+    if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
 
         // TODO: Substep 1 (handle fetch unimplemented)
         if let Some(ref res) = response {
@@ -317,9 +316,9 @@ fn http_fetch(request: Rc<RefCell<Request>>,
 
             // Substep 3
             if (resp.response_type == ResponseType::Opaque &&
-                request.borrow().mode != RequestMode::NoCORS) ||
+                request.mode != RequestMode::NoCORS) ||
                (resp.response_type == ResponseType::OpaqueRedirect &&
-                request.borrow().redirect_mode != RedirectMode::Manual) ||
+                request.redirect_mode != RedirectMode::Manual) ||
                resp.response_type == ResponseType::Error {
                 return Response::network_error();
             }
@@ -329,7 +328,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
         if let Some(ref res) = actual_response {
             let mut resp = res.borrow_mut();
             if resp.url_list.is_empty() {
-                resp.url_list = request.borrow().url_list.clone();
+                resp.url_list = request.url_list.borrow().clone();
             }
         }
 
@@ -347,18 +346,18 @@ fn http_fetch(request: Rc<RefCell<Request>>,
 
             // FIXME: Once Url::Origin is available, rewrite origin to
             // take an Origin instead of a Url
-            let origin = request.borrow().origin.clone().unwrap_or(Url::parse("").unwrap());
-            let url = request.borrow().url_list.last().unwrap().clone();
-            let credentials = request.borrow().credentials_mode == CredentialsMode::Include;
+            let origin = request.origin.clone().unwrap_or(Url::parse("").unwrap());
+            let url = request.current_url();
+            let credentials = request.credentials_mode == CredentialsMode::Include;
             let method_cache_match = cache.match_method(CacheRequestDetails {
                 origin: origin.clone(),
                 destination: url.clone(),
                 credentials: credentials
-            }, request.borrow().method.clone());
+            }, request.method.borrow().clone());
 
-            method_mismatch = !method_cache_match && (!is_simple_method(&request.borrow().method) ||
-                request.borrow().mode == RequestMode::ForcedPreflightMode);
-            header_mismatch = request.borrow().headers.iter().any(|view|
+            method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
+                request.mode == RequestMode::ForcedPreflightMode);
+            header_mismatch = request.headers.borrow().iter().any(|view|
                 !cache.match_header(CacheRequestDetails {
                     origin: origin.clone(),
                     destination: url.clone(),
@@ -376,13 +375,13 @@ fn http_fetch(request: Rc<RefCell<Request>>,
         }
 
         // Substep 2
-        request.borrow_mut().skip_service_worker = true;
+        request.skip_service_worker.set(true);
 
         // Substep 3
-        let credentials = match request.borrow().credentials_mode {
+        let credentials = match request.credentials_mode {
             CredentialsMode::Include => true,
             CredentialsMode::CredentialsSameOrigin if (!cors_flag ||
-                request.borrow().response_tainting == ResponseTainting::Opaque)
+                request.response_tainting == ResponseTainting::Opaque)
                 => true,
             _ => false
         };
@@ -410,7 +409,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
         StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
 
             // Step 1
-            if request.borrow().redirect_mode == RedirectMode::Error {
+            if request.redirect_mode == RedirectMode::Error {
                 return Response::network_error();
             }
 
@@ -425,7 +424,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
             };
 
             // Step 5
-            let location_url = UrlParser::new().base_url(request.borrow().url_list.last().unwrap()).parse(&*location);
+            let location_url = UrlParser::new().base_url(&request.current_url()).parse(&*location);
 
             // Step 6
             let location_url = match location_url {
@@ -435,14 +434,14 @@ fn http_fetch(request: Rc<RefCell<Request>>,
             };
 
             // Step 7
-            if request.borrow().redirect_count == 20 {
+            if request.redirect_count.get() == 20 {
                 return Response::network_error();
             }
 
             // Step 8
-            request.borrow_mut().redirect_count += 1;
+            request.redirect_count.set(request.redirect_count.get() + 1);
 
-            match request.borrow().redirect_mode {
+            match request.redirect_mode {
 
                 // Step 9
                 RedirectMode::Manual => {
@@ -454,9 +453,9 @@ fn http_fetch(request: Rc<RefCell<Request>>,
 
                     // Substep 1
                     // FIXME: Use Url::origin
-                    // if (request.borrow().mode == RequestMode::CORSMode ||
-                    //     request.borrow().mode == RequestMode::ForcedPreflightMode) &&
-                    //     location_url.origin() != request.borrow().url.origin() &&
+                    // if (request.mode == RequestMode::CORSMode ||
+                    //     request.mode == RequestMode::ForcedPreflightMode) &&
+                    //     location_url.origin() != request.url.origin() &&
                     //     has_credentials(&location_url) {
                     //     return Response::network_error();
                     // }
@@ -468,7 +467,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
 
                     // Substep 3
                     // FIXME: Use Url::origin
-                    // if cors_flag && location_url.origin() != request.borrow().url.origin() {
+                    // if cors_flag && location_url.origin() != request.url.origin() {
                     //     request.borrow_mut().origin = Origin::UID(OpaqueOrigin);
                     // }
 
@@ -476,12 +475,12 @@ fn http_fetch(request: Rc<RefCell<Request>>,
                     if actual_response.status.unwrap() == StatusCode::SeeOther ||
                        ((actual_response.status.unwrap() == StatusCode::MovedPermanently ||
                          actual_response.status.unwrap() == StatusCode::Found) &&
-                        request.borrow().method == Method::Post) {
-                        request.borrow_mut().method = Method::Get;
+                        *request.method.borrow() == Method::Post) {
+                        *request.method.borrow_mut() = Method::Get;
                     }
 
                     // Substep 5
-                    request.borrow_mut().url_list.push(location_url);
+                    request.url_list.borrow_mut().push(location_url);
 
                     // Substep 6
                     return main_fetch(request.clone(), cors_flag);
@@ -503,7 +502,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
             // TODO: Spec says requires testing on multiple WWW-Authenticate headers
 
             // Step 3
-            if !request.borrow().use_url_credentials || authentication_fetch_flag {
+            if !request.use_url_credentials || authentication_fetch_flag {
                 // TODO: Prompt the user for username and password from the window
             }
 
@@ -544,7 +543,7 @@ fn http_fetch(request: Rc<RefCell<Request>>,
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
-fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
+fn http_network_or_cache_fetch(request: Rc<Request>,
                                credentials_flag: bool,
                                authentication_fetch_flag: bool) -> Response {
 
@@ -553,15 +552,15 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
 
     // Step 1
     let http_request = if request_has_no_window &&
-        request.borrow().redirect_mode != RedirectMode::Follow {
+        request.redirect_mode != RedirectMode::Follow {
         request.clone()
     } else {
-        Rc::new(RefCell::new(request.borrow().clone()))
+        Rc::new((*request).clone())
     };
 
-    let content_length_value = match http_request.borrow().body {
+    let content_length_value = match http_request.body {
         None =>
-            match http_request.borrow().method {
+            match *http_request.method.borrow() {
                 // Step 3
                 Method::Head | Method::Post | Method::Put =>
                     Some(0),
@@ -574,15 +573,15 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
 
     // Step 5
     if let Some(content_length_value) = content_length_value {
-        http_request.borrow_mut().headers.set(ContentLength(content_length_value));
+        http_request.headers.borrow_mut().set(ContentLength(content_length_value));
     }
 
     // Step 6
-    match http_request.borrow().referer {
+    match http_request.referer {
         Referer::NoReferer =>
-            http_request.borrow_mut().headers.set(RefererHeader("".to_owned())),
+            http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
         Referer::RefererUrl(ref http_request_referer) =>
-            http_request.borrow_mut().headers.set(RefererHeader(http_request_referer.serialize())),
+            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.serialize())),
         Referer::Client =>
             // it should be impossible for referer to be anything else during fetching
             // https://fetch.spec.whatwg.org/#concept-request-referrer
@@ -590,25 +589,25 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
     };
 
     // Step 7
-    if http_request.borrow().omit_origin_header == false {
+    if http_request.omit_origin_header == false {
         // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
-        if let Some(ref _origin) = http_request.borrow().origin {
-            // http_request.borrow_mut().headers.set_raw("origin", origin);
+        if let Some(ref _origin) = http_request.origin {
+            // http_request.headers.borrow_mut().set_raw("origin", origin);
         }
     }
 
     // Step 8
-    if !http_request.borrow().headers.has::<UserAgent>() {
-        http_request.borrow_mut().headers.set(UserAgent(global_user_agent().to_owned()));
+    if !http_request.headers.borrow().has::<UserAgent>() {
+        http_request.headers.borrow_mut().set(UserAgent(global_user_agent().to_owned()));
     }
 
     // Step 9
-    if http_request.borrow().cache_mode == CacheMode::Default && is_no_store_cache(&http_request.borrow().headers) {
-        http_request.borrow_mut().cache_mode = CacheMode::NoStore;
+    if http_request.cache_mode.get() == CacheMode::Default && is_no_store_cache(&http_request.headers.borrow()) {
+        http_request.cache_mode.set(CacheMode::NoStore);
     }
 
     // Step 10
-    // modify_request_headers(http_request.borrow().headers);
+    // modify_request_headers(http_request.headers.borrow());
 
     // Step 11
     // TODO some of this step can't be implemented yet
@@ -625,10 +624,9 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
         // Substep 4
         if authentication_fetch_flag {
 
-            let http_req = http_request.borrow();
-            let current_url = http_req.current_url();
+            let current_url = http_request.current_url();
 
-            authorization_value = if includes_credentials(current_url) {
+            authorization_value = if includes_credentials(&current_url) {
                 Some(Basic {
                     username: current_url.username().unwrap_or("").to_owned(),
                     password: current_url.password().map(str::to_owned)
@@ -641,7 +639,7 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
 
         // Substep 5
         if let Some(basic) = authorization_value {
-            http_request.borrow_mut().headers.set(Authorization(basic));
+            http_request.headers.borrow_mut().set(Authorization(basic));
         }
     }
 
@@ -654,12 +652,12 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
     // Step 14
     // TODO have a HTTP cache to check for a completed response
     let complete_http_response_from_cache: Option<Response> = None;
-    if http_request.borrow().cache_mode != CacheMode::NoStore &&
-        http_request.borrow().cache_mode != CacheMode::Reload &&
+    if http_request.cache_mode.get() != CacheMode::NoStore &&
+        http_request.cache_mode.get() != CacheMode::Reload &&
         complete_http_response_from_cache.is_some() {
 
         // Substep 1
-        if http_request.borrow().cache_mode == CacheMode::ForceCache {
+        if http_request.cache_mode.get() == CacheMode::ForceCache {
             // TODO pull response from HTTP cache
             // response = http_request
         }
@@ -670,23 +668,23 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
         };
 
         // Substep 2
-        if !revalidation_needed && http_request.borrow().cache_mode == CacheMode::Default {
+        if !revalidation_needed && http_request.cache_mode.get() == CacheMode::Default {
             // TODO pull response from HTTP cache
             // response = http_request
             // response.cache_state = CacheState::Local;
         }
 
         // Substep 3
-        if revalidation_needed && http_request.borrow().cache_mode == CacheMode::Default ||
-            http_request.borrow_mut().cache_mode == CacheMode::NoCache {
+        if revalidation_needed && http_request.cache_mode.get() == CacheMode::Default ||
+            http_request.cache_mode.get() == CacheMode::NoCache {
 
             // TODO this substep
         }
 
     // Step 15
     // TODO have a HTTP cache to check for a partial response
-    } else if http_request.borrow().cache_mode == CacheMode::Default ||
-        http_request.borrow().cache_mode == CacheMode::ForceCache {
+    } else if http_request.cache_mode.get() == CacheMode::Default ||
+        http_request.cache_mode.get() == CacheMode::ForceCache {
         // TODO this substep
     }
 
@@ -699,8 +697,8 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
     // Step 17
     if let Some(status) = response.status {
         if status == StatusCode::NotModified &&
-            (http_request.borrow().cache_mode == CacheMode::Default ||
-            http_request.borrow().cache_mode == CacheMode::NoCache) {
+            (http_request.cache_mode.get() == CacheMode::Default ||
+            http_request.cache_mode.get() == CacheMode::NoCache) {
 
             // Substep 1
             // TODO this substep
@@ -727,8 +725,8 @@ fn http_network_or_cache_fetch(request: Rc<RefCell<Request>>,
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
-fn http_network_fetch(request: Rc<RefCell<Request>>,
-                      http_request: Rc<RefCell<Request>>,
+fn http_network_fetch(request: Rc<Request>,
+                      http_request: Rc<Request>,
                       credentials_flag: bool) -> Response {
     // TODO: Implement HTTP network fetch spec
 
@@ -746,13 +744,16 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
     let factory = NetworkHttpRequestFactory {
         connector: connection,
     };
-    let req = request.borrow();
-    let url = req.current_url();
+    let url = request.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
-    let wrapped_response = obtain_response(&factory, &url, &req.method, &mut request.borrow_mut().headers,
-                                           &cancellation_listener, &None, &req.method,
-                                           &None, req.redirect_count, &None, "");
+    let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
+                                           // TODO nikkisquared: use this line instead
+                                           // after merging with another branch
+                                           // &request.headers.borrow()
+                                           &mut *request.headers.borrow_mut(),
+                                           &cancellation_listener, &None, &request.method.borrow(),
+                                           &None, request.redirect_count.get(), &None, "");
 
     let mut response = Response::new();
     match wrapped_response {
@@ -792,7 +793,7 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
     };
 
     // Step 6
-    response.url_list = request.borrow().url_list.clone();
+    response.url_list = request.url_list.borrow().clone();
 
     // Step 7
 
@@ -818,13 +819,13 @@ fn http_network_fetch(request: Rc<RefCell<Request>>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn preflight_fetch(request: Rc<RefCell<Request>>) -> Response {
+fn preflight_fetch(request: Rc<Request>) -> Response {
     // TODO: Implement preflight fetch spec
     Response::network_error()
 }
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
-fn cors_check(request: Rc<RefCell<Request>>, response: &Response) -> Result<(), ()> {
+fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     // TODO: Implement CORS check spec
     Err(())
 }
