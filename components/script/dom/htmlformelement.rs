@@ -19,6 +19,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -285,7 +286,11 @@ impl HTMLFormElement {
             FormEncType::UrlEncoded => {
                 let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
                 load_data.headers.set(ContentType(mime));
-                serialize(form_data.iter().map(|d| (&*d.name, &*d.value)))
+
+                serialize(form_data.iter().map(|d| (&*d.name, match d.value {
+                    FileOrString::StringData(ref s) => String::from(s.clone()),
+                    FileOrString::FileData(ref f) => String::from(f.name().clone())
+                })))
             }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
         };
@@ -426,7 +431,7 @@ impl HTMLFormElement {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
                                 name: name,
-                                value: textarea.Value()
+                                value: FileOrString::StringData(textarea.Value())
                             });
                         }
                     }
@@ -480,7 +485,10 @@ impl HTMLFormElement {
                 "file" | "textarea" => (),
                 _ => {
                     datum.name = clean_crlf(&datum.name);
-                    datum.value = clean_crlf(&datum.value);
+                    datum.value = FileOrString::StringData(clean_crlf( match datum.value {
+                        FileOrString::StringData(ref s) => s,
+                        FileOrString::FileData(_) => unreachable!()
+                    }));
                 }
             }
         };
@@ -535,12 +543,16 @@ impl HTMLFormElement {
 
 }
 
-// TODO: add file support
-#[derive(HeapSizeOf)]
+pub enum FileOrString {
+    FileData(Root<File>),
+    StringData(DOMString)
+}
+
+// #[derive(HeapSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
-    pub value: DOMString
+    pub value: FileOrString
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
