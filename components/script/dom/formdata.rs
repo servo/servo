@@ -134,3 +134,63 @@ impl FormData {
         }
     }
 }
+
+fn generate_boundary() -> String {
+    let mut rng = rand::thread_rng();
+    let i1 = rng.gen::<u32>();
+    let i2 = rng.gen::<u32>();
+
+    let boundary: String = format!("---------------------------{0}{1}", i1, i2);
+    return boundary;
+}
+
+// https://html.spec.whatwg.org/multipage/forms.html#multipart/form-data-encoding-algorithm
+fn generate_multipart(form_data: &mut Vec<dom::htmlformelement::FormDatum>) -> Option<String> {
+    let mut result = "".to_string();
+    let boundary = generate_boundary();
+
+    // TODO <psdh> Step 2 of https://html.spec.whatwg.org/multipage/forms.html#multipart/form-data-encoding-algorithm
+    // (maybe take encoding as input)
+    let encoding: Charset = Charset::Ext("UTF-8".to_string());
+
+    //  Step 3
+    let charset = "UTF-8";
+
+    // Step 4
+    for entry in form_data.iter_mut() {
+        if entry.name == "_charset_" && entry.ty == "hidden" {
+            entry.value = Data::StringData(charset.to_string());
+        }
+        // TODO Step 4 (ii)
+
+        // Step 5
+        result.push_str(&boundary);
+        result.push_str("\r\nContent-Disposition: form-data; name =\"");
+        result.push_str(&entry.name);
+
+        match entry.value {
+            Data::StringData(ref s) => {
+                result.push_str("\"\r\n");
+
+                result.push_str(&s);
+            },
+            Data::FileData(ref b) => {
+                result.push_str("\" filename=\"");
+                result.push_str(&String::from(b.filename))
+                result.push_str("\"\r\n");
+                result.push_str("Content-Type: \"");
+                result.push_str(&String::from(b.ty));
+                result.push_str("\"\r\n");
+
+                result.push_str("\r\n");
+
+                result.push_str(from_utf8(&b.blob).unwrap());
+            }
+        }
+    }
+
+    result.push_str(&boundary);
+    result.push_str("--");
+
+    return Some(result);
+}
