@@ -70,6 +70,12 @@ async_test(function() {
 function checkFontLoaded() {
     var first = document.getElementById('first');
     var second = document.getElementById('second');
+    // Since there's no way to be notified when the page has been marked dirty in response
+    // to a font having loaded, we'll just keep trying.
+    if (first.getBoundingClientRect().width == second.getBoundingClientRect().width) {
+        this.step_timeout(checkFontLoaded, 500);
+        return;
+    }
     assert_not_equals(first.getBoundingClientRect().width, second.getBoundingClientRect().width);
     assert_not_equals(first.getBoundingClientRect().height, second.getBoundingClientRect().height);
     this.done();
