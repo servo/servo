@@ -16,12 +16,12 @@ use std::sync::Arc;
 use app_units::Au;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
+use error_reporting::ParseErrorReporter;
 use url::Url;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use msg::ParseErrorReporter;
 use string_cache::Atom;
 use computed_values;
 use parser::{ParserContext, log_css_error};
@@ -130,7 +130,7 @@ pub mod longhands {
                 use parser::ParserContext;
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
             % endif
-            use msg::ParseErrorReporter;
+            use error_reporting::ParseErrorReporter;
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, PropertyDeclaration};

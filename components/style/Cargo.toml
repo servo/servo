@@ -9,9 +9,6 @@ build = "build.rs"
 name = "style"
 path = "lib.rs"
 
-[dependencies.msg]
-path = "../msg"
-
 [dependencies.plugins]
 path = "../plugins"
 
