@@ -6,18 +6,13 @@ use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::{GlobalField, GlobalRef};
-use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::storageevent::StorageEvent;
-use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
-use page::IterablePage;
-use script_task::{MainThreadRunnable, MainThreadScriptMsg, ScriptTask};
 use std::sync::mpsc::channel;
+use task_source::dom_manipulation::DOMManipulationTaskMsg;
 use url::Url;
 use util::str::DOMString;
 
@@ -154,57 +149,10 @@ impl Storage {
                                      new_value: Option<String>) {
         let global_root = self.global.root();
         let global_ref = global_root.r();
-        let main_script_chan = global_ref.as_window().main_thread_script_chan();
-        let script_chan = global_ref.dom_manipulation_task_source();
+        let task_source = global_ref.as_window().dom_manipulation_task_source();
+        let script_chan = global_ref.script_chan();
         let trusted_storage = Trusted::new(self, script_chan);
-        main_script_chan.send(MainThreadScriptMsg::MainThreadRunnableMsg(
-            box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
-    }
-}
-
-pub struct StorageEventRunnable {
-    element: Trusted<Storage>,
-    key: Option<String>,
-    old_value: Option<String>,
-    new_value: Option<String>
-}
-
-impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, key: Option<String>, old_value: Option<String>,
-           new_value: Option<String>) -> StorageEventRunnable {
-        StorageEventRunnable { element: storage, key: key, old_value: old_value, new_value: new_value }
-    }
-}
-
-impl MainThreadRunnable for StorageEventRunnable {
-    fn handler(self: Box<StorageEventRunnable>, script_task: &ScriptTask) {
-        let this = *self;
-        let storage_root = this.element.root();
-        let storage = storage_root.r();
-        let global_root = storage.global.root();
-        let global_ref = global_root.r();
-        let ev_window = global_ref.as_window();
-        let ev_url = storage.get_url();
-
-        let storage_event = StorageEvent::new(
-            global_ref,
-            atom!("storage"),
-            EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-            this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
-            DOMString::from(ev_url.to_string()),
-            Some(storage)
-        );
-
-        let root_page = script_task.root_page();
-        for it_page in root_page.iter() {
-            let it_window_root = it_page.window();
-            let it_window = it_window_root.r();
-            assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
-            // TODO: Such a Document object is not necessarily fully active, but events fired on such
-            // objects are ignored by the event loop until the Document becomes fully active again.
-            if ev_window.pipeline() != it_window.pipeline() {
-                storage_event.upcast::<Event>().fire(it_window.upcast());
-            }
-        }
+        task_source.queue(DOMManipulationTaskMsg::SendStorageNotification(
+            trusted_storage, key, old_value, new_value)).unwrap();
     }
 }

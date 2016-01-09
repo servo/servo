@@ -28,10 +28,10 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
+use dom::bindings::refcounted::{LiveDOMReferences, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
-use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -97,7 +97,7 @@ use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
-use task_source::dom_manipulation::DOMManipulationTaskSource;
+use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTaskMsg};
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
@@ -200,10 +200,6 @@ pub trait Runnable {
     fn handler(self: Box<Self>);
 }
 
-pub trait MainThreadRunnable {
-    fn handler(self: Box<Self>, script_task: &ScriptTask);
-}
-
 enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
@@ -248,16 +244,14 @@ pub enum ScriptTaskEventCategory {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Notify a document that all pending loads are complete.
-    DocumentLoadsComplete(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptTask).
     ExitWindow(PipelineId),
-    /// Generic message for running tasks in the ScriptTask
-    MainThreadRunnableMsg(Box<MainThreadRunnable + Send>),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     Navigate(PipelineId, LoadData),
+    /// Tasks that originate from the DOM manipulation task source
+    DOMManipulation(DOMManipulationTaskMsg),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -1054,10 +1048,6 @@ impl ScriptTask {
                 self.handle_navigate(id, None, load_data),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            MainThreadScriptMsg::MainThreadRunnableMsg(runnable) =>
-                runnable.handler(self),
-            MainThreadScriptMsg::DocumentLoadsComplete(id) =>
-                self.handle_loads_complete(id),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
@@ -1069,6 +1059,8 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(addr),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
+            MainThreadScriptMsg::DOMManipulation(msg) =>
+                msg.handle_msg(self, self.constellation_chan.clone()),
         }
     }
 
@@ -1248,25 +1240,6 @@ impl ScriptTask {
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
-    }
-
-    fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let page = get_page(&self.root_page(), pipeline);
-        let doc = page.document();
-        let doc = doc.r();
-        if doc.loader().is_blocked() {
-            return;
-        }
-
-        doc.mut_loader().inhibit_events();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone());
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
     pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {

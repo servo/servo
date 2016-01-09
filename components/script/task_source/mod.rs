@@ -7,3 +7,10 @@ pub mod file_reading;
 pub mod history_traversal;
 pub mod networking;
 pub mod user_interaction;
+
+use std::result::Result;
+
+pub trait TaskSource<T> {
+    fn queue(&self, msg: T) -> Result<(), ()>;
+    fn clone(&self) -> Box<TaskSource<T> + Send>;
+}

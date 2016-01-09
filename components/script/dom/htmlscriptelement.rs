@@ -19,6 +19,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -34,13 +35,13 @@ use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
-use script_task::ScriptTaskEventCategory::ScriptEvent;
-use script_task::{CommonScriptMsg, Runnable, ScriptChan};
+use script_task::ScriptChan;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
+use task_source::dom_manipulation::DOMManipulationTaskMsg;
 use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
@@ -432,26 +433,20 @@ impl HTMLScriptElement {
         if external {
             self.dispatch_load_event();
         } else {
-            let chan = window.dom_manipulation_task_source();
-            let handler = Trusted::new(self, chan.clone());
-            let dispatcher = box EventDispatcher {
-                element: handler,
-                is_error: false,
-            };
-            chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
+            let chan = window.script_chan();
+            let script_element = Trusted::new(self.upcast::<EventTarget>(), chan);
+            let task_source = window.dom_manipulation_task_source();
+            task_source.queue(DOMManipulationTaskMsg::FireSimpleEvent(atom!("load"), script_element)).unwrap();
         }
     }
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
         let window = window.r();
-        let chan = window.dom_manipulation_task_source();
-        let handler = Trusted::new(self, chan.clone());
-        let dispatcher = box EventDispatcher {
-            element: handler,
-            is_error: true,
-        };
-        chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
+        let chan = window.script_chan();
+        let task_source = window.dom_manipulation_task_source();
+        let script_element = Trusted::new(self.upcast::<EventTarget>(), chan);
+        task_source.queue(DOMManipulationTaskMsg::FireSimpleEvent(atom!("error"), script_element)).unwrap();
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
@@ -598,21 +593,5 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn SetText(&self, value: DOMString) {
         self.upcast::<Node>().SetTextContent(Some(value))
-    }
-}
-
-struct EventDispatcher {
-    element: Trusted<HTMLScriptElement>,
-    is_error: bool,
-}
-
-impl Runnable for EventDispatcher {
-    fn handler(self: Box<EventDispatcher>) {
-        let target = self.element.root();
-        if self.is_error {
-            target.dispatch_error_event();
-        } else {
-            target.dispatch_load_event();
-        }
     }
 }

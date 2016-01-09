@@ -73,7 +73,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
-use task_source::dom_manipulation::DOMManipulationTaskSource;
+use task_source::TaskSource;
+use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTaskMsg};
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
@@ -253,7 +254,7 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTaskMsg> + Send> {
         self.dom_manipulation_task_source.clone()
     }
 
@@ -271,6 +272,10 @@ impl Window {
 
     pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
         self.file_reading_task_source.clone()
+    }
+
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+        self.script_chan.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {

@@ -23,6 +23,8 @@ use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
+use task_source::TaskSource;
+use task_source::dom_manipulation::DOMManipulationTaskMsg;
 use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
@@ -154,10 +156,19 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+        match *self {
+            GlobalRef::Window(ref window) => window.script_chan(),
+            GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `TaskSource` used to queue DOM manipulation messages to the event loop of this global's
+    /// thread.
+    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTaskMsg> + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
+            GlobalRef::Worker(_) => unimplemented!(),
         }
     }
 

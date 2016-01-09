@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
@@ -89,7 +88,6 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::CSSError;
-use script_task::{MainThreadScriptMsg, Runnable};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
@@ -107,6 +105,7 @@ use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
 use style::restyle_hints::ElementSnapshot;
 use style::stylesheets::Stylesheet;
+use task_source::dom_manipulation::DOMManipulationTaskMsg;
 use time;
 use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -1265,8 +1264,8 @@ impl Document {
         let loader = self.loader.borrow();
         if !loader.is_blocked() && !loader.events_inhibited() {
             let win = self.window();
-            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline());
-            win.main_thread_script_chan().send(msg).unwrap();
+            let msg = DOMManipulationTaskMsg::DocumentLoadsComplete(win.pipeline());
+            win.dom_manipulation_task_source().queue(msg).unwrap();
         }
     }
 
@@ -1350,12 +1349,11 @@ impl Document {
 
         update_with_current_time(&self.dom_content_loaded_event_start);
 
-        let event = Event::new(GlobalRef::Window(self.window()),
-                               atom!("DOMContentLoaded"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let doctarget = self.upcast::<EventTarget>();
-        let _ = doctarget.DispatchEvent(event.r());
+        let script_chan = self.window().script_chan();
+        let doctarget = Trusted::new(self.upcast::<EventTarget>(), script_chan);
+        let task_source = self.window().dom_manipulation_task_source();
+        let _ = task_source.queue(DOMManipulationTaskMsg::FireEvent(
+            atom!("DOMContentLoaded"), doctarget, EventBubbles::Bubbles, EventCancelable::NotCancelable));
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);
@@ -2478,55 +2476,6 @@ fn update_with_current_time(marker: &Cell<u64>) {
     if marker.get() == Default::default() {
         let current_time_ms = time::get_time().sec * 1000;
         marker.set(current_time_ms as u64);
-    }
-}
-
-pub struct DocumentProgressHandler {
-    addr: Trusted<Document>,
-}
-
-impl DocumentProgressHandler {
-    pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
-        DocumentProgressHandler {
-            addr: addr,
-        }
-    }
-
-    fn set_ready_state_complete(&self) {
-        let document = self.addr.root();
-        document.set_ready_state(DocumentReadyState::Complete);
-    }
-
-    fn dispatch_load(&self) {
-        let document = self.addr.root();
-        let window = document.window();
-        let event = Event::new(GlobalRef::Window(window),
-                               atom!("load"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let wintarget = window.upcast::<EventTarget>();
-        event.set_trusted(true);
-        let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
-
-        document.notify_constellation_load();
-
-        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-        document.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
-
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::DocumentLoaded);
-    }
-}
-
-impl Runnable for DocumentProgressHandler {
-    fn handler(self: Box<DocumentProgressHandler>) {
-        let document = self.addr.root();
-        let window = document.window();
-        if window.is_alive() {
-            self.set_ready_state_complete();
-            self.dispatch_load();
-        }
     }
 }
 
