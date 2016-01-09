@@ -146,6 +146,10 @@ impl DisplayList {
         }
     }
 
+    /// Adds the given display item at the specified section of this display list.
+    pub fn add_to_section(&mut self, display_item: DisplayItem, section: DisplayListSection) {
+        self.get_section_mut(section).push_back(display_item);
+    }
 
     /// Creates a new display list which contains a single stacking context.
     #[inline]
@@ -554,7 +558,7 @@ impl DisplayList {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum DisplayListSection {
+pub enum DisplayListSection {
     BackgroundAndBorders,
     BlockBackgroundsAndBorders,
     Floats,
@@ -876,7 +880,7 @@ impl StackingContextLayerCreator {
                 }
             }
 
-            parent_stacking_context.display_list.get_section_mut(section).push_back(item);
+            parent_stacking_context.display_list.add_to_section(item, section);
             return;
         }
 
@@ -930,7 +934,7 @@ impl StackingContextLayerCreator {
         }
 
         if let Some(ref mut display_list) = self.display_list_for_next_layer {
-            display_list.get_section_mut(section).push_back(item);
+            display_list.add_to_section(item, section);
         }
     }
 
