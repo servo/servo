@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -20,6 +19,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -283,8 +283,8 @@ impl HTMLFormElement {
                 load_data.headers.set(ContentType(mime));
 
                 serialize(form_data.iter().map(|d| (&*d.name, match d.value {
-                    BlobOrString::eString(ref s) => String::from(s.clone()),
-                    BlobOrString::eBlob(_) => "".to_owned()   // Should not be found in FormEnctype::UrlEncoded
+                    FileOrString::StringData(ref s) => String::from(s.clone()),
+                    FileOrString::FileData(_) => unreachable!()
                 })))
             }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
@@ -404,7 +404,7 @@ impl HTMLFormElement {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
                                 name: name,
-                                value: BlobOrString::eString(textarea.Value())
+                                value: FileOrString::StringData(textarea.Value())
                             });
                         }
                     }
@@ -458,9 +458,9 @@ impl HTMLFormElement {
                 "file" | "textarea" => (),
                 _ => {
                     datum.name = clean_crlf(&datum.name);
-                    datum.value = BlobOrString::eString(clean_crlf( match datum.value {
-                        BlobOrString::eString(ref s) => s,
-                        BlobOrString::eBlob(_) =>"" // Unimplemented
+                    datum.value = FileOrString::StringData(clean_crlf( match datum.value {
+                        FileOrString::StringData(ref s) => s,
+                        FileOrString::FileData(_) => unreachable!()
                     }));
                 }
             }
@@ -518,11 +518,16 @@ impl HTMLFormElement {
 
 }
 
+pub enum FileOrString {
+    FileData(Root<File>),
+    StringData(DOMString)
+}
+
 // #[derive(HeapSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
-    pub value: BlobOrString
+    pub value: FileOrString
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
