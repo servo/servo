@@ -354,6 +354,30 @@ impl HTMLElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#category-listed
+    pub fn is_listed_element(&self) -> bool {
+        // Servo does not implement HTMLKeygenElement
+        // https://github.com/servo/servo/issues/2782
+        if self.upcast::<Element>().local_name() == &atom!("keygen") {
+            return true;
+        }
+
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
+                match type_id {
+                    HTMLElementTypeId::HTMLButtonElement |
+                        HTMLElementTypeId::HTMLFieldSetElement |
+                        HTMLElementTypeId::HTMLInputElement |
+                        HTMLElementTypeId::HTMLObjectElement |
+                        HTMLElementTypeId::HTMLOutputElement |
+                        HTMLElementTypeId::HTMLSelectElement |
+                        HTMLElementTypeId::HTMLTextAreaElement => true,
+                    _ => false,
+                },
+            _ => false,
+        }
+    }
+
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.upcast::<Element>();
         element.attrs().iter().filter_map(|attr| {
