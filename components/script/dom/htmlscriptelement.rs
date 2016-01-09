@@ -381,9 +381,48 @@ impl HTMLScriptElement {
             // Step 2.b.1.a.
             ScriptOrigin::External(Ok((metadata, bytes))) => {
                 // TODO(#9185): implement encoding determination.
-                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
-                 true,
-                 metadata.final_url)
+
+                // Step 1.
+                // TODO: If the resource's Content Type metadata, if any,
+                // specifies a character encoding, and the user agent supports
+                // that encoding, then let character encoding be that encoding,
+                // and jump to the bottom step in this series of steps.
+
+                let encoding_after_step1 : Option<EncodingRef> = match metadata.charset {
+                    Some(encoding) => match encoding_from_whatwg_label(&encoding) {
+                        Some(enc_ref) => Some(enc_ref),
+                        None => {
+                            debug!("error loading script, unknown encoding {} found in ContentType metadata", encoding);
+                            None}
+                        },
+                    None => None
+                };
+
+                // Step 2.
+                // TODO: If the algorithm above set the script block's
+                // character encoding, then let character encoding be that
+                // encoding, and jump to the bottom step in this series of
+                // steps.
+
+                let encoding_after_step2 : Option<EncodingRef> = match encoding_after_step1 {
+                    Some(enc_ref) => Some(enc_ref),
+                    None => Some(*self.block_character_encoding.borrow())
+                };
+
+                // Step 3.
+                // TODO: Let character encoding be the script block's fallback
+                // character encoding.
+
+                //it's set to UTF-8 by default while populating self.block_character_encoding
+
+                // Step 4.
+                // TODO: Otherwise, decode the file to Unicode, using character
+                // encoding as the fallback encoding.
+                let final_encoding = encoding_after_step2.unwrap();
+
+                (DOMString::from(final_encoding.decode(&*bytes, DecoderTrap::Replace).unwrap()),
+                    true,
+                    metadata.final_url)
             },
 
             // Step 2.b.1.c.
