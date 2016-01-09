@@ -20,10 +20,14 @@ use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
@@ -134,6 +138,62 @@ impl HTMLFormElementMethods for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-reset
     fn Reset(&self) {
         self.reset(ResetFrom::FromFormResetMethod);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-elements
+    fn Elements(&self) -> Root<HTMLFormControlsCollection> {
+        #[derive(JSTraceable, HeapSizeOf)]
+        struct ElementsFilter {
+            form: Root<HTMLFormElement>
+        }
+        impl CollectionFilter for ElementsFilter {
+            fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
+                let form_owner = match elem.upcast::<Node>().type_id() {
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(t)) => {
+                        match t {
+                            HTMLElementTypeId::HTMLButtonElement => {
+                                elem.downcast::<HTMLButtonElement>().unwrap().form_owner()
+                            }
+                            HTMLElementTypeId::HTMLFieldSetElement => {
+                                elem.downcast::<HTMLFieldSetElement>().unwrap().form_owner()
+                            }
+                            HTMLElementTypeId::HTMLInputElement => {
+                                let input_elem = elem.downcast::<HTMLInputElement>().unwrap();
+                                if input_elem.type_() == atom!("image") {
+                                    return false;
+                                }
+                                input_elem.form_owner()
+                            }
+                            HTMLElementTypeId::HTMLObjectElement => {
+                                elem.downcast::<HTMLObjectElement>().unwrap().form_owner()
+                            }
+                            HTMLElementTypeId::HTMLOutputElement => {
+                                elem.downcast::<HTMLOutputElement>().unwrap().form_owner()
+                            }
+                            HTMLElementTypeId::HTMLSelectElement => {
+                                elem.downcast::<HTMLSelectElement>().unwrap().form_owner()
+                            }
+                            HTMLElementTypeId::HTMLTextAreaElement => {
+                                elem.downcast::<HTMLTextAreaElement>().unwrap().form_owner()
+                            }
+                            _ => {
+                                debug_assert!(!elem.downcast::<HTMLElement>().unwrap().is_listed_element());
+                                return false;
+                            }
+                        }
+                    }
+                    _ => return false,
+                };
+
+                match form_owner {
+                    Some(form_owner) => form_owner == self.form,
+                    None => false,
+                }
+            }
+        }
+        let filter = box ElementsFilter { form: Root::from_ref(self) };
+        let window = window_from_node(self);
+        HTMLFormControlsCollection::new(window.r(), self.upcast(), filter)
     }
 }
 

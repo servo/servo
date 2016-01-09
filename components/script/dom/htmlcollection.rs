@@ -66,7 +66,7 @@ pub struct HTMLCollection {
 
 impl HTMLCollection {
     #[allow(unrooted_must_root)]
-    fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLCollection {
+    pub fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             root: JS::from_ref(root),
