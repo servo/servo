@@ -28,6 +28,19 @@ impl Console {
                            global,
                            ConsoleBinding::Wrap)
     }
+
+    fn send_to_devtools(&self, level: LogLevel, message: DOMString) {
+        let global = global_root_from_reflector(self);
+        let global = global.r();
+        if let Some(chan) = global.devtools_chan() {
+            let console_message = prepare_message(level, message);
+            let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
+                global.pipeline(),
+                console_message,
+                global.get_worker_id());
+            chan.send(devtools_message).unwrap();
+        }
+    }
 }
 
 impl ConsoleMethods for Console {
@@ -35,7 +48,7 @@ impl ConsoleMethods for Console {
     fn Log(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Log, message));
+            self.send_to_devtools(LogLevel::Log, message);
         }
     }
 
@@ -43,7 +56,7 @@ impl ConsoleMethods for Console {
     fn Debug(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Debug, message));
+            self.send_to_devtools(LogLevel::Debug, message);
         }
     }
 
@@ -51,7 +64,7 @@ impl ConsoleMethods for Console {
     fn Info(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Info, message));
+            self.send_to_devtools(LogLevel::Info, message);
         }
     }
 
@@ -59,7 +72,7 @@ impl ConsoleMethods for Console {
     fn Warn(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Warn, message));
+            self.send_to_devtools(LogLevel::Warn, message);
         }
     }
 
@@ -67,7 +80,7 @@ impl ConsoleMethods for Console {
     fn Error(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
+            self.send_to_devtools(LogLevel::Error, message);
         }
     }
 
@@ -76,7 +89,7 @@ impl ConsoleMethods for Console {
         if !condition {
             let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
+            self.send_to_devtools(LogLevel::Error, message);
         }
     }
 }
@@ -90,15 +103,4 @@ fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
         lineNumber: 1,
         columnNumber: 1,
     }
-}
-
-fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
-    let global = global_root_from_reflector(*console);
-    let pipelineId = global.r().pipeline();
-    global.r().devtools_chan().as_ref().map(|chan| {
-        chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(pipelineId,
-                                                         console_message.clone(),
-                                                         global.r().get_worker_id()))
-            .unwrap();
-    });
 }
