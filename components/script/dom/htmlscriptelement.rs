@@ -99,7 +99,7 @@ impl HTMLScriptElement {
 
 
 /// Supported script types as defined by
-/// <https://html.spec.whatwg.org/multipage/#support-the-scripting-language>.
+/// <https://html.spec.whatwg.org/multipage/#javascript-mime-type>.
 static SCRIPT_JS_MIMES: StaticStringVec = &[
     "application/ecmascript",
     "application/javascript",
