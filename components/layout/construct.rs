@@ -24,8 +24,8 @@ use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
-use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use fragment::{WhitespaceStrippingResult};
+use fragment::{InlineBlockFragmentInfo, InlineTableFragmentInfo, SpecificFragmentInfo};
+use fragment::{UnscannedTextFragmentInfo, WhitespaceStrippingResult};
 use gfx::display_list::OpaqueNode;
 use incremental::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
@@ -979,6 +979,36 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
         ConstructionResult::ConstructionItem(construction_item)
     }
 
+    fn build_fragment_for_inline_table(&mut self, node: &ConcreteThreadSafeLayoutNode)
+                                       -> ConstructionResult {
+        let table_flow_result = self.build_flow_for_table_wrapper(node, float::T::none);
+        let (wrapper_flow, abs_descendants) = match table_flow_result {
+            ConstructionResult::Flow(wrapper_flow, abs_descendants) => (wrapper_flow, abs_descendants),
+            _ => unreachable!()
+        };
+
+        let mut modified_style = (*node.style()).clone();
+        properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
+        let fragment_info = SpecificFragmentInfo::InlineTable(InlineTableFragmentInfo::new(
+            wrapper_flow));
+        let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
+                                                            node.get_pseudo_element_type().strip(),
+                                                            modified_style.clone(),
+                                                            node.restyle_damage(),
+                                                            fragment_info);
+
+        let mut fragment_accumulator = InlineFragmentsAccumulator::new();
+        fragment_accumulator.fragments.fragments.push_back(fragment);
+        fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
+
+        let construction_item =
+            ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
+                splits: LinkedList::new(),
+                fragments: fragment_accumulator.to_intermediate_inline_fragments(),
+            });
+        ConstructionResult::ConstructionItem(construction_item)
+    }
+
     /// This is an annoying case, because the computed `display` value is `block`, but the
     /// hypothetical box is inline.
     fn build_fragment_for_absolutely_positioned_inline(&mut self, node: &ConcreteThreadSafeLayoutNode)
@@ -1543,6 +1573,12 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<'ln, Concr
             // Inline-block items contribute inline fragment construction results.
             (display::T::inline_block, float::T::none, _) => {
                 let construction_result = self.build_fragment_for_inline_block(node);
+                self.set_flow_construction_result(node, construction_result)
+            }
+
+            // Inline-table items contribute inline fragment construction results.
+            (display::T::inline_table, float::T::none, _) => {
+                let construction_result = self.build_fragment_for_inline_table(node);
                 self.set_flow_construction_result(node, construction_result)
             }
 
