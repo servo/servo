@@ -25,7 +25,6 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{FragmentContext, ServoHTMLParser};
 use dom::text::Text;
-use encoding::types::Encoding;
 use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
