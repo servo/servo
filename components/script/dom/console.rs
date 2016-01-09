@@ -5,7 +5,7 @@
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use util::str::DOMString;
@@ -14,19 +14,17 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct Console {
     reflector_: Reflector,
-    global: GlobalField,
 }
 
 impl Console {
-    fn new_inherited(global: GlobalRef) -> Console {
+    fn new_inherited() -> Console {
         Console {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(&global),
         }
     }
 
     pub fn new(global: GlobalRef) -> Root<Console> {
-        reflect_dom_object(box Console::new_inherited(global),
+        reflect_dom_object(box Console::new_inherited(),
                            global,
                            ConsoleBinding::Wrap)
     }
@@ -95,7 +93,7 @@ fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
 }
 
 fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
-    let global = console.global.root();
+    let global = global_root_from_reflector(*console);
     let pipelineId = global.r().pipeline();
     global.r().devtools_chan().as_ref().map(|chan| {
         chan.send(ScriptToDevtoolsControlMsg::ConsoleAPI(pipelineId,
