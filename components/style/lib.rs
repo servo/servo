@@ -31,7 +31,6 @@ extern crate lazy_static;
 extern crate log;
 #[macro_use]
 extern crate matches;
-extern crate msg;
 extern crate num;
 extern crate rustc_serialize;
 #[macro_use(state_pseudo_classes)] extern crate selectors;
@@ -50,6 +49,7 @@ pub mod context;
 mod custom_properties;
 pub mod data;
 pub mod dom;
+pub mod error_reporting;
 pub mod font_face;
 pub mod matching;
 pub mod media_queries;

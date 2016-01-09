@@ -5,12 +5,9 @@
 // For lazy_static
 #![allow(unsafe_code)]
 
-use cssparser::{Parser, SourcePosition};
 use dom::TElement;
-use log;
+use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use media_queries::{Device, MediaType};
-use msg::ParseErrorReporter;
-use msg::constellation_msg::PipelineId;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selectors::Element;
@@ -31,25 +28,6 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
-
-pub struct StdoutErrorReporter;
-
-impl ParseErrorReporter for StdoutErrorReporter {
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
-         if log_enabled!(log::LogLevel::Info) {
-             let location = input.source_location(position);
-             info!("{}:{} {}", location.line, location.column, message)
-         }
-    }
-
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        box StdoutErrorReporter
-    }
-
-    fn pipeline(&self) -> PipelineId {
-       PipelineId::fake_root_pipeline_id()
-     }
-}
 
 lazy_static! {
     pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {

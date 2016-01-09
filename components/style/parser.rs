@@ -4,7 +4,7 @@
 
 
 use cssparser::{Parser, SourcePosition};
-use msg::ParseErrorReporter;
+use error_reporting::ParseErrorReporter;
 use selectors::parser::ParserContext as SelectorParserContext;
 use stylesheets::Origin;
 use url::Url;
