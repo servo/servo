@@ -390,8 +390,17 @@ impl HTMLScriptElement {
                 // that encoding, then let character encoding be that encoding,
                 // and jump to the bottom step in this series of steps.
 
-                let encoding_after_step1 : Option<EncodingRef> = metadata.charset.map(
-                    |encoding| encoding_from_whatwg_label(encoding));
+                let encoding_after_step1 : Option<EncodingRef> = match metadata.charset {
+                    Some(encoding) => match encoding_from_whatwg_label(&encoding) {
+                        Some(enc_ref) => Some(enc_ref),
+                        None => {
+                            debug!("error loading script, unknown encoding {} found in ContentType metadata", encoding);
+                            None}
+                        },
+                    None => None
+                };
+
+
 
                 // Step 2.
                 // TODO: If the algorithm above set the script block's
@@ -399,15 +408,24 @@ impl HTMLScriptElement {
                 // encoding, and jump to the bottom step in this series of
                 // steps.
 
+                let encoding_after_step2 : Option<EncodingRef> = match encoding_after_step1 {
+                    Some(enc_ref) => Some(enc_ref),
+                    None => Some(*self.block_character_encoding.borrow())
+                };
+
                 // Step 3.
                 // TODO: Let character encoding be the script block's fallback
                 // character encoding.
+
+                //it's set to UTF-8 by default while populating self.block_character_encoding
 
                 // Step 4.
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
 
-                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
+                let final_encoding = encoding_after_step2.unwrap();
+
+                (DOMString::from(final_encoding.decode(&*bytes, DecoderTrap::Replace).unwrap()),
                  true,
                  metadata.final_url)
             },
