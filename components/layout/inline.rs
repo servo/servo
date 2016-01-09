@@ -17,7 +17,7 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFr
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
-use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
+use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use std::cmp::max;
@@ -1354,6 +1354,8 @@ impl Flow for InlineFlow {
                     intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment);
                 }
             }
+
+            fragment.restyle_damage.remove(BUBBLE_ISIZES);
         }
 
         // Flush any remaining nonbroken-run and inline-run intrinsic sizes.
@@ -1615,6 +1617,9 @@ impl Flow for InlineFlow {
         });
 
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+        for fragment in &mut self.fragments.fragments {
+            fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+        }
     }
 
     fn compute_absolute_position(&mut self, _: &LayoutContext) {
@@ -1742,7 +1747,11 @@ impl Flow for InlineFlow {
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_for_inline(layout_context)
+        self.build_display_list_for_inline(layout_context);
+
+        for fragment in &mut self.fragments.fragments {
+            fragment.restyle_damage.remove(REPAINT);
+        }
     }
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
