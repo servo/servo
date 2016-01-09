@@ -390,6 +390,9 @@ impl HTMLScriptElement {
                 // that encoding, then let character encoding be that encoding,
                 // and jump to the bottom step in this series of steps.
 
+                let encoding_after_step1 : Option<EncodingRef> = metadata.charset.map(
+                    |encoding| encoding_from_whatwg_label(encoding));
+
                 // Step 2.
                 // TODO: If the algorithm above set the script block's
                 // character encoding, then let character encoding be that
