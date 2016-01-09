@@ -354,6 +354,25 @@ impl HTMLElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#category-listed
+    pub fn is_listed_element(&self) -> bool {
+        // Note: HTMLKeygenElement is omitted because Servo doesn't currently implement it
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
+                match type_id {
+                    HTMLElementTypeId::HTMLButtonElement |
+                        HTMLElementTypeId::HTMLFieldSetElement |
+                        HTMLElementTypeId::HTMLInputElement |
+                        HTMLElementTypeId::HTMLObjectElement |
+                        HTMLElementTypeId::HTMLOutputElement |
+                        HTMLElementTypeId::HTMLSelectElement |
+                        HTMLElementTypeId::HTMLTextAreaElement => true,
+                    _ => false,
+                },
+            _ => false,
+        }
+    }
+
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.upcast::<Element>();
         element.attrs().iter().filter_map(|attr| {

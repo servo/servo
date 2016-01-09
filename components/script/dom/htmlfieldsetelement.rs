@@ -18,7 +18,7 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
 use string_cache::Atom;
-use util::str::{DOMString, StaticStringVec};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
@@ -52,9 +52,8 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
-                static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
-                    "keygen", "object", "output", "select", "textarea"];
-                TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
+                elem.downcast::<HTMLElement>()
+                    .map_or(false, HTMLElement::is_listed_element)
             }
         }
         let filter = box ElementsFilter;
