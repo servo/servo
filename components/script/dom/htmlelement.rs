@@ -336,7 +336,12 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#category-label
     pub fn is_labelable_element(&self) -> bool {
-        // Note: HTMLKeygenElement is omitted because Servo doesn't currently implement it
+        // Servo does not implement HTMLKeygenElement
+        // https://github.com/servo/servo/issues/2782
+        if self.upcast::<Element>().local_name() == &atom!("keygen") {
+            return true;
+        }
+
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
                 match type_id {
