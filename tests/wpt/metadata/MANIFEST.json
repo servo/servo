@@ -35209,6 +35209,12 @@
             "path": "html/semantics/forms/the-button-element/button-activate.html",
             "url": "/html/semantics/forms/the-button-element/button-activate.html"
           }
+        ],
+        "html/semantics/forms/the-form-element/form-elements-sameobject.html": [
+          {
+            "path": "html/semantics/forms/the-form-element/form-elements-sameobject.html",
+            "url": "/html/semantics/forms/the-form-element/form-elements-sameobject.html"
+          }
         ]
       }
     },
