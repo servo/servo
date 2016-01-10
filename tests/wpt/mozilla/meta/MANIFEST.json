@@ -5965,6 +5965,12 @@
             "url": "/_mozilla/mozilla/webgl/get_supported_extensions.html"
           }
         ],
+        "mozilla/webgl/vertex_attrib_above_limit.html": [
+          {
+            "path": "mozilla/webgl/vertex_attrib_above_limit.html",
+            "url": "/_mozilla/mozilla/webgl/vertex_attrib_above_limit.html"
+          }
+        ],
         "mozilla/websocket_connection_fail.html": [
           {
             "path": "mozilla/websocket_connection_fail.html",

@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Issue #9097: Don't panic calling *VertexAttrib* API with out-of-bounds indices</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+  <head>
+    <script id="shader-fs" type="x-shader/x-fragment">
+      precision mediump float;
+      void main(void) {}
+    </script>
+    <script id="shader-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+      void main(void) {}
+    </script>
+    <script type="application/x-javascript">
+      var gl;
+      function getShader(gl, id) {
+          var shaderScript = document.getElementById(id);
+          if (!shaderScript)
+              return null;
+          var shader;
+          if (shaderScript.type == "x-shader/x-fragment") {
+              shader = gl.createShader(gl.FRAGMENT_SHADER);
+          } else if (shaderScript.type == "x-shader/x-vertex") {
+              shader = gl.createShader(gl.VERTEX_SHADER);
+          }
+          gl.shaderSource(shader, shaderScript.textContent);
+          gl.compileShader(shader);
+          return shader;
+      }
+      var aVertexPosition;
+      function initBuffers() {
+        vertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+        var vertices = [ 1.0,  1.0, -1.0,  1.0, 1.0, -1.0, -1.0, -1.0 ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        gl.vertexAttribPointer(aVertexPosition, 2, gl.FLOAT, false, 0, 0);
+      }
+      var canvas;
+      function webGLStart() {
+        canvas = document.getElementById("canvas");
+        gl = canvas.getContext("experimental-webgl");
+        var shaderProgram = gl.createProgram();
+        var vertexShader = getShader(gl, "shader-vs");
+        gl.attachShader(shaderProgram, vertexShader);
+        var fragmentShader = getShader(gl, "shader-fs");
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+        gl.useProgram(shaderProgram);
+        aVertexPosition = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        initBuffers();
+      }
+    </script>
+  </head>
+  <body onload="webGLStart()">
+    <div>
+      <canvas id="canvas"></canvas>
+    </div>
+  </body>
+  <script>
+    test(function() {
+    	webGLStart();
+    });
+  </script>
+</html>
+

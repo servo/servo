@@ -47,6 +47,20 @@ impl WebGLPaintTask {
     /// done in the corresponding DOM interfaces
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
+            // *VertexAttrib* generate a GL_INVALID_VALUE error if called with an index above
+            // GL_MAX_VERTEX_ATTRIBS, so leave early in that case (see for instance
+            // https://www.khronos.org/opengles/sdk/docs/man/xhtml/glVertexAttrib.xml)
+            CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) |
+            CanvasWebGLMsg::VertexAttrib(attrib_id, _, _, _, _) |
+            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, _, _, _, _) => {
+                if attrib_id >= gl::get_integer_v(gl::MAX_VERTEX_ATTRIBS) as u32 {
+                    return
+                }
+            },
+            _ => ()
+        }
+
+        match message {
             CanvasWebGLMsg::GetContextAttributes(sender) =>
                 self.context_attributes(sender),
             CanvasWebGLMsg::ActiveTexture(target) =>
