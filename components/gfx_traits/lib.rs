@@ -22,7 +22,6 @@ pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
 use euclid::matrix::Matrix4;
 use euclid::rect::Rect;
-use msg::compositor_msg::LayerType;
 use msg::constellation_msg::{Failure, PipelineId};
 use std::fmt::{self, Debug, Formatter};
 
@@ -36,6 +35,18 @@ pub enum PaintMsg {
 pub enum LayerKind {
     NoTransform,
     HasTransform,
+}
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
+pub enum LayerType {
+    /// A layer for the fragment body itself.
+    FragmentBody,
+    /// An extra layer created for a DOM fragments with overflow:scroll.
+    OverflowScroll,
+    /// A layer created to contain ::before pseudo-element content.
+    BeforePseudoContent,
+    /// A layer created to contain ::after pseudo-element content.
+    AfterPseudoContent,
 }
 
 /// The scrolling policy of a layer.

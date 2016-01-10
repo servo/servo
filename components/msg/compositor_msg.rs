@@ -22,15 +22,3 @@ impl FrameTreeId {
         *u += 1;
     }
 }
-
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
-pub enum LayerType {
-    /// A layer for the fragment body itself.
-    FragmentBody,
-    /// An extra layer created for a DOM fragments with overflow:scroll.
-    OverflowScroll,
-    /// A layer created to contain ::before pseudo-element content.
-    BeforePseudoContent,
-    /// A layer created to contain ::after pseudo-element content.
-    AfterPseudoContent,
-}
