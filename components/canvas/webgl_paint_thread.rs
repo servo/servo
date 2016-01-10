@@ -187,10 +187,8 @@ impl WebGLPaintThread {
     /// sender for it.
     pub fn start(size: Size2D<i32>, attrs: GLContextAttributes)
                  -> Result<(IpcSender<CanvasMsg>, Sender<CanvasMsg>), &'static str> {
-        let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
         let (result_chan, result_port) = channel();
-        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
         spawn_named("WebGLThread".to_owned(), move || {
             let mut painter = match WebGLPaintThread::new(size, attrs) {
                 Ok(thread) => {
@@ -230,7 +228,15 @@ impl WebGLPaintThread {
             }
         });
 
-        result_port.recv().unwrap().map(|_| (out_of_process_chan, in_process_chan))
+        match result_port.recv() {
+            Ok(_) => {
+                let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
+                ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
+
+                Ok((out_of_process_chan, in_process_chan))
+            },
+            Err(_) => Err("Could not create WebGLPaintThread.")
+        }
     }
 
     #[inline]
