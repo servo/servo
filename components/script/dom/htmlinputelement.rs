@@ -457,10 +457,8 @@ impl HTMLInputElement {
             atom!("radio") | atom!("checkbox") => if !self.Checked() || name.is_empty() {
                 return None;
             },
-            atom!("file") => {
 
-            }
-            atom!("image") => return None, // Unimplemented
+            atom!("image") | atom!("file") => return None, // Unimplemented
             // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
             _ => if name.is_empty() {
                 return None;

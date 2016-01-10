@@ -284,7 +284,7 @@ impl HTMLFormElement {
 
                 serialize(form_data.iter().map(|d| (&*d.name, match d.value {
                     FileOrString::StringData(ref s) => String::from(s.clone()),
-                    FileOrString::FileData(_) => unreachable!()
+                    FileOrString::FileData(ref f) => String::from(f.name().clone())
                 })))
             }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
