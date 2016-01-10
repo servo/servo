@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::{Root};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
@@ -47,6 +47,7 @@ use util::str::DOMString;
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
+    elements: MutNullableHeap<JS<HTMLFormControlsCollection>>,
 }
 
 impl HTMLFormElement {
@@ -56,6 +57,7 @@ impl HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             marked_for_reset: Cell::new(false),
+            elements: Default::default(),
         }
     }
 
@@ -142,6 +144,10 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
     fn Elements(&self) -> Root<HTMLFormControlsCollection> {
+        if let Some(elements) = self.elements.get() {
+            return elements;
+        }
+
         #[derive(JSTraceable, HeapSizeOf)]
         struct ElementsFilter {
             form: Root<HTMLFormElement>
@@ -193,7 +199,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
         }
         let filter = box ElementsFilter { form: Root::from_ref(self) };
         let window = window_from_node(self);
-        HTMLFormControlsCollection::new(window.r(), self.upcast(), filter)
+        let elements = HTMLFormControlsCollection::new(window.r(), self.upcast(), filter);
+        self.elements.set(Some(&elements));
+        elements
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-length
