@@ -414,13 +414,15 @@ impl HTMLScriptElement {
                 // character encoding.
 
                 //HELPME:
-                //it's set to UTF-8 by default while populating self.block_character_encoding
-                //to execute step 3, I need to know whether it's set to UTF-8 because that's
-                //deduced from attributes, or just in "new" function.
-                //In first case, I should let it be UTF-8. In latter, from what I undestand, I
+                //it's set to UTF-8 by default while populating self.block_character_encoding.
+                //In order to execute step 3, I need to know whether it's set to UTF-8 because
+                //that's deduced from attributes, or just in "new" function.
+                // (I understand that line 244 is a possible override from default UTF-8 if
+                // an attribute is found, right?)
+                // In first case, I should let it be UTF-8. In latter, from what I undestand, I
                 // should override it with
                 // let documents_encoding = (*self.parser_document).Charset
-                //right?
+                // Am I getting things right?
 
                 // Step 4.
                 // TODO: Otherwise, decode the file to Unicode, using character
