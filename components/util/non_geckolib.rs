@@ -25,7 +25,7 @@ use std::slice;
 use str::DOMString;
 
 /// Behavior for stringification of `JSVal`s.
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum StringificationBehavior {
     /// Convert `null` to the string `"null"`.
     Default,
