@@ -5,15 +5,15 @@
 use CompositorMsg as ConstellationMsg;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
-use compositor_task::{CompositorEventListener, CompositorProxy};
-use compositor_task::{CompositorReceiver, InitialCompositorState, Msg};
+use compositor_thread::{CompositorEventListener, CompositorProxy};
+use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg};
 use constellation::SendableFrameTree;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Matrix4, Point2D, Rect, Size2D};
-use gfx::paint_task::{ChromeToPaintMsg, PaintRequest};
+use gfx::paint_thread::{ChromeToPaintMsg, PaintRequest};
 use gfx_traits::{color, LayerId, LayerKind, LayerProperties, ScrollPolicy};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
@@ -375,13 +375,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn finish_shutting_down(&mut self) {
         debug!("Compositor received message that constellation shutdown is complete");
 
-        // Clear out the compositor layers so that painting tasks can destroy the buffers.
+        // Clear out the compositor layers so that painting threads can destroy the buffers.
         if let Some(ref root_layer) = self.scene.root {
             root_layer.forget_all_tiles();
         }
 
         // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetFrameTree).
+        // another thread from finishing (i.e. SetFrameTree).
         while self.port.try_recv_compositor_msg().is_some() {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
@@ -546,7 +546,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 reply.send(img).unwrap();
             }
 
-            (Msg::PaintTaskExited(pipeline_id), ShutdownState::NotShuttingDown) => {
+            (Msg::PaintThreadExited(pipeline_id), ShutdownState::NotShuttingDown) => {
                 self.remove_pipeline_root_layer(pipeline_id);
             }
 
@@ -580,7 +580,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
-                let name = "compositor-task";
+                let name = "compositor-thread";
                 // These are both `ExplicitUnknownLocationSize` because the memory might be in the
                 // GPU or on the heap.
                 let reports = vec![mem::Report {
@@ -975,7 +975,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                               epoch: Epoch,
                               frame_tree_id: FrameTreeId) {
         // If the frame tree id has changed since this paint request was sent,
-        // reject the buffers and send them back to the paint task. If this isn't handled
+        // reject the buffers and send them back to the paint thread. If this isn't handled
         // correctly, the content_age in the tile grid can get out of sync when iframes are
         // loaded and the frame tree changes. This can result in the compositor thinking it
         // has already drawn the most recently painted buffer, and missing a frame.
@@ -1470,7 +1470,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             };
 
-            // All the BufferRequests are in layer/device coordinates, but the paint task
+            // All the BufferRequests are in layer/device coordinates, but the paint thread
             // wants to know the page coordinates. We scale them before sending them.
             for request in &mut layer_requests {
                 request.page_rect = request.page_rect / scale.get();
@@ -1568,7 +1568,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // If a layer has sent a request for the current epoch, but it hasn't
         // arrived yet then this layer is waiting for a paint message.
         //
-        // Also don't check the root layer, because the paint task won't paint
+        // Also don't check the root layer, because the paint thread won't paint
         // anything for it after first layout.
         if layer_data.id != LayerId::null() &&
                 layer_data.requested_epoch == current_epoch &&
@@ -1587,7 +1587,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// Query the constellation to see if the current compositor
     /// output matches the current frame tree output, and if the
-    /// associated script tasks are idle.
+    /// associated script threads are idle.
     fn is_ready_to_paint_image_output(&mut self) -> Result<(), NotReadyToPaint> {
         match self.ready_to_save_state {
             ReadyState::Unknown => {
@@ -2001,7 +2001,7 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
     fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
-        // Check for new messages coming from the other tasks in the system.
+        // Check for new messages coming from the other threads in the system.
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             if !self.handle_browser_message(msg) {
                 break

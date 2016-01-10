@@ -598,7 +598,7 @@ impl CefBrowser {
           CefWrap::to_c(message)))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_browser_t> for CefBrowser {
   fn to_c(rust_object: CefBrowser) -> *mut cef_browser_t {
@@ -755,7 +755,7 @@ impl CefRunFileDialogCallback {
           CefWrap::to_c(file_paths)))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_run_file_dialog_callback_t> for CefRunFileDialogCallback {
   fn to_c(rust_object: CefRunFileDialogCallback) -> *mut cef_run_file_dialog_callback_t {
@@ -914,7 +914,7 @@ impl CefNavigationEntryVisitor {
           CefWrap::to_c(total)))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_navigation_entry_visitor_t> for CefNavigationEntryVisitor {
   fn to_c(rust_object: CefNavigationEntryVisitor) -> *mut cef_navigation_entry_visitor_t {
@@ -1065,7 +1065,7 @@ impl CefPdfPrintCallback {
           CefWrap::to_c(ok)))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_pdf_print_callback_t> for CefPdfPrintCallback {
   fn to_c(rust_object: CefPdfPrintCallback) -> *mut cef_pdf_print_callback_t {
@@ -2540,7 +2540,7 @@ impl CefBrowserHost {
           CefWrap::to_c(request_context)))
     }
   }
-} 
+}
 
 impl CefWrap<*mut cef_browser_host_t> for CefBrowserHost {
   fn to_c(rust_object: CefBrowserHost) -> *mut cef_browser_host_t {

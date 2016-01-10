@@ -46,11 +46,11 @@ use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::ControlMsg::Load;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
-use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceTask};
+use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceThread};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
-use script_task::{ScriptChan, ScriptPort};
+use script_thread::{ScriptChan, ScriptPort};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -197,13 +197,13 @@ impl XMLHttpRequest {
                   load_data: LoadData,
                   req: CORSRequest,
                   script_chan: Box<ScriptChan + Send>,
-                  resource_task: ResourceTask) {
+                  resource_thread: ResourceThread) {
         struct CORSContext {
             xhr: Arc<Mutex<XHRContext>>,
             load_data: RefCell<Option<LoadData>>,
             req: CORSRequest,
             script_chan: Box<ScriptChan + Send>,
-            resource_task: ResourceTask,
+            resource_thread: ResourceThread,
         }
 
         impl AsyncCORSResponseListener for CORSContext {
@@ -223,7 +223,7 @@ impl XMLHttpRequest {
                 });
 
                 XMLHttpRequest::initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
-                                                   self.resource_task.clone(), load_data);
+                                                   self.resource_thread.clone(), load_data);
             }
         }
 
@@ -232,7 +232,7 @@ impl XMLHttpRequest {
             load_data: RefCell::new(Some(load_data)),
             req: req.clone(),
             script_chan: script_chan.clone(),
-            resource_task: resource_task,
+            resource_thread: resource_thread,
         };
 
         req.http_fetch_async(box cors_context, script_chan);
@@ -240,7 +240,7 @@ impl XMLHttpRequest {
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
                           script_chan: Box<ScriptChan + Send>,
-                          resource_task: ResourceTask,
+                          resource_thread: ResourceThread,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
             fn headers_available(&mut self, metadata: Metadata) {
@@ -281,7 +281,7 @@ impl XMLHttpRequest {
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify(message.to().unwrap());
         });
-        resource_task.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
+        resource_thread.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
     }
 }
 
@@ -1026,7 +1026,7 @@ impl XMLHttpRequest {
         // This will cancel all previous timeouts
         let global = self.global.root();
         let callback = ScheduledXHRTimeout {
-            xhr: Trusted::new(self, global.r().networking_task_source()),
+            xhr: Trusted::new(self, global.r().networking_thread_source()),
             generation_id: self.generation_id.get(),
         };
         let duration = Length::new(duration_ms as u64);
@@ -1178,7 +1178,7 @@ impl XMLHttpRequest {
             Ok(req) => req,
         };
 
-        let xhr = Trusted::new(self, global.networking_task_source());
+        let xhr = Trusted::new(self, global.networking_thread_source());
 
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
@@ -1192,16 +1192,16 @@ impl XMLHttpRequest {
             let (tx, rx) = global.new_script_pair();
             (tx, Some(rx))
         } else {
-            (global.networking_task_source(), None)
+            (global.networking_thread_source(), None)
         };
 
-        let resource_task = global.resource_task();
+        let resource_thread = global.resource_thread();
         if let Some(req) = cors_request {
             XMLHttpRequest::check_cors(context.clone(), load_data, req.clone(),
-                                       script_chan.clone(), resource_task);
+                                       script_chan.clone(), resource_thread);
         } else {
             XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
-                                               resource_task, load_data);
+                                               resource_thread, load_data);
         }
 
         if let Some(script_port) = script_port {

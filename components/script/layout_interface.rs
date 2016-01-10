@@ -15,7 +15,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::compositor_msg::Epoch;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
-use net_traits::image_cache_task::ImageCacheTask;
+use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
@@ -46,10 +46,10 @@ pub enum Msg {
     /// Get an RPC interface.
     GetRPC(Sender<Box<LayoutRPC + Send>>),
 
-    /// Requests that the layout task render the next frame of all animations.
+    /// Requests that the layout thread render the next frame of all animations.
     TickAnimations,
 
-    /// Requests that the layout task reflow with a newly-loaded Web font.
+    /// Requests that the layout thread reflow with a newly-loaded Web font.
     ReflowWithNewlyLoadedWebFont,
 
     /// Updates the layout visible rects, affecting the area that display lists will be constructed
@@ -61,30 +61,30 @@ pub enum Msg {
     /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
     ReapStyleAndLayoutData(OpaqueStyleAndLayoutData),
 
-    /// Requests that the layout task measure its memory usage. The resulting reports are sent back
+    /// Requests that the layout thread measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
     CollectReports(ReportsChan),
 
-    /// Requests that the layout task enter a quiescent state in which no more messages are
+    /// Requests that the layout thread enter a quiescent state in which no more messages are
     /// accepted except `ExitMsg`. A response message will be sent on the supplied channel when
     /// this happens.
     PrepareToExit(Sender<()>),
 
-    /// Requests that the layout task immediately shut down. There must be no more nodes left after
+    /// Requests that the layout thread immediately shut down. There must be no more nodes left after
     /// this, or layout will crash.
     ExitNow,
 
-    /// Get the last epoch counter for this layout task.
+    /// Get the last epoch counter for this layout thread.
     GetCurrentEpoch(IpcSender<Epoch>),
 
-    /// Asks the layout task whether any Web fonts have yet to load (if true, loads are pending;
+    /// Asks the layout thread whether any Web fonts have yet to load (if true, loads are pending;
     /// false otherwise).
     GetWebFontLoadState(IpcSender<bool>),
 
-    /// Creates a new layout task.
+    /// Creates a new layout thread.
     ///
     /// This basically exists to keep the script-layout dependency one-way.
-    CreateLayoutTask(NewLayoutTaskInfo),
+    CreateLayoutThread(NewLayoutThreadInfo),
 
     /// Set the final Url.
     SetFinalUrl(Url),
@@ -95,7 +95,7 @@ pub enum Msg {
 /// In general, you should use messages to talk to Layout. Use the RPC interface
 /// if and only if the work is
 ///
-///   1) read-only with respect to LayoutTaskData,
+///   1) read-only with respect to LayoutThreadData,
 ///   2) small,
 ///   3) and really needs to be fast.
 pub trait LayoutRPC {
@@ -181,7 +181,7 @@ impl Drop for ScriptReflow {
     }
 }
 
-/// Encapsulates a channel to the layout task.
+/// Encapsulates a channel to the layout thread.
 #[derive(Clone)]
 pub struct LayoutChan(pub Sender<Msg>);
 
@@ -217,7 +217,7 @@ impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
     }
 }
 
-pub struct NewLayoutTaskInfo {
+pub struct NewLayoutThreadInfo {
     pub id: PipelineId,
     pub url: Url,
     pub is_parent: bool,
@@ -226,7 +226,7 @@ pub struct NewLayoutTaskInfo {
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
     pub failure: Failure,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub image_cache_task: ImageCacheTask,
+    pub image_cache_thread: ImageCacheThread,
     pub paint_chan: OptionalOpaqueIpcSender,
     pub layout_shutdown_chan: IpcSender<()>,
     pub content_process_shutdown_chan: IpcSender<()>,

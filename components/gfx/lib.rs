@@ -91,11 +91,11 @@ pub mod display_list;
 
 // Fonts
 pub mod font;
-pub mod font_cache_task;
+pub mod font_cache_thread;
 pub mod font_context;
 pub mod font_template;
 
-pub mod paint_task;
+pub mod paint_thread;
 
 // Platform-specific implementations.
 #[path = "platform/mod.rs"]

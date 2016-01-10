@@ -29,7 +29,7 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::{AsyncResponseListener, Metadata};
 use network_listener::PreInvoke;
 use parse::Parser;
-use script_task::{ScriptChan, ScriptTask};
+use script_thread::{ScriptChan, ScriptThread};
 use std::cell::Cell;
 use std::cell::UnsafeCell;
 use std::default::Default;
@@ -241,7 +241,7 @@ impl AsyncResponseListener for ParserContext {
     fn headers_available(&mut self, metadata: Metadata) {
         let content_type = metadata.content_type.clone();
 
-        let parser = ScriptTask::page_fetch_complete(self.id.clone(), self.subpage.clone(),
+        let parser = ScriptThread::page_fetch_complete(self.id.clone(), self.subpage.clone(),
                                                      metadata);
         let parser = match parser {
             Some(parser) => parser,
@@ -366,7 +366,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
         self.document.set_current_parser(None);
 
         if let Some(pipeline) = self.pipeline {
-            ScriptTask::parsing_complete(pipeline);
+            ScriptThread::parsing_complete(pipeline);
         }
     }
 }

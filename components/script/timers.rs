@@ -48,7 +48,7 @@ pub struct ActiveTimers {
     ///  - a timer was added with an earlier callback time. In this case the
     ///    original timer is rescheduled when it is the next one to get called.
     expected_event_id: Cell<TimerEventId>,
-    /// The nesting level of the currently executing timer task or 0.
+    /// The nesting level of the currently executing timer thread or 0.
     nesting_level: Cell<u32>,
 }
 

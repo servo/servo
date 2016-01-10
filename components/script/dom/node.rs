@@ -64,7 +64,7 @@ use std::iter::{self, FilterMap, Peekable};
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
 use util::str::DOMString;
-use util::task_state;
+use util::thread_state;
 use uuid::Uuid;
 
 //
@@ -113,9 +113,9 @@ pub struct Node {
     /// are this node.
     ranges: WeakRangeVec,
 
-    /// Style+Layout information. Only the layout task may touch this data.
+    /// Style+Layout information. Only the layout thread may touch this data.
     ///
-    /// Must be sent back to the layout task to be destroyed when this
+    /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
@@ -183,9 +183,9 @@ no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 
 
 impl OpaqueStyleAndLayoutData {
-    /// Sends the style and layout data, if any, back to the layout task to be destroyed.
+    /// Sends the style and layout data, if any, back to the layout thread to be destroyed.
     pub fn dispose(self, node: &Node) {
-        debug_assert!(task_state::get().is_script());
+        debug_assert!(thread_state::get().is_script());
         let win = window_from_node(node);
         let LayoutChan(chan) = win.layout_chan();
         node.style_and_layout_data.set(None);

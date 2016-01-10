@@ -47,7 +47,7 @@ use gfx::display_list::{ClippingRegion, DisplayList};
 use gfx_traits::LayerId;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use layout_debug;
-use layout_task::DISPLAY_PORT_SIZE_FACTOR;
+use layout_thread::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use rustc_serialize::{Encodable, Encoder};

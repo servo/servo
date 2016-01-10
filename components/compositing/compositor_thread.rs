@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Communication with the compositor task.
+//! Communication with the compositor thread.
 
 use CompositorMsg as ConstellationMsg;
 use compositor;
@@ -107,10 +107,10 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
     fn native_display(&mut self) -> Option<NativeDisplay> {
         let (chan, port) = channel();
         self.send(Msg::GetNativeDisplay(chan));
-        // If the compositor is shutting down when a paint task
+        // If the compositor is shutting down when a paint thread
         // is being created, the compositor won't respond to
         // this message, resulting in an eventual panic. Instead,
-        // just return None in this case, since the paint task
+        // just return None in this case, since the paint thread
         // will exit shortly and never actually be requested
         // to paint buffers by the compositor.
         port.recv().unwrap_or(None)
@@ -146,12 +146,12 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
         self.send(Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties));
     }
 
-    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId) {
-        self.send(Msg::PaintTaskExited(pipeline_id))
+    fn notify_paint_thread_exiting(&mut self, pipeline_id: PipelineId) {
+        self.send(Msg::PaintThreadExited(pipeline_id))
     }
 }
 
-/// Messages from the painting task and the constellation task to the compositor task.
+/// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
     /// Requests that the compositor shut down.
     Exit(IpcSender<()>),
@@ -199,8 +199,8 @@ pub enum Msg {
     SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(IpcSender<Option<Image>>),
-    /// Informs the compositor that the paint task for the given pipeline has exited.
-    PaintTaskExited(PipelineId),
+    /// Informs the compositor that the paint thread for the given pipeline has exited.
+    PaintThreadExited(PipelineId),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
@@ -209,7 +209,7 @@ pub enum Msg {
     NewFavicon(Url),
     /// <head> tag finished parsing
     HeadParsed,
-    /// Signal that the paint task ignored the paint requests that carried
+    /// Signal that the paint thread ignored the paint requests that carried
     /// these native surfaces, so that they can be re-added to the surface cache.
     ReturnUnusedNativeSurfaces(Vec<NativeSurface>),
     /// Collect memory reports and send them back to the given mem::ReportsChan.
@@ -247,7 +247,7 @@ impl Debug for Msg {
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
             Msg::CreatePng(..) => write!(f, "CreatePng"),
-            Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
+            Msg::PaintThreadExited(..) => write!(f, "PaintThreadExited"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
@@ -263,9 +263,9 @@ impl Debug for Msg {
     }
 }
 
-pub struct CompositorTask;
+pub struct CompositorThread;
 
-impl CompositorTask {
+impl CompositorThread {
     pub fn create<Window>(window: Option<Rc<Window>>,
                           state: InitialCompositorState)
                           -> Box<CompositorEventListener + 'static>

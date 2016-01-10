@@ -9,7 +9,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::hash::{Hash, Hasher};
 
 /// This is a struct used to store surfaces when they are not in use.
-/// The paint task can quickly query for a particular size of surface when it
+/// The paint thread can quickly query for a particular size of surface when it
 /// needs it.
 pub struct SurfaceMap {
     /// A HashMap that stores the Buffers.

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The task that handles all painting.
+//! The thread that handles all painting.
 
 use app_units::Au;
 use azure::AzFloat;
@@ -13,7 +13,7 @@ use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use font_cache_task::FontCacheTask;
+use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
 use gfx_traits::{color, LayerId, LayerKind, LayerProperties, PaintListener, PaintMsg as ConstellationMsg, ScrollPolicy};
 use ipc_channel::ipc::IpcSender;
@@ -34,8 +34,8 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
 use util::geometry::{ExpandToPixelBoundaries};
 use util::opts;
-use util::task;
-use util::task_state;
+use util::thread;
+use util::thread_state;
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum PaintLayerContents {
@@ -43,7 +43,7 @@ pub enum PaintLayerContents {
     DisplayList(Arc<DisplayList>),
 }
 
-/// Information about a hardware graphics layer that layout sends to the painting task.
+/// Information about a hardware graphics layer that layout sends to the painting thread.
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct PaintLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
@@ -205,7 +205,7 @@ pub enum ChromeToPaintMsg {
     Exit,
 }
 
-pub struct PaintTask<C> {
+pub struct PaintThread<C> {
     id: PipelineId,
     _url: Url,
     layout_to_paint_port: Receiver<LayoutToPaintMsg>,
@@ -221,7 +221,7 @@ pub struct PaintTask<C> {
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
 
-    /// The current epoch counter is passed by the layout task
+    /// The current epoch counter is passed by the layout thread
     current_epoch: Option<Epoch>,
 
     /// Communication handles to each of the worker threads.
@@ -232,14 +232,14 @@ pub struct PaintTask<C> {
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
-// the whole PaintTask struct.
+// the whole PaintThread struct.
 macro_rules! native_display(
-    ($task:expr) => (
-        $task.native_display.as_ref().expect("Need a graphics context to do painting")
+    ($thread:expr) => (
+        $thread.native_display.as_ref().expect("Need a graphics context to do painting")
     )
 );
 
-impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
+impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
     pub fn create(id: PipelineId,
                   url: Url,
                   chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
@@ -247,26 +247,26 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
                   constellation_chan: ConstellationChan<ConstellationMsg>,
-                  font_cache_task: FontCacheTask,
+                  font_cache_thread: FontCacheThread,
                   failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: IpcSender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        task::spawn_named_with_send_on_failure(format!("PaintTask {:?}", id),
-                                               task_state::PAINT,
+        thread::spawn_named_with_send_on_failure(format!("PaintThread {:?}", id),
+                                               thread_state::PAINT,
                                                move || {
             {
-                // Ensures that the paint task and graphics context are destroyed before the
+                // Ensures that the paint thread and graphics context are destroyed before the
                 // shutdown message.
                 let mut compositor = compositor;
                 let native_display = compositor.native_display().map(
                     |display| display);
                 let worker_threads = WorkerThreadProxy::spawn(native_display.clone(),
-                                                              font_cache_task,
+                                                              font_cache_thread,
                                                               time_profiler_chan.clone());
 
-                let mut paint_task = PaintTask {
+                let mut paint_thread = PaintThread {
                     id: id,
                     _url: url,
                     layout_to_paint_port: layout_to_paint_port,
@@ -282,22 +282,22 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
 
                 let reporter_name = format!("paint-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
-                    paint_task.start();
+                    paint_thread.start();
                 }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
 
                 // Tell all the worker threads to shut down.
-                for worker_thread in &mut paint_task.worker_threads {
+                for worker_thread in &mut paint_thread.worker_threads {
                     worker_thread.exit()
                 }
             }
 
-            debug!("paint_task: shutdown_chan send");
+            debug!("paint_thread: shutdown_chan send");
             shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), c);
     }
 
     fn start(&mut self) {
-        debug!("PaintTask: beginning painting loop");
+        debug!("PaintThread: beginning painting loop");
 
         loop {
             let message = {
@@ -340,14 +340,14 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                             if self.current_epoch == Some(epoch) {
                                 self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
                             } else {
-                                debug!("PaintTask: Ignoring requests with epoch mismatch: {:?} != {:?}",
+                                debug!("PaintThread: Ignoring requests with epoch mismatch: {:?} != {:?}",
                                        self.current_epoch,
                                        epoch);
                                 self.compositor.ignore_buffer_requests(buffer_requests);
                             }
                         }
 
-                        debug!("PaintTask: returning surfaces");
+                        debug!("PaintThread: returning surfaces");
                         self.compositor.assign_painted_buffers(self.id,
                                                                self.current_epoch.unwrap(),
                                                                replies,
@@ -365,24 +365,24 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.paint_permission = false;
                 }
                 Msg::FromChrome(ChromeToPaintMsg::CollectReports(ref channel)) => {
-                    // FIXME(njn): should eventually measure the paint task.
+                    // FIXME(njn): should eventually measure the paint thread.
                     channel.send(Vec::new())
                 }
                 Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel)) => {
-                    // Ask the compositor to remove any layers it is holding for this paint task.
+                    // Ask the compositor to remove any layers it is holding for this paint thread.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
-                    self.compositor.notify_paint_task_exiting(self.id);
+                    self.compositor.notify_paint_thread_exiting(self.id);
 
-                    debug!("PaintTask: Exiting.");
+                    debug!("PaintThread: Exiting.");
                     let _ = response_channel.send(());
                     break;
                 }
                 Msg::FromChrome(ChromeToPaintMsg::Exit) => {
-                    // Ask the compositor to remove any layers it is holding for this paint task.
+                    // Ask the compositor to remove any layers it is holding for this paint thread.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
-                    self.compositor.notify_paint_task_exiting(self.id);
+                    self.compositor.notify_paint_thread_exiting(self.id);
 
-                    debug!("PaintTask: Exiting.");
+                    debug!("PaintThread: Exiting.");
                     break;
                 }
             }
@@ -546,7 +546,7 @@ struct WorkerThreadProxy {
 
 impl WorkerThreadProxy {
     fn spawn(native_display: Option<NativeDisplay>,
-             font_cache_task: FontCacheTask,
+             font_cache_thread: FontCacheThread,
              time_profiler_chan: time::ProfilerChan)
              -> Vec<WorkerThreadProxy> {
         let thread_count = if opts::get().gpu_painting {
@@ -557,13 +557,13 @@ impl WorkerThreadProxy {
         (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
-            let font_cache_task = font_cache_task.clone();
+            let font_cache_thread = font_cache_thread.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            task::spawn_named("PaintWorker".to_owned(), move || {
+            thread::spawn_named("PaintWorker".to_owned(), move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_display,
-                                                          font_cache_task,
+                                                          font_cache_thread,
                                                           time_profiler_chan);
                 worker_thread.main();
             });
@@ -629,7 +629,7 @@ impl WorkerThread {
     fn new(sender: Sender<MsgFromWorkerThread>,
            receiver: Receiver<MsgToWorkerThread>,
            native_display: Option<NativeDisplay>,
-           font_cache_task: FontCacheTask,
+           font_cache_thread: FontCacheThread,
            time_profiler_sender: time::ProfilerChan)
            -> WorkerThread {
         let gl_context = create_gl_context(native_display);
@@ -637,7 +637,7 @@ impl WorkerThread {
             sender: sender,
             receiver: receiver,
             native_display: native_display,
-            font_context: box FontContext::new(font_cache_task.clone()),
+            font_context: box FontContext::new(font_cache_thread.clone()),
             time_profiler_sender: time_profiler_sender,
             gl_context: gl_context,
         }
@@ -777,7 +777,7 @@ impl WorkerThread {
                            scale: f32)
                            -> Box<LayerBuffer> {
         // Create an empty native surface. We mark it as not leaking
-        // in case it dies in transit to the compositor task.
+        // in case it dies in transit to the compositor thread.
         let width = tile.screen_rect.size.width;
         let height = tile.screen_rect.size.height;
         let mut native_surface = tile.native_surface.take().unwrap_or_else(|| {

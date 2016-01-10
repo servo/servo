@@ -5,10 +5,10 @@
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, load_from_memory};
-use net_traits::image_cache_task::ImageResponder;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheCommand, ImageCacheTask, ImageState};
-use net_traits::image_cache_task::{ImageCacheResult, ImageResponse, UsePlaceholder};
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceTask};
+use net_traits::image_cache_thread::ImageResponder;
+use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
+use net_traits::image_cache_thread::{ImageCacheResult, ImageResponse, UsePlaceholder};
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
 use net_traits::{ResponseAction, LoadContext};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -20,19 +20,19 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
 use util::resource_files::resources_dir_path;
-use util::task::spawn_named;
-use util::taskpool::TaskPool;
+use util::thread::spawn_named;
+use util::threadpool::ThreadPool;
 
 ///
 /// TODO(gw): Remaining work on image cache:
 ///     * Make use of the prefetch support in various parts of the code.
-///     * Profile time in GetImageIfAvailable - might be worth caching these results per paint / layout task.
+///     * Profile time in GetImageIfAvailable - might be worth caching these results per paint / layout thread.
 ///
 /// MAYBE(Yoric):
 ///     * For faster lookups, it might be useful to store the LoadKey in the DOM once we have performed a first load.
 
 /// Represents an image that is either being loaded
-/// by the resource task, or decoded by a worker thread.
+/// by the resource thread, or decoded by a worker thread.
 struct PendingLoad {
     // The bytes loaded so far. Reset to an empty vector once loading
     // is complete and the buffer has been transmitted to the decoder.
@@ -215,7 +215,7 @@ struct ImageCache {
     // Receive commands from clients
     cmd_receiver: Receiver<ImageCacheCommand>,
 
-    // Receive notifications from the resource task
+    // Receive notifications from the resource thread
     progress_receiver: Receiver<ResourceLoadInfo>,
     progress_sender: Sender<ResourceLoadInfo>,
 
@@ -224,10 +224,10 @@ struct ImageCache {
     decoder_sender: Sender<DecoderMsg>,
 
     // Worker threads for decoding images.
-    task_pool: TaskPool,
+    thread_pool: ThreadPool,
 
-    // Resource task handle
-    resource_task: ResourceTask,
+    // Resource thread handle
+    resource_thread: ResourceThread,
 
     // Images that are loading over network, or decoding.
     pending_loads: AllPendingLoads,
@@ -239,13 +239,13 @@ struct ImageCache {
     placeholder_image: Option<Arc<Image>>,
 }
 
-/// Message that the decoder worker threads send to main image cache task.
+/// Message that the decoder worker threads send to main image cache thread.
 struct DecoderMsg {
     key: LoadKey,
     image: Option<Image>,
 }
 
-/// The types of messages that the main image cache task receives.
+/// The types of messages that the main image cache thread receives.
 enum SelectResult {
     Command(ImageCacheCommand),
     Progress(ResourceLoadInfo),
@@ -338,7 +338,7 @@ impl ImageCache {
         None
     }
 
-    // Handle progress messages from the resource task
+    // Handle progress messages from the resource thread
     fn handle_progress(&mut self, msg: ResourceLoadInfo) {
         match (msg.action, msg.key) {
             (ResponseAction::HeadersAvailable(_), _) => {}
@@ -355,7 +355,7 @@ impl ImageCache {
                         let bytes = mem::replace(&mut pending_load.bytes, vec!());
                         let sender = self.decoder_sender.clone();
 
-                        self.task_pool.execute(move || {
+                        self.thread_pool.execute(move || {
                             let image = load_from_memory(&bytes);
                             let msg = DecoderMsg {
                                 key: key,
@@ -423,7 +423,7 @@ impl ImageCache {
                 match cache_result {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
-                        // the resource task.
+                        // the resource thread.
                         let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
@@ -440,7 +440,7 @@ impl ImageCache {
                                 key: load_key,
                             }).unwrap();
                         });
-                        self.resource_task.send(msg).unwrap();
+                        self.resource_thread.send(msg).unwrap();
                     }
                     CacheResult::Hit => {
                         // Request is already on its way.
@@ -452,7 +452,7 @@ impl ImageCache {
 }
 
 /// Create a new image cache.
-pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
+pub fn new_image_cache_thread(resource_thread: ResourceThread) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
     let (progress_sender, progress_receiver) = channel();
     let (decoder_sender, decoder_receiver) = channel();
@@ -480,15 +480,15 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
             progress_receiver: progress_receiver,
             decoder_sender: decoder_sender,
             decoder_receiver: decoder_receiver,
-            task_pool: TaskPool::new(4),
+            thread_pool: ThreadPool::new(4),
             pending_loads: AllPendingLoads::new(),
             completed_loads: HashMap::new(),
-            resource_task: resource_task,
+            resource_thread: resource_thread,
             placeholder_image: placeholder_image,
         };
 
         cache.run();
     });
 
-    ImageCacheTask::new(ipc_command_sender)
+    ImageCacheThread::new(ipc_command_sender)
 }

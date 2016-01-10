@@ -116,10 +116,10 @@ pub fn begin_trace(flow_root: FlowRef) {
 /// trace to disk in the current directory. The output
 /// file can then be viewed with an external tool.
 pub fn end_trace() {
-    let mut task_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
-    assert!(task_state.scope_stack.len() == 1);
-    let mut root_scope = task_state.scope_stack.pop().unwrap();
-    root_scope.post = json::encode(&flow::base(&*task_state.flow_root)).unwrap();
+    let mut thread_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
+    assert!(thread_state.scope_stack.len() == 1);
+    let mut root_scope = thread_state.scope_stack.pop().unwrap();
+    root_scope.post = json::encode(&flow::base(&*thread_state.flow_root)).unwrap();
 
     let result = json::encode(&root_scope).unwrap();
     let mut file = File::create("layout_trace.json").unwrap();

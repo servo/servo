@@ -24,7 +24,7 @@ use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, RootedValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
-use script_task::{Runnable, ScriptChan};
+use script_thread::{Runnable, ScriptChan};
 use std::sync::mpsc::{Sender, channel};
 use util::str::DOMString;
 
@@ -68,13 +68,13 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let resource_task = global.resource_task();
+        let resource_thread = global.resource_thread();
         let constellation_chan = global.constellation_chan();
         let scheduler_chan = global.scheduler_chan();
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
-        let worker_ref = Trusted::new(worker.r(), global.dom_manipulation_task_source());
+        let worker_ref = Trusted::new(worker.r(), global.dom_manipulation_thread_source());
         let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -95,7 +95,7 @@ impl Worker {
         };
 
         let init = WorkerGlobalScopeInit {
-            resource_task: resource_task,
+            resource_thread: resource_thread,
             mem_profiler_chan: global.mem_profiler_chan(),
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
@@ -105,7 +105,7 @@ impl Worker {
         };
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker_ref,
-            global.dom_manipulation_task_source(), sender, receiver);
+            global.dom_manipulation_thread_source(), sender, receiver);
 
         Ok(worker)
     }
@@ -145,7 +145,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(self, self.global.root().r().dom_manipulation_task_source());
+        let address = Trusted::new(self, self.global.root().r().dom_manipulation_thread_source());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }

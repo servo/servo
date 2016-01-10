@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 use std::{thread, f64};
 use std_time::precise_time_ns;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use util::time::duration_from_seconds;
 
 pub trait Formattable {

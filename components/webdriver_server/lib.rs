@@ -43,7 +43,7 @@ use std::thread;
 use std::time::Duration;
 use url::Url;
 use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
-use util::task::spawn_named;
+use util::thread::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
 use webdriver::command::{Parameters, SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};

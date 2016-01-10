@@ -6,7 +6,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceTask, ResponseAction};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceThread, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
 use platform::font_list::for_each_variation;
@@ -24,7 +24,7 @@ use style::properties::longhands::font_family::computed_value::FontFamily;
 use url::Url;
 use util::prefs;
 use util::str::LowercaseString;
-use util::task::spawn_named;
+use util::thread::spawn_named;
 
 /// A list of font templates that make up a given font family.
 struct FontTemplates {
@@ -79,7 +79,7 @@ impl FontTemplates {
     }
 }
 
-/// Commands that the FontContext sends to the font cache task.
+/// Commands that the FontContext sends to the font cache thread.
 #[derive(Deserialize, Serialize, Debug)]
 pub enum Command {
     GetFontTemplate(FontFamily, FontTemplateDescriptor, IpcSender<Reply>),
@@ -89,13 +89,13 @@ pub enum Command {
     Exit(IpcSender<()>),
 }
 
-/// Reply messages sent from the font cache task to the FontContext caller.
+/// Reply messages sent from the font cache thread to the FontContext caller.
 #[derive(Deserialize, Serialize, Debug)]
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
 
-/// The font cache task itself. It maintains a list of reference counted
+/// The font cache thread itself. It maintains a list of reference counted
 /// font templates that are currently in use.
 struct FontCache {
     port: IpcReceiver<Command>,
@@ -104,7 +104,7 @@ struct FontCache {
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
-    resource_task: ResourceTask,
+    resource_thread: ResourceThread,
 }
 
 fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
@@ -159,7 +159,7 @@ impl FontCache {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
                             let load = PendingAsyncLoad::new(LoadContext::Font,
-                                                             self.resource_task.clone(),
+                                                             self.resource_thread.clone(),
                                                              url.clone(),
                                                              None);
                             let (data_sender, data_receiver) = ipc::channel().unwrap();
@@ -311,19 +311,19 @@ impl FontCache {
     }
 }
 
-/// The public interface to the font cache task, used exclusively by
-/// the per-thread/task FontContext structures.
+/// The public interface to the font cache thread, used exclusively by
+/// the per-thread/thread FontContext structures.
 #[derive(Clone, Deserialize, Serialize, Debug)]
-pub struct FontCacheTask {
+pub struct FontCacheThread {
     chan: IpcSender<Command>,
 }
 
-impl FontCacheTask {
-    pub fn new(resource_task: ResourceTask) -> FontCacheTask {
+impl FontCacheThread {
+    pub fn new(resource_thread: ResourceThread) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
         let channel_to_self = chan.clone();
-        spawn_named("FontCacheTask".to_owned(), move || {
+        spawn_named("FontCacheThread".to_owned(), move || {
             // TODO: Allow users to specify these.
             let generic_fonts = populate_generic_fonts();
 
@@ -334,14 +334,14 @@ impl FontCacheTask {
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
                 font_context: FontContextHandle::new(),
-                resource_task: resource_task,
+                resource_thread: resource_thread,
             };
 
             cache.refresh_local_families();
             cache.run();
         });
 
-        FontCacheTask {
+        FontCacheThread {
             chan: chan,
         }
     }

@@ -29,8 +29,8 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use script_task::ScriptTaskEventCategory::InputEvent;
-use script_task::{CommonScriptMsg, Runnable};
+use script_thread::ScriptThreadEventCategory::InputEvent;
+use script_thread::{CommonScriptMsg, Runnable};
 use script_traits::ScriptMsg as ConstellationMsg;
 use selectors::states::*;
 use std::borrow::ToOwned;
@@ -937,7 +937,7 @@ impl ChangeEventRunnable {
     pub fn send(node: &Node) {
         let window = window_from_node(node);
         let window = window.r();
-        let chan = window.user_interaction_task_source();
+        let chan = window.user_interaction_thread_source();
         let handler = Trusted::new(node, chan.clone());
         let dispatcher = ChangeEventRunnable {
             element: handler,

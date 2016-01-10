@@ -15,7 +15,7 @@ use std::mem;
 use style::context::StyleContext;
 use style::matching::MatchMethods;
 use style::traversal::{DomTraversalContext, STYLE_BLOOM};
-use style::traversal::{put_task_local_bloom_filter, recalc_style_at};
+use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
 use util::tid::tid;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
@@ -57,7 +57,7 @@ impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAn
         //
         // [1] For example, the WorkQueue type needs to be parameterized on the concrete type of
         // DomTraversalContext::SharedContext, and the WorkQueue lifetime is similar to that of the
-        // LayoutTask, generally much longer than that of a given SharedLayoutContext borrow.
+        // LayoutThread, generally much longer than that of a given SharedLayoutContext borrow.
         let shared_lc: &'lc SharedLayoutContext = unsafe { mem::transmute(shared) };
         RecalcStyleAndConstructFlows {
             context: LayoutContext::new(shared_lc),
@@ -120,13 +120,13 @@ fn construct_flows_at<'a, 'ln, N: LayoutNode<'ln>>(context: &'a LayoutContext<'a
     match node.layout_parent_node(root) {
         None => {
             debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
-            // If this is the reflow root, eat the task-local bloom filter.
+            // If this is the reflow root, eat the thread-local bloom filter.
         }
         Some(parent) => {
             // Otherwise, put it back, but remove this node.
             node.remove_from_bloom_filter(&mut *bf);
             let unsafe_parent = parent.to_unsafe();
-            put_task_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
+            put_thread_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
         },
     };
 }
