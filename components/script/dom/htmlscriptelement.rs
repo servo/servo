@@ -413,11 +413,20 @@ impl HTMLScriptElement {
                 // TODO: Let character encoding be the script block's fallback
                 // character encoding.
 
+                //HELPME:
                 //it's set to UTF-8 by default while populating self.block_character_encoding
+                //to execute step 3, I need to know whether it's set to UTF-8 because that's
+                //deduced from attributes, or just in "new" function.
+                //In first case, I should let it be UTF-8. In latter, from what I undestand, I
+                // should override it with
+                // let documents_encoding = (*self.parser_document).Charset
+                //right?
 
                 // Step 4.
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
+
+                // HELPME: what is "character encoding"? Just UTF-8?
                 let final_encoding = encoding_after_step2.unwrap();
 
                 (DOMString::from(final_encoding.decode(&*bytes, DecoderTrap::Replace).unwrap()),
