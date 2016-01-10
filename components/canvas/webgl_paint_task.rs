@@ -23,6 +23,17 @@ pub struct WebGLPaintTask {
     gl_context: GLContext<NativeGLContext>,
 }
 
+
+
+#[inline]
+fn nonzero_or_none(value: u32) -> Option<NonZero<u32>> {
+    if value == 0 {
+        None
+    } else {
+        Some(unsafe { NonZero::new(value) })
+    }
+}
+
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<WebGLPaintTask, &'static str> {
         let context = try!(GLContext::new(size, attrs, ColorAttachmentType::Texture, None));
@@ -187,10 +198,8 @@ impl WebGLPaintTask {
     /// sender for it.
     pub fn start(size: Size2D<i32>, attrs: GLContextAttributes)
                  -> Result<(IpcSender<CanvasMsg>, Sender<CanvasMsg>), &'static str> {
-        let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
         let (result_chan, result_port) = channel();
-        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
         spawn_named("WebGLTask".to_owned(), move || {
             let mut painter = match WebGLPaintTask::new(size, attrs) {
                 Ok(task) => {
@@ -230,6 +239,9 @@ impl WebGLPaintTask {
             }
         });
 
+        let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
+        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
+        
         result_port.recv().unwrap().map(|_| (out_of_process_chan, in_process_chan))
     }
 
@@ -249,62 +261,32 @@ impl WebGLPaintTask {
     }
 
     fn create_buffer(&self, chan: IpcSender<Option<NonZero<u32>>>) {
-        let buffer = gl::gen_buffers(1)[0];
-        let buffer = if buffer == 0 {
-            None
-        } else {
-            Some(unsafe { NonZero::new(buffer) })
-        };
+        let buffer = nonzero_or_none(gl::gen_buffers(1)[0]);
         chan.send(buffer).unwrap();
     }
 
     fn create_framebuffer(&self, chan: IpcSender<Option<NonZero<u32>>>) {
-        let framebuffer = gl::gen_framebuffers(1)[0];
-        let framebuffer = if framebuffer == 0 {
-            None
-        } else {
-            Some(unsafe { NonZero::new(framebuffer) })
-        };
+        let framebuffer = nonzero_or_none(gl::gen_framebuffers(1)[0]);
         chan.send(framebuffer).unwrap();
     }
 
     fn create_renderbuffer(&self, chan: IpcSender<Option<NonZero<u32>>>) {
-        let renderbuffer = gl::gen_renderbuffers(1)[0];
-        let renderbuffer = if renderbuffer == 0 {
-            None
-        } else {
-            Some(unsafe { NonZero::new(renderbuffer) })
-        };
+        let renderbuffer = nonzero_or_none(gl::gen_renderbuffers(1)[0]);
         chan.send(renderbuffer).unwrap();
     }
 
     fn create_texture(&self, chan: IpcSender<Option<NonZero<u32>>>) {
-        let texture = gl::gen_textures(1)[0];
-        let texture = if texture == 0 {
-            None
-        } else {
-            Some(unsafe { NonZero::new(texture) })
-        };
+        let texture = nonzero_or_none(gl::gen_textures(1)[0]);
         chan.send(texture).unwrap();
     }
 
     fn create_program(&self, chan: IpcSender<Option<NonZero<u32>>>) {
-        let program = gl::create_program();
-        let program = if program == 0 {
-            None
-        } else {
-            Some(unsafe { NonZero::new(program) })
-        };
+        let program = nonzero_or_none(gl::create_program());
         chan.send(program).unwrap();
     }
 
     fn create_shader(&self, shader_type: u32, chan: IpcSender<Option<NonZero<u32>>>) {
-        let shader = gl::create_shader(shader_type);
-        let shader = if shader == 0 {
-            None
-        } else {
-            Some(unsafe { NonZero::new(shader) })
-        };
+        let shader = nonzero_or_none(gl::create_shader(shader_type));
         chan.send(shader).unwrap();
     }
 
