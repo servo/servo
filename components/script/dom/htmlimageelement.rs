@@ -29,12 +29,16 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::DOMString;
+use dom::url::URL;
+use dom::imagedata::ImageData;
 
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
+    currentRequest: DOMRefCell<Option<ImageRequest>>,
+    pendingRequest: DOMRefCell<Option<ImageRequest>>,
 }
 
 impl HTMLImageElement {
@@ -43,6 +47,29 @@ impl HTMLImageElement {
     }
 }
 
+/* See https://html.spec.whatwg.org/multipage/embedded-content.html#image-request for definitions of ImageState */
+pub enum ImageState {
+   Unavailable,
+   PartiallyAvailable,
+   CompletelyAvailable,
+   Broken,
+}
+
+pub struct ImageRequest {
+  state : ImageState,
+  currentUrl : URL,
+  imageData : ImageData,
+}
+
+impl ImageRequest {
+   fn new(imageData : ImageData, currentUrl : URL) -> ImageRequest {
+       ImageRequest {
+          state : ImageState::Unavailable,
+          currentUrl : currentUrl,
+          imageData : imageData,
+       }
+   }
+}
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
@@ -128,6 +155,8 @@ impl HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
+            currentRequest: DOMRefCell::new(None),
+            pendingRequest: DOMRefCell::new(None)
         }
     }
 
@@ -186,6 +215,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_getter!(CrossOrigin);
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_setter!(SetCrossOrigin, "crossorigin");
+    
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
@@ -240,6 +274,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
     fn Complete(&self) -> bool {
         let image = self.image.borrow();
         image.is_some()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
+    fn CurrentSrc(&self) -> String {
+        let image = self.image.borrow();
+        image.currentRequest.CurrentUrl()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
