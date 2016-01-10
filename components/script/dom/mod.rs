@@ -272,6 +272,7 @@ pub mod htmlelement;
 pub mod htmlembedelement;
 pub mod htmlfieldsetelement;
 pub mod htmlfontelement;
+pub mod htmlformcontrolscollection;
 pub mod htmlformelement;
 pub mod htmlframeelement;
 pub mod htmlframesetelement;
