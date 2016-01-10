@@ -175,7 +175,7 @@ impl<'a> LayoutContext<'a> {
     pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<ImageOrMetadataAvailable> {
         // See if the image is already available
-        let result = self.shared.image_cache_task.find_image_or_metadata(url.clone(),
+        let result = self.shared.image_cache_thread.find_image_or_metadata(url.clone(),
                                                                          use_placeholder);
 
         match result {
@@ -192,7 +192,7 @@ impl<'a> LayoutContext<'a> {
                     // Not loaded, test mode - load the image synchronously
                     (_, true) => {
                         let (sync_tx, sync_rx) = ipc::channel().unwrap();
-                        self.shared.image_cache_task.request_image(url,
+                        self.shared.image_cache_thread.request_image(url,
                                                                    ImageCacheChan(sync_tx),
                                                                    None);
                         match sync_rx.recv().unwrap().image_response {
@@ -206,7 +206,7 @@ impl<'a> LayoutContext<'a> {
                     // Not yet requested, async mode - request image or metadata from the cache
                     (ImageState::NotRequested, false) => {
                         let sender = self.shared.image_cache_sender.lock().unwrap().clone();
-                        self.shared.image_cache_task.request_image_and_metadata(url, sender, None);
+                        self.shared.image_cache_thread.request_image_and_metadata(url, sender, None);
                         None
                     }
                     // Image has been requested, is still pending. Return no image
