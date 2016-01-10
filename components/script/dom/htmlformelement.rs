@@ -195,6 +195,11 @@ impl HTMLFormElementMethods for HTMLFormElement {
         let window = window_from_node(self);
         HTMLFormControlsCollection::new(window.r(), self.upcast(), filter)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-length
+    fn Length(&self) -> i32 {
+        self.Elements().Length() as i32
+    }
 }
 
 #[derive(Copy, Clone, HeapSizeOf, PartialEq)]
