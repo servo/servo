@@ -28,7 +28,6 @@ use style::stylesheets::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
-pub use style::animation::Animation;
 pub use style::context::ReflowGoal;
 pub use dom::node::TrustedNodeAddress;
 

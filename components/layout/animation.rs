@@ -8,12 +8,11 @@ use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::RestyleDamage;
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
-use script::layout_interface::Animation;
 use script_traits::LayoutMsg as ConstellationMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::Receiver;
-use style::animation::update_style_for_animation;
+use style::animation::{Animation, update_style_for_animation};
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.
