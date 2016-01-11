@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use Epoch;
 use LayerId;
 use LayerProperties;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
-use msg::compositor_msg::{Epoch, FrameTreeId};
+use msg::compositor_msg::FrameTreeId;
 use msg::constellation_msg::PipelineId;
 
 /// The interface used by the painter to acquire draw targets for each paint frame and
