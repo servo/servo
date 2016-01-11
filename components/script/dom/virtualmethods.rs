@@ -17,6 +17,7 @@ use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldetailselement::HTMLDetailsElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
@@ -144,6 +145,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
             node.downcast::<HTMLCanvasElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
+            node.downcast::<HTMLDetailsElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             node.downcast::<HTMLFieldSetElement>().unwrap() as &VirtualMethods
