@@ -5,9 +5,9 @@
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
@@ -168,7 +168,7 @@ impl BlobMethods for Blob {
                 }
             }
         };
-        let global = global_root_from_reflector(self);
+        let global = self.global();
         let bytes = self.data.bytes.clone();
         Blob::new_sliced(global.r(), bytes, start, end, &relativeContentType)
     }

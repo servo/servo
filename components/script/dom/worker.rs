@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -111,7 +111,7 @@ impl Worker {
                           data: StructuredCloneData) {
         let worker = address.root();
 
-        let global = global_root_from_reflector(worker.r());
+        let global = worker.r().global();
         let target = worker.upcast();
         let _ar = JSAutoRequest::new(global.r().get_cx());
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
@@ -122,14 +122,14 @@ impl Worker {
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
-        let global = global_root_from_reflector(worker.r());
+        let global = worker.r().global();
         worker.upcast().fire_simple_event("error", global.r());
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.root();
-        let global = global_root_from_reflector(worker.r());
+        let global = worker.r().global();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
         let errorevent = ErrorEvent::new(global.r(), atom!("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
@@ -142,7 +142,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(self, global_root_from_reflector(self).r().dom_manipulation_thread_source());
+        let address = Trusted::new(self, self.global().r().dom_manipulation_thread_source());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }

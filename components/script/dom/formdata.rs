@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrUSVString::{self, eBlob, eUSVString};
 use dom::bindings::error::{Fallible};
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::blob::Blob;
 use dom::file::File;
@@ -126,7 +126,7 @@ impl FormData {
     fn get_file_or_blob(&self, value: &Blob, filename: Option<USVString>) -> Root<Blob> {
         match filename {
             Some(fname) => {
-                let global = global_root_from_reflector(self);
+                let global = self.global();
                 let name = DOMString::from(fname.0);
                 Root::upcast(File::new(global.r(), value, name))
             }

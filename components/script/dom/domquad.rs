@@ -8,9 +8,9 @@ use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMetho
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectInit, DOMRectReadOnlyMethods};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, JS};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::dompoint::DOMPoint;
 use dom::domrect::DOMRect;
 
@@ -110,7 +110,7 @@ impl DOMQuadMethods for DOMQuad {
         let right = self.p1.X().max(self.p2.X()).max(self.p3.X()).max(self.p4.X());
         let bottom = self.p1.Y().max(self.p2.Y()).max(self.p3.Y()).max(self.p4.Y());
 
-        DOMRect::new(global_root_from_reflector(self).r(),
+        DOMRect::new(self.global().r(),
                      left,
                      top,
                      right - left,

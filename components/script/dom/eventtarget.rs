@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, EventTargetTypeId};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
@@ -123,7 +123,7 @@ impl EventListenerType {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
-                            let global = global_root_from_reflector(object);
+                            let global = object.global();
                             let cx = global.r().get_cx();
                             let error = RootedValue::new(cx, event.Error(cx));
                             let _ = handler.Call_(object,
