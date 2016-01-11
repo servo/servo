@@ -16,7 +16,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, GlobalRoot, global_root_from_reflector};
+use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -323,7 +323,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 *self.request_method.borrow_mut() = parsed_method;
 
                 // Step 6
-                let base = global_root_from_reflector(self).r().get_url();
+                let base = self.global_root().r().get_url();
                 let parsed_url = match base.join(&url) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Error::Syntax) // Step 7
@@ -455,7 +455,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestState::Loading |
             XMLHttpRequestState::Done => Err(Error::InvalidState),
             _ if self.send_flag.get() => Err(Error::InvalidState),
-            _ => match global_root_from_reflector(self) {
+            _ => match self.global_root() {
                 GlobalRoot::Window(_) if self.sync.get() => Err(Error::InvalidAccess),
                 _ => {
                     self.with_credentials.set(with_credentials);
@@ -517,7 +517,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         }
 
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let pipeline_id = global.r().pipeline();
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
@@ -560,8 +560,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         load_data.method = (*self.request_method.borrow()).clone();
 
         // CORS stuff
-        let global = global_root_from_reflector(self);
-        let referer_url = global_root_from_reflector(self).r().get_url();
+        let global = self.global_root();
+        let referer_url = self.global_root().r().get_url();
         let mode = if self.upload_events.get() {
             RequestMode::ForcedPreflight
         } else {
@@ -684,7 +684,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        match global_root_from_reflector(self) {
+        match self.global_root() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
             => return Ok(()),
             _ => {}
@@ -787,7 +787,7 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let event = Event::new(global.r(),
                                atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
@@ -968,7 +968,7 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let progressevent = ProgressEvent::new(global.r(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
@@ -1022,7 +1022,7 @@ impl XMLHttpRequest {
 
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let callback = ScheduledXHRTimeout {
             xhr: Trusted::new(self, global.r().networking_thread_source()),
             generation_id: self.generation_id.get(),
@@ -1033,7 +1033,7 @@ impl XMLHttpRequest {
 
     fn cancel_timeout(&self) {
         if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
-            let global = global_root_from_reflector(self);
+            let global = self.global_root();
             global.r().unschedule_callback(handle);
         }
     }
@@ -1082,7 +1082,7 @@ impl XMLHttpRequest {
 
     fn document_text_html(&self) -> Root<Document>{
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = global_root_from_reflector(self);
+        let wr = self.global_root();
         let wr = wr.r();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
@@ -1093,7 +1093,7 @@ impl XMLHttpRequest {
 
     fn handle_xml(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = global_root_from_reflector(self);
+        let wr = self.global_root();
         let wr = wr.r();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
@@ -1103,13 +1103,13 @@ impl XMLHttpRequest {
     }
 
     fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
-        let wr = global_root_from_reflector(self);
+        let wr = self.global_root();
         let wr = wr.r();
         let win = wr.as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
-        let base = global_root_from_reflector(self).r().get_url();
+        let base = self.global_root().r().get_url();
         let parsed_url = match base.join(&self.ResponseURL()) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7

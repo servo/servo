@@ -5,9 +5,9 @@
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
@@ -30,7 +30,7 @@ impl Console {
     }
 
     fn send_to_devtools(&self, level: LogLevel, message: DOMString) {
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let global = global.r();
         if let Some(chan) = global.devtools_chan() {
             let console_message = prepare_message(level, message);

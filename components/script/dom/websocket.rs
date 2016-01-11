@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -292,7 +292,7 @@ impl WebSocket {
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
         };
 
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let chan = global.r().networking_thread_source();
         let address = Trusted::new(self, chan.clone());
 
@@ -460,7 +460,7 @@ struct ConnectionEstablishedTask {
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
-        let global = global_root_from_reflector(ws.r());
+        let global = ws.r().global_root();
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
@@ -519,7 +519,7 @@ impl Runnable for CloseTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
         let ws = ws.r();
-        let global = global_root_from_reflector(ws);
+        let global = ws.global_root();
         ws.ready_state.set(WebSocketRequestState::Closed);
         //If failed or full, fire error event
         if ws.failed.get() || ws.full.get() {
@@ -565,7 +565,7 @@ impl Runnable for MessageReceivedTask {
         }
 
         // Step 2-5.
-        let global = global_root_from_reflector(ws.r());
+        let global = ws.r().global_root();
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.r().get_cx();

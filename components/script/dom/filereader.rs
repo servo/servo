@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, global_root_from_reflector};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -112,7 +112,7 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         *fr.result.borrow_mut() = None;
 
-        let global = global_root_from_reflector(fr.r());
+        let global = fr.r().global_root();
         let exception = DOMException::new(global.r(), error);
         fr.error.set(Some(&exception));
 
@@ -289,7 +289,7 @@ impl FileReaderMethods for FileReader {
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
 
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let exception = DOMException::new(global.r(), DOMErrorName::AbortError);
         self.error.set(Some(&exception));
 
@@ -319,7 +319,7 @@ impl FileReaderMethods for FileReader {
 impl FileReader {
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
 
-        let global = global_root_from_reflector(self);
+        let global = self.global_root();
         let progressevent = ProgressEvent::new(global.r(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
@@ -332,7 +332,7 @@ impl FileReader {
     }
 
     fn read(&self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
-        let root = global_root_from_reflector(self);
+        let root = self.global_root();
         let global = root.r();
         // Step 1
         if self.ready_state.get() == FileReaderReadyState::Loading {
@@ -340,7 +340,7 @@ impl FileReader {
         }
         // Step 2
         if blob.IsClosed() {
-            let global = global_root_from_reflector(self);
+            let global = self.global_root();
             let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
             self.error.set(Some(&exception));
 
