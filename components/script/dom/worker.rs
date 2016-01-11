@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -34,7 +34,6 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 #[dom_struct]
 pub struct Worker {
     eventtarget: EventTarget,
-    global: GlobalField,
     #[ignore_heap_size_of = "Defined in std"]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
@@ -42,12 +41,10 @@ pub struct Worker {
 }
 
 impl Worker {
-    fn new_inherited(global: GlobalRef,
-                     sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
+    fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
                      -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
-            global: GlobalField::from_rooted(&global),
             sender: sender,
         }
     }
@@ -55,7 +52,7 @@ impl Worker {
     pub fn new(global: GlobalRef,
                sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
                -> Root<Worker> {
-        reflect_dom_object(box Worker::new_inherited(global, sender),
+        reflect_dom_object(box Worker::new_inherited(sender),
                            global,
                            WorkerBinding::Wrap)
     }
@@ -114,7 +111,7 @@ impl Worker {
                           data: StructuredCloneData) {
         let worker = address.root();
 
-        let global = worker.r().global.root();
+        let global = global_root_from_reflector(worker.r());
         let target = worker.upcast();
         let _ar = JSAutoRequest::new(global.r().get_cx());
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
@@ -125,14 +122,14 @@ impl Worker {
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
-        let global = worker.r().global.root();
+        let global = global_root_from_reflector(worker.r());
         worker.upcast().fire_simple_event("error", global.r());
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.root();
-        let global = worker.r().global.root();
+        let global = global_root_from_reflector(worker.r());
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
         let errorevent = ErrorEvent::new(global.r(), atom!("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
@@ -145,7 +142,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(self, self.global.root().r().dom_manipulation_thread_source());
+        let address = Trusted::new(self, global_root_from_reflector(self).r().dom_manipulation_thread_source());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }
