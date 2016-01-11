@@ -44,6 +44,15 @@ extern crate time;
 extern crate url;
 extern crate util;
 
+use msg::constellation_msg::PipelineId;
+use cssparser::{Parser, SourcePosition};
+
+pub trait ParseErrorReporter {
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str);
+    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync>;
+    fn pipeline(&self) -> PipelineId;
+}
+
 pub mod animation;
 pub mod attr;
 pub mod context;

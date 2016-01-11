@@ -4,8 +4,8 @@
 
 use cssparser::{Parser, SourcePosition};
 use log;
-use msg::ParseErrorReporter;
 use msg::constellation_msg::PipelineId;
+use style::ParseErrorReporter;
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct CSSErrorReporter {
