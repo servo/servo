@@ -5,17 +5,11 @@
 #![feature(custom_attribute, custom_derive, plugin)]
 #![plugin(serde_macros, plugins)]
 
-extern crate app_units;
-extern crate azure;
 #[macro_use]
 extern crate bitflags;
-#[cfg(target_os = "macos")]
-extern crate core_foundation;
 extern crate cssparser;
 extern crate euclid;
 extern crate hyper;
-#[cfg(target_os = "macos")]
-extern crate io_surface;
 extern crate ipc_channel;
 extern crate layers;
 extern crate rustc_serialize;
