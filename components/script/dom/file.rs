@@ -18,11 +18,10 @@ pub struct File {
 }
 
 impl File {
-    fn new_inherited(global: GlobalRef,
-                     _file_bits: &Blob, name: DOMString) -> File {
+    fn new_inherited(_file_bits: &Blob, name: DOMString) -> File {
         File {
             //TODO: get type from the underlying filesystem instead of "".to_string()
-            blob: Blob::new_inherited(global, Arc::new(Vec::new()), None, None, ""),
+            blob: Blob::new_inherited(Arc::new(Vec::new()), None, None, ""),
             name: name,
         }
         // XXXManishearth Once Blob is able to store data
@@ -30,7 +29,7 @@ impl File {
     }
 
     pub fn new(global: GlobalRef, file_bits: &Blob, name: DOMString) -> Root<File> {
-        reflect_dom_object(box File::new_inherited(global, file_bits, name),
+        reflect_dom_object(box File::new_inherited(file_bits, name),
                            global,
                            FileBinding::Wrap)
     }
