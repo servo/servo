@@ -2443,6 +2443,30 @@
             "url": "/_mozilla/css/input_placeholder_ref.html"
           }
         ],
+        "css/input_whitespace.html": [
+          {
+            "path": "css/input_whitespace.html",
+            "references": [
+              [
+                "/_mozilla/css/input_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_whitespace.html"
+          }
+        ],
+        "css/input_whitespace_ref.html": [
+          {
+            "path": "css/input_whitespace_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/input_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_whitespace_ref.html"
+          }
+        ],
         "css/inset.html": [
           {
             "path": "css/inset.html",
@@ -8432,6 +8456,30 @@
             ]
           ],
           "url": "/_mozilla/css/input_placeholder_ref.html"
+        }
+      ],
+      "css/input_whitespace.html": [
+        {
+          "path": "css/input_whitespace.html",
+          "references": [
+            [
+              "/_mozilla/css/input_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_whitespace.html"
+        }
+      ],
+      "css/input_whitespace_ref.html": [
+        {
+          "path": "css/input_whitespace_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/input_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_whitespace_ref.html"
         }
       ],
       "css/inset.html": [

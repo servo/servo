@@ -1910,7 +1910,9 @@ impl Element {
     }
 
     pub fn set_focus_state(&self, value: bool) {
-        self.set_state(IN_FOCUS_STATE, value)
+        self.set_state(IN_FOCUS_STATE, value);
+        let doc = document_from_node(self);
+        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage);
     }
 
     pub fn get_hover_state(&self) -> bool {

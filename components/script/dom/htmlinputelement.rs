@@ -202,6 +202,9 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_insertion_point_index_for_layout(self) -> Option<isize> {
+        if !(*self.unsafe_get()).upcast::<Element>().get_focus_state() {
+            return None;
+        }
         match (*self.unsafe_get()).input_type.get() {
             InputType::InputText  => {
                 let raw = self.get_value_for_layout();

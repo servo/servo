@@ -979,9 +979,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         };
 
         if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
-            let insertion_point = unsafe { area.get_absolute_insertion_point_for_layout() };
-            let text = unsafe { area.get_value_for_layout() };
-            return Some(CharIndex(search_index(insertion_point, text.char_indices())));
+            if let Some(insertion_point) = unsafe { area.get_absolute_insertion_point_for_layout() } {
+                let text = unsafe { area.get_value_for_layout() };
+                return Some(CharIndex(search_index(insertion_point, text.char_indices())));
+            }
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
             let insertion_point_index = unsafe { input.get_insertion_point_index_for_layout() };
