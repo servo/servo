@@ -315,12 +315,12 @@ def check_rust(file_name, lines):
             # ignore "crate::mod" and ignore flagging macros like "$t1:expr"
             (r"[^:]:[A-Za-z]", "missing space after :",
                 lambda match, line: '$' not in line[:match.end()]),
-            (r"[A-Za-z0-9\)]{", "missing space before {", no_filter),
+            (r"[A-Za-z0-9\)]{", "missing space before {{", no_filter),
             # ignore cases like "{}", "}`", "}}" and "use::std::{Foo, Bar}"
-            (r"[^\s{}]}[^`]", "missing space before }",
+            (r"[^\s{}]}[^`]", "missing space before }}",
                 lambda match, line: not re.match(r'^(pub )?use', line)),
             # ignore cases like "{}", "`{", "{{" and "use::std::{Foo, Bar}"
-            (r"[^`]{[^\s{}]", "missing space after {",
+            (r"[^`]{[^\s{}]", "missing space after {{",
                 lambda match, line: not re.match(r'^(pub )?use', line)),
             # There should not be any extra pointer dereferencing
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
@@ -475,7 +475,7 @@ def check_spec(file_name, lines):
     # Pattern representing a line with comment
     comment_patt = re.compile("^\s*///?.+$")
 
-    pattern = "impl %sMethods for %s {" % (file_name, file_name)
+    pattern = "impl {}Methods for {} {{".format(file_name, file_name)
     brace_count = 0
     in_impl = False
     for idx, line in enumerate(lines):
