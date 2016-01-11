@@ -77,7 +77,7 @@ use std::intrinsics::return_address;
 use std::iter::{FromIterator, IntoIterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, Sender};
@@ -156,6 +156,10 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
+}
+
+impl<T> JSTraceable for Weak<T> {
+    fn trace(&self, _trc: *mut JSTracer) {}
 }
 
 impl<T: JSTraceable> JSTraceable for Box<T> {
