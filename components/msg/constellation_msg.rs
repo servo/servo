@@ -230,17 +230,6 @@ pub enum MouseEventType {
     MouseUp,
 }
 
-/// The mouse button involved in the event.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum MouseButton {
-    /// The left mouse button.
-    Left,
-    /// The middle mouse button.
-    Middle,
-    /// The right mouse button.
-    Right,
-}
-
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
 pub enum AnimationState {
     AnimationsPresent,

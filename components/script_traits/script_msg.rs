@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use MouseButton;
 use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{AnimationState, DocumentState, IframeLoadInfo, NavigationDirection};
 use msg::constellation_msg::{Failure, MozBrowserEvent, PipelineId};
-use msg::constellation_msg::{LoadData, SubpageId};
-use msg::constellation_msg::{MouseButton, MouseEventType};
+use msg::constellation_msg::{LoadData, MouseEventType, SubpageId};
 use offscreen_gl_context::GLContextAttributes;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
