@@ -1371,6 +1371,9 @@ impl Window {
 
         WindowBinding::Wrap(runtime.cx(), win)
     }
+    pub fn live_devtools_updates(&self) -> bool {
+        return self.devtools_wants_updates.get();
+    }
 }
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {

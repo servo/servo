@@ -33,6 +33,7 @@ use canvas_traits::WebGLError;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use cssparser::RGBA;
+use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -97,6 +98,8 @@ pub trait JSTraceable {
     /// Trace `self`.
     fn trace(&self, trc: *mut JSTracer);
 }
+
+no_jsmanaged_fields!(CSSError);
 
 no_jsmanaged_fields!(EncodingRef);
 
