@@ -228,61 +228,6 @@ pub enum DocumentState {
     Pending,
 }
 
-// https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
-#[derive(Deserialize, Serialize)]
-pub enum MozBrowserEvent {
-    /// Sent when the scroll position within a browser `<iframe>` changes.
-    AsyncScroll,
-    /// Sent when window.close() is called within a browser `<iframe>`.
-    Close,
-    /// Sent when a browser `<iframe>` tries to open a context menu. This allows
-    /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
-    ContextMenu,
-    /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
-    Error,
-    /// Sent when the favicon of a browser `<iframe>` changes.
-    IconChange(String, String, String),
-    /// Sent when the browser `<iframe>` has finished loading all its assets.
-    LoadEnd,
-    /// Sent when the browser `<iframe>` starts to load a new page.
-    LoadStart,
-    /// Sent when a browser `<iframe>`'s location changes.
-    LocationChange(String),
-    /// Sent when window.open() is called within a browser `<iframe>`.
-    OpenWindow,
-    /// Sent when the SSL state changes within a browser `<iframe>`.
-    SecurityChange,
-    /// Sent when alert(), confirm(), or prompt() is called within a browser `<iframe>`.
-    ShowModalPrompt(String, String, String, String), // TODO(simartin): Handle unblock()
-    /// Sent when the document.title changes within a browser `<iframe>`.
-    TitleChange(String),
-    /// Sent when an HTTP authentification is requested.
-    UsernameAndPasswordRequired,
-    /// Sent when a link to a search engine is found.
-    OpenSearch,
-}
-
-impl MozBrowserEvent {
-    pub fn name(&self) -> &'static str {
-        match *self {
-            MozBrowserEvent::AsyncScroll => "mozbrowserasyncscroll",
-            MozBrowserEvent::Close => "mozbrowserclose",
-            MozBrowserEvent::ContextMenu => "mozbrowsercontextmenu",
-            MozBrowserEvent::Error => "mozbrowsererror",
-            MozBrowserEvent::IconChange(_, _, _) => "mozbrowsericonchange",
-            MozBrowserEvent::LoadEnd => "mozbrowserloadend",
-            MozBrowserEvent::LoadStart => "mozbrowserloadstart",
-            MozBrowserEvent::LocationChange(_) => "mozbrowserlocationchange",
-            MozBrowserEvent::OpenWindow => "mozbrowseropenwindow",
-            MozBrowserEvent::SecurityChange => "mozbrowsersecuritychange",
-            MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
-            MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
-            MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
-            MozBrowserEvent::OpenSearch => "mozbrowseropensearch"
-        }
-    }
-}
-
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
