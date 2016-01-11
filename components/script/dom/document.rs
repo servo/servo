@@ -123,6 +123,13 @@ enum ParserBlockedByScript {
     Unblocked,
 }
 
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
+pub enum HTTPSState {
+    Modern,
+    Deprecated,
+    None,
+}
+
 // https://dom.spec.whatwg.org/#document
 #[dom_struct]
 pub struct Document {
@@ -206,6 +213,8 @@ pub struct Document {
     dom_complete: Cell<u64>,
     /// Vector to store CSS errors
     css_errors_store: DOMRefCell<Vec<CSSError>>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
+    https_state: Cell<HTTPSState>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -289,6 +298,20 @@ impl Document {
     #[inline]
     pub fn is_html_document(&self) -> bool {
         self.is_html_document
+    }
+
+    pub fn set_https_state(&self, https_state: HTTPSState) {
+        self.https_state.set(https_state);
+        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsersecuritychange
+        self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(match https_state {
+            HTTPSState::None => "insecure".to_owned(),
+            HTTPSState::Modern => "secure".to_owned(),
+            HTTPSState::Deprecated => "broken".to_owned(),
+        }));
+    }
+
+    pub fn get_https_state(&self) -> HTTPSState {
+        self.https_state.get()
     }
 
     pub fn report_css_error(&self, css_error: CSSError) {
@@ -1521,6 +1544,7 @@ impl Document {
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
+            https_state: Cell::new(HTTPSState::None),
         }
     }
 

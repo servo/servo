@@ -31,7 +31,8 @@ use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
-use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
+use dom::document::{Document, DocumentProgressHandler, HTTPSState, DocumentSource};
+use dom::document::{FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -1857,6 +1858,12 @@ impl ScriptThread {
         } else {
             DOMString::new()
         };
+
+        document.set_https_state(if metadata.is_https {
+            HTTPSState::Modern
+        } else {
+            HTTPSState::None
+        });
 
         match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {

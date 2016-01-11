@@ -769,6 +769,7 @@ pub fn load<A>(load_data: LoadData,
         });
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
+        metadata.is_https = doc_url.scheme == "https";
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id

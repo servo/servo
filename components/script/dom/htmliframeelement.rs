@@ -4,6 +4,7 @@
 
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -269,9 +270,20 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
-            MozBrowserEvent::OpenWindow | MozBrowserEvent::SecurityChange | MozBrowserEvent::OpenSearch  |
+            MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
+            }
+            MozBrowserEvent::SecurityChange(https_state) => {
+                BrowserElementSecurityChangeDetail {
+                    state: Some(DOMString::from(https_state)),
+                    // FIXME - Not supported yet:
+                    trackingContent: None,
+                    mixedContent: None,
+                    trackingState: None,
+                    extendedValidation: None,
+                    mixedState: None,
+                }.to_jsval(cx, rval);
             }
             MozBrowserEvent::LocationChange(ref string) | MozBrowserEvent::TitleChange(ref string) => {
                 string.to_jsval(cx, rval);

@@ -308,6 +308,9 @@ pub struct Metadata {
 
     /// HTTP Status
     pub status: Option<RawStatus>,
+
+    /// Is successful HTTPS connection
+    pub is_https: bool,
 }
 
 impl Metadata {
@@ -320,6 +323,7 @@ impl Metadata {
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".into())),
+            is_https: false,
         }
     }
 
