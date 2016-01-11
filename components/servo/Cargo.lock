@@ -1202,7 +1202,7 @@ dependencies = [
  "plugins 0.0.1",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "stb_image 0.2.0 (git+https://github.com/servo/rust-stb-image)",
+ "stb_image 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "websocket 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1747,8 +1747,8 @@ dependencies = [
 
 [[package]]
 name = "stb_image"
-version = "0.2.0"
-source = "git+https://github.com/servo/rust-stb-image#bf1edc24753962e474cae3a2ad376a6d423cd91d"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

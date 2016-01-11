@@ -9,11 +9,12 @@ path = "lib.rs"
 crate-type = ["dylib"]
 
 [dependencies]
-log = "0.3"
-url = "0.5.2"
-libc = "0.2"
 euclid = {version = "0.4", features = ["plugins"]}
 gleam = "0.2"
+libc = "0.2"
+log = "0.3"
+stb_image = "0.2"
+url = "0.5.2"
 
 [dependencies.servo]
 path = "../../components/servo"
@@ -61,9 +62,6 @@ git = "https://github.com/servo/rust-mozjs"
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 features = ["plugins"]
-
-[dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image"
 
 [target.x86_64-apple-darwin.dependencies]
 objc = "0.1"
