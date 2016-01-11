@@ -13,9 +13,6 @@ path = "../util"
 [dependencies.msg]
 path = "../msg"
 
-[dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image"
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
@@ -29,5 +26,6 @@ hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
 serde = "0.6"
 serde_macros = "0.6"
+stb_image = "0.2"
 url = "0.5.2"
 websocket = "0.14.0"
