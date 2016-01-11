@@ -29,8 +29,8 @@ use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{DocumentState, FrameId, PipelineId};
-use msg::constellation_msg::{IframeLoadInfo, IFrameSandboxState, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
@@ -44,6 +44,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use sandboxing;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
+use script_traits::{IFrameLoadInfo, IFrameSandboxState};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
@@ -828,7 +829,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // will result in a new pipeline being spawned and a frame tree being added to
     // containing_page_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
-    fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IframeLoadInfo) {
+    fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfo) {
         let old_pipeline_id = load_info.old_subpage_id.map(|old_subpage_id| {
             self.find_subpage(load_info.containing_pipeline_id, old_subpage_id).id
         });
