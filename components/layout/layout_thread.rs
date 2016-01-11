@@ -46,7 +46,7 @@ use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_re
 use query::{process_node_geometry_request, process_offset_parent_query, process_resolved_style_request};
 use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse};
-use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
 use script::reporter::CSSErrorReporter;
 use script_traits::ConstellationControlMsg;
@@ -64,7 +64,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::animation::Animation;
 use style::computed_values::{filter, mix_blend_mode};
-use style::context::{SharedStyleContext, StylistWrapper};
+use style::context::{SharedStyleContext, StylistWrapper, ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
