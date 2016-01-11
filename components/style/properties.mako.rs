@@ -14,19 +14,19 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
+use computed_values;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
-use url::Url;
-use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use string_cache::Atom;
-use computed_values;
 use ParseErrorReporter;
 use parser::{ParserContext, log_css_error};
 use selectors::matching::DeclarationBlock;
+use string_cache::Atom;
 use stylesheets::Origin;
+use url::Url;
+use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use values::AuExtensionMethods;
 use values::computed::{self, ToComputedValue};
 use values::specified::{Length, BorderStyle};
