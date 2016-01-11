@@ -388,7 +388,7 @@ impl HTMLScriptElement {
                 // that encoding, then let character encoding be that encoding,
                 // and jump to the bottom step in this series of steps.
 
-                let encoding_after_step1 : Option<EncodingRef> = match metadata.charset {
+                let encoding_after_step1: Option<EncodingRef> = match metadata.charset {
                     Some(encoding) => match encoding_from_whatwg_label(&encoding) {
                         Some(enc_ref) => Some(enc_ref),
                         None => {
@@ -404,7 +404,7 @@ impl HTMLScriptElement {
                 // encoding, and jump to the bottom step in this series of
                 // steps.
 
-                let encoding_after_step2 : Option<EncodingRef> = match encoding_after_step1 {
+                let encoding_after_step2: Option<EncodingRef> = match encoding_after_step1 {
                     Some(enc_ref) => Some(enc_ref),
                     None => *self.block_character_encoding.borrow()
                 };
@@ -413,14 +413,15 @@ impl HTMLScriptElement {
                 // TODO: Let character encoding be the script block's fallback
                 // character encoding.
 
-                let encoding_after_step3 : Option<EncodingRef> = match encoding_after_step2 {
+                let encoding_after_step3: Option<EncodingRef> = match encoding_after_step2 {
                     Some(enc_ref) => Some(enc_ref),
                     None => {
                         let fallback_charset = (*self.parser_document).Charset();
                         match encoding_from_whatwg_label(&fallback_charset) {
                             Some(enc_ref) => Some(enc_ref),
                             None => {
-                                debug!("error loading script, unknown encoding {} given as block's fallback charactr encoding (self.parser_document.Charset())", fallback_charset);
+                                debug!("error loading script, unknown encoding {} given as block's\
+                                    fallback charactr encoding (self.parser_document.Charset())", fallback_charset);
                                 None}
                             }
                         },
