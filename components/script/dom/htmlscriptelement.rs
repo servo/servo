@@ -70,7 +70,7 @@ pub struct HTMLScriptElement {
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
-    block_character_encoding: DOMRefCell<EncodingRef>,
+    block_character_encoding: DOMRefCell<Option<EncodingRef>>,
 }
 
 impl HTMLScriptElement {
@@ -85,7 +85,7 @@ impl HTMLScriptElement {
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
             load: DOMRefCell::new(None),
-            block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
+            block_character_encoding: DOMRefCell::new(None),
         }
     }
 
@@ -241,7 +241,7 @@ impl HTMLScriptElement {
         // Step 13.
         if let Some(ref charset) = element.get_attribute(&ns!(), &atom!("charset")) {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.Value()) {
-                *self.block_character_encoding.borrow_mut() = encodingRef;
+                *self.block_character_encoding.borrow_mut() = Some(encodingRef);
             }
         }
 
@@ -406,30 +406,31 @@ impl HTMLScriptElement {
 
                 let encoding_after_step2 : Option<EncodingRef> = match encoding_after_step1 {
                     Some(enc_ref) => Some(enc_ref),
-                    None => Some(*self.block_character_encoding.borrow())
+                    None => *self.block_character_encoding.borrow()
                 };
 
                 // Step 3.
                 // TODO: Let character encoding be the script block's fallback
                 // character encoding.
 
-                //HELPME:
-                //it's set to UTF-8 by default while populating self.block_character_encoding.
-                //In order to execute step 3, I need to know whether it's set to UTF-8 because
-                //that's deduced from attributes, or just in "new" function.
-                // (I understand that line 244 is a possible override from default UTF-8 if
-                // an attribute is found, right?)
-                // In first case, I should let it be UTF-8. In latter, from what I undestand, I
-                // should override it with
-                // let documents_encoding = (*self.parser_document).Charset
-                // Am I getting things right?
+                let encoding_after_step3 : Option<EncodingRef> = match encoding_after_step2 {
+                    Some(enc_ref) => Some(enc_ref),
+                    None => {
+                        let fallback_charset = (*self.parser_document).Charset();
+                        match encoding_from_whatwg_label(&fallback_charset) {
+                            Some(enc_ref) => Some(enc_ref),
+                            None => {
+                                debug!("error loading script, unknown encoding {} given as block's fallback charactr encoding (self.parser_document.Charset())", fallback_charset);
+                                None}
+                            }
+                        },
+                };
 
                 // Step 4.
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
 
-                // HELPME: what is "character encoding"? Just UTF-8?
-                let final_encoding = encoding_after_step2.unwrap();
+                let final_encoding = encoding_after_step3.unwrap_or(UTF_8 as EncodingRef);
 
                 (DOMString::from(final_encoding.decode(&*bytes, DecoderTrap::Replace).unwrap()),
                     true,
