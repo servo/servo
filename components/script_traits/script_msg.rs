@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use IFrameLoadInfo;
+use MouseButton;
 use MouseEventType;
 use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
@@ -10,7 +11,7 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{AnimationState, DocumentState, NavigationDirection};
 use msg::constellation_msg::{Failure, MozBrowserEvent, PipelineId};
-use msg::constellation_msg::{LoadData, MouseButton, SubpageId};
+use msg::constellation_msg::{LoadData, SubpageId};
 use offscreen_gl_context::GLContextAttributes;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;

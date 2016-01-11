@@ -32,6 +32,7 @@ extern crate gleam;
 extern crate layers;
 extern crate libc;
 extern crate msg;
+extern crate script_traits;
 extern crate net_traits;
 extern crate servo;
 extern crate time;
