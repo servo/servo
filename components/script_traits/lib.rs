@@ -51,6 +51,7 @@ use profile_traits::mem;
 use std::any::Any;
 use util::ipc::OptionalOpaqueIpcSender;
 use util::mem::HeapSizeOf;
+use url::Url;
 
 pub use script_msg::{LayoutMsg, ScriptMsg};
 
@@ -324,4 +325,30 @@ pub enum EventResult {
     DefaultAllowed,
     /// Prevented by web content
     DefaultPrevented,
+}
+
+/// Whether the sandbox attribute is present for an iframe element
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
+pub enum IFrameSandboxState {
+    /// Sandbox attribute is present
+    IFrameSandboxed,
+    /// Sandbox attribute is not present
+    IFrameUnsandboxed
+}
+
+/// Specifies the information required to load a URL in an iframe.
+#[derive(Deserialize, Serialize)]
+pub struct IFrameLoadInfo {
+    /// Url to load
+    pub url: Option<Url>,
+    /// Pipeline ID of the parent of this iframe
+    pub containing_pipeline_id: PipelineId,
+    /// The new subpage ID for this load
+    pub new_subpage_id: SubpageId,
+    /// The old subpage ID for this iframe, if a page was previously loaded.
+    pub old_subpage_id: Option<SubpageId>,
+    /// The new pipeline ID that the iframe has generated.
+    pub new_pipeline_id: PipelineId,
+    /// Sandbox type of this iframe
+    pub sandbox: IFrameSandboxState,
 }
