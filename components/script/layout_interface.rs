@@ -23,12 +23,11 @@ use std::any::Any;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
+use style::context::ReflowGoal;
 use style::stylesheets::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
-pub use style::animation::Animation;
-pub use style::context::ReflowGoal;
 pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
