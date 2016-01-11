@@ -26,10 +26,11 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
-use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
-use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent};
+use msg::constellation_msg::{ConstellationChan, MozBrowserEvent};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use page::IterablePage;
+use script_traits::IFrameLoadInfo;
+use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -105,7 +106,7 @@ impl HTMLIFrameElement {
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
         let ConstellationChan(ref chan) = window.constellation_chan();
-        let load_info = IframeLoadInfo {
+        let load_info = IFrameLoadInfo {
             url: url,
             containing_pipeline_id: window.pipeline(),
             new_subpage_id: new_subpage_id,
