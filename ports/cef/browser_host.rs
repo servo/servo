@@ -14,7 +14,8 @@ use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use libc::{c_double, c_int};
-use msg::constellation_msg::{self, KeyModifiers, KeyState, MouseButton};
+use msg::constellation_msg::{self, KeyModifiers, KeyState};
+use script_traits::MouseButton;
 use std::cell::{Cell, RefCell};
 
 pub struct ServoCefBrowserHost {

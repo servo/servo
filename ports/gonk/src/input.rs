@@ -6,7 +6,7 @@ use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use errno::errno;
 use euclid::point::Point2D;
 use libc::{c_int, c_long, time_t};
-use msg::constellation_msg::MouseButton;
+use script_traits::MouseButton;
 use std::fs::File;
 use std::io::Read;
 use std::mem::{size_of, transmute, zeroed};
