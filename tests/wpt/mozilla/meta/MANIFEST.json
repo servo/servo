@@ -151,6 +151,19 @@
             "url": "/_mozilla/css/acid1_a.html"
           }
         ],
+        "css/acid2-wrapper.html": [
+          {
+            "path": "css/acid2-wrapper.html",
+            "references": [
+              [
+                "/_mozilla/css/acid2_ref_broken.html",
+                "=="
+              ]
+            ],
+            "timeout": "long",
+            "url": "/_mozilla/css/acid2-wrapper.html"
+          }
+        ],
         "css/acid2_noscroll.html": [
           {
             "path": "css/acid2_noscroll.html",
@@ -161,6 +174,18 @@
               ]
             ],
             "url": "/_mozilla/css/acid2_noscroll.html"
+          }
+        ],
+        "css/acid2_ref.html": [
+          {
+            "path": "css/acid2_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/acid2_ref_broken.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/acid2_ref.html"
           }
         ],
         "css/after_block_iteration.html": [
@@ -6194,6 +6219,19 @@
           "url": "/_mozilla/css/acid1_a.html"
         }
       ],
+      "css/acid2-wrapper.html": [
+        {
+          "path": "css/acid2-wrapper.html",
+          "references": [
+            [
+              "/_mozilla/css/acid2_ref_broken.html",
+              "=="
+            ]
+          ],
+          "timeout": "long",
+          "url": "/_mozilla/css/acid2-wrapper.html"
+        }
+      ],
       "css/acid2_noscroll.html": [
         {
           "path": "css/acid2_noscroll.html",
@@ -6204,6 +6242,18 @@
             ]
           ],
           "url": "/_mozilla/css/acid2_noscroll.html"
+        }
+      ],
+      "css/acid2_ref.html": [
+        {
+          "path": "css/acid2_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/acid2_ref_broken.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/acid2_ref.html"
         }
       ],
       "css/after_block_iteration.html": [
