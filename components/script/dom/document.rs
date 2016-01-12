@@ -1847,12 +1847,14 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
-    fn CreateAttribute(&self, local_name: DOMString) -> Fallible<Root<Attr>> {
+    fn CreateAttribute(&self, mut local_name: DOMString) -> Fallible<Root<Attr>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
-
+        if self.is_html_document {
+            local_name.make_ascii_lowercase();
+        }
         let name = Atom::from(&*local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from(&*local_name);
