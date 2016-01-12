@@ -39,6 +39,7 @@ path = "../../components/profile"
 
 [dependencies.util]
 path = "../../components/util"
+features = ["non-geckolib"]
 
 [dependencies]
 env_logger = "0.3"

@@ -5,7 +5,6 @@
 //! Data structure measurement.
 
 use app_units::Au;
-use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
 use cssparser::{RGBA, TokenSerializationType};
 use cursor::Cursor;
@@ -13,15 +12,6 @@ use euclid::length::Length;
 use euclid::scale_factor::ScaleFactor;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use geometry::{PagePx, ViewportPx};
-use html5ever::tree_builder::QuirksMode;
-use hyper::header::ContentType;
-use hyper::http::RawStatus;
-use hyper::method::Method;
-use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::GCMethods;
-use layers::geometry::DevicePixel;
 use libc::{c_void, size_t};
 use logical_geometry::WritingMode;
 use rand::OsRng;
@@ -303,22 +293,6 @@ macro_rules! known_heap_size(
     );
 );
 
-// This is measured properly by the heap measurement implemented in SpiderMonkey.
-impl<T: Copy + GCMethods<T>> HeapSizeOf for Heap<T> {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
-
-impl HeapSizeOf for Method {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            Method::Extension(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
 impl<T: HeapSizeOf, U: HeapSizeOf> HeapSizeOf for Result<T, U> {
     fn heap_size_of_children(&self) -> usize {
         match *self {
@@ -365,57 +339,6 @@ impl HeapSizeOf for SimpleSelector {
     }
 }
 
-impl HeapSizeOf for ContentType {
-    fn heap_size_of_children(&self) -> usize {
-        let &ContentType(ref mime) = self;
-        mime.heap_size_of_children()
-    }
-}
-
-impl HeapSizeOf for Mime {
-    fn heap_size_of_children(&self) -> usize {
-        let &Mime(ref top_level, ref sub_level, ref vec) = self;
-        top_level.heap_size_of_children() + sub_level.heap_size_of_children() +
-        vec.heap_size_of_children()
-    }
-}
-
-impl HeapSizeOf for TopLevel {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            TopLevel::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for SubLevel {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            SubLevel::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for Attr {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            Attr::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for Value {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            Value::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
 known_heap_size!(0, u8, u16, u32, u64, usize);
 known_heap_size!(0, i8, i16, i32, i64, isize);
 known_heap_size!(0, bool, f32, f64);
@@ -424,8 +347,8 @@ known_heap_size!(0, AtomicIsize, AtomicUsize);
 known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T>, Range<T>);
 known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
 
-known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, QualName, Atom, Namespace);
-known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus);
+known_heap_size!(0, Au, WritingMode, CSSParserColor, RGBA, Cursor, Matrix4, QualName, Atom, Namespace);
+known_heap_size!(0, PagePx, ViewportPx, OsRng);
 known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 
 known_heap_size!(0, ElementState, Combinator, PseudoElement, str);
