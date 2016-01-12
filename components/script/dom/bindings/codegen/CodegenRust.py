@@ -276,34 +276,6 @@ class CGThing():
         raise NotImplementedError  # Override me!
 
 
-class CGNativePropertyHooks(CGThing):
-    """
-    Generate a NativePropertyHooks for a given descriptor
-    """
-    def __init__(self, descriptor, properties):
-        CGThing.__init__(self)
-        self.descriptor = descriptor
-        self.properties = properties
-
-    def define(self):
-        parent = self.descriptor.interface.parent
-        if parent:
-            parentHooks = ("Some(&::dom::bindings::codegen::Bindings::%sBinding::sNativePropertyHooks)"
-                           % parent.identifier.name)
-        else:
-            parentHooks = "None"
-
-        substitutions = {
-            "parentHooks": parentHooks
-        }
-
-        return string.Template(
-            "pub static sNativePropertyHooks: NativePropertyHooks = NativePropertyHooks {\n"
-            "    native_properties: &sNativeProperties,\n"
-            "    proto_hooks: ${parentHooks},\n"
-            "};\n").substitute(substitutions)
-
-
 class CGMethodCall(CGThing):
     """
     A class to generate selection of a method signature from a set of
@@ -1750,17 +1722,16 @@ def DOMClassTypeId(desc):
 
 def DOMClass(descriptor):
         protoList = ['PrototypeList::ID::' + proto for proto in descriptor.prototypeChain]
-        # Pad out the list to the right length with ID::Count so we
-        # guarantee that all the lists are the same length.  id::Count
+        # Pad out the list to the right length with ID::Last so we
+        # guarantee that all the lists are the same length.  ID::Last
         # is never the ID of any prototype, so it's safe to use as
         # padding.
-        protoList.extend(['PrototypeList::ID::Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
+        protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         heapSizeOf = 'heap_size_of_raw_self_and_children::<%s>' % descriptor.interface.identifier.name
         return """\
 DOMClass {
     interface_chain: [ %s ],
-    native_hooks: &sNativePropertyHooks,
     type_id: %s,
     heap_size_of: %s as unsafe fn(_) -> _,
 }""" % (prototypeChainString, DOMClassTypeId(descriptor), heapSizeOf)
@@ -1839,6 +1810,7 @@ static Class: DOMJSClass = DOMJSClass {
             getElements: None,
             enumerate: None,
             thisObject: %s,
+            funToString: None,
         },
     },
     dom_class: %s
@@ -1882,40 +1854,32 @@ static PrototypeClass: JSClass = JSClass {
     hasInstance: None,
     construct: None,
     trace: None,
-    reserved: [0 as *mut libc::c_void; 25]
+    reserved: [0 as *mut libc::c_void; 26]
 };
 """ % {'name': name, 'slotCount': slotCount}
 
 
 class CGInterfaceObjectJSClass(CGThing):
     def __init__(self, descriptor):
+        assert descriptor.interface.hasInterfaceObject() and not descriptor.interface.isCallback()
         CGThing.__init__(self)
         self.descriptor = descriptor
 
     def define(self):
-        if True:
-            return ""
-        ctorname = "0 as *const u8" if not self.descriptor.interface.ctor() else CONSTRUCT_HOOK_NAME
-        hasinstance = HASINSTANCE_HOOK_NAME
+        if self.descriptor.interface.ctor():
+            constructor = CONSTRUCT_HOOK_NAME
+        else:
+            constructor = "throwing_constructor"
+        args = {
+            "constructor": constructor,
+            "hasInstance": HASINSTANCE_HOOK_NAME,
+            "name": self.descriptor.interface.identifier.name,
+        }
         return """\
-const InterfaceObjectClass: JSClass = {
-    %s, 0,
-    JS_PropertyStub,
-    JS_PropertyStub,
-    JS_PropertyStub,
-    JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
-    0 as *const u8,
-    0 as *const u8,
-    %s,
-    %s,
-    %s,
-    0 as *const u8,
-    JSCLASS_NO_INTERNAL_MEMBERS
-};
-""" % (str_to_const_array("Function"), ctorname, hasinstance, ctorname)
+static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
+    NonCallbackInterfaceObjectClass::new(%(constructor)s, %(hasInstance)s,
+                                         fun_to_string);
+""" % args
 
 
 class CGList(CGThing):
@@ -2312,8 +2276,8 @@ class CGIDLInterface(CGThing):
         name = self.descriptor.name
         if (interface.getUserData("hasConcreteDescendant", False) or
                 interface.getUserData("hasProxyDescendant", False)):
-            depth = len(self.descriptor.prototypeChain)
-            check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth - 1, name)
+            depth = self.descriptor.prototypeDepth
+            check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth, name)
         elif self.descriptor.proxy:
             check = "class as *const _ == &Class as *const _"
         else:
@@ -2384,30 +2348,6 @@ class PropertyArrays():
         return define
 
 
-class CGNativeProperties(CGThing):
-    def __init__(self, descriptor, properties):
-        CGThing.__init__(self)
-        self.properties = properties
-
-    def define(self):
-        def getField(array):
-            propertyArray = getattr(self.properties, array)
-            if propertyArray.length() > 0:
-                value = "Some(%s)" % propertyArray.variableName()
-            else:
-                value = "None"
-
-            return CGGeneric(string.Template('${name}: ${value},').substitute({
-                'name': array,
-                'value': value,
-            }))
-
-        nativeProps = CGList([getField(array) for array in self.properties.arrayNames()], '\n')
-        return CGWrapper(CGIndenter(nativeProps),
-                         pre="static sNativeProperties: NativeProperties = NativeProperties {\n",
-                         post="\n};\n").define()
-
-
 class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     """
     Generate the CreateInterfaceObjects method for an interface descriptor.
@@ -2415,62 +2355,113 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
-                Argument('HandleObject', 'receiver'),
-                Argument('MutableHandleObject', 'rval')]
-        CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args)
+        args = [Argument('*mut JSContext', 'cx')]
+        if not descriptor.interface.isCallback():
+            args += [Argument('HandleObject', 'global'),
+                     Argument('*mut ProtoOrIfaceArray', 'cache')]
+        args.append(Argument('HandleObject', 'receiver'))
+        CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
+                                  unsafe=True)
         self.properties = properties
 
     def definition_body(self):
+        name = self.descriptor.interface.identifier.name
+        if self.descriptor.interface.isCallback():
+            assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
+            return CGGeneric("""\
+create_callback_interface_object(cx, receiver, sConstants, %s);""" % str_to_const_array(name))
+
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
-            self.unsafe = True
-            getParentProto = "parent_proto.ptr = JS_GetObjectPrototype(cx, global)"
+            getPrototypeProto = "prototype_proto.ptr = JS_GetObjectPrototype(cx, global)"
         else:
-            parentProtoName = self.descriptor.prototypeChain[-2]
-            getParentProto = ("%s::GetProtoObject(cx, global, receiver, parent_proto.handle_mut())" %
-                              toBindingNamespace(parentProtoName))
+            getPrototypeProto = ("%s::GetProtoObject(cx, global, receiver, prototype_proto.handle_mut())" %
+                                 toBindingNamespace(self.descriptor.prototypeChain[-2]))
 
-        getParentProto = ("let mut parent_proto = RootedObject::new(cx, ptr::null_mut());\n"
-                          "%s;\n"
-                          "assert!(!parent_proto.ptr.is_null());\n") % getParentProto
+        code = [CGGeneric("""\
+let mut prototype_proto = RootedObject::new(cx, ptr::null_mut());
+%s;
+assert!(!prototype_proto.ptr.is_null());""" % getPrototypeProto)]
 
-        if self.descriptor.interface.isCallback():
-            protoClass = "None"
-        else:
-            protoClass = "Some(&PrototypeClass)"
+        properties = {"id": name}
+        for arrayName in self.properties.arrayNames():
+            array = getattr(self.properties, arrayName)
+            if arrayName == "consts":
+                if array.length():
+                    properties[arrayName] = array.variableName()
+                else:
+                    properties[arrayName] = "&[]"
+            elif array.length():
+                properties[arrayName] = "Some(%s)" % array.variableName()
+            else:
+                properties[arrayName] = "None"
+
+        code.append(CGGeneric("""
+let mut prototype = RootedObject::new(cx, ptr::null_mut());
+create_interface_prototype_object(cx,
+                                  prototype_proto.handle(),
+                                  &PrototypeClass,
+                                  %(methods)s,
+                                  %(attrs)s,
+                                  %(consts)s,
+                                  prototype.handle_mut());
+assert!(!prototype.ptr.is_null());
+(*cache)[PrototypeList::ID::%(id)s as usize] = prototype.ptr;
+if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
+    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::ID::%(id)s as isize));
+}""" % properties))
 
         if self.descriptor.interface.hasInterfaceObject():
+            properties["name"] = str_to_const_array(name)
             if self.descriptor.interface.ctor():
-                constructHook = CONSTRUCT_HOOK_NAME
-                constructArgs = methodLength(self.descriptor.interface.ctor())
+                properties["constructor"] = CONSTRUCT_HOOK_NAME
+                properties["length"] = methodLength(self.descriptor.interface.ctor())
             else:
-                constructHook = "throwing_constructor"
-                constructArgs = 0
+                properties["constructor"] = "throwing_constructor"
+                properties["length"] = 0
+            if self.descriptor.interface.parent:
+                parentName = toBindingNamespace(self.descriptor.getParentName())
+                code.append(CGGeneric("""
+let mut interface_proto = RootedObject::new(cx, ptr::null_mut());
+%s::GetConstructorObject(cx, global, receiver, interface_proto.handle_mut());""" % parentName))
+            else:
+                code.append(CGGeneric("""
+let interface_proto = RootedObject::new(cx, JS_GetFunctionPrototype(cx, global));"""))
+            code.append(CGGeneric("""\
+assert!(!interface_proto.ptr.is_null());
 
-            constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
-                constructHook, self.descriptor.interface.identifier.name,
-                constructArgs)
-        else:
-            constructor = 'None'
+let mut interface = RootedObject::new(cx, ptr::null_mut());
+create_noncallback_interface_object(cx,
+                                    receiver,
+                                    interface_proto.handle(),
+                                    &InterfaceObjectClass,
+                                    %(static_methods)s,
+                                    %(static_attrs)s,
+                                    %(consts)s,
+                                    prototype.handle(),
+                                    %(name)s,
+                                    %(length)s,
+                                    interface.handle_mut());
+assert!(!interface.ptr.is_null());""" % properties))
+            if self.descriptor.hasDescendants():
+                code.append(CGGeneric("""\
+(*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.ptr;
+if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
+    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize));
+}""" % properties))
 
-        call = """\
-do_create_interface_objects(cx, receiver, parent_proto.handle(),
-                            %s, %s,
-                            &named_constructors,
-                            &sNativeProperties, rval);""" % (protoClass, constructor)
-
-        createArray = """\
-let named_constructors: [(NonNullJSNative, &'static str, u32); %d] = [
-""" % len(self.descriptor.interface.namedConstructors)
-        for ctor in self.descriptor.interface.namedConstructors:
-            constructHook = CONSTRUCT_HOOK_NAME + "_" + ctor.identifier.name
-            constructArgs = methodLength(ctor)
-            constructor = '(%s as NonNullJSNative, "%s", %d)' % (
-                constructHook, ctor.identifier.name, constructArgs)
-            createArray += constructor
-            createArray += ","
-        createArray += "];"
+        constructors = self.descriptor.interface.namedConstructors
+        if constructors:
+            decl = "let named_constructors: [(NonNullJSNative, &'static [u8], u32); %d]" % len(constructors)
+            specs = []
+            for constructor in constructors:
+                hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
+                name = str_to_const_array(constructor.identifier.name)
+                length = methodLength(constructor)
+                specs.append(CGGeneric("(%s as NonNullJSNative, %s, %d)" % (hook, name, length)))
+            values = CGIndenter(CGList(specs, "\n"), 4)
+            code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
+            code.append(CGGeneric("create_named_constructors(cx, receiver, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -2486,41 +2477,22 @@ let named_constructors: [(NonNullJSNative, &'static str, u32); %d] = [
             # the prototype.
             if self.descriptor.proxy or self.descriptor.isGlobal():
                 holderClass = "ptr::null()"
-                holderProto = "ptr::null_mut()"
+                holderProto = "HandleObject::null()"
             else:
                 holderClass = "&Class.base as *const js::jsapi::Class as *const JSClass"
-                holderProto = "rval.get()"
-            # JS_NewObjectWithoutMetadata() is unsafe.
-            self.unsafe = True
-            createUnforgeableHolder = CGGeneric("""
+                holderProto = "prototype.handle()"
+            code.append(CGGeneric("""
 let mut unforgeable_holder = RootedObject::new(cx, ptr::null_mut());
-{
-    let holder_class = %(holderClass)s;
-    let holder_proto = RootedObject::new(cx, %(holderProto)s);
-    unforgeable_holder.handle_mut().set(
-        JS_NewObjectWithoutMetadata(cx, holder_class, holder_proto.handle()));
-    assert!(!unforgeable_holder.ptr.is_null());
-}""" % {'holderClass': holderClass, 'holderProto': holderProto})
-            defineUnforgeables = InitUnforgeablePropertiesOnHolder(self.descriptor,
-                                                                   self.properties)
-            createUnforgeableHolder = CGList(
-                [createUnforgeableHolder, defineUnforgeables], "\n")
+unforgeable_holder.handle_mut().set(
+    JS_NewObjectWithoutMetadata(cx, %(holderClass)s, %(holderProto)s));
+assert!(!unforgeable_holder.ptr.is_null());
+""" % {'holderClass': holderClass, 'holderProto': holderProto}))
+            code.append(InitUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
+            code.append(CGGeneric("""\
+JS_SetReservedSlot(prototype.ptr, DOM_PROTO_UNFORGEABLE_HOLDER_SLOT,
+                   ObjectValue(&*unforgeable_holder.ptr))"""))
 
-            installUnforgeableHolder = CGGeneric("""\
-JS_SetReservedSlot(rval.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT,
-                   ObjectValue(&*unforgeable_holder.ptr))""")
-
-            unforgeableHolderSetup = CGList(
-                [createUnforgeableHolder, installUnforgeableHolder], "\n")
-        else:
-            unforgeableHolderSetup = None
-
-        return CGList([
-            CGGeneric(getParentProto),
-            CGGeneric(createArray),
-            CGGeneric(call % self.properties.variableNames()),
-            unforgeableHolderSetup,
-        ], "\n")
+        return CGList(code, "\n")
 
 
 class CGGetPerInterfaceObject(CGAbstractMethod):
@@ -2534,7 +2506,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   'void', args, pub=pub, unsafe=True)
-        self.id = idPrefix + "ID::" + self.descriptor.name
+        self.id = idPrefix + "::" + self.descriptor.name
 
     def definition_body(self):
         return CGGeneric("""
@@ -2549,18 +2521,15 @@ assert!(((*JS_GetClass(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
 let proto_or_iface_array = get_proto_or_iface_array(global.get());
-rval.set((*proto_or_iface_array)[%s as usize]);
+rval.set((*proto_or_iface_array)[%(id)s as usize]);
 if !rval.get().is_null() {
     return;
 }
 
-CreateInterfaceObjects(cx, global, receiver, rval);
+CreateInterfaceObjects(cx, global, proto_or_iface_array, receiver);
+rval.set((*proto_or_iface_array)[%(id)s as usize]);
 assert!(!rval.get().is_null());
-(*proto_or_iface_array)[%s as usize] = rval.get();
-if <*mut JSObject>::needs_post_barrier(rval.get()) {
-    <*mut JSObject>::post_barrier((*proto_or_iface_array).as_mut_ptr().offset(%s as isize))
-}
-""" % (self.id, self.id, self.id))
+""" % {"id": self.id})
 
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
@@ -2569,7 +2538,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
-                                         "PrototypeList::", pub=descriptor.hasDescendants())
+                                         "PrototypeList::ID", pub=descriptor.hasDescendants())
 
     def definition_body(self):
         return CGList([
@@ -2586,7 +2555,8 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject",
-                                         "constructors::", pub=descriptor.hasDescendants())
+                                         "PrototypeList::Constructor",
+                                         pub=descriptor.hasDescendants())
 
     def definition_body(self):
         return CGList([
@@ -2674,10 +2644,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 
     def definition_body(self):
         if self.descriptor.interface.isCallback():
-            code = """\
-let mut obj = RootedObject::new(cx, ptr::null_mut());
-CreateInterfaceObjects(cx, global, global, obj.handle_mut());
-"""
+            code = "CreateInterfaceObjects(cx, global);"
         else:
             code = """\
 let mut proto = RootedObject::new(cx, ptr::null_mut());
@@ -4738,6 +4705,44 @@ let args = CallArgs::from_vp(vp, argc);
         return CGList([preamble, callGenerator])
 
 
+class CGClassHasInstanceHook(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('HandleObject', 'obj'),
+                Argument('MutableHandleValue', 'value'),
+                Argument('*mut bool', 'rval')]
+        assert descriptor.interface.hasInterfaceObject() and not descriptor.interface.isCallback()
+        CGAbstractExternMethod.__init__(self, descriptor, HASINSTANCE_HOOK_NAME,
+                                        'bool', args)
+
+    def definition_body(self):
+        id = "PrototypeList::ID::%s" % self.descriptor.interface.identifier.name
+        return CGGeneric("""\
+match has_instance(cx, obj, value.handle(), %(id)s, %(index)s) {
+    Ok(result) => {
+        *rval = result;
+        true
+    }
+    Err(()) => false,
+}
+""" % {"id": id, "index": self.descriptor.prototypeDepth})
+
+
+class CGClassFunToStringHook(CGAbstractExternMethod):
+    """
+    A hook to convert functions to strings.
+    """
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_obj'),
+                Argument('u32', '_indent')]
+        CGAbstractExternMethod.__init__(self, descriptor, "fun_to_string", '*mut JSString', args)
+
+    def definition_body(self):
+        name = self.descriptor.interface.identifier.name
+        string = str_to_const_array("function %s() {\\n    [native code]\\n}" % name)
+        return CGGeneric("JS_NewStringCopyZ(cx, %s as *const _ as *const libc::c_char)" % string)
+
+
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
@@ -4858,10 +4863,8 @@ class CGDescriptor(CGThing):
         cgThings = []
         if not descriptor.interface.isCallback():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
-        if descriptor.interface.hasInterfaceObject():
-            # https://github.com/mozilla/servo/issues/2665
-            # cgThings.append(CGGetConstructorObjectMethod(descriptor))
-            pass
+        if descriptor.interface.hasInterfaceObject() and descriptor.hasDescendants():
+            cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
         for m in descriptor.interface.members:
             if (m.isMethod() and
@@ -4905,15 +4908,16 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGClassConstructHook(descriptor))
             for ctor in descriptor.interface.namedConstructors:
                 cgThings.append(CGClassConstructHook(descriptor, ctor))
-            cgThings.append(CGInterfaceObjectJSClass(descriptor))
+            if not descriptor.interface.isCallback():
+                cgThings.append(CGInterfaceObjectJSClass(descriptor))
+                cgThings.append(CGClassHasInstanceHook(descriptor))
+                cgThings.append(CGClassFunToStringHook(descriptor))
 
         if not descriptor.interface.isCallback():
             cgThings.append(CGPrototypeJSClass(descriptor))
 
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
-        cgThings.append(CGNativeProperties(descriptor, properties))
-        cgThings.append(CGNativePropertyHooks(descriptor, properties))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
@@ -4973,22 +4977,12 @@ class CGDescriptor(CGThing):
 
 
 class CGNonNamespacedEnum(CGThing):
-    def __init__(self, enumName, names, values, comment="", deriving="", repr=""):
+    def __init__(self, enumName, names, first, comment="", deriving="", repr=""):
+        # Account for first value
+        entries = ["%s = %s" % (names[0], first)] + names[1:]
 
-        if not values:
-            values = []
-
-        # Account for explicit enum values.
-        entries = []
-        for i in range(0, len(names)):
-            if len(values) > i and values[i] is not None:
-                entry = "%s = %s" % (names[i], values[i])
-            else:
-                entry = names[i]
-            entries.append(entry)
-
-        # Append a Count.
-        entries.append('Count = ' + str(len(entries)))
+        # Append a Last.
+        entries.append('Last = ' + str(first + len(entries)))
 
         # Indent.
         entries = ['    ' + e for e in entries]
@@ -5301,16 +5295,16 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
             'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
             'js::jsapi::{JS_ComputeThis, JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
-            'js::jsapi::{JS_GetClass, JS_GetGlobalForObject, JS_GetObjectPrototype}',
-            'js::jsapi::{JS_GetProperty, JS_GetPropertyById, JS_GetPropertyDescriptorById}',
-            'js::jsapi::{JS_GetReservedSlot, JS_HasProperty, JS_HasPropertyById}',
-            'js::jsapi::{JS_InitializePropertiesFromCompatibleNativeObject, JS_InternString}',
-            'js::jsapi::{JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
-            'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty, JS_SetPrototype}',
-            'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment, JSAutoRequest}',
-            'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec, JSJitGetterCallArgs}',
-            'js::jsapi::{JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs, JSNative}',
-            'js::jsapi::{JSObject, JSNativeWrapper, JSPropertyDescriptor, JSPropertySpec}',
+            'js::jsapi::{JS_GetClass, JS_GetFunctionPrototype, JS_GetGlobalForObject}',
+            'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
+            'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot, JS_HasProperty}',
+            'js::jsapi::{JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
+            'js::jsapi::{JS_InternString, JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
+            'js::jsapi::{JS_NewObjectWithoutMetadata, JS_NewStringCopyZ, JS_SetProperty}',
+            'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment}',
+            'js::jsapi::{JSAutoRequest, JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
+            'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
+            'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertyDescriptor, JSPropertySpec}',
             'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',
             'js::jsapi::{ObjectOpResult, OpType, MutableHandle, MutableHandleObject}',
             'js::jsapi::{MutableHandleValue, RootedId, RootedObject, RootedString}',
@@ -5326,14 +5320,16 @@ class CGBindingRoot(CGThing):
             'js::rust::{GCMethods, define_methods, define_properties}',
             'dom::bindings',
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
+            'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
+            'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
+            'dom::bindings::interface::{create_noncallback_interface_object, has_instance}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
             'dom::bindings::utils::{ConstantSpec, DOMClass, DOMJSClass}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
-            'dom::bindings::utils::{NativeProperties, NativePropertyHooks, NonNullJSNative}',
-            'dom::bindings::utils::{create_dom_global, do_create_interface_objects, finalize_global}',
-            'dom::bindings::utils::{find_enum_string_index, generic_getter}',
+            'dom::bindings::utils::{NonNullJSNative, ProtoOrIfaceArray, create_dom_global}',
+            'dom::bindings::utils::{finalize_global, find_enum_string_index, generic_getter}',
             'dom::bindings::utils::{generic_lenient_getter, generic_lenient_setter}',
             'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',
             'dom::bindings::utils::{get_dictionary_property, get_property_on_prototype}',
@@ -5985,23 +5981,28 @@ class GlobalGenRoots():
     @staticmethod
     def PrototypeList(config):
         # Prototype ID enum.
-        protos = [d.name for d in config.getDescriptors(isCallback=False)]
+        interfaces = config.getDescriptors(isCallback=False)
+        protos = [d.name for d in interfaces]
+        constructors = [d.name for d in interfaces if d.hasDescendants()]
         proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
+            CGGeneric("pub const PROTO_OR_IFACE_LENGTH: usize = %d;\n" % (len(protos) + len(constructors))),
             CGGeneric("pub const MAX_PROTO_CHAIN_LENGTH: usize = %d;\n\n" % config.maxProtoChainLength),
-            CGNonNamespacedEnum('ID', protos, [0], deriving="PartialEq, Copy, Clone", repr="u16"),
+            CGNonNamespacedEnum('ID', protos, 0, deriving="PartialEq, Copy, Clone", repr="u16"),
+            CGNonNamespacedEnum('Constructor', constructors, len(protos),
+                                deriving="PartialEq, Copy, Clone", repr="u16"),
             CGWrapper(CGIndenter(CGList([CGGeneric('"' + name + '"') for name in protos],
                                         ",\n"),
                                  indentLevel=4),
                       pre="static INTERFACES: [&'static str; %d] = [\n" % len(protos),
                       post="\n];\n\n"),
             CGGeneric("pub fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
-                      "    debug_assert!(proto_id < ID::Count as u16);\n"
+                      "    debug_assert!(proto_id < ID::Last as u16);\n"
                       "    INTERFACES[proto_id as usize]\n"
                       "}\n\n"),
-            CGNonNamespacedEnum('Proxies', proxies, [0], deriving="PartialEq, Copy, Clone"),
+            CGNonNamespacedEnum('Proxies', proxies, 0, deriving="PartialEq, Copy, Clone"),
         ])
 
     @staticmethod

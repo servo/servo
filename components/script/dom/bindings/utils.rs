@@ -5,7 +5,7 @@
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
 use dom::bindings::codegen::PrototypeList;
-use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
 use dom::bindings::conversions::{private_from_proto_check, root_from_handleobject};
 use dom::bindings::error::throw_invalid_this;
@@ -19,32 +19,19 @@ use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT};
 use js::glue::{RUST_JSID_TO_INT, UnwrapObject};
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JS_DeletePropertyById1;
-use js::jsapi::JS_GetFunctionObject;
-use js::jsapi::JS_IsExceptionPending;
-use js::jsapi::JS_NewObjectWithUniqueType;
-use js::jsapi::JS_ObjectToOuterObject;
-use js::jsapi::{CallArgs, GetGlobalForObjectCrossCompartment, JSJitInfo};
-use js::jsapi::{CompartmentOptions, OnNewGlobalHookOption};
-use js::jsapi::{DOMCallbacks, JSWrapObjectCallbacks};
-use js::jsapi::{HandleId, HandleObject, HandleValue, MutableHandleValue};
-use js::jsapi::{Heap, MutableHandleObject, ObjectOpResult, RootedObject, RootedValue};
-use js::jsapi::{JSClass, JSContext, JSObject, JSTracer};
-use js::jsapi::{JSFunctionSpec, JSPropertySpec};
-use js::jsapi::{JSTraceOp, JS_AlreadyHasOwnProperty, JS_NewFunction};
-use js::jsapi::{JSVersion, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
-use js::jsapi::{JS_GetProperty, JS_HasProperty, JS_SetProperty};
-use js::jsapi::{JS_GetPrototype, JS_HasPropertyById};
-use js::jsapi::{JS_GetReservedSlot, JS_SetReservedSlot};
-use js::jsapi::{JS_InitStandardClasses, JS_NewGlobalObject};
+use js::jsapi::{CallArgs, CompartmentOptions, DOMCallbacks, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSClass, JSContext};
+use js::jsapi::{JSJitInfo, JSObject, JSTraceOp, JSTracer, JSVersion, JSWrapObjectCallbacks};
+use js::jsapi::{JS_DefineProperty, JS_DeletePropertyById1, JS_FireOnNewGlobalObject};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetProperty, JS_GetPrototype};
+use js::jsapi::{JS_GetReservedSlot, JS_HasProperty, JS_HasPropertyById, JS_InitStandardClasses};
+use js::jsapi::{JS_IsExceptionPending, JS_NewGlobalObject, JS_ObjectToOuterObject, JS_SetProperty};
+use js::jsapi::{JS_SetReservedSlot, MutableHandleValue, ObjectOpResult, OnNewGlobalHookOption};
+use js::jsapi::{RootedObject, RootedValue};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
 use js::jsval::{PrivateValue, UInt32Value, UndefinedValue};
-use js::rust::{GCMethods, ToString, define_methods, define_properties};
-use js::{JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE, JS_CALLEE};
-use js::{JSPROP_PERMANENT, JSPROP_READONLY};
+use js::rust::{GCMethods, ToString};
+use js::{JS_CALLEE, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc::{self, c_uint};
 use std::default::Default;
 use std::ffi::CString;
@@ -129,15 +116,6 @@ impl ConstantSpec {
     }
 }
 
-/// Helper structure for cross-origin wrappers for DOM binding objects.
-pub struct NativePropertyHooks {
-    /// The property arrays for this interface.
-    pub native_properties: &'static NativeProperties,
-
-    /// The NativePropertyHooks instance for the parent interface, if any.
-    pub proto_hooks: Option<&'static NativePropertyHooks>,
-}
-
 /// The struct that holds inheritance information for DOM object reflectors.
 #[derive(Copy, Clone)]
 pub struct DOMClass {
@@ -147,9 +125,6 @@ pub struct DOMClass {
 
     /// The type ID of that interface.
     pub type_id: TopTypeId,
-
-    /// The NativePropertyHooks for the interface associated with this class.
-    pub native_hooks: &'static NativePropertyHooks,
 
     /// The HeapSizeOf function wrapper for that interface.
     pub heap_size_of: unsafe fn(*const libc::c_void) -> usize,
@@ -180,153 +155,13 @@ pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray
     }
 }
 
-/// Contains references to lists of methods, attributes, and constants for a
-/// given interface.
-pub struct NativeProperties {
-    /// Instance methods for the interface.
-    pub methods: Option<&'static [JSFunctionSpec]>,
-    /// Unforgeable instance methods for the interface.
-    pub unforgeable_methods: Option<&'static [JSFunctionSpec]>,
-    /// Instance attributes for the interface.
-    pub attrs: Option<&'static [JSPropertySpec]>,
-    /// Unforgeable instance attributes for the interface.
-    pub unforgeable_attrs: Option<&'static [JSPropertySpec]>,
-    /// Constants for the interface.
-    pub consts: Option<&'static [ConstantSpec]>,
-    /// Static methods for the interface.
-    pub static_methods: Option<&'static [JSFunctionSpec]>,
-    /// Static attributes for the interface.
-    pub static_attrs: Option<&'static [JSPropertySpec]>,
-}
-unsafe impl Sync for NativeProperties {}
-
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
     unsafe extern "C" fn (arg1: *mut JSContext, arg2: c_uint, arg3: *mut JSVal) -> bool;
 
-/// Creates the *interface prototype object* (if a `proto_class` is given)
-/// and the *interface object* (if a `constructor` is given).
-/// Fails on JSAPI failure.
-pub fn do_create_interface_objects(cx: *mut JSContext,
-                                   receiver: HandleObject,
-                                   proto_proto: HandleObject,
-                                   proto_class: Option<&'static JSClass>,
-                                   constructor: Option<(NonNullJSNative, &'static str, u32)>,
-                                   named_constructors: &[(NonNullJSNative, &'static str, u32)],
-                                   members: &'static NativeProperties,
-                                   rval: MutableHandleObject) {
-    assert!(rval.get().is_null());
-    if let Some(proto_class) = proto_class {
-        create_interface_prototype_object(cx, proto_proto, proto_class, members, rval);
-    }
-
-    if let Some((native, name, nargs)) = constructor {
-        let s = CString::new(name).unwrap();
-        create_interface_object(cx,
-                                receiver,
-                                native,
-                                nargs,
-                                rval.handle(),
-                                members,
-                                s.as_ptr())
-    }
-
-    for ctor in named_constructors {
-        let (cnative, cname, cnargs) = *ctor;
-
-        let cs = CString::new(cname).unwrap();
-        let constructor = RootedObject::new(cx,
-                                            create_constructor(cx, cnative, cnargs, cs.as_ptr()));
-        assert!(!constructor.ptr.is_null());
-        unsafe {
-            assert!(JS_DefineProperty1(cx,
-                                       constructor.handle(),
-                                       b"prototype\0".as_ptr() as *const libc::c_char,
-                                       rval.handle(),
-                                       JSPROP_PERMANENT | JSPROP_READONLY,
-                                       None,
-                                       None));
-        }
-        define_constructor(cx, receiver, cs.as_ptr(), constructor.handle());
-    }
-
-}
-
-fn create_constructor(cx: *mut JSContext,
-                      constructor_native: NonNullJSNative,
-                      ctor_nargs: u32,
-                      name: *const libc::c_char)
-                      -> *mut JSObject {
-    unsafe {
-        let fun = JS_NewFunction(cx,
-                                 Some(constructor_native),
-                                 ctor_nargs,
-                                 JSFUN_CONSTRUCTOR,
-                                 name);
-        assert!(!fun.is_null());
-
-        let constructor = JS_GetFunctionObject(fun);
-        assert!(!constructor.is_null());
-
-        constructor
-    }
-}
-
-fn define_constructor(cx: *mut JSContext,
-                      receiver: HandleObject,
-                      name: *const libc::c_char,
-                      constructor: HandleObject) {
-    unsafe {
-        let mut already_defined = false;
-        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined));
-
-        if !already_defined {
-            assert!(JS_DefineProperty1(cx, receiver, name, constructor, 0, None, None));
-        }
-
-    }
-}
-
-/// Creates the *interface object*.
-/// Fails on JSAPI failure.
-fn create_interface_object(cx: *mut JSContext,
-                           receiver: HandleObject,
-                           constructor_native: NonNullJSNative,
-                           ctor_nargs: u32,
-                           proto: HandleObject,
-                           members: &'static NativeProperties,
-                           name: *const libc::c_char) {
-    unsafe {
-        let constructor = RootedObject::new(cx,
-                                            create_constructor(cx,
-                                                               constructor_native,
-                                                               ctor_nargs,
-                                                               name));
-        assert!(!constructor.ptr.is_null());
-
-        if let Some(static_methods) = members.static_methods {
-            define_methods(cx, constructor.handle(), static_methods).unwrap();
-        }
-
-        if let Some(static_properties) = members.static_attrs {
-            define_properties(cx, constructor.handle(), static_properties).unwrap();
-        }
-
-        if let Some(constants) = members.consts {
-            define_constants(cx, constructor.handle(), constants);
-        }
-
-        if !proto.get().is_null() {
-            assert!(JS_LinkConstructorAndPrototype(cx, constructor.handle(), proto));
-        }
-
-        define_constructor(cx, receiver, name, constructor.handle());
-    }
-}
-
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'static [ConstantSpec]) {
+pub fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'static [ConstantSpec]) {
     for spec in constants {
         let value = RootedValue::new(cx, spec.get_value());
         unsafe {
@@ -341,31 +176,6 @@ fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'static [
     }
 }
 
-/// Creates the *interface prototype object*.
-/// Fails on JSAPI failure.
-fn create_interface_prototype_object(cx: *mut JSContext,
-                                     parent_proto: HandleObject,
-                                     proto_class: &'static JSClass,
-                                     members: &'static NativeProperties,
-                                     rval: MutableHandleObject) {
-    unsafe {
-        rval.set(JS_NewObjectWithUniqueType(cx, proto_class, parent_proto));
-        assert!(!rval.get().is_null());
-
-        if let Some(methods) = members.methods {
-            define_methods(cx, rval.handle(), methods).unwrap();
-        }
-
-        if let Some(properties) = members.attrs {
-            define_properties(cx, rval.handle(), properties).unwrap();
-        }
-
-        if let Some(constants) = members.consts {
-            define_constants(cx, rval.handle(), constants);
-        }
-    }
-}
-
 /// A throwing constructor, for those interfaces that have neither
 /// `NoInterfaceObject` nor `Constructor`.
 pub unsafe extern "C" fn throwing_constructor(cx: *mut JSContext,
@@ -376,8 +186,8 @@ pub unsafe extern "C" fn throwing_constructor(cx: *mut JSContext,
     false
 }
 
-/// An array of *mut JSObject of size PrototypeList::ID::Count
-pub type ProtoOrIfaceArray = [*mut JSObject; PrototypeList::ID::Count as usize];
+/// An array of *mut JSObject of size PROTO_OR_IFACE_LENGTH.
+pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 
 /// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
@@ -574,7 +384,7 @@ pub fn create_dom_global(cx: *mut JSContext,
         // avoid getting trace hooks called on a partially initialized object.
         JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT, PrivateValue(private));
         let proto_array: Box<ProtoOrIfaceArray> =
-            box [0 as *mut JSObject; PrototypeList::ID::Count as usize];
+            box [0 as *mut JSObject; PROTO_OR_IFACE_LENGTH];
         JS_SetReservedSlot(obj.ptr,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
@@ -590,7 +400,7 @@ pub fn create_dom_global(cx: *mut JSContext,
 pub unsafe fn finalize_global(obj: *mut JSObject) {
     let protolist = get_proto_or_iface_array(obj);
     let list = (*protolist).as_mut_ptr();
-    for idx in 0..(PrototypeList::ID::Count as isize) {
+    for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
         let entry = list.offset(idx);
         let value = *entry;
         if <*mut JSObject>::needs_post_barrier(value) {
