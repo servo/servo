@@ -198,6 +198,23 @@ class SourceFile(object):
         return self.viewport_nodes[0].attrib.get("content", None)
 
     @cached_property
+    def dpi_nodes(self):
+        """List of ElementTree Elements corresponding to nodes in a test that
+        specify device pixel ratios"""
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='device-pixel-ratio']")
+
+    @cached_property
+    def dpi(self):
+        """The device pixel ratio of a test or reference file"""
+        if not self.root:
+            return None
+
+        if not self.dpi_nodes:
+            return None
+
+        return self.dpi_nodes[0].attrib.get("content", None)
+
+    @cached_property
     def testharness_nodes(self):
         """List of ElementTree Elements corresponding to nodes representing a
         testharness.js script"""
@@ -288,7 +305,8 @@ class SourceFile(object):
                 rv.append(TestharnessTest(self, url, timeout=self.timeout))
 
         elif self.content_is_ref_node:
-            rv = [RefTest(self, self.url, self.references, timeout=self.timeout, viewport_size=self.viewport_size)]
+            rv = [RefTest(self, self.url, self.references, timeout=self.timeout,
+                          viewport_size=self.viewport_size, dpi=self.dpi)]
 
         else:
             # If nothing else it's a helper file, which we don't have a specific type for
