@@ -228,15 +228,11 @@ impl WebGLPaintThread {
             }
         });
 
-        match result_port.recv() {
-            Ok(_) => {
-                let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
-                ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
-
-                Ok((out_of_process_chan, in_process_chan))
-            },
-            Err(_) => Err("Could not create WebGLPaintThread.")
-        }
+        result_port.recv().unwrap().map(|_| {
+             let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
+             ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
+             (out_of_process_chan, in_process_chan)
+        })
     }
 
     #[inline]
