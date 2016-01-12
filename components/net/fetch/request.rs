@@ -235,8 +235,8 @@ pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 fn main_fetch(request: Rc<Request>, _cors_flag: bool) -> Response {
     // TODO: Implement main fetch spec
-    let _ = basic_fetch(request);
-    Response::network_error()
+    let response = basic_fetch(request);
+    response
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -400,10 +400,6 @@ fn http_fetch(request: Rc<Request>,
     // response and actual_response are guaranteed to be something by now
     let mut response = response.unwrap();
     let actual_response = actual_response.unwrap();
-
-    // Step 5
-    let actual_response = Rc::try_unwrap(actual_response.unwrap()).ok().unwrap();
-    let mut response = Rc::try_unwrap(response.unwrap()).ok().unwrap();
 
     match actual_response.status.unwrap() {
 
