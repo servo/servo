@@ -13,6 +13,7 @@ import fnmatch
 import itertools
 import re
 import StringIO
+import site
 import subprocess
 import sys
 from licenseck import licenses
@@ -556,11 +557,11 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
 
 def check_wpt_lint_errors():
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
-    lint_cmd = os.path.join(wpt_working_dir, "lint")
-    try:
-        subprocess.check_call(lint_cmd, cwd=wpt_working_dir)  # Must run from wpt's working dir
-    except subprocess.CalledProcessError as e:
-        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(e.returncode))
+    site.addsitedir(wpt_working_dir)
+    from tools.lint import lint
+    returncode = lint.main()
+    if returncode:
+        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
 def get_file_list(directory, only_changed_files=False):
