@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
@@ -24,31 +24,29 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct Storage {
     reflector_: Reflector,
-    global: GlobalField,
     storage_type: StorageType
 }
 
 impl Storage {
-    fn new_inherited(global: &GlobalRef, storage_type: StorageType) -> Storage {
+    fn new_inherited(storage_type: StorageType) -> Storage {
         Storage {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(global),
             storage_type: storage_type
         }
     }
 
     pub fn new(global: &GlobalRef, storage_type: StorageType) -> Root<Storage> {
-        reflect_dom_object(box Storage::new_inherited(global, storage_type), *global, StorageBinding::Wrap)
+        reflect_dom_object(box Storage::new_inherited(storage_type), *global, StorageBinding::Wrap)
     }
 
     fn get_url(&self) -> Url {
-        let global_root = self.global.root();
+        let global_root = self.global();
         let global_ref = global_root.r();
         global_ref.get_url()
     }
 
     fn get_storage_thread(&self) -> StorageThread {
-        let global_root = self.global.root();
+        let global_root = self.global();
         let global_ref = global_root.r();
         global_ref.as_window().storage_thread()
     }
@@ -154,7 +152,7 @@ impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
-        let global_root = self.global.root();
+        let global_root = self.global();
         let global_ref = global_root.r();
         let main_script_chan = global_ref.as_window().main_thread_script_chan();
         let script_chan = global_ref.dom_manipulation_thread_source();
@@ -183,7 +181,7 @@ impl MainThreadRunnable for StorageEventRunnable {
         let this = *self;
         let storage_root = this.element.root();
         let storage = storage_root.r();
-        let global_root = storage.global.root();
+        let global_root = storage.global();
         let global_ref = global_root.r();
         let ev_window = global_ref.as_window();
         let ev_url = storage.get_url();

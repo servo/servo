@@ -5,9 +5,9 @@
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
@@ -76,7 +76,6 @@ pub struct Blob {
     #[ignore_heap_size_of = "No clear owner"]
     data: DataSlice,
     typeString: String,
-    global: GlobalField,
     isClosed_: Cell<bool>,
 }
 
@@ -87,8 +86,7 @@ fn is_ascii_printable(string: &str) -> bool {
 }
 
 impl Blob {
-    pub fn new_inherited(global: GlobalRef,
-                         bytes: Arc<Vec<u8>>,
+    pub fn new_inherited(bytes: Arc<Vec<u8>>,
                          bytes_start: Option<i64>,
                          bytes_end: Option<i64>,
                          typeString: &str) -> Blob {
@@ -96,13 +94,12 @@ impl Blob {
             reflector_: Reflector::new(),
             data: DataSlice::new(bytes, bytes_start, bytes_end),
             typeString: typeString.to_owned(),
-            global: GlobalField::from_rooted(&global),
             isClosed_: Cell::new(false),
         }
     }
 
     pub fn new(global: GlobalRef, bytes: Vec<u8>, typeString: &str) -> Root<Blob> {
-        let boxed_blob = box Blob::new_inherited(global, Arc::new(bytes), None, None, typeString);
+        let boxed_blob = box Blob::new_inherited(Arc::new(bytes), None, None, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
@@ -112,7 +109,7 @@ impl Blob {
                   bytes_end: Option<i64>,
                   typeString: &str) -> Root<Blob> {
 
-      let boxed_blob = box Blob::new_inherited(global, bytes, bytes_start, bytes_end, typeString);
+      let boxed_blob = box Blob::new_inherited(bytes, bytes_start, bytes_end, typeString);
       reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
@@ -171,7 +168,7 @@ impl BlobMethods for Blob {
                 }
             }
         };
-        let global = self.global.root();
+        let global = self.global();
         let bytes = self.data.bytes.clone();
         Blob::new_sliced(global.r(), bytes, start, end, &relativeContentType)
     }

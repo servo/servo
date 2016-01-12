@@ -44,17 +44,6 @@ pub enum GlobalRoot {
     Worker(Root<WorkerGlobalScope>),
 }
 
-/// A traced reference to a global object, for use in fields of traced Rust
-/// structures.
-#[derive(JSTraceable, HeapSizeOf)]
-#[must_root]
-pub enum GlobalField {
-    /// A field for a `Window` object.
-    Window(JS<window::Window>),
-    /// A field for a `WorkerGlobalScope` object.
-    Worker(JS<WorkerGlobalScope>),
-}
-
 impl<'a> GlobalRef<'a> {
     /// Get the `JSContext` for the `JSRuntime` associated with the thread
     /// this global object is on.
@@ -269,25 +258,6 @@ impl GlobalRoot {
         match *self {
             GlobalRoot::Window(ref window) => GlobalRef::Window(window.r()),
             GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.r()),
-        }
-    }
-}
-
-impl GlobalField {
-    /// Create a new `GlobalField` from a rooted reference.
-    #[allow(unrooted_must_root)]
-    pub fn from_rooted(global: &GlobalRef) -> GlobalField {
-        match *global {
-            GlobalRef::Window(window) => GlobalField::Window(JS::from_ref(window)),
-            GlobalRef::Worker(worker) => GlobalField::Worker(JS::from_ref(worker)),
-        }
-    }
-
-    /// Create a stack-bounded root for this reference.
-    pub fn root(&self) -> GlobalRoot {
-        match *self {
-            GlobalField::Window(ref window) => GlobalRoot::Window(Root::from_ref(window)),
-            GlobalField::Worker(ref worker) => GlobalRoot::Worker(Root::from_ref(worker)),
         }
     }
 }

@@ -16,7 +16,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
+use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -141,7 +141,6 @@ pub struct XMLHttpRequest {
     upload_events: Cell<bool>,
     send_flag: Cell<bool>,
 
-    global: GlobalField,
     timeout_cancel: DOMRefCell<Option<TimerHandle>>,
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
@@ -175,7 +174,6 @@ impl XMLHttpRequest {
             upload_events: Cell::new(false),
             send_flag: Cell::new(false),
 
-            global: GlobalField::from_rooted(&global),
             timeout_cancel: DOMRefCell::new(None),
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
@@ -325,7 +323,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 *self.request_method.borrow_mut() = parsed_method;
 
                 // Step 6
-                let base = self.global.root().r().get_url();
+                let base = self.global().r().get_url();
                 let parsed_url = match base.join(&url) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Error::Syntax) // Step 7
@@ -457,7 +455,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestState::Loading |
             XMLHttpRequestState::Done => Err(Error::InvalidState),
             _ if self.send_flag.get() => Err(Error::InvalidState),
-            _ => match self.global.root() {
+            _ => match self.global() {
                 GlobalRoot::Window(_) if self.sync.get() => Err(Error::InvalidAccess),
                 _ => {
                     self.with_credentials.set(with_credentials);
@@ -519,7 +517,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         }
 
-        let global = self.global.root();
+        let global = self.global();
         let pipeline_id = global.r().pipeline();
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
@@ -562,8 +560,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         load_data.method = (*self.request_method.borrow()).clone();
 
         // CORS stuff
-        let global = self.global.root();
-        let referer_url = self.global.root().r().get_url();
+        let global = self.global();
+        let referer_url = self.global().r().get_url();
         let mode = if self.upload_events.get() {
             RequestMode::ForcedPreflight
         } else {
@@ -686,7 +684,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        match self.global.root() {
+        match self.global() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
             => return Ok(()),
             _ => {}
@@ -789,7 +787,7 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
-        let global = self.global.root();
+        let global = self.global();
         let event = Event::new(global.r(),
                                atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
@@ -970,7 +968,7 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let global = self.global.root();
+        let global = self.global();
         let progressevent = ProgressEvent::new(global.r(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
@@ -1024,7 +1022,7 @@ impl XMLHttpRequest {
 
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let global = self.global.root();
+        let global = self.global();
         let callback = ScheduledXHRTimeout {
             xhr: Trusted::new(self, global.r().networking_thread_source()),
             generation_id: self.generation_id.get(),
@@ -1035,7 +1033,7 @@ impl XMLHttpRequest {
 
     fn cancel_timeout(&self) {
         if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
-            let global = self.global.root();
+            let global = self.global();
             global.r().unschedule_callback(handle);
         }
     }
@@ -1084,7 +1082,7 @@ impl XMLHttpRequest {
 
     fn document_text_html(&self) -> Root<Document>{
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = self.global.root();
+        let wr = self.global();
         let wr = wr.r();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
@@ -1095,7 +1093,7 @@ impl XMLHttpRequest {
 
     fn handle_xml(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = self.global.root();
+        let wr = self.global();
         let wr = wr.r();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
@@ -1105,13 +1103,13 @@ impl XMLHttpRequest {
     }
 
     fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
-        let wr = self.global.root();
+        let wr = self.global();
         let wr = wr.r();
         let win = wr.as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
-        let base = self.global.root().r().get_url();
+        let base = self.global().r().get_url();
         let parsed_url = match base.join(&self.ResponseURL()) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7

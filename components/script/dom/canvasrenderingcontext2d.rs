@@ -18,11 +18,11 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -61,7 +61,6 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
-    global: GlobalField,
     renderer_id: usize,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
@@ -128,7 +127,6 @@ impl CanvasRenderingContext2D {
         let (ipc_renderer, renderer_id) = receiver.recv().unwrap();
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(&global),
             renderer_id: renderer_id,
             ipc_renderer: ipc_renderer,
             canvas: JS::from_ref(canvas),
@@ -1016,12 +1014,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let sw = cmp::max(1, sw.abs().to_u32().unwrap());
         let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        Ok(ImageData::new(self.global.root().r(), sw, sh, None))
+        Ok(ImageData::new(self.global().r(), sw, sh, None))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<Root<ImageData>> {
-        Ok(ImageData::new(self.global.root().r(),
+        Ok(ImageData::new(self.global().r(),
                           imagedata.Width(),
                           imagedata.Height(),
                           None))
@@ -1078,7 +1076,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
-        Ok(ImageData::new(self.global.root().r(), sw, sh, Some(data)))
+        Ok(ImageData::new(self.global().r(), sw, sh, Some(data)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1101,7 +1099,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      dirtyY: Finite<f64>,
                      dirtyWidth: Finite<f64>,
                      dirtyHeight: Finite<f64>) {
-        let data = imagedata.get_data_array(&self.global.root().r());
+        let data = imagedata.get_data_array(&self.global().r());
         let offset = Point2D::new(*dx, *dy);
         let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
 
@@ -1122,7 +1120,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                             x1: Finite<f64>,
                             y1: Finite<f64>)
                             -> Root<CanvasGradient> {
-        CanvasGradient::new(self.global.root().r(),
+        CanvasGradient::new(self.global().r(),
                             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0,
                                                                                  *y0,
                                                                                  *x1,
@@ -1143,7 +1141,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             return Err(Error::IndexSize);
         }
 
-        Ok(CanvasGradient::new(self.global.root().r(),
+        Ok(CanvasGradient::new(self.global().r(),
                                CanvasGradientStyle::Radial(RadialGradientStyle::new(*x0,
                                                                                     *y0,
                                                                                     *r0,
@@ -1183,7 +1181,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            Ok(CanvasPattern::new(self.global.root().r(),
+            Ok(CanvasPattern::new(self.global().r(),
                                   image_data,
                                   image_size,
                                   rep,

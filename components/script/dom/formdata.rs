@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrUSVString::{self, eBlob, eUSVString};
 use dom::bindings::error::{Fallible};
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::blob::Blob;
 use dom::file::File;
@@ -32,22 +32,20 @@ pub enum FormDatum {
 pub struct FormData {
     reflector_: Reflector,
     data: DOMRefCell<HashMap<Atom, Vec<FormDatum>>>,
-    global: GlobalField,
     form: Option<JS<HTMLFormElement>>
 }
 
 impl FormData {
-    fn new_inherited(form: Option<&HTMLFormElement>, global: GlobalRef) -> FormData {
+    fn new_inherited(form: Option<&HTMLFormElement>) -> FormData {
         FormData {
             reflector_: Reflector::new(),
             data: DOMRefCell::new(HashMap::new()),
-            global: GlobalField::from_rooted(&global),
             form: form.map(|f| JS::from_ref(f)),
         }
     }
 
     pub fn new(form: Option<&HTMLFormElement>, global: GlobalRef) -> Root<FormData> {
-        reflect_dom_object(box FormData::new_inherited(form, global),
+        reflect_dom_object(box FormData::new_inherited(form),
                            global, FormDataBinding::Wrap)
     }
 
@@ -128,7 +126,7 @@ impl FormData {
     fn get_file_or_blob(&self, value: &Blob, filename: Option<USVString>) -> Root<Blob> {
         match filename {
             Some(fname) => {
-                let global = self.global.root();
+                let global = self.global();
                 let name = DOMString::from(fname.0);
                 Root::upcast(File::new(global.r(), value, name))
             }

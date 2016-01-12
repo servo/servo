@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -136,7 +136,6 @@ mod close_code {
 pub struct WebSocket {
     eventtarget: EventTarget,
     url: Url,
-    global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
@@ -152,11 +151,10 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
-    fn new_inherited(global: GlobalRef, url: Url) -> WebSocket {
+    fn new_inherited(url: Url) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
             url: url,
-            global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
@@ -169,11 +167,10 @@ impl WebSocket {
             binary_type: Cell::new(BinaryType::Blob),
             protocol: DOMRefCell::new("".to_owned()),
         }
-
     }
 
     fn new(global: GlobalRef, url: Url) -> Root<WebSocket> {
-        reflect_dom_object(box WebSocket::new_inherited(global, url),
+        reflect_dom_object(box WebSocket::new_inherited(url),
                            global, WebSocketBinding::Wrap)
     }
 
@@ -295,7 +292,7 @@ impl WebSocket {
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
         };
 
-        let global = self.global.root();
+        let global = self.global();
         let chan = global.r().networking_thread_source();
         let address = Trusted::new(self, chan.clone());
 
@@ -463,7 +460,7 @@ struct ConnectionEstablishedTask {
 impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
-        let global = ws.global.root();
+        let global = ws.r().global();
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
@@ -522,7 +519,7 @@ impl Runnable for CloseTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
         let ws = ws.r();
-        let global = ws.global.root();
+        let global = ws.global();
         ws.ready_state.set(WebSocketRequestState::Closed);
         //If failed or full, fire error event
         if ws.failed.get() || ws.full.get() {
@@ -568,7 +565,7 @@ impl Runnable for MessageReceivedTask {
         }
 
         // Step 2-5.
-        let global = ws.global.root();
+        let global = ws.r().global();
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.r().get_cx();
