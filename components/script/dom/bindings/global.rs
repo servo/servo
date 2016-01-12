@@ -10,7 +10,7 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -25,7 +25,6 @@ use script_thread::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
-use util::mem::HeapSizeOf;
 
 /// A freely-copyable reference to a rooted global object.
 #[derive(Copy, Clone)]
