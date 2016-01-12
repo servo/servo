@@ -416,14 +416,16 @@ fn http_fetch(request: Rc<Request>,
                 return Response::network_error();
             }
 
-            // Step 2-4
+            // Step 3
             if !actual_response.headers.has::<Location>() {
-                drop(response);
-                return Rc::try_unwrap(actual_response).ok().unwrap();
+                drop(actual_response);
+                return Rc::try_unwrap(response).ok().unwrap();
             }
 
+            // Step 2
             let location = match actual_response.headers.get::<Location>() {
                 Some(&Location(ref location)) => location.clone(),
+                // Step 4
                 _ => return Response::network_error(),
             };
 
@@ -445,7 +447,7 @@ fn http_fetch(request: Rc<Request>,
             request.redirect_count.set(request.redirect_count.get() + 1);
 
             // Step 9
-            request.same_origin_data.set(false);            
+            request.same_origin_data.set(false);
 
             match request.redirect_mode {
 
@@ -535,7 +537,9 @@ fn http_fetch(request: Rc<Request>,
                               authentication_fetch_flag);
         }
 
-        _ => { }
+        _ => {
+            drop(actual_response);
+        }
     }
 
     // Step 6
