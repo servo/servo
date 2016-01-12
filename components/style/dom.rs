@@ -160,10 +160,14 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&self) -> Ref<Arc<ComputedValues>>;
+    fn style(&self) -> Ref<Arc<ComputedValues>> {
+        Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
+    }
 
     /// Removes the style from this node.
-    fn unstyle(self);
+    fn unstyle(self) {
+        self.mutate_data().unwrap().style = None;
+    }
 }
 
 pub trait TDocument<'ld> : Sized + Copy + Clone {

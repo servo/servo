@@ -4,6 +4,7 @@
 
 #![feature(box_syntax)]
 #![feature(box_patterns)]
+#![feature(cell_extras)]
 #![feature(concat_idents)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]

@@ -275,14 +275,6 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
-
-    fn style(&self) -> Ref<Arc<ComputedValues>> {
-        Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
-    }
-
-    fn unstyle(self) {
-        self.mutate_data().unwrap().style = None;
-    }
 }
 
 impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
