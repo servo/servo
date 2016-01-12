@@ -416,7 +416,6 @@ dependencies = [
  "num_cpus 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "solicit 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "traitobject 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -592,24 +591,6 @@ source = "git+https://github.com/servo/mozjs#e89e72f1d69b6a90a7b691fec2e4624e6a3
 dependencies = [
  "libc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "msg"
-version = "0.0.1"
-dependencies = [
- "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
- "layers 0.2.0 (git+https://github.com/servo/rust-layers)",
- "plugins 0.0.1",
- "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]
@@ -966,7 +947,6 @@ dependencies = [
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "msg 0.0.1",
  "num 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",

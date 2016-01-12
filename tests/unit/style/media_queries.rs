@@ -5,9 +5,8 @@
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::Size2D;
-use msg::ParseErrorReporter;
-use msg::constellation_msg::PipelineId;
 use std::borrow::ToOwned;
+use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
@@ -20,9 +19,6 @@ impl ParseErrorReporter for CSSErrorReporterTest {
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
         Box::new(CSSErrorReporterTest)
      }
-     fn pipeline(&self) -> PipelineId {
-        return PipelineId::fake_root_pipeline_id();
-      }
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
