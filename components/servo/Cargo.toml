@@ -81,6 +81,7 @@ path = "../profile_traits"
 
 [dependencies.util]
 path = "../util"
+features = ["non-geckolib"]
 
 [dependencies.script]
 path = "../script"

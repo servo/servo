@@ -6,7 +6,7 @@
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
-#![feature(decode_utf16)]
+#![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
 #![feature(heap_api)]
@@ -22,6 +22,7 @@
 
 extern crate alloc;
 extern crate app_units;
+#[cfg(feature = "non-geckolib")]
 extern crate azure;
 #[macro_use]
 extern crate bitflags;
@@ -29,10 +30,14 @@ extern crate bitflags;
 extern crate cssparser;
 extern crate euclid;
 extern crate getopts;
+#[cfg(feature = "non-geckolib")]
 extern crate html5ever;
+#[cfg(feature = "non-geckolib")]
 extern crate hyper;
 extern crate ipc_channel;
+#[cfg(feature = "non-geckolib")]
 extern crate js;
+#[cfg(feature = "non-geckolib")]
 extern crate layers;
 #[macro_use]
 extern crate lazy_static;
@@ -61,7 +66,9 @@ pub mod geometry;
 pub mod ipc;
 pub mod linked_list;
 pub mod logical_geometry;
-pub mod mem;
+#[macro_use] pub mod mem;
+#[cfg(feature = "non-geckolib")]
+pub mod non_geckolib;
 pub mod opts;
 pub mod persistent_list;
 pub mod prefs;

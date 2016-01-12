@@ -45,6 +45,7 @@ path = "../../components/msg"
 
 [dependencies.util]
 path = "../../components/util"
+features = ["non-geckolib"]
 
 [dependencies.style]
 path = "../../components/style"

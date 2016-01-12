@@ -55,8 +55,8 @@ use js::rust::ToString;
 use libc;
 use num::Float;
 use std::{ptr, mem, slice};
+pub use util::non_geckolib::{StringificationBehavior, jsstring_to_str};
 use util::str::DOMString;
-pub use util::str::{StringificationBehavior, jsstring_to_str};
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
