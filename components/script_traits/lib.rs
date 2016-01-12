@@ -40,9 +40,8 @@ use gfx_traits::LayerId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
-use msg::constellation_msg::{MouseButton, MouseEventType};
-use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, MouseButton};
+use msg::constellation_msg::{MozBrowserEvent, PipelineNamespaceId, SubpageId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -166,6 +165,17 @@ pub enum TouchEventType {
 /// http://w3c.github.io/touch-events/#widl-Touch-identifier
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct TouchId(pub i32);
+
+/// The types of mouse events
+#[derive(Deserialize, HeapSizeOf, Serialize)]
+pub enum MouseEventType {
+    /// Mouse button clicked
+    Click,
+    /// Mouse button down
+    MouseDown,
+    /// Mouse button up
+    MouseUp,
+}
 
 /// Events from the compositor that the script thread needs to know about
 #[derive(Deserialize, Serialize)]
