@@ -53,7 +53,8 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     }
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
-    // HTMLFormControlsCollection) implements IndexedGetter
+    // HTMLFormControlsCollection) implements IndexedGetter.
+    // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
