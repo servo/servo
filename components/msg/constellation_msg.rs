@@ -200,13 +200,6 @@ bitflags! {
     }
 }
 
-#[derive(Deserialize, HeapSizeOf, Serialize)]
-pub enum MouseEventType {
-    Click,
-    MouseDown,
-    MouseUp,
-}
-
 /// The mouse button involved in the event.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum MouseButton {

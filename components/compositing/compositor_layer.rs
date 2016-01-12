@@ -12,10 +12,11 @@ use gfx_traits::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
-use msg::constellation_msg::{MouseEventType, PipelineId};
+use msg::constellation_msg::PipelineId;
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::ConstellationControlMsg;
+use script_traits::MouseEventType;
 use std::rc::Rc;
 use windowing::{MouseWindowEvent, WindowMethods};
 
@@ -519,4 +520,3 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                                         None);
     }
 }
-
