@@ -7,7 +7,7 @@ use app_units::Au;
 use dom::OpaqueNode;
 use euclid::Size2D;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use msg::ParseErrorReporter;
+use ParseErrorReporter;
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -71,4 +71,3 @@ pub enum ReflowGoal {
     /// We're reflowing in order to satisfy a script query. No display list will be created.
     ForScriptQuery,
 }
-

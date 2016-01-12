@@ -5,10 +5,10 @@
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::Size2D;
-use msg::ParseErrorReporter;
 use msg::constellation_msg::PipelineId;
 use std::borrow::ToOwned;
 use style::media_queries::*;
+use style::ParseErrorReporter;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
 
