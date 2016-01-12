@@ -3511,6 +3511,20 @@
             "url": "/_mozilla/css/percentage_width_inline_block_a.html"
           }
         ],
+        "css/pixel_snapping_border_a.html": [
+          {
+            "dpi": "2",
+            "path": "css/pixel_snapping_border_a.html",
+            "references": [
+              [
+                "/_mozilla/css/pixel_snapping_border_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/pixel_snapping_border_a.html",
+            "viewport_size": "300x300"
+          }
+        ],
         "css/png_rgba_colorspace_a.html": [
           {
             "path": "css/png_rgba_colorspace_a.html",
@@ -9524,6 +9538,20 @@
             ]
           ],
           "url": "/_mozilla/css/percentage_width_inline_block_a.html"
+        }
+      ],
+      "css/pixel_snapping_border_a.html": [
+        {
+          "dpi": "2",
+          "path": "css/pixel_snapping_border_a.html",
+          "references": [
+            [
+              "/_mozilla/css/pixel_snapping_border_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/pixel_snapping_border_a.html",
+          "viewport_size": "300x300"
         }
       ],
       "css/png_rgba_colorspace_a.html": [

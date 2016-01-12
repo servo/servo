@@ -4,7 +4,6 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html
 
 # This file must be sorted alphabetically.
