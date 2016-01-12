@@ -38,9 +38,6 @@ path = "../script_traits"
 [dependencies.style]
 path = "../style"
 
-[dependencies.style_traits]
-path = "../style_traits"
-
 [dependencies.plugins]
 path = "../plugins"
 
@@ -60,7 +57,6 @@ git = "https://github.com/servo/ipc-channel"
 app_units = {version = "0.1", features = ["plugins"]}
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
-encoding = "0.2"
 fnv = "1.0"
 bitflags = "0.3"
 rustc-serialize = "0.3"

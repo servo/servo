@@ -5,7 +5,6 @@
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
 
-extern crate euclid;
 extern crate gfx;
 extern crate ipc_channel;
 extern crate msg;

@@ -11,7 +11,6 @@
 #![feature(custom_attribute)]
 #![plugin(serde_macros, plugins)]
 
-extern crate euclid;
 extern crate hyper;
 extern crate image as piston_image;
 extern crate ipc_channel;
