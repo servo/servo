@@ -397,6 +397,10 @@ fn http_fetch(request: Rc<Request>,
         actual_response = response.clone();
     }
 
+    // response and actual_response are guaranteed to be something by now
+    let mut response = response.unwrap();
+    let actual_response = actual_response.unwrap();
+
     // Step 5
     let actual_response = Rc::try_unwrap(actual_response.unwrap()).ok().unwrap();
     let mut response = Rc::try_unwrap(response.unwrap()).ok().unwrap();
@@ -414,7 +418,8 @@ fn http_fetch(request: Rc<Request>,
 
             // Step 2-4
             if !actual_response.headers.has::<Location>() {
-                return actual_response;
+                drop(response);
+                return Rc::try_unwrap(actual_response).ok().unwrap();
             }
 
             let location = match actual_response.headers.get::<Location>() {
@@ -444,7 +449,7 @@ fn http_fetch(request: Rc<Request>,
 
                 // Step 9
                 RedirectMode::Manual => {
-                    *response.borrow_mut() = actual_response.to_filtered(ResponseType::Opaque);
+                    response = Rc::new(Response::to_filtered(actual_response, ResponseType::Opaque));
                 }
 
                 // Step 10
@@ -494,7 +499,8 @@ fn http_fetch(request: Rc<Request>,
             // Step 1
             // FIXME: Figure out what to do with request window objects
             if cors_flag {
-                return response;
+                drop(actual_response);
+                return Rc::try_unwrap(response).ok().unwrap();
             }
 
             // Step 2
@@ -536,7 +542,7 @@ fn http_fetch(request: Rc<Request>,
     }
 
     // Step 7
-    response
+    return Rc::try_unwrap(response).ok().unwrap();
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
