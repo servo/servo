@@ -147,6 +147,15 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, u32, u32, String),
 }
 
+/// Used to determine if a script has any pending asynchronous activity.
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub enum DocumentState {
+    /// The document has been loaded and is idle.
+    Idle,
+    /// The document is either loading or waiting on an event.
+    Pending,
+}
+
 /// The type of input represented by a multi-touch event.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum TouchEventType {

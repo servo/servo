@@ -219,15 +219,6 @@ pub enum AnimationState {
     NoAnimationCallbacksPresent,
 }
 
-/// Used to determine if a script has any pending asynchronous activity.
-#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
-pub enum DocumentState {
-    /// The document has been loaded and is idle.
-    Idle,
-    /// The document is either loading or waiting on an event.
-    Pending,
-}
-
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
 #[derive(Deserialize, Serialize)]
 pub enum MozBrowserEvent {
