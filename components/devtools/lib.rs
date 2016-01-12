@@ -54,6 +54,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
+use std::iter;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -308,12 +309,26 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box performance);
     }
 
+    let mut indent_level = 0;
+
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
                               id: PipelineId,
                               worker_id: Option<WorkerId>,
                               console_message: ConsoleMessage,
                               actor_pipelines: &HashMap<PipelineId, String>,
-                              actor_workers: &HashMap<(PipelineId, WorkerId), String>) {
+                              actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+                              indent_level: &mut usize) {
+
+        match console_message.logLevel {
+            LogLevel::Group => *indent_level += 2,
+            LogLevel::GroupEnd => {
+                if *indent_level >= 2 {
+                    *indent_level -= 2;
+                }
+            },
+            _ => {},
+        }
+
         let console_actor_name = match find_console_actor(actors.clone(), id, worker_id, actor_workers,
                                                           actor_pipelines) {
             Some(name) => name,
@@ -321,6 +336,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         };
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
+        let indent = iter::repeat("  ").take(*indent_level).collect::<String>();
         let msg = ConsoleAPICall {
             from: console_actor.name.clone(),
             __type__: "consoleAPICall".to_owned(),
@@ -333,7 +349,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     _ => "log"
                 }.to_owned(),
                 timeStamp: precise_time_ns(),
-                arguments: vec!(console_message.message),
+                arguments: vec!(indent + &console_message.message),
                 filename: console_message.filename,
                 lineNumber: console_message.lineNumber,
                 columnNumber: console_message.columnNumber,
@@ -535,7 +551,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         console_message,
                         worker_id)) =>
                 handle_console_message(actors.clone(), id, worker_id, console_message,
-                                       &actor_pipelines, &actor_workers),
+                                       &actor_pipelines, &actor_workers, &mut indent_level),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
                         id,
                         css_error)) => {
@@ -547,7 +563,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     columnNumber: css_error.column,
                 };
                 handle_console_message(actors.clone(), id, None, console_message,
-                                       &actor_pipelines, &actor_workers)
+                                       &actor_pipelines, &actor_workers, &mut indent_level)
             },
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                         request_id, network_event)) => {
