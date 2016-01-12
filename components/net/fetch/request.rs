@@ -116,7 +116,7 @@ pub struct Request {
     pub origin: Option<Url>, // FIXME: Use Url::Origin
     pub force_origin_header: bool,
     pub omit_origin_header: bool,
-    pub same_origin_data: bool,
+    pub same_origin_data: Cell<bool>,
     pub referer: Referer,
     pub authentication: bool,
     pub sync: bool,
@@ -145,7 +145,7 @@ impl Request {
             origin: None,
             force_origin_header: false,
             omit_origin_header: false,
-            same_origin_data: false,
+            same_origin_data: Cell::new(false),
             referer: Referer::Client,
             authentication: false,
             sync: false,
@@ -432,7 +432,6 @@ fn http_fetch(request: Rc<Request>,
 
             // Step 6
             let location_url = match location_url {
-                Ok(ref url) if url.scheme == "data" => { return Response::network_error(); }
                 Ok(url) => url,
                 _ => { return Response::network_error(); }
             };
@@ -445,14 +444,17 @@ fn http_fetch(request: Rc<Request>,
             // Step 8
             request.redirect_count.set(request.redirect_count.get() + 1);
 
+            // Step 9
+            request.same_origin_data.set(false);            
+
             match request.redirect_mode {
 
-                // Step 9
+                // Step 10
                 RedirectMode::Manual => {
                     response = Rc::new(Response::to_filtered(actual_response, ResponseType::Opaque));
                 }
 
-                // Step 10
+                // Step 11
                 RedirectMode::Follow => {
 
                     // Substep 1
