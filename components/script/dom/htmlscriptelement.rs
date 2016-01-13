@@ -369,8 +369,6 @@ impl HTMLScriptElement {
 
         let load = self.load.borrow_mut().take().unwrap();
 
-        info!("hello");
-
         // Step 2.
         let (source, external, url) = match load {
             // Step 2.a.
@@ -382,6 +380,7 @@ impl HTMLScriptElement {
 
             // Step 2.b.1.a.
             ScriptOrigin::External(Ok((metadata, bytes))) => {
+                debug!("loading external script");
                 // TODO(#9185): implement encoding determination.
 
                 // Step 1.
@@ -400,6 +399,10 @@ impl HTMLScriptElement {
                     None => None
                 };
 
+                if(encoding_after_step1.is_some()) {
+                    debug!("charset set after step1")
+                };
+
                 // Step 2.
                 // TODO: If the algorithm above set the script block's
                 // character encoding, then let character encoding be that
@@ -409,6 +412,10 @@ impl HTMLScriptElement {
                 let encoding_after_step2: Option<EncodingRef> = match encoding_after_step1 {
                     Some(enc_ref) => Some(enc_ref),
                     None => *self.block_character_encoding.borrow()
+                };
+
+                if(encoding_after_step1.is_none() && encoding_after_step2.is_some()) {
+                    debug!("charset set after step2");
                 };
 
                 // Step 3.
@@ -429,11 +436,19 @@ impl HTMLScriptElement {
                         },
                 };
 
+                if(encoding_after_step2.is_none() && encoding_after_step3.is_some()) {
+                    debug!("charset set after step3");
+                };
+
                 // Step 4.
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
 
                 let final_encoding = encoding_after_step3.unwrap_or(UTF_8 as EncodingRef);
+
+                if(encoding_after_step3.is_some()) {
+                    debug!("charset to UTF-8 as fallback");
+                };
 
                 (DOMString::from(final_encoding.decode(&*bytes, DecoderTrap::Replace).unwrap()),
                     true,
