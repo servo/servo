@@ -196,7 +196,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
         os.rmdir(self.tempdir)
         ProcessTestExecutor.teardown(self)
 
-    def screenshot(self, test, viewport_size):
+    def screenshot(self, test, viewport_size, dpi):
         full_url = self.test_url(test)
 
         with TempFilename(self.tempdir) as output_path:
@@ -215,6 +215,9 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
             if viewport_size:
                 command += ["--resolution", viewport_size]
+
+            if dpi:
+                command += ["--device-pixel-ratio", dpi]
 
             self.command = debug_args + command
 

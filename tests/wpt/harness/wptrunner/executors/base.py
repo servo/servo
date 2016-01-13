@@ -206,12 +206,12 @@ class RefTestImplementation(object):
     def logger(self):
         return self.executor.logger
 
-    def get_hash(self, test, viewport_size):
+    def get_hash(self, test, viewport_size, dpi):
         timeout = test.timeout * self.timeout_multiplier
-        key = (test.url, viewport_size)
+        key = (test.url, viewport_size, dpi)
 
         if key not in self.screenshot_cache:
-            success, data = self.executor.screenshot(test, viewport_size)
+            success, data = self.executor.screenshot(test, viewport_size, dpi)
 
             if not success:
                 return False, data
@@ -236,6 +236,7 @@ class RefTestImplementation(object):
 
     def run_test(self, test):
         viewport_size = test.viewport_size
+        dpi = test.dpi
         self.message = []
 
         # Depth-first search of reference tree, with the goal
@@ -249,7 +250,7 @@ class RefTestImplementation(object):
             nodes, relation = stack.pop()
 
             for i, node in enumerate(nodes):
-                success, data = self.get_hash(node, viewport_size)
+                success, data = self.get_hash(node, viewport_size, dpi)
                 if success is False:
                     return {"status": data[0], "message": data[1]}
 
@@ -266,7 +267,7 @@ class RefTestImplementation(object):
 
         for i, (node, screenshot) in enumerate(zip(nodes, screenshots)):
             if screenshot is None:
-                success, screenshot = self.retake_screenshot(node, viewport_size)
+                success, screenshot = self.retake_screenshot(node, viewport_size, dpi)
                 if success:
                     screenshots[i] = screenshot
 
@@ -277,12 +278,12 @@ class RefTestImplementation(object):
                 "message": "\n".join(self.message),
                 "extra": {"reftest_screenshots": log_data}}
 
-    def retake_screenshot(self, node, viewport_size):
-        success, data = self.executor.screenshot(node, viewport_size)
+    def retake_screenshot(self, node, viewport_size, dpi):
+        success, data = self.executor.screenshot(node, viewport_size, dpi)
         if not success:
             return False, data
 
-        key = (node.url, viewport_size)
+        key = (node.url, viewport_size, dpi)
         hash_val, _ = self.screenshot_cache[key]
         self.screenshot_cache[key] = hash_val, data
         return True, data

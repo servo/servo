@@ -130,7 +130,7 @@ class RefTest(URLManifestItem):
     item_type = "reftest"
 
     def __init__(self, source_file, url, references, url_base="/", timeout=None,
-                 viewport_size=None, manifest=None):
+                 viewport_size=None, dpi=None, manifest=None):
         URLManifestItem.__init__(self, source_file, url, url_base=url_base, manifest=manifest)
         for _, ref_type in references:
             if ref_type not in ["==", "!="]:
@@ -138,13 +138,14 @@ class RefTest(URLManifestItem):
         self.references = tuple(references)
         self.timeout = timeout
         self.viewport_size = viewport_size
+        self.dpi = dpi
 
     @property
     def is_reference(self):
         return self.source_file.name_is_reference
 
     def meta_key(self):
-        return (self.timeout, self.viewport_size)
+        return (self.timeout, self.viewport_size, self.dpi)
 
     def to_json(self):
         rv = URLManifestItem.to_json(self)
@@ -153,6 +154,8 @@ class RefTest(URLManifestItem):
             rv["timeout"] = self.timeout
         if self.viewport_size is not None:
             rv["viewport_size"] = self.viewport_size
+        if self.dpi is not None:
+            rv["dpi"] = self.dpi
         return rv
 
     @classmethod
@@ -165,6 +168,7 @@ class RefTest(URLManifestItem):
                    url_base=manifest.url_base,
                    timeout=obj.get("timeout"),
                    viewport_size=obj.get("viewport_size"),
+                   dpi=obj.get("dpi"),
                    manifest=manifest)
 
 

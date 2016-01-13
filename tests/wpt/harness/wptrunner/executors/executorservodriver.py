@@ -226,9 +226,10 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
             message += traceback.format_exc(e)
             return test.result_cls("ERROR", message), []
 
-    def screenshot(self, test, viewport_size):
+    def screenshot(self, test, viewport_size, dpi):
         # https://github.com/w3c/wptrunner/issues/166
         assert viewport_size is None
+        assert dpi is None
 
         timeout = (test.timeout * self.timeout_multiplier + extra_timeout
                    if self.debug_info is None else None)
