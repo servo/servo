@@ -46,6 +46,8 @@ impl WebGLPaintThread {
     /// NB: Not gl-related validations (names, lengths, accepted parameters...) are
     /// done in the corresponding DOM interfaces
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
+        debug!("WebGL message: {:?}", message);
+
         match message {
             CanvasWebGLMsg::GetContextAttributes(sender) =>
                 self.context_attributes(sender),
@@ -157,8 +159,10 @@ impl WebGLPaintThread {
                 gl::bind_texture(target, id),
             CanvasWebGLMsg::LinkProgram(program_id) =>
                 gl::link_program(program_id),
-            CanvasWebGLMsg::Uniform4fv(uniform_id, data) =>
-                gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]),
+            CanvasWebGLMsg::Uniform1f(uniform_id, x) =>
+                gl::uniform_1f(uniform_id, x),
+            CanvasWebGLMsg::Uniform4f(uniform_id, x, y, z, w) =>
+                gl::uniform_4f(uniform_id, x, y, z, w),
             CanvasWebGLMsg::UseProgram(program_id) =>
                 gl::use_program(program_id),
             CanvasWebGLMsg::VertexAttrib(attrib_id, x, y, z, w) =>
@@ -179,8 +183,9 @@ impl WebGLPaintThread {
                 self.send_drawing_buffer_height(sender),
         }
 
-        // FIXME: Convert to `debug_assert!` once tests are run with debug assertions
-        assert!(gl::get_error() == gl::NO_ERROR);
+        // FIXME: Use debug_assertions once tests are run with them
+        let error = gl::get_error();
+        assert!(error == gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
     }
 
     /// Creates a new `WebGLPaintThread` and returns the out-of-process sender and the in-process
@@ -297,6 +302,7 @@ impl WebGLPaintThread {
         } else {
             Some(unsafe { NonZero::new(program) })
         };
+
         chan.send(program).unwrap();
     }
 

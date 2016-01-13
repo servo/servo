@@ -79,6 +79,7 @@ pub struct WebGLRenderingContext {
     bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
     bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
     bound_buffer_element_array: MutNullableHeap<JS<WebGLBuffer>>,
+    current_program: MutNullableHeap<JS<WebGLProgram>>,
 }
 
 impl WebGLRenderingContext {
@@ -106,6 +107,7 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableHeap::new(None),
                 bound_buffer_array: MutNullableHeap::new(None),
                 bound_buffer_element_array: MutNullableHeap::new(None),
+                current_program: MutNullableHeap::new(None),
             }
         })
     }
@@ -284,8 +286,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
-        // TODO(ecoal95) we actually do not support extensions.
-        // `getSupportedExtensions` cannot be implemented as of right now (see #544)
         0 as *mut JSObject
     }
 
@@ -638,8 +638,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         WebGLProgram::maybe_new(self.global().r(), self.ipc_renderer.clone())
     }
 
-    // TODO(ecoal95): Check if constants are cross-platform or if we must make a translation
-    // between WebGL constants and native ones.
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateShader(&self, shader_type: u32) -> Option<Root<WebGLShader>> {
         WebGLShader::maybe_new(self.global().r(), self.ipc_renderer.clone(), shader_type)
@@ -694,8 +692,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {
-                // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
-                // null generate an InvalidOperation error
+                if self.current_program.get().is_none() {
+                    return self.webgl_error(InvalidOperation);
+                }
+
                 if first < 0 || count < 0 {
                     self.webgl_error(InvalidValue);
                 } else {
@@ -730,9 +730,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        // TODO ensure a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER
-        // TODO(ecoal95): Check the CURRENT_PROGRAM when we keep track of it, and if it's
-        // null generate an InvalidOperation error
+        if self.current_program.get().is_none() || self.bound_buffer_element_array.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
@@ -804,7 +805,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                           name: DOMString) -> Option<Root<WebGLUniformLocation>> {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
-                .map(|location| WebGLUniformLocation::new(self.global().r(), location))
+                .map(|location| WebGLUniformLocation::new(self.global().r(), location, program.id()))
         } else {
             None
         }
@@ -930,30 +931,71 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
-    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1f(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  val: f32) {
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return,
+        };
+
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform1f(uniform.id(), val)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1fv(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  data: Vec<f32>) {
+        if data.is_empty() {
+            return self.webgl_error(InvalidValue);
+        }
+
+        self.Uniform1f(uniform, data[0]);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4f(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  x: f32, y: f32, z: f32, w: f32) {
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return,
+        };
+
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4f(uniform.id(), x, y, z, w)))
+            .unwrap()
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4fv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let uniform_id = match uniform {
-            Some(uniform) => uniform.id(),
-            None => return,
-        };
-
         let data = match data {
             Some(data) => data,
-            None => return,
+            None => return self.webgl_error(InvalidValue),
         };
 
-        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data_vec.len() < 4 {
+        if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
+            if data.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
 
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec)))
-                .unwrap()
+            self.Uniform4f(uniform, data[0], data[1], data[2], data[3]);
         } else {
             self.webgl_error(InvalidValue);
         }
@@ -962,7 +1004,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            program.use_program()
+            match program.use_program() {
+                Ok(()) => self.current_program.set(Some(program)),
+                Err(e) => self.webgl_error(e),
+            }
         }
     }
 

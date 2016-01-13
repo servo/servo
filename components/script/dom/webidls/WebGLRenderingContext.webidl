@@ -644,9 +644,9 @@ interface WebGLRenderingContextBase
     //void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     //                   GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
-    //void uniform1f(WebGLUniformLocation? location, GLfloat x);
+    void uniform1f(WebGLUniformLocation? location, GLfloat x);
     //void uniform1fv(WebGLUniformLocation? location, Float32Array v);
-    //void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
+    void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
     //void uniform1i(WebGLUniformLocation? location, GLint x);
     //void uniform1iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform1iv(WebGLUniformLocation? location, sequence<long> v);
@@ -662,9 +662,9 @@ interface WebGLRenderingContextBase
     //void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     //void uniform3iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform3iv(WebGLUniformLocation? location, sequence<long> v);
-    //void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+    void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     // FIXME(dmarcos) The function below is the original function in the webIdl:
-    // void uniform4fv(WebGLUniformLocation? location, Float32Array v);
+    //void uniform4fv(WebGLUniformLocation? location, Float32Array v);
     // The Code genearator doesn't handle BufferDataSource so we're using 'optional object'
     // in the meantime
     void uniform4fv(WebGLUniformLocation? location, optional object v);
@@ -718,13 +718,3 @@ interface WebGLRenderingContext
 };
 WebGLRenderingContext implements WebGLRenderingContextBase;
 
-
-//[Constructor(DOMString type, optional WebGLContextEventInit eventInit)]
-//interface WebGLContextEvent : Event {
-//    readonly attribute DOMString statusMessage;
-//};
-
-// EventInit is defined in the DOM4 specification.
-//dictionary WebGLContextEventInit : EventInit {
-//    DOMString statusMessage;
-//};
