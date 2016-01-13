@@ -179,3 +179,8 @@ partial interface Document {
       // FIXME (#8159):
       // TouchList createTouchList(Touch... touches);
 };
+
+// https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+partial interface Document {
+  Element? ElementFromPoint(double x, double y);
+};
