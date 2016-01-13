@@ -369,6 +369,8 @@ impl HTMLScriptElement {
 
         let load = self.load.borrow_mut().take().unwrap();
 
+        info!("hello");
+
         // Step 2.
         let (source, external, url) = match load {
             // Step 2.a.

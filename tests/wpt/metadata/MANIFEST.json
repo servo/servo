@@ -18312,6 +18312,10 @@
         "url": "/html/semantics/scripting-1/the-script-element/script-before-after-events.html"
       },
       {
+        "path": "html/semantics/scripting-1/the-script-element/script-charset-01.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-charset-01.html"
+      },
+      {
         "path": "html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml",
         "url": "/html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml"
       },
