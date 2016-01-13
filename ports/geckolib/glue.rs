@@ -6,12 +6,15 @@
 
 use app_units::Au;
 use bindings::RawGeckoDocument;
-use bindings::ServoNodeData;
+use bindings::{ServoNodeData, ServoArcStyleSheet, uint8_t, uint32_t};
 use euclid::Size2D;
 use euclid::size::TypedSize2D;
 use num_cpus;
 use std::cmp;
 use std::collections::HashMap;
+use std::mem::transmute;
+use std::slice;
+use std::str::from_utf8_unchecked;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use style::animation::Animation;
@@ -21,8 +24,9 @@ use style::error_reporting::StdoutErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parallel::{self, WorkQueueData};
 use style::selector_matching::Stylist;
-use style::stylesheets::Stylesheet;
+use style::stylesheets::{Origin, Stylesheet};
 use style::traversal::RecalcStyleOnly;
+use url::Url;
 use util::geometry::ViewportPx;
 use util::resource_files::set_resources_path;
 use util::thread_state;
@@ -88,5 +92,26 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument) -> () {
 pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
     unsafe {
         let _ = Box::<NonOpaqueStyleData>::from_raw(data as *mut NonOpaqueStyleData);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
+                                                length: uint32_t) -> *mut ServoArcStyleSheet {
+
+    let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
+
+    // FIXME(heycam): Pass in the real base URL and sheet origin to use.
+    let url = Url::parse("about:none").unwrap();
+    let sheet = Arc::new(Stylesheet::from_str(input, url, Origin::Author, Box::new(StdoutErrorReporter)));
+    unsafe {
+        transmute(sheet)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DropStylesheet(sheet: *mut ServoArcStyleSheet) -> () {
+    unsafe {
+        let _ : Arc<Stylesheet> = transmute(sheet);
     }
 }

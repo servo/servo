@@ -49,6 +49,8 @@ pub enum Struct_RawGeckoDocument { }
 pub type RawGeckoDocument = Struct_RawGeckoDocument;
 pub enum Struct_ServoNodeData { }
 pub type ServoNodeData = Struct_ServoNodeData;
+pub enum Struct_ServoArcStyleSheet { }
+pub type ServoArcStyleSheet = Struct_ServoArcStyleSheet;
 extern "C" {
     pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> uint8_t;
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const uint8_t,
@@ -78,4 +80,8 @@ extern "C" {
                                   data: *mut ServoNodeData) -> ();
     pub fn Servo_RestyleDocument(aDoc: *mut RawGeckoDocument) -> ();
     pub fn Servo_DropNodeData(data: *mut ServoNodeData) -> ();
+    pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
+                                         length: uint32_t)
+      -> *mut ServoArcStyleSheet;
+    pub fn Servo_DropStylesheet(sheet: *mut ServoArcStyleSheet) -> ();
 }
