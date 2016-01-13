@@ -9,11 +9,12 @@ use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{AnimationState, NavigationDirection};
+use msg::constellation_msg::{NavigationDirection};
 use msg::constellation_msg::{Failure, MozBrowserEvent, PipelineId};
 use msg::constellation_msg::{LoadData, MouseButton, SubpageId};
 use offscreen_gl_context::GLContextAttributes;
 use style_traits::viewport::ViewportConstraints;
+use super::AnimationState;
 use url::Url;
 use util::cursor::Cursor;
 

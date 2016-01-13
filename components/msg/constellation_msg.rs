@@ -211,14 +211,6 @@ pub enum MouseButton {
     Right,
 }
 
-#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
-pub enum AnimationState {
-    AnimationsPresent,
-    AnimationCallbacksPresent,
-    NoAnimationsPresent,
-    NoAnimationCallbacksPresent,
-}
-
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
 #[derive(Deserialize, Serialize)]
 pub enum MozBrowserEvent {
