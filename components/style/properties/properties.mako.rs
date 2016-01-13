@@ -255,7 +255,7 @@ mod property_bit_field {
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
-#[derive(Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
 pub struct PropertyDeclarationBlock {
     #[ignore_heap_size_of = "#7038"]
     pub important: Arc<Vec<PropertyDeclaration>>,

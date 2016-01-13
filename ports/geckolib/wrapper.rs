@@ -322,9 +322,7 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { GeckoNode::from_raw(self.element as *mut RawGeckoNode) }
     }
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
-        panic!("Requires signature modification - only implemented in stylo branch");
-        /*
+    fn style_attribute(&self) -> Option<PropertyDeclarationBlock> {
         // FIXME(bholley): We should do what Servo does here. Gecko needs to
         // call into the Servo CSS parser and then cache the resulting block
         // in the nsAttrValue. That will allow us to borrow it from here.
@@ -336,7 +334,6 @@ impl<'le> TElement for GeckoElement<'le> {
         let extra_data = ParserContextExtraData::default();
         attr.map(|v| parse_style_attribute(&v, &base_url, Box::new(StdoutErrorReporter),
                                            extra_data))
-        */
     }
 
     fn get_state(&self) -> ElementState {

@@ -418,9 +418,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> Option<PropertyDeclarationBlock> {
         unsafe {
-            &*self.element.style_attribute()
+            self.element.style_attribute().clone()
         }
     }
 

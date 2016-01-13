@@ -206,7 +206,7 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock>;
+    fn style_attribute(&self) -> Option<PropertyDeclarationBlock>;
 
     fn get_state(&self) -> ElementState;
 

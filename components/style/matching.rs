@@ -528,12 +528,12 @@ pub trait ElementMatchMethods : TElement
                      parent_bf: Option<&BloomFilter>,
                      applicable_declarations: &mut ApplicableDeclarations<Self::Impl>)
                      -> bool {
-        let style_attribute = self.style_attribute().as_ref();
+        let style_attribute = self.style_attribute();
 
         applicable_declarations.normal_shareable =
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
-                                                 style_attribute,
+                                                 style_attribute.as_ref(),
                                                  None,
                                                  &mut applicable_declarations.normal);
         Self::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
