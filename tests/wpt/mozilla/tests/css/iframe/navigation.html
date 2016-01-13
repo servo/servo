@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<style>
+iframe {
+    display: block;
+    border: 1px solid black;
+    width: 500px;
+    height: 300px;
+    margin-left: 10px;
+    margin-top: 0px;
+}
+</style>
+<body>
+<iframe src="data:text/html,Foo"></iframe>
+<script>
+setTimeout(function() {
+    var iframe = document.getElementsByTagName('iframe')[0];
+    var navigated = false;
+    iframe.addEventListener('load', function() {
+        if (navigated) {
+            // Uncomment the following lines to observe that the navigation happens.
+            // If the lines are commented out, the test times out.
+            /*console.log("about to remove reftest-wait: document class is now: " +
+                        document.documentElement.getAttribute('class'));*/
+            document.documentElement.classList.remove("reftest-wait");
+            /*console.log("navigated: document class is now: " +
+                        document.documentElement.getAttribute('class'));*/
+        }
+    }, false);
+    iframe.src = "data:text/html,Hello%20world";
+    navigated = true;
+}, 16);
+</script>
+</body>
+</html>
+
