@@ -790,6 +790,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, properties.id) {
             Some(existing_layer) => {
+                // If this layer contains a subpage, then create the root layer for that subpage
+                // now.
+                if properties.subpage_pipeline_id.is_some() {
+                    self.create_root_layer_for_subpage_if_necessary(properties,
+                                                                    existing_layer.clone())
+                }
+
                 existing_layer.update_layer(properties);
                 true
             }
@@ -868,38 +875,55 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             // If this layer contains a subpage, then create the root layer for that subpage now.
-            if let Some(ref subpage_pipeline_id) = layer_properties.subpage_pipeline_id {
-                let subpage_layer_properties = LayerProperties {
-                    id: LayerId::null(),
-                    parent_id: None,
-                    rect: Rect::new(Point2D::zero(), layer_properties.rect.size),
-                    background_color: layer_properties.background_color,
-                    scroll_policy: ScrollPolicy::Scrollable,
-                    transform: Matrix4::identity(),
-                    perspective: Matrix4::identity(),
-                    subpage_pipeline_id: layer_properties.subpage_pipeline_id,
-                    establishes_3d_context: true,
-                    scrolls_overflow_area: true,
-                };
-
-                let wants_scroll_events = if subpage_layer_properties.scrolls_overflow_area {
-                    WantsScrollEventsFlag::WantsScrollEvents
-                } else {
-                    WantsScrollEventsFlag::DoesntWantScrollEvents
-                };
-                let subpage_layer = CompositorData::new_layer(*subpage_pipeline_id,
-                                                              subpage_layer_properties,
-                                                              wants_scroll_events,
-                                                              new_layer.tile_size);
-                *subpage_layer.masks_to_bounds.borrow_mut() = true;
-                new_layer.add_child(subpage_layer);
-                self.pending_subpages.insert(*subpage_pipeline_id);
+            if layer_properties.subpage_pipeline_id.is_some() {
+                self.create_root_layer_for_subpage_if_necessary(layer_properties,
+                                                                new_layer.clone())
             }
 
             parent_layer.add_child(new_layer.clone());
         }
 
         self.dump_layer_tree();
+    }
+
+    fn create_root_layer_for_subpage_if_necessary(&mut self,
+                                                  layer_properties: LayerProperties,
+                                                  parent_layer: Rc<Layer<CompositorData>>) {
+        if parent_layer.children
+                       .borrow()
+                       .iter()
+                       .any(|child| child.extra_data.borrow().subpage_info.is_some()) {
+            return
+        }
+
+        let subpage_pipeline_id =
+            layer_properties.subpage_pipeline_id
+                            .expect("create_root_layer_for_subpage() called for non-subpage?!");
+        let subpage_layer_properties = LayerProperties {
+            id: LayerId::null(),
+            parent_id: None,
+            rect: Rect::new(Point2D::zero(), layer_properties.rect.size),
+            background_color: layer_properties.background_color,
+            scroll_policy: ScrollPolicy::Scrollable,
+            transform: Matrix4::identity(),
+            perspective: Matrix4::identity(),
+            subpage_pipeline_id: Some(subpage_pipeline_id),
+            establishes_3d_context: true,
+            scrolls_overflow_area: true,
+        };
+
+        let wants_scroll_events = if subpage_layer_properties.scrolls_overflow_area {
+            WantsScrollEventsFlag::WantsScrollEvents
+        } else {
+            WantsScrollEventsFlag::DoesntWantScrollEvents
+        };
+        let subpage_layer = CompositorData::new_layer(subpage_pipeline_id,
+                                                      subpage_layer_properties,
+                                                      wants_scroll_events,
+                                                      parent_layer.tile_size);
+        *subpage_layer.masks_to_bounds.borrow_mut() = true;
+        parent_layer.add_child(subpage_layer);
+        self.pending_subpages.insert(subpage_pipeline_id);
     }
 
     fn send_window_size(&self) {

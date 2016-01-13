@@ -211,6 +211,7 @@ pub enum ScrollEventResult {
 impl CompositorLayer for Layer<CompositorData> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
+        self.extra_data.borrow_mut().subpage_info = layer_properties.subpage_pipeline_id;
         *self.transform.borrow_mut() = layer_properties.transform;
         *self.perspective.borrow_mut() = layer_properties.perspective;
 
