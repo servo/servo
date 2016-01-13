@@ -5,7 +5,7 @@
 use hyper::server::{Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use net::fetch::request::{Context, fetch, Referer, Request};
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{Response};
 use std::rc::Rc;
 use url::Url;
 
@@ -41,27 +41,4 @@ fn test_fetch_response_is_not_network_error() {
     if Response::is_network_error(&fetch_response) {
         panic!("fetch response shouldn't be a network error");
     }
-}
-
-// TODO this test requires response body to be set by Fetch
-#[test]
-#[should_panic]
-fn test_fetch_response_body_matches_const_message() {
-
-    static MESSAGE: &'static [u8] = b"Hello World!";
-    let (mut server, url) = make_server(MESSAGE);
-
-    let mut request = Request::new(url, Context::Fetch, false);
-    request.referer = Referer::NoReferer;
-    let wrapped_request = Rc::new(request);
-
-    let fetch_response = fetch(wrapped_request, false);
-    let _ = server.close();
-
-    match fetch_response.body {
-        ResponseBody::Receiving(body) | ResponseBody::Done(body) => {
-            assert_eq!(body, MESSAGE);
-        },
-        _ => { panic!() }
-    };
 }
