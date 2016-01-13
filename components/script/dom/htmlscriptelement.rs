@@ -446,7 +446,7 @@ impl HTMLScriptElement {
 
                 let final_encoding = encoding_after_step3.unwrap_or(UTF_8 as EncodingRef);
 
-                if(encoding_after_step3.is_some()) {
+                if(encoding_after_step3.is_none()) {
                     debug!("charset to UTF-8 as fallback");
                 };
 

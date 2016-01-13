@@ -5,11 +5,19 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
-<script type="text/javascript" id="external-script-windows1252" src="external-script-windows1252.js" charset="windows-1252">
+<script type="text/javascript" id="external-script-windows1250" src="external-script-windows1250.js" charset="windows-1250">
+</script>
+<script>
+test(function() {
+  assert_equals(window.getSomeString(), "śćążź");
+});
+</script>
+<!-- <script type="text/javascript" id="external-script-windows1252" src="external-script-windows1252.js" charset="windows-1252">
 </script>
 </div>
 <script>
 test(function() {
+  assert_equals(document.getElementById("external-script-windows1251").charset, "windows-1251");
   assert_equals(document.getElementById("external-script-windows1252").charset, "windows-1252");
 })
-</script>
+</script> -->
