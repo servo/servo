@@ -136,3 +136,13 @@ impl Epoch {
         *u += 1;
     }
 }
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub struct FrameTreeId(pub u32);
+
+impl FrameTreeId {
+    pub fn next(&mut self) {
+        let FrameTreeId(ref mut u) = *self;
+        *u += 1;
+    }
+}
