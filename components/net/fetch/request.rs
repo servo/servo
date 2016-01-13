@@ -305,7 +305,7 @@ fn http_fetch(request: Rc<Request>,
     if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
 
         // TODO: Substep 1 (handle fetch unimplemented)
-        
+
         if let Some(ref res) = response {
 
             // Substep 2

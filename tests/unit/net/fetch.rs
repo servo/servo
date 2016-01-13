@@ -10,7 +10,7 @@ use std::rc::Rc;
 use url::Url;
 
 fn make_server(message: &'static [u8]) -> (Listening, Url) {
-    
+
     let handler = move | _: HyperRequest, response: HyperResponse | {
         response.send(message).unwrap();
     };
@@ -44,9 +44,10 @@ fn test_fetch_response_is_not_network_error() {
 }
 
 // TODO this test requires response body to be set by Fetch
-// #[test]
+#[test]
+#[should_panic]
 fn test_fetch_response_body_matches_const_message() {
-    
+
     static MESSAGE: &'static [u8] = b"Hello World!";
     let (mut server, url) = make_server(MESSAGE);
 
@@ -56,7 +57,7 @@ fn test_fetch_response_body_matches_const_message() {
 
     let fetch_response = fetch(wrapped_request, false);
     let _ = server.close();
-    
+
     match fetch_response.body {
         ResponseBody::Receiving(body) | ResponseBody::Done(body) => {
             assert_eq!(body, MESSAGE);
