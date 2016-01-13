@@ -7,8 +7,8 @@
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::RestyleDamage;
-use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
-use script_traits::LayoutMsg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, PipelineId};
+use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::Receiver;

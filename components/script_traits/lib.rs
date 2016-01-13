@@ -156,6 +156,20 @@ pub enum DocumentState {
     Pending,
 }
 
+/// For a given pipeline, whether any animations are currently running
+/// and any animation callbacks are queued
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
+pub enum AnimationState {
+    /// Animations are active but no callbacks are queued
+    AnimationsPresent,
+    /// Animations are active and callbacks are queued
+    AnimationCallbacksPresent,
+    /// No animations are active and no callbacks are queued
+    NoAnimationsPresent,
+    /// No animations are active but callbacks are queued
+    NoAnimationCallbacksPresent,
+}
+
 /// The type of input represented by a multi-touch event.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum TouchEventType {

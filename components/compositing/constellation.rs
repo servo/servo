@@ -26,7 +26,6 @@ use gfx_traits::{Epoch, PaintMsg as FromPaintMsg};
 use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
-use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
@@ -42,7 +41,8 @@ use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, Unprivileged
 use profile_traits::mem;
 use profile_traits::time;
 use sandboxing;
-use script_traits::{CompositorEvent, ConstellationControlMsg, DocumentState, LayoutControlMsg};
+use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
+use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, MozBrowserEvent, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use std::borrow::ToOwned;
