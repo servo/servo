@@ -201,52 +201,11 @@ class MachCommands(CommandBase):
     @Command('test-ref',
              description='Run the reference tests',
              category='testing')
-    @CommandArgument('--kind', '-k', default=DEFAULT_RENDER_MODE,
-                     help=HELP_RENDER_MODE)
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run with a release build of Servo')
-    @CommandArgument('--include', default=None, nargs='+',
-                     help="Only run tests that match this pattern. If the "
-                          "path to the ref test directory is included, it "
-                          "will automatically be trimmed out.")
-    @CommandArgument(
-        'servo_params', default=None, nargs=argparse.REMAINDER,
-        help="Command-line arguments to be passed through to Servo")
-    def test_ref(self, kind=DEFAULT_RENDER_MODE, include=None, servo_params=None,
-                 release=False):
-        self.ensure_bootstrapped()
-        self.ensure_built_tests(release=release)
-        assert kind is not None, 'kind cannot be None, see help'
-
-        kinds = ["cpu", "gpu"] if kind == 'both' else [kind]
-        test_path = path.join(self.context.topdir, "tests", "ref")
-        error = False
-
-        test_start = time()
-        for k in kinds:
-            print("Running %s reftests..." % k)
-            test_args = [k, test_path]
-            if include is not None:
-                ref_path = path.join("tests", "ref")
-                for name in include:
-                    # Check to see if we were passed something leading with the
-                    # path to the ref test directory, and trim it so that reftest
-                    # knows how to filter it.
-                    maybe_path = path.normpath(name)
-                    if ref_path in maybe_path:
-                        test_args.append(path.relpath(maybe_path, ref_path))
-                    else:
-                        test_args.append(name)
-            if servo_params is not None:
-                test_args += ["--"] + servo_params
-            ret = self.run_test("reftest", test_args, release=release)
-            error = error or ret != 0
-        elapsed = time() - test_start
-
-        print("Reference tests completed in %0.2fs" % elapsed)
-
-        if error:
-            return 1
+    @CommandArgument('params', default=None, nargs=argparse.REMAINDER)
+    def test_ref(self, params=None):
+        print("Ref tests have been replaced by web-platform-tests under "
+              "tests/wpt/mozilla/.")
+        return 0
 
     @Command('test-content',
              description='Run the content tests',
