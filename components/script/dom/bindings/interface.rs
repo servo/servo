@@ -105,6 +105,13 @@ impl NonCallbackInterfaceObjectClass {
             },
         }
     }
+
+    /// cast own reference to `JSClass` reference
+    pub fn as_jsclass(&self) -> &JSClass {
+        unsafe {
+            &*(self as *const _ as *const JSClass)
+        }
+    }
 }
 
 /// Create and define the interface object of a callback interface.
@@ -148,7 +155,7 @@ pub unsafe fn create_noncallback_interface_object(
         rval: MutableHandleObject) {
     create_object(cx,
                   proto,
-                  &*(class as *const _ as *const JSClass),
+                  class.as_jsclass(),
                   static_methods,
                   static_properties,
                   constants,
