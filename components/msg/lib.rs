@@ -16,6 +16,5 @@ extern crate serde;
 extern crate url;
 extern crate util;
 
-pub mod compositor_msg;
 pub mod constellation_msg;
 pub mod webdriver_msg;
