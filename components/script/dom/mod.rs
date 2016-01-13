@@ -187,6 +187,7 @@
 //! * implementing the
 //!   `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait for
 //!   `&'a Foo`.
+//! * adding/updating the match arm in create_element in dom/create.rs
 //!
 //! More information is available in the [bindings module](bindings/index.html).
 //!
