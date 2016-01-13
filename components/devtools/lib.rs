@@ -28,7 +28,6 @@ extern crate msg;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate time;
-extern crate url;
 extern crate util;
 
 use actor::{Actor, ActorRegistry};

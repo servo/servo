@@ -21,7 +21,6 @@ path = "../plugins"
 
 [dependencies]
 log = "0.3"
-euclid = {version = "0.4", features = ["plugins"]}
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
 serde = "0.6"

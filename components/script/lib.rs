@@ -20,7 +20,6 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
-#![feature(unicode)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -60,7 +59,6 @@ extern crate profile_traits;
 extern crate rand;
 extern crate ref_slice;
 extern crate rustc_serialize;
-extern crate rustc_unicode;
 extern crate script_traits;
 #[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
@@ -68,7 +66,6 @@ extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
 #[macro_use]
 extern crate style;
-extern crate style_traits;
 extern crate tendril;
 extern crate time;
 extern crate unicase;

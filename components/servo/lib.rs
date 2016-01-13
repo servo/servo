@@ -18,7 +18,6 @@
 //! `WindowMethods` trait.
 
 extern crate gaol;
-extern crate libc;
 #[macro_use]
 extern crate util as _util;
 

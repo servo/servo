@@ -60,7 +60,6 @@ extern crate net_traits;
 extern crate profile_traits;
 extern crate rand;
 extern crate rustc_serialize;
-extern crate script_traits;
 extern crate serde;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]

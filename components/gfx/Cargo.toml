@@ -61,9 +61,6 @@ features = ["plugins"]
 git = "https://github.com/servo/rust-layers"
 features = ["plugins"]
 
-[dependencies.script_traits]
-path = "../script_traits"
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 

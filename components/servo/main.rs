@@ -31,7 +31,6 @@ extern crate log;
 extern crate offscreen_gl_context;
 // The Servo engine
 extern crate servo;
-extern crate time;
 
 use gleam::gl;
 use offscreen_gl_context::{GLContext, NativeGLContext};
