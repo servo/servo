@@ -186,7 +186,9 @@
 //!   superclass or `Reflector` member, and other members as appropriate;
 //! * implementing the
 //!   `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait for
-//!   `&'a Foo`.
+//!   `&'a Foo`;
+//! * adding/updating the match arm in create_element in
+//!   `components/script/dom/create.rs` (only applicable to new `HTMLElement`s)
 //!
 //! More information is available in the [bindings module](bindings/index.html).
 //!
