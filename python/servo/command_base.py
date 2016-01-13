@@ -11,7 +11,6 @@ import os
 from os import path
 import contextlib
 import subprocess
-from subprocess import PIPE
 import sys
 import toml
 
@@ -101,7 +100,6 @@ class CommandBase(object):
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
-        self.config["tools"].setdefault("rustc-with-gold", True)
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
@@ -315,10 +313,6 @@ class CommandBase(object):
             env['HOST_FILE'] = hosts_file_path
 
         env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
-
-        if self.config["tools"]["rustc-with-gold"]:
-            if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
-                env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
 
         return env
 
