@@ -90,9 +90,12 @@ class MachCommands(CommandBase):
                           HELP_RENDER_MODE)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False):
+    @CommandArgument('--faster', default=False, action="store_true",
+                     help="Only check changed files and skip the WPT lint")
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False):
         suites = OrderedDict([
-            ("tidy", {}),
+            ("tidy", {"kwargs": {"faster": faster},
+                      "include_arg": "include"}),
             ("ref", {"kwargs": {"kind": render_mode},
                      "paths": [path.abspath(path.join("tests", "ref"))],
                      "include_arg": "include"}),
