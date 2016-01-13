@@ -1313,6 +1313,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
         debug!("Document ready to activate {:?}", pipeline_id);
 
+        if let Some(ref child_pipeline) = self.pipelines.get(&pipeline_id) {
+            if let Some(ref parent_info) = child_pipeline.parent_info {
+                if let Some(parent_pipeline) = self.pipelines.get(&parent_info.0) {
+                    let _ = parent_pipeline.script_chan
+                                           .send(ConstellationControlMsg::FramedContentChanged(
+                            parent_info.0,
+                            parent_info.1));
+                }
+            }
+        }
+
         // If this pipeline is already part of the current frame tree,
         // we don't need to do anything.
         if self.pipeline_is_in_current_frame(pipeline_id) {

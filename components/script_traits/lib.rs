@@ -143,6 +143,8 @@ pub enum ConstellationControlMsg {
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId
     },
+    /// Notifies a parent frame that one of its child frames is now active.
+    FramedContentChanged(PipelineId, SubpageId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, u32, u32, String),
 }
