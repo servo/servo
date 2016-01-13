@@ -751,6 +751,14 @@ impl BlockFlow {
     /// For absolute flows, we store the calculated content block-size for the flow. We defer the
     /// calculation of the other values until a later traversal.
     ///
+    /// When `fragmentation_context` is given (not `None`), this should fit as much of the content
+    /// as possible within the available block size.
+    /// If there is more content (that doesn’t fit), this flow is *fragmented*
+    /// with the extra content moved to another fragment (a flow like this one) which is returrned.
+    /// See `Flow::fragment`.
+    ///
+    /// The return value is always `None` when `fragmentation_context` is `None`.
+    ///
     /// `inline(always)` because this is only ever called by in-order or non-in-order top-level
     /// methods.
     #[inline(always)]
