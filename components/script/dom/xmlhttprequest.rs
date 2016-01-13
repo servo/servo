@@ -22,7 +22,7 @@ use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::ByteString;
+use dom::bindings::str::{ByteString, USVString};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -118,7 +118,7 @@ pub struct XMLHttpRequest {
     timeout: Cell<u32>,
     with_credentials: Cell<bool>,
     upload: JS<XMLHttpRequestUpload>,
-    response_url: DOMString,
+    response_url: String,
     status: Cell<u16>,
     status_text: DOMRefCell<ByteString>,
     response: DOMRefCell<ByteString>,
@@ -155,7 +155,7 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
-            response_url: DOMString::new(),
+            response_url: String::from(""),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
@@ -293,7 +293,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open(&self, method: ByteString, url: DOMString) -> ErrorResult {
+    fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
@@ -324,7 +324,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 // Step 6
                 let base = self.global().r().get_url();
-                let parsed_url = match base.join(&url) {
+                let parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Error::Syntax) // Step 7
                 };
@@ -358,8 +358,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open_(&self, method: ByteString, url: DOMString, async: bool,
-                 _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
+    fn Open_(&self, method: ByteString, url: USVString, async: bool,
+                 _username: Option<USVString>, _password: Option<USVString>) -> ErrorResult {
         self.sync.set(!async);
         self.Open(method, url)
     }
@@ -634,8 +634,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responseurl-attribute
-    fn ResponseURL(&self) -> DOMString {
-        self.response_url.clone()
+    fn ResponseURL(&self) -> USVString {
+        USVString(self.response_url.clone())
     }
 
     // https://xhr.spec.whatwg.org/#the-status-attribute
@@ -745,13 +745,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute
-    fn GetResponseText(&self) -> Fallible<DOMString> {
+    fn GetResponseText(&self) -> Fallible<USVString> {
         match self.response_type.get() {
             _empty | Text => {
-                Ok(DOMString::from(match self.ready_state.get() {
+                Ok(USVString(String::from(match self.ready_state.get() {
                     XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
                     _ => "".to_owned()
-                }))
+                })))
             },
             _ => Err(Error::InvalidState)
         }
@@ -1110,7 +1110,7 @@ impl XMLHttpRequest {
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
         let base = self.global().r().get_url();
-        let parsed_url = match base.join(&self.ResponseURL()) {
+        let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7
         };

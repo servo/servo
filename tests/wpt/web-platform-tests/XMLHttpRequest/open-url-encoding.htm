@@ -12,10 +12,16 @@
     <script>
       test(function() {
         var client = new XMLHttpRequest()
-        client.open("GET", "resources/content.py?ß", false)
-        client.send(null)
+        client.open("GET", "resources/content.py?\u00DF", false) // This is the German "eszett" character
+        client.send()
         assert_equals(client.getResponseHeader("x-request-query"), "%C3%9F")
-      })
+      }, "percent encode characters");
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/content.py?\uD83D", false)
+        client.send()
+        assert_equals(client.getResponseHeader("x-request-query"), "%EF%BF%BD")
+      }, "lone surrogate should return U+FFFD");
     </script>
   </body>
 </html>
