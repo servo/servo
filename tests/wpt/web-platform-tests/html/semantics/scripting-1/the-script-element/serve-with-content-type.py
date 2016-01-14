@@ -1,12 +1,16 @@
+import os
+
 def main(request, response):
-    response.headers.append("Content-Type", "text/javascript")
+    directory = os.path.dirname(__file__)
+
     try:
         file_name = request.GET.first("fn")
-        requested_content_type = request.GET.first("ct")
-        content = open(file_name, "rb").read()
+        content_type = request.GET.first("ct")
+        content = open(os.path.join(directory, file_name), "rb").read()
+    
+        response.headers.set("Content-Type", content_type)
+        response.content = content
     except:
         response.set_error(400, "Not enough parameters or file not found")
 
-
-
-    return [("Content-Type", ct)], content
+    #return [("Content-Type", content_type)], content
