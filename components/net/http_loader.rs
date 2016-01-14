@@ -554,7 +554,7 @@ pub fn process_response_headers(response: &HttpResponse,
 pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           url: &Url,
                           method: &Method,
-                          request_headers: &mut Headers,
+                          request_headers: &Headers,
                           cancel_listener: &CancellationListener,
                           data: &Option<Vec<u8>>,
                           load_data_method: &Method,
@@ -706,7 +706,7 @@ pub fn load<A>(load_data: LoadData,
 
         modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
 
-        let response = try!(obtain_response(request_factory, &url, &method, &mut request_headers,
+        let response = try!(obtain_response(request_factory, &url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
                                             &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
