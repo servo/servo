@@ -15,11 +15,13 @@ use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
-use net_traits::response::{CacheState, HttpsState, Response, ResponseType, TerminationReason};
+use net_traits::response::{CacheState, HttpsState, Response, TerminationReason};
+use net_traits::response::{ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener, Metadata};
 use resource_thread::CancellationListener;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
+use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
@@ -304,7 +306,8 @@ fn http_fetch(request: Rc<Request>,
     // Step 3
     if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
 
-        // TODO: Substep 1 (handle fetch unimplemented)
+        // Substep 1 
+        // TODO: be able to handle fetch unimplemented
 
         if let Some(ref res) = response {
 
@@ -758,11 +761,15 @@ fn http_network_fetch(request: Rc<Request>,
 
     let mut response = Response::new();
     match wrapped_response {
-        Ok(res) => {
+        Ok(mut res) => {
             // is it okay for res.version to be unused?
             response.url = Some(res.response.url.clone());
             response.status = Some(res.response.status);
             response.headers = res.response.headers.clone();
+
+            let mut body = vec![];
+            res.response.read_to_end(&mut body);
+            response.body = ResponseBody::Done(body);
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
@@ -774,7 +781,7 @@ fn http_network_fetch(request: Rc<Request>,
         // Substep 2
 
     // TODO how can I tell if response was retrieved over HTTPS?
-    // TODO: Servo needs to decide what ciphers are to be treated as "deprecated"
+    // TODO Servo needs to decide what ciphers are to be treated as "deprecated"
     response.https_state = HttpsState::None;
 
     // TODO how do I read request?
@@ -797,22 +804,37 @@ fn http_network_fetch(request: Rc<Request>,
     *response.url_list.borrow_mut() = request.url_list.borrow().clone();
 
     // Step 7
+    // TODO this step isn't possible yet
 
     // Step 8
+    if Response::is_network_error(&response) && request.cache_mode.get() == CacheMode::NoStore {
+        // TODO update response in the HTTP cache for request
+    }
 
+    // TODO these steps aren't possible yet
     // Step 9
         // Substep 1
         // Substep 2
         // Substep 3
         // Substep 4
 
+    // TODO run these steps in parallel
     // Step 10
+
         // Substep 1
+        // TODO this step when byte stream length is needed
+
         // Substep 2
+
             // Sub-substep 1
+            // TODO this step when byte stream transmitted length is needed
+
             // Sub-substep 2
+
             // Sub-substep 3
+
             // Sub-substep 4
+
         // Substep 3
 
     // Step 11
