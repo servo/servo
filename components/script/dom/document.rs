@@ -1352,7 +1352,7 @@ impl Document {
 
         let event = Event::new(GlobalRef::Window(self.window()),
                                atom!("DOMContentLoaded"),
-                               EventBubbles::DoesNotBubble,
+                               EventBubbles::Bubbles,
                                EventCancelable::NotCancelable);
         let doctarget = self.upcast::<EventTarget>();
         let _ = doctarget.DispatchEvent(event.r());
