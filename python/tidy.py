@@ -19,8 +19,6 @@ import sys
 from licenseck import licenses
 
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".lock", ".py", ".toml", ".webidl"]
-reftest_dir = "./tests/ref"
-reftest_filetype = ".list"
 
 ignored_files = [
     # Upstream
@@ -60,10 +58,6 @@ def should_check(file_name):
         if fnmatch.fnmatch(file_name, pattern):
             return False
     return True
-
-
-def should_check_reftest(file_name):
-    return file_name.endswith(reftest_filetype)
 
 
 EMACS_HEADER = "/* -*- Mode:"
@@ -517,44 +511,6 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def check_reftest_order(files_to_check):
-    for file_name in files_to_check:
-        with open(file_name, "r") as fp:
-            split_lines = fp.read().splitlines()
-            lines = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
-            for idx, line in enumerate(lines[:-1]):
-                next_line = lines[idx + 1]
-                current = get_reftest_names(line)
-                next = get_reftest_names(next_line)
-                if current is not None and next is not None and current > next:
-                    yield (file_name, split_lines.index(next_line) + 1, "line not in alphabetical order")
-
-
-def get_reftest_names(line):
-    tokens = line.split()
-    if len(tokens) == 3:
-        return tokens[1] + tokens[2]
-    if len(tokens) == 4:
-        return tokens[2] + tokens[3]
-    return None
-
-
-def get_html_file_names_from_reftest_list(reftest_dir, file_name):
-    for line in open(os.path.join(reftest_dir, file_name), "r"):
-        for token in line.split():
-            if fnmatch.fnmatch(token, '*.html'):
-                yield os.path.join(reftest_dir, token)
-
-
-def check_reftest_html_files_in_basic_list(reftest_dir):
-    basic_list_files = set(get_html_file_names_from_reftest_list(reftest_dir, "basic" + reftest_filetype))
-
-    for file_name in os.listdir(reftest_dir):
-        file_path = os.path.join(reftest_dir, file_name)
-        if fnmatch.fnmatch(file_path, '*.html') and file_path not in basic_list_files:
-            yield (file_path, "", "not found in basic.list")
-
-
 def check_wpt_lint_errors():
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     site.addsitedir(wpt_working_dir)
@@ -586,11 +542,6 @@ def scan(faster=False):
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    # reftest checks
-    reftest_to_check = filter(should_check_reftest, get_file_list(reftest_dir, faster))
-    r_errors = check_reftest_order(reftest_to_check)
-    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
-
     # wpt lint checks
     if faster:
         print "\033[93mUsing test-tidy \033[01m--faster\033[22m, skipping WPT lint\033[0m"
@@ -599,7 +550,7 @@ def scan(faster=False):
         wpt_lint_errors = check_wpt_lint_errors()
 
     # collect errors
-    errors = itertools.chain(errors, r_errors, not_found_in_basic_list_errors, wpt_lint_errors)
+    errors = itertools.chain(errors, wpt_lint_errors)
 
     error = None
     for error in errors:
