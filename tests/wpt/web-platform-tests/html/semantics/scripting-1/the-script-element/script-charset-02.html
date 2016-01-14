@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+  <!-- TODO:
+  askalski: while this test pass, it does not test anything now.
+  It should test, whether with no document.charset set in any way, the
+  external scripts will get decoded using utf-8 as fallback character encoding.
+  It seems like utf-8 is also a fallback encoding to html (my guess), so
+  the part of the code I was attempting to test is never reached.
+  -->
+  <title>Script @type: unknown parameters</title>
+  <link rel="author" title="askalski" href="github.com/askalski">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#scriptingLanguages">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <div id="log"></div>
+
+  <!-- test of step4, which is taking utf-8 as fallback -->
+  <!-- in this case, neither response's Content Type nor charset attribute bring correct charset information.
+  Furthermore, document's encoding is not set.-->
+  <script type="text/javascript"
+    src="serve-with-content-type.py?fn=external-script-windows1250.js&ct=text/javascript">
+  </script>
+  <script>
+  test(function() {
+    //these strings should not match, since the tested file is in windows-1250, and fallback is defined as utf-8
+    assert_not_equals(window.getSomeString().length, 5);
+  });
+  </script>
+
+  <script type="text/javascript"
+    src="serve-with-content-type.py?fn=external-script-utf8.js&ct=text/javascript">
+  </script>
+  <script>
+  //these strings should match, since fallback utf-8 is the correct setting.
+  test(function() {
+    assert_equals(window.getSomeString().length, 5);
+  });
+  </script>
+
+</head>
