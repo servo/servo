@@ -186,6 +186,8 @@ impl TextRunScanner {
                     // Search for the first font in this font group that contains a glyph for this
                     // character.
                     let mut font_index = 0;
+                    // The following code panics one way or another if this condition isn't met.
+                    assert!(fontgroup.fonts.len() > 0);
                     while font_index < fontgroup.fonts.len() - 1 {
                         if fontgroup.fonts.get(font_index).unwrap().borrow()
                                           .glyph_index(character)
