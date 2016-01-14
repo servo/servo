@@ -109,10 +109,10 @@ use util::thread_state;
 use webdriver_handlers;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
-thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptThread>> = RefCell::new(None));
+thread_local!(static SCRIPT_THREAD_ROOT: RefCell<Option<*const ScriptThread>> = RefCell::new(None));
 
 unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
-    SCRIPT_TASK_ROOT.with(|root| {
+    SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = *root.borrow() {
             (*script_thread).trace(tr);
         }
@@ -627,7 +627,7 @@ impl ScriptThreadFactory for ScriptThread {
                                               script_port,
                                               script_chan);
 
-            SCRIPT_TASK_ROOT.with(|root| {
+            SCRIPT_THREAD_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_thread as *const _);
             });
 
@@ -708,21 +708,21 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 impl ScriptThread {
     pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
                                -> Option<ParserRoot> {
-        SCRIPT_TASK_ROOT.with(|root| {
+        SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
             script_thread.handle_page_fetch_complete(id, subpage, metadata)
         })
     }
 
     pub fn parsing_complete(id: PipelineId) {
-        SCRIPT_TASK_ROOT.with(|root| {
+        SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
             script_thread.handle_parsing_complete(id);
         });
     }
 
     pub fn process_event(msg: CommonScriptMsg) {
-        SCRIPT_TASK_ROOT.with(|root| {
+        SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = *root.borrow() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
@@ -2205,7 +2205,7 @@ impl ScriptThread {
 
 impl Drop for ScriptThread {
     fn drop(&mut self) {
-        SCRIPT_TASK_ROOT.with(|root| {
+        SCRIPT_THREAD_ROOT.with(|root| {
             *root.borrow_mut() = None;
         });
     }
