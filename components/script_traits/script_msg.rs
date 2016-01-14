@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use AnimationState;
 use DocumentState;
 use IFrameLoadInfo;
 use MouseEventType;
@@ -10,7 +11,7 @@ use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{AnimationState, NavigationDirection, Failure, PipelineId};
+use msg::constellation_msg::{Failure, NavigationDirection, PipelineId};
 use msg::constellation_msg::{LoadData, MouseButton, SubpageId};
 use offscreen_gl_context::GLContextAttributes;
 use style_traits::viewport::ViewportConstraints;

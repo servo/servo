@@ -211,14 +211,6 @@ pub enum MouseButton {
     Right,
 }
 
-#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
-pub enum AnimationState {
-    AnimationsPresent,
-    AnimationCallbacksPresent,
-    NoAnimationsPresent,
-    NoAnimationCallbacksPresent,
-}
-
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
