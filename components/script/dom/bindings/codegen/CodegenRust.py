@@ -3571,8 +3571,8 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     # for getJSToNativeConversionInfo.
     # Also, for dictionaries we would need to handle conversion of
     # null/undefined to the dictionary correctly.
-    if type.isDictionary() or type.isSequence():
-        raise TypeError("Can't handle dictionaries or sequences in unions")
+    if type.isDictionary():
+        raise TypeError("Can't handle dictionaries in unions")
 
     if type.isGeckoInterface():
         name = type.inner.identifier.name
@@ -3580,7 +3580,11 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
-    elif type.isArray() or type.isSequence():
+    elif type.isSequence():
+        name = type.name
+        inner = getUnionTypeTemplateVars(type.unroll(), descriptorProvider)
+        typeName = "Vec<" + inner["typeName"] + ">"
+    elif type.isArray():
         name = str(type)
         # XXXjdm dunno about typeName here
         typeName = "/*" + type.name + "*/"
@@ -3665,21 +3669,22 @@ class CGUnionConversionStruct(CGThing):
         conversions = []
 
         interfaceMemberTypes = filter(lambda t: t.isNonCallbackInterface(), memberTypes)
+
+        def get_name(memberType):
+            if self.type.isGeckoInterface():
+                return memberType.inner.identifier.name
+
+            return memberType.name
+
+        def get_match(name):
+            return (
+                "match %s::TryConvertTo%s(cx, value) {\n"
+                "    Err(_) => return Err(()),\n"
+                "    Ok(Some(value)) => return Ok(%s::e%s(value)),\n"
+                "    Ok(None) => (),\n"
+                "}\n") % (self.type, name, self.type, name)
+
         if len(interfaceMemberTypes) > 0:
-            def get_name(memberType):
-                if self.type.isGeckoInterface():
-                    return memberType.inner.identifier.name
-
-                return memberType.name
-
-            def get_match(name):
-                return (
-                    "match %s::TryConvertTo%s(cx, value) {\n"
-                    "    Err(_) => return Err(()),\n"
-                    "    Ok(Some(value)) => return Ok(%s::e%s(value)),\n"
-                    "    Ok(None) => (),\n"
-                    "}\n") % (self.type, name, self.type, name)
-
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
             interfaceObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
             names.extend(typeNames)
@@ -3689,7 +3694,9 @@ class CGUnionConversionStruct(CGThing):
         arrayObjectMemberTypes = filter(lambda t: t.isArray() or t.isSequence(), memberTypes)
         if len(arrayObjectMemberTypes) > 0:
             assert len(arrayObjectMemberTypes) == 1
-            raise TypeError("Can't handle arrays or sequences in unions.")
+            typeName = arrayObjectMemberTypes[0].name
+            arrayObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
         else:
             arrayObject = None
 
@@ -3727,9 +3734,13 @@ class CGUnionConversionStruct(CGThing):
 
         hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
         if hasObjectTypes:
-            assert interfaceObject
-            templateBody = CGList([interfaceObject], "\n")
-            conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
+            assert interfaceObject or arrayObject
+            if interfaceObject:
+                templateBody = CGList([interfaceObject], "\n")
+                conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
+            elif arrayObject:
+                templateBody = CGList([arrayObject], "\n")
+                conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
 
         otherMemberTypes = [
             t for t in memberTypes if t.isPrimitive() or t.isString() or t.isEnum()

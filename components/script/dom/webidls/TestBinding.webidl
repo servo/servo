@@ -149,6 +149,8 @@ interface TestBinding {
   object receiveObject();
   (HTMLElement or long) receiveUnion();
   (Event or DOMString) receiveUnion2();
+  (DOMString or sequence<long>) receiveUnion3();
+  (DOMString or sequence<DOMString>) receiveUnion4();
   sequence<long> receiveSequence();
 
   byte? receiveNullableByte();
@@ -172,6 +174,7 @@ interface TestBinding {
   object? receiveNullableObject();
   (HTMLElement or long)? receiveNullableUnion();
   (Event or DOMString)? receiveNullableUnion2();
+  (DOMString or sequence<long>)? receiveNullableUnion3();
   sequence<long>? receiveNullableSequence();
 
   void passBoolean(boolean arg);
@@ -195,6 +198,7 @@ interface TestBinding {
   void passUnion((HTMLElement or long) arg);
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
+  void passUnion4((DOMString or sequence<DOMString>) seq);
   void passAny(any arg);
   void passObject(object arg);
   void passCallbackFunction(Function fun);
