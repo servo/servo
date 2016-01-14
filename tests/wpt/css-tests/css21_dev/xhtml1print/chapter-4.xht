@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Syntax and basic data types (438 tests)</h2>
+  <h2>Syntax and basic data types (439 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -1311,7 +1311,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.2">+</a>
         <a href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors">4.2 Rules for handling parsing errors</a></th></tr>
-      <!-- 79 tests -->
+      <!-- 80 tests -->
       <tr id="at-rule-001-4.2" class="primary invalid">
         <td><strong>
             <a href="at-rule-001.xht">at-rule-001</a></strong></td>
@@ -2039,6 +2039,17 @@
         <td><a href="reference/selectors-parsing-001-ref.xht">=</a> </td>
         <td></td>
         <td>CSS: Selector Parsing and Invalid Pseudo-Elements
+        </td>
+      </tr>
+      <tr id="square-brackets-001-4.2" class="primary invalid">
+        <td><strong>
+            <a href="square-brackets-001.xht">square-brackets-001</a></strong></td>
+        <td><a href="reference/ref-this-text-should-be-green.xht">=</a> </td>
+        <td><abbr class="invalid" title="Tests invalid CSS">Invalid</abbr></td>
+        <td>Parser recovery after invalid '['
+          <ul class="assert">
+            <li>When an invalid '[' is encountered where a selector is expected, the CSS parser skips to the matching ']' and then ignores the following ruleset.</li>
+          </ul>
         </td>
       </tr>
       <tr id="unterminated-string-001-4.2" class="primary invalid">

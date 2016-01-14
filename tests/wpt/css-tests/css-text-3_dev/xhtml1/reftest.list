@@ -467,6 +467,7 @@ overflow-wrap-003.xht == reference/overflow-wrap-003-ref.xht
 overflow-wrap-004.xht == reference/overflow-wrap-004-ref.xht
 overflow-wrap-005.xht == reference/overflow-wrap-003-ref.xht
 overflow-wrap-break-word-001.xht == reference/overflow-wrap-break-word-001-ref.xht
+overflow-wrap-break-word-fit-content-001.xht == reference/overflow-wrap-break-word-fit-content-001.xht
 tab-size-integer-001.xht == reference/tab-size-integer-001-ref.xht
 tab-size-integer-002.xht == reference/tab-size-integer-001-ref.xht
 tab-size-integer-003.xht == reference/tab-size-integer-001-ref.xht
@@ -538,7 +539,7 @@ text-emphasis-style-open-001.xht == reference/text-emphasis-style-open-001-ref.x
 text-emphasis-style-shape-001.xht == reference/text-emphasis-style-shape-001-ref.xht
 text-emphasis-style-string-001.xht == reference/text-emphasis-style-string-001-ref.xht
 text-indent-percentage-001.xht == reference/text-indent-percentage-001-ref.xht
-text-justify-001.xht == reference/text-justify-001.xht
+text-justify-001.xht == reference/text-justify-ref-001.xht
 text-transform-capitalize-001.xht == reference/text-transform-capitalize-001-ref.xht
 text-transform-fullwidth-001.xht == reference/text-transform-fullwidth-001-ref.xht
 text-transform-lowercase-001.xht == reference/text-transform-lowercase-001-ref.xht

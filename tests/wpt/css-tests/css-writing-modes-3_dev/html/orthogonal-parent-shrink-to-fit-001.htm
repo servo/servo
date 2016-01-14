@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html><head><title>CSS Writing Modes Test: Shrink-to-fit with orthogonal children</title>
-<link href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows" rel="help">
+<html><head><meta charset="utf-8">
+<title>CSS Writing Modes Test: Shrink-to-fit with orthogonal children</title>
+<link href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows" rel="help" title="7.3. Orthogonal Flows">
 <meta content="Shrink-to-fit with orthogonal children" name="assert">
-<meta content="ahem combo" name="flags">
+<meta content="ahem dom combo" name="flags">
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii">
+<link href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" rel="reviewer" title="Gérard Talbot"> <!-- 2015-12-23 -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <link href="/resources/testharness.css" rel="stylesheet">
@@ -14,7 +16,8 @@
 }
 .target {
     color:blue;
-    height:3em;
+    height:3em; /* height: 3em is not required. IE11 and Edge12 compute height to ICB height if
+    not set. We want the test to focus exclusively on shrink-to-fit algorithm. */
     writing-mode:vertical-rl;
 }
 .border {
@@ -48,99 +51,99 @@ td {
 </p><p>If script is enabled, there should be one or more PASS and no FAIL.
 </p><h3>1: Shrink-to-fit inline-block with a child of orthogonal block</h3>
 <div class="test">
-    <div class="inline-block"><div class="target">XX</div></div><span class="next">YY</span>
+    <div class="inline-block"><div class="target">HH</div></div><span class="next">ZZ</span>
 </div>
 <h3>2: Shrink-to-fit inline-block with a child of orthogonal inline</h3>
 <div class="test">
-    <div class="inline-block"><span class="target">XX</span></div><span class="next">YY</span>
+    <div class="inline-block"><span class="target">HH</span></div><span class="next">ZZ</span>
 </div>
 <h3>3: Shrink-to-fit inline-block with a child of orthogonal block with borders</h3>
 <div class="test">
-    <div class="inline-block"><div class="target border">XXX</div></div><span class="next">YY</span>
+    <div class="inline-block"><div class="target border">HHH</div></div><span class="next">ZZ</span>
 </div>
 <h3>4: Shrink-to-fit inline-block with a child of orthogonal inline with borders</h3>
 <div class="test">
-    <div class="inline-block"><span class="target border">XXX</span></div><span class="next">YY</span>
+    <div class="inline-block"><span class="target border">HHH</span></div><span class="next">ZZ</span>
 </div>
 <h3>5: Shrink-to-fit inline-block with a child of orthogonal block in inline-block</h3>
 <div class="test">
-    <div class="inline-block"><div class="inline-block"><div class="target">XX</div></div></div><span class="next">YY</span>
+    <div class="inline-block"><div class="inline-block"><div class="target">HH</div></div></div><span class="next">ZZ</span>
 </div>
 <h3>6: Shrink-to-fit inline-block with a child of orthogonal inline in inline-block</h3>
 <div class="test">
-    <div class="inline-block"><div class="inline-block"><span class="target">XX</span></div></div><span class="next">YY</span>
+    <div class="inline-block"><div class="inline-block"><span class="target">HH</span></div></div><span class="next">ZZ</span>
 </div>
 <h3>7: Shrink-to-fit inline-block with a child of orthogonal block with borders in inline-block</h3>
 <div class="test">
-    <div class="inline-block"><div class="inline-block"><div class="target border">XXX</div></div></div><span class="next">YY</span>
+    <div class="inline-block"><div class="inline-block"><div class="target border">HHH</div></div></div><span class="next">ZZ</span>
 </div>
 <h3>8: Shrink-to-fit inline-block with a child of orthogonal inline with borders in inline-block</h3>
 <div class="test">
-    <div class="inline-block"><div class="inline-block"><span class="target border">XXX</span></div></div><span class="next">YY</span>
+    <div class="inline-block"><div class="inline-block"><span class="target border">HHH</span></div></div><span class="next">ZZ</span>
 </div>
 <h3>9: Shrink-to-fit float with a child of orthogonal block</h3>
 <div class="test">
-    <div class="float"><div class="target">XX</div></div><span class="next">YY</span>
+    <div class="float"><div class="target">HH</div></div><span class="next">ZZ</span>
 </div>
 <h3>10: Shrink-to-fit float with a child of orthogonal inline</h3>
 <div class="test">
-    <div class="float"><span class="target">XX</span></div><span class="next">YY</span>
+    <div class="float"><span class="target">HH</span></div><span class="next">ZZ</span>
 </div>
 <h3>11: Shrink-to-fit float with a child of orthogonal block with borders</h3>
 <div class="test">
-    <div class="float"><div class="target border">XXX</div></div><span class="next">YY</span>
+    <div class="float"><div class="target border">HHH</div></div><span class="next">ZZ</span>
 </div>
 <h3>12: Shrink-to-fit float with a child of orthogonal inline with borders</h3>
 <div class="test">
-    <div class="float"><span class="target border">XXX</span></div><span class="next">YY</span>
+    <div class="float"><span class="target border">HHH</span></div><span class="next">ZZ</span>
 </div>
 <h3>13: Shrink-to-fit float with a child of orthogonal block in inline-block</h3>
 <div class="test">
-    <div class="float"><div class="inline-block"><div class="target">XX</div></div></div><span class="next">YY</span>
+    <div class="float"><div class="inline-block"><div class="target">HH</div></div></div><span class="next">ZZ</span>
 </div>
 <h3>14: Shrink-to-fit float with a child of orthogonal inline in inline-block</h3>
 <div class="test">
-    <div class="float"><div class="inline-block"><span class="target">XX</span></div></div><span class="next">YY</span>
+    <div class="float"><div class="inline-block"><span class="target">HH</span></div></div><span class="next">ZZ</span>
 </div>
 <h3>15: Shrink-to-fit float with a child of orthogonal block with borders in inline-block</h3>
 <div class="test">
-    <div class="float"><div class="inline-block"><div class="target border">XXX</div></div></div><span class="next">YY</span>
+    <div class="float"><div class="inline-block"><div class="target border">HHH</div></div></div><span class="next">ZZ</span>
 </div>
 <h3>16: Shrink-to-fit float with a child of orthogonal inline with borders in inline-block</h3>
 <div class="test">
-    <div class="float"><div class="inline-block"><span class="target border">XXX</span></div></div><span class="next">YY</span>
+    <div class="float"><div class="inline-block"><span class="target border">HHH</span></div></div><span class="next">ZZ</span>
 </div>
 <h3>17: Shrink-to-fit table-cell with a child of orthogonal block</h3>
 <div class="test">
-    <table><tbody><tr><td><div class="target">XX</div></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><div class="target">HH</div></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>18: Shrink-to-fit table-cell with a child of orthogonal inline</h3>
 <div class="test">
-    <table><tbody><tr><td><span class="target">XX</span></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><span class="target">HH</span></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>19: Shrink-to-fit table-cell with a child of orthogonal block with borders</h3>
 <div class="test">
-    <table><tbody><tr><td><div class="target border">XXX</div></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><div class="target border">HHH</div></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>20: Shrink-to-fit table-cell with a child of orthogonal inline with borders</h3>
 <div class="test">
-    <table><tbody><tr><td><span class="target border">XXX</span></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><span class="target border">HHH</span></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>21: Shrink-to-fit table-cell with a child of orthogonal block in inline-block</h3>
 <div class="test">
-    <table><tbody><tr><td><div class="inline-block"><div class="target">XX</div></div></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><div class="inline-block"><div class="target">HH</div></div></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>22: Shrink-to-fit table-cell with a child of orthogonal inline in inline-block</h3>
 <div class="test">
-    <table><tbody><tr><td><div class="inline-block"><span class="target">XX</span></div></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><div class="inline-block"><span class="target">HH</span></div></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>23: Shrink-to-fit table-cell with a child of orthogonal block with borders in inline-block</h3>
 <div class="test">
-    <table><tbody><tr><td><div class="inline-block"><div class="target border">XXX</div></div></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><div class="inline-block"><div class="target border">HHH</div></div></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 <h3>24: Shrink-to-fit table-cell with a child of orthogonal inline with borders in inline-block</h3>
 <div class="test">
-    <table><tbody><tr><td><div class="inline-block"><span class="target border">XXX</span></div></td><td class="next">YY</td></tr></tbody></table>
+    <table><tbody><tr><td><div class="inline-block"><span class="target border">HHH</span></div></td><td class="next">ZZ</td></tr></tbody></table>
 </div>
 </div>
 <script>
