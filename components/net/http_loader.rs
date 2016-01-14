@@ -421,7 +421,7 @@ pub struct StreamedResponse<R: HttpResponse> {
 
 impl<R: HttpResponse> Read for StreamedResponse<R> {
     #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> { 
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
        match self.decoder {
             Decoder::Gzip(ref mut d) => d.read(buf),
             Decoder::Deflate(ref mut d) => d.read(buf),

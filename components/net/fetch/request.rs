@@ -765,10 +765,9 @@ fn http_network_fetch(request: Rc<Request>,
             response.url = Some(res.response.url.clone());
             response.status = Some(res.response.status);
             response.headers = res.response.headers.clone();
-            response.body = ResponseBody::Receiving(Vec::new());
-            if let ResponseBody::Receiving(ref mut body) = response.body {
-                res.response.read_to_end(body);
-            }
+            let mut body = vec![];
+            res.response.read_to_end(&mut body);
+            response.body = ResponseBody::Receiving(body);
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
@@ -824,16 +823,16 @@ fn http_network_fetch(request: Rc<Request>,
         // TODO this step when byte stream length is needed
 
         // Substep 2
-        
+
             // Sub-substep 1
             // TODO this step when byte stream transmitted length is needed
-        
+
             // Sub-substep 2
-        
+
             // Sub-substep 3
-        
+
             // Sub-substep 4
-        
+
         // Substep 3
 
     // Step 11
