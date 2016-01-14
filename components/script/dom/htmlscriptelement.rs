@@ -380,7 +380,7 @@ impl HTMLScriptElement {
 
             // Step 2.b.1.a.
             ScriptOrigin::External(Ok((metadata, bytes))) => {
-                debug!("loading external script");
+                debug!("loading external script, url = {}", metadata.final_url);
                 // TODO(#9185): implement encoding determination.
 
                 // Step 1.

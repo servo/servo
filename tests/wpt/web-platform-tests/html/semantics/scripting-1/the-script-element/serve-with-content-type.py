@@ -3,10 +3,10 @@ def main(request, response):
     try:
         file_name = request.GET.first("fn")
         requested_content_type = request.GET.first("ct")
-        content = open(file_name, "rb").read()        
+        content = open(file_name, "rb").read()
     except:
-        response.set_error(400, "Not enough parameters")
+        response.set_error(400, "Not enough parameters or file not found")
 
 
 
-    return [("Content-Type", "text/plain")], content
+    return [("Content-Type", ct)], content
