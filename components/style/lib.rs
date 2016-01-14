@@ -14,8 +14,6 @@
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
-#![deny(unsafe_code)]
-
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
