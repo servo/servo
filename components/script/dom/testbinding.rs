@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
+use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -188,6 +189,8 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::eLong(0) }
     fn ReceiveUnion2(&self) -> EventOrString { EventOrString::eString(DOMString::new()) }
+    fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::eLongSequence(vec![]) }
+    fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::eStringSequence(vec![]) }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
@@ -217,6 +220,9 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableUnion2(&self) -> Option<EventOrString> {
         Some(EventOrString::eString(DOMString::new()))
     }
+    fn ReceiveNullableUnion3(&self) -> Option<StringOrLongSequence> {
+        Some(StringOrLongSequence::eString(DOMString::new()))
+    }
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
 
     fn PassBoolean(&self, _: bool) {}
@@ -240,6 +246,7 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion(&self, _: HTMLElementOrLong) {}
     fn PassUnion2(&self, _: EventOrString) {}
     fn PassUnion3(&self, _: BlobOrString) {}
+    fn PassUnion4(&self, _: StringOrStringSequence) {}
     fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
     fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
