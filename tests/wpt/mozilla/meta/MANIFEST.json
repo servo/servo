@@ -5915,6 +5915,12 @@
             "url": "/_mozilla/mozilla/parentnodes.html"
           }
         ],
+        "mozilla/perspective_parsing.html": [
+          {
+            "path": "mozilla/perspective_parsing.html",
+            "url": "/_mozilla/mozilla/perspective_parsing.html"
+          }
+        ],
         "mozilla/preserve_wrapper_callback.html": [
           {
             "path": "mozilla/preserve_wrapper_callback.html",

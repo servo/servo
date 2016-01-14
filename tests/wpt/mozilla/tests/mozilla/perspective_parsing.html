@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Test perspective property parsing</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="zero" style="perspective: 0px;">
+</div>
+
+<div id="negative" style="perspective: -10px;">
+</div>
+
+<div id="positive" style="perspective: 100px;">
+</div>
+
+<script>
+
+var values = [
+  ["zero", "none"],
+  ["negative", "none"],
+  ["positive", "100px"]
+];
+
+values.forEach(function(entry, i) {
+  var id = entry[0];
+  var expected = entry[1];
+  test(function() {
+    var div = document.getElementById(id);
+    var cs = getComputedStyle(div, "");
+    assert_equals(cs.getPropertyValue("perspective"), expected);
+  }, "subtest #" + i + " with `" + id + "`");
+});
+
+</script>
