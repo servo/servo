@@ -1,0 +1,118 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Scissor Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+<style>
+canvas {
+    border: 1px solid #000;
+    width: 64px;
+    height: 64px;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas1" width="16" height="16"> </canvas>
+<canvas id="canvas2" width="16" height="16"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Check if glScissor setting works.");
+
+var wtu = WebGLTestUtils;
+
+function test(canvas, attribs) {
+  var gl = wtu.create3DContext(canvas, attribs);
+
+  function test(func) {
+    gl.disable(gl.SCISSOR_TEST);
+    gl.clearColor(0,0,0,0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    var size = 16;
+    for (var ii = 0; ii < size; ++ii) {
+      // clear a portion of the WebGL drawing buffer
+      gl.scissor(ii, ii, 1, 1);
+      func();
+    }
+
+    for (var ii = 0; ii < size; ++ii) {
+      wtu.checkCanvasRect(gl, 0, ii, ii, 1, [0, 0, 0, 0], "should be black");
+      wtu.checkCanvasRect(gl, ii, ii, 1, 1, [0, 255, 0, 255], "should be green");
+      wtu.checkCanvasRect(gl, ii + 1, ii, size - ii - 1, 1, [0, 0, 0, 0], "should be black");
+    }
+  }
+
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    debug("");
+    debug("test with clear");
+    test(function() {
+      gl.clearColor(0, 1, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    });
+
+    wtu.setupColorQuad(gl);
+
+    debug("");
+    debug("test with draw");
+    test(function() {
+      wtu.drawFloatColorQuad(gl, [0, 1, 0, 1]);
+    });
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+  }
+}
+
+debug("test antialias: false");
+test(document.getElementById("canvas1"), {antialias: false});
+
+debug("");
+debug("test antialias: true");
+test(document.getElementById("canvas2"), {antialias: true});
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

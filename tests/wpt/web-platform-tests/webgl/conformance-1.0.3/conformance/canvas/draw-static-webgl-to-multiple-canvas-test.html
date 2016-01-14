@@ -1,0 +1,98 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Canvas Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas2d_0" width="128" height="128"> </canvas>
+<canvas id="canvas2d_1" width="400" height="400"> </canvas>
+<canvas id="canvas2d_2" width="128" height="128"> </canvas>
+<canvas id="webgl" width="400" height="400"> </canvas>
+<script>
+"use strict";
+
+description("This test ensures WebGL implementations interact correctly with the canvas 2D drawImage call when drawing the same content.");
+
+var err;
+var wtu = WebGLTestUtils;
+
+var canvas2d = [];
+var ctx2d = [];
+for (var i = 0; i < 3; i ++) {
+  canvas2d[i] = document.getElementById("canvas2d_" + i);
+  ctx2d[i] = canvas2d[i].getContext("2d");
+}
+
+var canvas = document.getElementById("webgl");
+var gl = wtu.create3DContext(canvas);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("Checking drawing the same WebGL content to HW accelerated canvas and SW Canvases");
+  debug("");
+  var color = [[0.25, 0.5, 0.75, 1], [1, 0, 0, 1], [1, 0, 1, 1]];
+  var colorValue = [[64, 128, 192, 255], [255, 0, 0, 255], [255, 0, 255, 255]];
+  for (var count = 0; count < 10; count ++) {
+    for (var i = 0; i < 3; i++) {
+      gl.clearColor(color[i][0], color[i][1], color[i][2], color[i][3]);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      ctx2d[0].drawImage(canvas, 0, 0, canvas2d[0].width, canvas2d[0].height);
+      ctx2d[1].drawImage(canvas, 0, 0, canvas2d[1].width, canvas2d[1].height);
+      ctx2d[2].drawImage(canvas, 0, 0, canvas2d[2].width, canvas2d[2].height);
+      wtu.checkCanvasRect(ctx2d[0], 0, 0, canvas2d[0].width, canvas2d[0].height, colorValue[i],
+                          "drawImage: Should be (" + colorValue[i][0] + "," + colorValue[i][1] +
+                          "," + colorValue[i][2] + "," + colorValue[i][3] + ").", 2);
+      wtu.checkCanvasRect(ctx2d[1], 0, 0, canvas2d[1].width, canvas2d[1].height, colorValue[i],
+                          "drawImage: Should be (" + colorValue[i][0] + "," + colorValue[i][1] +
+                          "," + colorValue[i][2] + "," + colorValue[i][3] + ").", 2);
+      wtu.checkCanvasRect(ctx2d[2], 0, 0, canvas2d[2].width, canvas2d[2].height, colorValue[i],
+                          "drawImage: Should be (" + colorValue[i][0] + "," + colorValue[i][1] +
+                          "," + colorValue[i][2] + "," + colorValue[i][3] + ").", 2);
+    }
+  }
+
+  err = gl.getError();
+  debug("");
+  finishTest();
+}
+</script>
+
+</body>
+</html>

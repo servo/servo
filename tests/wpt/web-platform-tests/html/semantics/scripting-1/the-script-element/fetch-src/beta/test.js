@@ -1,0 +1,1 @@
+do_test("beta");

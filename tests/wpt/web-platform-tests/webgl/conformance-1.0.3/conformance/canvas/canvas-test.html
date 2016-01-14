@@ -1,0 +1,214 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Canvas Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<canvas id="canvas2d" width="40" height="40"> </canvas>
+<script>
+"use strict";
+
+description("This test ensures WebGL implementations interact correctly with the canvas tag.");
+
+debug("");
+debug("Canvas.getContext");
+
+var err;
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var canvas2d = document.getElementById("canvas2d");
+var ctx2d = canvas2d.getContext("2d");
+var gl = wtu.create3DContext(canvas);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking canvas and WebGL interaction");
+
+  // Check that a canvas with no width or height is 300x150 pixels
+  shouldBe('canvas.width', '300');
+  shouldBe('canvas.height', '150');
+
+  // Check get a 4 value gl parameter as a csv string.
+  var getValue4v = function(name) {
+    var v = gl.getParameter(name);
+    var result = '' +
+        v[0] + ',' +
+        v[1] + ',' +
+        v[2] + ',' +
+        v[3];
+    return result;
+  }
+
+  var getViewport = function() {
+    return getValue4v(gl.VIEWPORT);
+  }
+
+  var getClearColor = function() {
+    return getValue4v(gl.COLOR_CLEAR_VALUE);
+  }
+
+  var isAboutEqual = function(a, b) {
+    return Math.abs(a - b) < 0.01;
+  }
+
+  var isAboutEqualInt = function(a, b) {
+    return Math.abs(a - b) < 3;
+  }
+
+  var checkCanvasContentIs = function(r3d,g3d,b3d,a3d) {
+    var r2d;
+    var g2d;
+    var b2d;
+    var a2d;
+
+    var checkPixel = function(x, y, r3d,g3d,b3d,a3d) {
+      var offset = (y * 40 + x) * 4;
+      r2d = imgData.data[offset];
+      g2d = imgData.data[offset + 1];
+      b2d = imgData.data[offset + 2];
+      a2d = imgData.data[offset + 3];
+      //debug('' + x + ', ' + y + "(" + offset + ") = " + r2d + ", " + g2d + ", " + b2d + ", " + a2d);
+      return isAboutEqualInt(r2d, r3d) &&
+             isAboutEqualInt(g2d, g3d) &&
+             isAboutEqualInt(b2d, b3d) &&
+             isAboutEqualInt(a2d, a3d);
+    }
+
+    var checkPixels = function(r3d,g3d,b3d,a3d) {
+      return checkPixel(0, 0, r3d, g3d, b3d, a3d) &&
+             checkPixel(0, 39, r3d, g3d, b3d, a3d) &&
+             checkPixel(39, 0, r3d, g3d, b3d, a3d) &&
+             checkPixel(39, 39, r3d, g3d, b3d, a3d) &&
+             checkPixel(0, 0, r3d, g3d, b3d, a3d);
+    };
+
+    // Set to just take the color from the 3d canvas
+    ctx2d.globalCompositeOperation = 'copy';
+
+    // fill 2d canvas with orange
+    ctx2d.fillStyle = "rgb(255,192,128)";
+    ctx2d.fillRect (0, 0, 40, 40);
+
+    // get the image data
+    var imgData = ctx2d.getImageData(0, 0, 40, 40);
+
+    // check it got cleared.
+    if (!checkPixels(255, 192, 128, 255)) {
+      testFailed("unable to fill 2d context.");
+      return;
+    }
+
+    // draw 3d canvas on top.
+    ctx2d.drawImage(canvas, 0,0, 40, 40);
+
+    // get the image data
+    var imgData = ctx2d.getImageData(0, 0, 40, 40);
+
+    // Check it's the expected color.
+    if (!checkPixels(r3d, g3d, b3d, a3d)) {
+     testFailed("pixels are " + r2d + "," + g2d + "," + b2d + "," + a2d +
+                " expected " + r3d + "," + g3d + "," + b3d + "," + a3d);
+    } else {
+      testPassed("pixels are " + r3d + "," + g3d + "," + b3d + "," + a3d);
+    }
+  }
+
+  checkCanvasContentIs(0, 0, 0, 0);
+  shouldBe('getViewport()', '"0,0,300,150"');
+
+  // Change the display size of the canvas and check
+  // the viewport size does not change.
+  debug("");
+  debug("change display size of canvas and see that viewport does not change");
+  canvas.style.width = "100px";
+  canvas.style.height = "25px";
+  var intervalId;
+  intervalId = window.setInterval(function() {
+    if (canvas.clientWidth == 100 &&
+        canvas.clientHeight == 25) {
+      window.clearInterval(intervalId);
+      shouldBe('getViewport()', '"0,0,300,150"');
+      shouldBe('canvas.width', '300');
+      shouldBe('canvas.height', '150');
+
+      // Change the actual size of the canvas
+      // Check that the viewport does not change.
+      // Check that the clear color does not change.
+      // Check that the color mask does not change.
+      debug("");
+      debug("change the actual size of the canvas and see that the viewport does not change");
+      gl.clearColor(0.25, 0.5, 0.75, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      checkCanvasContentIs(64, 128, 192, 255);
+      gl.colorMask(0,0,0,0);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL errors before resizing the canvas");
+      canvas.width = 400;
+      canvas.height = 10;
+      err = gl.getError();
+      // Some implementations might lost the context when resizing
+      if (err != gl.CONTEXT_LOST_WEBGL) {
+        shouldBe("err", "gl.NO_ERROR");
+        var v = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+        assertMsg(isAboutEqual(v[0], 0.25) &&
+                  isAboutEqual(v[1], 0.5) &&
+                  isAboutEqual(v[2], 0.75) &&
+                  isAboutEqual(v[3], 1),
+                  "gl.clearColor should not change after canvas resize");
+        v = gl.getParameter(gl.COLOR_WRITEMASK);
+        assertMsg(isAboutEqual(v[0], 0) &&
+                  isAboutEqual(v[1], 0) &&
+                  isAboutEqual(v[2], 0) &&
+                  isAboutEqual(v[3], 0),
+                  "gl.colorMask should not change after canvas resize");
+        shouldBe('getViewport()', '"0,0,300,150"');
+        checkCanvasContentIs(0, 0, 0, 0);
+      }
+
+      debug("");
+      finishTest();
+    }
+   }, 1000/30);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL ReadPixels conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="200" height="200" style="width: 20px; height: 20px"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Checks that ReadPixels works as expected.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas);
+
+var actual;
+var expected;
+var width = 2;
+var height = 2;
+var continueTestFunc = continueTestPart1;
+
+gl.clearColor(1, 1, 1, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+// Resize the canvas to 2x2. This is an attempt to get stuff in the backbuffer.
+// that shouldn't be there.
+canvas.addEventListener("webglcontextlost", function(e) { e.preventDefault(); }, false);
+canvas.addEventListener("webglcontextrestored", continueTestAfterContextRestored, false);
+canvas.width = width;
+canvas.height = height;
+if (gl.getError() != gl.CONTEXT_LOST_WEBGL) {
+  continueTestPart1();
+}
+
+function continueTestAfterContextRestored() {
+  window.gl = wtu.create3DContext(canvas);
+  var func = continueTestFunc;
+  window.continueTestFunc = function() { testFailed("should not be here"); };
+  func();
+}
+
+function continueTestPart1() {
+  gl.clearColor(0.5, 0.7, 1.0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var innerColor = [0.5, 0.7, 1.0, 1];
+  var outerColor = [0, 0, 0, 0];
+
+  var tests = [
+    { msg: 'in range', checkColor: innerColor, x:  0, y:  0,
+      oneColor: innerColor, oneX: 0, oneY: 0},
+    { msg: 'off top left', checkColor: outerColor, x: -1, y: -1,
+      oneColor: innerColor, oneX: 1, oneY: 1},
+    { msg: 'off bottom right', checkColor: outerColor, x:  1, y:  1,
+      oneColor: innerColor, oneX: 0, oneY: 0},
+    { msg: 'completely off top ', checkColor: outerColor, x:  0, y: -2,
+      oneColor: outerColor, oneX: 0, oneY: 0},
+    { msg: 'completely off bottom', checkColor: outerColor, x:  0, y:  2,
+      oneColor: outerColor, oneX: 0, oneY: 0},
+    { msg: 'completely off left', checkColor: outerColor, x: -2, y:  0,
+      oneColor: outerColor, oneX: 0, oneY: 0},
+    { msg: 'completeley off right', checkColor: outerColor, x:  2, y:  0,
+      oneColor: outerColor, oneX: 0, oneY: 0}
+  ];
+
+  for (var tt = 0; tt < tests.length; ++tt) {
+    var test = tests[tt];
+    debug("");
+    debug("checking: " + test.msg);
+    checkBuffer(test.checkColor, test.x, test.y,
+                test.oneColor, test.oneX, test.oneY);
+  }
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no GL errors");
+
+  function checkBuffer(checkColor, x, y, oneColor, oneX, oneY) {
+    var buf = new Uint8Array(width * height * 4);
+    gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    for (var yy = 0; yy < height; ++yy) {
+      for (var xx = 0; xx < width; ++xx) {
+        var offset = (yy * width + xx) * 4;
+        var expectedColors = (oneX == xx && oneY == yy) ? oneColor : checkColor;
+        for (var cc = 0; cc < 4; ++cc) {
+          var expectedColor = expectedColors[cc] * 255;
+          var color = buf[offset + cc];
+          var diff = Math.abs(expectedColor - color);
+          assertMsg(diff < 3,
+                    "color pixel at " + xx + ", " + yy + " should be about " + expectedColor);
+        }
+      }
+    }
+  }
+
+  var badFormats = [
+    {
+      format: gl.RGB,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(3),
+      error: gl.INVALID_OPERATION
+    },
+    {
+      format: gl.RGB,
+      type: gl.UNSIGNED_SHORT_5_6_5,
+      dest: new Uint8Array(3),
+      error: gl.INVALID_OPERATION
+    },
+    {
+      format: gl.RGBA,
+      type: gl.UNSIGNED_SHORT_5_5_5_1,
+      dest: new Uint16Array(1),
+      error: gl.INVALID_OPERATION
+    },
+    {
+      format: gl.RGBA,
+      type: gl.UNSIGNED_SHORT_4_4_4_4,
+      dest: new Uint16Array(1),
+      error: gl.INVALID_OPERATION
+    },
+    {
+      format: gl.ALPHA,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(1),
+      error: gl.INVALID_OPERATION
+    },
+    {
+      format: gl.LUMINANCE,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(1),
+      error: gl.INVALID_ENUM
+    },
+    {
+      format: gl.LUMINANCE_ALPHA,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(2),
+      error: gl.INVALID_ENUM
+    }
+  ];
+  debug("");
+  debug("check disallowed formats");
+  for (var tt = 0; tt < badFormats.length; ++ tt) {
+    var info = badFormats[tt]
+    var format = info.format;
+    var type = info.type;
+    var dest = info.dest;
+    var error = info.error;
+    gl.readPixels(0, 0, 1, 1, format, type, dest);
+    // note that the GL error is INVALID_OPERATION if both format and type are invalid, but
+    // INVALID_ENUM if only one is.
+    wtu.glErrorShouldBe(
+        gl, error,
+        "Should not be able to read as " + wtu.glEnumToString(gl, format) +
+        " / " + wtu.glEnumToString(gl, type));
+  }
+
+  debug("");
+  debug("check reading with lots of drawing");
+  continueTestFunc = continueTestPart2;
+  width = 1024;
+  height = 1024;
+  canvas.width = width;
+  canvas.height = height;
+  if (gl.getError() != gl.CONTEXT_LOST_WEBGL) {
+    continueTestPart2();
+  }
+}
+
+function continueTestPart2() {
+  gl.viewport(0, 0, 1024, 1024);
+  var program = wtu.setupTexturedQuad(gl);
+  var loc = gl.getUniformLocation(program, "tex");
+  gl.disable(gl.BLEND);
+  gl.disable(gl.DEPTH_TEST);
+  var colors = [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]];
+  var textures = [];
+  var results = [];
+  for (var ii = 0; ii < colors.length; ++ii) {
+    gl.activeTexture(gl.TEXTURE0 + ii);
+    var tex = gl.createTexture();
+    wtu.fillTexture(gl, tex, 1, 1, colors[ii]);
+    textures.push(tex);
+  }
+  for (var ii = 0; ii < colors.length; ++ii) {
+    for (var jj = 0; jj < 300 + ii + 1; ++jj) {
+      gl.uniform1i(loc, jj % 3);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+    var buf = new Uint8Array(4);
+    gl.readPixels(512, 512, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    results.push(buf);
+    for (var kk = 0; kk < 99; ++kk) {
+      gl.uniform1i(loc, (jj + kk) % 3);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+  }
+  for (var ii = 0; ii < colors.length; ++ii) {
+    var buf = results[ii];
+    var color = colors[ii];
+    actual = [buf[0], buf[1], buf[2], buf[3]];
+    expected = [color[0], color[1], color[2], color[3]];
+    shouldBe("actual", "expected");
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no GL errors");
+
+  debug("");
+  finishTest();
+}
+</script>
+</body>
+</html>
+

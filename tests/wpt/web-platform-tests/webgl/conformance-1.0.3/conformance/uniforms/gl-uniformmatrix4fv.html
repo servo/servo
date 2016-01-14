@@ -1,0 +1,106 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniformMatrix Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform mat4 world4;
+uniform mat3 world3;
+uniform mat2 world2;
+void main()
+{
+  gl_Position = vec4(vPosition.xyz, world3[0].x + world2[0].x) * world4;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+void main()
+{
+  gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+}
+</script>
+
+<script>
+"use strict";
+description("This test ensures WebGL implementations handle uniformMatrix in a OpenGL ES 2.0 spec compliant way");
+
+debug("");
+debug("Checking gl.uniformMatrix.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+for (var ii = 2; ii <= 4; ++ii) {
+  var loc = gl.getUniformLocation(program, "world" + ii);
+  var matLess = [];
+  for (var jj = 0; jj < ii; ++jj) {
+    for (var ll = 0; ll < ii; ++ll) {
+      if (jj == ii - 1 && ll == ii - 1)
+        continue;
+      matLess[jj * ii + ll] = (jj == ll) ? 1 : 0;
+    }
+  }
+  var mat = matLess.concat([1]);
+  var matMore = mat.concat([1]);
+  name = "uniformMatrix" + ii + "fv";
+  gl[name](loc, false, matLess);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "should fail with insufficient array size for " + name);
+  gl[name](loc, false, mat);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should succeed with correct array size for " + name);
+  gl[name](loc, false, matMore);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "should fail with more than 1 array size for " + name);
+
+  mat[ii * ii - 1] = 1;
+  gl[name](loc, false, mat);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "can call " + name + "with transpose = false");
+  gl[name](loc, true, mat);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, name + " should return INVALID_VALUE with transpose = true");
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

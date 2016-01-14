@@ -1,0 +1,147 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL More than 65536 indices.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="1" height="1" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vs" type="text/something-not-javascript">
+attribute vec4 vPosition;
+attribute vec4 vColor;
+varying vec4 color;
+void main() {
+    gl_Position = vPosition;
+    gl_PointSize = 1.0;
+    color = vColor;
+}
+</script>
+<script id="fs" type="text/something-not-javascript">
+precision mediump float;
+varying vec4 color;
+void main() {
+    gl_FragColor = color;
+}
+</script>
+<script>
+"use strict";
+description("checks that rendering with more than 65536 indices works.");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var program = wtu.setupProgram(gl, ["vs", "fs"], ["vPosition", "vColor"]);
+var bufferObjects = wtu.setupUnitQuad(gl, 0, 1);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, bufferObjects[0]);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1,  1,
+       1,  1,
+      -1, -1,
+       1, -1,
+      -1,  1,
+       1,  1,
+      -1, -1,
+       1, -1]), gl.STATIC_DRAW);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, bufferObjects[1]);
+gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array([
+      255, 0, 0, 255,
+      255, 0, 0, 255,
+      255, 0, 0, 255,
+      255, 0, 0, 255,
+      0, 255, 0, 255,
+      0, 255, 0, 255,
+      0, 255, 0, 255,
+      0, 255, 0, 255]), gl.STATIC_DRAW);
+gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after program setup");
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after creating texture");
+var numQuads = Math.floor(65536 / 6) + 4;
+var numPoints = numQuads * 6;
+debug("numQuads: " + numQuads);
+debug("numPoints: " + numPoints);
+var indexBuf = new ArrayBuffer(numPoints);
+var indices = new Uint8Array(indexBuf);
+var indexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after setting up indices");
+
+var modes = [
+  {mode: 'POINTS',         offsets: [0, 1, 2, 3, 2, 1], skip: 0},
+  {mode: 'LINES',          offsets: [0, 1, 2, 3, 2, 1], skip: 0},
+  {mode: 'LINE_LOOP',      offsets: [0, 1, 2, 3, 2, 1], skip: 1},
+  {mode: 'LINE_STRIP',     offsets: [0, 1, 2, 3, 2, 1], skip: 0},
+  {mode: 'TRIANGLES',      offsets: [0, 1, 2, 3, 2, 1], skip: 0},
+  {mode: 'TRIANGLE_STRIP', offsets: [0, 1, 2, 3, 2, 1], skip: 0},
+  {mode: 'TRIANGLE_FAN',   offsets: [0, 1, 3, 2, 2, 1], skip: 1}
+];
+
+for (var mm = 0; mm < modes.length; ++mm) {
+  var modeInfo = modes[mm];
+  var mode = modeInfo.mode;
+  var offsets = modeInfo.offsets;
+  var skip = modeInfo.skip;
+
+  for (var ii = 0; ii < numQuads; ++ii) {
+    var offset = ii * 6;
+    var quad = (ii == 0 || ii == (numQuads - 1)) ? 4 : 0;
+    for (var jj = 0; jj < 6; ++jj) {
+      indices[offset + jj] = quad + offsets[jj];
+    }
+  }
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+  debug("");
+  debug("testing: " + mode);
+  // Draw without last 6 points.
+  gl.drawElements(gl[mode], numPoints - (skip + 1) * 6, gl.UNSIGNED_BYTE, skip * 6);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "Should be red.");
+  // Draw with last 6 points.
+  gl.drawElements(gl[mode], numPoints, gl.UNSIGNED_BYTE, 0);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "Should be green.");
+}
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawing");
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+
+

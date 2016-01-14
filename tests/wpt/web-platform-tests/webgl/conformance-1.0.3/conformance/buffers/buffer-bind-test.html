@@ -1,0 +1,89 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+<meta charset="utf-8">
+    <title>WebGL BindBuffer conformance test.</title>
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../resources/js-test-pre.js"></script>
+    <script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="40" height="40" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Checks a buffer can only be bound to 1 target.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be able to bind array buffer.");
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be able to unbind array buffer.");
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+            "should get INVALID_OPERATION if attempting to bind array buffer to different target");
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be able to bind element array buffer.");
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be able to unbind element array buffer.");
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+            "should get INVALID_OPERATION if attempting to bind element array buffer to different target");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+

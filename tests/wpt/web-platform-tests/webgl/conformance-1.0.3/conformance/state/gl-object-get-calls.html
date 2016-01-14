@@ -1,0 +1,464 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description("Test of get calls against GL objects like getBufferParameter, etc.");
+
+function sizeInBytes(type) {
+  switch (type) {
+  case gl.BYTE:
+  case gl.UNSIGNED_BYTE:
+    return 1;
+  case gl.SHORT:
+  case gl.UNSIGNED_SHORT:
+    return 2;
+  case gl.INT:
+  case gl.UNSIGNED_INT:
+  case gl.FLOAT:
+    return 4;
+  default:
+    throw "unknown type";
+  }
+}
+
+var gl = wtu.create3DContext();
+
+debug("test getAttachedShaders");
+var standardVert = wtu.loadStandardVertexShader(gl);
+var standardFrag = wtu.loadStandardFragmentShader(gl);
+var standardProgram = gl.createProgram();
+gl.attachShader(standardProgram, standardVert);
+gl.attachShader(standardProgram, standardFrag);
+gl.linkProgram(standardProgram);
+var shaders = gl.getAttachedShaders(standardProgram);
+shouldBe('shaders.length', '2');
+shouldBeTrue('shaders[0] == standardVert && shaders[1] == standardFrag || shaders[1] == standardVert && shaders[0] == standardFrag');
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+shouldBeNull('gl.getAttachedShaders(null)');
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+shouldThrow('gl.getAttachedShaders(standardVert)');
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+function testInvalidArgument(funcName, argumentName, validArgumentArray, func) {
+  var validArguments = {};
+  for (var ii = 0; ii < validArgumentArray.length; ++ii) {
+    validArguments[validArgumentArray[ii]] = true;
+  }
+  var success = true;
+  for (var ii = 0; ii < 0x10000; ++ii) {
+    if (!validArguments[ii]) {
+      var result = func(ii);
+      if (result !== null) {
+        success = false;
+        testFailed(funcName + " returned " + result + " instead of null for invalid " + argumentName + " enum: " + wtu.glEnumToString(gl, ii));
+        break;
+      }
+      var err = gl.getError();
+      if (err != gl.INVALID_ENUM) {
+        success = false;
+        testFailed(funcName + " did not generate INVALID_ENUM for invalid " + argumentName + " enum: " + wtu.glEnumToString(gl, ii));
+        break;
+      }
+    }
+  }
+  if (success) {
+    testPassed(funcName + " correctly handled invalid " + argumentName + " enums");
+  }
+}
+
+debug("");
+debug("test getBufferParameter");
+// Test getBufferParameter
+var bufferTypes = [gl.ARRAY_BUFFER, gl.ELEMENT_ARRAY_BUFFER];
+for (var bb = 0; bb < bufferTypes.length; ++bb) {
+  var bufferType = bufferTypes[bb];
+  var buffer = gl.createBuffer();
+  gl.bindBuffer(bufferType, buffer);
+  gl.bufferData(bufferType, 16, gl.DYNAMIC_DRAW);
+  var expression1 = "gl.getBufferParameter(gl." + wtu.glEnumToString(gl, bufferType) + ", gl.BUFFER_SIZE)";
+  var expression2 = "gl.getBufferParameter(gl." + wtu.glEnumToString(gl, bufferType) + ", gl.BUFFER_USAGE)";
+  shouldBe(expression1, '16');
+  shouldBe(expression2, 'gl.DYNAMIC_DRAW');
+  testInvalidArgument("getBufferParameter", "parameter", [gl.BUFFER_SIZE, gl.BUFFER_USAGE], function(bufferType) {
+    return function(parameter) {
+      return gl.getBufferParameter(bufferType, parameter);
+    };
+  }(bufferType));
+}
+testInvalidArgument(
+    "getBufferParameter",
+    "target",
+    bufferTypes,
+    function(target) {
+      return gl.getBufferParameter(target, gl.BUFFER_SIZE);
+    }
+);
+
+
+debug("");
+debug("Test getFramebufferAttachmentParameter");
+var texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texture);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+              new Uint8Array([
+                  0, 0, 0, 255,
+                  255, 255, 255, 255,
+                  255, 255, 255, 255,
+                  0, 0, 0, 255]));
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.bindTexture(gl.TEXTURE_2D, null);
+var framebuffer = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+var renderbuffer = gl.createRenderbuffer();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 2, 2);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+// FIXME: on some machines (in particular the WebKit commit bots) the
+// framebuffer status is FRAMEBUFFER_UNSUPPORTED; more investigation
+// is needed why this is the case, because the FBO allocated
+// internally by the WebKit implementation has almost identical
+// parameters to this one. See https://bugs.webkit.org/show_bug.cgi?id=31843.
+shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)', 'gl.TEXTURE');
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)', 'texture');
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL)', '0');
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE)', '0');
+
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)', 'gl.RENDERBUFFER');
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)', 'renderbuffer');
+testInvalidArgument(
+    "getFramebufferAttachmentParameter",
+    "parameter",
+    [ gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+      gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+      gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+      gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
+    ],
+    function(parameter) {
+      return gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT, parameter);
+    }
+);
+testInvalidArgument(
+    "getFramebufferAttachmentParameter",
+    "target",
+    [ gl.FRAMEBUFFER ],
+    function(target) {
+      return gl.getFramebufferAttachmentParameter(target, gl.COLOR_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    }
+);
+testInvalidArgument(
+    "getFramebufferAttachmentParameter",
+    "attachment",
+    [ gl.COLOR_ATTACHMENT0,
+      gl.DEPTH_ATTACHMENT,
+      gl.STENCIL_ATTACHMENT,
+      gl.DEPTH_STENCIL_ATTACHMENT
+    ],
+    function(attachment) {
+      return gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, attachment, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    }
+);
+
+
+debug("");
+debug("Test getProgramParameter");
+shouldBe('gl.getProgramParameter(standardProgram, gl.DELETE_STATUS)', 'false');
+shouldBe('gl.getProgramParameter(standardProgram, gl.LINK_STATUS)', 'true');
+shouldBe('typeof gl.getProgramParameter(standardProgram, gl.VALIDATE_STATUS)', '"boolean"');
+shouldBe('gl.getProgramParameter(standardProgram, gl.ATTACHED_SHADERS)', '2');
+shouldBe('gl.getProgramParameter(standardProgram, gl.ACTIVE_ATTRIBUTES)', '2');
+shouldBe('gl.getProgramParameter(standardProgram, gl.ACTIVE_UNIFORMS)', '1');
+testInvalidArgument(
+    "getProgramParameter",
+    "parameter",
+    [ gl.DELETE_STATUS,
+      gl.LINK_STATUS,
+      gl.VALIDATE_STATUS,
+      gl.ATTACHED_SHADERS,
+      gl.ACTIVE_ATTRIBUTES,
+      gl.ACTIVE_UNIFORMS
+    ],
+    function(parameter) {
+      return gl.getProgramParameter(standardProgram, parameter);
+    }
+);
+
+debug("");
+debug("Test getRenderbufferParameter");
+shouldBe('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_WIDTH)', '2');
+shouldBe('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_HEIGHT)', '2');
+// Note: we can't test the actual value of the internal format since
+// the implementation is allowed to change it.
+shouldBeNonZero('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_INTERNAL_FORMAT)');
+shouldBeNonZero('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_DEPTH_SIZE)');
+var colorbuffer = gl.createRenderbuffer();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 2, 2);
+shouldBeNonZero('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_RED_SIZE)');
+shouldBeNonZero('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_GREEN_SIZE)');
+shouldBeNonZero('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_BLUE_SIZE)');
+shouldBeNonZero('gl.getRenderbufferParameter(gl.RENDERBUFFER, gl.RENDERBUFFER_ALPHA_SIZE)');
+testInvalidArgument(
+    "getRenderbufferParameter",
+    "parameter",
+    [ gl.RENDERBUFFER_WIDTH,
+      gl.RENDERBUFFER_HEIGHT,
+      gl.RENDERBUFFER_INTERNAL_FORMAT,
+      gl.RENDERBUFFER_RED_SIZE,
+      gl.RENDERBUFFER_GREEN_SIZE,
+      gl.RENDERBUFFER_BLUE_SIZE,
+      gl.RENDERBUFFER_ALPHA_SIZE,
+      gl.RENDERBUFFER_DEPTH_SIZE,
+      gl.RENDERBUFFER_STENCIL_SIZE,
+    ],
+    function(parameter) {
+      return gl.getRenderbufferParameter(gl.RENDERBUFFER, parameter);
+    });
+testInvalidArgument(
+    "getRenderbufferParameter",
+    "target",
+    [ gl.RENDERBUFFER ],
+    function(target) {
+      return gl.getRenderbufferParameter(target, gl.RENDERBUFFER_WIDTH);
+    });
+
+debug("");
+debug("Test getShaderParameter");
+shouldBe('gl.getShaderParameter(standardVert, gl.SHADER_TYPE)', 'gl.VERTEX_SHADER');
+shouldBe('gl.getShaderParameter(standardVert, gl.DELETE_STATUS)', 'false');
+shouldBe('gl.getShaderParameter(standardVert, gl.COMPILE_STATUS)', 'true');
+testInvalidArgument(
+    "getShaderParameter",
+    "parameter",
+    [ gl.DELETE_STATUS,
+      gl.COMPILE_STATUS,
+      gl.SHADER_TYPE
+    ],
+    function(parameter) {
+      return gl.getShaderParameter(standardVert, parameter);
+    }
+);
+
+debug("");
+debug("Test getTexParameter");
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+gl.bindTexture(gl.TEXTURE_2D, texture);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+shouldBe('gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER)', 'gl.NEAREST');
+shouldBe('gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER)', 'gl.NEAREST');
+shouldBe('gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S)', 'gl.CLAMP_TO_EDGE');
+shouldBe('gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T)', 'gl.CLAMP_TO_EDGE');
+testInvalidArgument(
+    "getTexParameter",
+    "parameter",
+    [ gl.TEXTURE_MAG_FILTER,
+      gl.TEXTURE_MIN_FILTER,
+      gl.TEXTURE_WRAP_S,
+      gl.TEXTURE_WRAP_T
+    ],
+    function(parameter) {
+      return gl.getTexParameter(gl.TEXTURE_2D, parameter);
+    }
+);
+testInvalidArgument(
+    "getTexParameter",
+    "target",
+    [ gl.TEXTURE_2D,
+      gl.TEXTURE_CUBE_MAP
+    ],
+    function(target) {
+      return gl.getTexParameter(target, gl.TEXTURE_MAG_FILTER);
+    }
+);
+
+debug("");
+debug("Test getUniform with all variants of data types");
+// Boolean uniform variables
+var boolProgram = wtu.loadProgramFromFile(gl, "../resources/boolUniformShader.vert", "../resources/noopUniformShader.frag");
+shouldBe('gl.getProgramParameter(boolProgram, gl.LINK_STATUS)', 'true');
+var bvalLoc = gl.getUniformLocation(boolProgram, "bval");
+var bval2Loc = gl.getUniformLocation(boolProgram, "bval2");
+var bval3Loc = gl.getUniformLocation(boolProgram, "bval3");
+var bval4Loc = gl.getUniformLocation(boolProgram, "bval4");
+gl.useProgram(boolProgram);
+gl.uniform1i(bvalLoc, 1);
+gl.uniform2i(bval2Loc, 1, 0);
+gl.uniform3i(bval3Loc, 1, 0, 1);
+gl.uniform4i(bval4Loc, 1, 0, 1, 0);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+shouldBe('gl.getUniform(boolProgram, bvalLoc)', 'true');
+shouldBe('gl.getUniform(boolProgram, bval2Loc)', '[true, false]');
+shouldBe('gl.getUniform(boolProgram, bval3Loc)', '[true, false, true]');
+shouldBe('gl.getUniform(boolProgram, bval4Loc)', '[true, false, true, false]');
+// Integer uniform variables
+var intProgram = wtu.loadProgramFromFile(gl, "../resources/intUniformShader.vert", "../resources/noopUniformShader.frag");
+shouldBe('gl.getProgramParameter(intProgram, gl.LINK_STATUS)', 'true');
+var ivalLoc = gl.getUniformLocation(intProgram, "ival");
+var ival2Loc = gl.getUniformLocation(intProgram, "ival2");
+var ival3Loc = gl.getUniformLocation(intProgram, "ival3");
+var ival4Loc = gl.getUniformLocation(intProgram, "ival4");
+gl.useProgram(intProgram);
+gl.uniform1i(ivalLoc, 1);
+gl.uniform2i(ival2Loc, 2, 3);
+gl.uniform3i(ival3Loc, 4, 5, 6);
+gl.uniform4i(ival4Loc, 7, 8, 9, 10);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+shouldBe('gl.getUniform(intProgram, ivalLoc)', '1');
+shouldBe('gl.getUniform(intProgram, ival2Loc)', '[2, 3]');
+shouldBe('gl.getUniform(intProgram, ival3Loc)', '[4, 5, 6]');
+shouldBe('gl.getUniform(intProgram, ival4Loc)', '[7, 8, 9, 10]');
+// Float uniform variables
+var floatProgram = wtu.loadProgramFromFile(gl, "../resources/floatUniformShader.vert", "../resources/noopUniformShader.frag");
+shouldBe('gl.getProgramParameter(floatProgram, gl.LINK_STATUS)', 'true');
+var fvalLoc = gl.getUniformLocation(floatProgram, "fval");
+var fval2Loc = gl.getUniformLocation(floatProgram, "fval2");
+var fval3Loc = gl.getUniformLocation(floatProgram, "fval3");
+var fval4Loc = gl.getUniformLocation(floatProgram, "fval4");
+gl.useProgram(floatProgram);
+gl.uniform1f(fvalLoc, 11);
+gl.uniform2f(fval2Loc, 12, 13);
+gl.uniform3f(fval3Loc, 14, 15, 16);
+gl.uniform4f(fval4Loc, 17, 18, 19, 20);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+shouldBe('gl.getUniform(floatProgram, fvalLoc)', '11');
+shouldBe('gl.getUniform(floatProgram, fval2Loc)', '[12, 13]');
+shouldBe('gl.getUniform(floatProgram, fval3Loc)', '[14, 15, 16]');
+shouldBe('gl.getUniform(floatProgram, fval4Loc)', '[17, 18, 19, 20]');
+// Sampler uniform variables
+var samplerProgram = wtu.loadProgramFromFile(gl, "../resources/noopUniformShader.vert", "../resources/samplerUniformShader.frag");
+shouldBe('gl.getProgramParameter(samplerProgram, gl.LINK_STATUS)', 'true');
+var s2DValLoc = gl.getUniformLocation(samplerProgram, "s2D");
+var sCubeValLoc = gl.getUniformLocation(samplerProgram, "sCube");
+gl.useProgram(samplerProgram);
+gl.uniform1i(s2DValLoc, 0);
+gl.uniform1i(sCubeValLoc, 1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+shouldBe('gl.getUniform(samplerProgram, s2DValLoc)', '0');
+shouldBe('gl.getUniform(samplerProgram, sCubeValLoc)', '1');
+// Matrix uniform variables
+var matProgram = wtu.loadProgramFromFile(gl, "../resources/matUniformShader.vert", "../resources/noopUniformShader.frag");
+shouldBe('gl.getProgramParameter(matProgram, gl.LINK_STATUS)', 'true');
+var mval2Loc = gl.getUniformLocation(matProgram, "mval2");
+var mval3Loc = gl.getUniformLocation(matProgram, "mval3");
+var mval4Loc = gl.getUniformLocation(matProgram, "mval4");
+gl.useProgram(matProgram);
+gl.uniformMatrix2fv(mval2Loc, false, [1, 2, 3, 4]);
+gl.uniformMatrix3fv(mval3Loc, false, [5, 6, 7, 8, 9, 10, 11, 12, 13]);
+gl.uniformMatrix4fv(mval4Loc, false, [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+shouldBe('gl.getUniform(matProgram, mval2Loc)', '[1, 2, 3, 4]');
+shouldBe('gl.getUniform(matProgram, mval3Loc)', '[5, 6, 7, 8, 9, 10, 11, 12, 13]');
+shouldBe('gl.getUniform(matProgram, mval4Loc)', '[14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]');
+
+debug("");
+debug("test getVertexAttrib");
+var array = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+var buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+gl.bufferData(gl.ARRAY_BUFFER, array, gl.DYNAMIC_DRAW);
+// Vertex attribute 0 is special in that it has no current state, so
+// fetching GL_CURRENT_VERTEX_ATTRIB generates an error. Use attribute
+// 1 for these tests instead.
+gl.enableVertexAttribArray(1);
+gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)', 'buffer');
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_ENABLED)', 'true');
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_SIZE)', '4');
+// Stride MUST be the value the user put in.
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_STRIDE)', '0');
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_TYPE)', 'gl.FLOAT');
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED)', 'false');
+gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 36, 12);
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_STRIDE)', '36');
+shouldBe('gl.getVertexAttribOffset(1, gl.VERTEX_ATTRIB_ARRAY_POINTER)', '12');
+gl.disableVertexAttribArray(1);
+shouldBe('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_ENABLED)', 'false');
+gl.vertexAttrib4f(1, 5, 6, 7, 8);
+shouldBe('gl.getVertexAttrib(1, gl.CURRENT_VERTEX_ATTRIB)', '[5, 6, 7, 8]');
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+testInvalidArgument(
+    "getVertexAttrib",
+    "parameter",
+    [ gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING,
+      gl.VERTEX_ATTRIB_ARRAY_ENABLED,
+      gl.VERTEX_ATTRIB_ARRAY_SIZE,
+      gl.VERTEX_ATTRIB_ARRAY_STRIDE,
+      gl.VERTEX_ATTRIB_ARRAY_TYPE,
+      gl.VERTEX_ATTRIB_ARRAY_NORMALIZED,
+      gl.VERTEX_ATTRIB_ARRAY_STRIDE,
+      gl.VERTEX_ATTRIB_ARRAY_ENABLED,
+      gl.CURRENT_VERTEX_ATTRIB
+    ],
+    function(parameter) {
+      return gl.getVertexAttrib(1, parameter);
+    }
+);
+var numVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, 'gl.getVertexAttrib(' + numVertexAttribs + ', gl.CURRENT_VERTEX_ATTRIB)');
+
+debug("");
+debug("Test cases where name == 0");
+gl.deleteTexture(texture);
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)', 'gl.NONE');
+gl.deleteRenderbuffer(renderbuffer);
+shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)', 'gl.NONE');
+gl.deleteBuffer(buffer);
+shouldBeNull('gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)');
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

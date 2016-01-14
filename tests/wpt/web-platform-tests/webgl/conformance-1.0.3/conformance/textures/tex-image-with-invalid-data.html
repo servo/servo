@@ -1,0 +1,147 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <title>texImage2D and texSubImage2D tests with invalid data</title>
+  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../../resources/js-test-pre.js"></script>
+  <script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script type="text/javascript">
+description("texImage2D and texSubImage2D tests with invalid data");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+if (!gl)
+  testFailed("Context created.");
+else
+  testPassed("Context created.");
+
+var tex;
+
+function setup() {
+    tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+}
+
+function teardown() {
+    gl.deleteTexture(tex);
+}
+
+function test(desc, func, expected) {
+    debug(desc);
+
+    var exc = null;
+    try {
+        func();
+    } catch (x) {
+        exc = x;
+    }
+
+    if (expected == gl.INVALID_OPERATION) {
+      wtu.glErrorShouldBe(gl, expected);
+    } else if (expected == "exception") {
+        if (exc) {
+            testPassed("threw exception");
+        } else {
+            testFailed("did not throw exception");
+        }
+    }
+}
+
+test("Calling texImage2D with no WebGLTexture bound generates INVALID_OPERATION",
+     function () {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+     },
+     gl.INVALID_OPERATION);
+
+test("Calling texSubImage2D with no WebGLTexture bound generates INVALID_OPERATION",
+     function () {
+        var buffer = new Uint8Array(4);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+     },
+     gl.INVALID_OPERATION);
+
+setup();
+
+test("Passing a buffer not large enough to texImage2D should generate an INVALID_OPERATION",
+     function () {
+     var tooSmall = new Uint8Array(64);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, tooSmall);
+     },
+     gl.INVALID_OPERATION);
+
+test("Passing texImage2D parameter data of Number type should throw an exception",
+     function () {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, 42);
+     },
+     "exception");
+
+test("Passing texImage2D parameter data of String type should throw a TypeError",
+     function () {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, "not a buffer");
+     },
+     "exception");
+test("Passing a buffer not large enough to texSubImage2D should generate an INVALID_OPERATION",
+     function () {
+        var tooSmall = new Uint8Array(64);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, tooSmall);
+     },
+     gl.INVALID_OPERATION);
+
+test("Passing texSubImage2D parameter data of Number type should throw a TypeError",
+     function () {
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, 42);
+     },
+     "exception");
+
+test("Passing texSubImage2D parameter data of String type should throw a TypeError",
+     function () {
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, "not a buffer");
+     },
+     "exception");
+
+teardown();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+

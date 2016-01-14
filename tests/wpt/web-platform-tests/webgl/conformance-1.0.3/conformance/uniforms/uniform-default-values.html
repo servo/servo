@@ -1,0 +1,362 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform default values</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../resources/test-eval.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshader0" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="fshader0" type="x-shader/x-fragment">
+precision mediump float;
+uniform $(type) u_uniform;
+
+bool isZero($(type) value) {
+ $(check);
+}
+
+void main()
+{
+  gl_FragColor = isZero(u_uniform) ? vec4(0,1,0,1) : vec4(1,0,0,1);
+}
+</script>
+<script id="vshader1" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 v_color;
+uniform $(type) u_uniform;
+
+bool isZero($(type) value) {
+   $(check);
+}
+
+void main()
+{
+    gl_Position = vPosition;
+    v_color = isZero(u_uniform) ? vec4(0,1,0,1) : vec4(1,0,0,1);
+}
+</script>
+<script id="fshader1" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 v_color;
+void main()
+{
+    gl_FragColor = v_color;
+}
+</script>
+<script id="vshader2" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+<script id="fshader2" type="x-shader/x-fragment">
+precision mediump float;
+uniform $(type) u_uniform[2];
+
+bool isZero($(type) value) {
+  $(check);
+}
+
+void main()
+{
+  gl_FragColor = isZero(u_uniform[1]) ? vec4(0,1,0,1) : vec4(1,0,0,1);
+}
+</script>
+<script id="vshader3" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 v_color;
+uniform $(type) u_uniform[2];
+
+bool isZero($(type) value) {
+   $(check);
+}
+
+void main()
+{
+    gl_Position = vPosition;
+    v_color = isZero(u_uniform[1]) ? vec4(0,1,0,1) : vec4(1,0,0,1);
+}
+</script>
+<script id="fshader3" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 v_color;
+void main()
+{
+    gl_FragColor = v_color;
+}
+</script>
+<script>
+"use strict";
+description();
+
+var tests = [
+{ type: 'float',
+  check: "return value == 0.0",
+  setFn: function(gl, loc) { gl.uniform1f(loc, 3.0); }
+},
+{ type: 'int',
+  check: "return value == 0",
+  setFn: function(gl, loc) { gl.uniform1i(loc, 3.0); }
+},
+{ type: 'bool',
+  check: "return value == false",
+  setFn: function(gl, loc) { gl.uniform1i(loc, 1); }
+},
+{ type: 'vec2',
+  check: "return value[0] == 0.0 && value[1] == 0.0",
+  setFn: function(gl, loc) { gl.uniform2f(loc, 3.0, 3.0); }
+},
+{ type: 'vec3',
+  check: "return value[0] == 0.0 && value[1] == 0.0 && value[2] == 0.0",
+  setFn: function(gl, loc) { gl.uniform3f(loc, 3.0, 3.0, 3.0); }
+},
+{ type: 'vec4',
+  check: "return value[0] == 0.0 && value[1] == 0.0 && value[2] == 0.0 && value[3] == 0.0",
+  setFn: function(gl, loc) { gl.uniform4f(loc, 3.0, 3.0, 3.0, 3.0); }
+},
+{ type: 'ivec2',
+  check: "return value[0] == 0 && value[1] == 0",
+  setFn: function(gl, loc) { gl.uniform2i(loc, 3, 3); }
+},
+{ type: 'ivec3',
+  check: "return value[0] == 0 && value[1] == 0 && value[2] == 0",
+  setFn: function(gl, loc) { gl.uniform3i(loc, 3, 3, 3); }
+},
+{ type: 'ivec4',
+  check: "return value[0] == 0 && value[1] == 0 && value[2] == 0 && value[3] == 0",
+  setFn: function(gl, loc) { gl.uniform4i(loc, 3, 3, 3, 3); }
+},
+{ type: 'bvec2',
+  check: "return value[0] == false && value[1] == false",
+  setFn: function(gl, loc) { gl.uniform2i(loc, 1, 1); }
+},
+{ type: 'bvec3',
+  check: "return value[0] == false && value[1] == false && value[2] == false",
+  setFn: function(gl, loc) { gl.uniform3i(loc, 1, 1, 1); }
+},
+{ type: 'bvec4',
+  check: "return value[0] == false && value[1] == false && value[2] == false && value[3] == false",
+  setFn: function(gl, loc) { gl.uniform4i(loc, 1, 1, 1, 1); }
+},
+{ type: 'mat2',
+  check:
+    "return " +
+    "value[0][0] == 0.0 && value[0][1] == 0.0 && " +
+    "value[1][0] == 0.0 && value[1][0] == 0.0",
+  valueCheck:
+    "return " +
+    "value[0] == 0.0 && value[1] == 0.0 && " +
+    "value[2] == 0.0 && value[3] == 0.0",
+  setFn: function(gl, loc) { gl.uniformMatrix2fv(loc, false, [1, 1, 1, 1]); }
+},
+{ type: 'mat3',
+  check:
+    "return " +
+    "value[0][0] == 0.0 && value[1][0] == 0.0 && value[2][0] == 0.0 && " +
+    "value[0][1] == 0.0 && value[1][1] == 0.0 && value[2][1] == 0.0 && " +
+    "value[0][2] == 0.0 && value[1][2] == 0.0 && value[2][2] == 0.0",
+  valueCheck:
+    "return " +
+    "value[0] == 0.0 && value[1] == 0.0 && value[2] == 0.0 && " +
+    "value[3] == 0.0 && value[4] == 0.0 && value[5] == 0.0 && " +
+    "value[6] == 0.0 && value[7] == 0.0 && value[8] == 0.0",
+  setFn: function(gl, loc) { gl.uniformMatrix3fv(loc, false, [1, 1, 1, 1, 1, 1, 1, 1, 1]); }
+},
+{ type: 'mat4',
+  check:
+    "return " +
+    "value[0][0] == 0.0 && value[1][0] == 0.0 && value[2][0] == 0.0 && value[3][0] == 0.0 && " +
+    "value[0][1] == 0.0 && value[1][1] == 0.0 && value[2][1] == 0.0 && value[3][1] == 0.0 && " +
+    "value[0][2] == 0.0 && value[1][2] == 0.0 && value[2][2] == 0.0 && value[3][2] == 0.0 && " +
+    "value[0][3] == 0.0 && value[1][3] == 0.0 && value[2][3] == 0.0 && value[3][3] == 0.0",
+  valueCheck:
+    "return " +
+    "value[ 0] == 0.0 && value[ 1] == 0.0 && value[ 2] == 0.0 && value[ 3] == 0.0 && " +
+    "value[ 4] == 0.0 && value[ 5] == 0.0 && value[ 6] == 0.0 && value[ 7] == 0.0 && " +
+    "value[ 8] == 0.0 && value[ 9] == 0.0 && value[10] == 0.0 && value[11] == 0.0 && " +
+    "value[12] == 0.0 && value[13] == 0.0 && value[14] == 0.0 && value[15] == 0.0",
+  setFn: function(gl, loc) { gl.uniformMatrix4fv(loc, false, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]); }
+},
+{ type: 'sampler2D',
+  check:
+    "vec4 v = texture2D(value, vec2(0, 0));" +
+    "return v.x == 1.0 && v.y == 1.0 && v.z == 1.0 && v.w == 1.0",
+  valueCheck:
+    "return value == 0",
+  setFn: function(gl, loc) { gl.uniform1i(loc, 1); }
+},
+{ type: 'samplerCube',
+  check:
+    "vec4 v = textureCube(value, vec3(0, 0, 0));" +
+    "return v.x == 1.0 && v.y == 1.0 && v.z == 1.0 && v.w == 1.0",
+  valueCheck:
+    "return value == 0",
+  setFn: function(gl, loc) { gl.uniform1i(loc, 1); }
+},
+];
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+var c = document.getElementById("console");
+var checkFn;
+
+wtu.setupUnitQuad(gl, [0, 1]);
+
+// Set unit 0 to a non-0 texture.
+var haveVertexTextureImageUnits =
+    gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) >= 2;
+var tex2D = gl.createTexture();
+var texCube = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex2D);
+gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCube);
+
+var pixel = new Uint8Array([255, 255, 255, 255]);
+var targets = [
+  gl.TEXTURE_2D,
+  gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+  gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+  gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+  gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+  gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+  gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+];
+for (var ii = 0; ii < targets.length; ++ii) {
+    gl.texImage2D(
+        targets[ii], 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+}
+
+var shaderTemplates = [
+{ vs: "vshader0", fs: "fshader0", type: 'f' },
+{ vs: "vshader1", fs: "fshader1", type: 'v' },
+{ vs: "vshader2", fs: "fshader2", type: 'f' },
+{ vs: "vshader3", fs: "fshader3", type: 'v' },
+];
+
+// Get shader templates
+for (var ii = 0; ii < shaderTemplates.length; ++ii) {
+  var template = shaderTemplates[ii];
+  template.vs = wtu.getScript(template.vs);
+  template.fs = wtu.getScript(template.fs);
+}
+
+function testType(test) {
+  debug("");
+  debug("testing: " + test.type);
+
+  for (var ii = 0; ii < shaderTemplates.length; ++ii) {
+    var template = shaderTemplates[ii];
+
+    if (test.type.substring(0, 7) == "sampler" &&
+        template.type == 'v' &&
+        !haveVertexTextureImageUnits) {
+      continue;
+    }
+
+    var vs = wtu.replaceParams(template.vs, test);
+    var fs = wtu.replaceParams(template.fs, test);
+
+    wtu.addShaderSource(c, "vertex shader", vs);
+    wtu.addShaderSource(c, "fragment shader", fs);
+
+    var vs = wtu.loadShader(gl, vs, gl.VERTEX_SHADER);
+    var fs = wtu.loadShader(gl, fs, gl.FRAGMENT_SHADER);
+    var program = wtu.createProgram(gl, vs, fs);
+
+    gl.useProgram(program);
+
+    var loc = gl.getUniformLocation(program, "u_uniform[1]");
+    if (!loc) {
+        var loc = gl.getUniformLocation(program, "u_uniform");
+    }
+
+    var value = gl.getUniform(program, loc);
+    TestEval("checkFn = function(value) {" + (test.valueCheck ? test.valueCheck : test.check) + ";}");
+    if (checkFn(value)) {
+        testPassed("uniform is zero");
+    } else {
+        testFailed("uniform is not zero");
+    }
+
+    debug("default value should be zero");
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+
+    debug("test test by setting value");
+    test.setFn(gl, loc);
+
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red", 0);
+
+    debug("re-linking should reset to defaults");
+    gl.linkProgram(program);
+
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+
+    gl.deleteProgram(program);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no GL errors");
+  }
+}
+
+var testNdx = 0;
+function runNextTest() {
+    testType(tests[testNdx++]);
+    if (testNdx >= tests.length) {
+        finishTest();
+    } else {
+        setTimeout(runNextTest, 0);
+    }
+}
+
+runNextTest();
+
+var successfullyParsed = true;
+
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL get error conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/desktop-gl-constants.js" type="text/javascript"></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="1" height="1" style="width: 256px; height: 48px;"></canvas>
+<div id="description"></div><div id="console"></div>
+<script>
+"use strict";
+description("Test getError.");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+
+gl.enable(desktopGL.ALPHA_TEST);
+wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "should generate INVALID_ENUM");
+gl.viewport(-1, -1, -1, -1);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "should generate INVALID_VALUE");
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should generate INVALID_OPERATION");
+
+// Generate 2 errors of each type for 6 total possible errors.
+// The OpenGL ES 2.0 spec section 2.5 says the implementation is allowed to
+// either return the first error or many errors in an unspecied order.
+gl.viewport(-1, -1, -1, -1);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+gl.enable(desktopGL.ALPHA_TEST);
+gl.viewport(-1, -1, -1, -1);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+// Note: This error is specifically last because we know it will be synthasized
+// by WebGL at least when implemented on top of Desktop OpenGL
+gl.enable(desktopGL.ALPHA_TEST);
+
+var err1 = gl.getError();
+var err2 = gl.getError();
+var err3 = gl.getError();
+var err4 = gl.getError();
+var err5 = gl.getError();
+var err6 = gl.getError();
+
+debug("");
+if (err2 == gl.NO_ERROR) {
+  debug("This WebGL implementation looks like it uses the 'first error' method");
+  debug("There should be 1 error, the first one generated");
+  shouldBeTrue('err1 == gl.INVALID_VALUE && err2 == gl.NO_ERROR && err3 == gl.NO_ERROR');
+} else {
+  debug("This WebGL implementation looks like it uses the many error method");
+  debug("Check is that at least one of the errors is the first error");
+  shouldBeTrue('err1 == gl.INVALID_VALUE || ' +
+               'err2 == gl.INVALID_VALUE || ' +
+               'err3 == gl.INVALID_VALUE || ' +
+               'err4 == gl.INVALID_VALUE || ' +
+               'err5 == gl.INVALID_VALUE || ' +
+               'err6 == gl.INVALID_VALUE');
+  shouldBeTrue('gl.getError() == gl.NO_ERROR');
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>
+

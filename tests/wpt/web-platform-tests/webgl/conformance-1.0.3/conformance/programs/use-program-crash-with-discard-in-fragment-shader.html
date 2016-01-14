@@ -1,0 +1,100 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Program Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script id="vertexShader" language="x-shader/x-vertex">
+attribute vec4 ATTR0;
+void main()
+{
+  gl_Position = ATTR0;
+}
+</script>
+<script id="fragmentShader" language="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+  float _Intensity = exp2(gl_FragCoord.w);
+  if (_Intensity < 0.5) {
+    discard;
+  }
+  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script>
+"use strict";
+description('Regression test for crash in Mac OS AMD OpenGL driver related to use of discard in fragment shader.<br><br>More specifically, triggering the crash seems to require examination of gl_FragCoord.w, use of exp2, and a call to discard in the fragment shader. Thanks to Sheheryar Zakaria and Michael Braithwaite at Turbulenz for the original test case.<br><a href="https://bugs.webkit.org/show_bug.cgi?id=73932">WebKit bug 73932</a><br>');
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+}
+
+debug("");
+
+var program = wtu.loadProgramFromScript(gl, 'vertexShader', 'fragmentShader');
+if (program) {
+  testPassed("Program linked successfully");
+} else {
+  testFailed("Program failed to link");
+}
+
+// Crash occurs here on affected machines
+gl.useProgram(program);
+
+// In some browsers, such as Chrome, the above crash only causes a
+// lost context event to be dispatched, and not synchronously. To verify
+// that everything worked, clear and read back the frame buffer.
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255, 0, 0, 255],
+    "Color should be red");
+
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

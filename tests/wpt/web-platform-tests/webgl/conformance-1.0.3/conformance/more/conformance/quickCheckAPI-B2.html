@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/x-javascript" src="../unit.js"></script>
+<script type="application/x-javascript" src="../util.js"></script>
+<script type="application/x-javascript" src="quickCheckAPI.js"></script>
+<script type="application/x-javascript" src="argGenerators-B2.js"></script>
+
+<script type="application/x-javascript">
+
+// Test that all GL functions specified in ArgGenerators work
+// when called with randomly generated valid arguments
+Tests.testValidArgs = function() {
+  var randomTestCount = 100;
+  for (var name in ArgGenerators) {
+    try {
+      if (!GL[name])
+        throw (new Error(name + " is missing from the WebGL context"));
+      var argGen = ArgGenerators[name];
+      var alreadyTriedArgs = {};
+      if (!argGen.generate) continue;
+      // test each GL function with randomTestCount randomly generated valid args
+      argGeneratorTestRunner(argGen, function(args, gen, setupVars) {
+        if (!gen.noAlreadyTriedCheck) {
+          var src = Object.toSource(args);
+          if (alreadyTriedArgs[src])
+            return true;
+
+          alreadyTriedArgs[src] = true;
+        }
+        var ok = false;
+        // if we have an validity checker, assert that the generated args are valid
+        if (gen.checkArgValidity)
+          assert("Valid args: "+name+"("+argsToString(args)+")",
+                gen.checkArgValidity.apply(gen, args));
+        var rv;
+        // assert that GL function works when called with valid args
+        assertOk("This should work: "+name+"("+argsToString(args)+")",
+                function(){rv = GL[name].apply(GL, args); ok = true;});
+        // if we need to cleanup the return value, do it here
+        // e.g. calling gl.deleteBuffer(rv) after testing gl.createBuffer() above
+        if (gen.returnValueCleanup)
+          assertOk("Cleaning up return value after "+name+"("+argsToString(args)+")",
+                   function() { gen.returnValueCleanup(rv); });
+        return ok;
+      }, argGen.testCount || randomTestCount);
+    } catch(e) {
+      testFailed(name, e.name, formatError(e));
+    }
+  }
+}
+
+</script>
+<style>canvas{position:absolute;}</style>
+</head><body>
+</body></html>

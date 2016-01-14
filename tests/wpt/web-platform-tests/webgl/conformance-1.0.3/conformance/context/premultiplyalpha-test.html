@@ -1,0 +1,268 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test the WebGL premultipliedAlpha context creation flag.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="description"></div><div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+
+// wtu.create3DContext(...) will set antialias to false by default
+// if the antialias property is not set to true explicitly.
+// To cover the antialias case, it needs to set antialias to true
+// explicitly.
+var tests = [
+  // If premultipliedAlpha is true and antialias is false then
+  // [texture]           [canvas]             [dataURL]
+  // 32, 64, 128, 128 -> 64, 128, 255, 128 -> 64, 128, 255, 128
+  { creationAttributes: {},
+    sentColor: [32, 64, 128, 128],
+    expectedColor: [64, 128, 255, 128],
+    errorRange: 2,
+    imageFormat: "image/png"
+  },
+  // If premultipliedAlpha is true and antialias is true then
+  // [texture]           [canvas]             [dataURL]
+  // 32, 64, 128, 128 -> 64, 128, 255, 128 -> 64, 128, 255, 128
+  { creationAttributes: {antialias: true},
+    sentColor: [32, 64, 128, 128],
+    expectedColor: [64, 128, 255, 128],
+    errorRange: 2,
+    imageFormat: "image/png"
+  },
+  // If premultipliedAlpha is true and antialias is false then
+  // [texture]           [canvas]             [texture]
+  // 32, 64, 128, 128 -> 64, 128, 255, 128 -> 64, 128, 255, 128
+  { creationAttributes: {},
+    sentColor: [32, 64, 128, 128],
+    expectedColor: [64, 128, 255, 128],
+    errorRange: 2,
+  },
+  // If premultipliedAlpha is true and antialias is true then
+  // [texture]           [canvas]             [texture]
+  // 32, 64, 128, 128 -> 64, 128, 255, 128 -> 64, 128, 255, 128
+  { creationAttributes: {antialias: true},
+    sentColor: [32, 64, 128, 128],
+    expectedColor: [64, 128, 255, 128],
+    errorRange: 2,
+  },
+  // If premultipliedAlpha is false and antialias is false then
+  // [texture]           [canvas]            [dataURL]
+  // 255, 192, 128, 1 -> 255, 192, 128, 1 -> 255, 192, 128, 1
+  { creationAttributes: {premultipliedAlpha: false},
+    sentColor: [255, 192, 128, 1],
+    expectedColor: [255, 192, 128, 1],
+    errorRange: 0,
+    imageFormat: "image/png"
+  },
+  // If premultipliedAlpha is false and antialias is true then
+  // [texture]           [canvas]            [dataURL]
+  // 255, 192, 128, 1 -> 255, 192, 128, 1 -> 255, 192, 128, 1
+  { creationAttributes: {premultipliedAlpha: false, antialias: true},
+    sentColor: [255, 192, 128, 1],
+    expectedColor: [255, 192, 128, 1],
+    errorRange: 0,
+    imageFormat: "image/png"
+  },
+  // If premultipliedAlpha is false and antialias is false then
+  // [texture]           [canvas]            [texture]
+  // 255, 192, 128, 1 -> 255, 192, 128, 1 -> 255, 192, 128, 1
+  { creationAttributes: {premultipliedAlpha: false},
+    sentColor: [255, 192, 128, 1],
+    expectedColor: [255, 192, 128, 1],
+    errorRange: 0,
+  },
+  // If premultipliedAlpha is false and antialias is true then
+  // [texture]           [canvas]            [texture]
+  // 255, 192, 128, 1 -> 255, 192, 128, 1 -> 255, 192, 128, 1
+  { creationAttributes: {premultipliedAlpha: false, antialias: true},
+    sentColor: [255, 192, 128, 1],
+    expectedColor: [255, 192, 128, 1],
+    errorRange: 0,
+  },
+  // If premultipliedAlpha is false and antialias is false then
+  // [texture]             [canvas]            [dataURL]
+  // 255, 255, 255, 128 -> 255, 255, 255, 128 -> 128, 128, 128, 255
+  { creationAttributes: {premultipliedAlpha: false},
+    sentColor: [255, 255, 255, 128],
+    expectedColor: [128, 128, 128, 255],
+    errorRange: 2,
+    imageFormat: "image/jpeg"
+  },
+  // If premultipliedAlpha is false and antialias is true then
+  // [texture]             [canvas]            [dataURL]
+  // 255, 255, 255, 128 -> 255, 255, 255, 128 -> 128, 128, 128, 255
+  { creationAttributes: {premultipliedAlpha: false, antialias: true},
+    sentColor: [255, 255, 255, 128],
+    expectedColor: [128, 128, 128, 255],
+    errorRange: 2,
+    imageFormat: "image/jpeg"
+  },
+  // If premultipliedAlpha is true and antialias is false then
+  // [texture]             [canvas]            [dataURL]
+  // 128, 128, 128, 128 -> 255, 255, 255, 128 -> 128, 128, 128, 255
+  { creationAttributes: {},
+    sentColor: [128, 128, 128, 128],
+    expectedColor: [128, 128, 128, 255],
+    errorRange: 2,
+    imageFormat: "image/jpeg"
+  },
+  // If premultipliedAlpha is true and antialias is true then
+  // [texture]             [canvas]            [dataURL]
+  // 128, 128, 128, 128 -> 255, 255, 255, 128 -> 128, 128, 128, 255
+  { creationAttributes: {antialias: true},
+    sentColor: [128, 128, 128, 128],
+    expectedColor: [128, 128, 128, 255],
+    errorRange: 2,
+    imageFormat: "image/jpeg"
+  }
+];
+
+var g_count = 0;
+var gl;
+var canvas;
+var premultipliedAlpha;
+
+enableJSTestPreVerboseLogging();
+description("Test the WebGL premultipliedAlpha context creation flag.");
+doNextTest();
+function doNextTest() {
+  if (g_count < tests.length) {
+    var test = tests[g_count++];
+    canvas = document.createElement("canvas");
+    // Need to preserve drawing buffer to load it in a callback
+    test.creationAttributes.preserveDrawingBuffer = true;
+    gl = wtu.create3DContext(canvas, test.creationAttributes);
+    var premultipliedAlpha = test.creationAttributes.premultipliedAlpha != false;
+    var antialias = test.creationAttributes.antialias == true;
+    debug("")
+    debug("testing: premultipliedAlpha: " + premultipliedAlpha
+        + ", antialias: " + antialias
+        + ", imageFormat: " + test.imageFormat);
+
+    shouldBe('gl.getContextAttributes().premultipliedAlpha', premultipliedAlpha.toString());
+    shouldBeTrue('gl.getContextAttributes().preserveDrawingBuffer');
+
+    wtu.log(gl.getContextAttributes());
+    var program = wtu.setupTexturedQuad(gl);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+    var tex = gl.createTexture();
+    wtu.fillTexture(gl, tex, 2, 2, test.sentColor, 0);
+    var loc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(loc, 0);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from drawing.");
+
+    var loadTexture = function() {
+      debug("loadTexture called");
+      var pngTex = gl.createTexture();
+      // not needed as it's the default
+      // gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.bindTexture(gl.TEXTURE_2D, pngTex);
+      if (test.imageFormat) {
+         // create texture from image
+         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this);
+      } else {
+         // create texture from canvas
+         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+      }
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from creating copy.");
+      wtu.clearAndDrawUnitQuad(gl);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from 2nd drawing.");
+      wtu.checkCanvas(
+         gl, test.expectedColor,
+         "should draw with " + test.expectedColor, test.errorRange);
+
+      doNextTest();
+    }
+
+    var loadTextureError = function() {
+      testFailed("Creating image from canvas failed. Image src: " + this.src);
+      finishTest();
+    }
+
+    var shrinkString = function(string) {
+      if (string.length < 63) {
+        return string;
+      }
+      return string.substr(0, 30) + "..." + string.substr(string.length - 30);
+    }
+
+    if (test.imageFormat) {
+      // Load canvas into string using toDataURL
+      debug("Calling canvas.toDataURL('" + test.imageFormat + "')");
+      var imageUrl = canvas.toDataURL(test.imageFormat);
+      debug("imageUrl = '" + shrinkString(imageUrl) + "'");
+      if (test.imageFormat != "image/png" &&
+          (imageUrl.indexOf("data:image/png,") == 0 ||
+           imageUrl.indexOf("data:image/png;") == 0)) {
+        debug("Image format " + test.imageFormat + " not supported; skipping");
+        setTimeout(doNextTest, 0);
+      } else {
+        // Load string into the texture
+        debug("Waiting for image.onload");
+        var input = wtu.makeImage(imageUrl, loadTexture, loadTextureError);
+      }
+    } else {
+      // Load canvas into the texture asynchronously (to prevent unbounded stack consumption)
+      debug("Waiting for setTimeout");
+      setTimeout(loadTexture, 0);
+    }
+  } else {
+    var successfullyParsed = true;
+    finishTest();
+  }
+}
+
+</script>
+
+</body>
+</html>
+
+

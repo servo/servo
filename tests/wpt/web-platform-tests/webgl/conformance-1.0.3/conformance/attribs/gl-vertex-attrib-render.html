@@ -1,0 +1,112 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+        <script src=/resources/testharness.js></script>
+        <script src=/resources/testharnessreport.js></script>
+        <script src="../../resources/js-test-pre.js"></script>
+        <script src="../resources/webgl-test-utils.js"></script>
+        <script id='vshader' type='x-shader'>
+            attribute vec4 a;
+            attribute vec2 p;
+            void main() {
+                gl_Position = vec4(p.x + a.x + a.y + a.z + a.w, p.y, 0.0, 1.0);
+            }
+        </script>
+        <script id='fshader' type='x-shader'>
+            precision mediump float;
+            void main() {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            }
+        </script>
+        <script>
+            "use strict";
+            function checkRedPortion(gl, w, low, high) {
+                var buf = new Uint8Array(w * w * 4);
+                gl.readPixels(0, 0, w, w, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+                var i = 0;
+                for (; i < w; ++i) {
+                    if (buf[i * 4 + 0] == 255 && buf[i * 4 + 1] == 0 && buf[i * 4 + 2] == 0 && buf[i * 4 + 3] == 255) {
+                        break;
+                    }
+                }
+                return low <= i && i <= high;
+            }
+
+            function runTest() {
+                var wtu = WebGLTestUtils;
+                var gl = wtu.create3DContext('testbed', { preserveDrawingBuffer : true });
+                if (!gl) {
+                    testFailed('could not create context');
+                    return;
+                }
+                var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['p', 'a'])
+
+                gl.enableVertexAttribArray(gl.p);
+                var pos = gl.createBuffer();
+                pos.type = gl.FLOAT;
+                pos.size = 2;
+                pos.num = 4;
+                gl.bindBuffer(gl.ARRAY_BUFFER, pos);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+
+                gl.vertexAttribPointer(0, pos.size, pos.type, false, 0, 0);
+
+                debug('Test vertexAttrib[1..4]fv by setting different combinations that add up to 1.5 and use that when rendering.');
+                var vals = [[0.5], [0.1,0.4], [0.2,-0.2,0.5], [-1.0,0.3,0.2,2.0]];
+
+                for (var j = 0; j < 4; ++j) {
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                    gl['vertexAttrib' + (j+1) + 'fv'](1, vals[j]);
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, pos.num);
+
+                    if (checkRedPortion(gl, 50, 50 * 0.7, 50 * 0.8)) {
+                        testPassed('Attribute of size ' + (j+1) + ' was set correctly');
+                    } else {
+                        testFailed('Attribute of size ' + (j+1) + ' was not set correctly');
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="testbed" width="50" height="50"></canvas>
+        <div id="description"></div>
+        <div id="console"></div>
+        <script>
+            "use strict";
+            description('Verify that using constant attributes works.');
+            runTest();
+            var successfullyParsed = true;
+        </script>
+        <script src="../../resources/js-test-post.js"></script>
+    </body>
+</html>

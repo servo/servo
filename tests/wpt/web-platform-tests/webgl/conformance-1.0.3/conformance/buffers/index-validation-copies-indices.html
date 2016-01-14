@@ -1,0 +1,75 @@
+<!--
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description('Test that client data is always copied during bufferData and bufferSubData calls, because otherwise the data the GL uses to draw may differ from that checked by the index validation code.')
+
+var wtu = WebGLTestUtils;
+var context = wtu.create3DContext();
+var program = wtu.loadStandardProgram(context);
+
+context.useProgram(program);
+var vertexObject = context.createBuffer();
+context.enableVertexAttribArray(0);
+context.bindBuffer(context.ARRAY_BUFFER, vertexObject);
+// 4 vertices -> 2 triangles
+context.bufferData(context.ARRAY_BUFFER, new Float32Array([ 0,0,0, 0,1,0, 1,0,0, 1,1,0 ]), context.STATIC_DRAW);
+context.vertexAttribPointer(0, 3, context.FLOAT, false, 0, 0);
+
+var indexObject = context.createBuffer();
+
+context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, indexObject);
+var indices = new Uint16Array([ 10000, 0, 1, 2, 3, 10000 ]);
+context.bufferData(context.ELEMENT_ARRAY_BUFFER, indices, context.STATIC_DRAW);
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 2)");
+wtu.shouldGenerateGLError(context, context.INVALID_OPERATION, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 0)");
+wtu.shouldGenerateGLError(context, context.INVALID_OPERATION, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 4)");
+indices[0] = 2;
+indices[5] = 1;
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 2)");
+wtu.shouldGenerateGLError(context, context.INVALID_OPERATION, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 0)");
+wtu.shouldGenerateGLError(context, context.INVALID_OPERATION, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 4)");
+
+debug("")
+var successfullyParsed = true;
+</script>
+
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

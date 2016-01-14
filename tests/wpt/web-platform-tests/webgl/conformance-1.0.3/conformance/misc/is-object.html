@@ -1,0 +1,101 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas">
+<script>
+"use strict";
+var wtu;
+var canvas;
+var gl;
+var shouldGenerateGLError;
+
+var buffer;
+var framebuffer;
+var program;
+var renderbuffer;
+var shader;
+var texture;
+
+description("Tests 'is' calls against non-bound and deleted objects");
+
+wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+shouldGenerateGLError = wtu.shouldGenerateGLError;
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "buffer = gl.createBuffer()");
+shouldBeFalse("gl.isBuffer(buffer)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer)");
+shouldBeTrue("gl.isBuffer(buffer)");
+debug("");
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "framebuffer = gl.createFramebuffer()");
+shouldBeFalse("gl.isFramebuffer(framebuffer)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)");
+shouldBeTrue("gl.isFramebuffer(framebuffer)");
+debug("");
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "renderbuffer = gl.createRenderbuffer()");
+shouldBeFalse("gl.isRenderbuffer(renderbuffer)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer)");
+shouldBeTrue("gl.isRenderbuffer(renderbuffer)");
+debug("");
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "texture = gl.createTexture()");
+shouldBeFalse("gl.isTexture(texture)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, texture)");
+shouldBeTrue("gl.isTexture(texture)");
+debug("");
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "program = gl.createProgram()");
+shouldBeTrue("gl.isProgram(program)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteProgram(program)");
+shouldBeFalse("gl.isProgram(program)");
+debug("");
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "shader = gl.createShader(gl.VERTEX_SHADER)");
+shouldBeTrue("gl.isShader(shader)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteShader(shader)");
+shouldBeFalse("gl.isShader(shader)");
+debug("");
+
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

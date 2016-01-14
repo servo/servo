@@ -1,0 +1,512 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform array Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshader" type="x-shader/x-vertex">
+    attribute vec4 a_position;
+    void main()
+    {
+        gl_Position = a_position;
+    }
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+    precision mediump float;
+    uniform $(type) color[3];
+    void main()
+    {
+        gl_FragColor = vec4(color[0]$(elem), color[1]$(elem), color[2]$(elem), 1);
+    }
+</script>
+<script id="fshader-max" type="x-shader/x-fragment">
+    precision mediump float;
+    uniform vec4 colora[$(maxUniformVectors)];
+    void main()
+    {
+        gl_FragColor = vec4(colora[$(usedUniformVector)]);
+    }
+</script>
+<script id="fshader-max-ab-ab" type="x-shader/x-fragment">
+    precision mediump float;
+    uniform vec4 $(decl1);
+    uniform vec4 $(decl2);
+    void main()
+    {
+        gl_FragColor = vec4($(usage1) + $(usage2));
+    }
+</script>
+<script>
+"use strict";
+description();
+debug("");
+// MaxInt32 is 2^32-1. We need +1 of that to test overflow conditions.
+var MaxInt32PlusOne = 4294967296;
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+
+var vSrc = wtu.getScript("vshader");
+var fTemplate = wtu.getScript("fshader");
+
+var typeInfos = [
+  { type: 'float',
+    jsTypeOf: 'number',
+    setter: 'uniform1fv',
+    elem: '',
+    numSrcValues: 3,
+    invalidSet: function(loc) {
+      gl.uniform2fv(loc, [1, 2]);
+    },
+    srcValueAsString: function(index, srcValues) {
+      return srcValues[index].toString();
+    },
+    returnValueAsString: function(value) {
+      return value === null ? 'null' : value.toString();
+    },
+    checkType: function(value) {
+      return typeof value === 'number';
+    },
+    checkValue: function(typeInfo, index, value) {
+      return typeInfo.srcValues[index] == value;
+    },
+    srcValues: [16, 15, 14],
+    srcValuesLess: [],
+    srcValuesLessMultiple: [16],
+    srcValuesMoreMultiple: [16, 15, 14, 13],
+    srcValuesNonMultiple: null,
+  },
+  { type: 'vec2',
+    jsTypeOf: 'Float32Array',
+    setter: 'uniform2fv',
+    elem: '[1]',
+    numSrcValues: 3,
+    invalidSet: function(loc) {
+      gl.uniform1fv(loc, [2]);
+    },
+    illegalSet: function(loc) {
+      gl.uniform1fv(loc, 2);
+    },
+    srcValueAsString: function(index, srcValues) {
+      return "[" + srcValues[index * 2 + 0].toString() + ", " +
+                   srcValues[index * 2 + 1].toString() + "]";
+    },
+    returnValueAsString: function(value) {
+      return value === null ? 'null' : ("[" + value[0] + ", " + value[1] + "]");
+    },
+    checkType: function(value) {
+      return value &&
+             typeof value.length === 'number' &&
+             value.length == 2;
+    },
+    checkValue: function(typeInfo, index, value) {
+      return value !== null &&
+             typeInfo.srcValues[index * 2 + 0] == value[0] &&
+             typeInfo.srcValues[index * 2 + 1] == value[1];
+    },
+    srcValues: [16, 15, 14, 13, 12, 11],
+    srcValuesLess: [16],
+    srcValuesLessMultiple: [16, 15, 14, 13],
+    srcValuesMoreMultiple: [16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesNonMultiple: [16, 15, 14, 13, 12, 11, 10],
+  },
+  { type: 'vec3',
+    jsTypeOf: 'Float32Array',
+    setter: 'uniform3fv',
+    elem: '[2]',
+    numSrcValues: 3,
+    invalidSet: function(loc) {
+      gl.uniform1fv(loc, [2]);
+    },
+    illegalSet: function(loc) {
+      gl.uniform1fv(loc, 2);
+    },
+    srcValueAsString: function(index, srcValues) {
+      return "[" + srcValues[index * 3 + 0].toString() + ", " +
+                   srcValues[index * 3 + 1].toString() + ", " +
+                   srcValues[index * 3 + 2].toString() + "]";
+    },
+    returnValueAsString: function(value) {
+      return value === null ? 'null' :
+          ("[" + value[0] + ", " + value[1] + ", " + value[2] + "]");
+    },
+    checkType: function(value) {
+      return value &&
+             typeof value.length === 'number' &&
+             value.length == 3;
+    },
+    checkValue: function(typeInfo, index, value) {
+      return value !== null &&
+             typeInfo.srcValues[index * 3 + 0] == value[0] &&
+             typeInfo.srcValues[index * 3 + 1] == value[1] &&
+             typeInfo.srcValues[index * 3 + 2] == value[2];
+    },
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8],
+    srcValuesLess: [16, 15],
+    srcValuesLessMultiple: [16, 15, 14, 13, 12, 11],
+    srcValuesMoreMultiple: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
+    srcValuesNonMultiple: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7],
+  },
+  { type: 'vec4',
+    jsTypeOf: 'Float32Array',
+    setter: 'uniform4fv',
+    elem: '[3]',
+    numSrcValues: 3,
+    invalidSet: function(loc) {
+      gl.uniform1fv(loc, [2]);
+    },
+    illegalSet: function(loc) {
+      gl.uniform1fv(loc, 2);
+    },
+    srcValueAsString: function(index, srcValues) {
+      return "[" + srcValues[index * 4 + 0].toString() + ", " +
+                   srcValues[index * 4 + 1].toString() + ", " +
+                   srcValues[index * 4 + 2].toString() + ", " +
+                   srcValues[index * 4 + 3].toString() + "]";
+    },
+    returnValueAsString: function(value) {
+      return value === null ? 'null' :
+          ("[" + value[0] + ", " + value[1] +
+           ", " + value[2] + ", " + value[3] + "]");
+    },
+    checkType: function(value) {
+      return value &&
+             typeof value.length === 'number' &&
+             value.length == 4;
+    },
+    checkValue: function(typeInfo, index, value) {
+      return value !== null &&
+             typeInfo.srcValues[index * 4 + 0] == value[0] &&
+             typeInfo.srcValues[index * 4 + 1] == value[1] &&
+             typeInfo.srcValues[index * 4 + 2] == value[2] &&
+             typeInfo.srcValues[index * 4 + 3] == value[3];
+    },
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesLess: [16, 15, 14],
+    srcValuesLessMultiple: [16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesMoreMultiple: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesNonMultiple: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4],
+  }
+];
+
+for (var tt = 0; tt < typeInfos.length; ++tt) {
+  var typeInfo = typeInfos[tt];
+  debug("");
+  debug("check " + typeInfo.type);
+  var fSrc = wtu.replaceParams(fTemplate, typeInfo);
+  //debug("fSrc: " + fSrc);
+  var program = wtu.loadProgram(gl, vSrc, fSrc);
+
+  var numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+  assertMsg(numUniforms == 1, "1 uniform found");
+  var info = gl.getActiveUniform(program, 0);
+  assertMsg(info.name == "color[0]",
+            "uniform name is 'color[0]' not 'color' as per OpenGL ES 2.0.24 section 2.10");
+  shouldBeNull("gl.getUniformLocation(program, 'color[" + MaxInt32PlusOne + "]');");
+  var loc = gl.getUniformLocation(program, "color[0]");
+  var srcValues = typeInfo.srcValues;
+  var srcValuesLess = typeInfo.srcValuesLess;
+  var srcValuesLessMultiple = typeInfo.srcValuesLessMultiple;
+  var srcValuesMoreMultiple = typeInfo.srcValuesMoreMultiple;
+  var srcValuesNonMultiple = typeInfo.srcValuesNonMultiple;
+
+  // Try setting the value before using the program
+  gl[typeInfo.setter](loc, srcValues);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+                  "should fail if there is no current program");
+
+  gl.useProgram(program);
+  gl[typeInfo.setter](loc, srcValuesLess);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+                  "should fail with insufficient array size with gl." + typeInfo.setter);
+  if (srcValuesNonMultiple) {
+    gl[typeInfo.setter](loc, srcValuesNonMultiple);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+                    "should fail with non-multiple array size with gl." + typeInfo.setter);
+  }
+  gl[typeInfo.setter](loc, srcValues);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                  "can set an array of uniforms with gl." + typeInfo.setter);
+  gl[typeInfo.setter](loc, srcValuesLessMultiple);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                  "can partially set an array of uniforms with gl." + typeInfo.setter + " with a smaller array");
+  gl[typeInfo.setter](loc, srcValuesMoreMultiple);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                  "can set an array of uniforms with gl." + typeInfo.setter + " with a larger array");
+
+  var values = gl.getUniform(program, loc);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                  "can call gl.getUniform");
+  assertMsg(typeInfo.checkType(values),
+            "gl.getUniform returns the correct type.");
+  for (var ii = 0; ii < typeInfo.numSrcValues; ++ii) {
+    shouldBeNull("gl.getUniformLocation(program, 'color[" + (MaxInt32PlusOne + ii) + "]')");
+    var elemLoc = gl.getUniformLocation(program, "color[" + ii + "]");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                    "can get location of element " + ii +
+                    " of array from gl.getUniformLocation");
+    var value = gl.getUniform(program, elemLoc);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                    "can get value of element " + ii + " of array from gl.getUniform");
+    assertMsg(typeInfo.checkValue(typeInfo, ii, value),
+              "value put in (" + typeInfo.srcValueAsString(ii, srcValues) +
+              ") matches value pulled out (" +
+              typeInfo.returnValueAsString(value) + ")");
+  }
+  typeInfo.invalidSet(loc);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+                  "using the wrong size of gl.Uniform fails");
+  var exceptionCaught = false;
+  if (typeInfo.illegalSet) {
+    try {
+      typeInfo.illegalSet(loc);
+    } catch (e) {
+      exceptionCaught = true;
+    }
+    assertMsg(exceptionCaught, "passing non-array to glUniform*fv should throw TypeError");
+  }
+
+  gl.useProgram(null);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                  "can call gl.useProgram(null)");
+}
+
+// This test is to test drivers the have bugs related to optimizing
+// an array of uniforms when only 1 of those uniforms is used.
+debug("");
+debug("Test drivers don't over optimize unused array elements");
+var maxUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
+var tests = [
+ { desc: "using last element",
+   maxUniformVectors: maxUniformVectors,
+   usedUniformVector: maxUniformVectors - 1,
+   shader: "fshader-max",
+   color: [0, 1, 0, 1],
+   arrayName: "colora",
+   extraName: "colorb",
+ },
+ { desc: "using first element",
+   maxUniformVectors: maxUniformVectors,
+   usedUniformVector: 0,
+   shader: "fshader-max",
+   color: [0, 1, 0, 1],
+   arrayName: "colora",
+   extraName: "colorb",
+ },
+];
+
+// Generate test shaders. We're trying to force the driver to
+// overflow from 1 array into the next if it optimizes. So for example if it was C
+//
+//   int big[4];
+//   int little[1];
+//   big[5] = 124;
+//
+// Would end up setting little[0] instead of big. Some drivers optimize
+// where if you only use say 'big[3]' it will actually only allocate just 1 element
+// for big.
+//
+// But, some drivers have a bug where the fact that they optimized big to 1 element
+// does not get passed down to glUniform so when setting the uniform 'big[3]' they
+// overwrite memory.
+//
+// If the driver crashes, yea. We found a bug. We can blacklist the driver.
+// Otherwise we try various combinations so that setting 'little[0]' first
+// and then setting all elements of 'big' we hope it will overwrite 'little[0]'
+// which will show the bug and again we can blacklist the driver.
+//
+// We don't know how the driver will order, in memory, the various uniforms
+// or for that matter we don't even know if they will be contiguous in memory
+// but to hopefully expose any bugs we try various combinations.
+//
+//    It could be the compiler orders uniforms alphabetically.
+//    It could be it orders them in order of declaration.
+//    It could be it orders them in order of usage.
+//
+// We also test using only first element of big or just the last element of big.
+//
+for (var nameOrder = 0; nameOrder < 2; ++nameOrder) {
+  var name1 = nameOrder ? "colora" : "colorb";
+  var name2 = nameOrder ? "colorb" : "colora";
+  for (var last = 0; last < 2; ++last) {
+    var usedUniformVector = last ? maxUniformVectors - 2 : 0;
+    for (var declOrder = 0; declOrder < 2; ++declOrder) {
+      var bigName    = declOrder ? name1 : name2;
+      var littleName = declOrder ? name2 : name1;
+      var decl1 = bigName + "[" + (maxUniformVectors - 1) + "]";
+      var decl2 = littleName + "[1]";
+      if (declOrder) {
+        var t = decl1;
+        decl1 = decl2;
+        decl2 = t;
+      }
+      for (var usageOrder = 0; usageOrder < 2; ++usageOrder) {
+        var usage1 = bigName + "[" + usedUniformVector + "]";
+        var usage2 = littleName + "[0]";
+        if (usageOrder) {
+          var t = usage1;
+          usage1 = usage2;
+          usage2 = t;
+        }
+        var fSrc = wtu.replaceParams(wtu.getScript("fshader-max-ab-ab"), {
+          decl1: decl1,
+          decl2: decl2,
+          usage1: usage1,
+          usage2: usage2,
+        });
+        var desc = "testing: " + name1 + ":" + name2 + " using " + (last ? "last" : "first") +
+            " creating uniforms " + decl1 + " " + decl2 + " and accessing " + usage1 + " " + usage2;
+        tests.push({
+          desc: desc,
+          maxUniformVectors: maxUniformVectors - 1,
+          usedUniformVector: usedUniformVector,
+          source: fSrc,
+          color: [0, 0, 0, 1],
+          arrayName: bigName,
+          extraName: littleName,
+        });
+      }
+    }
+  }
+}
+
+var allRequiredUniformLocationsQueryable = true;
+function testUniformOptimizationIssues(testIndex) {
+  var test = tests[testIndex];
+  debug("");
+  debug(test.desc);
+  var fSrc = test.source;
+  if (!fSrc) {
+    fSrc = wtu.replaceParams(wtu.getScript(test.shader), test);
+  }
+
+  var consoleElem = document.getElementById("console");
+  wtu.addShaderSource(
+      consoleElem, "vertex shader", vSrc);
+  wtu.addShaderSource(
+      consoleElem, "fragment shader", fSrc);
+
+  var program = wtu.loadProgram(gl, vSrc, fSrc);
+  gl.useProgram(program);
+
+  var colorbLocation = gl.getUniformLocation(program, test.extraName + "[0]");
+  if (colorbLocation) {
+    gl.uniform4fv(colorbLocation, [0, 1, 0, 0]);
+  }
+
+  // Ensure that requesting an array uniform past MaxInt32PlusOne returns no uniform
+  var nameMaxInt32PlusOne = test.arrayName + "[" + (test.usedUniformVector + MaxInt32PlusOne) + "]";
+  assertMsg(gl.getUniformLocation(program, nameMaxInt32PlusOne) === null, 
+    "Requesting " + nameMaxInt32PlusOne + " uniform should return a null uniform location");
+
+  // Set just the used uniform
+  var name = test.arrayName + "[" + test.usedUniformVector + "]";
+  var uniformLocation = gl.getUniformLocation(program, name);
+  gl.uniform4fv(uniformLocation, test.color);
+  wtu.setupIndexedQuad(gl, 1, positionLoc);
+  wtu.clearAndDrawIndexedQuad(gl, 1);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+
+  // Set all the unused uniforms
+  var locations = [];
+  allRequiredUniformLocationsQueryable = true;
+  for (var ii = 0; ii < test.maxUniformVectors; ++ii) {
+    var name = test.arrayName + "[" + ii + "]";
+    var uniformLocation = gl.getUniformLocation(program, name);
+    locations.push(uniformLocation);
+    if (ii == test.usedUniformVector) {
+      continue;
+    }
+    // Locations > usedUnformVector may not exist.
+    // Locations <= usedUniformVector MUST exist.
+    if (ii <= test.usedUniformVector && (uniformLocation === undefined || uniformLocation === null)) {
+      allRequiredUniformLocationsQueryable = false;
+    }
+    gl.uniform4fv(uniformLocation, [1, 0, 0, 1]);
+  }
+  shouldBeTrue("allRequiredUniformLocationsQueryable");
+  var positionLoc = gl.getAttribLocation(program, "a_position");
+  wtu.setupIndexedQuad(gl, 1, positionLoc);
+  wtu.clearAndDrawIndexedQuad(gl, 1);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+
+  // Check we can read & write each uniform.
+  // Note: uniforms past test.usedUniformVector might not exist.
+  for (var ii = 0; ii < test.maxUniformVectors; ++ii) {
+    gl.uniform4fv(locations[ii], [ii + 4, ii + 2, ii + 3, ii + 1]);
+  }
+
+  var kEpsilon = 0.01;
+  var isSame = function(v1, v2) {
+    return Math.abs(v1 - v2) < kEpsilon;
+  };
+
+  for (var ii = 0; ii < test.maxUniformVectors; ++ii) {
+    var location = locations[ii];
+    if (location) {
+      var value = gl.getUniform(program, locations[ii]);
+      if (!isSame(value[0], ii + 4) ||
+          !isSame(value[1], ii + 2) ||
+          !isSame(value[2], ii + 3) ||
+          !isSame(value[3], ii + 1)) {
+        testFailed("location: " + ii + " was not correct value");
+        break;
+      }
+    }
+  }
+}
+
+var testIndex = 0;
+function runNextTest() {
+  testUniformOptimizationIssues(testIndex++);
+  if (testIndex < tests.length) {
+    setTimeout(runNextTest, 0);
+  } else {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+    debug("");
+    finishTest();
+  }
+}
+runNextTest();
+
+var successfullyParsed = true;
+
+</script>
+</body>
+</html>

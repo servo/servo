@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/x-javascript" src="../unit.js"></script>
+<script type="application/x-javascript" src="../util.js"></script>
+<script type="application/x-javascript">
+
+/*
+  The following tests are generated from
+  http://www.khronos.org/registry/gles/api/2.0/gl2.h
+  and api_modifications.txt
+*/
+var methods = ['canvas',
+"activeTexture",
+"attachShader",
+"bindAttribLocation",
+"bindBuffer",
+"bindFramebuffer",
+"bindRenderbuffer",
+"bindTexture",
+"blendColor",
+"blendEquation",
+"blendEquationSeparate",
+"blendFunc",
+"blendFuncSeparate",
+"bufferData",
+"bufferSubData",
+"checkFramebufferStatus",
+"clear",
+"clearColor",
+"clearDepth",
+"clearStencil",
+"colorMask",
+"compileShader",
+"copyTexImage2D",
+"copyTexSubImage2D",
+"createProgram",
+"createShader",
+"cullFace",
+"deleteBuffer",
+"deleteFramebuffer",
+"deleteProgram",
+"deleteRenderbuffer",
+"deleteShader",
+"deleteTexture",
+"depthFunc",
+"depthMask",
+"depthRange",
+"detachShader",
+"disable",
+"disableVertexAttribArray",
+"drawArrays",
+"drawElements",
+"enable",
+"enableVertexAttribArray",
+"finish",
+"flush",
+"framebufferRenderbuffer",
+"framebufferTexture2D",
+"frontFace",
+"createBuffer",
+"generateMipmap",
+"createFramebuffer",
+"createRenderbuffer",
+"createTexture",
+"getActiveAttrib",
+"getActiveUniform",
+"getAttachedShaders",
+"getAttribLocation",
+"getBufferParameter",
+"getError",
+"getExtension",
+"getSupportedExtensions",
+"getFramebufferAttachmentParameter",
+"getProgramInfoLog",
+"getRenderbufferParameter",
+"getShaderInfoLog",
+"getShaderSource",
+"getUniformLocation",
+"hint",
+"isBuffer",
+"isContextLost",
+"isEnabled",
+"isFramebuffer",
+"isProgram",
+"isRenderbuffer",
+"isShader",
+"isTexture",
+"lineWidth",
+"linkProgram",
+"polygonOffset",
+"readPixels",
+"renderbufferStorage",
+"sampleCoverage",
+"scissor",
+"shaderSource",
+"stencilFunc",
+"stencilFuncSeparate",
+"stencilMask",
+"stencilMaskSeparate",
+"stencilOp",
+"stencilOpSeparate",
+"texImage2D",
+"texParameteri",
+"texSubImage2D",
+"uniform1f",
+"uniform1fv",
+"uniform1i",
+"uniform1iv",
+"uniform2f",
+"uniform2fv",
+"uniform2i",
+"uniform2iv",
+"uniform3f",
+"uniform3fv",
+"uniform3i",
+"uniform3iv",
+"uniform4f",
+"uniform4fv",
+"uniform4i",
+"uniform4iv",
+"uniformMatrix2fv",
+"uniformMatrix3fv",
+"uniformMatrix4fv",
+"useProgram",
+"validateProgram",
+"vertexAttrib1f",
+"vertexAttrib1fv",
+"vertexAttrib2f",
+"vertexAttrib2fv",
+"vertexAttrib3f",
+"vertexAttrib3fv",
+"vertexAttrib4f",
+"vertexAttrib4fv",
+"vertexAttribPointer",
+"viewport",
+"getParameter",
+"getProgramParameter",
+"getShaderParameter",
+"getTexParameter",
+"getUniform",
+"getVertexAttrib"
+]
+
+Tests.testOES20Methods = function(gl) {
+  for (var i=0; i<methods.length; i++) {
+    assertProperty(gl, methods[i]);
+  }
+  var extended = false;
+  for (var i in gl) {
+    if (i.match(/^[a-z_]+$/) && methods.indexOf(i) == -1) {
+      if (!extended) {
+        extended = true;
+        var h = document.createElement('h3');
+        h.textContent = "Also found the following extra properties";
+        __testLog__.appendChild(h);
+      }
+      log(i);
+    }
+  }
+}
+
+Tests.startUnit = function() {
+  var canvas = document.getElementById('gl');
+  var gl = wrapGLContext(getGLContext(canvas));
+  return [gl];
+}
+
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+  <canvas id="gl" width="1" height="1"></canvas>
+</body></html>

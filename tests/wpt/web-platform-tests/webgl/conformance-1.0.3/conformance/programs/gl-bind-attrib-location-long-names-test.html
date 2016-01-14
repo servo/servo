@@ -1,0 +1,176 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BindAttribLocation Long Names Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas style="border: 1px solid black;" id="canvas" width="50" height="50"></canvas>
+<script id="vshader" type="text/something-not-javascript">
+attribute vec4 vPosition$(suffix);
+attribute vec4 vColor$(suffix);
+varying vec4 color;
+void main()
+{
+  gl_Position = vPosition$(suffix);
+  color = vColor$(suffix);
+}
+</script>
+<script id="fshader" type="text/something-not-javascript">
+precision mediump float;
+
+varying vec4 color;
+void main()
+{
+  gl_FragColor = color;
+}
+</script>
+<script>
+"use strict";
+description("This test checks using long names with bindAttribLocation work.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+shouldBeNonNull("gl");
+
+debug("");
+debug("Checking gl.bindAttribLocation with long names.");
+
+var program = gl.createProgram();
+
+var suffix = "long";
+for (var ii = 0; ii < 5; ++ii) {
+  suffix = suffix + suffix;
+}
+var replacements = {
+  suffix: suffix
+};
+
+var vsrc = wtu.replaceParams(wtu.getScript("vshader"), replacements);
+var fsrc = wtu.replaceParams(wtu.getScript("fshader"), replacements);
+
+var vs = wtu.loadShader(gl, vsrc, gl.VERTEX_SHADER);
+var fs = wtu.loadShader(gl, fsrc, gl.FRAGMENT_SHADER);
+
+var attribs = {
+  vPosition: "vPosition" + suffix,
+  vColor: "vColor" + suffix
+};
+
+gl.attachShader(program, vs);
+gl.attachShader(program, fs);
+
+var positions = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positions);
+gl.bufferData(
+  gl.ARRAY_BUFFER,
+  new Float32Array(
+      [ 1.0,  1.0, 0.0,
+       -1.0,  1.0, 0.0,
+       -1.0, -1.0, 0.0,
+        1.0,  1.0, 0.0,
+       -1.0, -1.0, 0.0,
+        1.0, -1.0, 0.0]),
+  gl.STATIC_DRAW);
+
+var colors = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, colors);
+gl.bufferData(
+  gl.ARRAY_BUFFER,
+  new Float32Array(
+      [ 0,1,0,1,
+        0,1,0,1,
+        0,1,0,1,
+        0,1,0,1,
+        0,1,0,1,
+        0,1,0,1]),
+  gl.STATIC_DRAW);
+
+function setBindLocations(colorLocation, positionLocation) {
+  gl.bindAttribLocation(program, positionLocation, attribs.vPosition);
+  gl.bindAttribLocation(program, colorLocation, attribs.vColor);
+  gl.linkProgram(program);
+  gl.useProgram(program);
+  var linked = (gl.getProgramParameter(program, gl.LINK_STATUS) != 0);
+  assertMsg(linked, "program linked successfully");
+
+  debug("vPosition:" + gl.getAttribLocation(program, attribs.vPosition))
+  debug("vColor   :" + gl.getAttribLocation(program, attribs.vColor))
+  assertMsg(gl.getAttribLocation(program, attribs.vPosition) == positionLocation,
+            "location of vPosition should be " + positionLocation);
+  assertMsg(gl.getAttribLocation(program, attribs.vColor) == colorLocation,
+            "location of vColor should be " + colorLocation);
+
+  var ploc = gl.getAttribLocation(program, attribs.vPosition);
+  var cloc = gl.getAttribLocation(program, attribs.vColor);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positions);
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, colors);
+  gl.enableVertexAttribArray(colorLocation);
+  gl.vertexAttribPointer(colorLocation, 4, gl.FLOAT, false, 0, 0);
+}
+
+function checkDraw(colorLocation, positionLocation, r, g, b, a) {
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [r, g, b, a], "should be green");
+
+  gl.disableVertexAttribArray(positionLocation);
+  gl.disableVertexAttribArray(colorLocation);
+}
+
+setBindLocations(2, 3);
+checkDraw(2, 3, 0, 255, 0, 255);
+
+setBindLocations(0, 3);
+gl.disableVertexAttribArray(0);
+gl.vertexAttrib4f(0, 1, 0, 0, 1);
+checkDraw(0, 3, 255, 0, 0, 255);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,243 @@
+﻿<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_frag_depth Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing fragment depth writing -->
+
+<!-- Shader omitting the required #extension pragma -->
+<script id="missingPragmaFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragDepthEXT = 1.0;
+}
+</script>
+
+<!-- Shader to test macro definition -->
+<script id="macroFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+#ifdef GL_EXT_frag_depth
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+#else
+    // Error expected
+    #error no GL_EXT_frag_depth;
+#endif
+}
+</script>
+
+<!-- Shader with required #extension pragma -->
+<script id="testFragmentShader" type="x-shader/x-fragment">
+#extension GL_EXT_frag_depth : enable
+precision mediump float;
+void main() {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragDepthEXT = 1.0;
+}
+</script>
+<!-- Shaders to link with test fragment shaders -->
+<script id="goodVertexShader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main() {
+    gl_Position = vPosition;
+}
+</script>
+<!-- Shaders to test output -->
+<script id="outputVertexShader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main() {
+    gl_Position = vPosition;
+}
+</script>
+<script id="outputFragmentShader" type="x-shader/x-fragment">
+#extension GL_EXT_frag_depth : enable
+precision mediump float;
+uniform float uDepth;
+void main() {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragDepthEXT = uDepth;
+}
+</script>
+
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_frag_depth extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runShaderTests(false);
+
+    // Query the extension and store globally so shouldBe can access it
+    ext = wtu.getExtensionWithKnownPrefixes(gl, "EXT_frag_depth");
+    if (!ext) {
+        testPassed("No EXT_frag_depth support -- this is legal");
+
+        runSupportedTest(false);
+    } else {
+        testPassed("Successfully enabled EXT_frag_depth extension");
+
+        runSupportedTest(true);
+
+        runShaderTests(true);
+        runOutputTests();
+        runUniqueObjectTest();
+    }
+}
+
+function runSupportedTest(extensionEnabled) {
+    var supported = gl.getSupportedExtensions();
+    if (supported.indexOf("EXT_frag_depth") >= 0) {
+        if (extensionEnabled) {
+            testPassed("EXT_frag_depth listed as supported and getExtension succeeded");
+        } else {
+            testFailed("EXT_frag_depth listed as supported but getExtension failed");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("EXT_frag_depth not listed as supported but getExtension succeeded");
+        } else {
+            testPassed("EXT_frag_depth not listed as supported and getExtension failed -- this is legal");
+        }
+    }
+}
+
+function runShaderTests(extensionEnabled) {
+    debug("");
+    debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    // Expect the macro shader to succeed ONLY if enabled
+    var macroFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "macroFragmentShader");
+    if (extensionEnabled) {
+        if (macroFragmentProgram) {
+            // Expected result
+            testPassed("GL_EXT_frag_depth defined in shaders when extension is enabled");
+        } else {
+            testFailed("GL_EXT_frag_depth not defined in shaders when extension is enabled");
+        }
+    } else {
+        if (macroFragmentProgram) {
+            testFailed("GL_EXT_frag_depth defined in shaders when extension is disabled");
+        } else {
+            testPassed("GL_EXT_frag_depth not defined in shaders when extension disabled");
+        }
+    }
+
+    // Always expect the shader missing the #pragma to fail (whether enabled or not)
+    var missingPragmaFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "missingPragmaFragmentShader");
+    if (missingPragmaFragmentProgram) {
+        testFailed("Shader built-ins allowed without #extension pragma");
+    } else {
+        testPassed("Shader built-ins disallowed without #extension pragma");
+    }
+
+    // Try to compile a shader using the built-ins that should only succeed if enabled
+    var testFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "testFragmentShader");
+    if (extensionEnabled) {
+        if (testFragmentProgram) {
+            testPassed("Shader built-ins compiled successfully when extension enabled");
+        } else {
+            testFailed("Shader built-ins failed to compile when extension enabled");
+        }
+    } else {
+        if (testFragmentProgram) {
+            testFailed("Shader built-ins compiled successfully when extension disabled");
+        } else {
+            testPassed("Shader built-ins failed to compile when extension disabled");
+        }
+    }
+}
+
+function runOutputTests() {
+    var e = 2; // Amount of variance to allow in result pixels - may need to be tweaked higher
+
+    debug("Testing various draws for valid built-in function behavior");
+
+    canvas.width = 50; canvas.height = 50;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
+    // Enable depth testing with a clearDepth of 0.5
+    // This makes it so that fragments are only rendered when
+    // gl_fragDepthEXT is < 0.5
+    gl.clearDepth(0.5);
+    gl.enable(gl.DEPTH_TEST);
+
+    var positionLoc = 0;
+    var texcoordLoc = 1;
+    var program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"], ['vPosition'], [0]);
+    var quadParameters = wtu.setupUnitQuad(gl, 0, 1);
+    var depthUniform = gl.getUniformLocation(program, "uDepth");
+
+    // Draw 1: Greater than clear depth
+    gl.uniform1f(depthUniform, 1.0);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 255, 255, 255]);
+
+    // Draw 2: Less than clear depth
+    gl.uniform1f(depthUniform, 0.0);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 0, 0, 255]);
+}
+
+function runUniqueObjectTest()
+{
+    debug("Testing that getExtension() returns the same object each time");
+    gl.getExtension("EXT_frag_depth").myProperty = 2;
+    gc();
+    shouldBe('gl.getExtension("EXT_frag_depth").myProperty', '2');
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

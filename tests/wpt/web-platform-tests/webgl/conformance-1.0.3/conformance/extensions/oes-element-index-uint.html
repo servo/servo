@@ -1,0 +1,448 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL OES_element_index_uint Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+
+<script id="vs" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec4 vColor;
+varying vec4 color;
+void main() {
+    gl_Position = vPosition;
+    color = vColor;
+}
+</script>
+<script id="fs" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 color;
+void main() {
+  gl_FragColor = color;
+}
+</script>
+
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the OES_element_index_uint extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = null;
+var ext = null;
+var canvas = null;
+
+// Test both STATIC_DRAW and DYNAMIC_DRAW as a regression test
+// for a bug in ANGLE which has since been fixed.
+for (var ii = 0; ii < 2; ++ii) {
+    canvas = document.createElement("canvas");
+    canvas.width = 50;
+    canvas.height = 50;
+
+    gl = wtu.create3DContext(canvas);
+
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+    } else {
+        testPassed("WebGL context exists");
+    
+        var drawType = (ii == 0) ? gl.STATIC_DRAW : gl.DYNAMIC_DRAW;
+        debug("Testing " + ((ii == 0) ? "STATIC_DRAW" : "DYNAMIC_DRAW"));
+
+
+        // Query the extension and store globally so shouldBe can access it
+        ext = gl.getExtension("OES_element_index_uint");
+        if (!ext) {
+            testPassed("No OES_element_index_uint support -- this is legal");
+
+            runSupportedTest(false);
+        } else {
+            testPassed("Successfully enabled OES_element_index_uint extension");
+
+            runSupportedTest(true);
+
+            runDrawTests(drawType);
+
+            // These tests are tweaked duplicates of the buffers/index-validation* tests
+            // using unsigned int indices to ensure that behavior remains consistent
+            runIndexValidationTests(drawType);
+            runCopiesIndicesTests(drawType);
+            runResizedBufferTests(drawType);
+            runVerifiesTooManyIndicesTests(drawType);
+            runCrashWithBufferSubDataTests(drawType);
+
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+        }
+    }
+}
+
+function runSupportedTest(extensionEnabled) {
+    var supported = gl.getSupportedExtensions();
+    if (supported.indexOf("OES_element_index_uint") >= 0) {
+        if (extensionEnabled) {
+            testPassed("OES_element_index_uint listed as supported and getExtension succeeded");
+        } else {
+            testFailed("OES_element_index_uint listed as supported but getExtension failed");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("OES_element_index_uint not listed as supported but getExtension succeeded");
+        } else {
+            testPassed("OES_element_index_uint not listed as supported and getExtension failed -- this is legal");
+        }
+    }
+}
+
+function runDrawTests(drawType) {
+    debug("Test that draws with unsigned integer indices produce the expected results");
+    
+    canvas.width = 50; canvas.height = 50;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
+    var program = wtu.setupNoTexCoordTextureProgram(gl);
+
+    function setupDraw(s) {
+        // Create a vertex buffer that cannot be fully indexed via shorts
+        var quadArrayLen = 65537 * 3;
+        var quadArray = new Float32Array(quadArrayLen);
+        
+        // Leave all but the last 4 values zero-ed out
+        var idx = quadArrayLen - 12;
+
+        // Initialized the last 4 values to a quad
+        quadArray[idx++] = 1.0 * s;
+        quadArray[idx++] = 1.0 * s;
+        quadArray[idx++] = 0.0;
+
+        quadArray[idx++] = -1.0 * s;
+        quadArray[idx++] = 1.0 * s;
+        quadArray[idx++] = 0.0;
+
+        quadArray[idx++] = -1.0 * s;
+        quadArray[idx++] = -1.0 * s;
+        quadArray[idx++] = 0.0;
+
+        quadArray[idx++] = 1.0 * s;
+        quadArray[idx++] = -1.0 * s;
+        quadArray[idx++] = 0.0;
+
+        var vertexObject = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+        gl.bufferData(gl.ARRAY_BUFFER, quadArray, drawType);
+
+        // Create an unsigned int index buffer that indexes the last 4 vertices
+        var baseIndex = (quadArrayLen / 3) - 4;
+
+        var indexObject = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array([
+            baseIndex + 0,
+            baseIndex + 1,
+            baseIndex + 2,
+            baseIndex + 2,
+            baseIndex + 3,
+            baseIndex + 0]), drawType);
+
+        var opt_positionLocation = 0;
+        gl.enableVertexAttribArray(opt_positionLocation);
+        gl.vertexAttribPointer(opt_positionLocation, 3, gl.FLOAT, false, 0, 0);
+    };
+    function testPixel(blackList, whiteList) {
+        function testList(list, expected) {
+            for (var n = 0; n < list.length; n++) {
+                var l = list[n];
+                var x = -Math.floor(l * canvas.width / 2) + canvas.width / 2;
+                var y = -Math.floor(l * canvas.height / 2) + canvas.height / 2;
+                wtu.checkCanvasRect(gl, x, y, 1, 1, [expected, expected, expected],
+                    "Draw should pass", 2);
+            }
+        }
+        testList(blackList, 0);
+        testList(whiteList, 255);
+    };
+    function verifyDraw(s) {
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+
+        var blackList = [];
+        var whiteList = [];
+        var points = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+        for (var n = 0; n < points.length; n++) {
+            if (points[n] <= s) {
+                blackList.push(points[n]);
+            } else {
+                whiteList.push(points[n]);
+            }
+        }
+        testPixel(blackList, whiteList);
+    };
+
+    setupDraw(0.5);
+    verifyDraw(0.5);
+}
+
+function runIndexValidationTests(drawType) {
+    description("Tests that index validation verifies the correct number of indices");
+
+    function sizeInBytes(type) {
+      switch (type) {
+      case gl.BYTE:
+      case gl.UNSIGNED_BYTE:
+        return 1;
+      case gl.SHORT:
+      case gl.UNSIGNED_SHORT:
+        return 2;
+      case gl.INT:
+      case gl.UNSIGNED_INT:
+      case gl.FLOAT:
+        return 4;
+      default:
+        throw "unknown type";
+      }
+    }
+
+    var program = wtu.loadStandardProgram(gl);
+
+    // 3 vertices => 1 triangle, interleaved data
+    var dataComplete = new Float32Array([0, 0, 0, 1,
+                                         0, 0, 1,
+                                         1, 0, 0, 1,
+                                         0, 0, 1,
+                                         1, 1, 1, 1,
+                                         0, 0, 1]);
+    var dataIncomplete = new Float32Array([0, 0, 0, 1,
+                                           0, 0, 1,
+                                           1, 0, 0, 1,
+                                           0, 0, 1,
+                                           1, 1, 1, 1]);
+    var indices = new Uint32Array([0, 1, 2]);
+
+    debug("Testing with valid indices");
+
+    var bufferComplete = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferComplete);
+    gl.bufferData(gl.ARRAY_BUFFER, dataComplete, drawType);
+    var elements = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elements);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, drawType);
+    gl.useProgram(program);
+    var vertexLoc = gl.getAttribLocation(program, "a_vertex");
+    var normalLoc = gl.getAttribLocation(program, "a_normal");
+    gl.vertexAttribPointer(vertexLoc, 4, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), 0);
+    gl.enableVertexAttribArray(vertexLoc);
+    gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), 4 * sizeInBytes(gl.FLOAT));
+    gl.enableVertexAttribArray(normalLoc);
+    shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    debug("Testing with out-of-range indices");
+
+    var bufferIncomplete = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferIncomplete);
+    gl.bufferData(gl.ARRAY_BUFFER, dataIncomplete, drawType);
+    gl.vertexAttribPointer(vertexLoc, 4, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), 0);
+    gl.enableVertexAttribArray(vertexLoc);
+    gl.disableVertexAttribArray(normalLoc);
+    debug("Enable vertices, valid");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    debug("Enable normals, out-of-range");
+    gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), 4 * sizeInBytes(gl.FLOAT));
+    gl.enableVertexAttribArray(normalLoc);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+    debug("Test with enabled attribute that does not belong to current program");
+
+    gl.disableVertexAttribArray(normalLoc);
+    var extraLoc = Math.max(vertexLoc, normalLoc) + 1;
+    gl.enableVertexAttribArray(extraLoc);
+    debug("Enable an extra attribute with null");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+    debug("Enable an extra attribute with insufficient data buffer");
+    gl.vertexAttribPointer(extraLoc, 3, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), 4 * sizeInBytes(gl.FLOAT));
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
+    debug("Pass large negative index to vertexAttribPointer");
+    gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), -2000000000 * sizeInBytes(gl.FLOAT));
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
+}
+
+function runCopiesIndicesTests(drawType) {
+    debug("Test that client data is always copied during bufferData and bufferSubData calls");
+
+    var program = wtu.loadStandardProgram(gl);
+
+    gl.useProgram(program);
+    var vertexObject = gl.createBuffer();
+    gl.enableVertexAttribArray(0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+    // 4 vertices -> 2 triangles
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0,0, 0,1,0, 1,0,0, 1,1,0 ]), drawType);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    var indexObject = gl.createBuffer();
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
+    var indices = new Uint32Array([ 10000, 0, 1, 2, 3, 10000 ]);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, drawType);
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 4)");
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 0)");
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 8)");
+    indices[0] = 2;
+    indices[5] = 1;
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 4)");
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 0)");
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 8)");
+}
+
+function runResizedBufferTests(drawType) {
+    debug("Test that updating the size of a vertex buffer is properly noticed by the WebGL implementation.");
+
+    var program = wtu.setupProgram(gl, ["vs", "fs"], ["vPosition", "vColor"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after initialization");
+
+    var vertexObject = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(
+        [-1,1,0, 1,1,0, -1,-1,0,
+         -1,-1,0, 1,1,0, 1,-1,0]), drawType);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after vertex setup");
+
+    var texCoordObject = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordObject);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(
+        [0,0, 1,0, 0,1,
+         0,1, 1,0, 1,1]), drawType);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after texture coord setup");
+
+    // Now resize these buffers because we want to change what we're drawing.
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1,1,0, 1,1,0, -1,-1,0, 1,-1,0,
+        -1,1,0, 1,1,0, -1,-1,0, 1,-1,0]), drawType);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after vertex redefinition");
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordObject);
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array([
+        255, 0, 0, 255,
+        255, 0, 0, 255,
+        255, 0, 0, 255,
+        255, 0, 0, 255,
+        0, 255, 0, 255,
+        0, 255, 0, 255,
+        0, 255, 0, 255,
+        0, 255, 0, 255]), drawType);
+    gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, false, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after texture coordinate / color redefinition");
+
+    var numQuads = 2;
+    var indices = new Uint32Array(numQuads * 6);
+    for (var ii = 0; ii < numQuads; ++ii) {
+        var offset = ii * 6;
+        var quad = (ii == (numQuads - 1)) ? 4 : 0;
+        indices[offset + 0] = quad + 0;
+        indices[offset + 1] = quad + 1;
+        indices[offset + 2] = quad + 2;
+        indices[offset + 3] = quad + 2;
+        indices[offset + 4] = quad + 1;
+        indices[offset + 5] = quad + 3;
+    }
+    var indexObject = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, drawType);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after setting up indices");
+    gl.drawElements(gl.TRIANGLES, numQuads * 6, gl.UNSIGNED_INT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawing");
+}
+
+function runVerifiesTooManyIndicesTests(drawType) {
+    description("Tests that index validation for drawElements does not examine too many indices");
+
+    var program = wtu.loadStandardProgram(gl);
+
+    gl.useProgram(program);
+    var vertexObject = gl.createBuffer();
+    gl.enableVertexAttribArray(0);
+    gl.disableVertexAttribArray(1);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+    // 4 vertices -> 2 triangles
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0,0, 0,1,0, 1,0,0, 1,1,0 ]), drawType);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    var indexObject = gl.createBuffer();
+
+    debug("Test out of range indices")
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array([ 10000, 0, 1, 2, 3, 10000 ]), drawType);
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 4)");
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 0)");
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 8)");
+}
+
+function runCrashWithBufferSubDataTests(drawType) {
+    debug('Verifies that the index validation code which is within bufferSubData does not crash.')
+
+    var elementBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, 256, drawType);
+    var data = new Uint32Array(127);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 64, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "after attempting to update a buffer outside of the allocated bounds");
+    testPassed("bufferSubData, when buffer object was initialized with null, did not crash");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

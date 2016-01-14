@@ -1,0 +1,79 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description('Tests that index validation for drawElements works with large attribute buffers');
+
+var wtu = WebGLTestUtils;
+var context = wtu.create3DContext();
+var program = wtu.loadStandardProgram(context);
+
+context.useProgram(program);
+
+// Create a small index buffer.
+var indexObject = context.createBuffer();
+context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, indexObject);
+var indexArray = new Uint16Array([0, 1, 2]);
+context.bufferData(context.ELEMENT_ARRAY_BUFFER, indexArray, context.STATIC_DRAW);
+
+// Create a large attribute buffer.
+var vertexObject = context.createBuffer();
+context.enableVertexAttribArray(0);
+context.bindBuffer(context.ARRAY_BUFFER, vertexObject);
+context.bufferData(context.ARRAY_BUFFER, new Float32Array(3 * 65536), context.STATIC_DRAW);
+context.vertexAttribPointer(0, 3, context.FLOAT, false, 0, 0);
+
+debug("Test large attribute buffer")
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.drawElements(context.TRIANGLES, 3, context.UNSIGNED_SHORT, 0)");
+
+// Enlarge the attribute buffer slightly.
+debug("Test even larger attribute buffer")
+context.bufferData(context.ARRAY_BUFFER, new Float32Array(3 * 65536 + 3), context.STATIC_DRAW);
+wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.drawElements(context.TRIANGLES, 3, context.UNSIGNED_SHORT, 0)");
+
+debug("")
+var successfullyParsed = true;
+</script>
+
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../resources/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vsVec4Mat2Add" type="text/something-not-javascript">
+void main()
+{
+    mat2 m1 = mat2(1.0, 2.0, 3.0, 4.0);
+    mat2 m2 = mat2(0);
+    vec4 v = vec4(m1 + m2);
+    gl_Position = v;
+}
+</script>
+<script id="fsVec4Mat3Add" type="text/something-not-javascript">
+precision mediump float;
+void main()
+{
+    mat3 m1 = mat3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+    mat3 m2 = mat3(0);
+    vec4 v = vec4(m1 + m2);
+    gl_FragColor = v;
+}
+</script>
+
+<script id="vsMat2Vec4Sub" type="text/something-not-javascript">
+void main()
+{
+    vec4 v1 = vec4(1.0, 2.0, 3.0, 4.0);
+    vec4 v2 = vec4(0);
+    mat2 m = mat2(v1 - v2);
+    gl_Position = vec4(1.0, m);
+}
+</script>
+<script id="fsMat3Vec4AddSub" type="text/something-not-javascript">
+precision mediump float;
+void main()
+{
+    vec4 v1 = vec4(1.0, 2.0, 3.0, 4.0);
+    vec4 v2 = vec4(0);
+    mat3 m = mat3(v1 + v2, 5.0, v1 - v2);
+    gl_FragColor = vec4(m);
+}
+</script>
+
+<script id="vsVec4Mat2Func" type="text/something-not-javascript">
+mat2 f(mat2 a)
+{
+    return a;
+}
+void main()
+{
+    mat2 m = mat2(1.0, 2.0, 3.0, 4.0);
+    vec4 v = vec4(f(m));
+    gl_Position = vec4(1.0, v);
+}
+</script>
+<script id="fsVec4Mat3Func" type="text/something-not-javascript">
+precision mediump float;
+mat3 f(mat3 a)
+{
+    return a;
+}
+void main()
+{
+    mat3 m = mat3(0);
+    vec4 v = vec4(f(m));
+    gl_FragColor = v;
+}
+</script>
+
+<script id="vsMat2Vec4Func" type="text/something-not-javascript">
+vec4 f(vec4 a)
+{
+    return a;
+}
+void main()
+{
+    vec4 v = vec4(1.0, 2.0, 3.0, 4.0);
+    mat2 m = mat2(f(v));
+    gl_Position = vec4(1.0, m);
+}
+</script>
+<script id="fsMat3Vec4Func" type="text/something-not-javascript">
+precision mediump float;
+vec4 f(vec4 a)
+{
+    return a;
+}
+void main()
+{
+    vec4 v1 = vec4(1.0, 2.0, 3.0, 4.0);
+    vec4 v2 = vec4(0);
+    mat3 m = mat3(f(v1), 5.0, f(v2));
+    gl_FragColor = vec4(m);
+}
+</script>
+
+<script id="vsMat4VecMultiple" type="text/something-not-javascript">
+vec4 f(vec4 a)
+{
+    return a;
+}
+void main()
+{
+    vec2 v2 = vec2(1.0, 2.0);
+    vec3 v3 = vec3(1.0, 2.0, 3.0);
+    vec4 v4 = vec4(1.0, 2.0, 3.0, 4.0);
+    mat4 m = mat4(0.0, v2, 1.0, v3 + vec3(1), 2.0, vec4(0), f(v4));
+    gl_Position = vec4(1.0, m);
+}
+</script>
+<script id="fsMat4VecMultiple" type="text/something-not-javascript">
+precision mediump float;
+vec4 f(vec4 a)
+{
+    return a;
+}
+void main()
+{
+    vec2 v2 = vec2(1.0, 2.0);
+    vec3 v3 = vec3(1.0, 2.0, 3.0);
+    vec4 v4 = vec4(1.0, 2.0, 3.0, 4.0);
+    mat4 m = mat4(0.0, v2, 1.0, v3 + vec3(1), 2.0, vec4(0), f(v4));
+    gl_FragColor = vec4(m);
+}
+</script>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var tests = [];
+
+tests.push({
+  vShaderSource: wtu.getScript("vsVec4Mat2Add"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fsVec4Mat3Add"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "vec(mat +/- mat) works ok",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vsMat2Vec4Sub"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fsMat3Vec4AddSub"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "mat(vec +/- vec) works ok",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vsVec4Mat2Func"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fsVec4Mat3Func"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "vec(func(mat)) works ok",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vsMat2Vec4Func"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fsMat3Vec4Func"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "mat(func(vec)) works ok",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vsMat4VecMultiple"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fsMat4VecMultiple"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "mat4(float, vec2, float, vec3+vec3, float, vec4, f(vec4)) works ok",
+});
+
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

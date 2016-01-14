@@ -1,0 +1,151 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Origin Restrictions Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+
+// Checks if function throws an exception.
+function causedException(func) {
+  var hadException = false;
+  try {
+    func();
+  } catch(e) {
+    hadException = true;
+  }
+  return hadException;
+}
+
+var defaultImgUrl = "http://www.opengl.org/img/opengl_logo.jpg";
+var localImgUrl = "../resources/opengl_logo.jpg";
+
+var imgDomain;
+var pageDomain;
+var successfullyParsed;
+
+function imageLoaded() {
+  description("This test ensures WebGL implementations follow proper same-origin restrictions.");
+  var img = this;
+
+  assertMsg(img.width > 0 && img.height > 0, "img was loaded");
+  imgDomain = wtu.getBaseDomain(wtu.getHost(img.src));
+  pageDomain = wtu.getBaseDomain(window.location.host);
+  assertMsg(imgDomain != pageDomain,
+            "img domain (" + imgDomain + ") and page domain (" + pageDomain + ") are not the same.");
+
+  function makeTexImage2D(gl, src) {
+    return function() {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    };
+  }
+
+  function makeTexSubImage2D(gl, src) {
+    return function() {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    };
+  }
+
+  function makeReadPixels(gl) {
+    return function() {
+      var buf = new Uint8Array(4);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    };
+  }
+
+  function makeToDataURL(canvas) {
+    return function() {
+      var data = canvas.toDataURL();
+    }
+  }
+
+  var canvas1 = document.getElementById("canvas1");
+  var gl = wtu.create3DContext(canvas1);
+
+  debug("");
+  debug("check that an attempt to upload an image from another origin throws an exception.");
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  assertMsg(causedException(makeTexImage2D(gl, img)),
+            "texImage2D with cross-origin image should throw exception.");
+  assertMsg(causedException(makeTexSubImage2D(gl, img)),
+            "texSubImage2D with cross-origin image should throw exception.");
+
+  debug("check that readPixels and toDataURL continue to work against this canvas.");
+  assertMsg(!causedException(makeReadPixels(gl)),
+            "readPixels should never throw exception -- not possible to dirty origin of WebGL canvas.");
+  assertMsg(!causedException(makeToDataURL(canvas1)),
+            "should not throw exception by toDataURL for WebGL canvas, which should stay origin clean.");
+
+  debug("check that an attempt to upload a tainted canvas throws an exception.");
+  var canvas2 = document.getElementById("canvas2");
+  var ctx2d = canvas2.getContext("2d");
+  ctx2d.drawImage(img, 0, 0);
+  assertMsg(causedException(makeToDataURL(canvas2)),
+            "should throw exception by toDataURL for NON origin clean canvas.");
+  assertMsg(causedException(makeTexImage2D(gl, canvas2)),
+            "texImage2D with NON origin clean canvas should throw exception.");
+  assertMsg(causedException(makeTexSubImage2D(gl, canvas2)),
+            "texSubImage2D with NON origin clean canvas should throw exception.");
+
+  debug("check that readPixels and toDataURL continue to work against this canvas.");
+  assertMsg(!causedException(makeReadPixels(gl)),
+            "readPixels should never throw exception -- not possible to dirty origin of WebGL canvas.");
+  assertMsg(!causedException(makeToDataURL(canvas1)),
+            "should not throw exception by toDataURL for WebGL canvas, which should stay origin clean.");
+
+  // TODO: Should check video.
+  // TODO: Should check CORS support.
+
+  debug("");
+  successfullyParsed = true;
+  shouldBeTrue("successfullyParsed");
+  debug('<br /><span class="pass">TEST COMPLETE</span>');
+  notifyFinishedToHarness();
+}
+
+wtu.setupImageForCrossOriginTest("#img", defaultImgUrl, localImgUrl, imageLoaded);
+</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas1"></canvas>
+<canvas id="canvas2"></canvas>
+<img id="img" style="display:none;">
+</body>
+</html>

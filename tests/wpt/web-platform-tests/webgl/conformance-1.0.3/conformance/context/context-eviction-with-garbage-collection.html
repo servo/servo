@@ -1,0 +1,80 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test that context eviction and garbage collection do not interfere with each other</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+// See http://crbug.com/374086 for original failing case.
+description("Test that context eviction and garbage collection do not interfere with each other.");
+var wtu = WebGLTestUtils;
+
+var total_iteration = 50;
+var array_count = 10;
+
+var bank = [];
+for (var i = 0; i < array_count; i++)
+  bank[i] = [];
+
+for (var iter = 0; iter < total_iteration; ++iter) {
+  for (var i = 0; i < array_count; i++)
+    bank[i][iter * i] = iter;
+
+  var canvas = document.createElement('canvas');
+  var gl = wtu.create3DContext(canvas);
+  canvas.width = 50;
+  canvas.height = 50;
+  var program = wtu.setupTexturedQuad(gl);
+  shouldBeTrue("program != null");
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  var pixel = new Uint8Array([0, 255, 0, 255]);
+  gl.texImage2D(
+    gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from iteration " + iter);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+

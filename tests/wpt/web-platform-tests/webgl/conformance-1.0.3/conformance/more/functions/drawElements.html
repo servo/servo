@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/x-javascript" src="../unit.js"></script>
+<script type="application/x-javascript" src="../util.js"></script>
+<script type="application/x-javascript">
+
+var verts = [0.0, 0.0, 0.0,   1.0, 0.0, 0.0,   0.0, 1.0, 0.0];
+var normals = [0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0];
+var texcoords = [0.0,0.0,  1.0,0.0,  0.0,1.0];
+var indices = [0,1,2]
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = wrapGLContext(getGLContext(canvas));
+  var prog = new Shader(gl, 'vert', 'frag');
+  prog.use();
+  var sh = prog.shader.program;
+  var v = gl.getAttribLocation(sh, 'Vertex');
+  var n = gl.getAttribLocation(sh, 'Normal');
+  var t = gl.getAttribLocation(sh, 'Tex');
+  return [gl,prog,v,n,t];
+}
+
+Tests.setup = function(gl, prog, v,n,t) {
+  assert(0 == gl.getError());
+  return [gl, prog, v,n,t];
+}
+Tests.teardown = function(gl, prog, v,n,t) {
+  gl.disableVertexAttribArray(v);
+  gl.disableVertexAttribArray(n);
+  gl.disableVertexAttribArray(t);
+}
+
+Tests.endUnit = function(gl, prog, v,n,t) {
+  prog.destroy();
+}
+
+Tests.testDrawElementsVBO = function(gl, prog, v,n,t) {
+    var vbo = new VBO(gl,
+                       {size:3, data:Quad.vertices},
+                       {elements:true, data:Quad.indices});
+  vbo.draw(v);
+  assert(gl.NO_ERROR == checkError(gl, "vbo.draw"));
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 5, gl.UNSIGNED_SHORT, 1*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 0, gl.UNSIGNED_SHORT, 2*1);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_SHORT, 5*2);});
+  vbo.destroy();
+  assert(gl.NO_ERROR == checkError(gl, "vbo.destroy"));
+}
+
+Tests.testDrawElementsVBOMulti = function(gl, prog, v,n,t) {
+  // creates VBOs for the quad arrays, binds them with
+  // vertexAttribPointer and calls drawElements
+  var vbo = new VBO(gl,
+                    {size:3, data:Quad.vertices},
+                    {size:3, data:Quad.normals},
+                    {size:2, data:Quad.texcoords},
+                    {elements:true, data:Quad.indices});
+  vbo.draw(v, n, t);
+  assert(gl.NO_ERROR == checkError(gl, "vbo.draw"));
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 5, gl.UNSIGNED_SHORT, 1*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 0, gl.UNSIGNED_SHORT, 2*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_SHORT, 5*2);});
+  assertGLError(gl, gl.INVALID_OPERATION, "count + offset out of range",
+      function(){gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_SHORT, 6*2);});
+  assertGLError(gl, gl.INVALID_OPERATION, "count + offset out of range 2",
+      function(){gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 1*2);});
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo.vbos[1]);
+  gl.vertexAttribPointer(n, 3, gl.FLOAT, false, 0, 0);
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 5, gl.UNSIGNED_SHORT, 1*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 0, gl.UNSIGNED_SHORT, 2*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0*2);});
+  assertOk(function(){gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_SHORT, 5*2);});
+  assertGLError(gl, gl.INVALID_OPERATION, "count + offset out of range 3",
+      function(){gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_SHORT, 6*2);});
+  assertGLError(gl, gl.INVALID_OPERATION, "count + offset out of range 4",
+      function(){gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 1*2);});
+  vbo.destroy();
+  assert(gl.NO_ERROR == checkError(gl, "vbo.destroy"));
+}
+
+
+</script>
+<script id="vert" type="x-shader/x-vertex">
+  attribute vec3 Vertex;
+  attribute vec3 Normal;
+  attribute vec2 Tex;
+
+  varying vec4 texCoord0;
+  void main()
+  {
+    gl_Position = vec4(Vertex * Normal, 1.0);
+    texCoord0 = vec4(Tex,0.0,0.0) + gl_Position;
+  }
+</script>
+<script id="frag" type="x-shader/x-fragment">
+  precision mediump float;
+
+  varying vec4 texCoord0;
+  void main()
+  {
+    vec4 c = texCoord0;
+    gl_FragColor = c;
+  }
+</script>
+
+
+<style>canvas{ position:absolute; }</style>
+</head><body>
+  <canvas id="gl" width="1" height="1"></canvas>
+</body></html>

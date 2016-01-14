@@ -1,0 +1,156 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL vertexAttribPointer Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("This test checks vertexAttribPointer behaviors in WebGL.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking gl.vertexAttribPointer.");
+
+  if (!gl.FIXED) {
+    gl.FIXED = 0x140C;
+  }
+
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, 0, 0, 12);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "vertexAttribPointer should fail if no buffer is bound");
+
+  var vertexObject = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(0), gl.STATIC_DRAW);
+
+  gl.vertexAttribPointer(0, 1, gl.INT, 0, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+      "vertexAttribPointer should not support INT");
+  gl.vertexAttribPointer(0, 1, gl.UNSIGNED_INT, 0, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+      "vertexAttribPointer should not support UNSIGNED_INT");
+  gl.vertexAttribPointer(0, 1, gl.FIXED, 0, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+      "vertexAttribPointer should not support FIXED");
+
+  var checkVertexAttribPointer = function(
+      gl, err, reason, size, type, normalize, stride, offset) {
+    gl.vertexAttribPointer(0, size, type, normalize, stride, offset);
+    wtu.glErrorShouldBe(gl, err,
+        "gl.vertexAttribPointer(0, " + size +
+        ", gl." + wtu.glEnumToString(gl, type) +
+        ", " + normalize +
+        ", " + stride +
+        ", " + offset +
+        ") should " + (err == gl.NO_ERROR ? "succeed " : "fail ") + reason);
+  }
+
+  var types = [
+    { type:gl.BYTE,           bytesPerComponent: 1 },
+    { type:gl.UNSIGNED_BYTE,  bytesPerComponent: 1 },
+    { type:gl.SHORT,          bytesPerComponent: 2 },
+    { type:gl.UNSIGNED_SHORT, bytesPerComponent: 2 },
+    { type:gl.FLOAT,          bytesPerComponent: 4 },
+  ];
+
+  for (var ii = 0; ii < types.length; ++ii) {
+    var info = types[ii];
+    debug("");
+    for (var size = 1; size <= 4; ++size) {
+      debug("");
+      debug("checking: " + wtu.glEnumToString(gl, info.type) + " with size " + size);
+      var bytesPerElement = size * info.bytesPerComponent;
+      var offsetSet = [
+          0,
+          1,
+          info.bytesPerComponent - 1,
+          info.bytesPerComponent,
+          info.bytesPerComponent + 1,
+          info.bytesPerComponent * 2];
+      for (var jj = 0; jj < offsetSet.length; ++jj) {
+        var offset = offsetSet[jj];
+        for (var kk = 0; kk < offsetSet.length; ++kk) {
+          var stride = offsetSet[kk];
+          var err = gl.NO_ERROR;
+          var reason = ""
+          if (offset % info.bytesPerComponent != 0) {
+            reason = "because offset is bad";
+            err = gl.INVALID_OPERATION;
+          }
+          if (stride % info.bytesPerComponent != 0) {
+            reason = "because stride is bad";
+            err = gl.INVALID_OPERATION;
+          }
+          checkVertexAttribPointer(
+              gl, err, reason, size, info.type, false, stride, offset);
+        }
+        var stride = Math.floor(255 / info.bytesPerComponent) * info.bytesPerComponent;
+
+        if (offset == 0) {
+          checkVertexAttribPointer(
+              gl, gl.NO_ERROR, "at stride limit",
+              size, info.type, false, stride, offset);
+          checkVertexAttribPointer(
+              gl, gl.INVALID_VALUE, "over stride limit",
+              size, info.type, false,
+              stride + info.bytesPerComponent, offset);
+        }
+      }
+    }
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

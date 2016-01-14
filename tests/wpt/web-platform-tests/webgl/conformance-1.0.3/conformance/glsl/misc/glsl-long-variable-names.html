@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+    <title>glsl long variable name mapping tests</title>
+    <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../../resources/js-test-pre.js"></script>
+    <script src="../../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+    <canvas id="example" width="50" height="50">
+    There is supposed to be an example drawing here, but it's not important.
+    </canvas>
+    <div id="description"></div>
+    <div id="console"></div>
+    <script id="vshader_shared_uniform" type="x-shader/x-vertex">
+        attribute vec3 vPosition;
+        uniform mediump float value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890;
+        void main()
+        {
+            gl_Position = vec4(vPosition, value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890);
+        }
+    </script>
+
+    <script id="fshader_shared_uniform" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform float value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890;
+        void main()
+        {
+            gl_FragColor = vec4(1.0, 0.0, value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890, 1.0);
+        }
+    </script>
+
+    <script id="vshader_uniform_array" type="x-shader/x-vertex">
+        attribute vec3 vPosition;
+        void main()
+        {
+            gl_Position = vec4(vPosition, 1.0);
+        }
+    </script>
+
+    <script id="fshader_uniform_array" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform float color01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567[2];
+        void main()
+        {
+            gl_FragColor = vec4(color01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567[0], color01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567[1], 1.0, 1.0);
+        }
+    </script>
+
+    <script id="vshader_varying" type="x-shader/x-vertex">
+        attribute vec3 vPosition;
+        varying float value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890;
+        void main()
+        {
+            value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890 = 1.0;
+            gl_Position = vec4(vPosition, 1.0);
+        }
+    </script>
+
+    <script id="fshader_varying" type="x-shader/x-fragment">
+        precision mediump float;
+        varying float value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890;
+        void main()
+        {
+            gl_FragColor = vec4(value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890, 0.0, 1.0, 1.0);
+        }
+    </script>
+
+    <script id="vshader_local" type="x-shader/x-vertex">
+        attribute vec3 vPosition;
+        void main()
+        {
+            for (int i012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234 = 0; i012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234 < 1; ++i012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234)
+            {
+                gl_Position = vec4(vPosition, 1.0);
+            }
+        }
+    </script>
+
+    <script id="fshader_local" type="x-shader/x-fragment">
+        precision mediump float;
+        void main()
+        {
+            for (int i012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234 = 0; i012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234 < 1; ++i012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234)
+            {
+                gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+            }
+        }
+    </script>
+
+    <script id="vshader_attrib" type="x-shader/x-vertex">
+        attribute vec3 vPosition0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456;
+        void main()
+        {
+            gl_Position = vec4(vPosition0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456, 1.0);
+        }
+    </script>
+
+    <script id="fshader_attrib" type="x-shader/x-fragment">
+        precision mediump float;
+        void main()
+        {
+            gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+        }
+    </script>
+
+    <script>
+        "use strict";
+        description("Verify that shader long variable names works fine if they are within 256 characters.");
+
+        debug("Test same long uniform name in both vertex shader and fragment shader");
+        var wtu = WebGLTestUtils;
+        var gl = wtu.create3DContext("example");
+        var program = wtu.setupProgram(gl, ["vshader_shared_uniform", "fshader_shared_uniform"], ["vPosition"]);
+        shouldBeNonNull("gl");
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        var prog = gl.getParameter(gl.CURRENT_PROGRAM);
+        shouldBeNonNull("prog");
+        var valueLoc = gl.getUniformLocation(prog, "value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
+        shouldBeNonNull("valueLoc");
+        shouldBe("gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS)", "1");
+        var activeUniform = gl.getActiveUniform(prog, 0);
+        shouldBeNonNull("activeUniform");
+        shouldBe("activeUniform.type", "gl.FLOAT");
+        shouldBe("activeUniform.size", "1");
+        shouldBe("activeUniform.name", "'value01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890'");
+        gl.uniform1f(valueLoc, 1.0);
+        drawAndCheckPixels(gl);
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        debug("");
+
+        debug("Test long uniform array name");
+        var gl = wtu.create3DContext("example");
+        var program = wtu.setupProgram(gl, ["vshader_uniform_array", "fshader_uniform_array"], ["vPosition"]);
+        shouldBeNonNull("gl");
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        var prog = gl.getParameter(gl.CURRENT_PROGRAM);
+        shouldBeNonNull("prog");
+        var redLoc = gl.getUniformLocation(prog, "color01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567[0]");
+        shouldBeNonNull("redLoc");
+        var greenLoc = gl.getUniformLocation(prog, "color01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567[1]");
+        shouldBeNonNull("greenLoc");
+        shouldBe("gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS)", "1");
+        var activeUniform = gl.getActiveUniform(prog, 0);
+        shouldBeNonNull("activeUniform");
+        shouldBe("activeUniform.type", "gl.FLOAT");
+        shouldBe("activeUniform.size", "2");
+        shouldBe("activeUniform.name", "'color01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567[0]'");
+        gl.uniform1f(redLoc, 1.0);
+        gl.uniform1f(greenLoc, 0.0);
+        drawAndCheckPixels(gl);
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        debug("");
+
+        debug("Test long varying name");
+        var gl = wtu.create3DContext("example");
+        var program = wtu.setupProgram(gl, ["vshader_varying", "fshader_varying"], ["vPosition"]);
+        shouldBeNonNull("gl");
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        var prog = gl.getParameter(gl.CURRENT_PROGRAM);
+        shouldBeNonNull("prog");
+        drawAndCheckPixels(gl);
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        debug("");
+
+        debug("Test long local variable name");
+        var gl = wtu.create3DContext("example");
+        var program = wtu.setupProgram(gl, ["vshader_varying", "fshader_varying"], ["vPosition"]);
+        shouldBeNonNull("gl");
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        var prog = gl.getParameter(gl.CURRENT_PROGRAM);
+        shouldBeNonNull("prog");
+        drawAndCheckPixels(gl);
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        debug("");
+
+        debug("Test long attribute name");
+        var gl = wtu.create3DContext("example");
+        var program = wtu.setupProgram(gl, ["vshader_attrib", "fshader_attrib"], ["vPosition0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456"]);
+        shouldBeNonNull("gl");
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        var prog = gl.getParameter(gl.CURRENT_PROGRAM);
+        shouldBeNonNull("prog");
+        shouldBe("gl.getProgramParameter(prog, gl.ACTIVE_ATTRIBUTES)", "1");
+        var activeAttrib = gl.getActiveAttrib(prog, 0);
+        shouldBeNonNull("activeAttrib");
+        shouldBe("activeAttrib.size", "1");
+        shouldBe("activeAttrib.type", "gl.FLOAT_VEC3");
+        shouldBe("activeAttrib.name", "'vPosition0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456'");
+        drawAndCheckPixels(gl);
+        shouldBe("gl.getError()", "gl.NO_ERROR");
+        debug("");
+
+        function drawAndCheckPixels(gl)
+        {
+            var vertexObject = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.5,0, -0.5,-0.5,0, 0.5,-0.5,0 ]), gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+            // Test several locations
+            // First line should be all black
+            wtu.checkCanvasRect(gl, 0, 0, 50, 1, [0, 0, 0, 0]);
+
+            // Line 15 should be magenta for at least 10 pixels starting 20 pixels in
+            wtu.checkCanvasRect(gl, 20, 15, 10, 1, [255, 0, 255, 255]);
+
+            // Last line should be all black
+            wtu.checkCanvasRect(gl, 0, 49, 50, 1, [0, 0, 0, 0]);
+        }
+
+        var successfullyParsed = true;
+    </script>
+    <script src="../../../resources/js-test-post.js"></script>
+</body>
+</html>

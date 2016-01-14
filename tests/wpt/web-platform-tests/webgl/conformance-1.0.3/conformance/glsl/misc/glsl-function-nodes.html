@@ -1,0 +1,158 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL function nodes Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"> </script>
+
+<script id="vshaderFunction" type="x-shader/x-vertex">
+attribute vec4 aPosition;
+varying vec4 vColor;
+
+float sign_emu(float value) {
+  if (value == 0.0) return 0.0;
+  return value > 0.0 ? 1.0 : -1.0;
+}
+
+void main()
+{
+   gl_Position = aPosition;
+   vec2 texcoord = vec2(aPosition.xy * 0.5 + vec2(0.5, 0.5));
+   vec4 color = vec4(
+       texcoord,
+       texcoord.x * texcoord.y,
+       (1.0 - texcoord.x) * texcoord.y * 0.5 + 0.5);
+   vColor = vec4(
+    sign_emu(color.x * 2.0 - 1.0) * 0.5 + 0.5,
+    sign_emu(color.y * 2.0 - 1.0) * 0.5 + 0.5,
+    0,
+    1);
+}
+</script>
+
+<script id="vshaderMacro" type="x-shader/x-vertex">
+attribute vec4 aPosition;
+varying vec4 vColor;
+
+#define sign_emu(value) ((value) == 0.0 ? 0.0 : ((value) > 0.0 ? 1.0 : -1.0))
+
+void main()
+{
+   gl_Position = aPosition;
+   vec2 texcoord = vec2(aPosition.xy * 0.5 + vec2(0.5, 0.5));
+   vec4 color = vec4(
+       texcoord,
+       texcoord.x * texcoord.y,
+       (1.0 - texcoord.x) * texcoord.y * 0.5 + 0.5);
+   vColor = vec4(
+    sign_emu(color.x * 2.0 - 1.0) * 0.5 + 0.5,
+    sign_emu(color.y * 2.0 - 1.0) * 0.5 + 0.5,
+    0,
+    1);
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 vColor;
+void main()
+{
+   gl_FragColor = vColor;
+}
+</script>
+</head>
+<body>
+<canvas id="canvasFunction" width="50" height="50"></canvas>
+<canvas id="canvasMacro" width="50" height="50"></canvas>
+<div id="description">This tests against a Mac driver bug related to function calls.</div>
+<div id="console"></div>
+<script>
+"use strict";
+var width = 50;
+var height = 50;
+var wtu = WebGLTestUtils;
+
+function drawAndRead(canvasID, vshaderID, buffer)
+{
+    var gl = wtu.create3DContext(canvasID);
+    var program = wtu.setupProgram(gl, [vshaderID, "fshader"], ["aPosition"]);
+    var vertexObject = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.5,0, -0.5,-0.5,0, 0.5,-0.5,0 ]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+    if (gl.getError() != gl.NO_ERROR)
+        return false;
+    return true;
+}
+
+function compareRendering(buffer1, buffer2, tol)
+{
+    for (var i = 0; i < width * height * 4; ++i) {
+        if (Math.abs(buffer1[i] - buffer2[i]) > tol)
+            return false;
+    }
+    return true;
+}
+
+function init()
+{
+    description("tests function nodes");
+
+    var bufFunction = new Uint8Array(width * height * 4);
+    var bufMacro = new Uint8Array(width * height * 4);
+
+    if (drawAndRead("canvasFunction", "vshaderFunction", bufFunction) == false ||
+        drawAndRead("canvasMacro", "vshaderMacro", bufMacro) == false) {
+        testFailed("Setup failed");
+    } else {
+        if (compareRendering(bufFunction, bufMacro, 4) == false)
+            testFailed("Rendering results are different");
+        else
+            testPassed("Rendering results are the same");
+    }
+}
+
+init();
+var successfullyParsed = true;
+</script>
+<script src="../../../resources/js-test-post.js"></script>
+</body>
+</html>
+

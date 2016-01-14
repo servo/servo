@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/x-javascript" src="../unit.js"></script>
+<script type="application/x-javascript" src="../util.js"></script>
+<script type="application/x-javascript">
+
+Tests.startUnit = function () {
+    var canvas = document.getElementById('gl');
+    var gl = getGLContext(canvas);
+    var buf = gl.createBuffer();
+    var ebuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebuf);
+    return [gl, buf, ebuf];
+}
+
+Tests.testBufferSubData = function(gl, buf, ebuf) {
+    var data = [0,0,0,0, 1,0,0,0, 0,1,0,0];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([1,2,3,4]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Float32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 32, new Float32Array([1,1,1,1]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*4);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STREAM_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Float32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([1,2,3,4]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*4);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.STREAM_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Float32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([1,2,3,4]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Int32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Int16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Int8Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint8Array([1,1,1,1]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*4);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.DYNAMIC_DRAW);
+
+    gl.bufferData(gl.ARRAY_BUFFER, 12, gl.STATIC_DRAW);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.STATIC_DRAW);
+
+    gl.bufferData(gl.ARRAY_BUFFER, 12*4, gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([1,2,3,4]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Float32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 32, new Float32Array([1,1,1,1]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*4);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, 12*4, gl.STREAM_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Float32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([1,2,3,4]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*4);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.STREAM_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, 12*4, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Float32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([1,2,3,4]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Int32Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Int16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Int8Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint8Array([1,1,1,1]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*4);
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_USAGE), gl.DYNAMIC_DRAW);
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(data), gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Uint16Array([1,2,3,4]));
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(data), gl.STREAM_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Uint16Array([1,2,3,4]));
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(data), gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Uint16Array([1,2,3,4]));
+    assertEquals(gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE), 12*2);
+    throwError(gl, "array bufferSubData");
+}
+Tests.testBufferSubDataElement = function(gl, buf, ebuf) {
+    var data = [0,0,0,0, 1,0,0,0, 0,1,0,0];
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, new Uint16Array([1,2,3,4]));
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), gl.STREAM_DRAW);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, new Uint16Array([1,2,3,4]));
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 16, new Uint16Array([1,1,1,1]));
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, new Uint16Array([1,2,3,4]));
+    assertEquals(gl.getBufferParameter(gl.ELEMENT_ARRAY_BUFFER, gl.BUFFER_SIZE), 12*2);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array(data), gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 4, new Uint8Array([1,1,1,1]));
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, new Uint8Array([1,2,3,4]));
+    assertEquals(gl.getBufferParameter(gl.ELEMENT_ARRAY_BUFFER, gl.BUFFER_SIZE), 12);
+    throwError(gl, "element array bufferSubData");
+}
+
+Tests.endUnit = function(gl, buf, ebuf) {
+    gl.deleteBuffer(buf);
+    gl.deleteBuffer(ebuf);
+}
+
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+<canvas id="gl" width="16" height="16"></canvas>
+</body></html>

@@ -1,0 +1,183 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+<meta charset="utf-8">
+    <title>vertexattribpointer offsets test</title>
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../resources/js-test-pre.js"></script>
+    <script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+There is supposed to be an example drawing here, but it's not important.
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+    <script id="vshader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        void main()
+        {
+            gl_Position = vPosition;
+        }
+    </script>
+
+    <script id="fshader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 color;
+        void main()
+        {
+            gl_FragColor = color;
+        }
+    </script>
+
+    <script>
+        "use strict";
+        function init()
+        {
+            description("test vertexattribpointer offsets work");
+
+            var wtu = WebGLTestUtils;
+            var gl = wtu.create3DContext("example");
+            var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+
+            var tests = [
+              { data: new Float32Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
+                type: gl.FLOAT,
+                componentSize: 4,
+                normalize: false,
+              },
+              { data: new Float32Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
+                type: gl.FLOAT,
+                componentSize: 4,
+                normalize: false,
+              },
+              { data: new Uint16Array([ 0, 32767, 0, 32767, 0, 0, 0, 0, 0 ]),
+                type: gl.SHORT,
+                componentSize: 2,
+                normalize: true,
+              },
+              { data: new Uint16Array([ 0, 65535, 0, 65535, 0, 0, 0, 0, 0 ]),
+                type: gl.UNSIGNED_SHORT,
+                componentSize: 2,
+                normalize: true,
+              },
+              { data: new Uint16Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
+                type: gl.UNSIGNED_SHORT,
+                componentSize: 2,
+                normalize: false,
+              },
+              { data: new Uint16Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
+                type: gl.SHORT,
+                componentSize: 2,
+                normalize: false,
+              },
+              { data: new Uint8Array([ 0, 127, 0, 127, 0, 0, 0, 0, 0 ]),
+                type: gl.BYTE,
+                componentSize: 1,
+                normalize: true,
+              },
+              { data: new Uint8Array([ 0, 255, 0, 255, 0, 0, 0, 0, 0 ]),
+                type: gl.UNSIGNED_BYTE,
+                componentSize: 1,
+                normalize: true,
+              },
+              { data: new Uint8Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
+                type: gl.BYTE,
+                componentSize: 1,
+                normalize: false,
+              },
+              { data: new Uint8Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
+                type: gl.UNSIGNED_BYTE,
+                componentSize: 1,
+                normalize: false,
+              }
+            ];
+
+            var vertexObject = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+            gl.bufferData(gl.ARRAY_BUFFER, 1024, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+
+            var colorLoc = gl.getUniformLocation(program, "color");
+            var kNumVerts = 3;
+            var kNumComponents = 3;
+
+            var count = 0;
+            for (var tt = 0; tt < tests.length; ++tt) {
+              var test = tests[tt];
+              for (var oo = 0; oo < 3; ++oo) {
+                for (var ss = 0; ss < 3; ++ss) {
+                  var offset = (oo + 1) * test.componentSize;
+                  var color = (count % 2) ? [1, 0, 0, 1] : [0, 1, 0, 1];
+                  var stride = test.componentSize * kNumComponents + test.componentSize * ss;
+                  debug("");
+                  debug("check with " + wtu.glEnumToString(gl, test.type) + " at offset: " + offset + " with stride:" + stride + " normalize: " + test.normalize);
+                  gl.uniform4fv(colorLoc, color);
+                  var data = new Uint8Array(test.componentSize * kNumVerts * kNumComponents + stride * (kNumVerts - 1));
+                  var view = new Uint8Array(test.data.buffer);
+                  var size = test.componentSize * kNumComponents;
+                  for (var jj = 0; jj < kNumVerts; ++jj) {
+                    var off1 = jj * size;
+                    var off2 = jj * stride;
+                    for (var zz = 0; zz < size; ++zz) {
+                      data[off2 + zz] = view[off1 + zz];
+                    }
+                  }
+                  gl.bufferSubData(gl.ARRAY_BUFFER, offset, data);
+                  gl.vertexAttribPointer(0, 3, test.type, test.normalize, stride, offset);
+                  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+                  var buf = new Uint8Array(50 * 50 * 4);
+                  gl.readPixels(0, 0, 50, 50, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+                  var black = [0, 0, 0, 0];
+                  var other = [color[0] * 255, color[1] * 255, color[2] * 255, color[3] * 255];
+                  var otherMsg = "should be " + ((count % 2) ? "red" : "green")
+                  wtu.checkCanvasRect(gl, 0, 0, 1, 1, black, "should be black", 0);
+                  wtu.checkCanvasRect(gl, 0, 49, 1, 1, black, "should be black", 0);
+                  wtu.checkCanvasRect(gl, 26, 40, 1, 1, other, otherMsg, 0);
+                  wtu.checkCanvasRect(gl, 26, 27, 1, 1, other, otherMsg, 0);
+                  wtu.checkCanvasRect(gl, 40, 27, 1, 1, other, otherMsg, 0);
+                  ++count;
+                }
+              }
+            }
+       }
+
+       init();
+       var successfullyParsed = true;
+    </script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
