@@ -55,8 +55,6 @@ pub struct HTMLScriptElement {
     parser_inserted: Cell<bool>,
 
     /// https://html.spec.whatwg.org/multipage/#non-blocking
-    ///
-    /// (currently unused)
     non_blocking: Cell<bool>,
 
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
@@ -125,10 +123,20 @@ pub enum ScriptOrigin {
     External(Result<(Metadata, Vec<u8>), String>),
 }
 
+#[derive(Copy, Clone)]
+enum ExternalScriptKind {
+    Deferred,
+    ParsingBlocking,
+    AsapInOrder,
+    Asap,
+}
+
 /// The context required for asynchronously loading an external script source.
 struct ScriptContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
+    /// Kind of script
+    kind: ExternalScriptKind,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -156,9 +164,30 @@ impl AsyncResponseListener for ScriptContext {
         let elem = self.elem.root();
         // TODO: maybe set this to None again after script execution to save memory.
         *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
-        elem.ready_to_be_parser_executed.set(true);
 
+        match self.kind {
+            ExternalScriptKind::Deferred | ExternalScriptKind::ParsingBlocking => {
+                elem.ready_to_be_parser_executed.set(true);
+            }
+            ExternalScriptKind::AsapInOrder => {
+                // XXX associated with the node document of the script element
+                //     **at the time the prepare a script algorithm started**.
+                let document = document_from_node(&*elem);
+                document.process_asap_in_order_scripts();
+            },
+            ExternalScriptKind::Asap => {
+                // XXX associated with the node document of the script element
+                //     **at the time the prepare a script algorithm started**.
+                let document = document_from_node(&*elem);
+                document.process_asap_script(&elem);
+            },
+        }
+
+        // This might have caused one of the conditions for spinning the event
+        // loop in the-end to have changed.
         let document = document_from_node(elem.r());
+        document.continue_the_end();
+
         document.finish_load(LoadType::Script(self.url.clone()));
     }
 }
@@ -277,17 +306,37 @@ impl HTMLScriptElement {
                         error!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
-                    }
+                    },
                     Ok(url) => url,
                 };
 
-                // Step 16.6.
+                // Preparation for step 18.
+                // Step 15.a: has src, has defer, was parser-inserted, is not async.
+                let kind = if element.has_attribute(&atom!("defer")) &&
+                   was_parser_inserted &&
+                   !async {
+                    ExternalScriptKind::Deferred
+                // Step 15.b: has src, was parser-inserted, is not async.
+                } else if was_parser_inserted &&
+                          !async {
+                    ExternalScriptKind::ParsingBlocking
+                // Step 15.d: has src, isn't async, isn't non-blocking.
+                } else if !async &&
+                          !self.non_blocking.get() {
+                    ExternalScriptKind::AsapInOrder
+                // Step 15.e: has src.
+                } else {
+                    ExternalScriptKind::Asap
+                };
+
+                // Step 14.5-7.
                 // TODO(#9186): use the fetch infrastructure.
                 let script_chan = window.networking_thread_source();
                 let elem = Trusted::new(self, script_chan.clone());
 
                 let context = Arc::new(Mutex::new(ScriptContext {
                     elem: elem,
+                    kind: kind,
                     data: vec!(),
                     metadata: None,
                     url: url.clone(),
@@ -306,53 +355,40 @@ impl HTMLScriptElement {
                 });
 
                 doc.load_async(LoadType::Script(url), response_target);
-                true
-            },
-            None => false,
-        };
 
-        // Step 18.
-        let deferred = element.has_attribute(&atom!("defer"));
-        // Step 18.a: has src, has defer, was parser-inserted, is not async.
-        if is_external &&
-           deferred &&
-           was_parser_inserted &&
-           !async {
-            doc.add_deferred_script(self);
-            // Second part implemented in Document::process_deferred_scripts.
-            return NextParserState::Continue;
-        // Step 18.b: has src, was parser-inserted, is not async.
-        } else if is_external &&
-                  was_parser_inserted &&
-                  !async {
-            doc.set_pending_parsing_blocking_script(Some(self));
-            // Second part implemented in the load result handler.
-        // Step 18.c: has src, isn't async, isn't non-blocking.
-        } else if is_external &&
-                  !async &&
-                  !self.non_blocking.get() {
-            doc.push_asap_in_order_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 18.d: has src.
-        } else if is_external {
-            doc.add_asap_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 18.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
-        } else if !is_external &&
-                  was_parser_inserted &&
-                  // TODO: check for script nesting levels.
-                  doc.get_script_blocking_stylesheets_count() > 0 {
-            doc.set_pending_parsing_blocking_script(Some(self));
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
-            self.ready_to_be_parser_executed.set(true);
-        // Step 18.f: otherwise.
-        } else {
-            assert!(!text.is_empty());
-            self.ready_to_be_parser_executed.set(true);
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
-            self.execute();
-            return NextParserState::Continue;
-        }
+                // Step 15.
+                match kind {
+                    ExternalScriptKind::Deferred => {
+                        doc.add_deferred_script(self);
+                        return NextParserState::Continue;
+                    }
+                    ExternalScriptKind::ParsingBlocking =>
+                        doc.set_pending_parsing_blocking_script(Some(self)),
+                    ExternalScriptKind::AsapInOrder =>
+                        doc.push_asap_in_order_script(self),
+                    ExternalScriptKind::Asap =>
+                        doc.add_asap_script(self),
+                }
+            },
+            None => {
+                // Step 15.
+                // Step 15.c: doesn't have src, was parser-inserted, is blocked on stylesheet.
+                if was_parser_inserted &&
+                   // TODO: check for script nesting levels.
+                   doc.get_script_blocking_stylesheets_count() > 0 {
+                    doc.set_pending_parsing_blocking_script(Some(self));
+                    *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+                    self.ready_to_be_parser_executed.set(true);
+                // Step 15.f: otherwise.
+                } else {
+                    assert!(!text.is_empty());
+                    self.ready_to_be_parser_executed.set(true);
+                    *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+                    self.execute();
+                    return NextParserState::Continue;
+                }
+            },
+        };
 
         // TODO: make this suspension happen automatically.
         if was_parser_inserted {
