@@ -420,7 +420,7 @@ impl WindowMethods for Window {
         self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-0
+    // https://html.spec.whatwg.org/multipage/#dom-document-2
     fn Document(&self) -> Root<Document> {
         Root::from_ref(self.browsing_context().as_ref().unwrap().active_document())
     }
