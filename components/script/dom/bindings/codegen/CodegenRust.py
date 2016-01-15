@@ -700,9 +700,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        # Use the same type that for return values
-        declType = getRetvalDeclarationForType(type, descriptorProvider)
+        innerInfo = getJSToNativeConversionInfo(type.unroll(), descriptorProvider)
+        declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
+
+        if type.nullable():
+            declType = CGWrapper(declType, pre="Option<", post=" >")
 
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(value) => value,\n"
