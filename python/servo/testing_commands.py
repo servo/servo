@@ -158,6 +158,14 @@ class MachCommands(CommandBase):
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern or file path")
     def test_unit(self, test_name=None, package=None):
+        properties = subprocess.check_output([
+            sys.executable,
+            path.join(self.context.topdir, "components", "style", "list_properties.py")
+        ]).splitlines()
+        assert len(properties) >= 100
+        assert "margin-top" in properties
+        assert "margin" in properties
+
         if test_name is None:
             test_name = []
 
