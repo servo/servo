@@ -7,6 +7,7 @@
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
+use dom::bindings::codegen::UnionTypes::{BlobOrBlobSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
@@ -191,6 +192,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveUnion2(&self) -> EventOrString { EventOrString::eString(DOMString::new()) }
     fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::eLongSequence(vec![]) }
     fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::eStringSequence(vec![]) }
+    fn ReceiveUnion5(&self) -> BlobOrBlobSequence { BlobOrBlobSequence::eBlobSequence(vec![]) }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
         vec![Blob::new(self.global().r(), Vec::new(), "")]

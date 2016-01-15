@@ -151,6 +151,7 @@ interface TestBinding {
   (Event or DOMString) receiveUnion2();
   (DOMString or sequence<long>) receiveUnion3();
   (DOMString or sequence<DOMString>) receiveUnion4();
+  (Blob or sequence<Blob>) receiveUnion5();
   sequence<long> receiveSequence();
   sequence<Blob> receiveInterfaceSequence();
 
