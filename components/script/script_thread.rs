@@ -29,10 +29,10 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
+use dom::bindings::refcounted::{LiveDOMReferences, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
-use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -245,8 +245,6 @@ pub enum ScriptThreadEventCategory {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Notify a document that all pending loads are complete.
-    DocumentLoadsComplete(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
@@ -1140,8 +1138,6 @@ impl ScriptThread {
                 self.handle_exit_window_msg(id),
             MainThreadScriptMsg::MainThreadRunnableMsg(runnable) =>
                 runnable.handler(self),
-            MainThreadScriptMsg::DocumentLoadsComplete(id) =>
-                self.handle_loads_complete(id),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
@@ -1332,25 +1328,6 @@ impl ScriptThread {
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
-    }
-
-    fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let page = get_page(&self.root_page(), pipeline);
-        let doc = page.document();
-        let doc = doc.r();
-        if doc.loader().is_blocked() {
-            return;
-        }
-
-        doc.mut_loader().inhibit_events();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone());
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DocumentEvent, handler)).unwrap();
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
     pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
@@ -2146,10 +2123,7 @@ impl ScriptThread {
         let document = page.document();
         let final_url = document.url();
 
-        // https://html.spec.whatwg.org/multipage/#the-end step 1
-        document.set_ready_state(DocumentReadyState::Interactive);
-
-        // TODO: Execute step 2 here.
+        document.the_end();
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
@@ -2161,9 +2135,6 @@ impl ScriptThread {
 
         // No more reflow required
         page.set_reflow_status(false);
-
-        // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
-        document.process_deferred_scripts();
 
         window.set_fragment_name(final_url.fragment.clone());
 
