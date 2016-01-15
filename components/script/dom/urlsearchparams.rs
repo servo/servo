@@ -87,6 +87,18 @@ impl URLSearchParamsMethods for URLSearchParams {
         }).next()
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-getall
+    fn GetAll(&self, name: USVString) -> Vec<USVString> {
+        let list = self.list.borrow();
+        list.iter().filter_map(|&(ref k, ref v)| {
+            if k == &name.0 {
+                Some(USVString(v.clone()))
+            } else {
+                None
+            }
+        }).collect()
+    }
+
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
     fn Has(&self, name: USVString) -> bool {
         let list = self.list.borrow();
