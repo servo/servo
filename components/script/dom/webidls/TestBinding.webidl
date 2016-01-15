@@ -152,6 +152,7 @@ interface TestBinding {
   (DOMString or sequence<long>) receiveUnion3();
   (DOMString or sequence<DOMString>) receiveUnion4();
   sequence<long> receiveSequence();
+  sequence<Blob> receiveInterfaceSequence();
 
   byte? receiveNullableByte();
   boolean? receiveNullableBoolean();
@@ -205,6 +206,7 @@ interface TestBinding {
   void passCallbackInterface(EventListener listener);
   void passSequence(sequence<long> seq);
   void passStringSequence(sequence<DOMString> seq);
+  void passInterfaceSequence(sequence<Blob> seq);
 
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);

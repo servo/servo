@@ -192,6 +192,9 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::eLongSequence(vec![]) }
     fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::eStringSequence(vec![]) }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
+    fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
+        vec![Blob::new(self.global().r(), Vec::new(), "")]
+    }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
     fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
@@ -253,6 +256,7 @@ impl TestBindingMethods for TestBinding {
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
     fn PassStringSequence(&self, _: Vec<DOMString>) {}
+    fn PassInterfaceSequence(&self, _: Vec<Root<Blob>>) {}
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
     fn PassNullableByte(&self, _: Option<i8>) {}
