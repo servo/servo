@@ -23,6 +23,7 @@ extern crate rustc_front;
 extern crate rustc_plugin;
 #[macro_use]
 extern crate syntax;
+extern crate syntax_ext;
 extern crate tenacious;
 
 extern crate url;
