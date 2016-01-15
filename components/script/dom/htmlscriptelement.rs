@@ -399,7 +399,7 @@ impl HTMLScriptElement {
                     None => None
                 };
 
-                if(encoding_after_step1.is_some()) {
+                if encoding_after_step1.is_some() {
                     debug!("charset set after step1")
                 };
 
@@ -414,7 +414,7 @@ impl HTMLScriptElement {
                     None => *self.block_character_encoding.borrow()
                 };
 
-                if(encoding_after_step1.is_none() && encoding_after_step2.is_some()) {
+                if encoding_after_step1.is_none() && encoding_after_step2.is_some() {
                     debug!("charset set after step2");
                 };
 
@@ -436,7 +436,7 @@ impl HTMLScriptElement {
                         },
                 };
 
-                if(encoding_after_step2.is_none() && encoding_after_step3.is_some()) {
+                if encoding_after_step2.is_none() && encoding_after_step3.is_some() {
                     debug!("charset set after step3");
                 };
 
@@ -446,7 +446,7 @@ impl HTMLScriptElement {
 
                 let final_encoding = encoding_after_step3.unwrap_or(UTF_8 as EncodingRef);
 
-                if(encoding_after_step3.is_none()) {
+                if encoding_after_step3.is_none() {
                     debug!("charset to UTF-8 as fallback");
                 };
 
