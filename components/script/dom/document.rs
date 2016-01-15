@@ -1350,12 +1350,12 @@ impl Document {
 
         update_with_current_time(&self.dom_content_loaded_event_start);
 
-        let event = Event::new(GlobalRef::Window(self.window()),
-                               atom!("DOMContentLoaded"),
-                               EventBubbles::Bubbles,
-                               EventCancelable::NotCancelable);
         let doctarget = self.upcast::<EventTarget>();
-        let _ = doctarget.DispatchEvent(event.r());
+        let _ = doctarget.fire_event("DOMContentLoaded",
+                                     EventBubbles::Bubbles,
+                                     EventCancelable::NotCancelable,
+                                     GlobalRef::Window(self.window()));
+
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);
