@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
@@ -1350,12 +1349,12 @@ impl Document {
 
         update_with_current_time(&self.dom_content_loaded_event_start);
 
-        let event = Event::new(GlobalRef::Window(self.window()),
-                               atom!("DOMContentLoaded"),
-                               EventBubbles::Bubbles,
-                               EventCancelable::NotCancelable);
         let doctarget = self.upcast::<EventTarget>();
-        let _ = doctarget.DispatchEvent(event.r());
+        let _ = doctarget.fire_event("DOMContentLoaded",
+                                     EventBubbles::Bubbles,
+                                     EventCancelable::NotCancelable,
+                                     GlobalRef::Window(self.window()));
+
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);
