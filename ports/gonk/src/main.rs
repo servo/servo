@@ -33,6 +33,7 @@ extern crate layers;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
+extern crate script_traits;
 extern crate servo;
 extern crate time;
 extern crate url;

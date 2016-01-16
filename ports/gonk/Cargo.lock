@@ -16,6 +16,7 @@ dependencies = [
  "net_traits 0.0.1",
  "profile 0.0.1",
  "script 0.0.1",
+ "script_traits 0.0.1",
  "servo 0.0.1",
  "servo-egl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
