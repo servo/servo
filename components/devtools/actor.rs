@@ -31,7 +31,7 @@ pub trait Actor: Any + ActorAsAny {
     fn name(&self) -> String;
 }
 
-trait ActorAsAny {
+pub trait ActorAsAny {
     fn actor_as_any(&self) -> &Any;
     fn actor_as_any_mut(&mut self) -> &mut Any;
 }

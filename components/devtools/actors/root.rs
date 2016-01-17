@@ -35,7 +35,7 @@ struct ListTabsReply {
 }
 
 #[derive(RustcEncodable)]
-struct RootActorMsg {
+pub struct RootActorMsg {
     from: String,
     applicationType: String,
     traits: ActorTraits,
