@@ -6,14 +6,15 @@ use cors::CORSResponse;
 use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_origin_request};
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
+use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams;
+use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams::{eBlob, eString, eURLSearchParams};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
@@ -64,7 +65,7 @@ use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
-pub type SendParam = StringOrURLSearchParams;
+pub type SendParam = BlobOrStringOrURLSearchParams;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -481,14 +482,14 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => data
         };
         let extracted = data.as_ref().map(|d| d.extract());
-        self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.len()));
+        self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
 
         // Step 6
         self.upload_events.set(false);
         // Step 7
         self.upload_complete.set(match extracted {
             None => true,
-            Some (ref v) if v.is_empty() => true,
+            Some (ref e) if e.0.is_empty() => true,
             _ => false
         });
 
@@ -526,28 +527,16 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }
-        load_data.data = extracted;
-
-        #[inline]
-        fn join_raw(a: &str, b: &str) -> Vec<u8> {
-            let len = a.len() + b.len();
-            let mut vec = Vec::with_capacity(len);
-            vec.extend_from_slice(a.as_bytes());
-            vec.extend_from_slice(b.as_bytes());
-            vec
-        }
+        load_data.data = extracted.as_ref().map(|e| e.0.clone());
 
         // XHR spec differs from http, and says UTF-8 should be in capitals,
-        // instead of "utf-8", which is what Hyper defaults to.
-        let params = ";charset=UTF-8";
+        // instead of "utf-8", which is what Hyper defaults to. So not
+        // using content types provided by Hyper.
         let n = "content-type";
-        match data {
-            Some(eString(_)) =>
-                load_data.headers.set_raw(n.to_owned(), vec![join_raw("text/plain", params)]),
-            Some(eURLSearchParams(_)) =>
-                load_data.headers.set_raw(
-                    n.to_owned(), vec![join_raw("application/x-www-form-urlencoded", params)]),
-            None => ()
+        match extracted {
+            Some((_, Some(ref content_type))) =>
+                load_data.headers.set_raw(n.to_owned(), vec![content_type.bytes().collect()]),
+            _ => (),
         }
 
         load_data.preserved_headers = (*self.request_headers.borrow()).clone();
@@ -1245,19 +1234,30 @@ impl XMLHttpRequest {
 }
 
 trait Extractable {
-    fn extract(&self) -> Vec<u8>;
+    fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
 impl Extractable for SendParam {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
-    fn extract(&self) -> Vec<u8> {
+    fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         match *self {
             eString(ref s) => {
                 let encoding = UTF_8 as EncodingRef;
-                encoding.encode(s, EncoderTrap::Replace).unwrap()
+                (encoding.encode(s, EncoderTrap::Replace).unwrap(),
+                    Some(DOMString::from("text/plain;charset=UTF-8")))
             },
             eURLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
-                usp.serialize(None).into_bytes()
+                (usp.serialize(None).into_bytes(),
+                    Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
+            },
+            eBlob(ref b) => {
+                let data = b.get_data();
+                let content_type = if b.Type().as_ref().is_empty() {
+                    None
+                } else {
+                    Some(b.Type())
+                };
+                (data.get_bytes().to_vec(), content_type)
             },
         }
     }

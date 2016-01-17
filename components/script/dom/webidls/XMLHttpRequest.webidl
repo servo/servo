@@ -13,8 +13,8 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-// https://fetch.spec.whatwg.org/#fetchbodyinit
-typedef (/*ArrayBuffer or ArrayBufferView or Blob or FormData or */DOMString or URLSearchParams) FetchBodyInit;
+// https://fetch.spec.whatwg.org/#bodyinit
+typedef (Blob or /*BufferSource or FormData or */DOMString or URLSearchParams) BodyInit;
 
 enum XMLHttpRequestResponseType {
   "",
@@ -55,7 +55,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
-  void send(optional /*Document or*/ FetchBodyInit? data = null);
+  void send(optional /*Document or*/ BodyInit? data = null);
   void abort();
 
   // response
