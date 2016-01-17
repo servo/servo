@@ -17,7 +17,6 @@ use ipc_channel::ipc;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use page::IterablePage;
 use script_thread::{MainThreadRunnable, MainThreadScriptMsg, ScriptThread};
-use std::sync::mpsc::channel;
 use url::Url;
 use util::str::DOMString;
 

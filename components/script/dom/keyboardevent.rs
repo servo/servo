@@ -15,7 +15,6 @@ use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
-use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::cell::Cell;
 use util::str::DOMString;

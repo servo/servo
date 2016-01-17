@@ -35,7 +35,6 @@ use net_traits::image_cache_thread::ImageResponse;
 use offscreen_gl_context::GLContextAttributes;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
-use std::sync::mpsc::channel;
 use util::str::DOMString;
 use util::vec::byte_swap;
 
