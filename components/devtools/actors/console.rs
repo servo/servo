@@ -20,7 +20,6 @@ use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
-use std::sync::mpsc::channel;
 
 trait EncodableConsoleMessage {
     fn encode(&self) -> json::EncodeResult<String>;

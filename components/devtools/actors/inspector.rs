@@ -16,7 +16,6 @@ use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
-use std::sync::mpsc::channel;
 
 pub struct InspectorActor {
     pub name: String,
