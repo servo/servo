@@ -41,7 +41,6 @@ use num::{Float, ToPrimitive};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::str::FromStr;
-use std::sync::mpsc::channel;
 use std::{cmp, fmt};
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;

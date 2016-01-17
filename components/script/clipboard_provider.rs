@@ -6,7 +6,6 @@ use ipc_channel::ipc;
 use msg::constellation_msg::ConstellationChan;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
-use std::sync::mpsc::channel;
 
 pub trait ClipboardProvider {
     // blocking method to get the clipboard contents
