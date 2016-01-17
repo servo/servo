@@ -18,7 +18,7 @@ use util::mem::{HeapSizeOf, heap_size_of};
 // We pass a |User| struct -- via an opaque |void*| -- to FreeType each time a new instance is
 // created. FreeType passes it back to the ft_alloc/ft_realloc/ft_free callbacks. We use it to
 // record the memory usage of each FreeType instance.
-struct User {
+pub struct User {
     size: usize,
 }
 
