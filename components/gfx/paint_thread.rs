@@ -23,7 +23,7 @@ use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
-use profile_traits::time::{self, profile};
+use profile_traits::time;
 use rand::{self, Rng};
 use skia::gl_context::GLContext;
 use std::borrow::ToOwned;

@@ -16,7 +16,6 @@ use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::mem;
-use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::font_face::Source;
