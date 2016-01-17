@@ -37,16 +37,15 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   const unsigned short HEADERS_RECEIVED = 2;
   const unsigned short LOADING = 3;
   const unsigned short DONE = 4;
-
   readonly attribute unsigned short readyState;
 
   // request
   [Throws]
-  void open(ByteString method, /* [EnsureUTF16] */ DOMString url);
+  void open(ByteString method, USVString url);
   [Throws]
-  void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async,
-            optional /* [EnsureUTF16] */ DOMString? username = null,
-            optional /* [EnsureUTF16] */ DOMString? password = null);
+  void open(ByteString method, USVString url, boolean async,
+            optional USVString? username = null,
+            optional USVString? password = null);
 
   [Throws]
   void setRequestHeader(ByteString name, ByteString value);
@@ -60,7 +59,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   void abort();
 
   // response
-  readonly attribute DOMString responseURL;
+  readonly attribute USVString responseURL;
   readonly attribute unsigned short status;
   readonly attribute ByteString statusText;
   ByteString? getResponseHeader(ByteString name);
@@ -71,7 +70,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute XMLHttpRequestResponseType responseType;
   readonly attribute any response;
   [Throws]
-  readonly attribute DOMString responseText;
+  readonly attribute USVString responseText;
   [Throws]
   /*[Exposed=Window]*/ readonly attribute Document? responseXML;
 };
