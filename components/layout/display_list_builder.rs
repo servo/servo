@@ -40,7 +40,6 @@ use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_thread::UsePlaceholder;
 use std::default::Default;
 use std::sync::Arc;
-use std::sync::mpsc::channel;
 use std::{cmp, f32};
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin};

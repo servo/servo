@@ -39,7 +39,7 @@ use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
+use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
