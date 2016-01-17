@@ -14,7 +14,7 @@ use std::ffi::CStr;
 use std::fmt;
 use std::iter::{Filter, Peekable};
 use std::ops::{Deref, DerefMut};
-use std::str::{CharIndices, FromStr, Split, from_utf8};
+use std::str::{Bytes, CharIndices, FromStr, Split, from_utf8};
 
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Deserialize, Serialize, Hash, Debug)]
 pub struct DOMString(String);
@@ -34,6 +34,10 @@ impl DOMString {
     }
     pub fn clear(&mut self) {
         self.0.clear()
+    }
+
+    pub fn bytes(&self) -> Bytes {
+        self.0.bytes()
     }
 }
 
