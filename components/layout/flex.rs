@@ -16,7 +16,6 @@ use flow;
 use flow::INLINE_POSITION_IS_STATIC;
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::ImmutableFlowUtils;
-use flow::mut_base;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use fragment::{Fragment, FragmentBorderBoxIterator};

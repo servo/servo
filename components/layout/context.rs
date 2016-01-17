@@ -22,7 +22,7 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
