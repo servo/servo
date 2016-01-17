@@ -54,14 +54,14 @@ use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
-enum UnableToComposite {
+pub enum UnableToComposite {
     NoContext,
     WindowUnprepared,
     NotReadyToPaintImage(NotReadyToPaint),
 }
 
 #[derive(Debug, PartialEq)]
-enum NotReadyToPaint {
+pub enum NotReadyToPaint {
     LayerHasOutstandingPaintMessages,
     MissingRoot,
     PendingSubpages(usize),
@@ -225,7 +225,7 @@ struct HitTestResult {
     point: TypedPoint2D<LayerPixel, f32>,
 }
 
-struct PipelineDetails {
+pub struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
 
@@ -251,7 +251,7 @@ impl PipelineDetails {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum CompositeTarget {
+pub enum CompositeTarget {
     /// Normal composition to a window
     Window,
 
