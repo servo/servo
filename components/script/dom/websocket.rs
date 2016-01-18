@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
+use dom::bindings::codegen::UnionTypes::StringOrStringSequence::{self, eString, eStringSequence};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -31,7 +32,6 @@ use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
-use ref_slice::ref_slice;
 use script_thread::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
@@ -176,7 +176,7 @@ impl WebSocket {
 
     pub fn Constructor(global: GlobalRef,
                        url: DOMString,
-                       protocols: Option<DOMString>)
+                       protocols: Option<StringOrStringSequence>)
                        -> Fallible<Root<WebSocket>> {
         // Step 1.
         let resource_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
@@ -193,9 +193,13 @@ impl WebSocket {
         }
 
         // Step 4.
-        let protocols: &[DOMString] = protocols
-                                      .as_ref()
-                                      .map_or(&[], |ref string| ref_slice(string));
+        let protocols = match protocols {
+            Some(eString(string)) => vec![String::from(string)],
+            Some(eStringSequence(sequence)) => {
+                sequence.into_iter().map(String::from).collect()
+            },
+            _ => Vec::new(),
+        };
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
@@ -223,7 +227,6 @@ impl WebSocket {
         let address = Trusted::new(ws.r(), global.networking_thread_source());
 
         let origin = global.get_url().serialize();
-        let protocols: Vec<String> = protocols.iter().map(|x| String::from(x.clone())).collect();
 
         let connect_data = WebSocketConnectData {
             resource_url: resource_url.clone(),
