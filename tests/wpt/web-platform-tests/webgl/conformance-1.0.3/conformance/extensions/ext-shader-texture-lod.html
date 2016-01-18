@@ -1,0 +1,293 @@
+﻿<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_shader_texture_lod Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/desktop-gl-constants.js" type="text/javascript"></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing texture LOD functions -->
+
+<!-- Shader omitting the required #extension pragma -->
+<script id="missingPragmaFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec2 texCoord0v;
+void main() {
+    vec4 color = texture2DLodEXT(tex, texCoord0v, lod);
+    gl_FragColor = vec4(dx, dy, w, 1.0);
+}
+</script>
+
+<!-- Shader to test macro definition -->
+<script id="macroFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+#ifdef GL_EXT_shader_texture_lod
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+#else
+    // Error expected
+    #error no GL_EXT_shader_texture_lod;
+#endif
+}
+</script>
+
+<!-- Shader with required #extension pragma -->
+<script id="testFragmentShader" type="x-shader/x-fragment">
+#extension GL_EXT_shader_texture_lod : enable
+precision mediump float;
+varying vec2 texCoord0v;
+uniform float lod;
+uniform sampler2D tex;
+void main() {
+    vec4 color = texture2DLodEXT(tex, texCoord0v, lod);
+    gl_FragColor = color;
+}
+</script>
+
+<!-- Shaders to link with test fragment shaders -->
+<script id="goodVertexShader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec2 texCoord0;
+varying vec2 texCoord0v;
+void main() {
+    texCoord0v = texCoord0;
+    gl_Position = vPosition;
+}
+</script>
+
+<!-- Shaders to test output -->
+<script id="outputVertexShader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec2 texCoord0;
+varying vec2 texCoord0v;
+void main() {
+    texCoord0v = texCoord0;
+    gl_Position = vPosition;
+}
+</script>
+<script id="outputFragmentShader" type="x-shader/x-fragment">
+#extension GL_EXT_shader_texture_lod : require
+precision mediump float;
+varying vec2 texCoord0v;
+uniform float lod;
+uniform sampler2D tex;
+void main() {
+    vec4 color = texture2DLodEXT(tex, texCoord0v, lod);
+    gl_FragColor = color;
+}
+</script>
+
+<script>
+description("This test verifies the functionality of the EXT_shader_texture_lod extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+canvas.width = 256; canvas.height = 256;
+
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    // Run tests with extension disabled
+    runShaderTests(false);
+
+    // Query the extension and store globally so shouldBe can access it
+    ext = gl.getExtension("EXT_shader_texture_lod");
+    if (!ext) {
+        testPassed("No EXT_shader_texture_lod support -- this is legal");
+
+        runSupportedTest(false);
+    } else {
+        testPassed("Successfully enabled EXT_shader_texture_lod extension");
+
+        runSupportedTest(true);
+
+        runShaderTests(true);
+        runOutputTests();
+        runUniqueObjectTest();
+        runReferenceCycleTest();
+    }
+}
+
+function runSupportedTest(extensionEnabled) {
+    var supported = gl.getSupportedExtensions();
+    if (supported.indexOf("EXT_shader_texture_lod") >= 0) {
+        if (extensionEnabled) {
+            testPassed("EXT_shader_texture_lod listed as supported and getExtension succeeded");
+        } else {
+            testFailed("EXT_shader_texture_lod listed as supported but getExtension failed");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("EXT_shader_texture_lod not listed as supported but getExtension succeeded");
+        } else {
+            testPassed("EXT_shader_texture_lod not listed as supported and getExtension failed -- this is legal");
+        }
+    }
+}
+
+function runShaderTests(extensionEnabled) {
+    debug("");
+    debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    // Expect the macro shader to succeed ONLY if enabled
+    var macroFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "macroFragmentShader");
+    if (extensionEnabled) {
+        if (macroFragmentProgram) {
+            // Expected result
+            testPassed("GL_EXT_shader_texture_lod defined in shaders when extension is enabled");
+        } else {
+            testFailed("GL_EXT_shader_texture_lod not defined in shaders when extension is enabled");
+        }
+    } else {
+        if (macroFragmentProgram) {
+            testFailed("GL_EXT_shader_texture_lod defined in shaders when extension is disabled");
+        } else {
+            testPassed("GL_EXT_shader_texture_lod not defined in shaders when extension disabled");
+        }
+    }
+
+    // Always expect the shader missing the #pragma to fail (whether enabled or not)
+    var missingPragmaFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "missingPragmaFragmentShader");
+    if (missingPragmaFragmentProgram) {
+        testFailed("Shader built-ins allowed without #extension pragma");
+    } else {
+        testPassed("Shader built-ins disallowed without #extension pragma");
+    }
+
+    // Try to compile a shader using the built-ins that should only succeed if enabled
+    var testFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "testFragmentShader");
+    if (extensionEnabled) {
+        if (testFragmentProgram) {
+            testPassed("Shader built-ins compiled successfully when extension enabled");
+        } else {
+            testFailed("Shader built-ins failed to compile when extension enabled");
+        }
+    } else {
+        if (testFragmentProgram) {
+            testFailed("Shader built-ins compiled successfully when extension disabled");
+        } else {
+            testPassed("Shader built-ins failed to compile when extension disabled");
+        }
+    }
+}
+
+function runOutputTests() {
+    debug("");
+    debug("Testing various draws for valid built-in function behavior");
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    var program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"], ['vPosition', 'texCoord0'], [0, 1]);
+    var quadParameters = wtu.setupUnitQuad(gl, 0, 1);
+
+    var colors = [
+        {name: 'red', color:[255, 0, 0, 255]},
+        {name: 'green', color:[0, 255, 0, 255]},
+        {name: 'blue', color:[0, 0, 255, 255]},
+        {name: 'yellow', color:[255, 255, 0, 255]},
+        {name: 'magenta', color:[255, 0, 255, 255]},
+        {name: 'cyan', color:[0, 255, 255, 255]},
+        {name: 'pink', color:[255, 128, 128, 255]},
+        {name: 'gray', color:[128, 128, 128, 255]},
+        {name: 'light green', color:[128, 255, 128, 255]},
+    ];
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+    for (var ii = 0; ii < colors.length; ++ii) {
+        var color = colors[ii];
+        var size = Math.pow(2, colors.length - ii - 1);
+        wtu.fillTexture(gl, tex, size, size, color.color, ii);
+    }
+
+    var loc = gl.getUniformLocation(program, "lod");
+
+    for (var ii = 0; ii < colors.length; ++ii) {
+        gl.uniform1f(loc, ii);
+        var color = colors[ii];
+        wtu.drawUnitQuad(gl);
+        wtu.checkCanvas(
+            gl, color.color,
+            "256x256 texture drawn to 256x256 dest with lod = " + ii +
+            " should be " + color.name);
+    }
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+}
+
+function runUniqueObjectTest()
+{
+    debug("");
+    debug("Testing that getExtension() returns the same object each time");
+    gl.getExtension("EXT_shader_texture_lod").myProperty = 2;
+    gc();
+    shouldBe('gl.getExtension("EXT_shader_texture_lod").myProperty', '2');
+}
+
+function runReferenceCycleTest()
+{
+    // create some reference cycles. The goal is to see if they cause leaks. The point is that
+    // some browser test runners have instrumentation to detect leaked refcounted objects.
+    debug("");
+    debug("Testing reference cycles between context and extension objects");
+    var ext = gl.getExtension("EXT_shader_texture_lod");
+
+    // create cycle between extension and context, since the context has to hold a reference to the extension
+    ext.context = gl;
+
+    // create a self-cycle on the extension object
+    ext.ext = ext;
+}
+
+debug("");
+successfullyParsed = true;
+</script>
+<script>finishTest();</script>
+
+</body>
+</html>

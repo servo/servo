@@ -1,0 +1,114 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL gl enums Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/desktop-gl-constants.js" type="text/javascript"></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../resources/test-eval.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("This test ensures various WebGL functions fail when passed non OpenGL ES 2.0 enums.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking gl enums.");
+
+  var buffer = new ArrayBuffer(2);
+  var buf = new Uint16Array(buffer);
+  var tex = gl.createTexture();
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+  var tests = [
+    "gl.bindTexture(desktopGL['TEXTURE_3D'], tex)",
+    "gl.blendEquation(desktopGL['MIN'])",
+    "gl.blendEquation(desktopGL['MAX'])",
+    "gl.blendEquationSeparate(desktopGL['MIN'], gl.FUNC_ADD)",
+    "gl.blendEquationSeparate(desktopGL['MAX'], gl.FUNC_ADD)",
+    "gl.blendEquationSeparate(gl.FUNC_ADD, desktopGL['MIN'])",
+    "gl.blendEquationSeparate(gl.FUNC_ADD, desktopGL['MAX'])",
+    "gl.bufferData(gl.ARRAY_BUFFER, 3, desktopGL['STATIC_READ'])",
+    "gl.disable(desktopGL['CLIP_PLANE0'])",
+    "gl.disable(desktopGL['POINT_SPRITE'])",
+    "gl.getBufferParameter(gl.ARRAY_BUFFER, desktopGL['PIXEL_PACK_BUFFER'])",
+    "gl.hint(desktopGL['PERSPECTIVE_CORRECTION_HINT'], gl.FASTEST)",
+    "gl.isEnabled(desktopGL['CLIP_PLANE0'])",
+    "gl.isEnabled(desktopGL['POINT_SPRITE'])",
+    "gl.pixelStorei(desktopGL['PACK_SWAP_BYTES'], 1)",
+  ];
+  for (var ii = 0; ii < tests.length; ++ii) {
+    TestEval(tests[ii]);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+              tests[ii] + " should return INVALID_ENUM.");
+  }
+
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+  tests = [
+    "gl.getTexParameter(gl.TEXTURE_2D, desktopGL['GENERATE_MIPMAP'])",
+    "gl.texParameteri(desktopGL['TEXTURE_3D'], gl.TEXTURE_MAG_FILTER, gl.NEAREST)",
+    "gl.texParameteri(gl.TEXTURE_2D, desktopGL['GENERATE_MIPMAP'], 1)"
+  ];
+  for (var ii = 0; ii < tests.length; ++ii) {
+    TestEval(tests[ii]);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+              tests[ii] + " should return INVALID_ENUM.");
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+

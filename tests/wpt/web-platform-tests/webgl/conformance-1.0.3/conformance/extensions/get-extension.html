@@ -1,0 +1,122 @@
+﻿<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Extension Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+
+var pseudoRandom = (function() {
+    var seed = 3;
+    return function() {
+        seed = (seed * 11 + 17) % 25;
+        return seed / 25;
+    };
+})();
+
+var randomizeCase = function(str) {
+    var newChars = [];
+    for (var ii = 0; ii < str.length; ++ii) {
+        var c = str.substr(ii, 1);
+        var m = (pseudoRandom() > 0.5) ? c.toLowerCase() : c.toUpperCase();
+        newChars.push(m);
+    }
+    return newChars.join("");
+};
+
+description();
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+
+var ii;
+
+debug("check every extension advertised can be enabled");
+debug("");
+var extensionNames = gl.getSupportedExtensions();
+var extensionNamesLower = [];
+for (ii = 0; ii < extensionNames.length; ++ii) {
+    extensionNamesLower.push(extensionNames[ii].toLowerCase());
+}
+
+for (ii = 0; ii < extensionNames.length; ++ii) {
+    var originalName = extensionNames[ii];
+    var mixedName = randomizeCase(originalName);
+    var extension = gl.getExtension(mixedName);
+    assertMsg(extension, "able to get " + originalName + " as " + mixedName);
+    if (extension) {
+        var kTestString = "this is a test";
+        var kTestNumber = 123;
+        var kTestFunction = function() { };
+        var kTestObject = { };
+        extension.testStringProperty = kTestString;
+        extension.testNumberProperty = kTestNumber;
+        extension.testFunctionProperty = kTestFunction;
+        extension.testObjectProperty = kTestObject;
+        gc();
+        var extension2 = gl.getExtension(originalName);
+        assertMsg(
+            extension === extension2,
+            "calling getExtension twice for the same extension returns the same object");
+        assertMsg(
+            extension2.testStringProperty === kTestString &&
+            extension2.testFunctionProperty === kTestFunction &&
+            extension2.testObjectProperty === kTestObject &&
+            extension2.testNumberProperty === kTestNumber,
+            "object returned by 2nd call to getExtension has same properties");
+
+        var prefixedVariants = wtu.getExtensionPrefixedNames(originalName);
+        for (var jj = 0; jj < prefixedVariants.length; ++jj) {
+            assertMsg(
+                gl.getExtension(prefixedVariants[jj]) === null ||
+                extensionNamesLower.indexOf(prefixedVariants[jj].toLowerCase()) !== -1,
+                "getExtension('" + prefixedVariants[jj] + "') returns an object only if the name is returned by getSupportedExtensions");
+        }
+    }
+    debug("");
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

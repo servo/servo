@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html><head><title>CSS Writing Modes Test: Shrink-to-fit float with a child of orthogonal inline with borders in inline-block</title>
-<link href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows" rel="help">
+<html><head><meta charset="utf-8">
+<title>CSS Writing Modes Test: Shrink-to-fit float with a child of orthogonal inline with borders in inline-block</title>
+<link href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows" rel="help" title="7.3. Orthogonal Flows">
 <meta content="Shrink-to-fit float with a child of orthogonal inline with borders in inline-block" name="assert">
-<meta content="ahem" name="flags">
+<meta content="ahem dom" name="flags">
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii">
+<link href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" rel="reviewer" title="Gérard Talbot"> <!-- 2015-12-23 -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <link href="/resources/testharness.css" rel="stylesheet">
@@ -14,7 +16,8 @@
 }
 .target {
     color:blue;
-    height:3em;
+    height:3em; /* height: 3em is not required. IE11 and Edge12 compute height to ICB height if
+    not set. We want the test to focus exclusively on shrink-to-fit algorithm. */
     writing-mode:vertical-rl;
 }
 .border {
@@ -48,7 +51,7 @@ td {
 </p><p>If script is enabled, there should be one or more PASS and no FAIL.
 </p><h3>16: Shrink-to-fit float with a child of orthogonal inline with borders in inline-block</h3>
 <div class="test">
-    <div class="float"><div class="inline-block"><span class="target border">XXX</span></div></div><span class="next">YY</span>
+    <div class="float"><div class="inline-block"><span class="target border">HHH</span></div></div><span class="next">ZZ</span>
 </div>
 </div>
 <script>

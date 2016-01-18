@@ -467,6 +467,7 @@ overflow-wrap-003.htm == reference/overflow-wrap-003-ref.htm
 overflow-wrap-004.htm == reference/overflow-wrap-004-ref.htm
 overflow-wrap-005.htm == reference/overflow-wrap-003-ref.htm
 overflow-wrap-break-word-001.htm == reference/overflow-wrap-break-word-001-ref.htm
+overflow-wrap-break-word-fit-content-001.htm == reference/overflow-wrap-break-word-fit-content-001.htm
 tab-size-integer-001.htm == reference/tab-size-integer-001-ref.htm
 tab-size-integer-002.htm == reference/tab-size-integer-001-ref.htm
 tab-size-integer-003.htm == reference/tab-size-integer-001-ref.htm
@@ -538,7 +539,7 @@ text-emphasis-style-open-001.htm == reference/text-emphasis-style-open-001-ref.h
 text-emphasis-style-shape-001.htm == reference/text-emphasis-style-shape-001-ref.htm
 text-emphasis-style-string-001.htm == reference/text-emphasis-style-string-001-ref.htm
 text-indent-percentage-001.htm == reference/text-indent-percentage-001-ref.htm
-text-justify-001.htm == reference/text-justify-001.htm
+text-justify-001.htm == reference/text-justify-ref-001.htm
 text-transform-capitalize-001.htm == reference/text-transform-capitalize-001-ref.htm
 text-transform-fullwidth-001.htm == reference/text-transform-fullwidth-001-ref.htm
 text-transform-lowercase-001.htm == reference/text-transform-lowercase-001-ref.htm

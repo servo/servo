@@ -1,0 +1,193 @@
+﻿<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+        <script src=/resources/testharness.js></script>
+        <script src=/resources/testharnessreport.js></script>
+        <script src="../../resources/js-test-pre.js"></script>
+        <script src="../resources/webgl-test-utils.js"></script>
+        <script id="vshader" type="x-shader/x-vertex">
+            attribute vec3 pos;
+
+            void main()
+            {
+                gl_Position = vec4(pos, 1);
+            }
+        </script>
+
+        <script id="fshader" type="x-shader/x-fragment">
+            precision mediump float;
+            uniform vec4 col;
+
+            void main()
+            {
+                gl_FragColor = col;
+            }
+        </script>
+
+        <script>
+            "use strict";
+            var wtu = WebGLTestUtils;
+
+            function draw(gl, arr, colLoc, col)
+            {
+                var vertices = new Float32Array(arr);
+                var vertBuf = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+                gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+                gl.uniform4fv(colLoc, col);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length / 3);
+            }
+
+            function clear(gl, col, z)
+            {
+                gl.clearColor(col[0], col[1], col[2], col[3]);
+                gl.clearDepth(z);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            }
+
+            function check(gl)
+            {
+                wtu.checkCanvasRect(gl, 0, 0, 16, 16, [0, 255, 0, 255], 'result should be green');
+            }
+
+            function runTest()
+            {
+                var flatSquare = [-1, -1, 0,
+                                  -1, 1, 0,
+                                   1, -1, 0,
+                                   1, 1, 0];
+                var slantedSquare = [-1, -1, -0.5,
+                                     -1,  1, -0.5,
+                                      1, -1, 0.5,
+                                      1,  1, 0.5];
+                var red = [1, 0, 0, 1];
+                var green = [0, 1, 0, 1];
+                var blue = [0, 0, 1, 1];
+
+                var gl = wtu.create3DContext('testbed', { antialias: false });
+                if (!gl)
+                {
+                    testFailed('could not create context');
+                    return;
+                }
+                var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['pos']);
+                var colLoc = gl.getUniformLocation(program, 'col');
+
+                gl.enableVertexAttribArray(0);
+
+                gl.enable(gl.DEPTH_TEST);
+                gl.depthFunc(gl.LEQUAL);
+
+                debug('Polygon offset fill should be off by default');
+                clear(gl, red, 1.0);
+                draw(gl, slantedSquare, colLoc, blue);
+                draw(gl, slantedSquare, colLoc, green);
+                check(gl);
+                
+                debug('Polygon offset units should have no effect when fill is off');
+                clear(gl, red, 1.0);
+                draw(gl, slantedSquare, colLoc, blue);
+                gl.polygonOffset(0, 10);
+                draw(gl, slantedSquare, colLoc, green);
+                check(gl);
+
+                debug('Polygon offset factor should have no effect when fill is off');
+                clear(gl, red, 1.0);
+                gl.polygonOffset(0, 0);
+                draw(gl, slantedSquare, colLoc, blue);
+                gl.polygonOffset(1.0, 0);
+                draw(gl, slantedSquare, colLoc, green);
+                check(gl);
+
+                debug('Zero polygon offset units and factor should have no effect');
+                clear(gl, red, 1.0);
+                gl.enable(gl.POLYGON_OFFSET_FILL);
+                gl.polygonOffset(0, 0);
+                draw(gl, slantedSquare, colLoc, blue);
+                draw(gl, slantedSquare, colLoc, green);
+                check(gl);
+
+                // It appears to be VERY common for drivers to implement the units offset in
+                // floating-point arithmetic, which results in rount-to-nearest-even to cause
+                // an offset of 1 to sometimes not alter the order between these polygons.
+                debug('Polygon offset units of 2 should alter order of flat polygons');
+                clear(gl, red, 1.0);
+                draw(gl, flatSquare, colLoc, green);
+                gl.polygonOffset(0, 2);
+                draw(gl, flatSquare, colLoc, blue);
+                check(gl);
+
+                debug('Polygon offset factor of 0.1 should alter order of slanted polygons');
+                clear(gl, red, 1.0);
+                draw(gl, slantedSquare, colLoc, green);
+                gl.polygonOffset(0.1, 0);
+                draw(gl, slantedSquare, colLoc, blue);
+                check(gl);
+
+                debug('Polygon offset factor of 0.1 should not alter order of flat polygons');
+                clear(gl, red, 1.0);
+                draw(gl, flatSquare, colLoc, blue);
+                gl.polygonOffset(0.1, 0);
+                draw(gl, flatSquare, colLoc, green);
+                check(gl);
+
+                debug('Disabling polygon offset fill should leave order unaffected');
+                clear(gl, red, 1.0);
+                gl.polygonOffset(0.1, 1);
+                gl.disable(gl.POLYGON_OFFSET_FILL);
+                draw(gl, slantedSquare, colLoc, blue);
+                draw(gl, slantedSquare, colLoc, green);
+                check(gl);
+
+                debug('Enabling polygon offset fill should affect order again');
+                clear(gl, red, 1.0);
+                draw(gl, slantedSquare, colLoc, green);
+                gl.enable(gl.POLYGON_OFFSET_FILL);
+                draw(gl, slantedSquare, colLoc, blue);
+                check(gl);
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="testbed" width="16" height="16" style="width:50px; height:50px"></canvas>
+        <div id="description"></div>
+        <div id="console"></div>
+        <script>
+            "use strict";
+            description('Verify that polygon offset works');
+            runTest();
+            var successfullyParsed = true;
+        </script>
+        <script src="../../resources/js-test-post.js"></script>
+    </body>
+</html>

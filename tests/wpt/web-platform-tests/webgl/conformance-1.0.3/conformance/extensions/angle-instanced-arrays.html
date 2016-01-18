@@ -1,0 +1,422 @@
+﻿<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL ANGLE_instanced_arrays Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/desktop-gl-constants.js" type="text/javascript"></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing instanced draws -->
+<script id="outputVertexShader" type="x-shader/x-vertex">
+attribute vec4 aPosition;
+attribute vec2 aOffset;
+attribute vec4 aColor;
+varying vec4 vColor;
+void main() {
+    vColor = aColor;
+    gl_Position = aPosition + vec4(aOffset, 0.0, 0.0);
+}
+</script>
+
+<script id="outputFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 vColor;
+void main() {
+    gl_FragColor = vColor;
+}
+</script>
+
+<script>
+"use strict";
+description("This test verifies the functionality of the ANGLE_instanced_arrays extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+
+var positionLoc = 0;
+var offsetLoc = 2;
+var colorLoc = 3;
+var program;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+    finishTest();
+} else {
+    testPassed("WebGL context exists");
+
+    runDivisorTestDisabled();
+
+    // Query the extension and store globally so shouldBe can access it
+    ext = wtu.getExtensionWithKnownPrefixes(gl, "ANGLE_instanced_arrays");
+    if (!ext) {
+        testPassed("No ANGLE_instanced_arrays support -- this is legal");
+
+        runSupportedTest(false);
+        finishTest();
+    } else {
+        testPassed("Successfully enabled ANGLE_instanced_arrays extension");
+
+        runSupportedTest(true);
+
+        runDivisorTestEnabled();
+        runUniqueObjectTest();
+
+        setupCanvas();
+        runOutputTests();
+        runANGLECorruptionTest();
+    }
+}
+
+function runSupportedTest(extensionEnabled) {
+    var supported = gl.getSupportedExtensions();
+    if (supported.indexOf("ANGLE_instanced_arrays") >= 0) {
+        if (extensionEnabled) {
+            testPassed("ANGLE_instanced_arrays listed as supported and getExtension succeeded");
+        } else {
+            testFailed("ANGLE_instanced_arrays listed as supported but getExtension failed");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("ANGLE_instanced_arrays not listed as supported but getExtension succeeded");
+        } else {
+            testPassed("ANGLE_instanced_arrays not listed as supported and getExtension failed -- this is legal");
+        }
+    }
+}
+
+function runDivisorTestDisabled() {
+    debug("Testing VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE with extension disabled");
+    
+    var VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE = 0x88FE;
+
+    gl.getVertexAttrib(0, VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE should not be queryable if extension is disabled");
+}
+
+function runDivisorTestEnabled() {
+    debug("Testing VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE with extension enabled");
+
+    shouldBe("ext.VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE", "0x88FE");
+
+    var max_vertex_attribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+
+    for (var i = 0; i < max_vertex_attribs; ++i) {
+        var queried_value = gl.getVertexAttrib(i, ext.VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE);
+        if(queried_value == 0){
+            testPassed("Vertex attribute " + i + " must has a default divisor of 0");
+        }
+        else{
+            testFailed("Default divisor of vertex attribute " + i + " should be: 0, returned value was: " + queried_value);
+        }
+    }
+
+    ext.vertexAttribDivisorANGLE(max_vertex_attribs, 2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "vertexAttribDivisorANGLE index set greater than or equal to MAX_VERTEX_ATTRIBS should be an invalid value");
+
+    ext.vertexAttribDivisorANGLE(max_vertex_attribs-1, 2);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "vertexAttribDivisorANGLE index set less than MAX_VERTEX_ATTRIBS should succeed");
+
+    var queried_value = gl.getVertexAttrib(max_vertex_attribs-1, ext.VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE);
+    if(queried_value == 2){
+        testPassed("Set value of VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE matches expecation");
+    }
+    else{
+        testFailed("Set value of VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE should be: 2, returned value was: " + queried_value);
+    }
+}
+
+function setupCanvas() {
+    canvas.width = 50; canvas.height = 50;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+
+    program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"], ['aPosition', 'aOffset', 'aColor'], [positionLoc, offsetLoc, colorLoc]);
+}
+
+function runOutputTests() {
+    var instanceCount = 4;
+
+    debug("Testing various draws for valid built-in function behavior");
+
+    var offsets = new Float32Array([
+        -1.0,  1.0,
+         1.0,  1.0,
+        -1.0, -1.0,
+         1.0, -1.0,
+    ]);
+    var offsetBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsets, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(offsetLoc);
+    gl.vertexAttribPointer(offsetLoc, 2, gl.FLOAT, false, 0, 0);
+    ext.vertexAttribDivisorANGLE(offsetLoc, 1);
+
+    var colors = new Float32Array([
+        1.0, 0.0, 0.0, 1.0, // Red
+        0.0, 1.0, 0.0, 1.0, // Green
+        0.0, 0.0, 1.0, 1.0, // Blue
+        1.0, 1.0, 0.0, 1.0, // Yellow
+    ]);
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+    ext.vertexAttribDivisorANGLE(colorLoc, 1);
+
+    wtu.setupUnitQuad(gl, 0);
+
+    // Draw 1: Regular drawArrays
+    debug("");
+    debug("Testing drawArrays with non-zero divisor");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "vertex attrib divisor should affect regular drawArrays when the extension is enabled");
+    wtu.checkCanvasRect(gl, 0, canvas.height/2, canvas.width/2, canvas.height/2, [255, 0, 0, 255]);
+
+    // Draw 2: Draw Non-indexed instances
+    debug("");
+    debug("Testing drawArraysInstancedANGLE");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Test drawArraysInstancedANGLE error conditions
+    ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.checkCanvasRect(gl, 0, canvas.height/2, canvas.width/2, canvas.height/2, [255, 0, 0, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, canvas.height/2, canvas.width/2, canvas.height/2, [0, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width/2, canvas.height/2, [0, 0, 255, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, 0, canvas.width/2, canvas.height/2, [255, 255, 0, 255]);
+
+    ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, -1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawArraysInstancedANGLE cannot have a primcount less than 0");
+
+    ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, -1, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawArraysInstancedANGLE cannot have a count less than 0");
+
+    ext.vertexAttribDivisorANGLE(positionLoc, 1);
+    ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "There must be at least one vertex attribute with a divisor of zero when calling drawArraysInstancedANGLE");
+    ext.vertexAttribDivisorANGLE(positionLoc, 0);
+
+    ext.drawArraysInstancedANGLE(gl.POINTS, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstancedANGLE with POINTS should succeed");
+    ext.drawArraysInstancedANGLE(gl.LINES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstancedANGLE with LINES should succeed");
+    ext.drawArraysInstancedANGLE(gl.LINE_LIST, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstancedANGLE with LINE_LIST should return succeed");
+    ext.drawArraysInstancedANGLE(gl.TRIANGLE_LIST, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstancedANGLE with TRIANGLE_LIST should succeed");
+
+    ext.drawArraysInstancedANGLE(desktopGL['QUAD_STRIP'], 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstancedANGLE with QUAD_STRIP should return INVALID_ENUM");
+    ext.drawArraysInstancedANGLE(desktopGL['QUADS'], 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstancedANGLE with QUADS should return INVALID_ENUM");
+    ext.drawArraysInstancedANGLE(desktopGL['POLYGON'], 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstancedANGLE with POLYGON should return INVALID_ENUM");
+
+    wtu.setupIndexedQuad(gl, 1, 0);
+
+    // Draw 3: Regular drawElements
+    debug("");
+    debug("Testing drawElements with non-zero divisor");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    // Point to another location in the buffer so that the draw would overflow without the divisor
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 48);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "vertex attrib divisor should affect regular drawElements when the extension is enabled");
+    wtu.checkCanvasRect(gl, 0, canvas.height/2, canvas.width/2, canvas.height/2, [255, 255, 0, 255]);
+    // Restore the vertex attrib pointer
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+
+    // Draw 4: Draw indexed instances
+    debug("");
+    debug("Testing drawElementsInstancedANGLE");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.checkCanvasRect(gl, 0, canvas.height/2, canvas.width/2, canvas.height/2, [255, 0, 0, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, canvas.height/2, canvas.width/2, canvas.height/2, [0, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width/2, canvas.height/2, [0, 0, 255, 255]);
+    wtu.checkCanvasRect(gl, canvas.width/2, 0, canvas.width/2, canvas.height/2, [255, 255, 0, 255]);
+
+    // Test drawElementsInstancedANGLE error conditions
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, -1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawElementsInstancedANGLE cannot have a primcount less than 0");
+
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, -1, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawElementsInstancedANGLE cannot have a count less than 0");
+
+    ext.vertexAttribDivisorANGLE(positionLoc, 1);
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "There must be at least one vertex attribute with a divisor of zero when calling drawElementsInstancedANGLE");
+    ext.vertexAttribDivisorANGLE(positionLoc, 0);
+
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstancedANGLE with UNSIGNED_BYTE should succeed");
+
+    ext.drawElementsInstancedANGLE(gl.POINTS, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstancedANGLE with POINTS should succeed");
+    ext.drawElementsInstancedANGLE(gl.LINES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstancedANGLE with LINES should succeed");
+    ext.drawElementsInstancedANGLE(gl.LINE_LIST, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstancedANGLE with LINE_LIST should return succeed");
+    ext.drawElementsInstancedANGLE(gl.TRIANGLE_LIST, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstancedANGLE with TRIANGLE_LIST should succeed");
+
+    ext.drawElementsInstancedANGLE(desktopGL['QUAD_STRIP'], 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawElementsInstancedANGLE with QUAD_STRIP should return INVALID_ENUM");
+    ext.drawElementsInstancedANGLE(desktopGL['QUADS'], 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawElementsInstancedANGLE with QUADS should return INVALID_ENUM");
+    ext.drawElementsInstancedANGLE(desktopGL['POLYGON'], 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawElementsInstancedANGLE with POLYGON should return INVALID_ENUM");
+}
+
+function runUniqueObjectTest()
+{
+    debug("");
+    debug("Testing that getExtension() returns the same object each time");
+    gl.getExtension("ANGLE_instanced_arrays").myProperty = 2;
+    gc();
+    shouldBe('gl.getExtension("ANGLE_instanced_arrays").myProperty', '2');
+}
+
+function runANGLECorruptionTest()
+{
+    debug("")
+    debug("Testing to ensure that rendering isn't corrupt due to an ANGLE bug");
+    // See: https://code.google.com/p/angleproject/issues/detail?id=467
+
+    var tolerance = 2; // Amount of variance to allow in result pixels - may need to be tweaked higher
+    var instanceCount = 10; // Must be higher than 6
+    var iteration = 0;
+    var totalIterations = 10;
+
+    var offsets = new Float32Array([
+        0.0, 0.0,
+        0.2, 0.0,
+        0.4, 0.0,
+        0.6, 0.0,
+        0.8, 0.0,
+        1.0, 0.0,
+        1.2, 0.0,
+        1.4, 0.0,
+        1.6, 0.0,
+        1.8, 0.0,
+    ]);
+    var offsetBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsets.byteLength * 2, gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, offsets);
+    gl.enableVertexAttribArray(offsetLoc);
+    gl.vertexAttribPointer(offsetLoc, 2, gl.FLOAT, false, 0, 0);
+    ext.vertexAttribDivisorANGLE(offsetLoc, 1);
+
+    var colors = new Float32Array([
+        1.0, 0.0, 0.0, 1.0,
+        1.0, 1.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, 1.0,
+        0.0, 1.0, 1.0, 1.0,
+        0.0, 0.0, 1.0, 1.0,
+        1.0, 0.0, 1.0, 1.0,
+        1.0, 0.0, 0.0, 1.0,
+        1.0, 1.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, 1.0,
+        0.0, 1.0, 1.0, 1.0,
+    ]);
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors.byteLength * 2, gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, colors);
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+    ext.vertexAttribDivisorANGLE(colorLoc, 1);
+
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.setupUnitQuad(gl, 0);
+
+    function cycleAndTest() {
+        // Update the instanced data buffers outside the accessed range.
+        // This, plus rendering more instances than vertices, triggers the bug.
+        var nullData = new Float32Array(offsets.length);
+        gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, offsets.byteLength, nullData);
+
+        nullData = new Float32Array(colors.length);
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, colors.byteLength, nullData);
+
+        ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, instanceCount);
+
+        // Make sure each color was drawn correctly 
+        var i;
+        var passed = true;
+        for (i = 0; i < instanceCount; ++i) {
+            var w = canvas.width / instanceCount;
+            var x = w * i;
+            var color =  [colors[(i*4)] * 255, colors[(i*4)+1] * 255, colors[(i*4)+2] * 255, 255]
+
+            wtu.checkCanvasRectColor(
+                gl, x, 0, w, canvas.height, color, tolerance,
+                function() {},
+                function() {
+                    passed = false;
+                }, debug);
+        }
+
+        if (passed) {
+            testPassed("Passed test " + iteration + " of " + totalIterations);
+            if (iteration < totalIterations) {
+                ++iteration;
+                setTimeout(cycleAndTest, 0);
+            } else {
+                finishTest();
+            }
+        } else {
+            testFailed("Failed test " + iteration + " of " + totalIterations);
+            finishTest();
+        }
+    }
+
+    cycleAndTest();
+}
+</script>
+</body>
+</html>

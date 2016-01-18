@@ -134,7 +134,7 @@ class SourceFile(object):
             ext = ext[1:]
         if ext in ["html", "htm"]:
             return "html"
-        if ext in ["xhtml", "xht"]:
+        if ext in ["xhtml", "xht", "xml"]:
             return "xhtml"
         if ext == "svg":
             return "svg"

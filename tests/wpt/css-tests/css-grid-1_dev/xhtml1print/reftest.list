@@ -84,6 +84,7 @@ grid-order-property-painting-002.xht == reference/ref-filled-green-100px-square.
 grid-order-property-painting-003.xht == reference/ref-filled-green-100px-square.xht
 grid-order-property-painting-004.xht == reference/ref-filled-green-100px-square.xht
 grid-order-property-painting-005.xht == reference/ref-filled-green-100px-square.xht
+grid-support-grid-auto-columns-rows-001.xht == reference/grid-support-grid-auto-columns-rows-001-ref.xht
 grid-vertical-align-001.xht == reference/ref-filled-green-100px-square.xht
 grid-z-axis-ordering-001.xht == reference/ref-filled-green-100px-square.xht
 grid-z-axis-ordering-002.xht == reference/ref-filled-green-100px-square.xht

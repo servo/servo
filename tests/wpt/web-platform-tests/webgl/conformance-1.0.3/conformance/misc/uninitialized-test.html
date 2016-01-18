@@ -1,0 +1,196 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Uninitialized GL Resources Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("Tests to check user code cannot access uninitialized data from GL resources.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl)
+  testFailed("Context created.");
+else
+  testPassed("Context created.");
+
+function setupTexture(texWidth, texHeight) {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    // this can be quite undeterministic so to improve odds of seeing uninitialized data write bits
+    // into tex then delete texture then re-create one with same characteristics (driver will likely reuse mem)
+    // with this trick on r59046 WebKit/OSX I get FAIL 100% of the time instead of ~15% of the time.
+
+    var badData = new Uint8Array(texWidth * texHeight * 4);
+    for (var i = 0; i < badData.length; ++i)
+        badData[i] = i % 255;
+
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+    gl.finish(); // make sure it has been uploaded
+
+    gl.deleteTexture(texture);
+    gl.finish(); // make sure it has been deleted
+
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    return texture;
+}
+
+function checkNonZeroPixels(texture, texWidth, texHeight, skipX, skipY, skipWidth, skipHeight, skipR, skipG, skipB, skipA) {
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+
+    var data = new Uint8Array(texWidth * texHeight * 4);
+    gl.readPixels(0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+    var k = 0;
+    for (var y = 0; y < texHeight; ++y) {
+        for (var x = 0; x < texWidth; ++x) {
+            var index = (y * texWidth + x) * 4;
+            if (x >= skipX && x < skipX + skipWidth && y >= skipY && y < skipY + skipHeight) {
+                if (data[index] != skipR || data[index + 1] != skipG || data[index + 2] != skipB || data[index + 3] != skipA) {
+                    testFailed("non-zero pixel values are wrong");
+                    return;
+                }
+            } else {
+                for (var i = 0; i < 4; ++i) {
+                    if (data[index + i] != 0)
+                        k++;
+                }
+            }
+        }
+    }
+    if (k) {
+        testFailed("Found " + k + " non-zero bytes");
+    } else {
+        testPassed("All data initialized");
+    }
+}
+
+var width = 512;
+var height = 512;
+
+debug("");
+debug("Reading an uninitialized texture (texImage2D) should succeed with all bytes set to 0.");
+
+var tex = setupTexture(width, height);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+checkNonZeroPixels(tex, width, height, 0, 0, 0, 0, 0, 0, 0, 0);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+debug("Reading an uninitialized portion of a texture (copyTexImage2D) should succeed with all bytes set to 0.");
+
+var tex = setupTexture(width, height);
+var fbo = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+var rbo = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+var fboWidth = 16;
+var fboHeight = 16;
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, fboWidth, fboHeight);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, width, height, 0);
+checkNonZeroPixels(tex, width, height, 0, 0, fboWidth, fboHeight, 255, 0, 0, 255);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+debug("Reading an uninitialized portion of a texture (copyTexImage2D with negative x and y) should succeed with all bytes set to 0.");
+
+var tex = setupTexture(width, height);
+var fbo = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+var rbo = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+var fboWidth = 16;
+var fboHeight = 16;
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, fboWidth, fboHeight);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+var x = -8;
+var y = -8;
+gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, x, y, width, height, 0);
+checkNonZeroPixels(tex, width, height, -x, -y, fboWidth, fboHeight, 255, 0, 0, 255);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+debug("Reading an uninitialized portion of a texture (copyTexImage2D from WebGL internal fbo) should succeed with all bytes set to 0.");
+
+var tex = setupTexture(width, height);
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+gl.clearColor(0.0, 1.0, 0.0, 0.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, width, height, 0);
+checkNonZeroPixels(tex, width, height, 0, 0, gl.canvas.width, gl.canvas.height, 0, 255, 0, 0);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+//TODO: uninitialized vertex array buffer
+//TODO: uninitialized vertex elements buffer
+//TODO: uninitialized framebuffer? (implementations would need to do a GL clear at first binding?)
+//TODO: uninitialized renderbuffer? (implementations would need to do a GL clear at first binding?)
+//TODO: uninitialized uniform arrays?
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>
+

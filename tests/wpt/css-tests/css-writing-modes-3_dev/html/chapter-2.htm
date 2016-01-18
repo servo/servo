@@ -1302,7 +1302,7 @@
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'direction: rtl' - table columns order and vertical-rl
           <ul class="assert">
-            <li>This test checks that a table with 'writing-mode' set to 'vertical-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+            <li>This test checks that a table with 'writing-mode' set to 'vertical-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality.</li>
           </ul>
         </td>
       </tr>
@@ -1313,7 +1313,7 @@
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'direction: rtl' - table columns order and vertical-lr
           <ul class="assert">
-            <li>This test checks that a table with 'writing-mode' set to 'vertical-lr' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+            <li>This test checks that a table with 'writing-mode' set to 'vertical-lr' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality.</li>
           </ul>
         </td>
       </tr>
@@ -1324,7 +1324,7 @@
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'direction: rtl' - table columns order and vertical-rl
           <ul class="assert">
-            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction.</li>
+            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction. This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality.</li>
           </ul>
         </td>
       </tr>
@@ -1335,7 +1335,7 @@
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'direction: rtl' - table columns order and vertical-lr
           <ul class="assert">
-            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction.</li>
+            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction. This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality.</li>
           </ul>
         </td>
       </tr>
@@ -1346,7 +1346,7 @@
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'direction: rtl' - table columns order and sideways-lr
           <ul class="assert">
-            <li>This test checks that a table with 'writing-mode' set to 'sideways-lr' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+            <li>This test checks that a table with 'writing-mode' set to 'sideways-lr' and with 'direction' set to 'rtl' will have its column displayed from top (1st column) to bottom (last column). This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality.</li>
           </ul>
         </td>
       </tr>
@@ -1357,7 +1357,7 @@
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>'direction: rtl' - table columns order and sideways-rl
           <ul class="assert">
-            <li>This test checks that a table with 'writing-mode' set to 'sideways-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+            <li>This test checks that a table with 'writing-mode' set to 'sideways-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality.</li>
           </ul>
         </td>
       </tr>
@@ -1412,8 +1412,7 @@
         <td></td>
         <td>vertical-lr Table Row/Rowgroup/Cell Ordering
           <ul class="assert">
-            <li>This test checks that vertical-lr tables order rows/rowgroups left to right and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'.</li>
-            <li>This test checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.</li>
+            <li>This test checks that vertical-lr tables order rows/rowgroups left to right and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'. This test also checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.</li>
           </ul>
         </td>
       </tr>
@@ -1424,8 +1423,7 @@
         <td></td>
         <td>vertical-lr Table Column/Colgroup Ordering
           <ul class="assert">
-            <li>This test checks that vertical-lr tables order columns top-to-bottom (LTR) or bottom-to-top (RTL) per the table's 'direction'.</li>
-            <li>This test checks that 'writing-mode' and 'direction' do not apply to table columns and column groups.</li>
+            <li>This test checks that vertical-lr tables order columns top-to-bottom (LTR) or bottom-to-top (RTL) per the table's 'direction'. This test also checks that 'writing-mode' and 'direction' do not apply to table columns and column groups.</li>
           </ul>
         </td>
       </tr>
@@ -1458,8 +1456,7 @@
         <td></td>
         <td>vertical-rl Table Row/Rowgroup/Cell Ordering
           <ul class="assert">
-            <li>This test checks that vertical-rl tables order rows/rowgroups right to left and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'.</li>
-            <li>This test checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.</li>
+            <li>This test checks that vertical-rl tables order rows/rowgroups right to left and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'. This test also checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.</li>
           </ul>
         </td>
       </tr>
@@ -1470,8 +1467,7 @@
         <td></td>
         <td>vertical-rl Table Column/Colgroup Ordering
           <ul class="assert">
-            <li>This test checks that vertical-rl tables order columns top-to-bottom (LTR) or bottom-to-top (RTL) per the table's 'direction'.</li>
-            <li>This test checks that 'writing-mode' and 'direction' do not apply to table columns and column groups.</li>
+            <li>This test checks that vertical-rl tables order columns top-to-bottom (LTR) or bottom-to-top (RTL) per the table's 'direction'. This test also checks that 'writing-mode' and 'direction' do not apply to table columns and column groups.</li>
           </ul>
         </td>
       </tr>

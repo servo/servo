@@ -19,12 +19,17 @@ var XMLNS = "http://www.w3.org/2000/xmlns/"
 test(function() {
   document.body.setAttribute("abc", "pass")
   var attr = document.body.attributes[0]
-  assert_true(attr instanceof Attr)
-  assert_false(attr instanceof Node)
-  assert_throws(new TypeError(), function() { attr.appendChild(document.createTextNode("fail")) })
-  assert_throws(new TypeError(), function() { attr.appendChild(null) })
+  assert_true(attr instanceof Attr, "should be an Attr")
+  assert_false(attr instanceof Node, "should not be a Node")
+  var removed_members = [
+    "appendChild",
+    "insertBefore",
+    "childNodes",
+  ]
+  removed_members.forEach(function(m) {
+    assert_false(m in attr, m + " should not be supported")
+  })
   assert_equals(attr.value, "pass")
-  assert_false("childNodes" in attr, "Should not have childNodes")
 }, "AttrExodus")
 
 // setAttribute exhaustive tests

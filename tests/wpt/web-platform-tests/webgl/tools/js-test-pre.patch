@@ -1,0 +1,69 @@
+--- resources/js-test-pre.js	2015-06-18 23:26:41.217622000 +0200
++++ ../conformance-1.0.3/resources/js-test-pre.js	2015-12-30 19:20:27.852467185 +0100
+@@ -71,9 +71,14 @@
+   }
+ }
+ 
++var WPT_TEST_ID = 0;
+ function reportTestResultsToHarness(success, msg) {
+   if (window.parent.webglTestHarness) {
+     window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++  } else if (window.test) { // WPT test harness
++    test(function () {
++      assert_true(success, msg);
++    }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
+   }
+ }
+ 
+@@ -92,7 +97,7 @@
+       window.console.log(msg);
+ }
+ 
+-var _jsTestPreVerboseLogging = false;
++var _jsTestPreVerboseLogging = true;
+ 
+ function enableJSTestPreVerboseLogging()
+ {
+@@ -105,31 +110,18 @@
+     if (msg === undefined) {
+       msg = document.title;
+     }
+-    // For MSIE 6 compatibility
+-    var span = document.createElement("span");
+-    span.innerHTML = '<p>' + msg + '</p><p>On success, you will see a series of "<span class="pass">PASS</span>" messages, followed by "<span class="pass">TEST COMPLETE</span>".</p>';
+-    var description = document.getElementById("description");
+-    if (description.firstChild)
+-        description.replaceChild(span, description.firstChild);
+-    else
+-        description.appendChild(span);
+-    if (_jsTestPreVerboseLogging) {
+-        _logToConsole(msg);
+-    }
++    _logToConsole("DESCRIPTION: " + msg);
+ }
+ 
+ function _addSpan(contents)
+ {
+-    var span = document.createElement("span");
+-    document.getElementById("console").appendChild(span); // insert it first so XHTML knows the namespace
+-    span.innerHTML = contents + '<br />';
+ }
+ 
+ function debug(msg)
+ {
+     _addSpan(msg);
+     if (_jsTestPreVerboseLogging) {
+-	_logToConsole(msg);
++        _logToConsole(msg);
+     }
+ }
+ 
+@@ -143,7 +135,7 @@
+     reportTestResultsToHarness(true, msg);
+     _addSpan('<span><span class="pass">PASS</span> ' + escapeHTML(msg) + '</span>');
+     if (_jsTestPreVerboseLogging) {
+-	_logToConsole('PASS ' + msg);
++        _logToConsole('PASS ' + msg);
+     }
+ }
+ 

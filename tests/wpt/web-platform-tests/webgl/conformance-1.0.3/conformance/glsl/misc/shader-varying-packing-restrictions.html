@@ -1,0 +1,211 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL varying packing restrictions Conformance Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../resources/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshaderArrayTest" type="x-shader/x-vertex">
+attribute vec4 a_position;
+varying $(type) v_varying[$(numTestType)];
+void main()
+{
+    gl_Position = a_position;
+    $(vcode)
+}
+</script>
+<script id="fshaderArrayTest" type="x-shader/x-fragment">
+    precision mediump float;
+    varying $(type) v_varying[$(numTestType)];
+    void main()
+    {
+        gl_FragColor = $(fcode);
+    }
+</script>
+<script id="vshaderVaryingTest" type="x-shader/x-fragment">
+attribute vec4 a_position;
+$(varyings)
+    void main()
+    {
+        gl_Position = a_position;
+        $(vcode)
+    }
+</script>
+<script id="fshaderVaryingTest" type="x-shader/x-fragment">
+    precision mediump float;
+$(varyings)
+    void main()
+    {
+        gl_FragColor = $(fcode);
+    }
+</script>
+<script>
+"use strict";
+description();
+debug("");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+
+var varyingTypes = [
+  { type: "float",       componentsPerRow: 1, rows: 1, vcode: "v_varying$(id)$(index) = 1.0;",              fcode: "vec4(v_varying$(id)$(index), 0, 0, 0)", },
+  { type: "vec2",        componentsPerRow: 2, rows: 1, vcode: "v_varying$(id)$(index) = vec2(0, 0);",       fcode: "vec4(v_varying$(id)$(index), 0, 0)", },
+  { type: "vec3",        componentsPerRow: 3, rows: 1, vcode: "v_varying$(id)$(index) = vec3(0, 0, 0);",    fcode: "vec4(v_varying$(id)$(index), 0)", },
+  { type: "vec4",        componentsPerRow: 4, rows: 1, vcode: "v_varying$(id)$(index) = vec4(0, 0, 0, 0);", fcode: "vec4(v_varying$(id)$(index))", },
+// Yes, the spec says mat2 takes 4 columns, 2 rows.
+  { type: "mat2",        componentsPerRow: 4, rows: 2, vcode: "v_varying$(id)$(index) = mat2(1.0);", fcode: "vec4(v_varying$(id)$(index)[0], 0, 0)", },
+  { type: "mat3",        componentsPerRow: 3, rows: 3, vcode: "v_varying$(id)$(index) = mat3(1.0);", fcode: "vec4(v_varying$(id)$(index)[0], 0)", },
+  { type: "mat4",        componentsPerRow: 4, rows: 4, vcode: "v_varying$(id)$(index) = mat4(1.0);", fcode: "vec4(v_varying$(id)$(index)[0])", },
+];
+
+var vArrayTestSource = wtu.getScript("vshaderArrayTest");
+var fArrayTestSource = wtu.getScript("fshaderArrayTest");
+var vVaryingTestSource = wtu.getScript("vshaderVaryingTest");
+var fVaryingTestSource = wtu.getScript("fshaderVaryingTest");
+
+var minVaryingVectors = 8;
+var maxVaryingVectors = gl.getParameter(gl.MAX_VARYING_VECTORS);
+var tests = [];
+
+for (var ii = 0; ii < varyingTypes.length; ++ii) {
+  var info = varyingTypes[ii];
+  wtu.log("checking: " + info.type);
+  // Compute the maximum amount of this type allowed in a single array.
+  var numVars = Math.floor(maxVaryingVectors / info.rows);
+  // Compute the minimum required to work in a single array.
+  var minVars = Math.floor(minVaryingVectors / info.rows);
+  // Compute the maximum allowed as single elements
+  var numPerRow = Math.floor(4 / info.componentsPerRow);
+  var numMax = Math.floor(maxVaryingVectors * numPerRow / info.rows);
+
+  // Test array[1] of the type
+  var vcode = wtu.replaceParams(info.vcode, {id: "", index: "[0]"});
+  var fcode = wtu.replaceParams(info.fcode, {id: "", index: "[0]"});
+  tests.push({
+    vShaderSource: wtu.replaceParams(vArrayTestSource, {numTestType: 1, vcode: vcode}, info),
+    vShaderSuccess: true,
+    fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: 1, fcode: fcode}, info),
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "shaders with varying array of " + info.type + " with 1 element should succeed",
+  });
+
+  // Test required number of varyings
+  var vcode = wtu.replaceParams(info.vcode, {id: "", index: "[" + (minVars - 1) + "]"});
+  var fcode = wtu.replaceParams(info.fcode, {id: "", index: "[" + (minVars - 1) + "]"});
+  tests.push({
+    vShaderSource: wtu.replaceParams(vArrayTestSource, {numTestType: minVars, vcode: vcode}, info),
+    vShaderSuccess: true,
+    fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: minVars, fcode: fcode}, info),
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "shaders with varying array of " + info.type + " with " + minVars + " elements (the minimum required) should succeed",
+  });
+
+  // Test array[max + 1] accessing last element. WebGL requires this to fail.
+  var vcode = wtu.replaceParams(info.vcode, {id: "", index: "[" + numVars + "]"});
+  var fcode = wtu.replaceParams(info.fcode, {id: "", index: "[" + numVars + "]"});
+  tests.push({
+    vShaderSource: wtu.replaceParams(vArrayTestSource, {numTestType: numVars + 1, vcode: vcode}, info),
+    vShaderSuccess: false,
+    fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: numVars + 1, fcode: fcode}, info),
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "shaders with varying array of " + info.type + " with " + (numVars + 1) + " elements (one past maximum) accessing last element should fail",
+  });
+
+  // Test array[max + 1] accessing first element. WebGL requires this to fail but ES allows truncating array.
+  var vcode = wtu.replaceParams(info.vcode, {id: "", index: "[0]"});
+  var fcode = wtu.replaceParams(info.fcode, {id: "", index: "[0]"});
+  tests.push({
+    vShaderSource: wtu.replaceParams(vArrayTestSource, {numTestType: numVars + 1, vcode: vcode}, info),
+    vShaderSuccess: false,
+    fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: numVars + 1, fcode: fcode}, info),
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "shaders with varying array of " + info.type + " with " + (numVars + 1) + " elements (one past maximum) accessing first element should fail",
+  });
+
+  // Note: We can't test max varyings as actual GL drivers are only required to be able to
+  // do the minimum number. After that it can fail for any reason, for example running out of
+  // instruction space.
+
+  var generateCode = function(numVars) {
+    var varyings = [];
+    var vcodes = [];
+    var fcodes = [];
+    for (var uu = 0; uu < numVars; ++uu) {
+      varyings.push("    varying " + info.type + " v_varying" + uu + ";");
+      vcodes.push(wtu.replaceParams(info.vcode, {id: uu, index: ""}));
+      fcodes.push(wtu.replaceParams(info.fcode, {id: uu, index: ""}));
+    }
+    return {
+      varyings: varyings.join("\n"),
+      vcode: vcodes.join("\n            "),
+      fcode: fcodes.join(" + \n            "),
+    };
+  };
+
+  // Test max+1 varyings of type.
+  tests.push({
+    vShaderSource: wtu.replaceParams(vVaryingTestSource, generateCode(numMax + 1), info),
+    vShaderSuccess: false,
+    fShaderSource: wtu.replaceParams(fVaryingTestSource, generateCode(numMax + 1), info),
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "shaders with " + (numMax + 1) + " varyings of " + info.type + " (one past maximum) should fail",
+  });
+
+  // Test required varyings of type.
+  tests.push({
+    vShaderSource: wtu.replaceParams(vVaryingTestSource, generateCode(minVars), info),
+    vShaderSuccess: true,
+    fShaderSource: wtu.replaceParams(fVaryingTestSource, generateCode(minVars), info),
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "shaders with " + minVars + " varyings of " + info.type + " (the minimum required) should succeed",
+  });
+}
+
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

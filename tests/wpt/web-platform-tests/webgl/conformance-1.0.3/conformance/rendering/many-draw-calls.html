@@ -1,0 +1,161 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<script id="vshader" type="x-shader/x-vertex">
+uniform mat4 transformMatrix;
+uniform vec3 positionOffset;
+attribute vec2 aPosition;
+void main() {
+  gl_Position = transformMatrix * vec4(aPosition, 0.0, 1.0) + vec4(positionOffset, 0.0);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+void main() {
+  gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<div id="description"></div>
+<canvas id="canvas" width="256" height="256"></canvas>
+<div id="console"></div>
+<script>
+"use strict";
+enableJSTestPreVerboseLogging();
+description("Test many draw calls and uniform updates per frame");
+
+debug('Regression test for Chromium <a href="http://crbug.com/320724">Issue 320724</a> and <a href="http://crbug.com/322726">Issue 322726</a>');
+debug('');
+
+var contextWasLost = false;
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById('canvas');
+var gl = wtu.create3DContext(canvas);
+canvas.addEventListener('webglcontextlost', function(event) { contextWasLost = true; }, false);
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], [ "aPosition" ]);
+if (!program) {
+  testFailed("failed to create test program");
+}
+
+gl.useProgram(program);
+var vertexObject = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+gl.enableVertexAttribArray(0);
+
+// Initialize vertices
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+   -1.0,  1.0,
+    1.0, -1.0,
+    1.0,  1.0,
+   -1.0,  1.0,
+   -1.0, -1.0,
+    1.0, -1.0 ]), gl.STATIC_DRAW);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+gl.clearColor(0.3, 0.3, 0.3, 1.0);
+
+// Initialize uniforms
+var transformLoc = gl.getUniformLocation(program, 'transformMatrix');
+var offsetLoc = gl.getUniformLocation(program, 'positionOffset');
+
+// This many draw calls appear to be necessary to trigger the original bug reliably.
+var tilesPerSide = 100;
+var numDrawsThisFrame = 0;
+
+var doNextDraw = function() {
+  // Sometimes, the original bug can't be caught cooperatively, and it
+  // causes the entire tab to hang irrevocably.
+  if (contextWasLost) {
+    testFailed("WebGL context was lost while running the test");
+    finishTest();
+    return;
+  }
+
+  var totalDraws = tilesPerSide * tilesPerSide;
+  if (numDrawsThisFrame >= totalDraws) {
+    testPassed("All draw calls completed successfully");
+    finishTest();
+    return;
+  }
+
+  numDrawsThisFrame += tilesPerSide;
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var transformMatrix = new Float32Array(16);
+  transformMatrix[15] = 1.0;
+  var scaleFactor = 1.0 / tilesPerSide;
+  transformMatrix[0] = scaleFactor;
+  transformMatrix[5] = scaleFactor;
+  transformMatrix[10] = scaleFactor;
+
+  var offset = new Float32Array(3);
+
+  var drawsDoneThisFrame = 0;
+  for (var yy = 0; yy < tilesPerSide; ++yy) {
+    for (var xx = 0; xx < tilesPerSide; ++xx) {
+      if (drawsDoneThisFrame >= numDrawsThisFrame)
+        break;
+
+      gl.uniformMatrix4fv(transformLoc, false, transformMatrix);
+
+      offset[0] = 2.0 * ((0.5 + xx) / tilesPerSide) - 1.0;
+      offset[1] = 2.0 * ((0.5 + yy) / tilesPerSide) - 1.0;
+      gl.uniform3f(offsetLoc, offset[0], offset[1], offset[2]);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      ++drawsDoneThisFrame;
+    }
+
+    if (drawsDoneThisFrame >= numDrawsThisFrame)
+      break;
+  }
+
+  var iterations = numDrawsThisFrame / tilesPerSide;
+  if (iterations % 10 === 0) {
+    // Needed to avoid test timeout within the harness on some slower platforms
+    testPassed("Completed " + iterations + " iterations");
+  }
+
+  wtu.requestAnimFrame(doNextDraw);
+}
+
+wtu.requestAnimFrame(doNextDraw);
+var successfullyParsed = true;
+</script>
+</body>
+</html>
