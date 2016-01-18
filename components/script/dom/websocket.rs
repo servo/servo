@@ -132,7 +132,10 @@ mod close_code {
     pub const TLS_FAILED: u16 = 1015;
 }
 
-pub fn close_the_websocket_connection(address: Trusted<WebSocket>, sender: Box<ScriptChan>, code: Option<u16>, reason: String) {
+pub fn close_the_websocket_connection(address: Trusted<WebSocket>,
+                                      sender: Box<ScriptChan>,
+                                      code: Option<u16>,
+                                      reason: String) {
     let close_task = box CloseTask {
         addr: address,
         failed: false,
@@ -527,7 +530,7 @@ impl Runnable for CloseTask {
         }
 
         // Perform _the WebSocket connection is closed_ steps.
-        // https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
+        // https://html.spec.whatwg.org/multipage/#closeWebSocket
 
         // Step 1.
         ws.ready_state.set(WebSocketRequestState::Closed);
