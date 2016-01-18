@@ -53,10 +53,10 @@ impl UrlHelper {
             },
             Origin::Tuple(protocol, host, port) => {
                 format!(
-                  "{protocol}://{host}:{port}",
-                  protocol = protocol,
-                  host = host,
-                  port = port
+                    "{protocol}://{host}:{port}",
+                    protocol = protocol,
+                    host = host,
+                    port = port
                 )
             }
         })
