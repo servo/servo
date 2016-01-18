@@ -52,7 +52,12 @@ impl UrlHelper {
                 "null".to_owned()
             },
             Origin::Tuple(protocol, host, port) => {
-                format!("{protocol}://{host}:{port}", protocol = protocol, host = host, port = port)
+                format!(
+                  "{protocol}://{host}:{port}",
+                  protocol = protocol,
+                  host = host,
+                  port = port
+                )
             }
         })
     }

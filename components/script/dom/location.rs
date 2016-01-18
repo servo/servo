@@ -37,10 +37,6 @@ impl Location {
         self.window.get_url()
     }
 
-    pub fn get_origin(&self) -> Url {
-        self.window.get_url()
-    }
-
     fn set_url_component(&self, value: USVString,
                          setter: fn(&mut Url, USVString)) {
         let mut url = self.window.get_url();
