@@ -1,0 +1,167 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL getActiveUniform conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="16" height="16"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+void main()
+{
+    gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform $type uniform0;
+void main()
+{
+    gl_FragColor = vec4(0,$access,0,1);
+}
+</script>
+<script id="fshaderA" type="x-shader/x-fragment">
+precision mediump float;
+uniform float uniform0;
+void main()
+{
+    gl_FragColor = vec4(0,uniform0,0,1);
+}
+</script>
+<script id="fshaderB" type="x-shader/x-fragment">
+precision mediump float;
+uniform float uniform0;
+uniform float uniform1;
+void main()
+{
+    gl_FragColor = vec4(0,uniform0,uniform1,1);
+}
+</script>
+<script>
+"use strict";
+description("Tests getActiveUniform for various types");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+
+var tests = [
+{ glType: gl.FLOAT,      size: 1, type: 'float', access: 'uniform0'},
+{ glType: gl.FLOAT_VEC2, size: 1, type: 'vec2',  access: 'uniform0[1]'},
+{ glType: gl.FLOAT_VEC3, size: 1, type: 'vec3',  access: 'uniform0[2]'},
+{ glType: gl.FLOAT_VEC4, size: 1, type: 'vec4',  access: 'uniform0[3]'},
+{ glType: gl.FLOAT_MAT2, size: 1, type: 'mat2',  access: 'uniform0[1][1]'},
+{ glType: gl.FLOAT_MAT3, size: 1, type: 'mat3',  access: 'uniform0[2][2]'},
+{ glType: gl.FLOAT_MAT3, size: 1, type: 'mat3',  access: 'uniform0[2][2]'},
+{ glType: gl.FLOAT_MAT4, size: 1, type: 'mat4',  access: 'uniform0[3][3]'},
+{ glType: gl.INT,        size: 1, type: 'int',   access: 'float(uniform0)'},
+{ glType: gl.INT_VEC2,   size: 1, type: 'ivec2', access: 'float(uniform0[1])'},
+{ glType: gl.INT_VEC3,   size: 1, type: 'ivec3', access: 'float(uniform0[2])'},
+{ glType: gl.INT_VEC4,   size: 1, type: 'ivec4', access: 'float(uniform0[3])'},
+{ glType: gl.BOOL,       size: 1, type: 'bool',  access: 'float(uniform0)'},
+{ glType: gl.BOOL_VEC2,  size: 1, type: 'bvec2', access: 'float(uniform0[1])'},
+{ glType: gl.BOOL_VEC3,  size: 1, type: 'bvec3', access: 'float(uniform0[2])'},
+{ glType: gl.BOOL_VEC4,  size: 1, type: 'bvec4', access: 'float(uniform0[3])'},
+{ glType: gl.SAMPLER_2D,
+  size: 1,
+  type: 'sampler2D',
+  access: 'texture2D(uniform0, vec2(0,0)).x'
+},
+{ glType: gl.SAMPLER_CUBE,
+  size: 1,
+  type: 'samplerCube',
+  access: 'textureCube(uniform0, vec3(0,1,0)).x'
+}
+];
+
+var vs = wtu.loadShaderFromScript(gl, 'vshader', gl.VERTEX_SHADER);
+var source = document.getElementById('fshader').text;
+
+function createProgram(type, access) {
+  var fs = wtu.loadShader(
+      gl,
+      source.replace('$type', type).replace('$access', access),
+      gl.FRAGMENT_SHADER);
+  var program = wtu.setupProgram(gl, [vs, fs]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors from setup");
+  return program;
+}
+
+for (var tt = 0; tt < tests.length; ++tt) {
+  var t = tests[tt];
+  var program = createProgram(t.type, t.access);
+  var numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+  var found = false;
+  for (var ii = 0; ii < numUniforms; ++ii) {
+    var info = gl.getActiveUniform(program, ii);
+    if (info.name == 'uniform0') {
+      found = true;
+      assertMsg(info.type == t.glType,
+                "type must be " + wtu.glEnumToString(gl, t.glType) + " was " +
+                wtu.glEnumToString(gl, info.type));
+      assertMsg(info.size == t.size,
+                "size must be " + t.size + ' was ' + info.size);
+    }
+  }
+  if (!found) {
+    testFailed("uniform 'uniform0' not found");
+  }
+}
+
+var p1 = wtu.setupProgram(gl, [vs, 'fshaderA']);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors from program A");
+var p2 = wtu.setupProgram(gl, [vs, 'fshaderB']);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors from program B");
+var l1 = gl.getUniformLocation(p1, 'uniform0');
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors getting location of uniform0 p1");
+var l2 = gl.getUniformLocation(p2, 'uniform0');
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors getting location of uniform0 p2");
+
+gl.useProgram(p2);
+gl.uniform1f(l2, 1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors setting uniform 0");
+gl.uniform1f(l1, 2);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+                "setting a uniform using a location from another program");
+
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+
+

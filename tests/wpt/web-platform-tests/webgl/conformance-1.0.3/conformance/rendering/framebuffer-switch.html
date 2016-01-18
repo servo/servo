@@ -1,0 +1,113 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL framebuffer switching conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas" width="64" height="64"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Test framebuffer switching. The test switches between two framebuffers, copying rendering results from one to the other.");
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext("canvas");
+var program = wtu.setupTexturedQuad(gl);
+
+var tex1 = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex1);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, canvas.width, canvas.height, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+var fb1 = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex1, 0);
+
+var tex2 = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex2);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, canvas.width, canvas.height, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+var fb2 = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex2, 0);
+
+gl.bindTexture(gl.TEXTURE_2D, tex1);
+gl.clearColor(1.0, 1.0, 1.0, 1.0);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+var iterate = function(checkFBOs, iterations) {
+    for (var i = 0; i < iterations; ++i) {
+        debug("Clearing framebuffer 1 to white");
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+        if (checkFBOs)
+            shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        debug("Copying framebuffer 1 to framebuffer 2");
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+        if (checkFBOs)
+            shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+    // Read what is in fb2
+    wtu.checkCanvas(gl, [255,255,255,255], "Framebuffer 2 should be white");
+};
+
+debug("");
+debug("Warm-up iteration");
+iterate(true, 1);
+
+debug("");
+debug("Iterating the test a few times since at least one bug it has exposed is somewhat flaky.");
+for (var i = 0; i < 3; ++i) {
+    debug("");
+    debug("Iteration " + (i + 1));
+    iterate(false, 2);
+}
+
+debug("");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors at the end of the test.");
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

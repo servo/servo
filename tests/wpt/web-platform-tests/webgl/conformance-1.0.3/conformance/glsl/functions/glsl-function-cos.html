@@ -1,0 +1,122 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+  <title>GLSL cos function test</title>
+  <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+  <link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../../../resources/js-test-pre.js"></script>
+  <script src="../../resources/webgl-test-utils.js"> </script>
+  <script src="../../resources/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var piConstants = [
+  "const float kPI     = 3.14159265358979323846;",
+  "const float kHalfPI = (kPI * 0.5);",
+  "const float k2PI    = (kPI * 2.0);"
+].join("\n");
+
+var kPI = Math.PI;
+var kHalfPI = Math.PI * 0.5;
+var k2PI = Math.PI * 2.0;
+var cos = Math.cos;  // shorthand
+
+GLSLGenerator.runReferenceImageTest({
+  feature: "cos",
+  args: "$(type) value",
+  testFunc: "$(func)($(type))",
+  gridRes: 8,
+  tolerance: 3,
+  extra: piConstants,
+  tests: [
+    {
+      source: ["$(output) = vec4(",
+               "    $(func)($(input).x * kHalfPI + kHalfPI),",
+               "    $(func)($(input).y * kHalfPI),",
+               "    0,",
+               "    1);"].join("\n"),
+      generator: function(x, y, z, w) {
+    return [ cos(x * kHalfPI + kHalfPI),
+         cos(y * kHalfPI),
+         0,
+         1 ];
+      },
+    },
+    {
+      source: ["$(output) = vec4(",
+           "    $(func)($(input).xy * vec2(kPI, k2PI)) * 0.5 + vec2(0.5, 0.5),",
+           "    0, 1);"].join("\n"),
+      generator: function(x, y, z, w) {
+    return [ cos(x * kPI) * 0.5 + 0.5,
+         cos(y * k2PI) * 0.5 + 0.5,
+         0,
+         1 ];
+      },
+    },
+    {
+      // FIXME: for some reason, this test requires a higher tolerance when run in a vertex shader.
+      source: ["$(output) = vec4(",
+           "    $(func)($(input).xyz * vec3(kPI, k2PI, 4.0)) * ",
+           "    0.5 + vec3(0.5, 0.5, 0.5),",
+           "    1);"].join("\n"),
+      generator: function(x, y, z, w) {
+    return [ cos(x * kPI) * 0.5 + 0.5,
+         cos(y * k2PI) * 0.5 + 0.5,
+         cos(z * 4.0) * 0.5 + 0.5,
+         1 ];
+      },
+      tolerance: 7,
+    },
+    {
+      source: ["$(output) = ",
+           "    $(func)($(input) * vec4(k2PI, 4.0, kHalfPI, kPI)) *",
+           "    0.5 + vec4(0.5, 0.5, 0.5, 1);",
+          ].join("\n"),
+      generator: function(x, y, z, w) {
+    return [ cos(x * k2PI) * 0.5 + 0.5,
+         cos(y * 4.0) * 0.5 + 0.5,
+         cos(z * kHalfPI) * 0.5 + 0.5,
+         cos(w * kPI) * 0.5 + 1.0 ];
+      },
+    },
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

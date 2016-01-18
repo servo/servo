@@ -1,0 +1,92 @@
+<!--
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css" />
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../resources/glsl-conformance-test.js"></script>
+<title></title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+precision mediump float;
+void main() {
+    struct S {
+        $(type) field;
+    };
+    S s1[2], s2;
+    $(var).field = $(initializer);
+    gl_FragColor = $(asVec4);
+}
+</script>
+<script>
+"use strict";
+description("Verifies that mixed (array vs. not array) struct declarators work correctly.");
+var tests = [];
+var wtu = WebGLTestUtils;
+var typeInfos = [
+    { type: 'float',    initializer: '1.0',                         asVec4: 'vec4(0.0,$(var).field,0.0,1.0)' },
+    { type: 'vec2',     initializer: 'vec2(0.0, 1.0)',              asVec4: 'vec4($(var).field,0.0,1.0)' },
+    { type: 'vec3',     initializer: 'vec3(0.0, 1.0, 0.0)',         asVec4: 'vec4($(var).field,1.0)' },
+    { type: 'vec4',     initializer: 'vec4(0.0, 1.0, 0.0, 1.0)',    asVec4: '$(var).field' },
+    { type: 'int',      initializer: '1',                           asVec4: 'vec4(0.0,$(var).field,0.0,1.0)' },
+    { type: 'ivec2',    initializer: 'ivec2(0, 1)',                 asVec4: 'vec4($(var).field,0.0,1.0)' },
+    { type: 'ivec3',    initializer: 'ivec3(0, 1, 0)',              asVec4: 'vec4($(var).field,1.0)' },
+    { type: 'ivec4',    initializer: 'ivec4(0, 1, 0, 1)',           asVec4: 'vec4($(var).field)' },
+    { type: 'bool',     initializer: 'true',                        asVec4: 'vec4(0.0,$(var).field,0.0,1.0)' },
+    { type: 'bvec2',    initializer: 'bvec2(false, true)',          asVec4: 'vec4($(var).field,0.0,1.0)' },
+    { type: 'bvec3',    initializer: 'bvec3(false, true, false)',   asVec4: 'vec4($(var).field,1.0)' },
+    { type: 'bvec4',    initializer: 'bvec4(false,true,false,true)',asVec4: 'vec4($(var).field)' },
+];
+['s1[0]', 's1[1]', 's2'].forEach(function(varName) {
+    typeInfos.forEach(function (typeInfo) {
+        var replaceParams = {
+            type: typeInfo.type,
+            initializer: typeInfo.initializer,
+            var: varName,
+            asVec4: wtu.replaceParams(typeInfo.asVec4, {var: varName})
+        };
+        tests.push({
+            fShaderSource: wtu.replaceParams(wtu.getScript('fragmentShader'), replaceParams),
+            passMsg: typeInfo.type,
+            fShaderSuccess: true,
+            linkSuccess: true,
+            render:true
+        });
+    });
+});
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

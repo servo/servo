@@ -1,0 +1,312 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../resources/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertexShaderStructSequence" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_Position = uni.pos;
+}
+</script>
+<script id="fragmentShaderStructSequence" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 color;
+  vec4 pos;
+};
+
+uniform info uni;
+void main()
+{
+    gl_FragColor = uni.color;
+}
+</script>
+<script id="vertexShaderStructName" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_Position = uni.pos;
+}
+</script>
+<script id="fragmentShaderStructNameFailure" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info1 {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info1 uni;
+void main()
+{
+    gl_FragColor = uni.color;
+}
+</script>
+<script id="fragmentShaderStructNameSuccess" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+
+// Add a struct before info to make sure the struct info here is assigned
+// a different internal unique ID from the struct info in vertex shader.
+struct extra {
+  vec4 p;
+};
+
+struct info {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    extra my;
+    my.p = uni.color;
+    gl_FragColor = my.p;
+}
+</script>
+<script id="vertexShaderStructFieldName" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_Position = uni.pos;
+}
+</script>
+<script id="fragmentShaderStructFieldName" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 pos1;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_FragColor = uni.color;
+}
+</script>
+<script id="vertexShaderStructFieldType" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_Position = uni.pos;
+}
+</script>
+<script id="fragmentShaderStructFieldType" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec3 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_FragColor = uni.color;
+}
+</script>
+<script id="vertexShaderStructFieldPrecision" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+struct info {
+  mediump vec4 pos;
+  highp vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_Position = uni.pos;
+}
+</script>
+<script id="fragmentShaderStructFieldPrecision" type="text/something-not-javascript">
+// Structures must have the same name, sequence of type names, and 
+// type definitions, and field names to be considered the same type.
+// GLSL 1.017 4.2.4
+precision mediump float;
+struct info {
+  vec4 pos;
+  vec4 color;
+};
+
+uniform info uni;
+void main()
+{
+    gl_FragColor = uni.color;
+}
+</script>
+<script id="vertexShaderUnnamedStruct" type="text/something-not-javascript">
+// ANGLE regression on Windows, crbug.com/401296
+uniform struct {
+  float f;
+  vec4 v;
+} u_struct;
+
+void main()
+{
+    gl_Position = u_struct.f * u_struct.v;
+}
+</script>
+<script id="fragmentShaderSimple" type="text/something-not-javascript">
+void main()
+{
+    gl_FragColor = vec4(1.0);
+}
+</script>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+
+var tests = [];
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderStructName"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderStructNameSuccess"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Structures with the same defination must be considered the same type.",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderStructName"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderStructNameFailure"),
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "Structures must have the same name to be considered the same type.",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderStructSequence"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderStructSequence"),
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "Structures must have the same sequence of type names to be considered the same type.",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderStructFieldName"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderStructFieldName"),
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "Structures must have the same field names to be considered the same type.",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderStructFieldType"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderStructFieldType"),
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "Structures must have the same type definitions to be considered the same type.",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderStructFieldPrecision"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderStructFieldPrecision"),
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "Structures must have the same type definitions (including precision) to be considered the same type.",
+});
+tests.push({
+  vShaderSource: wtu.getScript("vertexShaderUnnamedStruct"),
+  vShaderSuccess: true,
+  fShaderSource: wtu.getScript("fragmentShaderSimple"),
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Shaders with uniforms of unnamed struct type should compile and link successfully.",
+});
+
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

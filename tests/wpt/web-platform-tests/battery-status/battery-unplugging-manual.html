@@ -28,9 +28,6 @@
     The battery must not be full or reach full capacity during the time the test is run.
   </li>
 </ol>
-<p>
-  The highest prime number discovered so far is:  <output id="prime"></output>
-</p>
 
 <div id="note">
   Unplug the charger and wait for all the tests to complete.
@@ -67,9 +64,8 @@
 
     battery.onlevelchange = onlevelchange_test.step_func(function () {
       assert_greater_than(battery.level, 0);
-      assert_less_than(battery.level, 1.0);
+      assert_less_than_equal(battery.level, 1.0);
       onlevelchange_test.done();
-      w.terminate();
     });
   };
 

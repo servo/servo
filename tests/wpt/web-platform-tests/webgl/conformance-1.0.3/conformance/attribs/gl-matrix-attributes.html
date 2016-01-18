@@ -1,0 +1,159 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+<title>WebGL Matrix Attribute Conformance Test</title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="8" height="8" style="width: 8px; height: 8px;"></canvas>
+<script>
+"use strict";
+description("This tests ensures that matrix attribute locations do not clash with other shader attributes.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false});
+
+// Make sure we have room for at least a mat4.
+var maxAttributes = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+debug('MAX_VERTEX_ATTRIBUTES is ' + maxAttributes);
+shouldBeGreaterThanOrEqual('maxAttributes', '4');
+
+var glFragmentShader = wtu.setupSimpleColorFragmentShader(gl);
+
+// prepareMatrixProgram creates a program with glFragmentShader as the fragment shader.
+// The vertex shader has numVector number of vectors and a matrix with numMatrixDimensions
+// dimensions at location numMatrixPosition in the list of attributes.
+// Ensures that every vector and matrix is used by the program.
+// Returns a valid program on successfull link; null on link failure.
+function prepareMatrixProgram(numVectors, numMatrixDimensions, numMatrixPosition) {
+    // Add the matrix and vector attribute declarations. Declare the vectors
+    // to have the same number of components as the matrix so we can perform
+    // operations on them when we assign to gl_Position later on.
+    var strVertexShader = "";
+    for (var ii = 1; ii <= numVectors; ++ii) {
+        if (numMatrixPosition === ii) {
+            strVertexShader += "attribute mat" + numMatrixDimensions + " matrix;\n";
+        }
+        strVertexShader += "attribute vec" + numMatrixDimensions + " vec_" + ii + ";\n";
+    }
+    // numMatrixPosition will be one past numVectors if the caller wants it to be
+    // last. Hence, we need this check outside the loop as well as inside.
+    if (numMatrixPosition === ii) {
+        strVertexShader += "attribute mat" + numMatrixDimensions + " matrix;\n";
+    }
+    // Add the body of the shader. Add up all of the vectors and multiply by the matrix.
+    // The operations we perform do not matter. We just need to ensure that all the vector and
+    // matrix attributes are used.
+    strVertexShader +=  "void main(void) { \ngl_Position = vec4((";
+    for (var ii = 1; ii <= numVectors; ++ii) {
+        if (ii > 1) {
+            strVertexShader += "+"
+        }
+        strVertexShader += "vec_" + ii;
+    }
+    strVertexShader += ")*matrix";
+    // Ensure the vec4 has the correct number of dimensions in order to be assignable
+    // to gl_Position.
+    for (var ii = numMatrixDimensions; ii < 4; ++ii) {
+        strVertexShader += ",0.0";
+    }
+    strVertexShader += ");}\n";
+    // Load the shader, attach it to a program, and return the link results
+    var glVertexShader = wtu.loadShader(gl, strVertexShader, gl.VERTEX_SHADER);
+    var strTest = 'Load shader with ' + numVectors + ' vectors and 1 matrix';
+    if (glVertexShader !== null) {
+        testPassed(strTest);
+
+        var glProgram = gl.createProgram();
+        gl.attachShader(glProgram, glVertexShader);
+        gl.attachShader(glProgram, glFragmentShader);
+        gl.linkProgram(glProgram);
+        if (gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'linkProgram');
+            return glProgram;
+        }
+    } else {
+        testFailed(strTest);
+    }
+    return null;
+}
+
+debug('');
+
+// Test mat2, mat3 and mat4.
+for (var mm = 2; mm <= 4; ++mm) {
+    // Add maxAttribute number of attributes by saving enough room in the attribute
+    // list for a matrix of mm dimensions. All of the other attribute slots will be
+    // filled with vectors.
+    var numVectors = maxAttributes - mm;
+    for (var pp = 1; pp <= numVectors + 1; ++pp) {
+        debug('Test ' + mm + ' dimensional matrix at position ' + pp);
+        var glProgram = prepareMatrixProgram(numVectors, /*numMatrixDimensions*/mm, /*numMatrixPosition*/pp);
+        shouldBeNonNull('glProgram');
+        var attribMatrix = gl.getAttribLocation(glProgram, 'matrix');
+        debug('Matrix is at attribute location ' + attribMatrix);
+        shouldBeTrue('attribMatrix > -1');
+        // Per the spec, when an attribute is a matrix attribute, getAttribLocation
+        // returns the index of the first component of the matrix. The implementation must
+        // leave sufficient room for all the components. Here we ensure none of the vectors
+        // in the shader are assigned attribute locations that belong to the matrix.
+        for (var vv = 1; vv <= numVectors; ++vv) {
+            var strVector = 'vec_' + vv
+            var attribVector = gl.getAttribLocation(glProgram, strVector);
+            debug(strVector + ' is at attribute location ' + attribVector);
+            // Begin with the first attribute location where the matrix begins and ensure
+            // the vector's attribute location is not assigned to the matrix. Loop until
+            // we've checked all of the attribute locations that belong to the matrix.
+            for (var ii = attribMatrix; ii < attribMatrix + mm; ++ii) {
+                var testStr = strVector + ' attribute location: ' + attribVector + '.  Should not be ' + ii;
+                if (attribVector !== ii) {
+                    testPassed(testStr);
+                } else {
+                    testFailed(testStr);
+                }
+            }
+        }
+        debug('');
+    }
+    debug('');
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

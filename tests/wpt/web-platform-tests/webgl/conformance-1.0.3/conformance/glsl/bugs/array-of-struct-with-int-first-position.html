@@ -1,0 +1,164 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Driver Bug - Array of structs with int or bool in first position</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+</head>
+
+<body>
+<canvas id="example" style="border: none;" width="788" height="256"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec2 pos;
+void main(void) {
+  gl_Position = vec4(pos, 0.0, 1.0);
+}
+</script>
+
+<script id="shader-fs-int" type="x-shader/x-fragment">
+precision mediump float;
+struct Light {
+  int unused;
+  vec3 color;
+};
+const int numLights = 1;
+void main() {
+  Light lights[numLights];
+  lights[0].color = vec3(0.0, 0.5, 0.0);
+
+  vec3 result = vec3(0.0, 0.0, 0.0);
+  for (int i=0; i<numLights; i++) {
+    result += lights[i].color;
+  }
+  gl_FragColor = vec4(result.rgb, 1.0);
+}
+</script>
+
+<script id="shader-fs-bool" type="x-shader/x-fragment">
+precision mediump float;
+struct Light {
+  bool unused;
+  vec3 color;
+};
+const int numLights = 1;
+void main() {
+  Light lights[numLights];
+  lights[0].color = vec3(0.0, 0.5, 0.0);
+
+  vec3 result = vec3(0.0, 0.0, 0.0);
+  for (int i=0; i<numLights; i++) {
+    result += lights[i].color;
+  }
+  gl_FragColor = vec4(result.rgb, 1.0);
+}
+</script>
+
+<script id="shader-fs-bool-read" type="x-shader/x-fragment">
+precision mediump float;
+struct Light {
+  bool useLight;
+  vec3 color;
+};
+const int numLights = 1;
+void main() {
+  Light lights[numLights];
+  lights[0].color = vec3(0.0, 0.5, 0.0);
+  lights[0].useLight = true;
+
+  vec3 result = vec3(0.0, 0.0, 0.0);
+  for (int i=0; i<numLights; i++) {
+    Light light = lights[i];
+    if (light.useLight) {
+      result += light.color;
+    }
+  }
+  gl_FragColor = vec4(result.rgb, 1.0);
+}
+</script>
+
+<script>
+"use strict";
+
+function test() {
+  description();
+  debug(
+    "This test checks accessing an array of structs, where the struct " +
+    "definition has an int or bool in the first position. " +
+    "This test has has failed in OS X on some NVIDIA cards, " +
+    "such as the NVIDIA GeForce GT 650M. If things are working " +
+    "correctly, then there will be a series of 50% green squares.")
+  debug("");
+
+  var wtu = WebGLTestUtils;
+  var canvas = document.getElementById("example");
+  var gl = wtu.create3DContext(canvas);
+
+  var testNum = 0;
+  var border = 10; // border between test squares for visibility
+  var squareSize = 256;
+  var expectedColor = [0, 127, 0, 255]; // 50% green
+
+  function subTest(message, fragmentShader) {
+    debug(message);
+    var startX = (squareSize + border) * testNum;
+    var program = wtu.setupProgram(
+      gl, ["shader-vs", fragmentShader], ["pos"], null, true);
+    gl.viewport(startX, 0, squareSize, squareSize);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(
+      gl, startX, 0, squareSize, squareSize,
+      expectedColor, "square should be 50% green", 1);
+    debug("");
+    testNum++;
+  }
+
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    wtu.setupUnitQuad(gl);
+    subTest("Test unused int in first struct position.", "shader-fs-int");
+    subTest("Test unused bool in first struct position.", "shader-fs-bool");
+    subTest("Test used bool in first struct position.", "shader-fs-bool-read");
+  }
+}
+
+test();
+var successfullyParsed = true;
+</script>
+<script src="../../../resources/js-test-post.js"></script>
+</body>
+</html>

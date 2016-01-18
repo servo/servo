@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Script src with a base URL</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<base href=../beta/>
+<div id=log></div>
+<script>
+function do_test(path) {
+  test(function() {
+    assert_equals(path, "beta");
+  });
+}
+</script>
+<script src=test.js></script>
