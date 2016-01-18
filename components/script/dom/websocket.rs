@@ -5,8 +5,10 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -217,12 +219,12 @@ impl WebSocket {
         }
 
         // Step 6: Origin.
+        let origin = global.as_window().Location().Origin().0;
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
         let address = Trusted::new(ws.r(), global.networking_thread_source());
 
-        let origin = global.get_url().serialize();
         let protocols: Vec<String> = protocols.iter().map(|x| String::from(x.clone())).collect();
 
         let connect_data = WebSocketConnectData {

@@ -37,6 +37,10 @@ impl Location {
         self.window.get_url()
     }
 
+    pub fn get_origin(&self) -> Url {
+        self.window.get_url()
+    }
+
     fn set_url_component(&self, value: USVString,
                          setter: fn(&mut Url, USVString)) {
         let mut url = self.window.get_url();
@@ -79,6 +83,11 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-host
     fn SetHost(&self, value: USVString) {
         self.set_url_component(value, UrlHelper::SetHost);
+    }
+
+    //https://html.spec.whatwg.org/multipage/browsers.html#dom-location-origin
+    fn Origin(&self) -> USVString {
+        UrlHelper::Origin(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
