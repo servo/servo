@@ -702,6 +702,12 @@ impl WindowMethods for Window {
             (NONE, Key::Down) => {
                 self.scroll_window(0.0, -3.0 * LINE_HEIGHT);
             }
+            (NONE, Key::Left) => {
+                self.scroll_window(LINE_HEIGHT, 0.0);
+            }
+            (NONE, Key::Right) => {
+                self.scroll_window(-LINE_HEIGHT, 0.0);
+            }
 
             _ => {
                 self.platform_handle_key(key, mods);
