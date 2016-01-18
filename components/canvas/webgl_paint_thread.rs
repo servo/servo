@@ -7,7 +7,6 @@ use canvas_traits::{WebGLError, WebGLFramebufferBindingRequest, WebGLParameter, 
 use core::nonzero::NonZero;
 use euclid::size::Size2D;
 use gleam::gl;
-use gleam::gl::types::{GLsizei};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;

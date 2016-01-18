@@ -7,7 +7,6 @@ use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::sync::mpsc::channel;
 use url::Url;
 use util::thread::spawn_named;
 
