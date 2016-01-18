@@ -4,8 +4,9 @@
 
 use hyper::server::{Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
-use net::fetch::request::{Context, fetch, Referer, Request};
-use net_traits::response::{Response};
+use net::fetch::methods::fetch;
+use net_traits::request::{Context, Referer, Request};
+use net_traits::response::Response;
 use std::rc::Rc;
 use url::Url;
 
@@ -23,7 +24,6 @@ fn make_server(message: &'static [u8]) -> (Listening, Url) {
     let url = Url::parse(&url_string).unwrap();
     (server, url)
 }
-
 
 #[test]
 fn test_fetch_response_is_not_network_error() {
