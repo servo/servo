@@ -14,7 +14,6 @@ use layers::geometry::DevicePixel;
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::fmt;
-use std::sync::mpsc::channel;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
