@@ -18,4 +18,6 @@ interface Console {
   void warn(DOMString... messages);
   void error(DOMString... messages);
   void assert(boolean condition, optional DOMString message);
+  void group(DOMString... messages);
+  void groupEnd();
 };

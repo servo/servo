@@ -41,47 +41,39 @@ impl Console {
             chan.send(devtools_message).unwrap();
         }
     }
+
+    fn send_messages(&self, log_level: LogLevel, messages: Vec<DOMString>) {
+        for message in messages {
+            println!("{}", message);
+            self.send_to_devtools(log_level.clone(), message);
+        }
+    }
 }
 
 impl ConsoleMethods for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     fn Log(&self, messages: Vec<DOMString>) {
-        for message in messages {
-            println!("{}", message);
-            self.send_to_devtools(LogLevel::Log, message);
-        }
+        self.send_messages(LogLevel::Log, messages);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
     fn Debug(&self, messages: Vec<DOMString>) {
-        for message in messages {
-            println!("{}", message);
-            self.send_to_devtools(LogLevel::Debug, message);
-        }
+        self.send_messages(LogLevel::Debug, messages);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
     fn Info(&self, messages: Vec<DOMString>) {
-        for message in messages {
-            println!("{}", message);
-            self.send_to_devtools(LogLevel::Info, message);
-        }
+        self.send_messages(LogLevel::Info, messages);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
     fn Warn(&self, messages: Vec<DOMString>) {
-        for message in messages {
-            println!("{}", message);
-            self.send_to_devtools(LogLevel::Warn, message);
-        }
+        self.send_messages(LogLevel::Warn, messages);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
     fn Error(&self, messages: Vec<DOMString>) {
-        for message in messages {
-            println!("{}", message);
-            self.send_to_devtools(LogLevel::Error, message);
-        }
+        self.send_messages(LogLevel::Error, messages);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
@@ -91,6 +83,16 @@ impl ConsoleMethods for Console {
             println!("Assertion failed: {}", message);
             self.send_to_devtools(LogLevel::Error, message);
         }
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/group
+    fn Group(&self, messages: Vec<DOMString>) {
+        self.send_messages(LogLevel::Group, messages);
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupEnd
+    fn GroupEnd(&self) {
+        self.send_messages(LogLevel::GroupEnd, vec![]);
     }
 }
 
