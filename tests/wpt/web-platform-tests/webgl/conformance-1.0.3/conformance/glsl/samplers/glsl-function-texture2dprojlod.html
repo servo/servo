@@ -1,0 +1,165 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture2D GLSL conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="256" height="256" style="width: 16px; height: 16px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader2d0" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 color;
+uniform sampler2D tex;
+uniform float divisor;
+uniform float lod;
+void main() {
+    gl_Position = vPosition;
+    color = texture2DProjLod(tex, vec3(0.75 * divisor, 0.25 * divisor, divisor), lod);
+}
+</script>
+<script id="vshader2d1" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 color;
+uniform sampler2D tex;
+uniform float divisor;
+uniform float lod;
+void main() {
+    gl_Position = vPosition;
+    color = texture2DProjLod(tex, vec4(0.75 * divisor, 0.25 * divisor, 123.0, divisor), lod);
+}
+</script>
+<script id="fshader2d" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 color;
+void main() {
+    gl_FragData[0] = color;
+}
+</script>
+<script>
+"use strict";
+description("tests GLSL texture2DProjLod function");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+
+shouldBe("canvas.width", "256");
+shouldBe("canvas.height", "256");
+
+var colors = [
+  {name: 'red', color:[255, 0, 0, 255]},
+  {name: 'green', color:[0, 255, 0, 255]},
+  {name: 'blue', color:[0, 0, 255, 255]},
+  {name: 'yellow', color:[255, 255, 0, 255]},
+  {name: 'magenta', color:[255, 0, 255, 255]},
+  {name: 'cyan', color:[0, 255, 255, 255]},
+  {name: 'pink', color:[255, 128, 128, 255]},
+  {name: 'gray', color:[128, 128, 128, 255]},
+  {name: 'light green', color:[128, 255, 128, 255]},
+];
+
+var gl = wtu.create3DContext(canvas);
+if (gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0) {
+  runTest();
+} else {
+  testPassed("MAX_VERTEX_TEXTURE_IMAGE_UNITS == 0, this is okay.");
+}
+
+function runTest() {
+  shouldBe("colors.length", "9");
+  for (var ss = 0; ss < 2; ++ss) {
+    debug("");
+    debug(ss ? "testing vec4 version" : "testing vec3 version");
+    var program = wtu.setupProgram(
+        gl, ['vshader2d' + ss, 'fshader2d'], ['vPosition', 'texCoord0'], [0, 1]);
+    wtu.setupUnitQuad(gl, 0, 1);
+    
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(
+        gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+    // Fill the top right quadrant of each texture level with one of the colors
+    for (var ii = 0; ii < colors.length; ++ii) {
+      var color = colors[ii];
+      var size = Math.pow(2, colors.length - ii - 1);
+
+      var c = document.createElement("canvas");
+      c.width = size;
+      c.height = size;
+      var ctx = c.getContext("2d");
+      ctx.fillStyle = "rgb(0,0,0)";
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = "rgb(" + color.color[0] + "," + color.color[1] + "," + color.color[2] + ")";
+      ctx.fillRect(size / 2, 0, size / 2, size / 2);
+      
+      gl.texImage2D(gl.TEXTURE_2D, ii, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    }
+
+    var lodLoc = gl.getUniformLocation(program, "lod");
+    var divLoc = gl.getUniformLocation(program, "divisor");
+
+    for (var div = 1; div < 4; ++div) {
+      for (var ii = 0; ii < colors.length - 1; ++ii) {
+        gl.uniform1f(lodLoc, ii);
+        gl.uniform1f(divLoc, div);
+        var lodColor = colors[ii];
+        var size = Math.pow(2, colors.length - ii - 1);
+        wtu.clearAndDrawUnitQuad(gl);
+        wtu.checkCanvas(
+            gl, lodColor.color,
+            "sampling with lod = " + ii +
+            " divider = " + div +
+            " should be " + lodColor.name);
+      }
+    }
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");
+}
+
+var successfullyParsed = true;
+
+</script>
+<script src="../../../resources/js-test-post.js"></script>
+
+</body>
+</html>
+
+

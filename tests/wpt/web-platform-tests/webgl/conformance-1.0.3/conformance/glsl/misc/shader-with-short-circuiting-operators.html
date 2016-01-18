@@ -1,0 +1,182 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>WebGL short-circuit evaluation</title>
+      <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+      <script src=/resources/testharness.js></script>
+      <script src=/resources/testharnessreport.js></script>
+      <script src="../../../resources/js-test-pre.js"></script>
+      <script src="../../resources/webgl-test-utils.js"></script>
+    </head>
+  <body>
+    <div id="description"></div>
+    <div id="console"></div>
+    <canvas id="example" width="2" height="2"> </canvas>
+
+    <!-------------------------------------
+  WebGL Shaders
+---------------------------------------->
+    <!-- Pass through Shaders -->
+    <script id="vshader0" type="x-shader/x-vertex">
+      /* PASS-THROUGH VERTEX SHADER */
+      attribute vec4 vPosition;
+
+      void main()
+      {
+        gl_Position = vPosition;
+      }
+    </script>
+
+    <script id="fshader0" type="x-shader/x-fragment">
+      /* PASS-THROUGH FRAGMENT SHADER */
+      precision mediump float;
+      varying vec4 vPassThrough;
+
+      void main()
+      {
+        gl_FragColor = vPassThrough;
+      }
+    </script>
+
+    <!-- basic conditonal short circuit Shaders -->
+    <script id="vshader1" type="x-shader/x-vertex">
+      attribute vec4 vPosition;
+      varying vec4 vPassThrough;
+
+      void main()
+      {
+        int x = 1;
+        $(variables)
+      
+        if ($(condition))
+        { /*do nothing*/ }
+
+        /* if x was unmodified return green, else return red */
+        vPassThrough = (x == 1) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+        gl_Position = vPosition;
+      }
+    </script>
+
+    <script id="fshader1" type="x-shader/x-fragment">
+      precision mediump float;
+
+      void main()
+      {
+        int x = 1;
+        $(variables)
+        
+        if ($(condition))
+        { /*do nothing*/ }
+
+        gl_FragColor = (x == 1) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+      }
+    </script>
+
+    <!-- Main body of the Webgl program -->
+    <script>
+    "use strict";
+      description();
+
+      var wtu = WebGLTestUtils;
+      var gl = wtu.create3DContext();
+
+      wtu.setupUnitQuad(gl, [0, 1]);
+
+      var shaderTemplates = [
+      { vs: "vshader1", fs: "fshader0" }, // basic vertex short-circuit test
+      { vs: "vshader0", fs: "fshader1" }, // basic fragment short-circuit test
+      ];
+
+      /* replace the names of the shaders in the tempate variables with
+      * the shaders themselves */
+      for (var ii = 0; ii < shaderTemplates.length; ++ii) {
+        var template = shaderTemplates[ii];
+        template.vs = wtu.getScript(template.vs);
+        template.fs = wtu.getScript(template.fs);
+      }
+
+      /* define the conditon that will be used in the shaders. If additional
+       * variables are needed that are not present i the shader they my be
+       * defined in the variables variable */
+      var tests = [
+        { condition: "true || (x = 0) == 1", variables: "" }, /* test basic 'or' short circuit */
+        { condition: "false && (x = 0) == 1", variables: "" }, /* test basic 'and' short circuit */
+        { condition: "(j == 3 && j == k) || (j > (x = 0))", variables: "int j = 3;\nint k = 3;" }, /* test basic 'or' short circuit with actual condition */
+        { condition: "(j == 3 && j == k) && (j > (x = 0))", variables: "int j = 3;\nint k = 4;" }, /* test basic 'and' short circuit with actual condition */
+        { condition: "(j + 3 > k && ((j < 10) || (x + 5 > j + (x = 0))) || ( x = 0 ) == 7)", variables: "int j = 5;\nint k = 3;" }, /* complex test */
+        { condition: "j + 1 == 6 ? x == 1 || j > (x = 0) : (x = 0) == 1 && (x = 0) <= 1", variables: "int j = 5;" }, /* nested with ternary operator */
+        { condition: "true && (true || (x = 0) == 1)", variables: "" }, /* test unfold short circuit update order correctness */
+      ];
+
+      function testShortCircuit(test) {
+        debug("");
+        debug("testing short circuit condition: " + test.condition);
+
+        /* Setting clear color to blue */
+        gl.clearColor(0.0, 0.0, 1.0, 1.0);
+
+        for (var ii = 0; ii < shaderTemplates.length; ++ii) {
+
+          /* clear the screen so that subsequent tests don't conflict */
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          var template = shaderTemplates[ii];
+
+          var vs = wtu.replaceParams(template.vs, test);
+          var fs = wtu.replaceParams(template.fs, test);
+
+          var program = wtu.setupProgram(gl, [vs, fs], ['vPosition'], undefined, true);
+
+          wtu.clearAndDrawUnitQuad(gl);
+          wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+
+          gl.deleteProgram(program);
+
+          wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no GL errors");
+        }
+      }
+
+      var testNdx = 0;
+      function runNextTest() {
+          testShortCircuit(tests[testNdx++]);
+          if (testNdx >= tests.length) {
+              finishTest();
+          } else {
+              setTimeout(runNextTest, 0);
+          }
+      }
+
+      runNextTest();
+
+      var successfullyParsed = true;
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Script src with an empty URL</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<base href=unreachable.js>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  window.unreachable = this.unreached_func("Should not load unreachable.js");
+  var queued = false;
+  var script = document.createElement("script");
+  script.onerror = this.step_func_done(function(ev) {
+    assert_equals(ev.type, "error");
+    assert_false(ev.bubbles, "bubbles");
+    assert_false(ev.cancelable, "cancelable");
+    assert_true(ev.isTrusted, "isTrusted");
+    assert_equals(ev.target, script);
+    assert_true(ev instanceof Event, "instanceof Event");
+    assert_class_string(ev, "Event");
+    assert_true(queued, "event should not be dispatched synchronously");
+  });
+  script.setAttribute("src", "");
+  document.body.appendChild(script);
+  queued = true;
+});
+</script>

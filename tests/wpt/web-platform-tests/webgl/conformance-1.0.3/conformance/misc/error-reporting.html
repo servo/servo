@@ -1,0 +1,98 @@
+<!--
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Tests generation of synthetic and real GL errors");
+
+var wtu = WebGLTestUtils;
+var context = wtu.create3DContext();
+var program = wtu.loadStandardProgram(context);
+
+// Other tests like incorrect-context-object-behaviour already test the raising
+// of many synthetic GL errors. This test verifies the raising of certain
+// known real GL errors, and contains a few regression tests for bugs
+// discovered in the synthetic error generation and in the WebGL
+// implementation itself.
+
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+
+debug("Testing getActiveAttrib");
+// Synthetic OpenGL error
+shouldBeNull("context.getActiveAttrib(null, 2)");
+wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+// Error state should be clear by this point
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+// Real OpenGL error
+shouldBeNull("context.getActiveAttrib(program, 2)");
+wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+// Error state should be clear by this point
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+
+debug("Testing getActiveUniform");
+// Synthetic OpenGL error
+shouldBeNull("context.getActiveUniform(null, 0)");
+wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+// Error state should be clear by this point
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+// Real OpenGL error
+shouldBeNull("context.getActiveUniform(program, 50)");
+wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+// Error state should be clear by this point
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+
+debug("Testing attempts to manipulate the default framebuffer");
+shouldBeUndefined("context.bindFramebuffer(context.FRAMEBUFFER, null)");
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+shouldBeUndefined("context.framebufferRenderbuffer(context.FRAMEBUFFER, context.DEPTH_ATTACHMENT, context.RENDERBUFFER, null)");
+// Synthetic OpenGL error
+wtu.glErrorShouldBe(context, context.INVALID_OPERATION);
+// Error state should be clear by this point
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+shouldBeUndefined("context.framebufferTexture2D(context.FRAMEBUFFER, context.COLOR_ATTACHMENT0, context.TEXTURE_2D, null, 0)");
+// Synthetic OpenGL error
+wtu.glErrorShouldBe(context, context.INVALID_OPERATION);
+// Error state should be clear by this point
+wtu.glErrorShouldBe(context, context.NO_ERROR);
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

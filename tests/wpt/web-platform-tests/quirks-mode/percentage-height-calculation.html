@@ -19,6 +19,11 @@
     // fallback layout (i.e., not an image with a 1x1 intrinsic size).
     document.getElementById('preload').src = png;
     setup({explicit_done:true});
+
+    var png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
+    var preload = new Image();
+    preload.src = png;
+
     onload = function() {
         var html = "<style id=style></style>";
         var a_doctype = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">';

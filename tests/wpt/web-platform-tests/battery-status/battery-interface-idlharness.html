@@ -18,6 +18,9 @@ interface EventTarget {
 interface EventListener {
   void handleEvent(Event event);
 };
+[TreatNonObjectAsNull]
+callback EventHandlerNonNull = any (Event event);
+typedef EventHandlerNonNull? EventHandler;
 </script>
 <script type="text/plain">
 partial interface Navigator {
@@ -37,15 +40,25 @@ interface BatteryManager : EventTarget {
 </script>
 <script>
 "use strict";
+var t = async_test();
 var idl_array = new IdlArray();
 var idls;
+var manager;
 [].forEach.call(document.querySelectorAll('script[type=text\\/plain]'), function(node) {
-  // replace 'EventHandler' and 'unrestricted double' unrecognized by idlharness.js
-  idls = node.textContent.replace(/EventHandler/g, 'Function?').replace(/unrestricted double/g, 'double');
+  idls = node.textContent;
   idl_array[(node.className === 'untested') ? 'add_untested_idls' : 'add_idls'](idls);
 });
-idl_array.add_objects({Navigator: ['navigator'], BatteryManager: ['navigator.getBattery()']});
-idl_array.test();
+t.step(function() {
+  assert_idl_attribute(navigator, 'getBattery', 'navigator must have getBattery attribute');
+  navigator.getBattery().then(function(bm) {
+    manager = bm;
+    idl_array.add_objects({Navigator: ['navigator'], BatteryManager: ['manager']});
+    idl_array.test();
+    t.done();
+  }).catch(function(err) {
+    t.assert_unreached("navigator.getBattery failed");
+  });
+});
 </script>
 
 <h2>Description</h2>

@@ -1,0 +1,116 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL compiler bug referencing gl_FragCoord</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<!-- These shaders were extracted from Skia's GPU accelerated backend "Ganesh". -->
+<script id="shader-vs" type="x-shader/x-vertex">
+uniform mat3 uViewM;
+uniform mat3 uStageMatrix_Stage1;
+uniform vec4 urtAdjustment;
+attribute vec2 aPosition;
+attribute vec4 aColor;
+varying vec4 vColor;
+varying vec2 vMatrixCoord_Stage1;
+void main() {
+    vec3 pos3 = uViewM * vec3(aPosition, 1);
+    vColor = aColor;
+    { // Stage 0: XferEffect
+    }
+    vMatrixCoord_Stage1 = (uStageMatrix_Stage1 * vec3(aPosition, 1)).xy;
+    { // Stage 1: Texture
+    }
+    gl_Position = vec4(dot(pos3.xz, urtAdjustment.xy), dot(pos3.yz, urtAdjustment.zw), 0, pos3.z);
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D uDstCopySampler;
+uniform vec2 uDstCopyUpperLeft;
+uniform vec2 uDstCopyCoordScale;
+uniform float uRTHeight;
+uniform sampler2D uSampler0_Stage1;
+varying vec4 vColor;
+varying vec2 vMatrixCoord_Stage1;
+void main() {
+    vec4 fragCoordYDown = vec4(gl_FragCoord.x, uRTHeight - gl_FragCoord.y, gl_FragCoord.zw);
+    // Read color from copy of the destination.
+    vec2 _dstTexCoord = (fragCoordYDown.xy - uDstCopyUpperLeft) * uDstCopyCoordScale;
+    _dstTexCoord.y = 1.0 - _dstTexCoord.y;
+    vec4 _dstColor = texture2D(uDstCopySampler, _dstTexCoord);
+
+    vec4 output_Stage0;
+    { // Stage 0: XferEffect
+        // SkXfermode::Mode: Multiply
+        output_Stage0.a = vColor.a + (1.0 - vColor.a) * _dstColor.a;
+        output_Stage0.rgb = (1.0 - vColor.a) * _dstColor.rgb + (1.0 - _dstColor.a) * vColor.rgb + vColor.rgb * _dstColor.rgb;
+    }
+    vec4 output_Stage1;
+    { // Stage 1: Texture
+    output_Stage1 = texture2D(uSampler0_Stage1, vMatrixCoord_Stage1);
+    }
+    gl_FragColor = ((output_Stage0 * output_Stage1) + ((vec4(1) - output_Stage1) * _dstColor));
+}
+</script>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+description();
+debug("");
+debug('Verify shaders using gl_FragCoord z and w components compile and link correctly');
+debug('Regression test for Qualcomm bug ID CR649654');
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], null, null, true);
+  if (program) {
+    testPassed("Program compiled and linked successfully");
+  } else {
+    testFailed("Program failed to compile and link");
+  }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../resources/js-test-post.js"></script>
+</body>
+</html>

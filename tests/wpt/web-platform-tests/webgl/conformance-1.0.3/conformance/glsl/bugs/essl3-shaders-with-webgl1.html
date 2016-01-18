@@ -1,0 +1,136 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Browser bug - WebGL 1 context should not accept OpenGL ES 3 shading language shaders</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../resources/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!-- Note that the version directive should be on the very first line in ESSL 3, see ESSL 3 section 3.3 -->
+<script id="ES3VertexShader" type="x-shader/x-vertex">#version 300 es
+precision mediump float;
+in vec4 aPosition;
+
+void main() {
+    gl_Position = aPosition;
+}
+</script>
+<script id="ES3FragmentShader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 my_FragColor;
+
+void main() {
+    my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="emptyES3FragmentShader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+void main() {
+}
+</script>
+<script id="vertexShaderWithInQualifier" type="x-shader/x-vertex">
+precision mediump float;
+in vec4 aPosition;
+
+void main() {
+    gl_Position = aPosition;
+}
+</script>
+<script id="fragmentShaderWithOutQualifier" type="x-shader/x-fragment">
+precision mediump float;
+out vec4 my_FragColor;
+
+void main() {
+    my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("OpenGL ES 3 shading language shaders should not be accepted by WebGL 1.");
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "ES3VertexShader",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "OpenGL ES 3 shading language vertex shader with an in variable should not be accepted by WebGL 1."
+  },
+  {
+    fShaderId: "ES3FragmentShader",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "OpenGL ES 3 shading language fragment shader with an out variable should not be accepted by WebGL 1."
+  },
+  {
+    fShaderId: "emptyES3FragmentShader",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "OpenGL ES 3 shading language fragment shader with an empty body should not be accepted by WebGL 1."
+  },
+  {
+    vShaderId: "ES3VertexShader",
+    vShaderSuccess: false,
+    fShaderId: "ES3FragmentShader",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "OpenGL ES 3 shading language shaders should not be linked by WebGL 1."
+  },
+  {
+    vShaderId: "ES3VertexShader",
+    vShaderSuccess: false,
+    fShaderId: "emptyES3FragmentShader",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "OpenGL ES 3 shading language shaders including fragment shader with empty body should not be linked by WebGL 1."
+  },
+  {
+    vShaderId: "vertexShaderWithInQualifier",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Vertex shader with an in qualifier on a global variable should not be accepted by WebGL 1."
+  },
+  {
+    fShaderId: "fragmentShaderWithOutQualifier",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Fragment shader with an out qualifier on a global variable should not be accepted by WebGL 1."
+  }
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

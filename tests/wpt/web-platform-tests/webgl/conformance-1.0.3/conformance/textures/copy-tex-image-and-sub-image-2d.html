@@ -1,0 +1,156 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+
+<script>
+"use strict";
+var successfullyParsed = false;
+
+function init()
+{
+    description('Verify copyTexImage2D and copyTexSubImage2D');
+
+    runTest();
+}
+
+var gl = null;
+var wtu = WebGLTestUtils;
+
+function runTestIteration(antialias)
+{
+    var canvas = document.getElementById(
+        antialias ? "antialiasOn" : "antialiasOff");
+    var attribs = antialias ? { antialias: true } : { antialias: false };
+    gl = wtu.create3DContext(canvas, attribs);
+    var program = wtu.setupTexturedQuad(gl);
+    var textureLoc = gl.getUniformLocation(program, "tex");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "During Initialization");
+
+    gl.colorMask(1, 1, 1, 1);
+    gl.disable(gl.BLEND);
+    debug('Testing copyTexImage2D');
+
+    // Red canvas
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    var texture = gl.createTexture();
+    // Bind the texture to texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // Set up texture
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.uniform1i(textureLoc, 0);
+
+    var colors = [
+      [1, 0, 0, 1],
+      [0, 1, 0, 1],
+      [0, 0, 1, 1],
+      [0.5, 0.5, 0.5, 0.5],
+    ];
+    var count = 0;
+    for (var yy = -2; yy <= 2; ++yy) {
+      for (var xx = -2; xx <= 2; ++xx) {
+         for (var ii = 0; ii < 2; ++ii) {
+          var texColor = colors[count];
+          var clearColor = colors[(count + 1) % colors.length];
+          // clear to some color
+          gl.clearColor(texColor[0], texColor[1], texColor[2], texColor[3]);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          // copy that color to the texture.
+          switch (ii) {
+          case 0:
+            gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, xx, yy, 2, 2, 0);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                "using copyTexImage2D: x = " + xx + ", y = " + yy);
+            break;
+          case 1:
+            gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, xx, yy, 2, 2);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                "using copyTexSubImage2D: x = " + xx + ", y = " + yy);
+            break;
+          }
+
+          // clear to some other color.
+          gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          // Draw the triangles
+          wtu.clearAndDrawUnitQuad(gl);
+
+          // check the rendering results
+          for (var iy = 0; iy < 2; ++iy) {
+            for (var ix = 0; ix < 2; ++ix) {
+              var x = xx + ix;
+              var y = yy + iy;
+              var expectedColor = (x < 0 || y < 0 || x >= 2 || y >= 2) ?
+                  [0,0,0,0] :
+                  [Math.floor(255 * texColor[0]),
+                   Math.floor(255 * texColor[1]),
+                   Math.floor(255 * texColor[2]),
+                   Math.floor(255 * texColor[3])];
+              wtu.checkCanvasRect(gl, ix, iy, 1, 1, expectedColor,
+                  "" + ix + ", " + iy + " should render " + expectedColor + " (+/-1)", 1);
+            }
+          }
+          count = (count + 1) % colors.length;
+        }
+      }
+    }
+
+    debug("");
+}
+
+function runTest(antialias)
+{
+    debug("Testing with antialias on");
+    runTestIteration(true);
+    debug("Testing with antialias off");
+    runTestIteration(false);
+
+    finishTest();
+}
+</script>
+</head>
+<body onload="init()">
+<canvas id="antialiasOn" width="2" height="2"></canvas>
+<canvas id="antialiasOff" width="2" height="2"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

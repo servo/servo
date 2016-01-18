@@ -1,0 +1,175 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../resources/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="sharedVertexShader" type="text/something-not-javascript">
+// shared vertex shader should succeed.
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec2 texCoord;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_surfaceToLight;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 world = orientMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_surfaceToLight = (world * position).xyz;
+  gl_Position = v_position;
+}
+</script>
+<script id="fragmentShaderA" type="text/something-not-javascript">
+// shared fragment shader should succeed.
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_surfaceToLight;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 halfVector = normalize(surfaceToLight);
+  vec4 litR = lit(1.0, 1.0, shininess);
+  vec4 outColor = vec4(
+    (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                  specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+}
+</script>
+<script id="fragmentShaderB" type="text/something-not-javascript">
+// shared fragment shader should succeed.
+precision mediump float;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_surfaceToLight;
+
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec4 reflection = vec4(0,0,0,0);  // #noReflection
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec4 skyColor = vec4(0.5,0.5,1,1);  // #noReflection
+
+  vec3 halfVector = normalize(surfaceToLight);
+  vec4 litR = lit(1.0, 1.0, 10.0);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      vec4(1,2,3,4) * (litR.y + litR.z * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      1.0);
+  // #fogCode
+  gl_FragColor = outColor;
+}
+</script>
+<script>
+"use strict";
+GLSLConformanceTester.runTests([
+  { vShaderSource: document.getElementById("sharedVertexShader").text,
+    vShaderSuccess: true,
+    fShaderSource: document.getElementById("fragmentShaderA").text,
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'shared fragment shader should succeed',
+  },
+  { vShaderSource: document.getElementById("sharedVertexShader").text,
+    vShaderSuccess: true,
+    fShaderSource: document.getElementById("fragmentShaderB").text,
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'shared fragment shader should succeed',
+  }
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

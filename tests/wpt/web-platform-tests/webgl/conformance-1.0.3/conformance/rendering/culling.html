@@ -1,0 +1,152 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+        <script src=/resources/testharness.js></script>
+        <script src=/resources/testharnessreport.js></script>
+        <script src="../../resources/js-test-pre.js"></script>
+        <script src="../resources/webgl-test-utils.js"></script>
+        <script id="vshader" type="x-shader/x-vertex">
+            attribute vec2 pos;
+
+            void main()
+            {
+                gl_Position = vec4(pos, 0, 1);
+            }
+        </script>
+
+        <script id="fshader" type="x-shader/x-fragment">
+            precision mediump float;
+            uniform vec4 col;
+
+            void main()
+            {
+                gl_FragColor = col;
+            }
+        </script>
+
+        <script>
+            "use strict";
+            var wtu = WebGLTestUtils;
+
+            function draw(gl, arr, colLoc, col) {
+                var vertices = new Float32Array(arr);
+                var vertBuf = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+                gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+                gl.uniform4fv(colLoc, col);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length / 2);
+            }
+
+            function clear(gl, col) {
+                gl.clearColor(col[0], col[1], col[2], col[3]);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            }
+
+            function check(gl, winding, shoulddraw) {
+                var msg = winding + ' face was ' + (shoulddraw ? '' : 'not ') + 'drawn.';
+                wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 255, 0, 255], msg);
+            }
+
+            function runTest()
+            {
+                var cwVertices = [-1, -1, -1, 1, 1, -1, 1, 1];
+                var ccwVertices = [-1, 1, -1, -1, 1, 1, 1, -1];
+                var red = [1, 0, 0, 1];
+                var green = [0, 1, 0, 1];
+                var ok;
+
+                var gl = wtu.create3DContext('testbed', { antialias: false });
+                if (!gl) {
+                    testFailed('could not create context');
+                    return;
+                }
+                var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['pos']);
+                var colLoc = gl.getUniformLocation(program, 'col');
+
+                gl.enableVertexAttribArray(0);
+
+                debug('CULL_FACE should be off by default');
+                clear(gl, red);
+                draw(gl, ccwVertices, colLoc, green);
+                check(gl, 'CCW', true);
+                clear(gl, red);
+                draw(gl, cwVertices, colLoc, green);
+                check(gl, 'CW', true);
+
+                debug('Enabling CULL_FACE');
+                gl.enable(gl.CULL_FACE);
+
+                debug('BACK and CCW should be set by default');
+                clear(gl, red);
+                draw(gl, ccwVertices, colLoc, green);
+                check(gl, 'CCW', true);
+                clear(gl, green);
+                draw(gl, cwVertices, colLoc, red);
+                check(gl, 'CW', false);
+
+                var tests = [{ cullFace : 'BACK', frontFace : 'CCW', drawCCW : true, drawCW : false},
+                             { cullFace : 'BACK', frontFace : 'CW', drawCCW : false, drawCW : true},
+                             { cullFace : 'FRONT', frontFace : 'CCW', drawCCW : false, drawCW : true },
+                             { cullFace : 'FRONT', frontFace : 'CW', drawCCW : true, drawCW : false},
+                             { cullFace : 'FRONT_AND_BACK', frontFace : 'CCW', drawCCW : false, drawCW : false},
+                             { cullFace : 'FRONT_AND_BACK', frontFace : 'CW', drawCCW : false, drawCW : false}];
+
+                for (var i = 0; i < tests.length; ++i) {
+                    var t = tests[i];
+                    debug('Setting ' + t.cullFace + ' and ' + t.frontFace);
+                    gl.cullFace(gl[t.cullFace]);
+                    gl.frontFace(gl[t.frontFace]);
+                    clear(gl, t.drawCCW ? red : green);
+                    draw(gl, ccwVertices, colLoc, t.drawCCW ? green : red);
+                    check(gl, 'CCW', t.drawCCW);
+                    clear(gl, t.drawCW ? red : green);
+                    draw(gl, cwVertices, colLoc, t.drawCW ? green : red);
+                    check(gl, 'CW', t.drawCW);
+                }
+
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="testbed" width="16" height="16" style="width:50px; height:50px"></canvas>
+        <div id="description"></div>
+        <div id="console"></div>
+        <script>
+            "use strict";
+            description('Verify that culling works');
+            runTest();
+            var successfullyParsed = true;
+        </script>
+        <script src="../../resources/js-test-post.js"></script>
+    </body>
+</html>

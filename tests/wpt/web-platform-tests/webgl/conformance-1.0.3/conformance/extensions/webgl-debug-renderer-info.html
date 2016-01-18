@@ -1,0 +1,127 @@
+﻿<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WebGL_debug_renderer_info Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 1px; height: 1px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing standard derivatives -->
+
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_debug_renderer_info extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+var ext = null;
+var vao = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    // Run tests with extension disabled
+    runTestDisabled();
+
+    // Query the extension and store globally so shouldBe can access it
+    ext = gl.getExtension("WEBGL_debug_renderer_info");
+    if (!ext) {
+        testPassed("No WEBGL_debug_renderer_info support -- this is legal");
+
+        runSupportedTest(false);
+    } else {
+        testPassed("Successfully enabled WEBGL_debug_renderer_info extension");
+
+        runSupportedTest(true);
+        runTestEnabled();
+    }
+}
+
+function runSupportedTest(extensionEnabled) {
+    var supported = gl.getSupportedExtensions();
+    if (supported.indexOf("WEBGL_debug_renderer_info") >= 0) {
+        if (extensionEnabled) {
+            testPassed("WEBGL_debug_renderer_info listed as supported and getExtension succeeded");
+        } else {
+            testFailed("WEBGL_debug_renderer_info listed as supported but getExtension failed");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("WEBGL_debug_renderer_info not listed as supported but getExtension succeeded");
+        } else {
+            testPassed("WEBGL_debug_renderer_info not listed as supported and getExtension failed -- this is legal");
+        }
+    }
+}
+
+function runTestDisabled() {
+    debug("Testing enums with extension disabled");
+
+    // Use the constants directly as we don't have the extension
+
+    var UNMASKED_VENDOR_WEBGL = 0x9245;
+    gl.getParameter(UNMASKED_VENDOR_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "UNMASKED_VENDOR_WEBGL should not be queryable if extension is disabled");
+
+    var UNMASKED_RENDERER_WEBGL = 0x9246;
+    gl.getParameter(UNMASKED_RENDERER_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "UNMASKED_RENDERER_WEBGL should not be queryable if extension is disabled");
+}
+
+function runTestEnabled() {
+    debug("Testing enums with extension enabled");
+
+    shouldBe("ext.UNMASKED_VENDOR_WEBGL", "0x9245");
+    gl.getParameter(ext.UNMASKED_VENDOR_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "UNMASKED_VENDOR_WEBGL query should succeed if extension is enable");
+
+    shouldBe("ext.UNMASKED_RENDERER_WEBGL", "0x9246");
+    gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "UNMASKED_RENDERER_WEBGL query should succeed if extension is enable");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+
+</body>
+</html>

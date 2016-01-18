@@ -1,0 +1,4 @@
+glsl-function-texture2d-bias.html
+glsl-function-texture2dlod.html
+glsl-function-texture2dproj.html
+--min-version 1.0.3 glsl-function-texture2dprojlod.html

@@ -65,7 +65,7 @@
 
     battery.onlevelchange = onlevelchange_test.step_func(function () {
       assert_greater_than(battery.level, 0);
-      assert_less_than(battery.level, 1.0);
+      assert_less_than_equal(battery.level, 1.0);
       onlevelchange_test.done();
     });
   };

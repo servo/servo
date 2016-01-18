@@ -32,9 +32,8 @@ async_test(function (t) {
     t.step(function () {
       assert_false(battery.charging, 'charging must be set to false');
       assert_equals(battery.chargingTime, Infinity, 'chargingTime must be set to Infinity');
-      assert_less_than(battery.dischargingTime, Infinity, 'dischargingTime must be less than Infinity');
       assert_greater_than(battery.level, 0, 'level must be greater than 0');
-      assert_less_than(battery.level, 1.0, 'level must be less than 1.0');
+      assert_less_than_equal(battery.level, 1.0, 'level must be less than or equal to 1.0');
 
       var battery_level = battery.level;
       battery.onlevelchange = t.step_func(function () {

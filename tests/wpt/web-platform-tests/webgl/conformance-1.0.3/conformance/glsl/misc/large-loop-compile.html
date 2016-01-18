@@ -1,0 +1,195 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../resources/js-test-pre.js"></script>
+<script src="../../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertexShader" type="text/something-not-javascript">
+attribute vec2 position;
+
+void main(){
+    gl_Position = vec4(position, 0.0, 1.0);
+}
+</script>
+<script id="fragmentShader" type="text/something-not-javascript">
+precision mediump float;
+uniform sampler2D source;
+
+mat3 front = mat3(
+     1.0,  0.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  0.0,  1.0
+);
+
+mat3 back = mat3(
+    -1.0,  0.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  0.0, -1.0
+);
+
+mat3 left = mat3(
+     0.0,  0.0, -1.0,
+     0.0,  1.0,  0.0,
+     1.0,  0.0,  0.0
+);
+
+mat3 right = mat3(
+     0.0,  0.0,  1.0,
+     0.0,  1.0,  0.0,
+    -1.0,  0.0,  0.0
+);
+
+mat3 up = mat3(
+     1.0,  0.0,  0.0,
+     0.0,  0.0,  1.0,
+     0.0, -1.0,  0.0
+);
+
+mat3 down = mat3(
+     1.0,  0.0,  0.0,
+     0.0,  0.0, -1.0,
+     0.0,  1.0,  0.0
+);
+
+float coefficient(vec3 normal){
+    int index = int(gl_FragCoord.x);
+    float x = normal.x;
+    float y = normal.y;
+    float z = normal.z;
+
+    if(index==0){
+        return 1.0;
+    }
+    else if(index==1){
+        return y;
+    }
+    else if(index==2){
+        return z;
+    }
+    else if(index==3){
+        return x;
+    }
+    else if(index==4){
+        return x*y;
+    }
+    else if(index==5){
+        return y*z;
+    }
+    else if(index==6){
+        return 3.0*z*z - 1.0;
+    }
+    else if(index==7){
+        return x*z;
+    }
+    else{
+        return x*x - y*y;
+    }
+}
+
+vec3 sample(float cidx, mat3 side){
+    vec3 result = vec3(0.0);
+    float divider = 0.0;
+
+    for(int i=0; i<256; i++){
+        float x = mod(float(i), 16.0);
+        float y = float(i/16);
+        vec2 texcoord = (vec2(x+cidx*16.0, y+floor(gl_FragCoord.y)*16.0)+0.5)/6.0;
+        vec2 sidecoord = ((vec2(x,y)+vec2(0.5, 0.5))/vec2(16.0))*2.0-1.0;
+        vec3 normal = normalize(vec3(sidecoord, -1.0));
+        vec3 texel = texture2D(source, texcoord).rgb;
+        result += coefficient(side*normal) * texel * -normal.z;
+        divider += -normal.z;
+    }
+    return result/divider;
+}
+
+void main(){
+    vec3 result = (
+        //sample(0.0, front) +
+        //sample(1.0, back) +
+        sample(2.0, left) +
+        sample(3.0, right) +
+        sample(4.0, up) +
+        sample(5.0, down)
+    )/6.0;
+    gl_FragColor = vec4(result, 1.0);
+}
+</script>
+<script>
+"use strict";
+var receivedContextLost = false;
+description("Ensures that compilation of a large loop completes in a reasonable period of time and does not cause the WebGL context to be lost");
+var wtu = WebGLTestUtils;
+var canvas = document.createElement('canvas');
+canvas.width = 32;
+canvas.height = 32;
+canvas.addEventListener("webglcontextlost", function(e) {
+  testFailed("context was lost during shader compilation or linking");
+  receivedContextLost = true;
+});
+var gl = wtu.create3DContext(canvas);
+if (!gl) {
+  testFailed("context does not exist");
+  finishTest();
+} else {
+  var startTime = Date.now();
+  wtu.setupProgram(gl, ["vertexShader", "fragmentShader"], undefined, undefined, true);
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+  var endTime = Date.now();
+
+  // Delay for some period to increase chances that context lost event will be delivered.
+  setTimeout(function() {
+    if (!receivedContextLost) {
+      testPassed("Large loop compiled and linked without terminating the WebGL context");
+      if (endTime - startTime < 5000) {
+        testPassed("Shader compilation completed in a reasonable amount of time");
+      } else {
+        testFailed("Shader compilation took an unreasonably long time");
+      }
+    }
+    finishTest();
+  }, 500);
+}
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

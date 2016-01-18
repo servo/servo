@@ -1,0 +1,449 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Tests deletion behavior for texture, renderbuffer, shader, and program");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+var shouldGenerateGLError = wtu.shouldGenerateGLError;
+
+debug("");
+debug("shader and program deletion");
+
+var vertexShader = wtu.loadStandardVertexShader(gl);
+assertMsg(vertexShader, "vertex shader loaded");
+var fragmentShader = wtu.loadStandardFragmentShader(gl);
+assertMsg(fragmentShader, "fragment shader loaded");
+
+var program = gl.createProgram();
+shouldBeNonNull("program");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.attachShader(program, vertexShader)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.attachShader(program, fragmentShader)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.linkProgram(program)");
+shouldBeTrue("gl.getProgramParameter(program, gl.LINK_STATUS)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.useProgram(program)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteShader(vertexShader)");
+shouldBeTrue("gl.isShader(vertexShader)");
+shouldBeTrue("gl.getShaderParameter(vertexShader, gl.DELETE_STATUS)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.detachShader(program, vertexShader)");
+shouldBeFalse("gl.isShader(vertexShader)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteShader(fragmentShader)");
+shouldBeTrue("gl.isShader(fragmentShader)");
+shouldBeTrue("gl.getShaderParameter(fragmentShader, gl.DELETE_STATUS)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteProgram(program)");
+shouldBeTrue("gl.isProgram(program)");
+shouldBeTrue("gl.getProgramParameter(program, gl.DELETE_STATUS)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.useProgram(null)");
+shouldBeFalse("gl.isProgram(program)");
+shouldBeFalse("gl.isShader(fragmentShader)");
+
+debug("");
+debug("texture deletion");
+
+var fbo = gl.createFramebuffer(), fbo2 = gl.createFramebuffer(), fbo3 = gl.createFramebuffer();
+shouldBeNonNull("fbo");
+shouldBeNonNull("fbo2");
+shouldBeNonNull("fbo3");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+
+var tex = gl.createTexture();
+shouldBeNonNull("tex");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, tex)");
+shouldBe("gl.getParameter(gl.TEXTURE_BINDING_2D)", "tex");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)");
+shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "tex");
+shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.TEXTURE");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(tex)");
+// Deleting a texture bound to the currently-bound fbo is the same as
+// detaching the textue from fbo first, then delete the texture.
+shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+shouldGenerateGLError(gl, gl.INVALID_ENUM, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)");
+shouldBeFalse("gl.isTexture(tex)");
+shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, tex)");
+shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
+
+var texCubeMap = gl.createTexture();
+shouldBeNonNull("texCubeMap");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCubeMap)");
+shouldBe("gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP)", "texCubeMap");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(texCubeMap)");
+shouldBeFalse("gl.isTexture(texCubeMap)");
+shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCubeMap)");
+shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP)");
+
+var t = gl.createTexture();
+shouldBeNonNull("t");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, t)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(t)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, t)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)");
+
+var t2 = gl.createTexture();
+shouldBeNonNull("t2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.activeTexture(gl.TEXTURE0)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, t2)");
+shouldBe("gl.getParameter(gl.TEXTURE_BINDING_2D)", "t2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.activeTexture(gl.TEXTURE1)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, t2)");
+shouldBe("gl.getParameter(gl.TEXTURE_BINDING_2D)", "t2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(t2)");
+shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.activeTexture(gl.TEXTURE0)");
+shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
+
+debug("");
+debug("renderbuffer deletion");
+
+var rbo = gl.createRenderbuffer(), rbo2 = gl.createRenderbuffer(), rbo3 = gl.createRenderbuffer();
+shouldBeNonNull("rbo");
+shouldBeNonNull("rbo2");
+shouldBeNonNull("rbo3");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldBe("gl.getParameter(gl.RENDERBUFFER_BINDING)", "rbo");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)");
+shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rbo");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteRenderbuffer(rbo)");
+// Deleting a renderbuffer bound to the currently-bound fbo is the same as
+// detaching the renderbuffer from fbo first, then delete the renderbuffer.
+shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+shouldGenerateGLError(gl, gl.INVALID_ENUM, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)");
+shouldBeFalse("gl.isRenderbuffer(rbo)");
+shouldBeNull("gl.getParameter(gl.RENDERBUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldBeNull("gl.getParameter(gl.RENDERBUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo2)");
+shouldBe("gl.getParameter(gl.RENDERBUFFER_BINDING)", "rbo2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteRenderbuffer(rbo3)");
+shouldBe("gl.getParameter(gl.RENDERBUFFER_BINDING)", "rbo2");
+
+debug("");
+debug("using deleted renderbuffer");
+rbo = gl.createRenderbuffer();
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)");
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  // make backbuffer red
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(1,0,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // make fbo green
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,1,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // Bind backbuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  // delete renderbuffer. It should still be attached to fbo though.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteRenderbuffer(rbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [255,0,0,255], "backbuffer should be red")');
+  // Use fbo that has deleted rbo.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [0,255,0,255], "fbo should be green")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,0,1,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [0,0,255,255], "fbo should be blue")');
+  // Bind backbuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [255,0,0,255], "backbuffer should be red")');
+}
+
+debug("");
+debug("renderbuffer attached twice to same framebuffer");
+rbo = gl.createRenderbuffer();
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)");
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  rbo2 = gl.createRenderbuffer();
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo2)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16)");
+  // attach rbo2 at two attachment points incompatible with it
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbo2)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbo2)");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rbo2");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rbo2");
+  // fbo can't be complete as rbo2 is attached at incompatible attachment points
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  // now we delete rbo2, which detaches it from the two attachment points where it currently is attached
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteRenderbuffer(rbo2)");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+  // we should now be in the same state as before with only rbo attached, so fbo should be complete again
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rbo");
+}
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteRenderbuffer(rbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+
+
+
+debug("");
+debug("using deleted texture");
+tex = gl.createTexture();
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, tex)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)");
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  // make fbo green
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,1,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // Bind backbuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  // delete texture. It should still be attached to fbo though.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(tex)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255,0,0,255], "backbuffer should be red")');
+  // Use fbo that has deleted texture.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0,255,0,255], "fbo should be green")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,0,1,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0,0,255,255], "fbo should be blue")');
+  // Bind backbuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [255,0,0,255], "backbuffer should be red")');
+}
+
+debug("");
+debug("using deleted renderbuffer");
+rbo = gl.createRenderbuffer();
+shouldBeNonNull("rbo");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)");
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)");
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  // make backbuffer red
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(1,0,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // make fbo green
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,1,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // delete renderbuffer. It should still be attached to fbo2 though.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteRenderbuffer(rbo)");
+  // fbo has no attachments
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  // Use fbo2 that has deleted rbo.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [0,255,0,255], "fbo should be green")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,0,1,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [0,0,255,255], "fbo should be blue")');
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rbo");
+
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.INVALID_ENUM, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)");
+  shouldGenerateGLError(gl, gl.NONE, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)");
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  // Bind backbuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [255,0,0,255], "backbuffer should be red")');
+}
+
+debug("");
+debug("using deleted texture");
+tex = gl.createTexture();
+shouldBeNonNull("tex");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, tex)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)");
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)");
+  // make fbo green
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,1,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // delete texture. It should still be attached to fbo2 though.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(tex)");
+  // fbo has no attachments
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  // Use fbo that has deleted texture.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2)");
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0,255,0,255], "fbo should be green")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,0,1,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0,0,255,255], "fbo should be blue")');
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "tex");
+
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.INVALID_ENUM, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)");
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  // Bind backbuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [255,0,0,255], "backbuffer should be red")');
+}
+
+debug("");
+debug("buffer deletion");
+
+var buffer = gl.createBuffer();
+shouldBeNonNull("buffer");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer)");
+shouldBe("gl.getParameter(gl.ARRAY_BUFFER_BINDING)", "buffer");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(buffer)");
+shouldBeFalse("gl.isBuffer(buffer)");
+shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer)");
+shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
+
+var buffer2 = gl.createBuffer();
+shouldBeNonNull("buffer2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer2)");
+shouldBe("gl.getParameter(gl.ARRAY_BUFFER_BINDING)", "buffer2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, null)");
+shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(buffer2)");
+shouldBeFalse("gl.isBuffer(buffer2)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer2)");
+shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
+
+var bufferElement = gl.createBuffer();
+shouldBeNonNull("bufferElement");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufferElement)");
+shouldBe("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)", "bufferElement");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(bufferElement)");
+shouldBeFalse("gl.isBuffer(bufferElement)");
+shouldBeNull("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufferElement)");
+shouldBeNull("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)");
+
+var b = gl.createBuffer();
+shouldBeNonNull("b");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, b)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bufferData(gl.ARRAY_BUFFER, 1, gl.STATIC_DRAW)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(b)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, b)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bufferData(gl.ARRAY_BUFFER, 1, gl.STATIC_DRAW)");
+
+var b1 = gl.createBuffer();
+shouldBeNonNull("b1");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, b1);");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.enableVertexAttribArray(1);");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);");
+var b2 = gl.createBuffer();
+shouldBeNonNull("b2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, b2);");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.enableVertexAttribArray(2);");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 0, 0);");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.enableVertexAttribArray(3);");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 0, 0);");
+shouldBe("gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)", "b1");
+shouldBe("gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)", "b2");
+shouldBe("gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)", "b2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(b2);");
+shouldBe("gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)", "b1");
+shouldBeNull("gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)");
+shouldBeNull("gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(b1);");
+shouldBeNull("gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)");
+
+debug("");
+debug("framebuffer deletion");
+
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldBe("gl.getParameter(gl.FRAMEBUFFER_BINDING)", "fbo");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteFramebuffer(fbo)");
+shouldBeFalse("gl.isFramebuffer(fbo)");
+shouldBeNull("gl.getParameter(gl.FRAMEBUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldBeNull("gl.getParameter(gl.FRAMEBUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2)");
+shouldBe("gl.getParameter(gl.FRAMEBUFFER_BINDING)", "fbo2");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteFramebuffer(fbo3)");
+shouldBe("gl.getParameter(gl.FRAMEBUFFER_BINDING)", "fbo2");
+
+fbo = gl.createFramebuffer();
+rbo = gl.createRenderbuffer();
+shouldBeNonNull("fbo");
+shouldBeNonNull("rbo");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16)");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)");
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  // set backbuffer to red
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(1,0,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // set framebuffer to green
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,1,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  // check framebuffer
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 16, 16, [0,255,0,255], "fbo should be green")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 16, 16, 1, 1, [0,0,0,0], "outside fbo should be black")');
+  // delete framebuffer. because this was the bound fbo the backbuffer should be active now
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteFramebuffer(fbo)");
+  // check backbuffer
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 300, 150, [255,0,0,255], "backbuffer should be red")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 300, 0, 300, 300, [0,0,0,0], "outside backbuffer should be black")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 150, 300, 300, [0,0,0,0], "outside backbuffer should be black")');
+  // check drawing to backbuffer
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clearColor(0,1,0,1)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.clear(gl.COLOR_BUFFER_BIT)");
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 300, 150, [0,255,0,255], "fbo should be green")');
+  shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, null)");
+  // check again because many buggy implementations will have bound to the true backbuffer on deleteFramebuffer.
+  shouldGenerateGLError(gl, gl.NO_ERROR, 'wtu.checkCanvasRect(gl, 0, 0, 300, 150, [0,255,0,255], "fbo should be green")');
+}
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Verify copyTexImage2D follows format restictions</title>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../resources/js-test-pre.js"></script>
+<script src="../resources/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="2" height="2"></canvas>
+<canvas id="canvasNoAlpha" width="2" height="2"></canvas>
+<div id="console"></div>
+<script>
+"use strict";
+
+function getChannelsFromFormat(format) {
+  switch (gl[format]) {
+  case gl.ALPHA:
+    return 0x0001;
+  case gl.LUMINANCE:
+  case gl.RGB:
+    return 0x1110;
+  case gl.LUMINANCE_ALPHA:
+  case gl.RGBA:
+    return 0x1111;
+  default:
+    return 0;
+  }
+}
+
+var formats = [
+  'ALPHA',
+  'LUMINANCE',
+  'LUMINANCE_ALPHA',
+  'RGB',
+  'RGBA'
+];
+
+var isRenderable = {
+  'ALPHA': false,
+  'LUMINANCE': false,
+  'LUMINANCE_ALPHA': false,
+  'RGB': true,
+  'RGBA': true
+};
+
+var gl = null;
+var wtu = WebGLTestUtils;
+
+description();
+
+var canvas = document.getElementById("canvas");
+var canvasNoAlpha = document.getElementById("canvasNoAlpha");
+var gl = wtu.create3DContext(canvas, {alpha:true});
+var glNoAlpha = wtu.create3DContext(canvasNoAlpha, {alpha:false});
+
+debug("test with an RGBA backbuffer");
+var program = wtu.setupTexturedQuad(gl);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "During Initialization");
+testFormats('RGBA');
+
+testBackbufferFormats();
+
+debug("test with an RGB backbuffer");
+var gl = glNoAlpha;
+var program = wtu.setupTexturedQuad(gl);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "During Initialization");
+testFormats('RGB');
+
+function testBackbufferFormats() {
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+  for (var ii = 0; ii < formats.length; ++ii) {
+    var backFormat = formats[ii];
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl[backFormat], 2, 2, 0, gl[backFormat], gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+    debug('');
+    if (status == gl.FRAMEBUFFER_COMPLETE) {
+      if (!isRenderable[backFormat]) {
+        testFailed('Creating framebuffer from ' + backFormat + ' texture succeeded even though it is not a renderable format');
+      } else {
+        debug('test with ' + backFormat + ' fbo');
+        testFormats(backFormat);
+      }
+    } else {
+      debug(backFormat + ' not supported as a renderbuffer attachment');
+    }
+  }
+}
+
+function testFormats(backFormat) {
+  for (var ii = 0; ii < formats.length; ++ii) {
+    testCopyTexImage2D(backFormat, formats[ii]);
+  }
+}
+
+function toChannels(value) {
+  return ((value & 0x1000) ? 'R' : '_') +
+         ((value & 0x0100) ? 'G' : '_') +
+         ((value & 0x0010) ? 'B' : '_') +
+         ((value & 0x0001) ? 'A' : '_');
+}
+
+function testCopyTexImage2D(backFormat, texFormat) {
+  var need = getChannelsFromFormat(texFormat);
+  var have = getChannelsFromFormat(backFormat);
+  var shouldPass = (need & have) == need;
+
+  //debug("need: " + toChannels(need));
+  //debug("have: " + toChannels(have));
+  //debug("both: " + toChannels(have & need));
+
+  // clear backbuffer
+  gl.clearColor(0.25, 1, 0.75, 0.5);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var texture = gl.createTexture();
+  // Bind the texture to texture unit 0
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl[texFormat], 0, 0, 2, 2, 0);
+  if (!shouldPass) {
+    wtu.glErrorShouldBe(
+        gl, gl.INVALID_OPERATION,
+        "should not be able to copyTexImage2D " + texFormat + " from " + backFormat);
+    return;
+  }
+
+  wtu.glErrorShouldBe(
+      gl, gl.NO_ERROR,
+      "should be able to copyTexImage2D " + texFormat + " from " + backFormat);
+
+  // Draw
+  wtu.clearAndDrawUnitQuad(gl);
+
+  var expectedColors = {
+    'ALPHA': [0, 0, 0, 127],
+    'LUMINANCE': [64, 64, 64, 255],
+    'LUMINANCE_ALPHA': [64, 64, 64, 127],
+    'RGB': [64, 255, 191, 255],
+    'RGBA': [64, 255, 191, 127]
+  };
+
+  var color = expectedColors[texFormat];
+
+  wtu.checkCanvas(gl, color, "should be " + color, 16);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+var successfullyParsed = true;
+</script>
+<script src="../../resources/js-test-post.js"></script>
+</body>
+</html>

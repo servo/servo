@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/x-javascript" src="../unit.js"></script>
+<script type="application/x-javascript" src="../util.js"></script>
+<script type="application/x-javascript">
+
+Tests.startUnit = function () {
+  var canvas = document.getElementById('gl');
+  var gl = wrapGLContext(getGLContext(canvas));
+  return [gl];
+}
+
+Tests.testUniformf = function(gl) {
+    var sh = new Filter(gl, 'foobar-vert', 'foobar-frag');
+    sh.apply(function(f){
+        var uniIV4 = f.uniform('uniIV4');
+        var uniInt = f.uniform('uniInt');
+        assertThrowNoGLError(gl, "number as location",
+            function(){gl.uniform4iv(58882929, [1,2,3,4]);});
+        assertThrowNoGLError(gl, "negative number as location",
+            function(){gl.uniform4iv(-58882929, [1,2,3,4]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "more than 1 value to 1iv",
+            function(){gl.uniform1iv(uniInt, [2,3,4,5,6]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "4iv on int",
+            function(){gl.uniform4iv(uniInt, [2,3,4,5]);});
+        assertOk("4iv on 4iv",
+            function(){gl.uniform4iv(uniIV4, [1, 2, 3, 4]);});
+        assertGLError(gl, gl.INVALID_VALUE, "5 values on 4iv",
+            function(){gl.uniform4iv(uniIV4, [1, 2, 3, 4, 5]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "8 values on 4iv",
+            function(){gl.uniform4iv(uniIV4, [1, 2, 3, 4, 5, 6, 7, 8]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "3iv on int",
+            function(){gl.uniform3iv(uniInt, [2,3,4]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "2iv on int",
+            function(){gl.uniform2iv(uniInt, [2,3]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "3iv on 4iv",
+            function(){gl.uniform3iv(uniIV4, [4,5,6]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "2iv on 4iv",
+            function(){gl.uniform2iv(uniIV4, [5,6]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "1iv on 4iv",
+            function(){gl.uniform1iv(uniIV4, [6]);});
+        assertGLError(gl, gl.INVALID_VALUE, "not enough values",
+            function(){gl.uniform1iv(uniInt, []);});
+        assertGLError(gl, gl.INVALID_OPERATION, "1fv on int",
+            function(){gl.uniform1fv(uniInt, [2]);});
+        assertGLError(gl, gl.INVALID_OPERATION, "4fv on ivec4",
+            function(){gl.uniform4fv(uniIV4, [2,3,4,5]);});
+        gl.uniform1iv(uniInt, [2]);
+        gl.uniform4iv(uniIV4, [1, 2, 3, 4]);
+    });
+    var d = new Uint8Array(4);
+    gl.readPixels(0,0,1,1,gl.RGBA, gl.UNSIGNED_BYTE, d);
+    assertArrayEquals([1,2,3,8], d);
+    sh.destroy();
+    throwError(gl);
+}
+
+Tests.endUnit = function(gl) {
+}
+
+</script>
+<script id="foobar-vert" type="x-shader/x-vertex">
+attribute vec3 Vertex;
+attribute vec2 Tex;
+
+uniform int uniInt;
+
+varying vec4 texCoord0;
+void main()
+{
+    texCoord0 = vec4(Tex.s, 1.0-Tex.t, float(uniInt), 0.0);
+    gl_Position = vec4(Vertex, 1.0);
+}
+</script>
+<script id="foobar-frag" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform ivec4 uniIV4;
+
+varying vec4 texCoord0;
+void main()
+{
+    gl_FragColor = vec4(
+        float(uniIV4.x)/256.0,
+        float(uniIV4.y)/256.0,
+        float(uniIV4.z)/256.0,
+        float(uniIV4.a)*texCoord0.z/256.0);
+}
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+<canvas id="gl" width="16" height="16"></canvas>
+</body></html>
