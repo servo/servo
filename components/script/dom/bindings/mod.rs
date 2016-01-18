@@ -33,7 +33,8 @@
 //!
 //! The instance methods for an interface `Foo` are defined on a
 //! `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait. This
-//! trait is then implemented for `JSRef<'a, Foo>`.
+//! trait is then implemented for `Foo`. (All methods take an `&self`
+//! parameter, as pointers to DOM objects can be freely aliased.)
 //!
 //! The return type and argument types are determined [as described below]
 //! (#rust-reflections-of-webidl-types).

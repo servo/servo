@@ -431,7 +431,7 @@ impl<T: Reflectable> LayoutJS<T> {
     }
 }
 
-/// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
+/// Get an `Option<&T>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
     /// Obtain a safe optional reference to the wrapped JS owned-value that
     /// cannot outlive the lifetime of this root.
