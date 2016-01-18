@@ -295,6 +295,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-open()-method
     fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
+        // Step 1
+        if !self.global().r().as_window().Document().r().is_fully_active() { return Err(Error::InvalidState); }
+        // Step 5
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
@@ -327,16 +330,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let base = self.global().r().get_url();
                 let parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
-                    Err(_) => return Err(Error::Syntax) // Step 7
+                    // Step 7
+                    Err(_) => return Err(Error::Syntax)
                 };
-                // XXXManishearth Do some handling of username/passwords
+                // Step 9 - XXXManishearth Do some handling of username/passwords
+
+                // Step 10
                 if self.sync.get() {
                     // FIXME: This should only happen if the global environment is a document environment
                     if self.timeout.get() != 0 || self.with_credentials.get() || self.response_type.get() != _empty {
                         return Err(Error::InvalidAccess)
                     }
                 }
-                // abort existing requests
+                // Step 11 - abort existing requests
                 self.terminate_ongoing_fetch();
 
                 // Step 12
@@ -367,16 +373,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
     fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
+        // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(Error::InvalidState); // Step 1, 2
+            return Err(Error::InvalidState);
         }
+        // Step 4
         if !name.is_token() || !value.is_field_value() {
-            return Err(Error::Syntax); // Step 3, 4
+            return Err(Error::Syntax);
         }
         let name_lower = name.to_lower();
         let name_str = match name_lower.as_str() {
             Some(s) => {
                 match s {
+                    // Step 5
                     // Disallowed headers
                     "accept-charset" | "accept-encoding" |
                     "access-control-request-headers" |
@@ -386,7 +395,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     "expect" | "host" | "keep-alive" | "origin" |
                     "referer" | "te" | "trailer" | "transfer-encoding" |
                     "upgrade" | "user-agent" | "via" => {
-                        return Ok(()); // Step 5
+                        return Ok(());
                     },
                     _ => s
                 }
@@ -398,7 +407,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let mut headers = self.request_headers.borrow_mut();
 
 
-        // Steps 6,7
+        // Step 6
         match headers.get_raw(name_str) {
             Some(raw) => {
                 debug!("SetRequestHeader: old value = {:?}", raw[0]);
@@ -422,25 +431,27 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-timeout-attribute
     fn SetTimeout(&self, timeout: u32) -> ErrorResult {
-        if self.sync.get() {
-            // FIXME: Not valid for a worker environment
-            Err(Error::InvalidAccess)
-        } else {
-            self.timeout.set(timeout);
-            if self.send_flag.get() {
-                if timeout == 0 {
-                    self.cancel_timeout();
-                    return Ok(());
+        match self.global() {
+            // Step 1
+            GlobalRoot::Window(_) if self.sync.get() => Err(Error::InvalidAccess),
+            // Step 2
+            _ => {
+                self.timeout.set(timeout);
+                if self.send_flag.get() {
+                    if timeout == 0 {
+                        self.cancel_timeout();
+                        return Ok(());
+                    }
+                    let progress = time::now().to_timespec().sec - self.fetch_time.get();
+                    if timeout > (progress * 1000) as u32 {
+                        self.set_timeout(timeout - (progress * 1000) as u32);
+                    } else {
+                        // Immediately execute the timeout steps
+                        self.set_timeout(0);
+                    }
                 }
-                let progress = time::now().to_timespec().sec - self.fetch_time.get();
-                if timeout > (progress * 1000) as u32 {
-                    self.set_timeout(timeout - (progress * 1000) as u32);
-                } else {
-                    // Immediately execute the timeout steps
-                    self.set_timeout(0);
-                }
+                Ok(())
             }
-            Ok(())
         }
     }
 
@@ -452,12 +463,16 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
     fn SetWithCredentials(&self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
+            // Step 1
             XMLHttpRequestState::HeadersReceived |
             XMLHttpRequestState::Loading |
             XMLHttpRequestState::Done => Err(Error::InvalidState),
+            // Step 2
             _ if self.send_flag.get() => Err(Error::InvalidState),
             _ => match self.global() {
+                // Step 3
                 GlobalRoot::Window(_) if self.sync.get() => Err(Error::InvalidAccess),
+                // Step 4
                 _ => {
                     self.with_credentials.set(with_credentials);
                     Ok(())
@@ -473,14 +488,17 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-send()-method
     fn Send(&self, data: Option<SendParam>) -> ErrorResult {
+        // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(Error::InvalidState); // Step 1, 2
+            return Err(Error::InvalidState);
         }
 
+        // Step 3
         let data = match *self.request_method.borrow() {
-            Method::Get | Method::Head => None, // Step 3
+            Method::Get | Method::Head => None,
             _ => data
         };
+        // Step 4
         let extracted = data.as_ref().map(|d| d.extract());
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
 
@@ -492,23 +510,25 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some (ref e) if e.0.is_empty() => true,
             _ => false
         });
+        // Step 8
+        self.send_flag.set(true);
 
+        // Step 9
         if !self.sync.get() {
-            // Step 8
             let event_target = self.upload.upcast::<EventTarget>();
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
 
-            // Step 9
-            self.send_flag.set(true);
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
+            // Substep 1
             let gen_id = self.generation_id.get();
             self.dispatch_response_progress_event(atom!("loadstart"));
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
+            // Substep 2
             if !self.upload_complete.get() {
                 self.dispatch_upload_progress_event(atom!("loadstart"), Some(0));
                 if self.generation_id.get() != gen_id {
@@ -518,6 +538,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         }
 
+        // Step 5
         let global = self.global();
         let pipeline_id = global.r().pipeline();
         let mut load_data =
@@ -593,6 +614,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         self.fetch_time.set(time::now().to_timespec().sec);
         let rv = self.fetch(load_data, cors_request, global.r());
+        // Step 10
         if self.sync.get() {
             return rv;
         }
@@ -606,7 +628,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-abort()-method
     fn Abort(&self) {
+        // Step 1
         self.terminate_ongoing_fetch();
+        // Step 2
         let state = self.ready_state.get();
         if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
            state == XMLHttpRequestState::HeadersReceived ||
@@ -619,6 +643,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 return
             }
         }
+        // Step 3
         self.ready_state.set(XMLHttpRequestState::Unsent);
     }
 
@@ -653,12 +678,16 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-overridemimetype()-method
     fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
+        // Step 1
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => return Err(Error::InvalidState),
             _ => {},
         }
+        // Step 2
         let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
+        // Step 3
         *self.override_mime_type.borrow_mut() = Some(override_mime.clone());
+        // Step 4
         let value = override_mime.get_param(mime::Attr::Charset);
         *self.override_charset.borrow_mut() = value.and_then(|value| {
                 encoding_from_whatwg_label(value)
@@ -673,14 +702,18 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+        // Step 1
         match self.global() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
             => return Ok(()),
             _ => {}
         }
+        // Step 2
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(Error::InvalidState),
+            // Step 3
             _ if self.sync.get() => Err(Error::InvalidAccess),
+            // Step 4
             _ => {
                 self.response_type.set(response_type);
                 Ok(())
@@ -696,20 +729,25 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             match self.response_type.get() {
                 _empty | Text => {
                     let ready_state = self.ready_state.get();
+                    // Step 2
                     if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
                         self.text_response().to_jsval(cx, rval.handle_mut());
                     } else {
+                    // Step 1
                         "".to_jsval(cx, rval.handle_mut());
                     }
                 },
+                // Step 1
                 _ if self.ready_state.get() != XMLHttpRequestState::Done => {
                     return NullValue()
                 },
+                // Step 2
                 XMLHttpRequestResponseType::Document => {
                     let op_doc = self.GetResponseXML();
                     if let Ok(Some(doc)) = op_doc {
                         doc.to_jsval(cx, rval.handle_mut());
                     } else {
+                    // Substep 1
                         return NullValue();
                     }
                 },
@@ -738,10 +776,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         match self.response_type.get() {
             _empty | Text => {
                 Ok(USVString(String::from(match self.ready_state.get() {
+                    // Step 3
                     XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
+                    // Step 2
                     _ => "".to_owned()
                 })))
             },
+            // Step 1
             _ => Err(Error::InvalidState)
         }
     }
@@ -750,20 +791,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         match self.response_type.get() {
             _empty | XMLHttpRequestResponseType::Document => {
-                match self.ready_state.get() {
-                    XMLHttpRequestState::Done => {
-                        match self.response_xml.get() {
-                            Some(response) => Ok(Some(response)),
-                            None => {
-                                let response = self.document_response();
-                                self.response_xml.set(response.r());
-                                Ok(response)
-                            }
-                        }
-                    },
-                    _ => Ok(None)
+                // Step 3
+                if let XMLHttpRequestState::Done = self.ready_state.get() {
+                    Ok(self.response_xml.get().or_else(|| {
+                        let response = self.document_response();
+                        self.response_xml.set(response.r());
+                        response
+                    }))
+                } else {
+                // Step 2
+                    Ok(None)
                 }
             },
+            // Step 1
             _ => { Err(Error::InvalidState) }
         }
     }
