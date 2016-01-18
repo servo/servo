@@ -28,6 +28,14 @@ types.forEach(function(type) {
     assert_equals(xhr.responseType, type);
   }, 'Set responseType to ' + format_value(type) + ' when readyState is OPENED.');
 
+  test(function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('get', '/', false);
+    assert_throws("InvalidAccessError", function() {
+      xhr.responseType = type;
+    });
+  }, 'Invalid access when trying to set responseType synchronously.');
+
   async_test(function() {
     var xhr = new XMLHttpRequest();
     xhr.open('get', '/');
