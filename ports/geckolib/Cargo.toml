@@ -9,10 +9,17 @@ path = "lib.rs"
 crate-type = ["staticlib"]
 
 [dependencies]
-log = "0.3"
-url = "0.5.2"
-libc = "0.2"
+app_units = {version = "0.1", features = ["plugins"]}
+bitflags = "0.3"
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 euclid = {version = "0.4", features = ["plugins"]}
+libc = "0.2"
+log = "0.3"
+num_cpus = "0.2.2"
+selectors = "0.2"
+smallvec = "0.1"
+string_cache = "0.2"
+url = "0.5.2"
 
 [dependencies.util]
 path = "../../components/util"

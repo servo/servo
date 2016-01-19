@@ -275,14 +275,6 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
-
-    fn style(&self) -> Ref<Arc<ComputedValues>> {
-        Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
-    }
-
-    fn unstyle(self) {
-        self.mutate_data().unwrap().style = None;
-    }
 }
 
 impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
@@ -300,7 +292,7 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
 
     unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData> {
         self.get_jsmanaged().get_style_and_layout_data().map(|opaque| {
-            let container: NonOpaqueStyleAndLayoutData = transmute(opaque.ptr);
+            let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
             &(*(*container).as_unsafe_cell().get()) as *const PrivateLayoutData
         })
     }
@@ -308,7 +300,7 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
         unsafe {
             self.get_jsmanaged().get_style_and_layout_data().map(|opaque| {
-                let container: NonOpaqueStyleAndLayoutData = transmute(opaque.ptr);
+                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
                 (*container).borrow()
             })
         }
@@ -317,7 +309,7 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>> {
         unsafe {
             self.get_jsmanaged().get_style_and_layout_data().map(|opaque| {
-                let container: NonOpaqueStyleAndLayoutData = transmute(opaque.ptr);
+                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
                 (*container).borrow_mut()
             })
         }

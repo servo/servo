@@ -115,10 +115,6 @@ pub trait DomTraversalContext<'ln, N: TNode<'ln>>  {
     fn process_postorder(&self, node: N);
 }
 
-/// FIXME(bholley): I added this now to demonstrate the usefulness of the new design.
-/// This is currently unused, but will be used shortly.
-
-#[allow(dead_code)]
 pub struct StandaloneStyleContext<'a> {
     pub shared: &'a SharedStyleContext,
     cached_local_style_context: Rc<LocalStyleContext>,
@@ -138,7 +134,6 @@ impl<'a> StyleContext<'a> for StandaloneStyleContext<'a> {
     }
 }
 
-#[allow(dead_code)]
 pub struct RecalcStyleOnly<'lc> {
     context: StandaloneStyleContext<'lc>,
     root: OpaqueNode,
