@@ -20,6 +20,7 @@ use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
+use dom::formdata::{generate_boundary, generate_multipart_data};
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -260,7 +261,7 @@ impl HTMLFormElement {
             }
         }
         // Step 6
-        let form_data = self.get_form_dataset(Some(submitter));
+        let mut form_data = self.get_form_dataset(Some(submitter));
         // Step 7
         let mut action = submitter.action();
         // Step 8
@@ -292,7 +293,15 @@ impl HTMLFormElement {
                     FileOrString::FileData(ref f) => String::from(f.name().clone())
                 })))
             }
-            _ => "".to_owned() // TODO: Add serializers for the other encoding types
+            FormEncType::FormDataEncoded => {
+                let boundary = generate_boundary();
+                let mime = "multipart/formdata; boundary=".to_owned() + &boundary;
+                let mime: mime::Mime = (&mime).parse().unwrap();
+                load_data.headers.set(ContentType(mime));
+
+                generate_multipart_data(&mut form_data, boundary)
+            }
+            FormEncType::TextPlainEncoded => "".to_owned() // TODO: Add serializers for the other encoding types
         };
 
         // Step 18

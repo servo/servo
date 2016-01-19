@@ -536,7 +536,7 @@ impl HTMLInputElement {
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
-            value: FileOrString::StringData(value)
+            value: FileOrString::StringData(self.Value())
         })
     }
 
