@@ -196,7 +196,7 @@ impl<'a> CanvasPaintThread<'a> {
                         }
                     }
                     CanvasMsg::FromPaint(message) => {
-                        match message {
+                        match message.get() {
                             FromPaintMsg::SendNativeSurface(chan) => {
                                 painter.send_native_surface(chan)
                             }
