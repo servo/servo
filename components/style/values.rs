@@ -50,7 +50,7 @@ macro_rules! define_numbered_css_keyword_enum {
         impl $name {
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                    $( $css => Ok($name::$variant) ),+
+                    $( $css => Ok($name::$variant), )+
                     _ => Err(())
                 }
             }
@@ -332,7 +332,7 @@ pub mod specified {
 
                 // https://github.com/servo/servo/issues/3423#issuecomment-56321664
                 "smaller" => Length::FontRelative(FontRelativeLength::Em(0.85)),
-                "larger" => Length::FontRelative(FontRelativeLength::Em(1.2))
+                "larger" => Length::FontRelative(FontRelativeLength::Em(1.2)),
                 _ => return None
             })
         }
@@ -373,7 +373,7 @@ pub mod specified {
                 "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
                 "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
                 "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-                "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
+                "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value))),
                 _ => Err(())
             }
         }
@@ -1106,7 +1106,7 @@ pub mod specified {
                             "left" => Ok(PositionComponent::Left),
                             "right" => Ok(PositionComponent::Right),
                             "top" => Ok(PositionComponent::Top),
-                            "bottom" => Ok(PositionComponent::Bottom)
+                            "bottom" => Ok(PositionComponent::Bottom),
                             _ => Err(())
                         }
                     },
@@ -1166,7 +1166,7 @@ pub mod specified {
                 "deg" => Ok(Angle(value * RAD_PER_DEG)),
                 "grad" => Ok(Angle(value * RAD_PER_GRAD)),
                 "turn" => Ok(Angle(value * RAD_PER_TURN)),
-                "rad" => Ok(Angle(value))
+                "rad" => Ok(Angle(value)),
                  _ => Err(())
             }
         }
@@ -1202,7 +1202,7 @@ pub mod specified {
                     "linear-gradient" => {
                         Ok(Image::LinearGradient(try!(
                             input.parse_nested_block(LinearGradient::parse_function))))
-                    }
+                    },
                     _ => Err(())
                 }
             }
@@ -1345,7 +1345,7 @@ pub mod specified {
                                                LengthOrPercentage::Length(Length::from_px(3.)))),
                                            "thick" =>
                                            Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(5.))))
+                                               LengthOrPercentage::Length(Length::from_px(5.)))),
                                            _ => Err(())
                 }
             })
@@ -1356,7 +1356,7 @@ pub mod specified {
             match_ignore_ascii_case! { try!(input.expect_ident()),
                 "thin" => Ok(Length::from_px(1.)),
                 "medium" => Ok(Length::from_px(3.)),
-                "thick" => Ok(Length::from_px(5.))
+                "thick" => Ok(Length::from_px(5.)),
                 _ => Err(())
             }
         })

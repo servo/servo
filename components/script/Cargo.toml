@@ -64,7 +64,7 @@ path = "../gfx_traits"
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
-cssparser = { version = "0.4", features = [ "serde-serialization" ] }
+cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"

@@ -392,7 +392,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }
-            }
+            },
             _ => {}
         }
 
@@ -450,7 +450,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 } else {
                     Err(())
                 }
-            }
+            },
             _ => Err(())
         }
     }
