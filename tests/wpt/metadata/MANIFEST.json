@@ -15664,6 +15664,10 @@
         "url": "/html/browsers/history/the-location-interface/location_href.html"
       },
       {
+        "path": "html/browsers/history/the-location-interface/location_origin.html",
+        "url": "/html/browsers/history/the-location-interface/location_origin.html"
+      },
+      {
         "path": "html/browsers/history/the-location-interface/location_pathname.html",
         "url": "/html/browsers/history/the-location-interface/location_pathname.html"
       },

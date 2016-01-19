@@ -11,7 +11,7 @@ interface URL {
 
   [SetterThrows]
   /*stringifier*/ attribute USVString href;
-  // readonly attribute USVString origin;
+  readonly attribute USVString origin;
            attribute USVString protocol;
            attribute USVString username;
            attribute USVString password;

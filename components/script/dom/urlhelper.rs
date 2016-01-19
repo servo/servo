@@ -6,7 +6,7 @@ use dom::bindings::str::USVString;
 use std::borrow::ToOwned;
 use std::fmt::Write;
 use url::urlutils::{UrlUtils, UrlUtilsWrapper};
-use url::{SchemeData, Url, UrlParser};
+use url::{Origin, SchemeData, Url, UrlParser};
 
 #[derive(HeapSizeOf)]
 pub struct UrlHelper;
@@ -41,6 +41,25 @@ impl UrlHelper {
     pub fn SetHost(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_host(&value.0);
+    }
+
+    pub fn Origin(url: &Url) -> USVString {
+        USVString(match url.origin() {
+            Origin::UID(_) => {
+                // https://html.spec.whatwg.org/multipage/#unicode-serialisation-of-an-origin
+                // If the origin in question is not a scheme/host/port tuple,
+                // then return the literal string "null" and abort these steps.
+                "null".to_owned()
+            },
+            Origin::Tuple(protocol, host, port) => {
+                format!(
+                    "{protocol}://{host}:{port}",
+                    protocol = protocol,
+                    host = host,
+                    port = port
+                )
+            }
+        })
     }
 
     pub fn Hostname(url: &Url) -> USVString {

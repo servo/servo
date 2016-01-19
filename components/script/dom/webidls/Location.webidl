@@ -6,7 +6,7 @@
 // https://html.spec.whatwg.org/multipage/#location
 [Unforgeable] interface Location {
   /*stringifier*/ attribute USVString href;
-  //         attribute USVString origin;
+  readonly attribute USVString origin;
            attribute USVString protocol;
            attribute USVString host;
            attribute USVString hostname;
