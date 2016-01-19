@@ -5,11 +5,15 @@
 #![cfg_attr(test, feature(plugin, custom_derive, heap_api))]
 #![cfg_attr(test, plugin(plugins))]
 #![feature(alloc)]
+#![feature(plugin)]
+#![plugin(serde_macros)]
 
 extern crate alloc;
 extern crate app_units;
 extern crate euclid;
+extern crate ipc_channel;
 extern crate libc;
+extern crate serde;
 extern crate util;
 
 #[cfg(test)] mod cache;
@@ -19,3 +23,4 @@ extern crate util;
 #[cfg(test)] mod mem;
 #[cfg(test)] mod str;
 #[cfg(test)] mod opts;
+#[cfg(test)] mod ipc;

@@ -8,9 +8,12 @@ use opts;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
+use std::fmt;
+use std::intrinsics::type_name;
 use std::io::{Error, ErrorKind};
 use std::marker::Reflect;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -177,3 +180,62 @@ pub fn optional_ipc_channel<T>() -> (OptionalIpcSender<T>, Receiver<T>)
     }
 }
 
+pub struct Unserializable<T>(T);
+
+impl<T> Unserializable<T> {
+    pub fn new(inner: T) -> Unserializable<T> {
+        Unserializable(inner)
+    }
+
+    pub fn get(self) -> T {
+        self.0
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Unserializable<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unserializable({:?})", self.0)
+    }
+}
+
+impl<T: Clone> Clone for Unserializable<T> {
+    fn clone(&self) -> Self {
+        Unserializable(self.0.clone())
+    }
+}
+
+impl<T: Copy> Copy for Unserializable<T> {}
+
+impl<T: PartialEq> PartialEq for Unserializable<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl<T: Eq> Eq for Unserializable<T> {}
+
+impl<T> Serialize for Unserializable<T> {
+    fn serialize<S>(&self, _: &mut S) -> Result<(), S::Error> where S: Serializer {
+        panic!("Can't serialize a `Unserializable({})` struct", unsafe { type_name::<T>() });
+    }
+}
+
+impl<T> Deserialize for Unserializable<T> {
+    fn deserialize<D>(_: &mut D) -> Result<Unserializable<T>, D::Error> where D: Deserializer {
+        panic!("Can't deserialize a `Unserializable({})` struct", unsafe { type_name::<T>() });
+    }
+}
+
+impl<T> Deref for Unserializable<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Unserializable<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.0
+    }
+}

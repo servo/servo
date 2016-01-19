@@ -35,11 +35,11 @@ use gfx_traits::color;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::default::Default;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
+use util::ipc::Unserializable;
 use util::mem::HeapSizeOf;
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -53,7 +53,7 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
     FromLayout(FromLayoutMsg),
-    FromPaint(FromPaintMsg),
+    FromPaint(Unserializable<FromPaintMsg>),
     WebGL(CanvasWebGLMsg),
 }
 
@@ -71,18 +71,6 @@ pub enum FromLayoutMsg {
 #[derive(Clone)]
 pub enum FromPaintMsg {
     SendNativeSurface(Sender<NativeSurface>),
-}
-
-impl Serialize for FromPaintMsg {
-    fn serialize<S>(&self, _: &mut S) -> Result<(), S::Error> where S: Serializer {
-        panic!("can't serialize a `FromPaintMsg`!")
-    }
-}
-
-impl Deserialize for FromPaintMsg {
-    fn deserialize<D>(_: &mut D) -> Result<FromPaintMsg, D::Error> where D: Deserializer {
-        panic!("can't deserialize a `FromPaintMsg`!")
-    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
