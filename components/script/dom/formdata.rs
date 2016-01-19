@@ -6,6 +6,8 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrUSVString;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::UnionTypes::BlobOrUSVString::{self, eBlob, eUSVString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -14,9 +16,13 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::blob::Blob;
 use dom::file::File;
-use dom::htmlformelement::HTMLFormElement;
+use dom::htmlformelement::FormDatum as DataForm;
+use dom::htmlformelement::{FileOrString, HTMLFormElement};
+use hyper::header::Charset;
+use rand::random;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::str::from_utf8;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -135,23 +141,21 @@ impl FormData {
     }
 }
 
-fn generate_boundary() -> String {
-    let mut rng = rand::thread_rng();
-    let i1 = rng.gen::<u32>();
-    let i2 = rng.gen::<u32>();
+pub fn generate_boundary() -> String {
+    let i1 = random::<u32>();
+    let i2 = random::<u32>();
 
     let boundary: String = format!("---------------------------{0}{1}", i1, i2);
     return boundary;
 }
 
 // https://html.spec.whatwg.org/multipage/forms.html#multipart/form-data-encoding-algorithm
-fn generate_multipart(form_data: &mut Vec<dom::htmlformelement::FormDatum>) -> Option<String> {
-    let mut result = "".to_string();
-    let boundary = generate_boundary();
+pub fn generate_multipart_data(form_data: &mut Vec<DataForm>, boundary: String) -> String {
+    let mut result = "".to_owned();
 
     // TODO <psdh> Step 2 of https://html.spec.whatwg.org/multipage/forms.html#multipart/form-data-encoding-algorithm
     // (maybe take encoding as input)
-    let encoding: Charset = Charset::Ext("UTF-8".to_string());
+    let encoding: Charset = Charset::Ext("UTF-8".to_owned());
 
     //  Step 3
     let charset = "UTF-8";
@@ -159,7 +163,7 @@ fn generate_multipart(form_data: &mut Vec<dom::htmlformelement::FormDatum>) -> O
     // Step 4
     for entry in form_data.iter_mut() {
         if entry.name == "_charset_" && entry.ty == "hidden" {
-            entry.value = Data::StringData(charset.to_string());
+            entry.value = FileOrString::StringData(DOMString::from(charset));
         }
         // TODO Step 4 (ii)
 
@@ -169,22 +173,21 @@ fn generate_multipart(form_data: &mut Vec<dom::htmlformelement::FormDatum>) -> O
         result.push_str(&entry.name);
 
         match entry.value {
-            Data::StringData(ref s) => {
+            FileOrString::StringData(ref s) => {
                 result.push_str("\"\r\n");
 
                 result.push_str(&s);
             },
-            Data::FileData(ref b) => {
+            FileOrString::FileData(ref b) => {
                 result.push_str("\" filename=\"");
-                result.push_str(&String::from(b.filename))
+                result.push_str(&**b.r().name());
                 result.push_str("\"\r\n");
-                result.push_str("Content-Type: \"");
-                result.push_str(&String::from(b.ty));
-                result.push_str("\"\r\n");
-
+                result.push_str("Content-Type: ");
+                result.push_str(&String::from(b.r().blob().Type()));
                 result.push_str("\r\n");
 
-                result.push_str(from_utf8(&b.blob).unwrap());
+
+                result.push_str(from_utf8(&b.blob().get_data().get_bytes()).unwrap());
             }
         }
     }
@@ -192,5 +195,5 @@ fn generate_multipart(form_data: &mut Vec<dom::htmlformelement::FormDatum>) -> O
     result.push_str(&boundary);
     result.push_str("--");
 
-    return Some(result);
+    return result;
 }
