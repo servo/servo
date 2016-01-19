@@ -425,7 +425,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some(s) => {
                 // Step 5
                 // Disallowed headers and header prefixes:
-                // https://www.w3.org/TR/XMLHttpRequest/#the-setrequestheader-method
+                // https://fetch.spec.whatwg.org/#forbidden-header-name
                 let disallowedHeaders =
                     ["accept-charset", "accept-encoding",
                     "access-control-request-headers",
@@ -434,7 +434,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     "cookie", "cookie2", "date", "dnt",
                     "expect", "host", "keep-alive", "origin",
                     "referer", "te", "trailer", "transfer-encoding",
-                    "upgrade", "user-agent", "via"];
+                    "upgrade", "via"];
 
                 let disallowedHeaderPrefixes = ["sec-", "proxy-"];
 
