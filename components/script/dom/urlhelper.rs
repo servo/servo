@@ -51,13 +51,21 @@ impl UrlHelper {
                 // then return the literal string "null" and abort these steps.
                 "null".to_owned()
             },
-            Origin::Tuple(protocol, host, port) => {
-                format!(
-                    "{protocol}://{host}:{port}",
-                    protocol = protocol,
-                    host = host,
-                    port = port
-                )
+            Origin::Tuple(protocol, host, _) => {
+                let mut origin =
+                    format!(
+                        "{protocol}://{host}",
+                        protocol = protocol,
+                        host = host
+                    );
+                if let Some(port) =
+                    // https://html.spec.whatwg.org/multipage/browsers.html#unicode-serialisation-of-an-origin
+                    // only write the port # to the origin if the port is ifferent from the default port for the protocol
+                    // if url.scheme_data.port is None, that indicates that the port is a default port
+                    url.relative_scheme_data().and_then(|scheme| scheme.port) {
+                        write!(origin, ":{}", port).unwrap();
+                    };
+                origin
             }
         })
     }
