@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffectReadOnly getComputedTiming() tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffectreadonly-getcomputedtiming">
+<link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+"use strict";
+
+var target = document.getElementById("target");
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(target,
+                                          {left: ["10px", "20px"]});
+
+  var ct = effect.getComputedTiming();
+  assert_equals(ct.delay, 0, "computed delay");
+  assert_equals(ct.fill, "none", "computed fill");
+  assert_equals(ct.iterations, 1.0, "computed iterations");
+  assert_equals(ct.duration, 0, "computed duration");
+  assert_equals(ct.direction, "normal", "computed direction");
+}, "values of getComputedTiming() when a KeyframeEffectReadOnly is " +
+   "constructed without any KeyframeEffectOptions object");
+
+var gGetComputedTimingTests = [
+  { desc:     "an empty KeyframeEffectOption",
+    input:    {},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a normal KeyframeEffectOption",
+    input:    {delay: 1000,
+               fill: "auto",
+               iterations: 5.5,
+               duration: "auto",
+               direction: "alternate"},
+    expected: {delay: 1000,
+               fill: "none",
+               iterations: 5.5,
+               duration: 0,
+               direction: "alternate"} },
+  { desc:     "a double value",
+    input:    3000,
+    timing:   {delay: 0,
+               fill: "auto",
+               iterations: 1,
+               duration: 3000,
+               direction: "normal"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 3000,
+               direction: "normal"} },
+  { desc:     "+Infinity",
+    input:    Infinity,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: Infinity,
+               direction: "normal"} },
+  { desc:     "-Infinity",
+    input:    -Infinity,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "NaN",
+    input:    NaN,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative value",
+    input:    -1,
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an Infinity duration",
+    input:    {duration: Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: Infinity,
+               direction: "normal"} },
+  { desc:     "a negative Infinity duration",
+    input:    {duration: -Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a NaN duration",
+    input:    {duration: NaN},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative duration",
+    input:    {duration: -1},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a string duration",
+    input:    {duration: "merrychristmas"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an auto duration",
+    input:    {duration: "auto"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an Infinity iterations",
+    input:    {iterations: Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: Infinity,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative Infinity iterations",
+    input:    {iterations: -Infinity},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a NaN iterations",
+    input:    {iterations: NaN},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a negative iterations",
+    input:    {iterations: -1},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "an auto fill",
+    input:    {fill: "auto"},
+    expected: {delay: 0,
+               fill: "none",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} },
+  { desc:     "a forwards fill",
+    input:    {fill: "forwards"},
+    expected: {delay: 0,
+               fill: "forwards",
+               iterations: 1,
+               duration: 0,
+               direction: "normal"} }
+];
+
+gGetComputedTimingTests.forEach(function(stest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target,
+                                            {left: ["10px", "20px"]},
+                                            stest.input);
+
+    var ct = effect.getComputedTiming();
+    assert_equals(ct.delay, stest.expected.delay, "computed delay");
+    assert_equals(ct.fill, stest.expected.fill, "computed fill");
+    assert_equals(ct.iterations, stest.expected.iterations,
+                  "computed iterations");
+    assert_equals(ct.duration, stest.expected.duration, "computed duration");
+    assert_equals(ct.direction, stest.expected.direction, "computed direction");
+  }, "values of getComputedTiming() when a KeyframeEffectReadOnly is " +
+     "constructed by " + stest.desc);
+});
+
+done();
+</script>
+</body>

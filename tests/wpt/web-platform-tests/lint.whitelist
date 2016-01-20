@@ -103,6 +103,9 @@ PRINT STATEMENT:dom/nodes/Document-createElement-namespace-tests/generate.py
 # Should probably be fixed.
 W3C-TEST.ORG:subresource-integrity/refresh-header.js.headers
 
+# semi-legitimate use of console.*
+CONSOLE:streams/resources/test-utils.js
+
 # Lint doesn't know about sub.svg I guess
 PARSE-FAILED:content-security-policy/svg/including.sub.svg
 
@@ -110,10 +113,11 @@ PARSE-FAILED:content-security-policy/svg/including.sub.svg
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xml
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
 
-# The patches may have trailin whitespace
+# The patches may have trailing whitespace
 TRAILING WHITESPACE:webgl/tools/*.patch
 # The tests under this directory are not done by us
 *:webgl/conformance-1.0.3/*
+
 
 # Git submodules are not currently scanned
 *:tools/*

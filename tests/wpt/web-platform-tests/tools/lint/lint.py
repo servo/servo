@@ -1,8 +1,9 @@
-import os
-import subprocess
-import re
-import sys
+import argparse
 import fnmatch
+import os
+import re
+import subprocess
+import sys
 
 from collections import defaultdict
 
@@ -11,6 +12,19 @@ from manifest.sourcefile import SourceFile
 
 here = os.path.abspath(os.path.split(__file__)[0])
 repo_root = localpaths.repo_root
+
+ERROR_MSG = """You must fix all errors; for details on how to fix them, see
+https://github.com/w3c/web-platform-tests/blob/master/docs/lint-tool.md
+
+However, instead of fixing a particular error, it's sometimes
+OK to add a line to the lint.whitelist file in the root of the
+web-platform-tests directory to make the lint tool ignore it.
+
+For example, to make the lint tool ignore all '%s'
+errors in the %s file,
+you could add the following line to the lint.whitelist file."
+
+%s:%s"""
 
 def git(command, *args):
     args = list(args)
@@ -25,7 +39,7 @@ def git(command, *args):
         raise
 
 
-def iter_files():
+def all_git_paths():
     for item in git("ls-tree", "-r", "--name-only", "HEAD").split("\n"):
         yield item
 
@@ -236,7 +250,18 @@ def output_error_count(error_count):
     else:
         print "There were %d errors (%s)" % (count, by_type)
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("paths", nargs="*",
+                        help="List of paths to lint")
+    return parser.parse_args()
+
 def main():
+    args = parse_args()
+    paths = args.paths if args.paths else all_git_paths()
+    return lint(paths)
+
+def lint(paths):
     error_count = defaultdict(int)
     last = None
 
@@ -250,9 +275,9 @@ def main():
             error_count[error_type] += 1
         return last
 
-    for path in iter_files():
+    for path in paths:
         abs_path = os.path.join(repo_root, path)
-        if not os.path.exists(path):
+        if not os.path.exists(abs_path):
             continue
         for path_fn in path_lints:
             last = run_lint(path, path_fn, last)
@@ -265,19 +290,7 @@ def main():
 
     output_error_count(error_count)
     if error_count:
-        print
-        print "You must fix all errors; for details on how to fix them, see"
-        print "https://github.com/w3c/web-platform-tests/blob/master/docs/lint-tool.md"
-        print
-        print "However, instead of fixing a particular error, it's sometimes"
-        print "OK to add a line to the lint.whitelist file in the root of the"
-        print "web-platform-tests directory to make the lint tool ignore it."
-        print
-        print "For example, to make the lint tool ignore all '%s'" % last[0]
-        print "errors in the %s file," %  last[1]
-        print "you could add the following line to the lint.whitelist file."
-        print
-        print "%s:%s" % (last[0], last[1])
+        print ERROR_MSG % (last[0], last[1], last[0], last[1])
     return sum(error_count.itervalues())
 
 path_lints = [check_path_length]

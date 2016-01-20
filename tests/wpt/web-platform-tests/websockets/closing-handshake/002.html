@@ -11,11 +11,10 @@ async_test(function(t){
   ws.onopen = t.step_func(function(e) {
     ws.send('Goodbye');
   })
-  ws.onclose = function(e) {
+  ws.onclose = t.step_func(function(e) {
     assert_equals(e.wasClean, true, 'e.wasClean');
     ws.onclose = t.step_func(function() {assert_unreached()});
-
     setTimeout(t.step_func(function() {t.done();}), 50)
-  }
+  });
 });
 </script>

@@ -32,8 +32,8 @@ async_test(function(outer) {
        ws.send(stuffToSend[i]);
     }
   }
-  ws.onopen = function(e) {
+  ws.onopen = outer.step_func(function(e) {
     sendNext();
-  }
+  });
 }, "Constructor succeeds");
 </script>

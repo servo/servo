@@ -7,8 +7,8 @@
 <script>
 async_test(function(t) {
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/wrong_accept_key');
-  ws.onclose = function(e) {
-      t.done();
-  }
+  ws.onclose = t.step_func(function(e) {
+    t.done();
+  });
 });
 </script>
