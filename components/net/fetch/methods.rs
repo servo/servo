@@ -298,7 +298,7 @@ fn http_fetch(request: Rc<Request>,
             };
 
             // Step 7
-            if request.redirect_count.get() == 20 {
+            if request.redirect_count.get() >= 20 {
                 return Response::network_error();
             }
 

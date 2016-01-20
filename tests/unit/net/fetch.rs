@@ -75,23 +75,24 @@ fn test_fetch_response_body_matches_const_message() {
 fn test_fetch_redirect_count() {
     
     static MESSAGE: &'static [u8] = b"no more redirects";
-    let redirect_cap = 21;
+    // how many redirects to cause
+    let redirect_cap = 20;
 
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         
         let redirects = match request.uri {
             RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0) + 1,
+                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0) + 1,
+                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
-        if redirects == redirect_cap {
+        if redirects >= redirect_cap {
             response.send(MESSAGE).unwrap();
         } else {
             *response.status_mut() = StatusCode::Found;
-            let url = format!("{redirects}", redirects = redirects);
+            let url = format!("{redirects}", redirects = redirects + 1);
             response.headers_mut().set(Location(url.to_owned()));
         }
     };
@@ -105,6 +106,9 @@ fn test_fetch_redirect_count() {
     let fetch_response = fetch(wrapped_request, false);
     let _ = server.close();
 
+    if Response::is_network_error(&fetch_response) {
+        panic!()
+    }
     match fetch_response.body {
         ResponseBody::Done(body) => {
             assert_eq!(body, MESSAGE);
