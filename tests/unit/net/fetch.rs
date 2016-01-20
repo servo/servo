@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use hyper::header::{Location};
 use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
@@ -71,12 +72,10 @@ fn test_fetch_response_body_matches_const_message() {
 }
 
 #[test]
-#[should_panic]
 fn test_fetch_redirect_count() {
     
     static MESSAGE: &'static [u8] = b"no more redirects";
-    static SERVER_HOST: &'static str = "http://localhost:8000";
-    let redirect_cap = 2;
+    let redirect_cap = 21;
 
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         
@@ -92,8 +91,8 @@ fn test_fetch_redirect_count() {
             response.send(MESSAGE).unwrap();
         } else {
             *response.status_mut() = StatusCode::Found;
-            let url = format!("{host}/{redirects}", host = SERVER_HOST, redirects = redirects);
-            // set response Location header to url
+            let url = format!("{redirects}", redirects = redirects);
+            response.headers_mut().set(Location(url.to_owned()));
         }
     };
 
