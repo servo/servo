@@ -33,6 +33,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onchange;
            attribute EventHandler onreset;
            attribute EventHandler onsubmit;
+           attribute EventHandler ontoggle;
 };
 
 [NoInterfaceObject]
