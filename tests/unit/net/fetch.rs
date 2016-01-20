@@ -71,13 +71,8 @@ fn test_fetch_response_body_matches_const_message() {
     };
 }
 
-#[test]
-fn test_fetch_redirect_count() {
+fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Response {
     
-    static MESSAGE: &'static [u8] = b"no more redirects";
-    // how many redirects to cause
-    let redirect_cap = 20;
-
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         
         let redirects = match request.uri {
@@ -89,7 +84,7 @@ fn test_fetch_redirect_count() {
         };
 
         if redirects >= redirect_cap {
-            response.send(MESSAGE).unwrap();
+            response.send(message).unwrap();
         } else {
             *response.status_mut() = StatusCode::Found;
             let url = format!("{redirects}", redirects = redirects + 1);
@@ -105,6 +100,17 @@ fn test_fetch_redirect_count() {
 
     let fetch_response = fetch(wrapped_request, false);
     let _ = server.close();
+    fetch_response
+}
+
+#[test]
+fn test_fetch_redirect_count_ceiling() {
+
+    static MESSAGE: &'static [u8] = b"no more redirects";
+    // how many redirects to cause
+    let redirect_cap = 20;
+
+    let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
 
     if Response::is_network_error(&fetch_response) {
         panic!()
@@ -114,5 +120,23 @@ fn test_fetch_redirect_count() {
             assert_eq!(body, MESSAGE);
         },
         _ => panic!()
+    };
+}
+
+#[test]
+fn test_fetch_redirect_count_failure() {
+
+    static MESSAGE: &'static [u8] = b"this message shouldn't be reachable";
+    // how many redirects to cause
+    let redirect_cap = 21;
+
+    let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
+
+    if !Response::is_network_error(&fetch_response) {
+        panic!();
+    }
+    match fetch_response.body {
+        ResponseBody::Done(_) => panic!(),
+        _ => { }
     };
 }
