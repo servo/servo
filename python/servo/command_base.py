@@ -16,10 +16,7 @@ import toml
 
 from mach.registrar import Registrar
 
-BIN_SUFFIX = ""
-if sys.platform == "win32":
-    BIN_SUFFIX = ".exe"
-
+BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
 @contextlib.contextmanager
 def cd(new_path):
@@ -59,10 +56,8 @@ def host_triple():
 
 
 def use_nightly_rust():
-    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST")
-    if envvar:
-        return envvar != "0"
-    return False
+    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST", "0")
+    return envvar != "0"
 
 
 def call(*args, **kwargs):
