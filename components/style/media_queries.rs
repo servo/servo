@@ -133,7 +133,7 @@ impl Expression {
                 },
                 "max-width" => {
                     Ok(Expression::Width(Range::Max(try!(specified::Length::parse_non_negative(input)))))
-                }
+                },
                 _ => Err(())
             }
         })
@@ -157,7 +157,7 @@ impl MediaQuery {
             media_type = match_ignore_ascii_case! { ident,
                 "screen" => MediaQueryType::MediaType(MediaType::Screen),
                 "print" => MediaQueryType::MediaType(MediaType::Print),
-                "all" => MediaQueryType::All
+                "all" => MediaQueryType::All,
                 _ => MediaQueryType::MediaType(MediaType::Unknown)
             }
         } else {

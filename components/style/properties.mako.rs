@@ -478,7 +478,7 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
             match_ignore_ascii_case! { try!(input.expect_ident()),
-                % for value in values[:-1]:
+                % for value in values:
                     "${value}" => {
                         % if value in experimental_values:
                             if !::util::prefs::get_pref("layout.${value}.enabled")
@@ -488,17 +488,6 @@ pub mod longhands {
                         % endif
                         Ok(computed_value::T::${to_rust_ident(value)})
                     },
-                % endfor
-                % for value in values[-1:]:
-                    "${value}" => {
-                        % if value in experimental_values:
-                            if !::util::prefs::get_pref("layout.${value}.enabled")
-                                .as_boolean().unwrap_or(false) {
-                                return Err(())
-                            }
-                        % endif
-                        Ok(computed_value::T::${to_rust_ident(value)})
-                    }
                 % endfor
                 _ => Err(())
             }
@@ -797,13 +786,8 @@ pub mod longhands {
             .map(SpecifiedValue::LengthOrPercentage)
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                    % for keyword in vertical_align_keywords[:-1]:
+                    % for keyword in vertical_align_keywords:
                         "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
-                    % endfor
-
-                    // Hack to work around quirks of macro_rules parsing in match_ignore_ascii_case!
-                    % for keyword in vertical_align_keywords[-1:]:
-                        "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)})
                     % endfor
                     _ => Err(())
                 }
@@ -1075,7 +1059,7 @@ pub mod longhands {
                                     list_style_type::parse(context, input)
                                 }).unwrap_or(list_style_type::computed_value::T::decimal);
                                 Ok(ContentItem::Counters(name, separator, style))
-                            })
+                            }),
                             _ => return Err(())
                         }));
                     }
@@ -1084,7 +1068,7 @@ pub mod longhands {
                             "open-quote" => content.push(ContentItem::OpenQuote),
                             "close-quote" => content.push(ContentItem::CloseQuote),
                             "no-open-quote" => content.push(ContentItem::NoOpenQuote),
-                            "no-close-quote" => content.push(ContentItem::NoCloseQuote)
+                            "no-close-quote" => content.push(ContentItem::NoCloseQuote),
                             _ => return Err(())
                         }
                     }
@@ -1746,7 +1730,7 @@ pub mod longhands {
                         super::SANS_SERIF => Some(FontFamily::SansSerif),
                         super::CURSIVE => Some(FontFamily::Cursive),
                         super::FANTASY => Some(FontFamily::Fantasy),
-                        super::MONOSPACE => Some(FontFamily::Monospace)
+                        super::MONOSPACE => Some(FontFamily::Monospace),
                         _ => None
                     };
 
@@ -1797,7 +1781,7 @@ pub mod longhands {
                 SANS_SERIF => return Ok(FontFamily::SansSerif),
                 CURSIVE => return Ok(FontFamily::Cursive),
                 FANTASY => return Ok(FontFamily::Fantasy),
-                MONOSPACE => return Ok(FontFamily::Monospace)
+                MONOSPACE => return Ok(FontFamily::Monospace),
                 _ => {}
             }
             let mut value = first_ident.into_owned();
@@ -1845,7 +1829,7 @@ pub mod longhands {
                     "bold" => Ok(SpecifiedValue::Weight700),
                     "normal" => Ok(SpecifiedValue::Weight400),
                     "bolder" => Ok(SpecifiedValue::Bolder),
-                    "lighter" => Ok(SpecifiedValue::Lighter)
+                    "lighter" => Ok(SpecifiedValue::Lighter),
                     _ => Err(())
                 }
             }).or_else(|()| {
@@ -2251,7 +2235,7 @@ pub mod longhands {
                     "line-through" => if result.line_through { return Err(()) }
                                       else { empty = false; result.line_through = true },
                     "blink" => if blink { return Err(()) }
-                               else { empty = false; blink = true }
+                               else { empty = false; blink = true },
                     _ => break
                 }
             }
@@ -3549,7 +3533,7 @@ pub mod longhands {
                             "invert" => parse_factor(input).map(SpecifiedFilter::Invert),
                             "opacity" => parse_factor(input).map(SpecifiedFilter::Opacity),
                             "saturate" => parse_factor(input).map(SpecifiedFilter::Saturate),
-                            "sepia" => parse_factor(input).map(SpecifiedFilter::Sepia)
+                            "sepia" => parse_factor(input).map(SpecifiedFilter::Sepia),
                             _ => Err(())
                         }
                     })));
@@ -3996,7 +3980,7 @@ pub mod longhands {
                             result.push(SpecifiedOperation::Perspective(d));
                             Ok(())
                         }))
-                    }
+                    },
                     _ => return Err(())
                 }
             }
@@ -4098,7 +4082,7 @@ pub mod longhands {
                         } else {
                             return Err(())
                         }
-                    }
+                    },
                     _ => return Err(())
                 }
                 Ok(())
@@ -4335,7 +4319,7 @@ pub mod longhands {
                 "optimizespeed" => Ok(computed_value::T::Auto),
                 "optimizequality" => Ok(computed_value::T::Auto),
                 "crisp-edges" => Ok(computed_value::T::CrispEdges),
-                "pixelated" => Ok(computed_value::T::Pixelated)
+                "pixelated" => Ok(computed_value::T::Pixelated),
                 _ => Err(())
             }
         }
@@ -4584,13 +4568,13 @@ pub mod longhands {
                             start_end = try!(match_ignore_ascii_case! {
                                 try!(input.expect_ident()),
                                 "start" => Ok(computed_value::StartEnd::Start),
-                                "end" => Ok(computed_value::StartEnd::End)
+                                "end" => Ok(computed_value::StartEnd::End),
                                 _ => Err(())
                             });
                             Ok(())
                         }));
                         Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
-                    }
+                    },
                     _ => Err(())
                 }
             }
@@ -4602,7 +4586,7 @@ pub mod longhands {
                 "ease-out" => Ok(EASE_OUT),
                 "ease-in-out" => Ok(EASE_IN_OUT),
                 "step-start" => Ok(STEP_START),
-                "step-end" => Ok(STEP_END)
+                "step-end" => Ok(STEP_END),
                 _ => Err(())
             }
         }
@@ -4849,7 +4833,7 @@ pub mod longhands {
                 "visibility" => Ok(TransitionProperty::Visibility),
                 "width" => Ok(TransitionProperty::Width),
                 "word-spacing" => Ok(TransitionProperty::WordSpacing),
-                "z-index" => Ok(TransitionProperty::ZIndex)
+                "z-index" => Ok(TransitionProperty::ZIndex),
                 _ => Err(())
             }
         }
@@ -5847,7 +5831,7 @@ impl CSSWideKeyword {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "initial" => Ok(CSSWideKeyword::InitialKeyword),
             "inherit" => Ok(CSSWideKeyword::InheritKeyword),
-            "unset" => Ok(CSSWideKeyword::UnsetKeyword)
+            "unset" => Ok(CSSWideKeyword::UnsetKeyword),
             _ => Err(())
         }
     }
@@ -5863,11 +5847,8 @@ pub enum Shorthand {
 impl Shorthand {
     pub fn from_name(name: &str) -> Option<Shorthand> {
         match_ignore_ascii_case! { name,
-            % for property in SHORTHANDS[:-1]:
+            % for property in SHORTHANDS:
                 "${property.name}" => Some(Shorthand::${property.camel_case}),
-            % endfor
-            % for property in SHORTHANDS[-1:]:
-                "${property.name}" => Some(Shorthand::${property.camel_case})
             % endfor
             _ => None
         }
@@ -6127,9 +6108,6 @@ impl PropertyDeclaration {
                     }
                 },
             % endfor
-
-            // Hack to work around quirks of macro_rules parsing in match_ignore_ascii_case!
-            "_nonexistent" => PropertyDeclarationParseResult::UnknownProperty
 
             _ => PropertyDeclarationParseResult::UnknownProperty
         }
@@ -7011,10 +6989,9 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
 
 pub fn is_supported_property(property: &str) -> bool {
     match_ignore_ascii_case! { property,
-        % for property in SHORTHANDS + LONGHANDS[:-1]:
+        % for property in SHORTHANDS + LONGHANDS:
             "${property.name}" => true,
         % endfor
-        "${LONGHANDS[-1].name}" => true
         _ => property.starts_with("--")
     }
 }

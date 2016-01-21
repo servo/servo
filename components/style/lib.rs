@@ -15,6 +15,8 @@
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
+#![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
+
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
