@@ -14,7 +14,7 @@ use std::ascii::AsciiExt;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use time;
 use time::{now, Timespec};
-use url::Url;
+use url::{Origin, Url};
 
 /// Union type for CORS cache entries
 ///
@@ -44,7 +44,7 @@ impl HeaderOrMethod {
 /// An entry in the CORS cache
 #[derive(Clone)]
 pub struct CORSCacheEntry {
-    pub origin: Url,
+    pub origin: Origin,
     pub url: Url,
     pub max_age: u32,
     pub credentials: bool,
@@ -53,7 +53,7 @@ pub struct CORSCacheEntry {
 }
 
 impl CORSCacheEntry {
-    fn new(origin: Url, url: Url, max_age: u32, credentials: bool,
+    fn new(origin: Origin, url: Url, max_age: u32, credentials: bool,
             header_or_method: HeaderOrMethod) -> CORSCacheEntry {
         CORSCacheEntry {
             origin: origin,
@@ -68,7 +68,7 @@ impl CORSCacheEntry {
 
 /// Properties of Request required to cache match.
 pub struct CacheRequestDetails {
-    pub origin: Url,
+    pub origin: Origin,
     pub destination: Url,
     pub credentials: bool
 }
@@ -109,9 +109,7 @@ pub trait CORSCache {
 pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 
 fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &CacheRequestDetails) -> bool {
-    cors_cache.origin.scheme == cors_req.origin.scheme &&
-        cors_cache.origin.host() == cors_req.origin.host() &&
-        cors_cache.origin.port() == cors_req.origin.port() &&
+    cors_cache.origin == cors_req.origin &&
         cors_cache.url == cors_req.destination &&
         cors_cache.credentials == cors_req.credentials
 }

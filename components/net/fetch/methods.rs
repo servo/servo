@@ -22,6 +22,7 @@ use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener, Metadata};
 use resource_thread::CancellationListener;
 use std::ascii::AsciiExt;
+use std::cell::RefCell;
 use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -90,14 +91,177 @@ pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // TODO: Figure out what a Priority object is
     // Step 3
     // Step 4
-    main_fetch(request, cors_flag)
+    main_fetch(request, cors_flag, false)
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<Request>, _cors_flag: bool) -> Response {
+fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Response {
     // TODO: Implement main fetch spec
-    let response = basic_fetch(request);
-    response
+
+    // Step 1
+    let mut response = None;
+
+    // Step 2
+    if request.local_urls_only {
+        match &*request.current_url().scheme {
+            "about" | "blob" | "data" | "filesystem" => response = Some(Response::network_error()),
+            _ => { }
+        };
+    }
+
+    // Step 3
+    // TODO be able to execute report CSP
+
+    // Step 4
+    // TODO this step, based off of http_loader.rs
+
+    // Step 5
+    // TODO this step
+
+    // Step 6
+    if request.referer != Referer::NoReferer {
+        // TODO be able to invoke "determine request's referer"
+    }
+
+    // Step 7
+    // TODO this step
+
+    // Step 8
+    if !request.synchronous && !recursive_flag {
+        // TODO run the remaining steps in parallel
+    }
+
+    // Step 9
+    let mut response = if response.is_none() {
+
+        let current_url = request.current_url();
+        let origin_match = request.origin == current_url.origin();
+
+        if (!cors_flag && origin_match) ||
+            (current_url.scheme == "data" && request.same_origin_data.get()) ||
+            current_url.scheme == "about" ||
+            request.mode == RequestMode::Navigate {
+
+            basic_fetch(request.clone())
+
+        } else if request.mode == RequestMode::SameOrigin {
+            Response::network_error()
+
+        } else if request.mode == RequestMode::NoCORS {
+            request.response_tainting.set(ResponseTainting::Opaque);
+            basic_fetch(request.clone())
+
+        } else if current_url.scheme != "http" && current_url.scheme != "https" {
+            Response::network_error()
+
+        } else if request.use_cors_preflight ||
+            (request.unsafe_request &&
+            (!is_simple_method(&request.method.borrow()) ||
+            request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
+
+            request.response_tainting.set(ResponseTainting::CORSTainting);
+            request.redirect_mode.set(RedirectMode::Error);
+            let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
+            if Response::is_network_error(&response) {
+                // TODO clear cache entries using request
+            }
+            response
+
+        } else {
+            request.response_tainting.set(ResponseTainting::CORSTainting);
+            http_fetch(request.clone(), BasicCORSCache::new(), true, false, false)
+        }
+    } else {
+        response.unwrap()
+    };
+
+    // Step 10
+    if recursive_flag {
+        return response;
+    }
+
+    // Step 11
+    // no need to check if response is a network error, since the type would not be `Default`
+    let mut response = if response.response_type == ResponseType::Default {
+        let old_response = Rc::new(response);
+        let response_type = match request.response_tainting.get() {
+            ResponseTainting::Basic => ResponseType::Basic,
+            ResponseTainting::CORSTainting => ResponseType::CORS,
+            ResponseTainting::Opaque => ResponseType::Opaque,
+        };
+        Response::to_filtered(old_response, response_type)
+    } else {
+        response
+    };
+
+    // Step 12
+    let mut internal_response = if Response::is_network_error(&response) {
+        Rc::new(Response::network_error())
+    } else {
+        response.internal_response.clone().unwrap()
+    };
+
+    // Step 13
+    // TODO this step
+
+    // Step 14
+    if !Response::is_network_error(&response) && (is_null_body_status(&internal_response.status) ||
+        match *request.method.borrow() {
+            Method::Head | Method::Connect => true,
+            _ => false })
+        {
+        // when the Fetch implementation does asynchronous retrieval of the body,
+        // we will need to make sure nothing tries to write to the body at this point
+        *internal_response.body.borrow_mut() = ResponseBody::Empty;
+    }
+
+    // Step 15
+    // TODO be able to compare response integrity against request integrity metadata
+    // if !Response::is_network_error(&response) {
+
+    //     // Substep 1
+    //     // TODO wait for response
+
+    //     // Substep 2
+    //     if response.termination_reason.is_none() {
+    //         response = Response::network_error();
+    //         internal_response = Response::network_error();
+    //     }
+    // }
+
+    // Step 16
+    if request.synchronous {
+        // TODO wait for internal_response
+        return response;
+    }
+
+    // Step 17
+    if request.body.is_some() && match &*request.current_url().scheme {
+        "http" | "https" => true,
+        _ => false }
+        {
+        // TODO queue a fetch task on request to process end-of-file
+    }
+
+    // Step 18
+    // TODO this step
+
+    match *internal_response.body.borrow() {
+        // Step 20
+        ResponseBody::Empty => {
+            // Substep 1
+            // Substep 2
+        },
+
+        // Step 19
+        _ => {
+            // Substep 1
+            // Substep 2
+        }
+    };
+
+    // TODO remove this line when asynchronous fetches are supported
+    return response;
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -180,7 +344,7 @@ fn http_fetch(request: Rc<Request>,
             if (res.response_type == ResponseType::Opaque &&
                 request.mode != RequestMode::NoCORS) ||
                (res.response_type == ResponseType::OpaqueRedirect &&
-                request.redirect_mode != RedirectMode::Manual) ||
+                request.redirect_mode.get() != RedirectMode::Manual) ||
                res.response_type == ResponseType::Error {
                 return Response::network_error();
             }
@@ -205,9 +369,7 @@ fn http_fetch(request: Rc<Request>,
             let mut method_mismatch = false;
             let mut header_mismatch = false;
 
-            // FIXME: Once Url::Origin is available, rewrite origin to
-            // take an Origin instead of a Url
-            let origin = request.origin.clone().unwrap_or(Url::parse("").unwrap());
+            let origin = request.origin.clone();
             let url = request.current_url();
             let credentials = request.credentials_mode == CredentialsMode::Include;
             let method_cache_match = cache.match_method(CacheRequestDetails {
@@ -217,7 +379,7 @@ fn http_fetch(request: Rc<Request>,
             }, request.method.borrow().clone());
 
             method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
-                request.mode == RequestMode::ForcedPreflightMode);
+                request.use_cors_preflight);
             header_mismatch = request.headers.borrow().iter().any(|view|
                 !cache.match_header(CacheRequestDetails {
                     origin: origin.clone(),
@@ -226,12 +388,13 @@ fn http_fetch(request: Rc<Request>,
                 }, view.name()) && !is_simple_header(&view)
             );
 
+            // Sub-substep 1
             if method_mismatch || header_mismatch {
                 let preflight_result = preflight_fetch(request.clone());
+                // Sub-substep 2
                 if preflight_result.response_type == ResponseType::Error {
                     return Response::network_error();
                 }
-                response = Some(Rc::new(preflight_result));
             }
         }
 
@@ -242,7 +405,7 @@ fn http_fetch(request: Rc<Request>,
         let credentials = match request.credentials_mode {
             CredentialsMode::Include => true,
             CredentialsMode::CredentialsSameOrigin if (!cors_flag ||
-                request.response_tainting == ResponseTainting::Opaque)
+                request.response_tainting.get() == ResponseTainting::Opaque)
                 => true,
             _ => false
         };
@@ -271,7 +434,7 @@ fn http_fetch(request: Rc<Request>,
         StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
 
             // Step 1
-            if request.redirect_mode == RedirectMode::Error {
+            if request.redirect_mode.get() == RedirectMode::Error {
                 return Response::network_error();
             }
 
@@ -308,11 +471,11 @@ fn http_fetch(request: Rc<Request>,
             // Step 9
             request.same_origin_data.set(false);
 
-            match request.redirect_mode {
+            match request.redirect_mode.get() {
 
                 // Step 10
                 RedirectMode::Manual => {
-                    response = Rc::new(Response::to_filtered(actual_response, ResponseType::Opaque));
+                    response = Rc::new(Response::to_filtered(actual_response, ResponseType::OpaqueRedirect));
                 }
 
                 // Step 11
@@ -350,7 +513,7 @@ fn http_fetch(request: Rc<Request>,
                     request.url_list.borrow_mut().push(location_url);
 
                     // Substep 6
-                    return main_fetch(request.clone(), cors_flag);
+                    return main_fetch(request.clone(), cors_flag, true);
                 }
                 RedirectMode::Error => { panic!("RedirectMode is Error after step 8") }
             }
@@ -418,7 +581,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 1
     let http_request = if request_has_no_window &&
-        request.redirect_mode != RedirectMode::Follow {
+        request.redirect_mode.get() != RedirectMode::Follow {
         request.clone()
     } else {
         Rc::new((*request).clone())
@@ -457,9 +620,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     // Step 7
     if http_request.omit_origin_header == false {
         // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
-        if let Some(ref _origin) = http_request.origin {
-            // http_request.headers.borrow_mut().set_raw("origin", origin);
-        }
+        // http_request.headers.borrow_mut().set_raw("origin", origin);
     }
 
     // Step 8
@@ -628,7 +789,7 @@ fn http_network_fetch(request: Rc<Request>,
 
             let mut body = vec![];
             res.response.read_to_end(&mut body);
-            response.body = ResponseBody::Done(body);
+            *response.body.borrow_mut() = ResponseBody::Done(body);
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
@@ -677,6 +838,7 @@ fn http_network_fetch(request: Rc<Request>,
         // Substep 3
         // Substep 4
 
+    // TODO these steps
     // Step 10
         // Substep 1
         // Substep 2
@@ -761,3 +923,14 @@ fn response_needs_revalidation(response: &Response) -> bool {
 //     // TODO this function
 
 // }
+
+fn is_null_body_status(status: &Option<StatusCode>) -> bool {
+    match *status {
+        Some(status) => match status {
+            StatusCode::SwitchingProtocols | StatusCode::NoContent |
+                StatusCode::ResetContent | StatusCode::NotModified => true,
+            _ => false
+        },
+        _ => false
+    }
+}

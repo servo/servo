@@ -5,7 +5,7 @@
 use hyper::header::Headers;
 use hyper::method::Method;
 use std::cell::{Cell, RefCell};
-use url::Url;
+use url::{Origin, Url};
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]
@@ -37,10 +37,10 @@ pub enum Referer {
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
 #[derive(Copy, Clone, PartialEq)]
 pub enum RequestMode {
+    Navigate,
     SameOrigin,
     NoCORS,
-    CORSMode,
-    ForcedPreflightMode
+    CORSMode
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
@@ -82,6 +82,7 @@ pub enum ResponseTainting {
 #[derive(Clone)]
 pub struct Request {
     pub method: RefCell<Method>,
+    pub local_urls_only: bool,
     // Use the last method on url_list to act as spec url field
     pub url_list: RefCell<Vec<Url>>,
     pub headers: RefCell<Headers>,
@@ -94,26 +95,28 @@ pub struct Request {
     pub skip_service_worker: Cell<bool>,
     pub context: Context,
     pub context_frame_type: ContextFrameType,
-    pub origin: Option<Url>, // FIXME: Use Url::Origin
+    pub origin: Origin,
     pub force_origin_header: bool,
     pub omit_origin_header: bool,
     pub same_origin_data: Cell<bool>,
     pub referer: Referer,
     pub authentication: bool,
-    pub sync: bool,
+    pub synchronous: bool,
+    pub use_cors_preflight: bool,
     pub mode: RequestMode,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
     pub cache_mode: Cell<CacheMode>,
-    pub redirect_mode: RedirectMode,
+    pub redirect_mode: Cell<RedirectMode>,
     pub redirect_count: Cell<u32>,
-    pub response_tainting: ResponseTainting
+    pub response_tainting: Cell<ResponseTainting>
 }
 
 impl Request {
-    pub fn new(url: Url, context: Context, is_service_worker_global_scope: bool) -> Request {
+    pub fn new(url: Url, context: Context, origin: Origin, is_service_worker_global_scope: bool) -> Request {
          Request {
             method: RefCell::new(Method::Get),
+            local_urls_only: false,
             url_list: RefCell::new(vec![url]),
             headers: RefCell::new(Headers::new()),
             unsafe_request: false,
@@ -123,20 +126,21 @@ impl Request {
             skip_service_worker: Cell::new(false),
             context: context,
             context_frame_type: ContextFrameType::ContextNone,
-            origin: None,
+            origin: origin,
             force_origin_header: false,
             omit_origin_header: false,
             same_origin_data: Cell::new(false),
             referer: Referer::Client,
             authentication: false,
-            sync: false,
+            synchronous: false,
+            use_cors_preflight: false,
             mode: RequestMode::NoCORS,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
             cache_mode: Cell::new(CacheMode::Default),
-            redirect_mode: RedirectMode::Follow,
+            redirect_mode: Cell::new(RedirectMode::Follow),
             redirect_count: Cell::new(0),
-            response_tainting: ResponseTainting::Basic,
+            response_tainting: Cell::new(ResponseTainting::Basic)
         }
     }
 

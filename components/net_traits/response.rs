@@ -11,7 +11,7 @@ use std::rc::Rc;
 use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -71,7 +71,7 @@ pub struct Response {
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
     pub headers: Headers,
-    pub body: ResponseBody,
+    pub body: RefCell<ResponseBody>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
@@ -88,7 +88,7 @@ impl Response {
             url_list: RefCell::new(vec![]),
             status: None,
             headers: Headers::new(),
-            body: ResponseBody::Empty,
+            body: RefCell::new(ResponseBody::Empty),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             internal_response: None
