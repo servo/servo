@@ -312,7 +312,7 @@ fn http_fetch(request: Rc<Request>,
 
                 // Step 10
                 RedirectMode::Manual => {
-                    response = Rc::new(Response::to_filtered(actual_response, ResponseType::Opaque));
+                    response = Rc::new(Response::to_filtered(actual_response, ResponseType::OpaqueRedirect));
                 }
 
                 // Step 11

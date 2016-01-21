@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use hyper::header::Headers;
+use hyper::header::{AccessControlExposeHeaders, Headers};
 use hyper::status::StatusCode;
 use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
 use std::ascii::AsciiExt;
@@ -46,6 +46,7 @@ impl ResponseMethods for Response {
         let old_headers = old_response.headers.clone();
         let mut response = (*old_response).clone();
         response.internal_response = Some(old_response);
+        response.response_type = filter_type;
 
         match filter_type {
 
@@ -59,23 +60,33 @@ impl ResponseMethods for Response {
                     }
                 }).collect();
                 response.headers = headers;
-                response.response_type = filter_type;
             },
 
             ResponseType::CORS => {
+
+                let access = old_headers.get::<AccessControlExposeHeaders>();
+                let blocked_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
+
                 let headers = old_headers.iter().filter(|header| {
                     match &*header.name().to_ascii_lowercase() {
                         "cache-control" | "content-language" |
-                        "content-type" | "expires" | "last-modified" | "Pragma" => false,
-                        // XXXManishearth handle Access-Control-Expose-Headers
-                        _ => true
+                        "content-type" | "expires" | "last-modified" | "Pragma" => true,
+                        "set-cookie" | "set-cookie2" => false,
+                        header => false
                     }
                 }).collect();
                 response.headers = headers;
-                response.response_type = filter_type;
             },
 
-            ResponseType::Opaque | ResponseType::OpaqueRedirect => {
+            ResponseType::Opaque => {
+                response.url_list = RefCell::new(vec![]);
+                response.url = None;
+                response.headers = Headers::new();
+                response.status = None;
+                response.body = ResponseBody::Empty;
+            },
+
+            ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
                 response.body = ResponseBody::Empty;
