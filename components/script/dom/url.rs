@@ -176,6 +176,11 @@ impl URLMethods for URL {
         UrlHelper::SetProtocol(&mut self.url.borrow_mut(), value);
     }
 
+    // https://url.spec.whatwg.org/#dom-url-origin
+    fn Origin(&self) -> USVString {
+        UrlHelper::Origin(&self.url.borrow())
+    }
+
     // https://url.spec.whatwg.org/#dom-url-search
     fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url.borrow())
