@@ -44,6 +44,22 @@ use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
+// https://html.spec.whatwg.org/multipage/#classic-script
+struct ClassicScript {
+    source_text: String,
+    url: url,
+}
+
+impl ClassicScript {
+    // https://html.spec.whatwg.org/multipage/#creating-a-classic-script
+    fn create(source_text: String, url: url) {
+        ClassicScript {
+            source_text: source_text,
+            url: url,
+        }
+    }
+}
+
 #[dom_struct]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -63,8 +79,8 @@ pub struct HTMLScriptElement {
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
-    /// The source this script was loaded from
-    load: DOMRefCell<Option<ScriptOrigin>>,
+    /// https://html.spec.whatwg.org/multipage/#concept-script-script
+    script: DOMRefCell<Option<Result<ClassicScript, String>>>,
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
@@ -82,7 +98,7 @@ impl HTMLScriptElement {
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
-            load: DOMRefCell::new(None),
+            script: DOMRefCell::new(None),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
@@ -157,9 +173,12 @@ impl AsyncResponseListener for ScriptContext {
 
     fn response_complete(&mut self, status: Result<(), String>) {
         let load = status.map(|_| {
-            let data = mem::replace(&mut self.data, vec!());
             let metadata = self.metadata.take().unwrap();
-            (metadata, data)
+
+            // Step 8.
+            let source_text = UTF_8.decode(&self.data, DecoderTrap::Replace).unwrap(),
+            (metadata, source_text)
+            // TODO(#9185): implement encoding determination.
         });
         let elem = self.elem.root();
         // TODO: maybe set this to None again after script execution to save memory.
@@ -416,9 +435,8 @@ impl HTMLScriptElement {
 
         let load = self.load.borrow_mut().take().unwrap();
 
-        // Step 2.
         let (source, external, url) = match load {
-            // Step 2.a.
+            // Step 2.
             ScriptOrigin::External(Err(e)) => {
                 error!("error loading script {}", e);
                 self.dispatch_error_event();
