@@ -346,5 +346,6 @@ macro_rules! global_event_handlers(
         event_handler!(change, GetOnchange, SetOnchange);
         event_handler!(reset, GetOnreset, SetOnreset);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
+        event_handler!(toggle, GetOntoggle, SetOntoggle);
     )
 );

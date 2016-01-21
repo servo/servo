@@ -50,31 +50,13 @@ test(function() {
   assert_equals(Object.getPrototypeOf(WeakMap.prototype), Object.prototype);
 }, "The value of the [[Prototype]] internal property of the WeakMap prototype object is the standard built-in Object prototype object (15.2.4).")
 
-// 15.15.5.1 WeakMap.prototype.constructor
+// 23.3.3.1 WeakMap.prototype.constructor
 test(function() {
   assert_equals(WeakMap.prototype.constructor, WeakMap);
   assert_propdesc(WeakMap.prototype, "constructor", true, false, true);
 }, "The initial value of WeakMap.prototype.constructor is the built-in WeakMap constructor.")
 
-// 15.15.5.2 WeakMap.prototype.clear ()
-test(function() {
-  assert_propdesc(WeakMap.prototype, "clear", true, false, true);
-  test_length("clear", 0);
-  // Step 1-3
-  test_thisval("clear", null);
-  // Step 4-5
-  test(function() {
-    var wm = new WeakMap();
-    var key = {};
-    wm.set(key, "fail");
-    assert_true(wm.has(key));
-    var res = wm.clear();
-    assert_equals(res, undefined);
-    assert_false(wm.has(key));
-  }, "WeakMap.prototype.clear: basic functionality");
-}, "WeakMap.prototype.clear")
-
-// 15.15.5.3 WeakMap.prototype.delete ( key )
+// 23.3.3.2 WeakMap.prototype.delete ( key )
 test(function() {
   assert_propdesc(WeakMap.prototype, "delete", true, false, true);
   test_length("delete", 1);
@@ -82,7 +64,7 @@ test(function() {
   test_thisval("delete", [{}]);
 }, "WeakMap.prototype.delete")
 
-// 15.15.5.4 WeakMap.prototype.get ( key )
+// 23.3.3.3 WeakMap.prototype.get ( key )
 test(function() {
   assert_propdesc(WeakMap.prototype, "get", true, false, true);
   test_length("get", 1);
@@ -98,7 +80,7 @@ test(function() {
   }, "WeakMap.prototype.get: return undefined");
 }, "WeakMap.prototype.get")
 
-// 15.14.5.5 Map.prototype.has ( key )
+// 23.3.3.4 Map.prototype.has ( key )
 test(function() {
   assert_propdesc(WeakMap.prototype, "has", true, false, true);
   test_length("has", 1);
@@ -106,7 +88,7 @@ test(function() {
   test_thisval("has", [{}]);
 }, "WeakMap.prototype.has")
 
-// 15.14.5.6 Map.prototype.set ( key , value )
+// 23.3.3.5 Map.prototype.set ( key , value )
 test(function() {
   assert_propdesc(WeakMap.prototype, "set", true, false, true);
   test_length("set", 2);
@@ -114,7 +96,7 @@ test(function() {
   test_thisval("set", [{}, {}]);
 }, "WeakMap.prototype.set")
 
-// 15.15.5.7 Map.prototype.@@toStringTag
+// 23.3.3.6 Map.prototype.@@toStringTag
 test(function() {
   assert_class_string(new WeakMap(), "WeakMap");
   assert_class_string(WeakMap.prototype, "WeakMap");

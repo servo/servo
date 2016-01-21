@@ -38,6 +38,7 @@ ignored_files = [
     os.path.join(".", "target", "*"),
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "cef", "*"),
+    os.path.join(".", "ports", "geckolib", "bindings.rs"),
 
     # MIT license
     os.path.join(".", "components", "util", "deque", "mod.rs"),
@@ -511,11 +512,16 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def check_wpt_lint_errors():
+def get_wpt_files(only_changed_files=False):
+    for f in get_file_list("./tests/wpt/web-platform-tests/", only_changed_files):
+        yield f[len("./tests/wpt/web-platform-tests/"):]
+
+
+def check_wpt_lint_errors(files):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     site.addsitedir(wpt_working_dir)
     from tools.lint import lint
-    returncode = lint.main()
+    returncode = lint.lint(files)
     if returncode:
         yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
@@ -543,11 +549,7 @@ def scan(faster=False):
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
     # wpt lint checks
-    if faster:
-        print "\033[93mUsing test-tidy \033[01m--faster\033[22m, skipping WPT lint\033[0m"
-        wpt_lint_errors = iter([])
-    else:
-        wpt_lint_errors = check_wpt_lint_errors()
+    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster))
 
     # collect errors
     errors = itertools.chain(errors, wpt_lint_errors)

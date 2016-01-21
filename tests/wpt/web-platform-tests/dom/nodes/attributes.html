@@ -465,6 +465,60 @@ test(function() {
   assert_throws("INUSE_ATTRIBUTE_ERR", function(){el2.setAttributeNode(attrNode)});
 }, "setAttributeNode on bound attribute should throw InUseAttributeError")
 
+// Have to use an async_test to see what a DOMAttrModified listener sees,
+// because otherwise the event dispatch code will swallow our exceptions.  And
+// we want to make sure this test always happens, even when no mutation events
+// run.
+var setAttributeNode_mutation_test = async_test("setAttributeNode, if it fires mutation events, should fire one with the new node when resetting an existing attribute");
+
+test(function(){
+  var el = document.createElement("div")
+  var attrNode1 = document.createAttribute("foo");
+  attrNode1.value = "bar";
+  el.setAttributeNode(attrNode1);
+  var attrNode2 = document.createAttribute("foo");
+  attrNode2.value = "baz";
+
+  el.addEventListener("DOMAttrModified", function(e) {
+    // If this never gets called, that's OK, I guess.  But if it gets called, it
+    // better represent a single modification with attrNode2 as the relatedNode.
+    // We have to do an inner test() call here, because otherwise the exceptions
+    // our asserts trigger will get swallowed by the event dispatch code.
+    setAttributeNode_mutation_test.step(function() {
+      assert_equals(e.attrName, "foo");
+      assert_equals(e.attrChange, MutationEvent.MODIFICATION);
+      assert_equals(e.prevValue, "bar");
+      assert_equals(e.newValue, "baz");
+      assert_equals(e.relatedNode, attrNode2);
+    });
+  });
+
+  var oldNode = el.setAttributeNode(attrNode2);
+  assert_equals(oldNode, attrNode1,
+                "Must return the old attr node from a setAttributeNode call");
+}, "setAttributeNode, if it fires mutation events, should fire one with the new node when resetting an existing attribute (outer shell)");
+setAttributeNode_mutation_test.done();
+
+test(function(){
+  var el = document.createElement("div")
+  el.setAttribute("a", "b");
+  el.setAttribute("c", "d");
+
+  assert_array_equals(Array.prototype.map.call(el.attributes, function(a) { return a.name }),
+                      ["a", "c"]);
+  assert_array_equals(Array.prototype.map.call(el.attributes, function(a) { return a.value }),
+                      ["b", "d"]);
+
+  var attrNode = document.createAttribute("a");
+  attrNode.value = "e";
+  el.setAttributeNode(attrNode);
+
+  assert_array_equals(Array.prototype.map.call(el.attributes, function(a) { return a.name }),
+                      ["a", "c"]);
+  assert_array_equals(Array.prototype.map.call(el.attributes, function(a) { return a.value }),
+                      ["e", "d"]);
+}, "setAttributeNode called with an Attr that has the same name as an existing one should not change attribute order");
+
 test(function() {
   var el = document.createElement("div");
   el.setAttribute("foo", "bar");
@@ -537,6 +591,10 @@ test(function() {
                       ["0", "1", "2"])
   assert_array_equals(Object.getOwnPropertyNames(el.attributes),
                       ["0", "1", "2", "a", "b"])
+  for (var propName of Object.getOwnPropertyNames(el.attributes)) {
+    assert_true(el.attributes[propName] instanceof Attr,
+                "el.attributes has an Attr for property name " + propName);
+  }
 }, "Own property correctness with non-namespaced attribute before same-name namespaced one");
 
 test(function() {
@@ -550,6 +608,10 @@ test(function() {
                       ["0", "1", "2"])
   assert_array_equals(Object.getOwnPropertyNames(el.attributes),
                       ["0", "1", "2", "a", "b"])
+  for (var propName of Object.getOwnPropertyNames(el.attributes)) {
+    assert_true(el.attributes[propName] instanceof Attr,
+                "el.attributes has an Attr for property name " + propName);
+  }
 }, "Own property correctness with namespaced attribute before same-name non-namespaced one");
 
 test(function() {
@@ -563,5 +625,59 @@ test(function() {
                       ["0", "1", "2"])
   assert_array_equals(Object.getOwnPropertyNames(el.attributes),
                       ["0", "1", "2", "a:b", "c:d"])
+  for (var propName of Object.getOwnPropertyNames(el.attributes)) {
+    assert_true(el.attributes[propName] instanceof Attr,
+                "el.attributes has an Attr for property name " + propName);
+  }
 }, "Own property correctness with two namespaced attributes with the same name-with-prefix");
+
+test(function() {
+  var el = document.createElement("div");
+  el.setAttributeNS("foo", "A:B", "");
+  el.setAttributeNS("bar", "c:D", "");
+  el.setAttributeNS("baz", "e:F", "");
+  el.setAttributeNS("qux", "g:h", "");
+  el.setAttributeNS("", "I", "");
+  el.setAttributeNS("", "j", "");
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "2", "3", "4", "5", "g:h", "j"])
+  for (var propName of Object.getOwnPropertyNames(el.attributes)) {
+    assert_true(el.attributes[propName] instanceof Attr,
+                "el.attributes has an Attr for property name " + propName);
+  }
+}, "Own property names should only include all-lowercase qualified names for an HTML element in an HTML document");
+
+test(function() {
+  var el = document.createElementNS("", "div");
+  el.setAttributeNS("foo", "A:B", "");
+  el.setAttributeNS("bar", "c:D", "");
+  el.setAttributeNS("baz", "e:F", "");
+  el.setAttributeNS("qux", "g:h", "");
+  el.setAttributeNS("", "I", "");
+  el.setAttributeNS("", "j", "");
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "2", "3", "4", "5", "A:B", "c:D", "e:F", "g:h", "I", "j"])
+  for (var propName of Object.getOwnPropertyNames(el.attributes)) {
+    assert_true(el.attributes[propName] instanceof Attr,
+                "el.attributes has an Attr for property name " + propName);
+  }
+}, "Own property names should include all qualified names for a non-HTML element in an HTML document");
+
+test(function() {
+  var doc = document.implementation.createDocument(null, "");
+  assert_equals(doc.contentType, "application/xml");
+  var el = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
+  el.setAttributeNS("foo", "A:B", "");
+  el.setAttributeNS("bar", "c:D", "");
+  el.setAttributeNS("baz", "e:F", "");
+  el.setAttributeNS("qux", "g:h", "");
+  el.setAttributeNS("", "I", "");
+  el.setAttributeNS("", "j", "");
+  assert_array_equals(Object.getOwnPropertyNames(el.attributes),
+                      ["0", "1", "2", "3", "4", "5", "A:B", "c:D", "e:F", "g:h", "I", "j"])
+  for (var propName of Object.getOwnPropertyNames(el.attributes)) {
+    assert_true(el.attributes[propName] instanceof Attr,
+                "el.attributes has an Attr for property name " + propName);
+  }
+}, "Own property names should include all qualified names for an HTML element in a non-HTML document");
 </script>

@@ -178,14 +178,15 @@ pub enum MessageData {
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketDomAction {
     SendMessage(MessageData),
-    Close(u16, String),
+    Close(Option<u16>, Option<String>),
 }
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
     ConnectionEstablished(header::Headers, Vec<String>),
     MessageReceived(MessageData),
-    Close,
+    Close(Option<u16>, String),
+    Fail,
 }
 
 #[derive(Deserialize, Serialize)]

@@ -3226,6 +3226,14 @@
         "url": "/touch-events/single-touch-manual.html"
       },
       {
+        "path": "uievents/order-of-events/mouse-events/click-on-body-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/click-on-body-manual.html"
+      },
+      {
+        "path": "uievents/order-of-events/mouse-events/click-on-html-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/click-on-html-manual.html"
+      },
+      {
         "path": "uievents/order-of-events/mouse-events/mouseevents-mousemove-manual.htm",
         "url": "/uievents/order-of-events/mouse-events/mouseevents-mousemove-manual.htm"
       },
@@ -4670,6 +4678,16 @@
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-disc.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/lists/ol-type-unsupported-invalid.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-invalid.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-unsupported-lower-alpha.html",
         "references": [
           [
@@ -4768,6 +4786,16 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-invalid.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-invalid.html"
       },
       {
         "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html",
@@ -19056,6 +19084,10 @@
         "url": "/html/syntax/serializing-html-fragments/outerHTML.html"
       },
       {
+        "path": "html/syntax/serializing-xml-fragments/outerHTML.html",
+        "url": "/html/syntax/serializing-xml-fragments/outerHTML.html"
+      },
+      {
         "path": "html/webappapis/animation-frames/callback-exception.html",
         "url": "/html/webappapis/animation-frames/callback-exception.html"
       },
@@ -21328,12 +21360,20 @@
         "url": "/old-tests/submission/Opera/script_scheduling/105.html"
       },
       {
-        "path": "old-tests/submission/Opera/script_scheduling/106.html",
-        "url": "/old-tests/submission/Opera/script_scheduling/106.html"
+        "path": "old-tests/submission/Opera/script_scheduling/106-import.html",
+        "url": "/old-tests/submission/Opera/script_scheduling/106-import.html"
       },
       {
-        "path": "old-tests/submission/Opera/script_scheduling/107.html",
-        "url": "/old-tests/submission/Opera/script_scheduling/107.html"
+        "path": "old-tests/submission/Opera/script_scheduling/106-noimport.html",
+        "url": "/old-tests/submission/Opera/script_scheduling/106-noimport.html"
+      },
+      {
+        "path": "old-tests/submission/Opera/script_scheduling/107-import.html",
+        "url": "/old-tests/submission/Opera/script_scheduling/107-import.html"
+      },
+      {
+        "path": "old-tests/submission/Opera/script_scheduling/107-noimport.html",
+        "url": "/old-tests/submission/Opera/script_scheduling/107-noimport.html"
       },
       {
         "path": "old-tests/submission/Opera/script_scheduling/108.html",
@@ -26756,6 +26796,58 @@
         "url": "/shadow-dom/untriaged/user-interaction/ranges-and-selections/test-002.html"
       },
       {
+        "path": "streams/byte-length-queuing-strategy.https.html",
+        "url": "/streams/byte-length-queuing-strategy.https.html"
+      },
+      {
+        "path": "streams/count-queuing-strategy.https.html",
+        "url": "/streams/count-queuing-strategy.https.html"
+      },
+      {
+        "path": "streams/readable-streams/bad-strategies.https.html",
+        "url": "/streams/readable-streams/bad-strategies.https.html"
+      },
+      {
+        "path": "streams/readable-streams/bad-underlying-sources.https.html",
+        "url": "/streams/readable-streams/bad-underlying-sources.https.html"
+      },
+      {
+        "path": "streams/readable-streams/brand-checks.https.html",
+        "url": "/streams/readable-streams/brand-checks.https.html"
+      },
+      {
+        "path": "streams/readable-streams/cancel.https.html",
+        "url": "/streams/readable-streams/cancel.https.html"
+      },
+      {
+        "path": "streams/readable-streams/count-queuing-strategy-integration.https.html",
+        "url": "/streams/readable-streams/count-queuing-strategy-integration.https.html"
+      },
+      {
+        "path": "streams/readable-streams/garbage-collection.https.html",
+        "url": "/streams/readable-streams/garbage-collection.https.html"
+      },
+      {
+        "path": "streams/readable-streams/general.https.html",
+        "url": "/streams/readable-streams/general.https.html"
+      },
+      {
+        "path": "streams/readable-streams/pipe-through.https.html",
+        "url": "/streams/readable-streams/pipe-through.https.html"
+      },
+      {
+        "path": "streams/readable-streams/readable-stream-reader.https.html",
+        "url": "/streams/readable-streams/readable-stream-reader.https.html"
+      },
+      {
+        "path": "streams/readable-streams/tee.https.html",
+        "url": "/streams/readable-streams/tee.https.html"
+      },
+      {
+        "path": "streams/readable-streams/templated.https.html",
+        "url": "/streams/readable-streams/templated.https.html"
+      },
+      {
         "path": "svg/interfaces.html",
         "url": "/svg/interfaces.html"
       },
@@ -26952,8 +27044,16 @@
         "url": "/web-animations/animation-timeline/idlharness.html"
       },
       {
+        "path": "web-animations/animation/constructor.html",
+        "url": "/web-animations/animation/constructor.html"
+      },
+      {
         "path": "web-animations/keyframe-effect/constructor.html",
         "url": "/web-animations/keyframe-effect/constructor.html"
+      },
+      {
+        "path": "web-animations/keyframe-effect/getComputedTiming.html",
+        "url": "/web-animations/keyframe-effect/getComputedTiming.html"
       },
       {
         "path": "webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html",
@@ -35436,6 +35536,18 @@
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-disc.html"
       }
     ],
+    "html/rendering/non-replaced-elements/lists/ol-type-unsupported-invalid.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ol-type-unsupported-invalid.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-invalid.html"
+      }
+    ],
     "html/rendering/non-replaced-elements/lists/ol-type-unsupported-lower-alpha.html": [
       {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-unsupported-lower-alpha.html",
@@ -35554,6 +35666,18 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/lists/ul-type-unsupported-invalid.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-invalid.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-unsupported-invalid.html"
       }
     ],
     "html/rendering/non-replaced-elements/lists/ul-type-unsupported-lower-alpha.html": [
@@ -39301,7 +39425,7 @@
       }
     ]
   },
-  "rev": "78862c14a70cabb48c685144666912f08e726390",
+  "rev": "0d9238c8062f05a55898a0cb60dc0c353794d87a",
   "url_base": "/",
   "version": 2
 }

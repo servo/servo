@@ -33,7 +33,7 @@ use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use script_thread::ScriptThreadEventCategory::WebSocketEvent;
-use script_thread::{CommonScriptMsg, Runnable};
+use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
@@ -132,6 +132,29 @@ mod close_code {
     pub const TLS_FAILED: u16 = 1015;
 }
 
+pub fn close_the_websocket_connection(address: Trusted<WebSocket>,
+                                      sender: Box<ScriptChan>,
+                                      code: Option<u16>,
+                                      reason: String) {
+    let close_task = box CloseTask {
+        addr: address,
+        failed: false,
+        code: code,
+        reason: Some(reason),
+    };
+    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, close_task)).unwrap();
+}
+
+pub fn fail_the_websocket_connection(address: Trusted<WebSocket>, sender: Box<ScriptChan>) {
+    let close_task = box CloseTask {
+        addr: address,
+        failed: true,
+        code: Some(close_code::ABNORMAL),
+        reason: None,
+    };
+    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, close_task)).unwrap();
+}
+
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
@@ -141,11 +164,6 @@ pub struct WebSocket {
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
     sender: DOMRefCell<Option<IpcSender<WebSocketDomAction>>>,
-    failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
-    full: Cell<bool>, //Flag to tell if websocket queue is full
-    clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
-    code: Cell<u16>, //Closing code
-    reason: DOMRefCell<String>, //Closing reason
     binary_type: Cell<BinaryType>,
     protocol: DOMRefCell<String>, //Subprotocol selected by server
 }
@@ -158,12 +176,7 @@ impl WebSocket {
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
-            failed: Cell::new(false),
             sender: DOMRefCell::new(None),
-            full: Cell::new(false),
-            clean_close: Cell::new(true),
-            code: Cell::new(0),
-            reason: DOMRefCell::new("".to_owned()),
             binary_type: Cell::new(BinaryType::Blob),
             protocol: DOMRefCell::new("".to_owned()),
         }
@@ -272,11 +285,11 @@ impl WebSocket {
                         };
                         sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_thread)).unwrap();
                     },
-                    WebSocketNetworkEvent::Close => {
-                        let thread = box CloseTask {
-                            addr: moved_address.clone(),
-                        };
-                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, thread)).unwrap();
+                    WebSocketNetworkEvent::Fail => {
+                        fail_the_websocket_connection(moved_address.clone(), sender.clone());
+                    },
+                    WebSocketNetworkEvent::Close(code, reason) => {
+                        close_the_websocket_connection(moved_address.clone(), sender.clone(), code, reason);
                     },
                 }
             }
@@ -402,18 +415,6 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
     fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
-        fn send_close(this: &WebSocket) {
-            this.ready_state.set(WebSocketRequestState::Closing);
-
-            let mut sender = this.sender.borrow_mut();
-            //TODO: Also check if the buffer is full
-            if let Some(sender) = sender.as_mut() {
-                let code: u16 = this.code.get();
-                let reason = this.reason.borrow().clone();
-                let _ = sender.send(WebSocketDomAction::Close(code, reason));
-            }
-        }
-
         if let Some(code) = code {
             //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
             if code != close_code::NORMAL && (code < 3000 || code > 4999) {
@@ -431,21 +432,22 @@ impl WebSocketMethods for WebSocket {
             WebSocketRequestState::Connecting => { //Connection is not yet established
                 /*By setting the state to closing, the open function
                   will abort connecting the websocket*/
-                self.failed.set(true);
-                send_close(self);
-                //Note: After sending the close message, the receive loop confirms a close message from the server and
-                //      must fire a close event
+                self.ready_state.set(WebSocketRequestState::Closing);
+
+                let global = self.global();
+                let sender = global.r().networking_thread_source();
+                let address = Trusted::new(self, sender.clone());
+                fail_the_websocket_connection(address, sender);
             }
             WebSocketRequestState::Open => {
-                //Closing handshake not started - still in open
-                //Start the closing by setting the code and reason if they exist
-                self.code.set(code.unwrap_or(close_code::NO_STATUS));
-                if let Some(reason) = reason {
-                    *self.reason.borrow_mut() = reason.0;
-                }
-                send_close(self);
-                //Note: After sending the close message, the receive loop confirms a close message from the server and
-                //      must fire a close event
+                self.ready_state.set(WebSocketRequestState::Closing);
+
+                // Kick off _Start the WebSocket Closing Handshake_
+                // https://tools.ietf.org/html/rfc6455#section-7.1.2
+                let reason = reason.map(|reason| reason.0);
+                let mut other_sender = self.sender.borrow_mut();
+                let my_sender = other_sender.as_mut().unwrap();
+                let _ = my_sender.send(WebSocketDomAction::Close(code, reason));
             }
         }
         Ok(()) //Return Ok
@@ -467,13 +469,8 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
-            ws.failed.set(true);
-            ws.ready_state.set(WebSocketRequestState::Closing);
-            let thread = box CloseTask {
-                addr: self.addr,
-            };
             let sender = global.r().networking_thread_source();
-            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, thread)).unwrap();
+            fail_the_websocket_connection(self.addr, sender);
             return;
         }
 
@@ -516,6 +513,9 @@ impl Runnable for BufferedAmountTask {
 
 struct CloseTask {
     addr: Trusted<WebSocket>,
+    failed: bool,
+    code: Option<u16>,
+    reason: Option<String>,
 }
 
 impl Runnable for CloseTask {
@@ -523,29 +523,37 @@ impl Runnable for CloseTask {
         let ws = self.addr.root();
         let ws = ws.r();
         let global = ws.global();
+
+        if ws.ready_state.get() == WebSocketRequestState::Closed {
+            // Do nothing if already closed.
+            return;
+        }
+
+        // Perform _the WebSocket connection is closed_ steps.
+        // https://html.spec.whatwg.org/multipage/#closeWebSocket
+
+        // Step 1.
         ws.ready_state.set(WebSocketRequestState::Closed);
-        //If failed or full, fire error event
-        if ws.failed.get() || ws.full.get() {
-            ws.failed.set(false);
-            ws.full.set(false);
-            //A Bad close
-            ws.clean_close.set(false);
+
+        // Step 2.
+        if self.failed {
             ws.upcast().fire_event("error",
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable,
                                    global.r());
         }
-        let reason = ws.reason.borrow().clone();
-        /*In addition, we also have to fire a close even if error event fired
-         https://html.spec.whatwg.org/multipage/#closeWebSocket
-        */
+
+        // Step 3.
+        let clean_close = !self.failed;
+        let code = self.code.unwrap_or(close_code::NO_STATUS);
+        let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
         let close_event = CloseEvent::new(global.r(),
                                           atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
-                                          ws.clean_close.get(),
-                                          ws.code.get(),
-                                          DOMString::from(reason));
+                                          clean_close,
+                                          code,
+                                          reason);
         close_event.upcast::<Event>().fire(ws.upcast());
     }
 }

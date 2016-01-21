@@ -91,7 +91,7 @@ impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
                 Ok(FontFaceDescriptorDeclaration::Src(try!(input.parse_comma_separated(|input| {
                     parse_one_src(self.context, input)
                 }))))
-            }
+            },
             _ => Err(())
         }
     }

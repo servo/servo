@@ -75,8 +75,7 @@ impl ResponseMethods for Response {
                 response.response_type = filter_type;
             },
 
-            ResponseType::Opaque |
-            ResponseType::OpaqueRedirect => {
+            ResponseType::Opaque | ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
                 response.body = ResponseBody::Empty;

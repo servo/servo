@@ -17,7 +17,7 @@
         var isOpenCalled = false;
 
         wsocket.addEventListener('open', testOpen.step_func(function (evt) {
-            wsocket.send(".close");
+            wsocket.send("Goodbye");
             isOpenCalled = true;
             testOpen.done();
         }), true);

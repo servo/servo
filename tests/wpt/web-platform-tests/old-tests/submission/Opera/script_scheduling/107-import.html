@@ -13,7 +13,7 @@
         <script>
           test(function() {
             document.write("<link rel='stylesheet' href='css/import.css?pipe=trickle(d2)'>");
-            <!-- note that the pass condition here is not per spec (but does match implementations) as of 2012-06-26 -->
+            // note that the pass condition here is not per spec (but does match implementations) as of 2012-06-26
             assert_equals(getComputedStyle(document.getElementById("test")).position,
                           "static");
           });

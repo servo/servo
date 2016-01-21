@@ -71,7 +71,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
             Ok(net_url) => net_url,
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Close);
+                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
                 return;
             }
         };
@@ -87,7 +87,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
             },
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Close);
+                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
                 return;
             }
 
@@ -114,7 +114,9 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
                     Type::Pong => continue,
                     Type::Close => {
                         ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
-                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Close);
+                        let code = message.cd_status_code;
+                        let reason = String::from_utf8_lossy(&message.payload).into_owned();
+                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Close(code, reason));
                         break;
                     },
                 };
@@ -134,8 +136,11 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData) {
                         ws_sender_outgoing.lock().unwrap().send_message(&Message::binary(data)).unwrap();
                     },
                     WebSocketDomAction::Close(code, reason) => {
-                        ws_sender_outgoing.lock().unwrap()
-                        .send_message(&Message::close_because(code, reason)).unwrap();
+                        let message = match code {
+                            Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
+                            None => Message::close()
+                        };
+                        ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
                     },
                 }
             }

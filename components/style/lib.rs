@@ -4,6 +4,7 @@
 
 #![feature(box_syntax)]
 #![feature(box_patterns)]
+#![feature(cell_extras)]
 #![feature(concat_idents)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
@@ -13,6 +14,8 @@
 #![plugin(serde_macros)]
 #![plugin(serde_macros)]
 #![plugin(plugins)]
+
+#![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
 
 extern crate app_units;
 #[macro_use]
