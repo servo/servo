@@ -77,5 +77,17 @@
       iframe.setAttribute("srcdoc", "<p>foobar</p>");
       document.body.appendChild(iframe);
     }, "The fallback base URL of an iframe srcdoc document is the document base URL of the document's browsing context's browsing context container's document.");
+
+    async_test(function () {
+      var iframe = document.createElement("iframe");
+      iframe.onload = this.step_func_done(function () {
+        var doc = iframe.contentDocument;
+        assert_resolve_url(doc, location.href.replace("/document-base-url.html", "/sub"));
+        assert_equals(doc.baseURI, document.baseURI.replace("/document-base-url.html", "/sub/"),
+                      "The srcdoc document's base URL should be set by the <base> tag.");
+      });
+      iframe.setAttribute("srcdoc", "<base href='sub/'><p>foobar</p>");
+      document.body.appendChild(iframe);
+    }, "The base URL of an iframe srcdoc document with a <base> tag should be set by that tag.");
   </script>
 </body>

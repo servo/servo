@@ -450,17 +450,19 @@ gKeyframeSequenceTests.forEach(function(subtest) {
 });
 
 
-// KeyframeEffectOptions
 test(function(t) {
-  var effect = new KeyframeEffectReadOnly(
-    target, {left: ["10px", "20px"]});
+  var effect = new KeyframeEffectReadOnly(target,
+                                          {left: ["10px", "20px"]});
 
-  var ct = effect.getComputedTiming();
-  assert_equals(ct.delay, 0, "default delay");
-  assert_equals(ct.fill, "none", "default fill");
-  assert_equals(ct.iterations, 1.0, "default iterations");
-  assert_equals(ct.duration, 0, "default duration");
-  assert_equals(ct.direction, "normal", "default direction");
+  var timing = effect.timing;
+  assert_equals(timing.delay, 0, "default delay");
+  assert_equals(timing.endDelay, 0, "default endDelay");
+  assert_equals(timing.fill, "auto", "default fill");
+  assert_equals(timing.iterations, 1.0, "default iterations");
+  assert_equals(timing.iterationStart, 0.0, "default iterationStart");
+  assert_equals(timing.duration, "auto", "default duration");
+  assert_equals(timing.direction, "normal", "default direction");
+  assert_equals(timing.easing, "linear", "default easing");
 
   assert_equals(effect.composite, "replace", "default composite");
   assert_equals(effect.iterationComposite, "replace",
@@ -474,9 +476,9 @@ var gKeyframeEffectOptionTests = [
   { desc:     "an empty KeyframeEffectOption",
     input:    {},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "a normal KeyframeEffectOption",
     input:    {delay: 1000,
@@ -485,142 +487,145 @@ var gKeyframeEffectOptionTests = [
                duration: "auto",
                direction: "alternate"},
     expected: {delay: 1000,
-               fill: "none",
+               fill: "auto",
                iterations: 5.5,
-               duration: 0,
+               duration: "auto",
                direction: "alternate"} },
   { desc:     "a double value",
     input:    3000,
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
                duration: 3000,
                direction: "normal"} },
   { desc:     "+Infinity",
     input:    Infinity,
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
                duration: Infinity,
                direction: "normal"} },
   { desc:     "-Infinity",
     input:    -Infinity,
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: -Infinity,
                direction: "normal"} },
   { desc:     "NaN",
     input:    NaN,
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: NaN,
                direction: "normal"} },
   { desc:     "a negative value",
     input:    -1,
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: -1,
                direction: "normal"} },
   { desc:     "an Infinity duration",
     input:    {duration: Infinity},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
                duration: Infinity,
                direction: "normal"} },
   { desc:     "a negative Infinity duration",
     input:    {duration: -Infinity},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: -Infinity,
                direction: "normal"} },
   { desc:     "a NaN duration",
     input:    {duration: NaN},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: NaN,
                direction: "normal"} },
   { desc:     "a negative duration",
     input:    {duration: -1},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: -1,
                direction: "normal"} },
   { desc:     "a string duration",
-    input:    {duration: "cabbage"},
+    input:    {duration: "merrychristmas"},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: "merrychristmas",
                direction: "normal"} },
   { desc:     "an auto duration",
     input:    {duration: "auto"},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "an Infinity iterations",
     input:    {iterations: Infinity},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: Infinity,
-               duration: 0,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "a negative Infinity iterations",
     input:    {iterations: -Infinity},
     expected: {delay: 0,
-               fill: "none",
-               iterations: 1,
-               duration: 0,
+               fill: "auto",
+               iterations: -Infinity,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "a NaN iterations",
     input:    {iterations: NaN},
     expected: {delay: 0,
-               fill: "none",
-               iterations: 1,
-               duration: 0,
+               fill: "auto",
+               iterations: NaN,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "a negative iterations",
     input:    {iterations: -1},
     expected: {delay: 0,
-               fill: "none",
-               iterations: 1,
-               duration: 0,
+               fill: "auto",
+               iterations: -1,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "an auto fill",
     input:    {fill: "auto"},
     expected: {delay: 0,
-               fill: "none",
+               fill: "auto",
                iterations: 1,
-               duration: 0,
+               duration: "auto",
                direction: "normal"} },
   { desc:     "a forwards fill",
     input:    {fill: "forwards"},
     expected: {delay: 0,
                fill: "forwards",
                iterations: 1,
-               duration: 0,
+               duration: "auto",
                direction: "normal"} }
 ];
 
 gKeyframeEffectOptionTests.forEach(function(stest) {
   test(function(t) {
-    var effect = new KeyframeEffectReadOnly(
-      target, {left: ["10px", "20px"]}, stest.input);
+    var effect = new KeyframeEffectReadOnly(target,
+                                            {left: ["10px", "20px"]},
+                                            stest.input);
 
-    var ct = effect.getComputedTiming();
-    assert_equals(ct.delay, stest.expected.delay, "initial delay");
-    assert_equals(ct.fill, stest.expected.fill, "initial fill");
-    assert_equals(ct.iterations, stest.expected.iterations, "initial iterations");
-    assert_equals(ct.duration, stest.expected.duration, "initial duration");
-    assert_equals(ct.direction, stest.expected.direction, "initial direction");
+    var timing = effect.timing;
+    assert_equals(timing.delay, stest.expected.delay, "timing delay");
+    assert_equals(timing.fill, stest.expected.fill, "timing fill");
+    assert_equals(timing.iterations, stest.expected.iterations,
+                  "timing iterations");
+    assert_equals(timing.duration, stest.expected.duration, "timing duration");
+    assert_equals(timing.direction, stest.expected.direction,
+                  "timing direction");
   }, "a KeyframeEffectReadOnly constructed by " + stest.desc);
 });
 
