@@ -267,10 +267,10 @@ pub unsafe extern fn __errno_location() -> *mut i32 {
 
 #[cfg(not(target_os = "windows"))]
 fn create_sandbox() {
-        ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
 }
 
 #[cfg(target_os = "windows")]
 fn create_sandbox() {
-   panic!("Sandboxing is not supported on Windows.");
+    panic!("Sandboxing is not supported on Windows.");
 }
