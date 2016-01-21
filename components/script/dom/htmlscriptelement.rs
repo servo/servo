@@ -44,17 +44,20 @@ use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
-// https://html.spec.whatwg.org/multipage/#classic-script
-struct ClassicScript {
-    source_text: String,
-    url: url,
+/// https://html.spec.whatwg.org/multipage/#classic-script
+#[derive(Clone, HeapSizeOf, JSTraceable)]
+pub struct ClassicScript {
+    source_text: DOMString,
+    external: bool,
+    url: Url,
 }
 
 impl ClassicScript {
     // https://html.spec.whatwg.org/multipage/#creating-a-classic-script
-    fn create(source_text: String, url: url) {
+    fn create(source_text: DOMString, external: bool, url: Url) -> ClassicScript {
         ClassicScript {
             source_text: source_text,
+            external: external,
             url: url,
         }
     }
@@ -79,9 +82,6 @@ pub struct HTMLScriptElement {
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
-    /// https://html.spec.whatwg.org/multipage/#concept-script-script
-    script: DOMRefCell<Option<Result<ClassicScript, String>>>,
-
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
     block_character_encoding: DOMRefCell<EncodingRef>,
@@ -98,7 +98,6 @@ impl HTMLScriptElement {
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
-            script: DOMRefCell::new(None),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
@@ -172,17 +171,19 @@ impl AsyncResponseListener for ScriptContext {
     }
 
     fn response_complete(&mut self, status: Result<(), String>) {
-        let load = status.map(|_| {
+        let script = status.map(|_| {
             let metadata = self.metadata.take().unwrap();
 
-            // Step 8.
-            let source_text = UTF_8.decode(&self.data, DecoderTrap::Replace).unwrap(),
-            (metadata, source_text)
             // TODO(#9185): implement encoding determination.
+            // Step 8.
+            let source_text = UTF_8.decode(&self.data, DecoderTrap::Replace).unwrap();
+            ClassicScript {
+                source_text: source_text.into(),
+                external: true,
+                url: metadata.final_url,
+            }
         });
         let elem = self.elem.root();
-        // TODO: maybe set this to None again after script execution to save memory.
-        *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
 
         match self.kind {
             ExternalScriptKind::Deferred | ExternalScriptKind::ParsingBlocking => {
@@ -192,8 +193,7 @@ impl AsyncResponseListener for ScriptContext {
                 // XXX associated with the node document of the script element
                 //     **at the time the prepare a script algorithm started**.
                 let document = document_from_node(&*elem);
-                document.asap_in_order_script_loaded(self, script);
-                document.process_asap_in_order_scripts();
+                document.asap_in_order_script_loaded(&elem, script);
             },
             ExternalScriptKind::Asap => {
                 // XXX associated with the node document of the script element
@@ -397,14 +397,17 @@ impl HTMLScriptElement {
                    // TODO: check for script nesting levels.
                    doc.get_script_blocking_stylesheets_count() > 0 {
                     doc.set_pending_parsing_blocking_script(Some(self));
-                    *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+                    //*self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
                     self.ready_to_be_parser_executed.set(true);
                 // Step 15.f: otherwise.
                 } else {
                     assert!(!text.is_empty());
                     self.ready_to_be_parser_executed.set(true);
-                    *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
-                    self.execute();
+                    self.execute(Ok(ClassicScript {
+                        source_text: text,
+                        external: false,
+                        url: base_url,
+                    }));
                     return NextParserState::Continue;
                 }
             },
@@ -424,7 +427,7 @@ impl HTMLScriptElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
-    pub fn execute(&self) {
+    pub fn execute(&self, script: Result<ClassicScript, String>) {
         assert!(self.ready_to_be_parser_executed.get());
 
         // Step 1.
@@ -433,28 +436,14 @@ impl HTMLScriptElement {
             return;
         }
 
-        let load = self.load.borrow_mut().take().unwrap();
-
-        let (source, external, url) = match load {
+        let script = match script {
             // Step 2.
-            ScriptOrigin::External(Err(e)) => {
+            Err(e) => {
                 error!("error loading script {}", e);
                 self.dispatch_error_event();
                 return;
             }
-
-            // Step 2.b.1.a.
-            ScriptOrigin::External(Ok((metadata, bytes))) => {
-                // TODO(#9185): implement encoding determination.
-                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
-                 true,
-                 metadata.final_url)
-            },
-
-            // Step 2.b.1.c.
-            ScriptOrigin::Internal(text, url) => {
-                (text, false, url)
-            }
+            Ok(script) => script,
         };
 
         // Step 2.b.2.
@@ -479,9 +468,9 @@ impl HTMLScriptElement {
         // TODO: Create a script...
         let window = window_from_node(self);
         let mut rval = RootedValue::new(window.get_cx(), UndefinedValue());
-        window.evaluate_script_on_global_with_result(&*source,
-                                                         &*url.serialize(),
-                                                         rval.handle_mut());
+        window.evaluate_script_on_global_with_result(&*script.source_text,
+                                                     &*script.url.serialize(),
+                                                     rval.handle_mut());
 
         // Step 2.b.7.
         document.set_current_script(old_script.r());
@@ -494,7 +483,7 @@ impl HTMLScriptElement {
         self.dispatch_after_script_execute_event();
 
         // Step 2.b.10.
-        if external {
+        if script.external {
             self.dispatch_load_event();
         } else {
             let chan = window.dom_manipulation_thread_source();
