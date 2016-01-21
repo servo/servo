@@ -172,6 +172,7 @@ impl HTMLScriptElement {
         if self.already_started.get() {
             return NextParserState::Continue;
         }
+
         // Step 2.
         let was_parser_inserted = self.parser_inserted.get();
         self.parser_inserted.set(false);
@@ -183,24 +184,29 @@ impl HTMLScriptElement {
         if was_parser_inserted && !async {
             self.non_blocking.set(true);
         }
+
         // Step 4.
         let text = self.Text();
         if text.is_empty() && !element.has_attribute(&atom!("src")) {
             return NextParserState::Continue;
         }
+
         // Step 5.
         if !self.upcast::<Node>().is_in_doc() {
             return NextParserState::Continue;
         }
+
         // Step 6.
         if !self.is_javascript() {
             return NextParserState::Continue;
         }
+
         // Step 7.
         if was_parser_inserted {
             self.parser_inserted.set(true);
             self.non_blocking.set(false);
         }
+
         // Step 8.
         self.already_started.set(true);
 
@@ -245,66 +251,69 @@ impl HTMLScriptElement {
             }
         }
 
+        // TODO: Step 14: CORS.
+
+        // TODO: Step 15: environment settings object.
+
         let window = window_from_node(self);
         let window = window.r();
         let base_url = window.get_url();
 
-        // Step 14.
         let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
+            // Step 16.
             Some(ref src) => {
-                // Step 14.1.
+                // Step 16.1.
                 let src = src.value();
 
-                // Step 14.2.
+                // Step 16.2.
                 if src.is_empty() {
                     self.queue_error_event();
                     return NextParserState::Continue;
                 }
 
-                // Step 14.3.
-                match base_url.join(&src) {
+                // Step 16.4-16.5.
+                let url = match base_url.join(&src) {
                     Err(_) => {
-                        // Step 14.4.
                         error!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
                     }
-                    Ok(url) => {
-                        // Step 14.5-7.
-                        // TODO(#9186): use the fetch infrastructure.
-                        let script_chan = window.networking_thread_source();
-                        let elem = Trusted::new(self, script_chan.clone());
+                    Ok(url) => url,
+                };
 
-                        let context = Arc::new(Mutex::new(ScriptContext {
-                            elem: elem,
-                            data: vec!(),
-                            metadata: None,
-                            url: url.clone(),
-                        }));
+                // Step 16.6.
+                // TODO(#9186): use the fetch infrastructure.
+                let script_chan = window.networking_thread_source();
+                let elem = Trusted::new(self, script_chan.clone());
 
-                        let (action_sender, action_receiver) = ipc::channel().unwrap();
-                        let listener = NetworkListener {
-                            context: context,
-                            script_chan: script_chan,
-                        };
-                        let response_target = AsyncResponseTarget {
-                            sender: action_sender,
-                        };
-                        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                            listener.notify(message.to().unwrap());
-                        });
+                let context = Arc::new(Mutex::new(ScriptContext {
+                    elem: elem,
+                    data: vec!(),
+                    metadata: None,
+                    url: url.clone(),
+                }));
 
-                        doc.load_async(LoadType::Script(url), response_target);
-                    }
-                }
+                let (action_sender, action_receiver) = ipc::channel().unwrap();
+                let listener = NetworkListener {
+                    context: context,
+                    script_chan: script_chan,
+                };
+                let response_target = AsyncResponseTarget {
+                    sender: action_sender,
+                };
+                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                    listener.notify(message.to().unwrap());
+                });
+
+                doc.load_async(LoadType::Script(url), response_target);
                 true
             },
             None => false,
         };
 
-        // Step 15.
+        // Step 18.
         let deferred = element.has_attribute(&atom!("defer"));
-        // Step 15.a: has src, has defer, was parser-inserted, is not async.
+        // Step 18.a: has src, has defer, was parser-inserted, is not async.
         if is_external &&
            deferred &&
            was_parser_inserted &&
@@ -312,13 +321,23 @@ impl HTMLScriptElement {
             doc.add_deferred_script(self);
             // Second part implemented in Document::process_deferred_scripts.
             return NextParserState::Continue;
-        // Step 15.b: has src, was parser-inserted, is not async.
+        // Step 18.b: has src, was parser-inserted, is not async.
         } else if is_external &&
                   was_parser_inserted &&
                   !async {
             doc.set_pending_parsing_blocking_script(Some(self));
             // Second part implemented in the load result handler.
-        // Step 15.c: doesn't have src, was parser-inserted, is blocked on stylesheet.
+        // Step 18.c: has src, isn't async, isn't non-blocking.
+        } else if is_external &&
+                  !async &&
+                  !self.non_blocking.get() {
+            doc.push_asap_in_order_script(self);
+            // Second part implemented in Document::process_asap_scripts.
+        // Step 18.d: has src.
+        } else if is_external {
+            doc.add_asap_script(self);
+            // Second part implemented in Document::process_asap_scripts.
+        // Step 18.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
         } else if !is_external &&
                   was_parser_inserted &&
                   // TODO: check for script nesting levels.
@@ -326,17 +345,7 @@ impl HTMLScriptElement {
             doc.set_pending_parsing_blocking_script(Some(self));
             *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
             self.ready_to_be_parser_executed.set(true);
-        // Step 15.d: has src, isn't async, isn't non-blocking.
-        } else if is_external &&
-                  !async &&
-                  !self.non_blocking.get() {
-            doc.push_asap_in_order_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 15.e: has src.
-        } else if is_external {
-            doc.add_asap_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 15.f: otherwise.
+        // Step 18.f: otherwise.
         } else {
             assert!(!text.is_empty());
             self.ready_to_be_parser_executed.set(true);
@@ -344,6 +353,7 @@ impl HTMLScriptElement {
             self.execute();
             return NextParserState::Continue;
         }
+
         // TODO: make this suspension happen automatically.
         if was_parser_inserted {
             if let Some(parser) = doc.get_current_parser() {
