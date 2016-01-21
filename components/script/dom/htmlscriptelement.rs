@@ -186,8 +186,12 @@ impl AsyncResponseListener for ScriptContext {
         let elem = self.elem.root();
 
         match self.kind {
-            ExternalScriptKind::Deferred | ExternalScriptKind::ParsingBlocking => {
+            ExternalScriptKind::ParsingBlocking => {
                 elem.ready_to_be_parser_executed.set(true);
+            }
+            ExternalScriptKind::Deferred => {
+                let document = document_from_node(&*elem);
+                document.deferred_script_loaded(&elem, script);
             }
             ExternalScriptKind::AsapInOrder => {
                 // XXX associated with the node document of the script element
@@ -199,7 +203,7 @@ impl AsyncResponseListener for ScriptContext {
                 // XXX associated with the node document of the script element
                 //     **at the time the prepare a script algorithm started**.
                 let document = document_from_node(&*elem);
-                document.process_asap_script(&elem);
+                document.process_asap_script(&elem, script);
             },
         }
 

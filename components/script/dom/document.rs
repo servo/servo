@@ -158,11 +158,11 @@ pub struct Document {
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
-    deferred_scripts: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    deferred_scripts: DOMRefCell<Vec<(JS<HTMLScriptElement>, Option<Result<ClassicScript, String>>)>>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
     asap_in_order_scripts_list: DOMRefCell<Vec<(JS<HTMLScriptElement>, Option<Result<ClassicScript, String>>)>>,
     /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
-    asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    asap_scripts_set: DOMRefCell<Vec<(JS<HTMLScriptElement>, Option<Result<ClassicScript, String>>)>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
@@ -1137,11 +1137,11 @@ impl Document {
     }
 
     pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
-        self.deferred_scripts.borrow_mut().push(JS::from_ref(script));
+        self.deferred_scripts.borrow_mut().push((JS::from_ref(script), None));
     }
 
     pub fn add_asap_script(&self, script: &HTMLScriptElement) {
-        self.asap_scripts_set.borrow_mut().push(JS::from_ref(script));
+        self.asap_scripts_set.borrow_mut().push((JS::from_ref(script), None));
     }
 
     pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
@@ -1259,16 +1259,19 @@ impl Document {
                     }
 
                     {
-                        let script = &*deferred_scripts[0];
-                        if !script.is_ready_to_be_executed() {
-                            // Spin the event loop. We will be called again by
-                            // ScriptContext::response_complete when this
-                            // condition changes.
-                            return;
-                        }
+                        let (ref element, ref script) = deferred_scripts[0];
+                        let script = match *script {
+                            None => {
+                                // Spin the event loop. We will be called again by
+                                // ScriptContext::response_complete when this
+                                // condition changes.
+                                return;
+                            },
+                            Some(ref script) => script.clone(),
+                        };
 
                         // Step 3.2.
-                        script.execute(panic!());
+                        element.execute(script);
                     }
 
                     // Step 3.3.
@@ -1359,6 +1362,18 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script 18.c.
+    pub fn deferred_script_loaded(&self,
+                                  element: &HTMLScriptElement,
+                                  script: Result<ClassicScript, String>) {
+        let mut list = self.deferred_scripts.borrow_mut();
+        let entry = list.iter_mut()
+                        .find(|entry| &*entry.0 == element)
+                        .expect("This element should have been in the list");
+        assert!(entry.1.is_none());
+        entry.1 = Some(script);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 18.c.
     pub fn asap_in_order_script_loaded(&self,
                                        element: &HTMLScriptElement,
                                        script: Result<ClassicScript, String>) {
@@ -1388,14 +1403,15 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
-    pub fn process_asap_script(&self, script: &HTMLScriptElement) {
-        assert!(script.is_ready_to_be_executed()); // XXX ???
-        script.execute(panic!());
+    pub fn process_asap_script(&self,
+                               element: &HTMLScriptElement,
+                               script: Result<ClassicScript, String>) {
+        element.execute(script);
 
         let idx = self.asap_scripts_set
                       .borrow()
                       .iter()
-                      .position(|s| &**s == script)
+                      .position(|s| &*s.0 == element)
                       .unwrap();
         self.asap_scripts_set.borrow_mut().swap_remove(idx);
     }
