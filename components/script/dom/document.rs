@@ -53,7 +53,7 @@ use dom::htmliframeelement::{self, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
-use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlscriptelement::{HTMLScriptElement, ClassicScript};
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
@@ -160,7 +160,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     deferred_scripts: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
-    asap_in_order_scripts_list: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    asap_in_order_scripts_list: DOMRefCell<Vec<(JS<HTMLScriptElement>, Option<Result<ClassicScript, String>>)>>,
     /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
     asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
@@ -1145,7 +1145,7 @@ impl Document {
     }
 
     pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
-        self.asap_in_order_scripts_list.borrow_mut().push(JS::from_ref(script));
+        self.asap_in_order_scripts_list.borrow_mut().push((JS::from_ref(script), None));
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
@@ -1268,7 +1268,7 @@ impl Document {
                         }
 
                         // Step 3.2.
-                        script.execute();
+                        script.execute(panic!());
                     }
 
                     // Step 3.3.
@@ -1359,13 +1359,30 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script 18.c.
-    pub fn process_asap_in_order_scripts(&self) {
-        while self.asap_in_order_scripts_list.borrow().len() > 0 {
-            let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
-            if !script.is_ready_to_be_executed() {
-                break;
-            }
-            script.execute();
+    pub fn asap_in_order_script_loaded(&self,
+                                       element: &HTMLScriptElement,
+                                       script: Result<ClassicScript, String>) {
+        {
+            let mut list = self.asap_in_order_scripts_list.borrow_mut();
+            let entry = list.iter_mut()
+                            .find(|entry| &*entry.0 == element)
+                            .expect("This element should have been in the list");
+            assert!(entry.1.is_none());
+            entry.1 = Some(script);
+        }
+        self.process_asap_in_order_scripts();
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 18.c.
+    fn process_asap_in_order_scripts(&self) {
+        loop {
+            let (element, script) = match self.asap_in_order_scripts_list.borrow().get(0) {
+                Some(&(_, None)) | None => break,
+                Some(&(ref element, Some(ref script))) => {
+                    (Root::from_ref(&**element), script.clone())
+                }
+            };
+            element.execute(script);
             self.asap_in_order_scripts_list.borrow_mut().remove(0);
         }
     }
@@ -1373,7 +1390,7 @@ impl Document {
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
     pub fn process_asap_script(&self, script: &HTMLScriptElement) {
         assert!(script.is_ready_to_be_executed()); // XXX ???
-        script.execute();
+        script.execute(panic!());
 
         let idx = self.asap_scripts_set
                       .borrow()
