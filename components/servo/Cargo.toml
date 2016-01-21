@@ -131,7 +131,7 @@ git = "https://github.com/pcwalton/gaol"
 [target.x86_64-apple-darwin.dependencies.gaol]
 git = "https://github.com/pcwalton/gaol"
 
-[target.x86_64-unknown-linux.dependencies.gaol]
+[target.x86_64-unknown-linux-gnu.dependencies.gaol]
 git = "https://github.com/pcwalton/gaol"
 
 [target.i686-unknown-linux-gnu.dependencies.gaol]
