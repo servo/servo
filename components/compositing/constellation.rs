@@ -410,7 +410,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             //
             // Yes, that's all there is to it!
             if opts::multiprocess() {
-                  self.spawn_multiprocess(unprivileged_pipeline_content);
+                self.spawn_multiprocess(unprivileged_pipeline_content);
             } else {
                 unprivileged_pipeline_content.start_all::<LTF, STF>(false);
             }
@@ -450,7 +450,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn spawn_multiprocess(&mut self, _: UnprivilegedPipelineContent) {
         panic!("Multiprocess is not supported on Windows.");
     }
-    
+
     // Push a new (loading) pipeline to the list of pending frame changes
     fn push_pending_frame(&mut self, new_pipeline_id: PipelineId,
                           old_pipeline_id: Option<PipelineId>) {

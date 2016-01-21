@@ -18,6 +18,7 @@ from mach.registrar import Registrar
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
+
 @contextlib.contextmanager
 def cd(new_path):
     """Context manager for changing the current working directory"""
