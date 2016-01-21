@@ -39,7 +39,6 @@ impl DOMString {
     pub fn bytes(&self) -> Bytes {
         self.0.bytes()
     }
-
 }
 
 impl Default for DOMString {

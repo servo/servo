@@ -219,7 +219,7 @@ impl WebSocket {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
 
-            if protocols[i + 1..].iter().any(|p| p == protocol) {
+            if protocols[i + 1..].iter().any(|p| p.eq_ignore_ascii_case(protocol)) {
                 return Err(Error::Syntax);
             }
 
