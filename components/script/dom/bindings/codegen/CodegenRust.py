@@ -2253,7 +2253,7 @@ assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 let mut proto = RootedObject::new(cx, ptr::null_mut());
 let _ac = JSAutoCompartment::new(cx, scope.get());
-GetProtoObject(cx, scope, scope, proto.handle_mut());
+GetProtoObject(cx, scope, proto.handle_mut());
 assert!(!proto.ptr.is_null());
 
 %(createObject)s
@@ -2270,7 +2270,7 @@ let _ar = JSAutoRequest::new(cx);
 
 let _ac = JSAutoCompartment::new(cx, obj.ptr);
 let mut proto = RootedObject::new(cx, ptr::null_mut());
-GetProtoObject(cx, obj.handle(), obj.handle(), proto.handle_mut());
+GetProtoObject(cx, obj.handle(), proto.handle_mut());
 JS_SetPrototype(cx, obj.handle(), proto.handle());
 
 %(copyUnforgeable)s
@@ -2375,11 +2375,9 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties):
-        args = [Argument('*mut JSContext', 'cx')]
+        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global')]
         if not descriptor.interface.isCallback():
-            args += [Argument('HandleObject', 'global'),
-                     Argument('*mut ProtoOrIfaceArray', 'cache')]
-        args.append(Argument('HandleObject', 'receiver'))
+            args.append(Argument('*mut ProtoOrIfaceArray', 'cache'))
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
         self.properties = properties
@@ -2389,7 +2387,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
-create_callback_interface_object(cx, receiver, sConstants, %s);""" % str_to_const_array(name))
+create_callback_interface_object(cx, global, sConstants, %s);""" % str_to_const_array(name))
 
         if len(self.descriptor.prototypeChain) == 1:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
@@ -2397,7 +2395,7 @@ create_callback_interface_object(cx, receiver, sConstants, %s);""" % str_to_cons
             else:
                 getPrototypeProto = "prototype_proto.ptr = JS_GetObjectPrototype(cx, global)"
         else:
-            getPrototypeProto = ("%s::GetProtoObject(cx, global, receiver, prototype_proto.handle_mut())" %
+            getPrototypeProto = ("%s::GetProtoObject(cx, global, prototype_proto.handle_mut())" %
                                  toBindingNamespace(self.descriptor.prototypeChain[-2]))
 
         code = [CGGeneric("""\
@@ -2445,7 +2443,7 @@ if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
                 parentName = toBindingNamespace(self.descriptor.getParentName())
                 code.append(CGGeneric("""
 let mut interface_proto = RootedObject::new(cx, ptr::null_mut());
-%s::GetConstructorObject(cx, global, receiver, interface_proto.handle_mut());""" % parentName))
+%s::GetConstructorObject(cx, global, interface_proto.handle_mut());""" % parentName))
             else:
                 code.append(CGGeneric("""
 let interface_proto = RootedObject::new(cx, JS_GetFunctionPrototype(cx, global));"""))
@@ -2454,7 +2452,7 @@ assert!(!interface_proto.ptr.is_null());
 
 let mut interface = RootedObject::new(cx, ptr::null_mut());
 create_noncallback_interface_object(cx,
-                                    receiver,
+                                    global,
                                     interface_proto.handle(),
                                     &InterfaceObjectClass,
                                     %(static_methods)s,
@@ -2483,7 +2481,7 @@ if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
                 specs.append(CGGeneric("(%s as NonNullJSNative, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
-            code.append(CGGeneric("create_named_constructors(cx, receiver, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -2523,8 +2521,8 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix="", pub=False):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
-                Argument('HandleObject', 'receiver'),
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   'void', args, pub=pub, unsafe=True)
@@ -2532,13 +2530,6 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""
-
-/* global and receiver are usually the same, but they can be different
-   too. For example a sandbox often has an xray wrapper for a window as the
-   prototype of the sandbox's global. In that case receiver is the xray
-   wrapper and global is the sandbox's global.
- */
-
 assert!(((*JS_GetClass(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
@@ -2548,7 +2539,7 @@ if !rval.get().is_null() {
     return;
 }
 
-CreateInterfaceObjects(cx, global, proto_or_iface_array, receiver);
+CreateInterfaceObjects(cx, global, proto_or_iface_array);
 rval.set((*proto_or_iface_array)[%(id)s as usize]);
 assert!(!rval.get().is_null());
 """ % {"id": self.id})
@@ -2670,7 +2661,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         else:
             code = """\
 let mut proto = RootedObject::new(cx, ptr::null_mut());
-GetProtoObject(cx, global, global, proto.handle_mut());
+GetProtoObject(cx, global, proto.handle_mut());
 assert!(!proto.ptr.is_null());
 """
         return CGGeneric("assert!(!global.get().is_null());\n" + code)
