@@ -145,8 +145,6 @@ pub struct Document {
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
-    /// Whether the DOMContentLoaded event has already been dispatched.
-    domcontentloaded_dispatched: Cell<bool>,
     /// XXX
     end_state: Cell<EndState>,
     /// The element that has most recently requested focus for itself.
@@ -1279,21 +1277,7 @@ impl Document {
             }
 
             // Step 4.
-            update_with_current_time(&self.dom_content_loaded_event_start);
-
-            let event = Event::new(GlobalRef::Window(self.window()),
-                                   atom!("DOMContentLoaded"),
-                                   EventBubbles::Bubbles,
-                                   EventCancelable::NotCancelable);
-            let doctarget = self.upcast::<EventTarget>();
-            let _ = doctarget.DispatchEvent(event.r());
-            self.window().reflow(ReflowGoal::ForDisplay,
-                                 ReflowQueryType::NoQuery,
-                                 ReflowReason::DOMContentLoaded);
-
-            update_with_current_time(&self.dom_content_loaded_event_end);
-
-            self.end_state.set(EndState::FiredDOMContentLoaded);
+            self.dispatch_dom_content_loaded();
         }
 
         if self.end_state.get() == EndState::FiredDOMContentLoaded {
@@ -1374,35 +1358,7 @@ impl Document {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3
-    pub fn process_deferred_scripts(&self) {
-        if self.ready_state.get() != DocumentReadyState::Interactive {
-            return;
-        }
-        // Part of substep 1.
-        if self.script_blocking_stylesheets_count.get() > 0 {
-            return;
-        }
-        let mut deferred_scripts = self.deferred_scripts.borrow_mut();
-        while !deferred_scripts.is_empty() {
-            {
-                let script = &*deferred_scripts[0];
-                // Part of substep 1.
-                if !script.is_ready_to_be_executed() {
-                    return;
-                }
-                // Substep 2.
-                script.execute();
-            }
-            // Substep 3.
-            deferred_scripts.remove(0);
-            // Substep 4 (implicit).
-        }
-        // https://html.spec.whatwg.org/multipage/#the-end step 4.
-        self.maybe_dispatch_dom_content_loaded();
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 18.c.
     pub fn process_asap_in_order_scripts(&self) {
         while self.asap_in_order_scripts_list.borrow().len() > 0 {
             let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
@@ -1427,39 +1383,7 @@ impl Document {
         self.asap_scripts_set.borrow_mut().swap_remove(idx);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
-    pub fn process_asap_scripts(&self) {
-        // Execute the first in-order asap-executed script if it's ready, repeat as required.
-        // Re-borrowing the list for each step because it can also be borrowed under execute.
-        while self.asap_in_order_scripts_list.borrow().len() > 0 {
-            let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
-            if !script.is_ready_to_be_executed() {
-                break;
-            }
-            script.execute();
-            self.asap_in_order_scripts_list.borrow_mut().remove(0);
-        }
-
-        let mut idx = 0;
-        // Re-borrowing the set for each step because it can also be borrowed under execute.
-        while idx < self.asap_scripts_set.borrow().len() {
-            let script = Root::from_ref(&*self.asap_scripts_set.borrow()[idx]);
-            if !script.is_ready_to_be_executed() {
-                idx += 1;
-                continue;
-            }
-            script.execute();
-            self.asap_scripts_set.borrow_mut().swap_remove(idx);
-        }
-    }
-
-    pub fn maybe_dispatch_dom_content_loaded(&self) {
-        if self.domcontentloaded_dispatched.get() {
-            return;
-        }
-        self.domcontentloaded_dispatched.set(true);
-
+    pub fn dispatch_dom_content_loaded(&self) {
         update_with_current_time(&self.dom_content_loaded_event_start);
 
         let doctarget = self.upcast::<EventTarget>();
@@ -1567,10 +1491,10 @@ impl Document {
                          -> Document {
         let url = url.unwrap_or_else(|| url!("about:blank"));
 
-        let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
-            (DocumentReadyState::Loading, false)
+        let ready_state = if source == DocumentSource::FromParser {
+            DocumentReadyState::Loading
         } else {
-            (DocumentReadyState::Complete, true)
+            DocumentReadyState::Complete
         };
 
         Document {
@@ -1608,7 +1532,6 @@ impl Document {
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             ready_state: Cell::new(ready_state),
-            domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             end_state: Cell::new(EndState::Parsing),
             possibly_focused: Default::default(),
             focused: Default::default(),

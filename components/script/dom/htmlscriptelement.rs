@@ -173,6 +173,7 @@ impl AsyncResponseListener for ScriptContext {
                 // XXX associated with the node document of the script element
                 //     **at the time the prepare a script algorithm started**.
                 let document = document_from_node(&*elem);
+                document.asap_in_order_script_loaded(self, script);
                 document.process_asap_in_order_scripts();
             },
             ExternalScriptKind::Asap => {
