@@ -12,7 +12,7 @@ def WebIDLTest(parser, harness):
 
     results = parser.finish()
 
-    harness.check(results[2].members[1].type.name, "Long",
+    harness.check(results[2].members[1].type.name, "LongOrNull",
                   "Should expand typedefs")
 
     parser = parser.reset()

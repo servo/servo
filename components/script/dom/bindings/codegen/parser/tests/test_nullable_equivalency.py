@@ -39,28 +39,27 @@ def WebIDLTest(parser, harness):
           attribute DOMString? b;
         };
 
-        /* Not implemented. */
-        /*interface TestNullableEquivalency8 {
+        interface TestNullableEquivalency8 {
           attribute float  a;
           attribute float? b;
-        };*/
+        };
 
-        interface TestNullableEquivalency8 {
+        interface TestNullableEquivalency9 {
           attribute double  a;
           attribute double? b;
         };
 
-        interface TestNullableEquivalency9 {
+        interface TestNullableEquivalency10 {
           attribute object  a;
           attribute object? b;
         };
 
-        interface TestNullableEquivalency10 {
+        interface TestNullableEquivalency11 {
           attribute double[]  a;
           attribute double[]? b;
         };
 
-        interface TestNullableEquivalency11 {
+        interface TestNullableEquivalency12 {
           attribute TestNullableEquivalency9[]  a;
           attribute TestNullableEquivalency9[]? b;
         };
@@ -91,7 +90,7 @@ def checkEquivalent(iface, harness):
     for attr in dir(type1):
         if attr.startswith('_') or \
            attr in ['nullable', 'builtin', 'filename', 'location',
-                    'inner', 'QName'] or \
+                    'inner', 'QName', 'getDeps', 'name'] or \
            (hasattr(type(type1), attr) and not callable(getattr(type1, attr))):
             continue
 
