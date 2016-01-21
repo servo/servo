@@ -81,6 +81,11 @@ impl LocationMethods for Location {
         self.set_url_component(value, UrlHelper::SetHost);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-location-origin
+    fn Origin(&self) -> USVString {
+        UrlHelper::Origin(&self.get_url())
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
     fn Hostname(&self) -> USVString {
         UrlHelper::Hostname(&self.get_url())
