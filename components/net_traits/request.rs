@@ -37,9 +37,11 @@ pub enum Referer {
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
 #[derive(Copy, Clone, PartialEq)]
 pub enum RequestMode {
+    Navigate,
     SameOrigin,
     NoCORS,
     CORSMode,
+    // TODO this is no longer in the spec and should be removed
     ForcedPreflightMode
 }
 
@@ -101,13 +103,14 @@ pub struct Request {
     pub referer: Referer,
     pub authentication: bool,
     pub sync: bool,
+    pub use_cors_preflight: bool,
     pub mode: RequestMode,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
     pub cache_mode: Cell<CacheMode>,
-    pub redirect_mode: RedirectMode,
+    pub redirect_mode: Cell<RedirectMode>,
     pub redirect_count: Cell<u32>,
-    pub response_tainting: ResponseTainting
+    pub response_tainting: Cell<ResponseTainting>
 }
 
 impl Request {
@@ -130,13 +133,14 @@ impl Request {
             referer: Referer::Client,
             authentication: false,
             sync: false,
+            use_cors_preflight: false,
             mode: RequestMode::NoCORS,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
             cache_mode: Cell::new(CacheMode::Default),
-            redirect_mode: RedirectMode::Follow,
+            redirect_mode: Cell::new(RedirectMode::Follow),
             redirect_count: Cell::new(0),
-            response_tainting: ResponseTainting::Basic,
+            response_tainting: Cell::new(ResponseTainting::Basic)
         }
     }
 

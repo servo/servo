@@ -94,10 +94,69 @@ pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<Request>, _cors_flag: bool) -> Response {
+fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // TODO: Implement main fetch spec
-    let response = basic_fetch(request);
-    response
+
+    // Step 1
+    let response = Rc::new(None);
+
+    // Step 9
+    let mut response = if response.is_none() {
+
+        let current_url = request.current_url();
+        let origin_match = match request.origin {
+            Some(ref origin) => origin.origin() == current_url.origin(),
+            _ => false
+        };
+
+        if (!cors_flag && origin_match) || (current_url.scheme == "data" && request.same_origin_data.get()) ||
+            current_url.scheme == "about" || request.mode == RequestMode::Navigate {
+            Rc::new(basic_fetch(request.clone()))
+
+        } else if request.mode == RequestMode::SameOrigin {
+            Rc::new(Response::network_error())
+
+        } else if request.mode == RequestMode::NoCORS {
+            request.response_tainting.set(ResponseTainting::Opaque);
+            Rc::new(basic_fetch(request.clone()))
+
+        } else if current_url.scheme == "http" || current_url.scheme == "https" {
+            Rc::new(Response::network_error())
+
+        } else if request.use_cors_preflight || request.unsafe_request &&
+            (!is_simple_method(&request.method.borrow()) ||
+            request.headers.borrow().iter().any(|h| !is_simple_header(&h))) {
+
+            request.response_tainting.set(ResponseTainting::CORSTainting);
+            request.redirect_mode.set(RedirectMode::Error);
+            let response = http_fetch(request.clone(), BasicCORSCache::new(), cors_flag, true, false);
+            if Response::is_network_error(&response) {
+                // TODO clear cache entries using request
+            }
+            Rc::new(response)
+
+        } else {
+            request.response_tainting.set(ResponseTainting::CORSTainting);
+            Rc::new(http_fetch(request.clone(), BasicCORSCache::new(), true, false, false))
+        }
+    } else {
+        // Rc::new(response.unwrap().unwrap())
+        response.unwrap()
+    };
+
+    // Step 10
+
+    // Step 11
+    // no need to check if response is a network error, since the type would not be `Default`
+    if response.response_type == ResponseType::Default {
+        response = match request.response_tainting.get() {
+            ResponseTainting::Basic => Rc::new(Response::to_filtered(response, ResponseType::Basic)),
+            ResponseTainting::CORSTainting => Rc::new(Response::to_filtered(response, ResponseType::CORS)),
+            ResponseTainting::Opaque => Rc::new(Response::to_filtered(response, ResponseType::Opaque)),
+        }
+    }
+
+    Rc::try_unwrap(response).ok().unwrap()
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -180,7 +239,7 @@ fn http_fetch(request: Rc<Request>,
             if (res.response_type == ResponseType::Opaque &&
                 request.mode != RequestMode::NoCORS) ||
                (res.response_type == ResponseType::OpaqueRedirect &&
-                request.redirect_mode != RedirectMode::Manual) ||
+                request.redirect_mode.get() != RedirectMode::Manual) ||
                res.response_type == ResponseType::Error {
                 return Response::network_error();
             }
@@ -242,7 +301,7 @@ fn http_fetch(request: Rc<Request>,
         let credentials = match request.credentials_mode {
             CredentialsMode::Include => true,
             CredentialsMode::CredentialsSameOrigin if (!cors_flag ||
-                request.response_tainting == ResponseTainting::Opaque)
+                request.response_tainting.get() == ResponseTainting::Opaque)
                 => true,
             _ => false
         };
@@ -271,7 +330,7 @@ fn http_fetch(request: Rc<Request>,
         StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
 
             // Step 1
-            if request.redirect_mode == RedirectMode::Error {
+            if request.redirect_mode.get() == RedirectMode::Error {
                 return Response::network_error();
             }
 
@@ -308,7 +367,7 @@ fn http_fetch(request: Rc<Request>,
             // Step 9
             request.same_origin_data.set(false);
 
-            match request.redirect_mode {
+            match request.redirect_mode.get() {
 
                 // Step 10
                 RedirectMode::Manual => {
@@ -418,7 +477,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 1
     let http_request = if request_has_no_window &&
-        request.redirect_mode != RedirectMode::Follow {
+        request.redirect_mode.get() != RedirectMode::Follow {
         request.clone()
     } else {
         Rc::new((*request).clone())
