@@ -45,6 +45,7 @@ use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageThread;
 use profile_traits::mem;
 use std::any::Any;
@@ -421,7 +422,7 @@ pub enum MozBrowserEvent {
     /// Sent when window.open() is called within a browser `<iframe>`.
     OpenWindow,
     /// Sent when the SSL state changes within a browser `<iframe>`.
-    SecurityChange,
+    SecurityChange(HttpsState),
     /// Sent when alert(), confirm(), or prompt() is called within a browser `<iframe>`.
     ShowModalPrompt(String, String, String, String), // TODO(simartin): Handle unblock()
     /// Sent when the document.title changes within a browser `<iframe>`.
@@ -445,7 +446,7 @@ impl MozBrowserEvent {
             MozBrowserEvent::LoadStart => "mozbrowserloadstart",
             MozBrowserEvent::LocationChange(_) => "mozbrowserlocationchange",
             MozBrowserEvent::OpenWindow => "mozbrowseropenwindow",
-            MozBrowserEvent::SecurityChange => "mozbrowsersecuritychange",
+            MozBrowserEvent::SecurityChange(_) => "mozbrowsersecuritychange",
             MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
             MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
             MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",

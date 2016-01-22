@@ -1852,6 +1852,8 @@ impl ScriptThread {
             DOMString::new()
         };
 
+        document.set_https_state(metadata.https_state);
+
         match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
                 parse_xml(document.r(),

@@ -26,6 +26,7 @@ use mime_classifier::MIMEClassifier;
 use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
+use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
@@ -769,6 +770,11 @@ pub fn load<A>(load_data: LoadData,
         });
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
+        metadata.https_state = if doc_url.scheme == "https" {
+            HttpsState::Modern
+        } else {
+            HttpsState::None
+        };
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
