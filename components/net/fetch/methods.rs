@@ -98,7 +98,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
-    let response = Rc::new(None);
+    let response = None;
 
     // Step 9
     let mut response = if response.is_none() {
@@ -111,17 +111,17 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
 
         if (!cors_flag && origin_match) || (current_url.scheme == "data" && request.same_origin_data.get()) ||
             current_url.scheme == "about" || request.mode == RequestMode::Navigate {
-            Rc::new(basic_fetch(request.clone()))
+            basic_fetch(request.clone())
 
         } else if request.mode == RequestMode::SameOrigin {
-            Rc::new(Response::network_error())
+            Response::network_error()
 
         } else if request.mode == RequestMode::NoCORS {
             request.response_tainting.set(ResponseTainting::Opaque);
-            Rc::new(basic_fetch(request.clone()))
+            basic_fetch(request.clone())
 
         } else if current_url.scheme == "http" || current_url.scheme == "https" {
-            Rc::new(Response::network_error())
+            Response::network_error()
 
         } else if request.use_cors_preflight || request.unsafe_request &&
             (!is_simple_method(&request.method.borrow()) ||
@@ -133,14 +133,13 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
             if Response::is_network_error(&response) {
                 // TODO clear cache entries using request
             }
-            Rc::new(response)
+            response
 
         } else {
             request.response_tainting.set(ResponseTainting::CORSTainting);
-            Rc::new(http_fetch(request.clone(), BasicCORSCache::new(), true, false, false))
+            http_fetch(request.clone(), BasicCORSCache::new(), true, false, false)
         }
     } else {
-        // Rc::new(response.unwrap().unwrap())
         response.unwrap()
     };
 
@@ -150,13 +149,13 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // no need to check if response is a network error, since the type would not be `Default`
     if response.response_type == ResponseType::Default {
         response = match request.response_tainting.get() {
-            ResponseTainting::Basic => Rc::new(Response::to_filtered(response, ResponseType::Basic)),
-            ResponseTainting::CORSTainting => Rc::new(Response::to_filtered(response, ResponseType::CORS)),
-            ResponseTainting::Opaque => Rc::new(Response::to_filtered(response, ResponseType::Opaque)),
+            ResponseTainting::Basic => Response::to_filtered(Rc::new(response), ResponseType::Basic),
+            ResponseTainting::CORSTainting => Response::to_filtered(Rc::new(response), ResponseType::CORS),
+            ResponseTainting::Opaque => Response::to_filtered(Rc::new(response), ResponseType::Opaque),
         }
     }
 
-    Rc::try_unwrap(response).ok().unwrap()
+    response
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
