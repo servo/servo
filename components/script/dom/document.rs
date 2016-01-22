@@ -1199,11 +1199,6 @@ impl Document {
         {
             let mut list = self.animation_frame_list.borrow_mut();
             animation_frame_list = Vec::from_iter(list.drain());
-
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
-            chan.send(event).unwrap();
         }
         let performance = self.window.Performance();
         let performance = performance.r();
@@ -1211,6 +1206,13 @@ impl Document {
 
         for (_, callback) in animation_frame_list {
             callback(*timing);
+        }
+
+        if self.animation_frame_list.borrow().is_empty() {
+            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
+                                                                       AnimationState::NoAnimationCallbacksPresent);
+            chan.send(event).unwrap();
         }
 
         self.window.reflow(ReflowGoal::ForDisplay,
