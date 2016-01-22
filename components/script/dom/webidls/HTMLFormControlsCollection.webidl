@@ -8,9 +8,3 @@ interface HTMLFormControlsCollection : HTMLCollection {
   // inherits length and item()
   // getter (RadioNodeList or Element)? namedItem(DOMString name); // shadows inherited namedItem()
 };
-
-/*
-interface RadioNodeList : NodeList {
-  attribute DOMString value;
-};
-*/
