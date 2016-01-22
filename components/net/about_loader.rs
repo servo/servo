@@ -8,6 +8,7 @@ use hyper::http::RawStatus;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
+use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::sync::Arc;
@@ -28,6 +29,7 @@ pub fn factory(mut load_data: LoadData,
                 charset: Some("utf-8".to_owned()),
                 headers: None,
                 status: Some(RawStatus(200, "OK".into())),
+                https_state: HttpsState::None,
             };
             if let Ok(chan) = start_sending_sniffed_opt(start_chan,
                                                         metadata,
