@@ -4,6 +4,7 @@
 
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -29,6 +30,7 @@ use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
 use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use net_traits::response::HttpsState;
 use page::IterablePage;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -275,9 +277,25 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
-            MozBrowserEvent::OpenWindow | MozBrowserEvent::SecurityChange | MozBrowserEvent::OpenSearch  |
+            MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
+            }
+            MozBrowserEvent::SecurityChange(https_state) => {
+                BrowserElementSecurityChangeDetail {
+                    // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsersecuritychange
+                    state: Some(DOMString::from(match https_state {
+                        HttpsState::Modern => "secure",
+                        HttpsState::Deprecated => "broken",
+                        HttpsState::None => "insecure",
+                    }.to_owned())),
+                    // FIXME - Not supported yet:
+                    trackingContent: None,
+                    mixedContent: None,
+                    trackingState: None,
+                    extendedValidation: None,
+                    mixedState: None,
+                }.to_jsval(cx, rval);
             }
             MozBrowserEvent::LocationChange(ref string) | MozBrowserEvent::TitleChange(ref string) => {
                 string.to_jsval(cx, rval);

@@ -312,6 +312,9 @@ pub struct Metadata {
     #[ignore_heap_size_of = "Defined in hyper"]
     /// HTTP Status
     pub status: Option<RawStatus>,
+
+    /// Is successful HTTPS connection
+    pub https_state: response::HttpsState,
 }
 
 impl Metadata {
@@ -324,6 +327,7 @@ impl Metadata {
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".into())),
+            https_state: response::HttpsState::None,
         }
     }
 
