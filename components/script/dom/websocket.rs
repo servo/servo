@@ -34,6 +34,7 @@ use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use script_thread::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
