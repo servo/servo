@@ -17,7 +17,7 @@ interface HTMLFormElement : HTMLElement {
            attribute DOMString target;
 
   [SameObject] readonly attribute HTMLFormControlsCollection elements;
-  readonly attribute long length;
+  readonly attribute unsigned long length;
   //getter Element (unsigned long index);
   //getter (RadioNodeList or Element) (DOMString name);
 
