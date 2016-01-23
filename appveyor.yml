@@ -5,7 +5,6 @@ branches:
     - master
 
 platform:
-  - Win32
   - x64
 
 install:
