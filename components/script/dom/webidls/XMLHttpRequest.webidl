@@ -14,7 +14,7 @@
  */
 
 // https://fetch.spec.whatwg.org/#bodyinit
-typedef (Blob or /*BufferSource or FormData or */DOMString or URLSearchParams) BodyInit;
+typedef (Blob or /*BufferSource or */DOMString or FormData or URLSearchParams) BodyInit;
 
 enum XMLHttpRequestResponseType {
   "",

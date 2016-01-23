@@ -7,12 +7,13 @@ use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_orig
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::UnionTypes::BlobOrStringOrFormDataOrURLSearchParams;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams;
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
@@ -22,10 +23,14 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
+use dom::blob::Blob;
+use dom::urlsearchparams::URLSearchParams;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::formdata::{generate_boundary, generate_multipart_data};
+use dom::htmlformelement::FormDatum;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -62,7 +67,7 @@ use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
 use util::str::DOMString;
 
-pub type SendParam = BlobOrStringOrURLSearchParams;
+pub type SendParam = BlobOrStringOrFormDataOrURLSearchParams;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -1234,6 +1239,7 @@ impl XMLHttpRequest {
     }
 }
 
+
 trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
@@ -1241,17 +1247,17 @@ impl Extractable for SendParam {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         match *self {
-            BlobOrStringOrURLSearchParams::String(ref s) => {
+            BlobOrStringOrFormDataOrURLSearchParams::String(ref s) => {
                 let encoding = UTF_8 as EncodingRef;
                 (encoding.encode(s, EncoderTrap::Replace).unwrap(),
                     Some(DOMString::from("text/plain;charset=UTF-8")))
             },
-            BlobOrStringOrURLSearchParams::URLSearchParams(ref usp) => {
+            BlobOrStringOrFormDataOrURLSearchParams::URLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
                 (usp.serialize(None).into_bytes(),
                     Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
             },
-            BlobOrStringOrURLSearchParams::Blob(ref b) => {
+            BlobOrStringOrFormDataOrURLSearchParams::Blob(ref b) => {
                 let data = b.get_data();
                 let content_type = if b.Type().as_ref().is_empty() {
                     None
@@ -1259,6 +1265,13 @@ impl Extractable for SendParam {
                     Some(b.Type())
                 };
                 (data.get_bytes().to_vec(), content_type)
+            },
+            BlobOrStringOrFormDataOrURLSearchParams::FormData(ref mut f) => {
+
+                let boundary = generate_boundary();
+                let content_type = Some(DOMString::from("multipart/formdata; boundary=".to_owned() + &boundary));
+
+                (generate_multipart_data(f, boundary).into_bytes(), content_type)
             },
         }
     }

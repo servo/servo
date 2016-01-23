@@ -517,7 +517,6 @@ impl HTMLFormElement {
         };
         self.marked_for_reset.set(false);
     }
-
 }
 
 pub enum FileOrString {

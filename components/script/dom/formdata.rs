@@ -5,9 +5,8 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrUSVString;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrUSVString::{self, eBlob, eUSVString};
+use dom::bindings::codegen::UnionTypes::BlobOrUSVString;
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -140,6 +139,12 @@ impl FormData {
         }
     }
 }
+
+//TODO fn to convert formdata::FormData to htmlformelement::FormDatum
+pub fn get_vecformdatum_from_formdata(formdata: FormData){
+    let form_data:Vec<DataForm> = Vec::new();
+}
+
 
 pub fn generate_boundary() -> String {
     let i1 = random::<u32>();
