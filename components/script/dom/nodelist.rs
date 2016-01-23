@@ -41,8 +41,7 @@ impl NodeList {
                            GlobalRef::Window(window), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T)
-                              -> Root<NodeList>
+    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>
                               where T: Iterator<Item=Root<Node>> {
         NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
     }
@@ -93,8 +92,12 @@ impl NodeList {
         }
     }
 
-    pub fn get_list_type(&self) -> &NodeListType {
-        &self.list_type
+    pub fn as_simple_list(&self) -> &Vec<JS<Node>> {
+        if let NodeListType::Simple(ref list) = self.list_type {
+            list
+        } else {
+            panic!("called as_simple_list() on a children node list")
+        }
     }
 }
 
@@ -108,17 +111,13 @@ pub struct ChildrenList {
 }
 
 impl ChildrenList {
-    fn new(node: &Node) -> ChildrenList {
+    pub fn new(node: &Node) -> ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: JS::from_ref(node),
             last_visited: MutNullableHeap::new(last_visited.r()),
             last_index: Cell::new(0u32),
         }
-    }
-
-    pub fn get_parent_node(&self) -> &Node {
-        &*self.node
     }
 
     pub fn len(&self) -> u32 {
