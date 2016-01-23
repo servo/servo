@@ -8,4 +8,4 @@ platform:
   - Win32
   - x64
 
-build_script: ./mach build
+build_script: mach build
