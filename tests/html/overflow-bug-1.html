@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- https://github.com/servo/servo/issues/9306 -->
+<style>
+  body {
+    margin: 0;
+  }
+
+  .green {
+    background: #0F0;
+    height: 40px;
+    width: 400px;
+    top: 40px;
+    left: 50%;
+    margin-left: -300px;
+    position: absolute;
+    padding: 0px 100px;
+  }
+
+  .red {
+    background: #F00;
+    position: absolute;
+    right: 0;
+  }
+
+</style>
+
+<div class="green">
+  <span class="red">x</span>
+</div>
