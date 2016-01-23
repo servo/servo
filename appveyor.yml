@@ -27,5 +27,5 @@ install:
   - C:\ProgramData\msys32\usr\bin\bash -l -c "pacman -Sy"
   - C:\ProgramData\msys32\usr\bin\bash -l -c "pacman -S --needed --noconfirm msys2-runtime pacman bash"
   - C:\ProgramData\msys32\usr\bin\bash -l -c "pacman -Su --noconfirm"
-  - C:\ProgramData\msys32\usr\bin\bash -l -c "pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
+  - C:\ProgramData\msys32\usr\bin\bash -l -c "pacman -Sy --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
 build_script: C:\ProgramData\msys32\usr\bin\bash -l -c "mach build"
