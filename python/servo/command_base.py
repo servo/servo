@@ -16,6 +16,8 @@ import toml
 
 from mach.registrar import Registrar
 
+BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
+
 
 @contextlib.contextmanager
 def cd(new_path):
@@ -36,6 +38,8 @@ def host_triple():
         os_type = "apple-darwin"
     elif os_type == "android":
         os_type = "linux-androideabi"
+    elif os_type.startswith("mingw64_nt-"):
+        os_type = "pc-windows-gnu"
     else:
         os_type = "unknown"
 
@@ -50,6 +54,31 @@ def host_triple():
         cpu_type = "unknown"
 
     return "%s-%s" % (cpu_type, os_type)
+
+
+def use_nightly_rust():
+    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST", "0")
+    return envvar != "0"
+
+
+def call(*args, **kwargs):
+    """Wrap `subprocess.call`, printing the command if verbose=True."""
+    verbose = kwargs.pop('verbose', False)
+    if verbose:
+        print(' '.join(args[0]))
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
+
+
+def check_call(*args, **kwargs):
+    """Wrap `subprocess.check_call`, printing the command if verbose=True."""
+    verbose = kwargs.pop('verbose', False)
+    if verbose:
+        print(' '.join(args[0]))
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.check_call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
 class CommandBase(object):
@@ -187,6 +216,14 @@ class CommandBase(object):
     def build_env(self, gonk=False, hosts_file_path=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
+        if sys.platform == "win32" and type(env['PATH']) == unicode:
+            # On win32, the virtualenv's activate_this.py script sometimes ends up
+            # turning os.environ['PATH'] into a unicode string.  This doesn't work
+            # for passing env vars in to a process, so we force it back to ascii.
+            # We don't use UTF8 since that won't be correct anyway; if you actually
+            # have unicode stuff in your path, all this PATH munging would have broken
+            # it in any case.
+            env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
         extra_lib = []
         if not self.config["tools"]["system-rust"] \
@@ -333,13 +370,13 @@ class CommandBase(object):
 
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
-                self.config["tools"]["rust-root"], "rustc", "bin", "rustc")):
+                self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX)):
             print("looking for rustc at %s" % path.join(
-                self.config["tools"]["rust-root"], "rustc", "bin", "rustc"))
+                self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX))
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
-                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo")):
+                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo" + BIN_SUFFIX)):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True

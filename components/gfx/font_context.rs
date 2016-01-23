@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use azure::azure_hl::BackendType;
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 use azure::scaled_font::FontInfo;
 use azure::scaled_font::ScaledFont;
 use fnv::FnvHasher;
@@ -30,7 +30,7 @@ use style::computed_values::{font_style, font_variant};
 use util::cache::HashCache;
 use util::mem::HeapSizeOf;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     ScaledFont::new(BackendType::Skia, FontInfo::FontData(&template.bytes),
                     pt_size.to_f32_px())

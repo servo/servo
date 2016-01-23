@@ -22,7 +22,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd
+from servo.command_base import CommandBase, cd, call, check_call
 
 
 def read_file(filename, if_exists=False):
@@ -114,7 +114,7 @@ class PostBuildCommands(CommandBase):
             args = args + params
 
         try:
-            subprocess.check_call(args, env=env)
+            check_call(args, env=env)
         except subprocess.CalledProcessError as e:
             print("Servo exited with return value %d" % e.returncode)
             return e.returncode
@@ -142,7 +142,7 @@ class PostBuildCommands(CommandBase):
         servo_cmd = [self.get_binary_path(release, dev)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
-            subprocess.check_call(rr_cmd + servo_cmd)
+            check_call(rr_cmd + servo_cmd)
         except OSError as e:
             if e.errno == 2:
                 print("rr binary can't be found!")
@@ -154,7 +154,7 @@ class PostBuildCommands(CommandBase):
              category='post-build')
     def rr_replay(self):
         try:
-            subprocess.check_call(['rr', '--fatal-errors', 'replay'])
+            check_call(['rr', '--fatal-errors', 'replay'])
         except OSError as e:
             if e.errno == 2:
                 print("rr binary can't be found!")
@@ -191,8 +191,8 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        return subprocess.call(["cargo", "doc"] + params,
-                               env=self.build_env(), cwd=self.servo_crate())
+        return call(["cargo", "doc"] + params,
+                    env=self.build_env(), cwd=self.servo_crate())
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

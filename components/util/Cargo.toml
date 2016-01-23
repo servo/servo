@@ -66,3 +66,6 @@ getopts = "0.2.11"
 hyper = { version = "0.7", optional = true }
 url = {version = "0.5.2", features = ["serde_serialization"]}
 uuid = "0.1.17"
+
+[target.x86_64-pc-windows-gnu.dependencies]
+kernel32-sys = "0.2"

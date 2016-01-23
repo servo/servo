@@ -28,7 +28,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, host_triple
+from servo.command_base import CommandBase, cd, host_triple, check_call, BIN_SUFFIX
 
 
 def download(desc, src, writer):
@@ -111,7 +111,7 @@ class MachCommands(CommandBase):
     def bootstrap_rustc(self, force=False):
         rust_dir = path.join(
             self.context.sharedir, "rust", self.rust_path())
-        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc")):
+        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
             print("Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap-rust --force| to download again.")
             return
@@ -203,7 +203,7 @@ class MachCommands(CommandBase):
     def bootstrap_cargo(self, force=False):
         cargo_dir = path.join(self.context.sharedir, "cargo",
                               self.cargo_build_id())
-        if not force and path.exists(path.join(cargo_dir, "bin", "cargo")):
+        if not force and path.exists(path.join(cargo_dir, "cargo", "bin", "cargo" + BIN_SUFFIX)):
             print("Cargo already downloaded.", end=" ")
             print("Use |bootstrap-cargo --force| to download again.")
             return
@@ -289,9 +289,9 @@ class MachCommands(CommandBase):
                                   % module_path)
                             print("\nClean the submodule and try again.")
                             return 1
-        subprocess.check_call(
+        check_call(
             ["git", "submodule", "--quiet", "sync", "--recursive"])
-        subprocess.check_call(
+        check_call(
             ["git", "submodule", "update", "--init", "--recursive"])
 
     @Command('clean-nightlies',

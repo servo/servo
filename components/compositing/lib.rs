@@ -25,6 +25,7 @@ extern crate core_graphics;
 extern crate core_text;
 extern crate devtools_traits;
 extern crate euclid;
+#[cfg(not(target_os = "windows"))]
 extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
@@ -66,6 +67,7 @@ pub mod compositor_thread;
 pub mod constellation;
 mod headless;
 pub mod pipeline;
+#[cfg(not(target_os = "windows"))]
 pub mod sandboxing;
 mod scrolling;
 mod surface_map;
