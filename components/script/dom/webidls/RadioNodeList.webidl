@@ -5,5 +5,5 @@
 
 // https://html.spec.whatwg.org/multipage/#radionodelist
 interface RadioNodeList : NodeList {
-    attribute DOMString value;
+  attribute DOMString value;
 };

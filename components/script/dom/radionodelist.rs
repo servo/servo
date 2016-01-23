@@ -8,11 +8,11 @@ use dom::bindings::codegen::Bindings::RadioNodeListBinding;
 use dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::Node;
-use dom::nodelist::{NodeList, NodeListType};
+use dom::nodelist::{ChildrenList, NodeList, NodeListType};
 use dom::window::Window;
 use util::str::DOMString;
 
@@ -34,6 +34,19 @@ impl RadioNodeList {
         reflect_dom_object(box RadioNodeList::new_inherited(list_type),
                            GlobalRef::Window(window),
                            RadioNodeListBinding::Wrap)
+    }
+
+    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<RadioNodeList>
+                              where T: Iterator<Item=Root<Node>> {
+        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+    }
+
+    pub fn new_child_list(window: &Window, node: &Node) -> Root<RadioNodeList> {
+        RadioNodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
+    }
+
+    pub fn empty(window: &Window) -> Root<RadioNodeList> {
+        RadioNodeList::new(window, NodeListType::Simple(vec![]))
     }
 
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of

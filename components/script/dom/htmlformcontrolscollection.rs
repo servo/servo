@@ -5,14 +5,18 @@
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
+use dom::bindings::codegen::UnionTypes::RadioNodeListOrElement::{self, eElement, eRadioNodeList};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::node::Node;
+use dom::radionodelist::RadioNodeList;
 use dom::window::Window;
 use util::str::DOMString;
+use std::vec::Vec;
 
 #[dom_struct]
 pub struct HTMLFormControlsCollection {
@@ -43,8 +47,40 @@ impl HTMLFormControlsCollection {
 
 impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
-    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Root<Element>> {
-        self.collection.NamedGetter(name, found)
+    fn NamedItem(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+        // Step 1
+        if name.is_empty() { return None; }
+
+        let count = self.collection.elements_iter().filter_map(|elem| {
+            if elem.get_string_attribute(&atom!("name")) == name
+               || elem.get_string_attribute(&atom!("id")) == name {
+                Some(elem)
+            } else { None }
+        }).count();
+        let mut filter_map = self.collection.elements_iter().filter_map(|elem| {
+            if elem.get_string_attribute(&atom!("name")) == name
+               || elem.get_string_attribute(&atom!("id")) == name {
+                Some(elem)
+            } else { None }
+        });
+        // Step 2
+        if count == 1 { return Some(eElement(filter_map.next().unwrap())); }
+        // Step 3
+        if count == 0 { return None; }
+
+        // Step 4-5
+        let list = filter_map.map(Root::upcast);
+        let global = self.global();
+        let global = global.r();
+        let window = global.as_window();
+        Some(eRadioNodeList(RadioNodeList::new_simple_list(window, list)))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
+    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<RadioNodeListOrElement> {
+        let maybe_elem = self.NamedItem(name);
+        *found = maybe_elem.is_some();
+        maybe_elem
     }
 
     // https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names
