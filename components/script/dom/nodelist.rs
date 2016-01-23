@@ -41,8 +41,7 @@ impl NodeList {
                            GlobalRef::Window(window), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T)
-                              -> Root<NodeList>
+    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>
                               where T: Iterator<Item=Root<Node>> {
         NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
     }
@@ -93,7 +92,7 @@ impl NodeList {
         }
     }
 
-    pub fn get_list_type(&self) -> &NodeListType {
+    pub fn list_type(&self) -> &NodeListType {
         &self.list_type
     }
 }
@@ -108,7 +107,7 @@ pub struct ChildrenList {
 }
 
 impl ChildrenList {
-    fn new(node: &Node) -> ChildrenList {
+    pub fn new(node: &Node) -> ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: JS::from_ref(node),
@@ -117,7 +116,7 @@ impl ChildrenList {
         }
     }
 
-    pub fn get_parent_node(&self) -> &Node {
+    pub fn parent_node(&self) -> &Node {
         &*self.node
     }
 

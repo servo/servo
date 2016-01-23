@@ -8,11 +8,11 @@ use dom::bindings::codegen::Bindings::RadioNodeListBinding;
 use dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::Node;
-use dom::nodelist::{NodeList, NodeListType};
+use dom::nodelist::{ChildrenList, NodeList, NodeListType};
 use dom::window::Window;
 use util::str::DOMString;
 
@@ -36,6 +36,19 @@ impl RadioNodeList {
                            RadioNodeListBinding::Wrap)
     }
 
+    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<RadioNodeList>
+                              where T: Iterator<Item=Root<Node>> {
+        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+    }
+
+    pub fn new_child_list(window: &Window, node: &Node) -> Root<RadioNodeList> {
+        RadioNodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
+    }
+
+    pub fn empty(window: &Window) -> Root<RadioNodeList> {
+        RadioNodeList::new(window, NodeListType::Simple(vec![]))
+    }
+
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
     // RadioNodeList) implements Length
     // https://github.com/servo/servo/issues/5875
@@ -47,7 +60,7 @@ impl RadioNodeList {
 impl RadioNodeListMethods for RadioNodeList {
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn Value(&self) -> DOMString {
-        match *self.upcast::<NodeList>().get_list_type() {
+        match *self.upcast::<NodeList>().list_type() {
             NodeListType::Simple(ref v) => {
                 v.iter().filter_map(|node| {
                     // Step 1
@@ -66,7 +79,7 @@ impl RadioNodeListMethods for RadioNodeList {
                   .unwrap_or(DOMString::from(""))
             }
             NodeListType::Children(ref cl) => {
-                cl.get_parent_node().traverse_preorder().filter_map(|node| {
+                cl.parent_node().traverse_preorder().filter_map(|node| {
                     // Step 1
                     node.downcast::<HTMLInputElement>().and_then(|input| {
                         match input.type_() {
@@ -85,9 +98,9 @@ impl RadioNodeListMethods for RadioNodeList {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/infrastructure.html#dom-radionodelist-value
+    // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn SetValue(&self, value: DOMString) {
-        match *self.upcast::<NodeList>().get_list_type() {
+        match *self.upcast::<NodeList>().list_type() {
             NodeListType::Simple(ref v) => {
                 for node in v.iter() {
                     // Step 1
@@ -114,7 +127,7 @@ impl RadioNodeListMethods for RadioNodeList {
                 }
             }
             NodeListType::Children(ref cl) => {
-                for node in cl.get_parent_node().traverse_preorder() {
+                for node in cl.parent_node().traverse_preorder() {
                     // Step 1
                     if let Some(input) = node.downcast::<HTMLInputElement>() {
                         match input.type_() {
@@ -138,7 +151,7 @@ impl RadioNodeListMethods for RadioNodeList {
                     }
                 }
             }
-        };
+        }
     }
 
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
