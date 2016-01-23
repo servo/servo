@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::RadioNodeListBinding;
 use dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::Node;
@@ -36,6 +36,15 @@ impl RadioNodeList {
                            RadioNodeListBinding::Wrap)
     }
 
+    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<RadioNodeList>
+                              where T: Iterator<Item=Root<Node>> {
+        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+    }
+
+    pub fn empty(window: &Window) -> Root<RadioNodeList> {
+        RadioNodeList::new(window, NodeListType::Simple(vec![]))
+    }
+
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
     // RadioNodeList) implements Length
     // https://github.com/servo/servo/issues/5875
@@ -47,98 +56,56 @@ impl RadioNodeList {
 impl RadioNodeListMethods for RadioNodeList {
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn Value(&self) -> DOMString {
-        match *self.upcast::<NodeList>().get_list_type() {
-            NodeListType::Simple(ref v) => {
-                v.iter().filter_map(|node| {
-                    // Step 1
-                    node.downcast::<HTMLInputElement>().and_then(|input| {
-                        match input.type_() {
-                            atom!("radio") if input.Checked() => {
-                                // Step 3-4
-                                let value = input.Value();
-                                Some(if value.is_empty() { DOMString::from("on") } else { value })
-                            }
-                            _ => None
+        if let NodeListType::Simple(ref v) = *self.upcast::<NodeList>().list_type() {
+            v.iter().filter_map(|node| {
+                // Step 1
+                node.downcast::<HTMLInputElement>().and_then(|input| {
+                    match input.type_() {
+                        atom!("radio") if input.Checked() => {
+                            // Step 3-4
+                            let value = input.Value();
+                            Some(if value.is_empty() { DOMString::from("on") } else { value })
                         }
-                    })
-                }).next()
-                // Step 2
-                  .unwrap_or(DOMString::from(""))
-            }
-            NodeListType::Children(ref cl) => {
-                cl.get_parent_node().traverse_preorder().filter_map(|node| {
-                    // Step 1
-                    node.downcast::<HTMLInputElement>().and_then(|input| {
-                        match input.type_() {
-                            atom!("radio") if input.Checked() => {
-                                // Step 3-4
-                                let value = input.Value();
-                                Some(if value.is_empty() { DOMString::from("on") } else { value })
-                            }
-                            _ => None
-                        }
-                    })
-                }).next()
-                // Step 2
-                  .unwrap_or(DOMString::from(""))
-            }
+                        _ => None
+                    }
+                })
+            }).next()
+            // Step 2
+              .unwrap_or(DOMString::from(""))
+        } else {
+            unreachable!()
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/infrastructure.html#dom-radionodelist-value
+    // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn SetValue(&self, value: DOMString) {
-        match *self.upcast::<NodeList>().get_list_type() {
-            NodeListType::Simple(ref v) => {
-                for node in v.iter() {
-                    // Step 1
-                    if let Some(input) = node.downcast::<HTMLInputElement>() {
-                        match input.type_() {
-                            atom!("radio") if value == DOMString::from("on") => {
-                                // Step 2
-                                let val = input.Value();
-                                if val.is_empty() || val == DOMString::from("on") {
-                                    input.SetChecked(true);
-                                    return;
-                                }
+        if let NodeListType::Simple(ref v) = *self.upcast::<NodeList>().list_type() {
+            for node in v.iter() {
+                // Step 1
+                if let Some(input) = node.downcast::<HTMLInputElement>() {
+                    match input.type_() {
+                        atom!("radio") if value == DOMString::from("on") => {
+                            // Step 2
+                            let val = input.Value();
+                            if val.is_empty() || val == value {
+                                input.SetChecked(true);
+                                return;
                             }
-                            atom!("radio") => {
-                                // Step 2
-                                if input.Value() == value {
-                                    input.SetChecked(true);
-                                    return;
-                                }
-                            }
-                            _ => {}
                         }
+                        atom!("radio") => {
+                            // Step 2
+                            if input.Value() == value {
+                                input.SetChecked(true);
+                                return;
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
-            NodeListType::Children(ref cl) => {
-                for node in cl.get_parent_node().traverse_preorder() {
-                    // Step 1
-                    if let Some(input) = node.downcast::<HTMLInputElement>() {
-                        match input.type_() {
-                            atom!("radio") if value == DOMString::from("on") => {
-                                // Step 2
-                                let val = input.Value();
-                                if val.is_empty() || val == DOMString::from("on") {
-                                    input.SetChecked(true);
-                                    return;
-                                }
-                            }
-                            atom!("radio") => {
-                                // Step 2
-                                if input.Value() == value {
-                                    input.SetChecked(true);
-                                    return;
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            }
-        };
+        } else {
+            unreachable!()
+        }
     }
 
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
