@@ -178,13 +178,14 @@ pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
         receiver: HandleObject,
         constants: &'static [ConstantSpec],
-        name: &'static [u8]) {
+        name: &'static [u8],
+        rval: MutableHandleObject) {
     assert!(!constants.is_empty());
-    let interface_object = RootedObject::new(cx, JS_NewObject(cx, ptr::null()));
-    assert!(!interface_object.ptr.is_null());
-    define_constants(cx, interface_object.handle(), constants);
-    define_name(cx, interface_object.handle(), name);
-    define_on_global_object(cx, receiver, name, interface_object.handle());
+    rval.set(JS_NewObject(cx, ptr::null()));
+    assert!(!rval.ptr.is_null());
+    define_constants(cx, rval.handle(), constants);
+    define_name(cx, rval.handle(), name);
+    define_on_global_object(cx, receiver, name, rval.handle());
 }
 
 /// Create the interface prototype object of a non-callback interface.

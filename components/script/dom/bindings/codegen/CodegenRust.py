@@ -2378,9 +2378,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global')]
-        if not descriptor.interface.isCallback():
-            args.append(Argument('*mut ProtoOrIfaceArray', 'cache'))
+        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
+                Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
         self.properties = properties
@@ -2390,7 +2389,14 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
-create_callback_interface_object(cx, global, sConstants, %s);""" % str_to_const_array(name))
+let mut interface = RootedObject::new(cx, ptr::null_mut());
+create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
+assert!(!interface.ptr.is_null());
+(*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.ptr;
+if <*mut JSObject>::needs_post_barrier(interface.ptr) {
+    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize));
+}
+""" % {"id": name, "name": str_to_const_array(name)})
 
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
@@ -2658,14 +2664,14 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 
     def definition_body(self):
         if self.descriptor.interface.isCallback():
-            code = "CreateInterfaceObjects(cx, global);"
+            function = "GetConstructorObject"
         else:
-            code = """\
+            function = "GetProtoObject"
+        return CGGeneric("""\
+assert!(!global.get().is_null());
 let mut proto = RootedObject::new(cx, ptr::null_mut());
-GetProtoObject(cx, global, proto.handle_mut());
-assert!(!proto.ptr.is_null());
-"""
-        return CGGeneric("assert!(!global.get().is_null());\n" + code)
+%s(cx, global, proto.handle_mut());
+assert!(!proto.ptr.is_null());""" % function)
 
 
 def needCx(returnType, arguments, considerTypes):
@@ -4887,7 +4893,7 @@ class CGDescriptor(CGThing):
         cgThings = []
         if not descriptor.interface.isCallback():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
-        if descriptor.interface.hasInterfaceObject() and descriptor.hasDescendants():
+        if descriptor.interface.hasInterfaceObject() and (descriptor.interface.isCallback() or descriptor.hasDescendants()):
             cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
         for m in descriptor.interface.members:
@@ -6023,7 +6029,8 @@ class GlobalGenRoots():
         # Prototype ID enum.
         interfaces = config.getDescriptors(isCallback=False)
         protos = [d.name for d in interfaces]
-        constructors = [d.name for d in interfaces if d.hasDescendants()]
+        constructors = [d.name for d in config.getDescriptors(hasInterfaceObject=True)
+                        if d.interface.isCallback() or d.hasDescendants()]
         proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
