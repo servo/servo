@@ -5283,6 +5283,7 @@ class CGBindingRoot(CGThing):
                                                     isCallback=True)
 
         enums = config.getEnums(webIDLFile)
+        typedefs = config.getTypedefs(webIDLFile)
 
         if not (descriptors or dictionaries or mainCallbacks or callbackDescriptors or enums):
             self.root = None
@@ -5290,6 +5291,17 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the enums.
         cgthings = [CGEnum(e) for e in enums]
+
+        # Do codegen for all the typdefs
+        for t in typedefs:
+            if t.innerType.isUnion():
+                cgthings.extend([CGGeneric("\npub type %s = %s;\n\n" % (t.identifier.name,
+                                                                    "UnionTypes::" + str(t.innerType)))])
+            else:
+                assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider)
+                cgthings.extend([CGGeneric("\npub type %s = " % (t.identifier.name)),
+                                getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
+                                CGGeneric(";\n\n")])
 
         # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())

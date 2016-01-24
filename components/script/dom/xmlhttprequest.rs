@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
-use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams::{eBlob, eString, eURLSearchParams};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -65,7 +64,7 @@ use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
-pub type SendParam = BlobOrStringOrURLSearchParams;
+pub type SendParam = XMLHttpRequestBinding::BodyInit;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
