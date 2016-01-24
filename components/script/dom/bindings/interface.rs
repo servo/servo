@@ -6,19 +6,79 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
-use dom::bindings::utils::{ConstantSpec, NonNullJSNative, define_constants};
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, HandleObject, HandleValue, JSClass};
 use js::jsapi::{JSContext, JSFunctionSpec, JSPropertySpec, JSString, JS_DefineProperty1};
 use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetFunctionObject};
 use js::jsapi::{JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
-use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType};
+use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_DefineProperty};
 use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject};
 use js::jsapi::{RootedString, Value};
+use js::jsapi::{RootedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
-use js::{JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
+use js::{JSPROP_ENUMERATE, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
+use libc::c_uint;
 use std::ptr;
+
+/// Representation of an IDL constant value.
+#[derive(Clone)]
+pub enum ConstantVal {
+    /// `long` constant.
+    IntVal(i32),
+    /// `unsigned long` constant.
+    UintVal(u32),
+    /// `double` constant.
+    DoubleVal(f64),
+    /// `boolean` constant.
+    BoolVal(bool),
+    /// `null` constant.
+    NullVal,
+}
+
+/// Representation of an IDL constant.
+#[derive(Clone)]
+pub struct ConstantSpec {
+    /// name of the constant.
+    pub name: &'static [u8],
+    /// value of the constant.
+    pub value: ConstantVal,
+}
+
+impl ConstantSpec {
+    /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
+    pub fn get_value(&self) -> JSVal {
+        match self.value {
+            ConstantVal::NullVal => NullValue(),
+            ConstantVal::IntVal(i) => Int32Value(i),
+            ConstantVal::UintVal(u) => UInt32Value(u),
+            ConstantVal::DoubleVal(d) => DoubleValue(d),
+            ConstantVal::BoolVal(b) => BooleanValue(b),
+        }
+    }
+}
+
+/// A JSNative that cannot be null.
+pub type NonNullJSNative =
+    unsafe extern "C" fn (arg1: *mut JSContext, arg2: c_uint, arg3: *mut JSVal) -> bool;
+
+/// Defines constants on `obj`.
+/// Fails on JSAPI failure.
+pub fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'static [ConstantSpec]) {
+    for spec in constants {
+        let value = RootedValue::new(cx, spec.get_value());
+        unsafe {
+            assert!(JS_DefineProperty(cx,
+                                      obj,
+                                      spec.name.as_ptr() as *const libc::c_char,
+                                      value.handle(),
+                                      JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
+                                      None,
+                                      None));
+        }
+    }
+}
 
 /// A constructor class hook.
 pub type ConstructorClassHook =
