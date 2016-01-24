@@ -60,6 +60,7 @@ class Configuration:
             descriptor.uniqueImplementation = len(otherDescriptors) == 1
 
         self.enums = [e for e in parseData if e.isEnum()]
+        self.typedef = [e for e in parseData if e.isTypedef()]
         self.dictionaries = [d for d in parseData if d.isDictionary()]
         self.callbacks = [c for c in parseData if
                           c.isCallback() and not c.isInterface()]
@@ -89,6 +90,9 @@ class Configuration:
 
     def getEnums(self, webIDLFile):
         return filter(lambda e: e.filename() == webIDLFile, self.enums)
+
+    def getTypedef(self, webIDLFile):
+        return filter(lambda e: e.filename() == webIDLFile, self.typedef)
 
     @staticmethod
     def _filterForFile(items, webIDLFile=""):
