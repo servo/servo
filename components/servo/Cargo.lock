@@ -468,7 +468,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "energy-monitor"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -476,7 +476,7 @@ name = "energymon"
 version = "0.1.0"
 source = "git+https://github.com/energymon/energymon-rust.git#637e537934cdfc2142011a910490a408ea135af2"
 dependencies = [
- "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "energy-monitor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "energymon-default-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1420,7 +1420,7 @@ dependencies = [
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
- "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "energy-monitor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "energymon 0.1.0 (git+https://github.com/energymon/energymon-rust.git)",
  "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
  "plugins 0.0.1",
