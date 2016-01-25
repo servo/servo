@@ -63,9 +63,9 @@ fn test_fetch_response_body_matches_const_message() {
     let fetch_response = fetch(wrapped_request, false);
     let _ = server.close();
 
-    match fetch_response.body {
-        ResponseBody::Done(body) => {
-            assert_eq!(body, MESSAGE);
+    match *fetch_response.body.borrow() {
+        ResponseBody::Done(ref body) => {
+            assert_eq!(&**body, MESSAGE);
         },
         _ => panic!()
     };
@@ -113,9 +113,9 @@ fn test_fetch_redirect_count_ceiling() {
     let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
 
     assert_eq!(Response::is_network_error(&fetch_response), false);
-    match fetch_response.body {
-        ResponseBody::Done(body) => {
-            assert_eq!(body, MESSAGE);
+    match *fetch_response.body.borrow() {
+        ResponseBody::Done(ref body) => {
+            assert_eq!(&**body, MESSAGE);
         },
         _ => panic!()
     };
@@ -131,7 +131,7 @@ fn test_fetch_redirect_count_failure() {
     let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
 
     assert_eq!(Response::is_network_error(&fetch_response), true);
-    match fetch_response.body {
+    match *fetch_response.body.borrow() {
         ResponseBody::Done(_) => panic!(),
         _ => { }
     };

@@ -262,7 +262,8 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         }
     };
 
-    unreachable!()
+    // TODO it isn't correct to just return response here, but what else can I do?
+    return response;
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
