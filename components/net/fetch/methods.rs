@@ -5,7 +5,7 @@
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
-use http_loader::{create_http_connector, obtain_response};
+use http_loader::{create_http_connector, request_must_be_secured, obtain_response};
 use hyper::client::response::Response as HyperResponse;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
@@ -98,7 +98,32 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
-    let response = None;
+    let mut response = None;
+
+    // Step 2
+    if request.local_urls_only {
+        match request.current_url().scheme {
+            "about" | "blob" | "data" | "filesystem" => response = Response::network_error(),
+            _ => { }
+        };
+    }
+
+    // Step 3
+    // TODO be able to execute report CSP
+
+    // Step 4
+    // TODO how do I send the an hsts list?
+    // if request_must_be_secured(&request.current_url(), ) {
+        // TODO upgrade url to a secure url
+    // }
+
+    // Step 5
+
+    // Step 6
+
+    // Step 7
+
+    // Step 8
 
     // Step 9
     let mut response = if response.is_none() {
@@ -154,6 +179,24 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
             ResponseTainting::Opaque => Response::to_filtered(Rc::new(response), ResponseType::Opaque),
         }
     }
+
+    // Step 12
+
+    // Step 13
+
+    // Step 14
+
+    // Step 15
+
+    // Step 16
+
+    // Step 17
+
+    // Step 18
+
+    // Step 19
+
+    // Step 20
 
     response
 }

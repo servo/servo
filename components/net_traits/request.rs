@@ -84,6 +84,7 @@ pub enum ResponseTainting {
 #[derive(Clone)]
 pub struct Request {
     pub method: RefCell<Method>,
+    pub local_urls_only: bool,
     // Use the last method on url_list to act as spec url field
     pub url_list: RefCell<Vec<Url>>,
     pub headers: RefCell<Headers>,
@@ -117,6 +118,7 @@ impl Request {
     pub fn new(url: Url, context: Context, is_service_worker_global_scope: bool) -> Request {
          Request {
             method: RefCell::new(Method::Get),
+            local_urls_only: false,
             url_list: RefCell::new(vec![url]),
             headers: RefCell::new(Headers::new()),
             unsafe_request: false,
