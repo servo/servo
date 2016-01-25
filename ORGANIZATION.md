@@ -91,8 +91,6 @@
 		* Harness for automatically running the jQuery testsuite.
 	* power
 		* Tools for measurement of power consumption.
-	* ref, reftest.rs
-		* Legacy reftest harness and reference tests. In the process of being removed (<https://github.com/servo/servo/issues/5618>).
 	* unit
 		* Unit tests using rustc’s built-in test harness.
 	* wpt
