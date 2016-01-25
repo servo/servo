@@ -20,7 +20,6 @@ fn assert_parse(url:          &'static str,
     use net::mime_classifier::MIMEClassifier;
     use net::resource_thread::CancellationListener;
     use std::sync::Arc;
-    use std::sync::mpsc::channel;
     use url::Url;
 
     let (start_chan, start_port) = ipc::channel().unwrap();
