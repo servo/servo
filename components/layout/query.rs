@@ -450,6 +450,8 @@ pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
     let layout_node = match pseudo {
         &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+        &Some(PseudoElement::DetailsSummary) => layout_node.get_details_summary_pseudo(),
+        &Some(PseudoElement::DetailsContent) => layout_node.get_details_content_pseudo(),
         _ => Some(layout_node)
     };
 

@@ -162,7 +162,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         if !stylesheet.is_effective_for_device(device) {
             return;
         }
-
         let mut rules_source_order = self.rules_source_order;
 
         // Take apart the StyleRule into individual Rules and insert
