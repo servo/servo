@@ -36,11 +36,12 @@ use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use script_thread::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 use std::thread;
-use util::str::DOMString;
+use util::str::{DOMString, is_token};
 use websocket::client::request::Url;
 use websocket::header::{Headers, WebSocketProtocol};
 use websocket::ws::util::url::parse_url;
@@ -220,17 +221,13 @@ impl WebSocket {
         for (i, protocol) in protocols.iter().enumerate() {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
-            if protocol.is_empty() {
+
+            if protocols[i + 1..].iter().any(|p| p.eq_ignore_ascii_case(protocol)) {
                 return Err(Error::Syntax);
             }
 
-            if protocols[i + 1..].iter().any(|p| p == protocol) {
-                return Err(Error::Syntax);
-            }
-
-            // TODO: also check that no separator characters are used
             // https://tools.ietf.org/html/rfc6455#section-4.1
-            if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
+            if !is_token(protocol.as_bytes()) {
                 return Err(Error::Syntax);
             }
         }

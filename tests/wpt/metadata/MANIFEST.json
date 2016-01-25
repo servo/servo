@@ -33316,7 +33316,22 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "websockets/Create-asciiSep-protocol-string.htm": [
+          {
+            "path": "websockets/Create-asciiSep-protocol-string.htm",
+            "url": "/websockets/Create-asciiSep-protocol-string.htm"
+          }
+        ],
+        "websockets/Create-protocols-repeated-case-insensitive.htm": [
+          {
+            "path": "websockets/Create-protocols-repeated-case-insensitive.htm",
+            "url": "/websockets/Create-protocols-repeated-case-insensitive.htm"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

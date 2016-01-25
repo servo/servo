@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>W3C WebSocket API - Create WebSocket - ascii protocol string with separator</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript" src="websocket.js?pipe=sub"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script type="text/javascript">
+        if(window.WebSocket) {
+            test(function () {
+                var asciiWithSep = "/echo";
+                var wsocket;
+                assert_throws("SYNTAX_ERR", function () { wsocket = CreateWebSocketWithAsciiSep(asciiWithSep) });
+            }, "W3C WebSocket API - Create WebSocket - Pass a valid URL and a protocol string with an ascii separator character - SYNTAX_ERR is thrown")
+        }
+    </script>
+</body>
+</html>
