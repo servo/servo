@@ -678,7 +678,7 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
                        HTMLElementTypeId::HTMLInputElement))) ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                        HTMLElementTypeId::HTMLTextAreaElement)));
-        if node.get_pseudo_element_type() != PseudoElementType::Normal ||
+        if node.get_pseudo_element_type().is_before_or_after() ||
                 node_is_input_or_text_area {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
@@ -1463,6 +1463,8 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<'ln, Concr
                     PseudoElementType::Normal => display::T::inline,
                     PseudoElementType::Before(display) => display,
                     PseudoElementType::After(display) => display,
+                    PseudoElementType::DetailsContent(display) => display,
+                    PseudoElementType::DetailsSummary(display) => display,
                 };
                 (display, style.get_box().float, style.get_box().position)
             }
@@ -1648,6 +1650,8 @@ impl<'ln, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNo
         match self.get_pseudo_element_type() {
             PseudoElementType::Before(_) => &mut data.before_flow_construction_result,
             PseudoElementType::After (_) => &mut data.after_flow_construction_result,
+            PseudoElementType::DetailsSummary(_) => &mut data.details_summary_flow_construction_result,
+            PseudoElementType::DetailsContent(_) => &mut data.details_content_flow_construction_result,
             PseudoElementType::Normal    => &mut data.flow_construction_result,
         }
     }

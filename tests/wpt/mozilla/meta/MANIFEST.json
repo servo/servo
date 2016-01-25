@@ -5380,6 +5380,30 @@
             "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
           }
         ],
+        "mozilla/details_ui_closed.html": [
+          {
+            "path": "mozilla/details_ui_closed.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/details_ui_closed_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/details_ui_closed.html"
+          }
+        ],
+        "mozilla/details_ui_opened.html": [
+          {
+            "path": "mozilla/details_ui_opened.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/details_ui_opened_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/details_ui_opened.html"
+          }
+        ],
         "mozilla/iframe/resize_after_load.html": [
           {
             "path": "mozilla/iframe/resize_after_load.html",
@@ -11566,6 +11590,30 @@
             ]
           ],
           "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
+        }
+      ],
+      "mozilla/details_ui_closed.html": [
+        {
+          "path": "mozilla/details_ui_closed.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/details_ui_closed_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/details_ui_closed.html"
+        }
+      ],
+      "mozilla/details_ui_opened.html": [
+        {
+          "path": "mozilla/details_ui_opened.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/details_ui_opened_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/details_ui_opened.html"
         }
       ],
       "mozilla/iframe/resize_after_load.html": [

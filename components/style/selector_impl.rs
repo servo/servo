@@ -26,6 +26,8 @@ pub trait SelectorImplExt : SelectorImpl + Sized {
 pub enum PseudoElement {
     Before,
     After,
+    DetailsSummary,
+    DetailsContent,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
@@ -103,6 +105,8 @@ impl SelectorImpl for ServoSelectorImpl {
         let pseudo_element = match_ignore_ascii_case! { name,
             "before" => Before,
             "after" => After,
+            "-servo-details-summary" => DetailsSummary,
+            "-servo-details-content" => DetailsContent,
             _ => return Err(())
         };
 
@@ -122,6 +126,8 @@ impl SelectorImplExt for ServoSelectorImpl {
         where F: FnMut(PseudoElement) {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
+        fun(PseudoElement::DetailsContent);
+        fun(PseudoElement::DetailsSummary);
     }
 
     #[inline]

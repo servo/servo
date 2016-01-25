@@ -2442,7 +2442,9 @@ impl Fragment {
         match self.pseudo {
             PseudoElementType::Normal => FragmentType::FragmentBody,
             PseudoElementType::Before(_) => FragmentType::BeforePseudoContent,
-            PseudoElementType::After(_) => FragmentType::AfterPseudoContent
+            PseudoElementType::After(_) => FragmentType::AfterPseudoContent,
+            PseudoElementType::DetailsSummary(_) => FragmentType::FragmentBody,
+            PseudoElementType::DetailsContent(_) => FragmentType::FragmentBody,
         }
     }
 
@@ -2450,7 +2452,9 @@ impl Fragment {
         let layer_type = match self.pseudo {
             PseudoElementType::Normal => LayerType::FragmentBody,
             PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
-            PseudoElementType::After(_) => LayerType::AfterPseudoContent
+            PseudoElementType::After(_) => LayerType::AfterPseudoContent,
+            PseudoElementType::DetailsSummary(_) => LayerType::FragmentBody,
+            PseudoElementType::DetailsContent(_) => LayerType::FragmentBody,
         };
         LayerId::new_of_type(layer_type, self.node.id() as usize)
     }
