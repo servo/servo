@@ -25,7 +25,7 @@ impl ResponseMethods for Response {
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
             headers: Headers::new(),
-            body: ResponseBody::Empty,
+            body: RefCell::new(ResponseBody::Empty),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             internal_response: None
@@ -83,13 +83,13 @@ impl ResponseMethods for Response {
                 response.url = None;
                 response.headers = Headers::new();
                 response.status = None;
-                response.body = ResponseBody::Empty;
+                response.body = RefCell::new(ResponseBody::Empty);
             },
 
             ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
-                response.body = ResponseBody::Empty;
+                response.body = RefCell::new(ResponseBody::Empty);
             }
         }
 

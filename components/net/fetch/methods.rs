@@ -5,7 +5,7 @@
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
-use http_loader::{create_http_connector, request_must_be_secured, obtain_response};
+use http_loader::{create_http_connector, obtain_response};
 use hyper::client::response::Response as HyperResponse;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
@@ -22,6 +22,7 @@ use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener, Metadata};
 use resource_thread::CancellationListener;
 use std::ascii::AsciiExt;
+use std::cell::RefCell;
 use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -90,11 +91,11 @@ pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // TODO: Figure out what a Priority object is
     // Step 3
     // Step 4
-    main_fetch(request, cors_flag)
+    main_fetch(request, cors_flag, false)
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
+fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
@@ -102,8 +103,8 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
 
     // Step 2
     if request.local_urls_only {
-        match request.current_url().scheme {
-            "about" | "blob" | "data" | "filesystem" => response = Response::network_error(),
+        match &*request.current_url().scheme {
+            "about" | "blob" | "data" | "filesystem" => response = Some(Response::network_error()),
             _ => { }
         };
     }
@@ -112,18 +113,23 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     // TODO be able to execute report CSP
 
     // Step 4
-    // TODO how do I send the an hsts list?
-    // if request_must_be_secured(&request.current_url(), ) {
-        // TODO upgrade url to a secure url
-    // }
+    // TODO this step, based off of http_loader.rs
 
     // Step 5
+    // TODO this step
 
     // Step 6
+    if request.referer == Referer::NoReferer {
+        // TODO be able to invoke "determine request's referer"
+    }
 
     // Step 7
+    // TODO this step
 
     // Step 8
+    if request.synchronous && !recursive_flag {
+        // TODO run the remaining steps in parallel
+    }
 
     // Step 9
     let mut response = if response.is_none() {
@@ -169,36 +175,94 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool) -> Response {
     };
 
     // Step 10
+    if recursive_flag {
+        return response;
+    }
 
     // Step 11
     // no need to check if response is a network error, since the type would not be `Default`
-    if response.response_type == ResponseType::Default {
-        response = match request.response_tainting.get() {
-            ResponseTainting::Basic => Response::to_filtered(Rc::new(response), ResponseType::Basic),
-            ResponseTainting::CORSTainting => Response::to_filtered(Rc::new(response), ResponseType::CORS),
-            ResponseTainting::Opaque => Response::to_filtered(Rc::new(response), ResponseType::Opaque),
+    let mut response = if response.response_type == ResponseType::Default {
+        let old_response = Rc::new(response);
+        match request.response_tainting.get() {
+            ResponseTainting::Basic => Response::to_filtered(old_response, ResponseType::Basic),
+            ResponseTainting::CORSTainting => Response::to_filtered(old_response, ResponseType::CORS),
+            ResponseTainting::Opaque => Response::to_filtered(old_response, ResponseType::Opaque),
+        }
+    } else {
+        response
+    };
+
+    // Step 12
+    let mut internal_response = if Response::is_network_error(&response) {
+        Rc::new(Response::network_error())
+    } else {
+        match response.internal_response {
+            Some(ref res) => res.clone(),
+            _ => unreachable!()
+        }
+    };
+
+    // Step 13
+    // TODO this step
+
+    // Step 14
+    if !Response::is_network_error(&response) && internal_response.status.is_none() ||
+        match *request.method.borrow() {
+            Method::Head | Method::Connect => true,
+            _ => false }
+        {
+        // TODO does this safely disregard any pushing towards response body?
+        *internal_response.body.borrow_mut() = ResponseBody::Empty;
+    }
+
+    // Step 15
+    if !Response::is_network_error(&response) {
+
+        // Substep 1
+        // TODO wait for response
+
+        // Substep 2
+        // TODO be able to compare response integrity against request integrity metadata
+        // and then uncomment inside code
+        if response.termination_reason.is_none() {
+            // response = Response::network_error();
+            // internal_response = Response::network_error();
         }
     }
 
-    // Step 12
-
-    // Step 13
-
-    // Step 14
-
-    // Step 15
-
     // Step 16
+    if request.synchronous {
+        // TODO wait for internal_response
+        // drop(internal_response);
+        return response;
+    }
 
     // Step 17
+    if !request.body.is_none() && match &*request.current_url().scheme {
+        "http" | "https" => true,
+        _ => false }
+        {
+        // TODO queue a fetch task on request to process end-of-file
+    }
 
     // Step 18
+    // TODO this step
 
-    // Step 19
+    match *internal_response.body.borrow() {
+        // Step 20
+        ResponseBody::Empty => {
+            // Substep 1
+            // Substep 2
+        },
 
-    // Step 20
+        // Step 19
+        _ => {
+            // Substep 1
+            // Substep 2
+        }
+    };
 
-    response
+    unreachable!()
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -452,7 +516,7 @@ fn http_fetch(request: Rc<Request>,
                     request.url_list.borrow_mut().push(location_url);
 
                     // Substep 6
-                    return main_fetch(request.clone(), cors_flag);
+                    return main_fetch(request.clone(), cors_flag, true);
                 }
                 RedirectMode::Error => { panic!("RedirectMode is Error after step 8") }
             }
@@ -730,7 +794,7 @@ fn http_network_fetch(request: Rc<Request>,
 
             let mut body = vec![];
             res.response.read_to_end(&mut body);
-            response.body = ResponseBody::Done(body);
+            response.body = RefCell::new(ResponseBody::Done(body));
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
@@ -779,6 +843,7 @@ fn http_network_fetch(request: Rc<Request>,
         // Substep 3
         // Substep 4
 
+    // TODO these steps
     // Step 10
         // Substep 1
         // Substep 2
