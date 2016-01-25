@@ -25,7 +25,7 @@ use style::media_queries::{Device, MediaType};
 use style::parallel::{self, WorkQueueData};
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet};
-use style::traversal::RecalcStyleOnly;
+use traversal::RecalcStyleOnly;
 use url::Url;
 use util::geometry::ViewportPx;
 use util::resource_files::set_resources_path;
