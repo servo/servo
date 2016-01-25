@@ -251,13 +251,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
                                                                       container_size);
                     overflow = overflow.union(&kid_overflow.translate(&kid_position.origin))
                 }
-
-                for kid in mut_base(self).abs_descendants.iter() {
-                    let kid_overflow = base(kid).overflow;
-                    let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
-                                                                      container_size);
-                    overflow = overflow.union(&kid_overflow.translate(&kid_position.origin))
-                }
             }
             _ => {}
         }
