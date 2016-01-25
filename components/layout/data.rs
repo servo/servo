@@ -25,6 +25,10 @@ pub struct PrivateLayoutData {
 
     pub after_flow_construction_result: ConstructionResult,
 
+    pub details_summary_flow_construction_result: ConstructionResult,
+
+    pub details_content_flow_construction_result: ConstructionResult,
+
     /// Various flags.
     pub flags: LayoutDataFlags,
 }
@@ -38,6 +42,8 @@ impl PrivateLayoutData {
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
             after_flow_construction_result: ConstructionResult::None,
+            details_summary_flow_construction_result: ConstructionResult::None,
+            details_content_flow_construction_result: ConstructionResult::None,
             flags: LayoutDataFlags::empty(),
         }
     }
