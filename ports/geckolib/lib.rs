@@ -25,4 +25,5 @@ extern crate util;
 mod bindings;
 #[allow(non_snake_case)]
 pub mod glue;
+mod traversal;
 mod wrapper;
