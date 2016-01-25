@@ -284,12 +284,13 @@ fn http_fetch(request: Rc<Request>,
                 }, view.name()) && !is_simple_header(&view)
             );
 
+            // Sub-substep 1
             if method_mismatch || header_mismatch {
                 let preflight_result = preflight_fetch(request.clone());
+                // Sub-substep 2
                 if preflight_result.response_type == ResponseType::Error {
                     return Response::network_error();
                 }
-                response = Some(Rc::new(preflight_result));
             }
         }
 
