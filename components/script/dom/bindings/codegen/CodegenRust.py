@@ -5295,9 +5295,12 @@ class CGBindingRoot(CGThing):
         # Do codegen for all the typdefs
         for t in typedef:
             if t.innerType.isUnion():
-                cgthings.extend([CGGeneric("\ntype %s = %s;\n\n" % (t.identifier.name, "UnionTypes::" + str(t.innerType)))])
+                cgthings.extend([CGGeneric("\ntype %s = %s;\n\n" % (t.identifier.name,
+                                                                    "UnionTypes::" + str(t.innerType)))])
             else:
-                cgthings.extend([CGGeneric("\ntype %s = " % (t.identifier.name)), getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()), CGGeneric(";\n\n")])
+                cgthings.extend([CGGeneric("\ntype %s = " % (t.identifier.name)),
+                                getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
+                                CGGeneric(";\n\n")])
 
         # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
