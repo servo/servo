@@ -1028,6 +1028,14 @@ impl ScriptThread {
                     window.reflow(ReflowGoal::ForDisplay,
                                   ReflowQueryType::NoQuery,
                                   ReflowReason::ImageLoaded);
+                } else {
+                    // Reflow currently happens when explicitly invoked by code that
+                    // knows the document could have been modified. This should really
+                    // be driven by the compositor on an as-needed basis instead, to
+                    // minimize unnecessary work.
+                    window.reflow(ReflowGoal::ForDisplay,
+                                  ReflowQueryType::NoQuery,
+                                  ReflowReason::MissingExplicitReflow);
                 }
             }
         }
