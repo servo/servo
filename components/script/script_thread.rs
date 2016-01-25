@@ -835,6 +835,10 @@ impl ScriptThread {
         self.page.borrow().as_ref().unwrap().clone()
     }
 
+    fn root_page_exists(&self) -> bool {
+        self.page.borrow().is_some()
+    }
+
     /// Find a child page of the root page by pipeline id. Returns `None` if the root page does
     /// not exist or the subpage cannot be found.
     fn find_subpage(&self, pipeline_id: PipelineId) -> Option<Rc<Page>> {
@@ -1651,10 +1655,6 @@ impl ScriptThread {
         }
         debug!("ScriptThread: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
-        // We should either be initializing a root page or loading a child page of an
-        // existing one.
-        let root_page_exists = self.page.borrow().is_some();
-
         let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
             // The root page may not exist yet, if the parent of this frame
             // exists in a different script thread.
@@ -1677,7 +1677,7 @@ impl ScriptThread {
 
         // Create a new frame tree entry.
         let page = Rc::new(Page::new(incomplete.pipeline_id));
-        if !root_page_exists {
+        if !self.root_page_exists() {
             // We have a new root frame tree.
             *self.page.borrow_mut() = Some(page.clone());
         } else if let Some((parent, _)) = incomplete.parent_info {
@@ -1725,7 +1725,7 @@ impl ScriptThread {
             }
         }
 
-        let page_to_remove = if !root_page_exists {
+        let page_to_remove = if !self.root_page_exists() {
             PageToRemove::Root
         } else {
             PageToRemove::Child(incomplete.pipeline_id)
@@ -1921,6 +1921,11 @@ impl ScriptThread {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+
+        // DOM events can only be handled if there's a root page.
+        if !self.root_page_exists() {
+            return;
+        }
 
         match event {
             ResizeEvent(new_size) => {
