@@ -71,9 +71,33 @@ def call(*args, **kwargs):
     return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
+def normalize_env(env):
+    # There is a bug in subprocess where it doesn't like unicode types in
+    # environment variables. Here, ensure all unicode are converted to
+    # binary. utf-8 is our globally assumed default. If the caller doesn't
+    # want UTF-8, they shouldn't pass in a unicode instance.
+    normalized_env = {}
+    for k, v in env.items():
+        if isinstance(k, unicode):
+            k = k.encode('utf-8', 'strict')
+
+        if isinstance(v, unicode):
+            v = v.encode('utf-8', 'strict')
+
+        normalized_env[k] = v
+
+    return normalized_env
+
+
 def check_call(*args, **kwargs):
-    """Wrap `subprocess.check_call`, printing the command if verbose=True."""
+    """Wrap `subprocess.check_call`, printing the command if verbose=True.
+
+    Also fix any unicode-containing `env`, for subprocess """
     verbose = kwargs.pop('verbose', False)
+
+    if 'env' in kwargs:
+        kwargs['env'] = normalize_env(kwargs['env'])
+
     if verbose:
         print(' '.join(args[0]))
     # we have to use shell=True in order to get PATH handling
@@ -175,10 +199,13 @@ class CommandBase(object):
 
     def get_binary_path(self, release, dev, android=False):
         base_path = self.get_target_dir()
+
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
-        release_path = path.join(base_path, "release", "servo")
-        dev_path = path.join(base_path, "debug", "servo")
+
+        binary_name = "servo" + BIN_SUFFIX
+        release_path = path.join(base_path, "release", binary_name)
+        dev_path = path.join(base_path, "debug", binary_name)
 
         # Prefer release if both given
         if release and dev:
@@ -246,8 +273,7 @@ class CommandBase(object):
                 path.join(self.config["tools"]["cargo-root"], "bin")]
 
         if extra_path:
-            env["PATH"] = "%s%s%s" % (
-                os.pathsep.join(extra_path), os.pathsep, env["PATH"])
+            env["PATH"] = "%s%s%s" % (env["PATH"], os.pathsep, os.pathsep.join(extra_path))
 
         if "CARGO_HOME" not in env:
             env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
