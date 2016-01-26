@@ -1766,25 +1766,29 @@ class CGDOMJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        traceHook = 'Some(%s)' % TRACE_HOOK_NAME
+        args = {
+            "domClass": DOMClass(self.descriptor),
+            "finalizeHook": FINALIZE_HOOK_NAME,
+            "flags": "0",
+            "name": str_to_const_array(self.descriptor.interface.identifier.name),
+            "outerObjectHook": self.descriptor.outerObjectHook,
+            "slots": "1",
+            "traceHook": TRACE_HOOK_NAME,
+        }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
-            traceHook = "Some(js::jsapi::JS_GlobalObjectTraceHook)"
-            flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
-            slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
-        else:
-            flags = "0"
-            if self.descriptor.weakReferenceable:
-                slots = "2"
-            else:
-                slots = "1"
+            args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
+            args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
+            args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
+        elif self.descriptor.weakReferenceable:
+            args["slots"] = "2"
         return """\
 static Class: DOMJSClass = DOMJSClass {
     base: js::jsapi::Class {
-        name: %s as *const u8 as *const libc::c_char,
-        flags: JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS | %s |
-               (((%s) & JSCLASS_RESERVED_SLOTS_MASK) <<
-                   JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
+        name: %(name)s as *const u8 as *const libc::c_char,
+        flags: JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS | %(flags)s |
+               (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
+               /* JSCLASS_HAS_RESERVED_SLOTS(%(slots)s) */,
         addProperty: None,
         delProperty: None,
         getProperty: None,
@@ -1792,11 +1796,11 @@ static Class: DOMJSClass = DOMJSClass {
         enumerate: None,
         resolve: None,
         convert: None,
-        finalize: Some(%s),
+        finalize: Some(%(finalizeHook)s),
         call: None,
         hasInstance: None,
         construct: None,
-        trace: %s,
+        trace: Some(%(traceHook)s),
 
         spec: js::jsapi::ClassSpec {
             createConstructor: None,
@@ -1810,7 +1814,7 @@ static Class: DOMJSClass = DOMJSClass {
         },
 
         ext: js::jsapi::ClassExtension {
-            outerObject: %s,
+            outerObject: %(outerObjectHook)s,
             innerObject: None,
             isWrappedNative: false,
             weakmapKeyDelegateOp: None,
@@ -1829,17 +1833,12 @@ static Class: DOMJSClass = DOMJSClass {
             unwatch: None,
             getElements: None,
             enumerate: None,
-            thisObject: %s,
+            thisObject: %(outerObjectHook)s,
             funToString: None,
         },
     },
-    dom_class: %s
-};""" % (str_to_const_array(self.descriptor.interface.identifier.name),
-         flags, slots, slots,
-         FINALIZE_HOOK_NAME, traceHook,
-         self.descriptor.outerObjectHook,
-         self.descriptor.outerObjectHook,
-         CGGeneric(DOMClass(self.descriptor)).define())
+    dom_class: %(domClass)s
+};""" % args
 
 
 def str_to_const_array(s):
