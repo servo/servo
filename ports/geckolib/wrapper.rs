@@ -334,7 +334,7 @@ impl<'le> TElement<'le> for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
-        unimplemented!()
+        // FIXME(bholley) - Need to implement this.
     }
 
     #[inline]
