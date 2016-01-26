@@ -4950,9 +4950,12 @@ class CGDescriptor(CGThing):
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
-        cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
-                                          CGConstant(m for m in descriptor.interface.members if m.isConst()),
-                                          public=True))
+        # If there are no constant members, don't make a module for constants
+        constMembers = [m for m in descriptor.interface.members if m.isConst()]
+        if constMembers:
+            cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
+                                              CGConstant(constMembers),
+                                              public=True))
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
