@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!-- Clicking under the shadow should still activate the green div. -->
+<style>
+  .green {
+    background: green;
+    position: absolute;
+    top: 45px;
+    left: 170px;
+    width: 100px;
+    height: 50px;
+  }
+  .red {
+    background: red;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 100px;
+    height: 100px;
+    box-shadow: 100px 0 0 rgba(0,0,0,0.1);
+    transform: translateX(1px);
+  }
+</style>
+<div class="green" onclick="console.log('You clicked me!')"></div>
+<div class="red"></div>
