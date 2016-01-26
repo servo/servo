@@ -78,13 +78,7 @@ impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-get
     fn Get(&self, name: USVString) -> Option<USVString> {
         let list = self.list.borrow();
-        list.iter().filter_map(|&(ref k, ref v)| {
-            if k == &name.0 {
-                Some(USVString(v.clone()))
-            } else {
-                None
-            }
-        }).next()
+        list.iter().find(|&&(ref k, _)| k == &name.0).map(|&(_, ref v)| USVString(v.clone()))
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-getall
