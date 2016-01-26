@@ -317,7 +317,7 @@ impl CompositorLayer for Layer<CompositorData> {
         // Allow children to scroll.
         let scroll_offset = self.extra_data.borrow().scroll_offset;
         let new_cursor = cursor - scroll_offset;
-        for child in &*self.children() {
+        for child in self.children().iter().rev() {
             let child_bounds = child.bounds.borrow();
             if child_bounds.contains(&new_cursor) {
                 let result = child.handle_scroll_event(delta, new_cursor - child_bounds.origin);
