@@ -66,7 +66,6 @@ extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
 #[macro_use]
 extern crate style;
-extern crate tendril;
 extern crate time;
 extern crate unicase;
 extern crate url;
