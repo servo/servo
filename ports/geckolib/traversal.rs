@@ -2,19 +2,50 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::dom::{OpaqueNode, TNode};
+use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use style::traversal::{DomTraversalContext, recalc_style_at};
+
+thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<LocalStyleContext>>> = RefCell::new(None));
+
+// Keep this implementation in sync with the one in components/layout/context.rs.
+fn create_or_get_local_context(shared: &SharedStyleContext)
+                               -> Rc<LocalStyleContext> {
+    LOCAL_CONTEXT_KEY.with(|r| {
+        let mut r = r.borrow_mut();
+        if let Some(context) = r.clone() {
+            if shared.screen_size_changed {
+                context.applicable_declarations_cache.borrow_mut().evict_all();
+            }
+            context
+        } else {
+            let context = Rc::new(LocalStyleContext {
+                applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
+                style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
+            });
+            *r = Some(context.clone());
+            context
+        }
+    })
+}
 
 pub struct StandaloneStyleContext<'a> {
     pub shared: &'a SharedStyleContext,
-    cached_local_style_context: Rc<LocalStyleContext>,
+    cached_local_context: Rc<LocalStyleContext>,
 }
 
 impl<'a> StandaloneStyleContext<'a> {
-    pub fn new(_: &'a SharedStyleContext) -> Self { panic!("Not implemented") }
+    pub fn new(shared: &'a SharedStyleContext) -> Self {
+        let local_context = create_or_get_local_context(shared);
+        StandaloneStyleContext {
+            shared: shared,
+            cached_local_context: local_context,
+        }
+    }
 }
 
 impl<'a> StyleContext<'a> for StandaloneStyleContext<'a> {
@@ -23,7 +54,7 @@ impl<'a> StyleContext<'a> for StandaloneStyleContext<'a> {
     }
 
     fn local_context(&self) -> &LocalStyleContext {
-        &self.cached_local_style_context
+        &self.cached_local_context
     }
 }
 
