@@ -1768,17 +1768,21 @@ class CGDOMJSClass(CGThing):
     def define(self):
         args = {
             "domClass": DOMClass(self.descriptor),
+            "enumerateHook": "None",
             "finalizeHook": FINALIZE_HOOK_NAME,
             "flags": "0",
             "name": str_to_const_array(self.descriptor.interface.identifier.name),
             "outerObjectHook": self.descriptor.outerObjectHook,
+            "resolveHook": "None",
             "slots": "1",
             "traceHook": TRACE_HOOK_NAME,
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
+            args["enumerateHook"] = "Some(js::jsapi::JS_EnumerateStandardClasses)"
             args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
+            args["resolveHook"] = "Some(js::jsapi::JS_ResolveStandardClass)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
@@ -1793,8 +1797,8 @@ static Class: DOMJSClass = DOMJSClass {
         delProperty: None,
         getProperty: None,
         setProperty: None,
-        enumerate: None,
-        resolve: None,
+        enumerate: %(enumerateHook)s,
+        resolve: %(resolveHook)s,
         convert: None,
         finalize: Some(%(finalizeHook)s),
         call: None,

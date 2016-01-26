@@ -23,12 +23,11 @@ use js::glue::{RUST_JSID_TO_INT, UnwrapObject};
 use js::jsapi::{CallArgs, CompartmentOptions, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSClass, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTraceOp, JSTracer, JSVersion, JSWrapObjectCallbacks};
-use js::jsapi::{JS_DeletePropertyById1, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetProperty, JS_GetPrototype};
-use js::jsapi::{JS_GetReservedSlot, JS_HasProperty, JS_HasPropertyById, JS_InitStandardClasses};
-use js::jsapi::{JS_IsExceptionPending, JS_NewGlobalObject, JS_ObjectToOuterObject, JS_SetProperty};
-use js::jsapi::{JS_SetReservedSlot, MutableHandleValue, ObjectOpResult, OnNewGlobalHookOption};
-use js::jsapi::{RootedObject};
+use js::jsapi::{JS_DeletePropertyById1, JS_FireOnNewGlobalObject, JS_ForwardGetPropertyTo};
+use js::jsapi::{JS_GetClass, JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
+use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_NewGlobalObject};
+use js::jsapi::{JS_ObjectToOuterObject, JS_SetProperty, JS_SetReservedSlot};
+use js::jsapi::{MutableHandleValue, ObjectOpResult, OnNewGlobalHookOption, RootedObject};
 use js::jsval::{JSVal};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::rust::{GCMethods, ToString};
@@ -334,7 +333,6 @@ pub fn create_dom_global(cx: *mut JSContext,
                            PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
 
         let _ac = JSAutoCompartment::new(cx, obj.ptr);
-        JS_InitStandardClasses(cx, obj.handle());
         JS_FireOnNewGlobalObject(cx, obj.handle());
         obj.ptr
     }
