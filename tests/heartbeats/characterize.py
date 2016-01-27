@@ -65,7 +65,7 @@ def get_command(build_target, layout_thread_count, renderer, page, profile):
     """Get the command to execute.
     """
     return path.join(TOP_DIR, "target", build_target, "servo") + \
-        " -p %d -x -y %d %s -Z profile-script-events '%s'" % \
+        " -p %d -o output.png -y %d %s -Z profile-script-events '%s'" % \
         (profile, layout_thread_count, renderer, page)
 
 
