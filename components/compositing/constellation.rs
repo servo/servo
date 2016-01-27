@@ -946,6 +946,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     }
                 }
 
+                if !self.pipeline_is_in_current_frame(source_id) {
+                    // Disregard this load if the navigating pipeline is not actually
+                    // active. This could be caused by a delayed navigation (eg. from
+                    // a timer) or a race between multiple navigations (such as an
+                    // onclick handler on an anchor element).
+                    return None;
+                }
+
                 self.handle_load_start_msg(&source_id);
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
