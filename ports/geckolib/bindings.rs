@@ -69,6 +69,16 @@ extern "C" {
     pub fn Gecko_GetLastChild(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_GetPrevSibling(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_GetNextSibling(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
+    pub fn Gecko_GetParentElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetFirstChildElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetLastChildElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetPrevSiblingElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetNextSiblingElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_GetParentNode(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_LocalName(element: *mut RawGeckoElement,
@@ -80,6 +90,8 @@ extern "C" {
     pub fn Gecko_IsVisitedLink(element: *mut RawGeckoElement)
      -> ::libc::c_int;
     pub fn Gecko_IsUnvisitedLink(element: *mut RawGeckoElement)
+     -> ::libc::c_int;
+    pub fn Gecko_IsRootElement(element: *mut RawGeckoElement)
      -> ::libc::c_int;
     pub fn Gecko_Namespace(element: *mut RawGeckoElement,
                            length: *mut uint32_t) -> *const uint16_t;
