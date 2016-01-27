@@ -5,7 +5,7 @@
 use hyper::header::Headers;
 use hyper::method::Method;
 use std::cell::{Cell, RefCell};
-use url::Url;
+use url::{Origin, Url};
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]
@@ -95,7 +95,7 @@ pub struct Request {
     pub skip_service_worker: Cell<bool>,
     pub context: Context,
     pub context_frame_type: ContextFrameType,
-    pub origin: Option<Url>, // FIXME: Use Url::Origin
+    pub origin: Origin,
     pub force_origin_header: bool,
     pub omit_origin_header: bool,
     pub same_origin_data: Cell<bool>,
@@ -113,7 +113,7 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(url: Url, context: Context, is_service_worker_global_scope: bool) -> Request {
+    pub fn new(url: Url, context: Context, origin: Origin, is_service_worker_global_scope: bool) -> Request {
          Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
@@ -126,7 +126,7 @@ impl Request {
             skip_service_worker: Cell::new(false),
             context: context,
             context_frame_type: ContextFrameType::ContextNone,
-            origin: None,
+            origin: origin,
             force_origin_header: false,
             omit_origin_header: false,
             same_origin_data: Cell::new(false),

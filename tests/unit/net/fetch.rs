@@ -9,7 +9,7 @@ use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use net::fetch::methods::fetch;
 use net_traits::request::{Context, Referer, Request};
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{Response, ResponseBody, ResponseType};
 use std::rc::Rc;
 use url::Url;
 
@@ -35,7 +35,8 @@ fn test_fetch_response_is_not_network_error() {
     };
     let (mut server, url) = make_server(handler);
 
-    let mut request = Request::new(url, Context::Fetch, false);
+    let origin = url.origin().clone();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
@@ -56,12 +57,20 @@ fn test_fetch_response_body_matches_const_message() {
     };
     let (mut server, url) = make_server(handler);
 
-    let mut request = Request::new(url, Context::Fetch, false);
+    let origin = url.origin().clone();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
     let fetch_response = fetch(wrapped_request, false);
     let _ = server.close();
+
+    assert_eq!(Response::is_network_error(&fetch_response), false);
+
+    match fetch_response.response_type {
+        ResponseType::Basic => { },
+        _ => panic!()
+    };
 
     match *fetch_response.body.borrow() {
         ResponseBody::Done(ref body) => {
@@ -94,7 +103,8 @@ fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Respo
 
     let (mut server, url) = make_server(handler);
 
-    let mut request = Request::new(url, Context::Fetch, false);
+    let origin = url.origin().clone();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 

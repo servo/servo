@@ -135,18 +135,13 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     let mut response = if response.is_none() {
 
         let current_url = request.current_url();
-        let origin_match =
-            request.origin.as_ref().map_or(false, |url| url.origin() == current_url.origin());
-        // match request.origin {
-        //     Some(ref origin) => origin.origin() == current_url.origin(),
-        //     _ => false
-        // };
+        let origin_match = request.origin == current_url.origin();
 
         if (!cors_flag && origin_match) ||
             (current_url.scheme == "data" && request.same_origin_data.get()) ||
             current_url.scheme == "about" ||
             request.mode == RequestMode::Navigate {
-            
+
             basic_fetch(request.clone())
 
         } else if request.mode == RequestMode::SameOrigin {
@@ -202,10 +197,6 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         Rc::new(Response::network_error())
     } else {
         response.internal_response.clone().unwrap()
-        // match response.internal_response {
-        //     Some(ref res) => res.clone(),
-        //     _ => unreachable!()
-        // }
     };
 
     // Step 13
@@ -239,7 +230,6 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // Step 16
     if request.synchronous {
         // TODO wait for internal_response
-        // drop(internal_response);
         return response;
     }
 
@@ -377,9 +367,7 @@ fn http_fetch(request: Rc<Request>,
             let mut method_mismatch = false;
             let mut header_mismatch = false;
 
-            // FIXME: Once Url::Origin is available, rewrite origin to
-            // take an Origin instead of a Url
-            let origin = request.origin.clone().unwrap_or(Url::parse("").unwrap());
+            let origin = request.origin.clone();
             let url = request.current_url();
             let credentials = request.credentials_mode == CredentialsMode::Include;
             let method_cache_match = cache.match_method(CacheRequestDetails {
@@ -630,9 +618,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     // Step 7
     if http_request.omit_origin_header == false {
         // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
-        if let Some(ref _origin) = http_request.origin {
-            // http_request.headers.borrow_mut().set_raw("origin", origin);
-        }
+        // http_request.headers.borrow_mut().set_raw("origin", origin);
     }
 
     // Step 8
