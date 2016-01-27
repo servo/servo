@@ -23,9 +23,10 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, UnbindContext, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::Window;
+use dom::window::{ReflowReason, Window};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
+use layout_interface::ReflowQueryType;
 use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use page::IterablePage;
@@ -34,6 +35,7 @@ use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationM
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::Atom;
+use style::context::ReflowGoal;
 use url::Url;
 use util::prefs;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -211,6 +213,10 @@ impl HTMLIFrameElement {
         let window = window_from_node(self);
         self.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
         // TODO Step 5 - unset child document `mut iframe load` flag
+
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::IFrameLoadEvent);
     }
 }
 

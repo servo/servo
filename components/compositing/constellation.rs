@@ -946,6 +946,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     }
                 }
 
+                if !self.pipeline_is_in_current_frame(source_id) {
+                    // Disregard this load if the navigating pipeline is not actually
+                    // active. This could be caused by a delayed navigation (eg. from
+                    // a timer) or a race between multiple navigations (such as an
+                    // onclick handler on an anchor element).
+                    return None;
+                }
+
                 self.handle_load_start_msg(&source_id);
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
@@ -1324,6 +1332,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
         debug!("Document ready to activate {:?}", pipeline_id);
+
+        if let Some(ref child_pipeline) = self.pipelines.get(&pipeline_id) {
+            if let Some(ref parent_info) = child_pipeline.parent_info {
+                if let Some(parent_pipeline) = self.pipelines.get(&parent_info.0) {
+                    let _ = parent_pipeline.script_chan
+                                           .send(ConstellationControlMsg::FramedContentChanged(
+                            parent_info.0,
+                            parent_info.1));
+                }
+            }
+        }
 
         // If this pipeline is already part of the current frame tree,
         // we don't need to do anything.

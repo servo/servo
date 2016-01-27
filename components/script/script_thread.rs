@@ -1028,6 +1028,14 @@ impl ScriptThread {
                     window.reflow(ReflowGoal::ForDisplay,
                                   ReflowQueryType::NoQuery,
                                   ReflowReason::ImageLoaded);
+                } else {
+                    // Reflow currently happens when explicitly invoked by code that
+                    // knows the document could have been modified. This should really
+                    // be driven by the compositor on an as-needed basis instead, to
+                    // minimize unnecessary work.
+                    window.reflow(ReflowGoal::ForDisplay,
+                                  ReflowQueryType::NoQuery,
+                                  ReflowReason::MissingExplicitReflow);
                 }
             }
         }
@@ -1131,6 +1139,8 @@ impl ScriptThread {
             ConstellationControlMsg::DispatchFrameLoadEvent {
                 target: pipeline_id, parent: containing_id } =>
                 self.handle_frame_load_event(containing_id, pipeline_id),
+            ConstellationControlMsg::FramedContentChanged(containing_pipeline_id, subpage_id) =>
+                self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
         }
@@ -1484,6 +1494,22 @@ impl ScriptThread {
             doc.begin_focus_transaction();
             doc.request_focus(frame_element.upcast());
             doc.commit_focus_transaction(FocusType::Parent);
+        }
+    }
+
+    fn handle_framed_content_changed(&self,
+                                     parent_pipeline_id: PipelineId,
+                                     subpage_id: SubpageId) {
+        let borrowed_page = self.root_page();
+        let page = borrowed_page.find(parent_pipeline_id).unwrap();
+        let doc = page.document();
+        let frame_element = doc.find_iframe(subpage_id);
+        if let Some(ref frame_element) = frame_element {
+            frame_element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            let window = page.window();
+            window.reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::FramedContentChanged);
         }
     }
 
