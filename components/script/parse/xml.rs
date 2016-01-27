@@ -19,11 +19,11 @@ use dom::text::Text;
 use msg::constellation_msg::PipelineId;
 use parse::Parser;
 use std::borrow::Cow;
-use string_cache::QualName;
-use tendril::StrTendril;
+use string_cache::{Atom, QualName, Namespace};
 use url::Url;
 use util::str::DOMString;
-use xml5ever::tokenizer::Attribute;
+use xml5ever::tendril::StrTendril;
+use xml5ever::tokenizer::{Attribute, QName};
 use xml5ever::tree_builder::{NodeOrText, TreeSink};
 
 impl<'a> TreeSink for servoxmlparser::Sink {
@@ -37,22 +37,32 @@ impl<'a> TreeSink for servoxmlparser::Sink {
         JS::from_ref(self.document.upcast())
     }
 
-    fn elem_name(&self, target: &JS<Node>) -> QualName {
+    fn elem_name(&self, target: &JS<Node>) -> QName {
         let elem = target.downcast::<Element>()
             .expect("tried to get name of non-Element in XML parsing");
-        QualName {
-            ns: elem.namespace().clone(),
+        QName {
+            prefix: elem.prefix().as_ref().map_or(atom!(""), |p| Atom::from(&**p)),
+            namespace_url: elem.namespace().0.clone(),
             local: elem.local_name().clone(),
         }
     }
 
-    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
+    fn create_element(&mut self, name: QName, attrs: Vec<Attribute>)
             -> JS<Node> {
-        let elem = Element::create(name, None, &*self.document,
+        let prefix = if name.prefix == atom!("") { None } else { Some(name.prefix) };
+        let name = QualName {
+            ns: Namespace(name.namespace_url),
+            local: name.local,
+        };
+        let elem = Element::create(name, prefix, &*self.document,
                                    ElementCreator::ParserCreated);
 
         for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
+            let name = QualName {
+                ns: Namespace(attr.name.namespace_url),
+                local: attr.name.local,
+            };
+            elem.set_attribute_from_parser(name, DOMString::from(String::from(attr.value)), None);
         }
 
         JS::from_ref(elem.upcast())

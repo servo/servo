@@ -29,13 +29,13 @@ use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::serialize::{AttrRef, Serializable, Serializer};
+use html5ever::tendril::StrTendril;
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode, TreeSink};
 use msg::constellation_msg::PipelineId;
 use parse::Parser;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use string_cache::QualName;
-use tendril::StrTendril;
 use url::Url;
 use util::str::DOMString;
 
@@ -54,6 +54,9 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
 }
 
 impl<'a> TreeSink for servohtmlparser::Sink {
+    type Output = Self;
+    fn finish(self) -> Self { self }
+
     type Handle = JS<Node>;
 
     fn get_document(&mut self) -> JS<Node> {
