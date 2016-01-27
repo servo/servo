@@ -1,0 +1,15 @@
+[package]
+name = "plugin_compiletest"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "plugin_compiletest"
+path = "lib.rs"
+doctest = false
+
+[dependencies.compiletest_helper]
+path = "../helper"
+
+[dependencies.plugins]
+path = "../../../components/plugins"
