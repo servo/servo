@@ -4032,6 +4032,18 @@
             "url": "/_mozilla/css/root_margin_collapse_a.html"
           }
         ],
+        "css/root_margins_a.html": [
+          {
+            "path": "css/root_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_margins_a.html"
+          }
+        ],
         "css/root_pseudo_a.html": [
           {
             "path": "css/root_pseudo_a.html",
