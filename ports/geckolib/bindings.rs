@@ -54,6 +54,8 @@ pub enum Struct_ServoNodeData { }
 pub type ServoNodeData = Struct_ServoNodeData;
 pub enum Struct_ServoArcStyleSheet { }
 pub type ServoArcStyleSheet = Struct_ServoArcStyleSheet;
+pub enum Struct_ServoStyleSetData { }
+pub type ServoStyleSetData = Struct_ServoStyleSetData;
 extern "C" {
     pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> uint8_t;
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
@@ -84,10 +86,21 @@ extern "C" {
     pub fn Gecko_NodeIsElement(node: *mut RawGeckoNode) -> ::libc::c_int;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
-    pub fn Servo_RestyleDocument(aDoc: *mut RawGeckoDocument);
+    pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
+                                 data: *mut ServoStyleSetData);
     pub fn Servo_DropNodeData(data: *mut ServoNodeData);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
                                          length: uint32_t)
      -> *mut ServoArcStyleSheet;
+    pub fn Servo_AppendStyleSheet(sheet: *mut ServoArcStyleSheet,
+                                  data: *mut ServoStyleSetData);
+    pub fn Servo_PrependStyleSheet(sheet: *mut ServoArcStyleSheet,
+                                   data: *mut ServoStyleSetData);
+    pub fn Servo_RemoveStyleSheet(sheet: *mut ServoArcStyleSheet,
+                                  data: *mut ServoStyleSetData);
+    pub fn Servo_StyleSheetHasRules(sheet: *mut ServoArcStyleSheet)
+     -> ::libc::c_int;
     pub fn Servo_DropStylesheet(sheet: *mut ServoArcStyleSheet);
+    pub fn Servo_InitStyleSetData() -> *mut ServoStyleSetData;
+    pub fn Servo_DropStyleSetData(data: *mut ServoStyleSetData);
 }
