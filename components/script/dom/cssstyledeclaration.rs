@@ -329,6 +329,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             None => elem.remove_inline_style_property(&property),
         }
 
+        let document = document_from_node(elem);
+        let node = elem.upcast();
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+
         // Step 6
         Ok(value)
     }

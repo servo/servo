@@ -3948,6 +3948,18 @@
             "url": "/_mozilla/css/quotes_simple_a.html"
           }
         ],
+        "css/removeproperty.html": [
+          {
+            "path": "css/removeproperty.html",
+            "references": [
+              [
+                "/_mozilla/css/removeproperty_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/removeproperty.html"
+          }
+        ],
         "css/restyle_hints_attr.html": [
           {
             "path": "css/restyle_hints_attr.html",
@@ -10014,6 +10026,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/removeproperty.html": [
+        {
+          "path": "css/removeproperty.html",
+          "references": [
+            [
+              "/_mozilla/css/removeproperty_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/removeproperty.html"
         }
       ],
       "css/restyle_hints_attr.html": [
