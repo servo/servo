@@ -702,8 +702,8 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
             self.set_restyle_damage(damage);
 
             self.set_can_be_fragmented(parent.as_ref().map_or(false, |p| {
-                p.can_be_fragmented() ||
-                p.borrow_data().unwrap().style.as_ref().unwrap().is_multicol()
+                p.can_be_fragmented()// ||
+                //p.borrow_data().unwrap().style.as_ref().unwrap().is_multicol()
             }));
         }
     }
