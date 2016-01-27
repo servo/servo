@@ -6,9 +6,13 @@
 
 use bindings::{Gecko_ChildrenCount};
 use bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
-use bindings::{Gecko_GetFirstChild, Gecko_GetLastChild, Gecko_GetNodeData};
-use bindings::{Gecko_GetParentNode, Gecko_GetPrevSibling, Gecko_GetNextSibling};
-use bindings::{Gecko_IsHTMLElementInHTMLDocument, Gecko_IsLink, Gecko_IsTextNode};
+use bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
+use bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
+use bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
+use bindings::{Gecko_GetNodeData};
+use bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
+use bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
+use bindings::{Gecko_IsHTMLElementInHTMLDocument, Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
 use bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 #[allow(unused_imports)] // Used in commented-out code.
 use bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
@@ -356,27 +360,39 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     type Impl = ServoSelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
-        unimplemented!()
+        unsafe {
+            Gecko_GetParentElement(self.element).as_ref().map(|el| GeckoElement::from_ref(el))
+        }
     }
 
     fn first_child_element(&self) -> Option<Self> {
-        unimplemented!()
+        unsafe {
+            Gecko_GetFirstChildElement(self.element).as_ref().map(|el| GeckoElement::from_ref(el))
+        }
     }
 
     fn last_child_element(&self) -> Option<Self> {
-        unimplemented!()
+        unsafe {
+            Gecko_GetLastChildElement(self.element).as_ref().map(|el| GeckoElement::from_ref(el))
+        }
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {
-        unimplemented!()
+        unsafe {
+            Gecko_GetPrevSiblingElement(self.element).as_ref().map(|el| GeckoElement::from_ref(el))
+        }
     }
 
     fn next_sibling_element(&self) -> Option<Self> {
-        unimplemented!()
+        unsafe {
+            Gecko_GetNextSiblingElement(self.element).as_ref().map(|el| GeckoElement::from_ref(el))
+        }
     }
 
     fn is_root(&self) -> bool {
-        unimplemented!()
+        unsafe {
+            Gecko_IsRootElement(self.element) != 0
+        }
     }
 
     fn is_empty(&self) -> bool {
