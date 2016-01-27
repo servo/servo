@@ -151,11 +151,12 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             request.response_tainting.set(ResponseTainting::Opaque);
             basic_fetch(request.clone())
 
-        } else if current_url.scheme != "http" || current_url.scheme != "https" {
+        } else if current_url.scheme != "http" && current_url.scheme != "https" {
             Response::network_error()
 
         } else if request.use_cors_preflight ||
-            (request.unsafe_request && (!is_simple_method(&request.method.borrow()) ||
+            (request.unsafe_request &&
+            (!is_simple_method(&request.method.borrow()) ||
             request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
 
             request.response_tainting.set(ResponseTainting::CORSTainting);

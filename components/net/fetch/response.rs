@@ -65,7 +65,7 @@ impl ResponseMethods for Response {
             ResponseType::CORS => {
 
                 let access = old_headers.get::<AccessControlExposeHeaders>();
-                let blocked_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
+                let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
 
                 let headers = old_headers.iter().filter(|header| {
                     match &*header.name().to_ascii_lowercase() {
@@ -74,9 +74,8 @@ impl ResponseMethods for Response {
                         "set-cookie" | "set-cookie2" => false,
                         header => {
                             let result =
-                                blocked_headers.iter().find(|h| *header == *h.to_ascii_lowercase());
-                            // if the header was not found as blocked, it is allowed
-                            result.is_none()
+                                allowed_headers.iter().find(|h| *header == *h.to_ascii_lowercase());
+                            result.is_some()
                         }
                     }
                 }).collect();
