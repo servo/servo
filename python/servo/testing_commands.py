@@ -207,6 +207,63 @@ class MachCommands(CommandBase):
         if result != 0:
             return result
 
+    @Command('test-compiletest',
+             description='Run compiletests',
+             category='testing')
+    @CommandArgument('--package', '-p', default=None, help="Specific package to test")
+    @CommandArgument('test_name', nargs=argparse.REMAINDER,
+                     help="Only run tests that match this pattern or file path")
+    def test_compiletest(self, test_name=None, package=None):
+        properties = json.loads(subprocess.check_output([
+            sys.executable,
+            path.join(self.context.topdir, "components", "style", "list_properties.py")
+        ]))
+        assert len(properties) >= 100
+        assert "margin-top" in properties
+        assert "margin" in properties
+
+        if test_name is None:
+            test_name = []
+
+        self.ensure_bootstrapped()
+
+        if package:
+            packages = {package}
+        else:
+            packages = set()
+
+        test_patterns = []
+        for test in test_name:
+            # add package if 'tests/unit/<package>'
+            match = re.search("tests/compiletest/(\\w+)/?$", test)
+            if match:
+                packages.add(match.group(1))
+            # add package & test if '<package>/<test>', 'tests/unit/<package>/<test>.rs', or similar
+            elif re.search("\\w/\\w", test):
+                tokens = test.split("/")
+                packages.add(tokens[-2])
+                test_prefix = tokens[-1]
+                if test_prefix.endswith(".rs"):
+                    test_prefix = test_prefix[:-3]
+                test_prefix += "::"
+                test_patterns.append(test_prefix)
+            # add test as-is otherwise
+            else:
+                test_patterns.append(test)
+
+        if not packages:
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "compiletest")))
+
+        packages.remove("helper")
+
+        args = ["cargo", "test"]
+        for crate in packages:
+            args += ["-p", "%s_compiletest" % crate]
+        args += test_patterns
+        result = call(args, env=self.build_env(), cwd=self.servo_crate())
+        if result != 0:
+            return result
+
     @Command('test-ref',
              description='Run the reference tests',
              category='testing')
