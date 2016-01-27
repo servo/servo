@@ -119,7 +119,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // TODO this step
 
     // Step 6
-    if request.referer == Referer::NoReferer {
+    if request.referer != Referer::NoReferer {
         // TODO be able to invoke "determine request's referer"
     }
 
@@ -127,7 +127,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // TODO this step
 
     // Step 8
-    if request.synchronous && !recursive_flag {
+    if !request.synchronous && !recursive_flag {
         // TODO run the remaining steps in parallel
     }
 
@@ -135,13 +135,18 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     let mut response = if response.is_none() {
 
         let current_url = request.current_url();
-        let origin_match = match request.origin {
-            Some(ref origin) => origin.origin() == current_url.origin(),
-            _ => false
-        };
+        let origin_match =
+            request.origin.as_ref().map_or(false, |url| url.origin() == current_url.origin());
+        // match request.origin {
+        //     Some(ref origin) => origin.origin() == current_url.origin(),
+        //     _ => false
+        // };
 
-        if (!cors_flag && origin_match) || (current_url.scheme == "data" && request.same_origin_data.get()) ||
-            current_url.scheme == "about" || request.mode == RequestMode::Navigate {
+        if (!cors_flag && origin_match) ||
+            (current_url.scheme == "data" && request.same_origin_data.get()) ||
+            current_url.scheme == "about" ||
+            request.mode == RequestMode::Navigate {
+            
             basic_fetch(request.clone())
 
         } else if request.mode == RequestMode::SameOrigin {
@@ -151,16 +156,16 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             request.response_tainting.set(ResponseTainting::Opaque);
             basic_fetch(request.clone())
 
-        } else if current_url.scheme == "http" || current_url.scheme == "https" {
+        } else if current_url.scheme != "http" || current_url.scheme != "https" {
             Response::network_error()
 
-        } else if request.use_cors_preflight || request.unsafe_request &&
-            (!is_simple_method(&request.method.borrow()) ||
-            request.headers.borrow().iter().any(|h| !is_simple_header(&h))) {
+        } else if request.use_cors_preflight ||
+            (request.unsafe_request && (!is_simple_method(&request.method.borrow()) ||
+            request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
 
             request.response_tainting.set(ResponseTainting::CORSTainting);
             request.redirect_mode.set(RedirectMode::Error);
-            let response = http_fetch(request.clone(), BasicCORSCache::new(), cors_flag, true, false);
+            let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
             if Response::is_network_error(&response) {
                 // TODO clear cache entries using request
             }
@@ -196,39 +201,40 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     let mut internal_response = if Response::is_network_error(&response) {
         Rc::new(Response::network_error())
     } else {
-        match response.internal_response {
-            Some(ref res) => res.clone(),
-            _ => unreachable!()
-        }
+        response.internal_response.clone().unwrap()
+        // match response.internal_response {
+        //     Some(ref res) => res.clone(),
+        //     _ => unreachable!()
+        // }
     };
 
     // Step 13
     // TODO this step
 
     // Step 14
-    if !Response::is_network_error(&response) && internal_response.status.is_none() ||
+    if !Response::is_network_error(&response) && (is_null_body_status(&internal_response.status) ||
         match *request.method.borrow() {
             Method::Head | Method::Connect => true,
-            _ => false }
+            _ => false })
         {
-        // TODO does this safely disregard any pushing towards response body?
+        // when the Fetch implementation does asynchronous retrieval of the body,
+        // we will need to make sure nothing tries to write to the body at this point
         *internal_response.body.borrow_mut() = ResponseBody::Empty;
     }
 
     // Step 15
-    if !Response::is_network_error(&response) {
+    // TODO be able to compare response integrity against request integrity metadata
+    // if !Response::is_network_error(&response) {
 
-        // Substep 1
-        // TODO wait for response
+    //     // Substep 1
+    //     // TODO wait for response
 
-        // Substep 2
-        // TODO be able to compare response integrity against request integrity metadata
-        // and then uncomment inside code
-        if response.termination_reason.is_none() {
-            // response = Response::network_error();
-            // internal_response = Response::network_error();
-        }
-    }
+    //     // Substep 2
+    //     if response.termination_reason.is_none() {
+    //         response = Response::network_error();
+    //         internal_response = Response::network_error();
+    //     }
+    // }
 
     // Step 16
     if request.synchronous {
@@ -238,7 +244,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     }
 
     // Step 17
-    if !request.body.is_none() && match &*request.current_url().scheme {
+    if request.body.is_some() && match &*request.current_url().scheme {
         "http" | "https" => true,
         _ => false }
         {
@@ -262,7 +268,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         }
     };
 
-    // TODO it isn't correct to just return response here, but what else can I do?
+    // TODO remove this line when asynchronous fetches are supported
     return response;
 }
 
@@ -795,7 +801,7 @@ fn http_network_fetch(request: Rc<Request>,
 
             let mut body = vec![];
             res.response.read_to_end(&mut body);
-            response.body = RefCell::new(ResponseBody::Done(body));
+            *response.body.borrow_mut() = ResponseBody::Done(body);
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
@@ -929,3 +935,14 @@ fn response_needs_revalidation(response: &Response) -> bool {
 //     // TODO this function
 
 // }
+
+fn is_null_body_status(status: &Option<StatusCode>) -> bool {
+    return match *status {
+        Some(status) => match status {
+            StatusCode::SwitchingProtocols | StatusCode::NoContent |
+                StatusCode::ResetContent | StatusCode::NotModified => true,
+            _ => false
+        },
+        _ => false
+    }
+}

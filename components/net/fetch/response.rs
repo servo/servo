@@ -72,7 +72,12 @@ impl ResponseMethods for Response {
                         "cache-control" | "content-language" |
                         "content-type" | "expires" | "last-modified" | "Pragma" => true,
                         "set-cookie" | "set-cookie2" => false,
-                        header => false
+                        header => {
+                            let result =
+                                blocked_headers.iter().find(|h| *header == *h.to_ascii_lowercase());
+                            // if the header was not found as blocked, it is allowed
+                            result.is_none()
+                        }
                     }
                 }).collect();
                 response.headers = headers;
