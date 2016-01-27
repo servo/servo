@@ -389,7 +389,7 @@ fn http_fetch(request: Rc<Request>,
             }, request.method.borrow().clone());
 
             method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
-                request.mode == RequestMode::ForcedPreflightMode);
+                request.use_cors_preflight);
             header_mismatch = request.headers.borrow().iter().any(|view|
                 !cache.match_header(CacheRequestDetails {
                     origin: origin.clone(),

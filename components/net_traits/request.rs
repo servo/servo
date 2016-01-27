@@ -40,9 +40,7 @@ pub enum RequestMode {
     Navigate,
     SameOrigin,
     NoCORS,
-    CORSMode,
-    // TODO this is no longer in the spec and should be removed
-    ForcedPreflightMode
+    CORSMode
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
