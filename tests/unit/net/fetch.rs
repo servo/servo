@@ -35,7 +35,7 @@ fn test_fetch_response_is_not_network_error() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin().clone();
+    let origin = url.origin();
     let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
@@ -57,7 +57,7 @@ fn test_fetch_response_body_matches_const_message() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin().clone();
+    let origin = url.origin();
     let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
@@ -65,7 +65,7 @@ fn test_fetch_response_body_matches_const_message() {
     let fetch_response = fetch(wrapped_request, false);
     let _ = server.close();
 
-    assert_eq!(Response::is_network_error(&fetch_response), false);
+    assert!(!Response::is_network_error(&fetch_response));
 
     match fetch_response.response_type {
         ResponseType::Basic => { },
@@ -103,7 +103,7 @@ fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Respo
 
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin().clone();
+    let origin = url.origin();
     let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
@@ -122,7 +122,7 @@ fn test_fetch_redirect_count_ceiling() {
 
     let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
 
-    assert_eq!(Response::is_network_error(&fetch_response), false);
+    assert!(!Response::is_network_error(&fetch_response));
     match *fetch_response.body.borrow() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
