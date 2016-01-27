@@ -1393,11 +1393,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rc"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "ref_slice"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2081,13 +2076,12 @@ dependencies = [
 [[package]]
 name = "xml5ever"
 version = "0.1.1"
-source = "git+https://github.com/Ygg01/xml5ever#a14a2aff974830614435ce246734b899f9aab05b"
+source = "git+https://github.com/Ygg01/xml5ever#6c7017063dc1cfd64f08b7701a689e74ab45588d"
 dependencies = [
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "rc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tendril 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
