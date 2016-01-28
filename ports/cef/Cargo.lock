@@ -832,7 +832,7 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.1.0"
-source = "git+https://github.com/servo/ipc-channel#dfd8513d801d16a7e4a5b0b92a68c27b0dd99fe1"
+source = "git+https://github.com/servo/ipc-channel#4cc8773bfb0ab9a350f98fe316c24d2f42b99858"
 dependencies = [
  "bincode 0.4.0 (git+https://github.com/TyOverby/bincode)",
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
