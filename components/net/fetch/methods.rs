@@ -184,11 +184,12 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // no need to check if response is a network error, since the type would not be `Default`
     let mut response = if response.response_type == ResponseType::Default {
         let old_response = Rc::new(response);
-        match request.response_tainting.get() {
-            ResponseTainting::Basic => Response::to_filtered(old_response, ResponseType::Basic),
-            ResponseTainting::CORSTainting => Response::to_filtered(old_response, ResponseType::CORS),
-            ResponseTainting::Opaque => Response::to_filtered(old_response, ResponseType::Opaque),
-        }
+        let response_type = match request.response_tainting.get() {
+            ResponseTainting::Basic => ResponseType::Basic,
+            ResponseTainting::CORSTainting => ResponseType::CORS,
+            ResponseTainting::Opaque => ResponseType::Opaque,
+        };
+        Response::to_filtered(old_response, response_type)
     } else {
         response
     };
@@ -924,7 +925,7 @@ fn response_needs_revalidation(response: &Response) -> bool {
 // }
 
 fn is_null_body_status(status: &Option<StatusCode>) -> bool {
-    return match *status {
+    match *status {
         Some(status) => match status {
             StatusCode::SwitchingProtocols | StatusCode::NoContent |
                 StatusCode::ResetContent | StatusCode::NotModified => true,
