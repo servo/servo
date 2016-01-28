@@ -56,6 +56,7 @@ use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
+use style::selector_impl::ServoSelectorImpl;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp::max;
@@ -288,12 +289,12 @@ impl Node {
 }
 
 pub struct QuerySelectorIterator {
-    selectors: Vec<Selector>,
+    selectors: Vec<Selector<ServoSelectorImpl>>,
     iterator: TreeIterator,
 }
 
 impl<'a> QuerySelectorIterator {
-     fn new(iter: TreeIterator, selectors: Vec<Selector>)
+     fn new(iter: TreeIterator, selectors: Vec<Selector<ServoSelectorImpl>>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,

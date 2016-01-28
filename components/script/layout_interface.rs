@@ -18,7 +18,7 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
-use selectors::parser::PseudoElement;
+use style::selector_impl::PseudoElement;
 use std::any::Any;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};

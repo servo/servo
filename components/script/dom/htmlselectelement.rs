@@ -20,7 +20,7 @@ use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use selectors::states::*;
+use style::element_state::*;
 use string_cache::Atom;
 use util::str::DOMString;
 

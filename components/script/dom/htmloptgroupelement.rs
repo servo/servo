@@ -13,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use selectors::states::*;
+use style::element_state::*;
 use string_cache::Atom;
 use util::str::DOMString;
 

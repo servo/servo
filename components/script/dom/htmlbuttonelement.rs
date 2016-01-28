@@ -20,7 +20,7 @@ use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use selectors::states::*;
+use style::element_state::*;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::Atom;

@@ -18,7 +18,7 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
-use selectors::states::*;
+use style::element_state::*;
 use std::cell::Cell;
 use string_cache::Atom;
 use util::str::{DOMString, split_html_space_chars, str_join};

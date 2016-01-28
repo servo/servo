@@ -32,7 +32,7 @@ use msg::constellation_msg::ConstellationChan;
 use script_thread::ScriptThreadEventCategory::InputEvent;
 use script_thread::{CommonScriptMsg, Runnable};
 use script_traits::ScriptMsg as ConstellationMsg;
-use selectors::states::*;
+use style::element_state::*;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
