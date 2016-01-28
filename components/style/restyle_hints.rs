@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use attr::{AttrIdentifier, AttrValue};
+use selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use selectors::Element;
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{AttrSelector, Combinator, CompoundSelector, NamespaceConstraint, SimpleSelector};
-use selectors::states::*;
+use element_state::*;
 use std::clone::Clone;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
@@ -96,7 +97,6 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element<Impl=ServoSelecto
     type Impl = E::Impl;
 
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
-        use selector_impl::NonTSPseudoClass::*;
         let flag = pseudo_class.state_flag();
         if flag == ElementState::empty() {
             self.element.match_non_ts_pseudo_class(pseudo_class)

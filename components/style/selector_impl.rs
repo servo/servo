@@ -79,7 +79,7 @@ impl SelectorImpl for ServoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext,
+    fn parse_pseudo_element(_context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
         match_ignore_ascii_case! { name,

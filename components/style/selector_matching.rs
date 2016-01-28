@@ -216,7 +216,7 @@ impl Stylist {
                                    // more expensive than getting it directly from the caller.
                                    current_state: ElementState)
                                    -> RestyleHint
-                                   where E: Element + Clone {
+                                   where E: Element<Impl=ServoSelectorImpl> + Clone {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 
@@ -337,8 +337,8 @@ impl Stylist {
 }
 
 struct PerOriginSelectorMap {
-    normal: SelectorMap<Vec<PropertyDeclaration>>,
-    important: SelectorMap<Vec<PropertyDeclaration>>,
+    normal: SelectorMap<Vec<PropertyDeclaration>, ServoSelectorImpl>,
+    important: SelectorMap<Vec<PropertyDeclaration>, ServoSelectorImpl>,
 }
 
 impl PerOriginSelectorMap {
