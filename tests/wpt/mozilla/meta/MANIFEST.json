@@ -3548,6 +3548,18 @@
             "url": "/_mozilla/css/percentage_width_inline_block_a.html"
           }
         ],
+        "css/perspective_zero.html": [
+          {
+            "path": "css/perspective_zero.html",
+            "references": [
+              [
+                "/_mozilla/css/perspective_zero_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/perspective_zero.html"
+          }
+        ],
         "css/pixel_snapping_border_a.html": [
           {
             "dpi": "2",
@@ -9638,6 +9650,18 @@
             ]
           ],
           "url": "/_mozilla/css/percentage_width_inline_block_a.html"
+        }
+      ],
+      "css/perspective_zero.html": [
+        {
+          "path": "css/perspective_zero.html",
+          "references": [
+            [
+              "/_mozilla/css/perspective_zero_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/perspective_zero.html"
         }
       ],
       "css/pixel_snapping_border_a.html": [
