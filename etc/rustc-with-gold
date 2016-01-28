@@ -1,0 +1,2 @@
+#!/bin/sh
+rustc -C link-args=-fuse-ld=gold "$@"
