@@ -11,7 +11,7 @@ use std::rc::Rc;
 use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub enum ResponseType {
     Basic,
     CORS,

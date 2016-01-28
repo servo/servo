@@ -66,11 +66,7 @@ fn test_fetch_response_body_matches_const_message() {
     let _ = server.close();
 
     assert!(!Response::is_network_error(&fetch_response));
-
-    match fetch_response.response_type {
-        ResponseType::Basic => { },
-        _ => panic!()
-    };
+    assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
     match *fetch_response.body.borrow() {
         ResponseBody::Done(ref body) => {
