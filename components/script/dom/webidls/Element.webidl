@@ -50,6 +50,11 @@ interface Element : Node {
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
+  [Throws]
+  Attr? setAttributeNode(Attr attr);
+  [Throws]
+  Attr? setAttributeNodeNS(Attr attr);
+
   [Pure, Throws]
   Element? closest(DOMString selectors);
 

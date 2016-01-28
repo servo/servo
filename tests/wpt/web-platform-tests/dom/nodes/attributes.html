@@ -447,6 +447,26 @@ test(function() {
 }, "Basic functionality of setAttributeNodeNS")
 
 test(function() {
+  var el = document.createElement("div");
+  var other = document.createElement("div");
+  attr = document.createAttribute("foo");
+  assert_equals(el.setAttributeNode(attr), null);
+  assert_equals(attr.ownerElement, el);
+  assert_throws("INUSE_ATTRIBUTE_ERR",
+                  function() { other.setAttributeNode(attr) },
+                  "Attribute already associated with el")
+}, "If attr’s element is neither null nor element, throw an InUseAttributeError.");
+
+test(function() {
+  var el = document.createElement("div");
+  attr = document.createAttribute("foo");
+  assert_equals(el.setAttributeNode(attr), null);
+  el.setAttribute("bar", "qux");
+  assert_equals(el.setAttributeNode(attr), attr);
+  assert_equals(el.attributes[0], attr);
+}, "Replacing an attr by itself");
+
+test(function() {
   var el = document.createElement("div")
   el.setAttribute("foo", "bar")
   var attrNode = el.getAttributeNode("foo");

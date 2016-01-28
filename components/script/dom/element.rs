@@ -863,9 +863,7 @@ impl Element {
                               name: Atom,
                               namespace: Namespace,
                               prefix: Option<Atom>) {
-        self.will_mutate_attr();
         let window = window_from_node(self);
-        let in_empty_ns = namespace == ns!();
         let attr = Attr::new(&window,
                              local_name,
                              value,
@@ -873,9 +871,15 @@ impl Element {
                              namespace,
                              prefix,
                              Some(self));
-        self.attrs.borrow_mut().push(JS::from_rooted(&attr));
-        if in_empty_ns {
-            vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Set(None));
+        self.push_attribute(&attr);
+    }
+
+    pub fn push_attribute(&self, attr: &Attr) {
+        assert!(attr.GetOwnerElement().r() == Some(self));
+        self.will_mutate_attr();
+        self.attrs.borrow_mut().push(JS::from_ref(attr));
+        if attr.namespace() == &ns!() {
+            vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
     }
 
@@ -1267,6 +1271,56 @@ impl ElementMethods for Element {
             local_name.clone(), value, qualified_name, namespace.clone(), prefix,
             |attr| *attr.local_name() == local_name && *attr.namespace() == namespace);
         Ok(())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-setattributenode
+    fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        // Step 1.
+        if let Some(owner) = attr.GetOwnerElement() {
+            if &*owner != self {
+                return Err(Error::InUseAttribute);
+            }
+        }
+
+        // Step 2.
+        let position = self.attrs.borrow().iter().position(|old_attr| {
+            attr.namespace() == old_attr.namespace() && attr.local_name() == old_attr.local_name()
+        });
+
+        if let Some(position) = position {
+
+            let old_attr = Root::from_ref(&*self.attrs.borrow()[position]);
+
+            // Step 3.
+            if old_attr.r() == attr {
+                return Ok(Some(Root::from_ref(attr)));
+            }
+
+            // Step 4.
+            self.will_mutate_attr();
+            attr.set_owner(Some(self));
+            self.attrs.borrow_mut()[position] = JS::from_ref(attr);
+            old_attr.set_owner(None);
+            if attr.namespace() == &ns!() {
+                vtable_for(self.upcast()).attribute_mutated(
+                    &attr, AttributeMutation::Set(Some(&old_attr.value())));
+            }
+
+            // Step 6.
+            Ok(Some(old_attr))
+        } else {
+            // Step 5.
+            attr.set_owner(Some(self));
+            self.push_attribute(attr);
+
+            // Step 6.
+            Ok(None)
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-setattributenodens
+    fn SetAttributeNodeNS(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        self.SetAttributeNode(attr)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
