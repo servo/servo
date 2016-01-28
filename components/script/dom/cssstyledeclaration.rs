@@ -11,7 +11,6 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::{Element, StylePriority};
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::window::Window;
-use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -19,6 +18,7 @@ use string_cache::Atom;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
+use style::selector_impl::PseudoElement;
 use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

@@ -55,7 +55,6 @@ use script::dom::text::Text;
 use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefCell, RefMut};
@@ -67,9 +66,11 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
 use style::data::PrivateStyleData;
 use style::dom::{TDocument, TElement, TNode, UnsafeNode};
+use style::element_state::*;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
+use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -452,17 +453,9 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
     node.downcast().map(ServoLayoutElement::from_layout_js)
 }
 
-macro_rules! state_getter {
-    ($(
-        $(#[$Flag_attr: meta])*
-        state $css: expr => $variant: ident / $method: ident /
-        $flag: ident = $value: expr,
-    )+) => {
-        $( fn $method(&self) -> bool { self.element.get_state_for_layout().contains($flag) } )+
-    }
-}
-
 impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
+    type Impl = ServoSelectorImpl;
+
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
         unsafe {
             self.element.upcast().parent_node_ref().and_then(as_element)
@@ -531,33 +524,39 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         self.element.namespace()
     }
 
-    fn is_link(&self) -> bool {
-        // FIXME: This is HTML only.
-        let node = self.as_node();
-        match node.type_id() {
-            // https://html.spec.whatwg.org/multipage/#selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-                unsafe {
-                    (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &atom!("href")).is_some()
+    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
+        match pseudo_class {
+            // https://github.com/servo/servo/issues/8718
+            NonTSPseudoClass::Link |
+            NonTSPseudoClass::AnyLink => unsafe {
+                match self.as_node().type_id() {
+                    // https://html.spec.whatwg.org/multipage/#selector-link
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) =>
+                        (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &atom!("href")).is_some(),
+                    _ => false,
                 }
-            }
-            _ => false,
+            },
+            NonTSPseudoClass::Visited => false,
+
+            NonTSPseudoClass::ServoNonZeroBorder => unsafe {
+                match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &atom!("border")) {
+                    None | Some(&AttrValue::UInt(_, 0)) => false,
+                    _ => true,
+                }
+            },
+
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Focus |
+            NonTSPseudoClass::Hover |
+            NonTSPseudoClass::Enabled |
+            NonTSPseudoClass::Disabled |
+            NonTSPseudoClass::Checked |
+            NonTSPseudoClass::Indeterminate =>
+                self.element.get_state_for_layout().contains(pseudo_class.state_flag())
         }
     }
-
-    #[inline]
-    fn is_unvisited_link(&self) -> bool {
-        self.is_link()
-    }
-
-    #[inline]
-    fn is_visited_link(&self) -> bool {
-        false
-    }
-
-    state_pseudo_classes!(state_getter);
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
@@ -576,23 +575,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     #[inline(always)]
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
-            match self.element.get_classes_for_layout() {
-                None => {}
-                Some(ref classes) => {
-                    for class in *classes {
-                        callback(class)
-                    }
+            if let Some(ref classes) = self.element.get_classes_for_layout() {
+                for class in *classes {
+                    callback(class)
                 }
-            }
-        }
-    }
-
-    #[inline]
-    fn has_servo_nonzero_border(&self) -> bool {
-        unsafe {
-            match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &atom!("border")) {
-                None | Some(&AttrValue::UInt(_, 0)) => false,
-                _ => true,
             }
         }
     }

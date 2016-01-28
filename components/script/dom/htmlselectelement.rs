@@ -20,8 +20,8 @@ use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use selectors::states::*;
 use string_cache::Atom;
+use style::element_state::*;
 use util::str::DOMString;
 
 #[dom_struct]

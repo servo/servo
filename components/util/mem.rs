@@ -16,8 +16,7 @@ use libc::{c_void, size_t};
 use logical_geometry::WritingMode;
 use rand::OsRng;
 use range::Range;
-use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
-use selectors::states::ElementState;
+use selectors::parser::{Combinator, CompoundSelector, Selector, SimpleSelector, SelectorImpl};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList};
 use std::hash::{BuildHasher, Hash};
@@ -308,7 +307,9 @@ impl HeapSizeOf for () {
     }
 }
 
-impl HeapSizeOf for Selector {
+impl<T: SelectorImpl> HeapSizeOf for Selector<T>
+    where T::NonTSPseudoClass: HeapSizeOf,
+          T::PseudoElement: HeapSizeOf {
     fn heap_size_of_children(&self) -> usize {
         let &Selector { ref compound_selectors, ref pseudo_element, ref specificity } = self;
         compound_selectors.heap_size_of_children() + pseudo_element.heap_size_of_children() +
@@ -316,23 +317,27 @@ impl HeapSizeOf for Selector {
     }
 }
 
-impl HeapSizeOf for CompoundSelector {
+impl<T: SelectorImpl> HeapSizeOf for CompoundSelector<T>
+    where T::NonTSPseudoClass: HeapSizeOf {
     fn heap_size_of_children(&self) -> usize {
         let &CompoundSelector { ref simple_selectors, ref next } = self;
         simple_selectors.heap_size_of_children() + next.heap_size_of_children()
     }
 }
 
-impl HeapSizeOf for SimpleSelector {
+impl<T: SelectorImpl> HeapSizeOf for SimpleSelector<T>
+    where T::NonTSPseudoClass: HeapSizeOf {
     fn heap_size_of_children(&self) -> usize {
         match *self {
             SimpleSelector::Negation(ref vec) => vec.heap_size_of_children(),
             SimpleSelector::AttrIncludes(_, ref str) | SimpleSelector::AttrPrefixMatch(_, ref str) |
             SimpleSelector::AttrSubstringMatch(_, ref str) | SimpleSelector::AttrSuffixMatch(_, ref str)
-            => str.heap_size_of_children(),
+                => str.heap_size_of_children(),
             SimpleSelector::AttrEqual(_, ref str, _) => str.heap_size_of_children(),
-            SimpleSelector::AttrDashMatch(_, ref first, ref second) => first.heap_size_of_children()
-            + second.heap_size_of_children(),
+            SimpleSelector::AttrDashMatch(_, ref first, ref second)
+                => first.heap_size_of_children() + second.heap_size_of_children(),
+            SimpleSelector::NonTSPseudoClass(ref pseudo_class)
+                => pseudo_class.heap_size_of_children(),
             // All other types come down to Atom, enum or i32, all 0
             _ => 0
         }
@@ -351,5 +356,5 @@ known_heap_size!(0, Au, WritingMode, CSSParserColor, RGBA, Cursor, Matrix4, Qual
 known_heap_size!(0, PagePx, ViewportPx, OsRng);
 known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 
-known_heap_size!(0, ElementState, Combinator, PseudoElement, str);
+known_heap_size!(0, Combinator, str);
 known_heap_size!(0, Uuid);

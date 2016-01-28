@@ -13,7 +13,6 @@ extern crate cssparser;
 extern crate euclid;
 extern crate libc;
 extern crate num_cpus;
-#[macro_use(state_pseudo_classes)]
 extern crate selectors;
 extern crate smallvec;
 #[macro_use(atom, ns)]
