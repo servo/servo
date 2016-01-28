@@ -65,8 +65,7 @@ pub enum NotReadyToPaint {
     LayerHasOutstandingPaintMessages,
     MissingRoot,
     PendingSubpages(usize),
-    AnimationsRunning,
-    AnimationCallbacksRunning,
+    AnimationsActive,
     JustNotifiedConstellation,
     WaitingOnConstellation,
 }
@@ -1608,6 +1607,22 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         false
     }
 
+    // Check if any pipelines currently have active animations or animation callbacks.
+    fn animations_active(&self) -> bool {
+        for (_, details) in &self.pipeline_details {
+            // If animations are currently running, then don't bother checking
+            // with the constellation if the output image is stable.
+            if details.animations_running {
+                return true;
+            }
+            if details.animation_callbacks_running {
+                return true;
+            }
+        }
+
+        false
+    }
+
     /// Query the constellation to see if the current compositor
     /// output matches the current frame tree output, and if the
     /// associated script threads are idle.
@@ -1641,15 +1656,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
                 for (id, details) in &self.pipeline_details {
-                    // If animations are currently running, then don't bother checking
-                    // with the constellation if the output image is stable.
-                    if details.animations_running {
-                        return Err(NotReadyToPaint::AnimationsRunning);
-                    }
-                    if details.animation_callbacks_running {
-                        return Err(NotReadyToPaint::AnimationCallbacksRunning);
-                    }
-
                     pipeline_epochs.insert(*id, details.current_epoch);
                 }
 
@@ -1710,17 +1716,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return Err(UnableToComposite::WindowUnprepared)
         }
 
-        match target {
-            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                if let Err(result) = self.is_ready_to_paint_image_output() {
-                    return Err(UnableToComposite::NotReadyToPaintImage(result))
-                }
-            }
-            CompositeTarget::Window => {
-                if opts::get().exit_after_load {
-                    if let Err(result) = self.is_ready_to_paint_image_output() {
-                        return Err(UnableToComposite::NotReadyToPaintImage(result))
+        let wait_for_stable_image = match target {
+            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => true,
+            CompositeTarget::Window => opts::get().exit_after_load,
+        };
+
+        if wait_for_stable_image {
+            match self.is_ready_to_paint_image_output() {
+                Ok(()) => {
+                    // The current image is ready to output. However, if there are animations active,
+                    // tick those instead and continue waiting for the image output to be stable AND
+                    // all active animations to complete.
+                    if self.animations_active() {
+                        self.process_animations();
+                        return Err(UnableToComposite::NotReadyToPaintImage(NotReadyToPaint::AnimationsActive));
                     }
+                }
+                Err(result) => {
+                    return Err(UnableToComposite::NotReadyToPaintImage(result))
                 }
             }
         }
