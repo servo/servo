@@ -92,24 +92,21 @@ impl<'a, E> ElementWrapper<'a, E> where E: Element {
     }
 }
 
-macro_rules! snapshot_state_accessors {
-    ($(
-        $(#[$Flag_attr: meta])*
-        state $css: expr => $variant: ident / $method: ident /
-        $flag: ident = $value: expr,
-    )+) => { $( fn $method(&self) -> bool {
-        match self.snapshot.state {
-            Some(s) => s.contains($flag),
-            None => self.element.$method()
+impl<'a, E> Element for ElementWrapper<'a, E> where E: Element<Impl=ServoSelectorImpl> {
+    type Impl = E::Impl;
+
+    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
+        use selector_impl::NonTSPseudoClass::*;
+        let flag = pseudo_class.state_flag();
+        if flag == ElementState::empty() {
+            self.element.match_non_ts_pseudo_class(pseudo_class)
+        } else {
+            match self.snapshot.state {
+                Some(s) => s.contains(pseudo_class.state_flag()),
+                None => self.element.match_non_ts_pseudo_class(pseudo_class)
+            }
         }
-    } )+
     }
-}
-
-impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
-
-    // Implement the state accessors on Element to use the snapshot state if it exists.
-    state_pseudo_classes!(snapshot_state_accessors);
 
     fn parent_element(&self) -> Option<Self> {
         self.element.parent_element().map(ElementWrapper::new)
@@ -168,15 +165,6 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
     fn is_root(&self) -> bool {
         self.element.is_root()
     }
-    fn is_link(&self) -> bool {
-        self.element.is_link()
-    }
-    fn is_visited_link(&self) -> bool {
-        self.element.is_visited_link()
-    }
-    fn is_unvisited_link(&self) -> bool {
-        self.element.is_unvisited_link()
-    }
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         match self.snapshot.attrs {
             Some(_) => {
@@ -189,24 +177,14 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
     }
 }
 
-macro_rules! gen_selector_to_state {
-    ($(
-        $(#[$Flag_attr: meta])*
-        state $css: expr => $variant: ident / $method: ident /
-        $flag: ident = $value: expr,
-    )+) => {
-        fn selector_to_state(sel: &SimpleSelector) -> ElementState {
-            match *sel {
-                $( SimpleSelector::$variant => $flag, )+
-                _ => ElementState::empty(),
-            }
-        }
+fn selector_to_state(sel: &SimpleSelector<ServoSelectorImpl>) -> ElementState {
+    match *sel {
+        SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
+        _ => ElementState::empty(),
     }
 }
 
-state_pseudo_classes!(gen_selector_to_state);
-
-fn is_attr_selector(sel: &SimpleSelector) -> bool {
+fn is_attr_selector(sel: &SimpleSelector<ServoSelectorImpl>) -> bool {
     match *sel {
         SimpleSelector::ID(_) |
         SimpleSelector::Class(_) |
@@ -272,7 +250,7 @@ impl Sensitivities {
 // elements in the document.
 #[derive(Debug)]
 struct Dependency {
-    selector: Arc<CompoundSelector>,
+    selector: Arc<CompoundSelector<ServoSelectorImpl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
@@ -288,7 +266,8 @@ impl DependencySet {
     }
 
     pub fn compute_hint<E>(&self, el: &E, snapshot: &ElementSnapshot, current_state: ElementState)
-                          -> RestyleHint where E: Element, E: Clone {
+                          -> RestyleHint
+                          where E: Element<Impl=ServoSelectorImpl> + Clone {
         let state_changes = snapshot.state.map_or(ElementState::empty(), |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.attrs.is_some();
         let mut hint = RestyleHint::empty();
@@ -308,7 +287,7 @@ impl DependencySet {
         hint
     }
 
-    pub fn note_selector(&mut self, selector: Arc<CompoundSelector>) {
+    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<ServoSelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
