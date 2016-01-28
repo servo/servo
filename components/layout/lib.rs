@@ -45,7 +45,7 @@ extern crate profile_traits;
 extern crate rustc_serialize;
 extern crate script;
 extern crate script_traits;
-#[macro_use(state_pseudo_classes)] extern crate selectors;
+extern crate selectors;
 extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
