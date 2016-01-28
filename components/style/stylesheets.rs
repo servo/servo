@@ -10,6 +10,7 @@ use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
+use selector_impl::ServoSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
@@ -74,7 +75,7 @@ impl MediaRule {
 
 #[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct StyleRule {
-    pub selectors: Vec<Selector>,
+    pub selectors: Vec<Selector<ServoSelectorImpl>>,
     pub declarations: PropertyDeclarationBlock,
 }
 
@@ -408,17 +409,17 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
 
 
 impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
-    type Prelude = Vec<Selector>;
+    type Prelude = Vec<Selector<ServoSelectorImpl>>;
     type QualifiedRule = CSSRule;
 
     #[inline]
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector>, ()> {
+    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector<ServoSelectorImpl>>, ()> {
         self.state.set(State::Body);
         QualifiedRuleParser::parse_prelude(&NestedRuleParser { context: &self.context }, input)
     }
 
     #[inline]
-    fn parse_block(&self, prelude: Vec<Selector>, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&self, prelude: Vec<Selector<ServoSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
         QualifiedRuleParser::parse_block(&NestedRuleParser { context: &self.context },
                                          prelude, input)
     }
@@ -475,14 +476,14 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
 
 
 impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
-    type Prelude = Vec<Selector>;
+    type Prelude = Vec<Selector<ServoSelectorImpl>>;
     type QualifiedRule = CSSRule;
 
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector>, ()> {
+    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector<ServoSelectorImpl>>, ()> {
         parse_selector_list(&self.context.selector_context, input)
     }
 
-    fn parse_block(&self, prelude: Vec<Selector>, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&self, prelude: Vec<Selector<ServoSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
         Ok(CSSRule::Style(StyleRule {
             selectors: prelude,
             declarations: parse_property_declaration_list(self.context, input)

@@ -58,7 +58,6 @@ use script_thread::{HistoryTraversalThreadSource, FileReadingThreadSource, Senda
 use script_thread::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
-use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -74,6 +73,7 @@ use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
+use style::selector_impl::PseudoElement;
 use time;
 use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::Url;

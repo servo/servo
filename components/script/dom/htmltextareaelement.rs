@@ -26,9 +26,9 @@ use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_traits::ScriptMsg as ConstellationMsg;
-use selectors::states::*;
 use std::cell::Cell;
 use string_cache::Atom;
+use style::element_state::*;
 use textinput::{KeyReaction, Lines, TextInput};
 use util::str::DOMString;
 

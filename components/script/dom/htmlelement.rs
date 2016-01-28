@@ -30,13 +30,13 @@ use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
-use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::intrinsics;
 use std::rc::Rc;
 use string_cache::Atom;
+use style::element_state::*;
 use util::str::DOMString;
 
 #[dom_struct]

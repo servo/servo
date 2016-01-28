@@ -9,12 +9,12 @@ use context::SharedStyleContext;
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
+use selector_impl::{NonTSPseudoClass, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
-use selectors::parser::PseudoElement;
 use smallvec::SmallVec;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
@@ -246,7 +246,7 @@ impl StyleSharingCandidate {
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
-            link: element.is_link(),
+            link: element.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
                    create_common_style_affecting_attributes_from_element::<'le, E>(&element)
@@ -314,7 +314,7 @@ impl StyleSharingCandidate {
             }
         }
 
-        if element.is_link() != self.link {
+        if element.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink) != self.link {
             return false
         }
 
