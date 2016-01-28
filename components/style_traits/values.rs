@@ -40,7 +40,8 @@ pub mod specified {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub enum AllowedNumericType {
         All,
-        NonNegative
+        NonNegative,
+        Positive,
     }
 
     impl AllowedNumericType {
@@ -49,6 +50,7 @@ pub mod specified {
             match *self {
                 AllowedNumericType::All => true,
                 AllowedNumericType::NonNegative => value >= 0.,
+                AllowedNumericType::Positive => value > 0.,
             }
         }
     }

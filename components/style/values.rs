@@ -1047,6 +1047,10 @@ pub mod specified {
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrNone, ()> {
             LengthOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
         }
+        #[inline]
+        pub fn parse_positive(input: &mut Parser) -> Result<LengthOrNone, ()> {
+            LengthOrNone::parse_internal(input, &AllowedNumericType::Positive)
+        }
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]

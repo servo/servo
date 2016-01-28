@@ -4200,7 +4200,8 @@ pub mod longhands {
 
     ${predefined_type("perspective",
                       "LengthOrNone",
-                      "computed::LengthOrNone::None")}
+                      "computed::LengthOrNone::None",
+                      "parse_positive")}
 
     <%self:longhand name="perspective-origin">
         use values::computed::Context;
