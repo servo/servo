@@ -63,6 +63,23 @@ use util::range::Range;
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
+// TODO(gw): The transforms spec says that perspective length must
+// be positive. However, there is some confusion between the spec
+// and browser implementations as to handling the case of 0 for the
+// perspective value. Until the spec bug is resolved, at least ensure
+// that a provided perspective value of <= 0.0 doesn't cause panics
+// and behaves as it does in other browsers.
+// See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
+#[inline]
+fn create_perspective_matrix(d: Au) -> Matrix4 {
+    let d = d.to_f32_px();
+    if d <= 0.0 {
+        Matrix4::identity()
+    } else {
+        Matrix4::create_perspective(d)
+    }
+}
+
 pub trait FragmentDisplayListBuilding {
     /// Adds the display items necessary to paint the background of this fragment to the display
     /// list if necessary.
@@ -1241,7 +1258,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         Matrix4::create_rotation(ax, ay, az, theta)
                     }
                     transform::ComputedOperation::Perspective(d) => {
-                        Matrix4::create_perspective(d.to_f32_px())
+                        create_perspective_matrix(d)
                     }
                     transform::ComputedOperation::Scale(sx, sy, sz) => {
                         Matrix4::create_scale(sx, sy, sz)
@@ -1282,7 +1299,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                  -perspective_origin.y,
                                                                  0.0);
 
-                let perspective_matrix = Matrix4::create_perspective(d.to_f32_px());
+                let perspective_matrix = create_perspective_matrix(d);
 
                 pre_transform.mul(&perspective_matrix).mul(&post_transform)
             }
