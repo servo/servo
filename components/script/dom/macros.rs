@@ -333,6 +333,7 @@ macro_rules! error_event_handler(
 macro_rules! global_event_handlers(
     () => (
         event_handler!(load, GetOnload, SetOnload);
+        event_handler!(resize, GetOnresize, SetOnresize);
         global_event_handlers!(NoOnload);
 
     );
