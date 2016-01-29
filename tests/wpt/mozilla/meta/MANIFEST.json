@@ -5904,6 +5904,12 @@
             "url": "/_mozilla/mozilla/interfaces.html"
           }
         ],
+        "mozilla/lazy-interface-object.html": [
+          {
+            "path": "mozilla/lazy-interface-object.html",
+            "url": "/_mozilla/mozilla/lazy-interface-object.html"
+          }
+        ],
         "mozilla/lenient_this.html": [
           {
             "path": "mozilla/lenient_this.html",

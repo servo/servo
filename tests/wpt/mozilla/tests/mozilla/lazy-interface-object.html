@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Lazy interface objects</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function () {
+    assert_equals(typeof window.Blob, "function")
+    delete window.Blob;
+    assert_equals(window.Blob, undefined);
+}, "A lazy interface object deleted after its creation is undefined");
+
+test(function () {
+    delete window.TestBinding;
+    assert_equals(window.TestBinding, undefined);
+}, "A lazy interface object deleted before its creation is undefined");
+
+test(function () {
+    assert_equals(window["abc\udc88"], undefined);
+}, "Fancy property names don't break the resolve hook on Window");
+</script>
