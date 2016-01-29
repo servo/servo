@@ -55,7 +55,6 @@ use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
-use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -1313,7 +1312,8 @@ impl LayoutThread {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* thread
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        let non_opaque: NonOpaqueStyleAndLayoutData = transmute(data.ptr);
+        let ptr: *mut () = *data.ptr;
+        let non_opaque: NonOpaqueStyleAndLayoutData = ptr as *mut _;
         let _ = Box::from_raw(non_opaque);
     }
 

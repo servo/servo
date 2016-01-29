@@ -49,7 +49,7 @@ use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
 use script::layout_interface::TrustedNodeAddress;
@@ -224,6 +224,14 @@ impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
 
     unsafe fn set_dirty_descendants(&self, value: bool) {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
+    }
+
+    fn can_be_fragmented(&self) -> bool {
+        unsafe { self.node.get_flag(CAN_BE_FRAGMENTED) }
+    }
+
+    unsafe fn set_can_be_fragmented(&self, value: bool) {
+        self.node.set_flag(CAN_BE_FRAGMENTED, value)
     }
 
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
@@ -753,6 +761,8 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
         }
     }
 
+    fn can_be_fragmented(&self) -> bool;
+
     /// If this is a text node, generated content, or a form element, copies out
     /// its content. Otherwise, panics.
     ///
@@ -927,6 +937,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         unsafe {
             (*self.node.borrow_layout_data_unchecked().unwrap()).flags
         }
+    }
+
+    fn can_be_fragmented(&self) -> bool {
+        self.node.can_be_fragmented()
     }
 
     fn text_content(&self) -> TextContent {

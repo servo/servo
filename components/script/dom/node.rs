@@ -144,6 +144,9 @@ bitflags! {
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 0x20,
+
+        /// Whether any ancestor is a fragmentation container
+        const CAN_BE_FRAGMENTED = 0x40
     }
 }
 
