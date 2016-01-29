@@ -159,6 +159,9 @@ pub mod codegen {
     pub mod Bindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
     }
+    pub mod InterfaceObjectMap {
+        include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
+    }
     pub mod InterfaceTypes {
         include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
     }
