@@ -257,9 +257,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             element.update_inline_style(decl, priority);
         }
 
-        let document = document_from_node(element);
-        let node = element.upcast();
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -292,9 +289,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             None => element.set_inline_style_property_priority(&[&*property], priority),
         }
 
-        let document = document_from_node(element);
-        let node = element.upcast();
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 

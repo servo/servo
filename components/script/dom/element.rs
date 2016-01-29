@@ -646,6 +646,34 @@ impl Element {
         }
     }
 
+    fn sync_property_with_attrs_style(&self) {
+        let mut style_str = String::new();
+
+        if let &Some(ref declarations) = &*self.style_attribute().borrow() {
+            style_str.push_str(&declarations.serialize());
+        }
+
+        let new_style = AttrValue::String(DOMString::from_string(style_str));
+
+        if let Some(style_attr) = self.attrs.borrow().iter().find(|a| a.name() == &atom!("style")) {
+            style_attr.set_value(new_style, self);
+            return;
+        }
+
+        // if style is provided, but attr doesn't exist yet
+        let window = window_from_node(self);
+
+        let attr = Attr::new(&window,
+                             atom!("style"),
+                             new_style,
+                             atom!("style"),
+                             ns!(),
+                             Some(atom!("style")),
+                             Some(self));
+
+        self.attrs.borrow_mut().push(JS::from_rooted(&attr));
+    }
+
     pub fn remove_inline_style_property(&self, property: &str) {
         let mut inline_declarations = self.style_attribute.borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
@@ -665,42 +693,49 @@ impl Element {
                 return;
             }
         }
+        self.sync_property_with_attrs_style();
     }
 
     pub fn update_inline_style(&self,
                                property_decl: PropertyDeclaration,
                                style_priority: StylePriority) {
-        let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let existing_declarations = if style_priority == StylePriority::Important {
-                &mut declarations.important
+
+        fn update(element: &Element, property_decl: PropertyDeclaration, style_priority: StylePriority) {
+            let mut inline_declarations = element.style_attribute().borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+                let existing_declarations = if style_priority == StylePriority::Important {
+                    &mut declarations.important
+                } else {
+                    &mut declarations.normal
+                };
+
+                // Usually, the reference count will be 1 here. But transitions could make it greater
+                // than that.
+                let existing_declarations = Arc::make_mut(existing_declarations);
+                for declaration in &mut *existing_declarations {
+                    if declaration.name() == property_decl.name() {
+                        *declaration = property_decl;
+                        return;
+                    }
+                }
+                existing_declarations.push(property_decl);
+                return;
+            }
+
+            let (important, normal) = if style_priority == StylePriority::Important {
+                (vec![property_decl], vec![])
             } else {
-                &mut declarations.normal
+                (vec![], vec![property_decl])
             };
 
-            // Usually, the reference count will be 1 here. But transitions could make it greater
-            // than that.
-            let existing_declarations = Arc::make_mut(existing_declarations);
-            for declaration in &mut *existing_declarations {
-                if declaration.name() == property_decl.name() {
-                    *declaration = property_decl;
-                    return;
-                }
-            }
-            existing_declarations.push(property_decl);
-            return;
+            *inline_declarations = Some(PropertyDeclarationBlock {
+                important: Arc::new(important),
+                normal: Arc::new(normal),
+            });
         }
 
-        let (important, normal) = if style_priority == StylePriority::Important {
-            (vec![property_decl], vec![])
-        } else {
-            (vec![], vec![property_decl])
-        };
-
-        *inline_declarations = Some(PropertyDeclarationBlock {
-            important: Arc::new(important),
-            normal: Arc::new(normal),
-        });
+        update(self, property_decl, style_priority);
+        self.sync_property_with_attrs_style();
     }
 
     pub fn set_inline_style_property_priority(&self,
@@ -729,6 +764,8 @@ impl Element {
             }
             mem::replace(from, new_from);
         }
+
+        self.sync_property_with_attrs_style();
     }
 
     pub fn get_inline_style_declaration(&self,

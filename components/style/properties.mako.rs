@@ -5724,6 +5724,21 @@ pub struct PropertyDeclarationBlock {
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
+impl PropertyDeclarationBlock {
+    // TODO: make serialize follow spec - https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    pub fn serialize(&self) -> String {
+        let mut style_str = String::new();
+        let combined = self.normal.iter().chain(self.important.iter());
+        for declaration in combined {
+            style_str.push_str(&format!("{}: {}; ", declaration.name(), declaration.value()));
+       }
+
+       style_str.pop(); // remove trailing space after last declaration
+       style_str
+    }
+}
+
+
 pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: Box<ParseErrorReporter + Send>)
                              -> PropertyDeclarationBlock {
     let context = ParserContext::new(Origin::Author, base_url, error_reporter);
