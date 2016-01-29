@@ -25,7 +25,7 @@ pub fn match_ty_unwrap<'a>(ty: &'a ast::Ty, segments: &[&str]) -> Option<&'a [P<
             // which will compare them in reverse until one of them runs out of segments
             if seg.iter().rev().zip(segments.iter().rev()).all(|(a, b)| a.identifier.name.as_str() == *b) {
                 match seg.last() {
-                    Some(&ast::PathSegment { parameters: ast::AngleBracketedParameters(ref a), .. }) => {
+                    Some(&ast::PathSegment { parameters: ast::PathParameters::AngleBracketed(ref a), .. }) => {
                         Some(&a.types)
                     }
                     _ => None
@@ -45,12 +45,16 @@ pub fn match_lang_ty(cx: &LateContext, ty: &hir::Ty, value: &str) -> bool {
         _ => return false,
     }
 
-    let def_id = match cx.tcx.def_map.borrow().get(&ty.id) {
-        Some(&def::PathResolution { base_def: def::DefTy(def_id, _), .. }) => def_id,
+    let def = match cx.tcx.def_map.borrow().get(&ty.id) {
+        Some(&def::PathResolution { base_def: def, .. }) => def,
         _ => return false,
     };
 
-    match_lang_did(cx, def_id, value)
+    if let def::Def::PrimTy(_) = def {
+        return false;
+    }
+
+    match_lang_did(cx, def.def_id(), value)
 }
 
 pub fn match_lang_did(cx: &LateContext, did: DefId, value: &str) -> bool {
