@@ -698,7 +698,8 @@ impl BlockFlow {
     ///
     /// TODO(#2017, pcwalton): This is somewhat inefficient (traverses kids twice); can we do
     /// better?
-    fn adjust_fragments_for_collapsed_margins_if_root(&mut self) {
+    fn adjust_fragments_for_collapsed_margins_if_root<'a>(&mut self,
+                                                          layout_context: &'a LayoutContext<'a>) {
         if !self.is_root() {
             return
         }
@@ -722,10 +723,19 @@ impl BlockFlow {
             }
         }
 
-        self.base.position.size.block = self.base.position.size.block + block_start_margin_value +
-            block_end_margin_value;
-        self.fragment.border_box.size.block = self.fragment.border_box.size.block + block_start_margin_value +
-            block_end_margin_value;
+        // FIXME(#2003, pcwalton): The max is taken here so that you can scroll the page, but this
+        // is not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat the
+        // root element as having `overflow: scroll` and use the layers-based scrolling
+        // infrastructure to make it scrollable.
+        let viewport_size =
+            LogicalSize::from_physical(self.fragment.style.writing_mode,
+                                       layout_context.shared_context().viewport_size);
+        let block_size = max(viewport_size.block,
+                             self.fragment.border_box.size.block + block_start_margin_value +
+                             block_end_margin_value);
+
+        self.base.position.size.block = block_size;
+        self.fragment.border_box.size.block = block_size;
     }
 
     // FIXME: Record enough info to deal with fragmented decorations.
@@ -931,18 +941,8 @@ impl BlockFlow {
             self.base.collapsible_margins = collapsible_margins;
             translate_including_floats(&mut cur_b, delta, &mut floats);
 
-            // FIXME(#2003, pcwalton): The max is taken here so that you can scroll the page, but
-            // this is not correct behavior according to CSS 2.1 § 10.5. Instead I think we should
-            // treat the root element as having `overflow: scroll` and use the layers-based
-            // scrolling infrastructure to make it scrollable.
             let mut block_size = cur_b - block_start_offset;
             let is_root = self.is_root();
-            if is_root {
-                let viewport_size =
-                    LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                               layout_context.shared_context().viewport_size);
-                block_size = max(viewport_size.block, block_size)
-            }
 
             if is_root || self.formatting_context_type() != FormattingContextType::None ||
                     self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -952,6 +952,17 @@ impl BlockFlow {
             }
 
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                // FIXME(#2003, pcwalton): The max is taken here so that you can scroll the page,
+                // but this is not correct behavior according to CSS 2.1 § 10.5. Instead I think we
+                // should treat the root element as having `overflow: scroll` and use the layers-
+                // based scrolling infrastructure to make it scrollable.
+                if is_root {
+                    let viewport_size =
+                        LogicalSize::from_physical(self.fragment.style.writing_mode,
+                                                   layout_context.shared_context().viewport_size);
+                    block_size = max(viewport_size.block, block_size)
+                }
+
                 // Store the content block-size for use in calculating the absolute flow's
                 // dimensions later.
                 //
@@ -1006,7 +1017,7 @@ impl BlockFlow {
             // Store the current set of floats in the flow so that flows that come later in the
             // document can access them.
             self.base.floats = floats.clone();
-            self.adjust_fragments_for_collapsed_margins_if_root();
+            self.adjust_fragments_for_collapsed_margins_if_root(layout_context);
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if
             // necessary.
