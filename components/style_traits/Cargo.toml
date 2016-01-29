@@ -16,8 +16,8 @@ path = "../plugins"
 [dependencies]
 cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 euclid = {version = "0.6.1", features = ["plugins"]}
-log = "0.3"
 lazy_static = "0.1.10"
+log = "0.3"
 num = "0.1.24"
 rustc-serialize = "0.3"
 selectors = "0.4.1"
