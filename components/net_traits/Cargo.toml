@@ -20,9 +20,9 @@ git = "https://github.com/servo/ipc-channel"
 path = "../plugins"
 
 [dependencies]
-log = "0.3"
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
+log = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
 stb_image = "0.2"

@@ -21,11 +21,11 @@ git = "https://github.com/servo/ipc-channel"
 path = "../plugins"
 
 [dependencies]
-cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 bitflags = "0.3"
+cssparser = { version = "0.5", features = [ "serde-serialization" ] }
+euclid = {version = "0.6.1", features = ["plugins"]}
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 rustc-serialize = "0.3.4"
-euclid = {version = "0.6.1", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 url = "0.5.4"
