@@ -1314,6 +1314,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "phf_macros"
+version = "0.7.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "phf_generator 0.7.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.13 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "phf_shared"
 version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1489,6 +1498,8 @@ dependencies = [
  "net_traits 0.0.1",
  "num 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "phf 0.7.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_macros 0.7.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "rand 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
