@@ -179,8 +179,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "ipc-channel"
-version = "0.1.0"
-source = "git+https://github.com/servo/ipc-channel#4cc8773bfb0ab9a350f98fe316c24d2f42b99858"
+version = "0.2.0"
+source = "git+https://github.com/servo/ipc-channel#1f1d0923a4a43523b151abc4f4dd7e2ae4a5ec4c"
 dependencies = [
  "bincode 0.4.0 (git+https://github.com/TyOverby/bincode)",
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -455,7 +455,7 @@ dependencies = [
  "cssparser 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.1.0 (git+https://github.com/servo/ipc-channel)",
+ "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
