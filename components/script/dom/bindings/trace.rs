@@ -71,10 +71,9 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
-use std::collections::hash_state::HashState;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
-use std::hash::{Hash, Hasher};
+use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
 use std::iter::{FromIterator, IntoIterator};
 use std::mem;
@@ -235,8 +234,7 @@ impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
 impl<K, V, S> JSTraceable for HashMap<K, V, S>
     where K: Hash + Eq + JSTraceable,
           V: JSTraceable,
-          S: HashState,
-          <S as HashState>::Hasher: Hasher,
+          S: BuildHasher
 {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
