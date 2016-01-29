@@ -11,7 +11,7 @@ use block::BlockFlow;
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
 use floats::FloatKind;
-use flow::{Flow, FlowClass, OpaqueFlow};
+use flow::{Flow, FlowClass, OpaqueFlow, mut_base};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use std::fmt;
 use std::sync::Arc;
@@ -60,6 +60,10 @@ impl Flow for MulticolFlow {
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for multicol");
+        let available_block_size = Au(0);
+        for child in mut_base(self).children.iter_mut() {
+            child.fragment(ctx, available_block_size);
+        }
         self.block_flow.assign_block_size(ctx);
     }
 
