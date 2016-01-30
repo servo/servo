@@ -34,6 +34,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onreset;
            attribute EventHandler onsubmit;
            attribute EventHandler ontoggle;
+           attribute EventHandler onresize;
 };
 
 [NoInterfaceObject]

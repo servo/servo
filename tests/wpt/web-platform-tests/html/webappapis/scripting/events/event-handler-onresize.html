@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>HTMLBodyElement.onresize</title>
+<link rel="author" title="His-Name-Is-Joof" href="mailto:jeffrharrison@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#handler-window-onresize">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test("body.onresize should set the window.onload handler")
+window.onresize = t.step_func(function() {
+  assert_unreached("This handler should be overwritten.")
+})
+
+var body = document.createElement("body")
+body.onresize = t.step_func(function(e) {
+  assert_equals(e.currentTarget, window,
+                "The event should be fired at the window.")
+  t.done()
+})
+window.dispatchEvent(new Event('resize'));
+
+t = async_test("document.onresize should set the document.onresize handler");
+document.onresize = t.step_func(function(e) {
+    assert_equals(e.currentTarget, document,
+            "The event should be fired at the document")
+    t.done()
+})
+document.dispatchEvent(new Event('resize'));
+
+t = async_test("meta.onresize should set the meta.onresize handler");
+var meta = document.createElement("meta")
+meta.onresize = t.step_func(function(e) {
+    assert_equals(e.currentTarget, meta,
+            "The event should be fired at the <meta> object")
+    t.done()
+})
+meta.dispatchEvent(new Event('resize'));
+</script>
