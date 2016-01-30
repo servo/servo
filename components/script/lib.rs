@@ -26,6 +26,7 @@
 
 #![doc = "The script crate contains all matters DOM."]
 
+#![plugin(heapsize_plugin)]
 #![plugin(plugins)]
 
 extern crate angle;
@@ -42,6 +43,7 @@ extern crate encoding;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx_traits;
+extern crate heapsize;
 extern crate html5ever;
 extern crate hyper;
 extern crate image;

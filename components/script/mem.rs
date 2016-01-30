@@ -6,8 +6,8 @@
 
 use dom::bindings::conversions::get_dom_class;
 use dom::bindings::reflector::Reflectable;
+use heapsize::{HeapSizeOf, heap_size_of};
 use libc::c_void;
-use util::mem::{HeapSizeOf, heap_size_of};
 
 // This is equivalent to measuring a Box<T>, except that DOM objects lose their
 // associated box in order to stash their pointers in a reserved slot of their

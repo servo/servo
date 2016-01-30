@@ -20,11 +20,13 @@ git = "https://github.com/servo/ipc-channel"
 path = "../plugins"
 
 [dependencies]
+heapsize = "0.2.5"
+heapsize_plugin = "0.1.2"
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 time = "0.1"
 rustc-serialize = "0.3"
 bitflags = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
-url = "0.5.4"
+url = {version = "0.5.4", features = ["heap_size"]}
 

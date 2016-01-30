@@ -21,6 +21,7 @@ use dom::eventdispatcher::dispatch_event;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use fnv::FnvHasher;
+use heapsize::HeapSizeOf;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject, RootedValue};
 use js::jsapi::{HandleObject, JSContext, RootedFunction};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
@@ -35,7 +36,6 @@ use std::rc::Rc;
 use std::{intrinsics, ptr};
 use string_cache::Atom;
 use url::Url;
-use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 #[derive(PartialEq, Clone, JSTraceable)]

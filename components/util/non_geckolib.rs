@@ -4,20 +4,10 @@
 
 ///! Miscellaneous Code which depends on large libraries that we don't
 ///  depend on in GeckoLib builds.
-
-use azure::azure_hl::Color;
-use html5ever::tree_builder::QuirksMode;
-use hyper::header::ContentType;
-use hyper::http::RawStatus;
-use hyper::method::Method;
-use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, latin1_to_string};
-use js::jsapi::{JSContext, JSString, HandleValue, Heap, MutableHandleValue};
+use js::jsapi::{JSContext, JSString, HandleValue, MutableHandleValue};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_StringHasLatin1Chars};
-use js::jsval::JSVal;
-use js::rust::{GCMethods, ToString};
-use layers::geometry::DevicePixel;
-use mem::HeapSizeOf;
+use js::rust::ToString;
 use opts;
 use std::char;
 use std::ptr;
@@ -99,73 +89,3 @@ pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString
         s
     })
 }
-
-// This is measured properly by the heap measurement implemented in SpiderMonkey.
-impl<T: Copy + GCMethods<T>> HeapSizeOf for Heap<T> {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
-
-impl HeapSizeOf for ContentType {
-    fn heap_size_of_children(&self) -> usize {
-        let &ContentType(ref mime) = self;
-        mime.heap_size_of_children()
-    }
-}
-
-impl HeapSizeOf for Method {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            Method::Extension(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for Mime {
-    fn heap_size_of_children(&self) -> usize {
-        let &Mime(ref top_level, ref sub_level, ref vec) = self;
-        top_level.heap_size_of_children() + sub_level.heap_size_of_children() +
-        vec.heap_size_of_children()
-    }
-}
-
-impl HeapSizeOf for TopLevel {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            TopLevel::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for SubLevel {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            SubLevel::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for Attr {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            Attr::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-impl HeapSizeOf for Value {
-    fn heap_size_of_children(&self) -> usize {
-        match *self {
-            Value::Ext(ref str) => str.heap_size_of_children(),
-            _ => 0
-        }
-    }
-}
-
-
-known_heap_size!(0, Color, DevicePixel, JSVal, QuirksMode, RawStatus);

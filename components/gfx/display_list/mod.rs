@@ -22,6 +22,7 @@ use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::{color, LayerId, LayerKind, ScrollPolicy};
+use heapsize::HeapSizeOf;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
@@ -41,7 +42,6 @@ use text::glyph::CharIndex;
 use util::cursor::Cursor;
 use util::geometry::MAX_RECT;
 use util::linked_list::prepend_from;
-use util::mem::HeapSizeOf;
 use util::opts;
 use util::print_tree::PrintTree;
 use util::range::Range;
@@ -1256,8 +1256,8 @@ pub struct GradientDisplayItem {
 
 impl HeapSizeOf for GradientDisplayItem {
     fn heap_size_of_children(&self) -> usize {
+        use heapsize::heap_size_of;
         use libc::c_void;
-        use util::mem::heap_size_of;
 
         // We can't measure `stops` via Vec's HeapSizeOf implementation because GradientStop isn't
         // defined in this module, and we don't want to import GradientStop into util::mem where

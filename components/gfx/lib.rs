@@ -16,6 +16,7 @@
 #![feature(str_char)]
 #![feature(unique)]
 
+#![plugin(heapsize_plugin)]
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
@@ -46,6 +47,7 @@ extern crate gfx_traits;
 // shapers. For now, however, this is a hard dependency.
 extern crate harfbuzz_sys as harfbuzz;
 
+extern crate heapsize;
 extern crate ipc_channel;
 extern crate layers;
 #[macro_use]

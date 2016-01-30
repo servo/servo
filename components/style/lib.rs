@@ -11,9 +11,9 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 
-#![plugin(serde_macros)]
-#![plugin(serde_macros)]
+#![plugin(heapsize_plugin)]
 #![plugin(plugins)]
+#![plugin(serde_macros)]
 
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
 
@@ -26,6 +26,7 @@ extern crate cssparser;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
+extern crate heapsize;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
