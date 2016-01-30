@@ -7,7 +7,7 @@
 //! to depend on script.
 
 #![feature(custom_derive, plugin)]
-#![plugin(plugins, serde_macros)]
+#![plugin(heapsize_plugin, plugins, serde_macros)]
 #![deny(missing_docs)]
 
 extern crate app_units;
@@ -15,6 +15,7 @@ extern crate canvas_traits;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
+extern crate heapsize;
 extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
@@ -50,7 +51,6 @@ use profile_traits::mem;
 use std::any::Any;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
-use util::mem::HeapSizeOf;
 
 pub use script_msg::{LayoutMsg, ScriptMsg};
 

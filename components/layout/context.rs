@@ -14,6 +14,7 @@ use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use gfx_traits::LayerId;
+use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
@@ -27,7 +28,6 @@ use std::sync::{Arc, Mutex};
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use url::Url;
-use util::mem::HeapSizeOf;
 use util::opts;
 
 struct LocalLayoutContext {

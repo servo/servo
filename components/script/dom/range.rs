@@ -23,10 +23,10 @@ use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
+use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
-use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 #[dom_struct]

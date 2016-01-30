@@ -36,8 +36,6 @@ use syntax::parse::token::intern;
 // Public for documentation to show up
 /// Handles the auto-deriving for `#[derive(JSTraceable)]`
 pub mod jstraceable;
-/// Handles the auto-deriving for `#[derive(HeapSizeOf)]`
-pub mod heap_size;
 pub mod lints;
 /// Autogenerates implementations of Reflectable on DOM structs
 pub mod reflector;
@@ -51,7 +49,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
     reg.register_syntax_extension(intern("derive_JSTraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
     reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
-    reg.register_syntax_extension(intern("derive_HeapSizeOf"), MultiDecorator(box heap_size::expand_heap_size));
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
     reg.register_macro("url", url_plugin::expand_url);

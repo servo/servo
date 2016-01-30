@@ -11,7 +11,7 @@ use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
 
 bitflags!(
-    #[derive(RustcEncodable)]
+    #[derive(HeapSizeOf, RustcEncodable)]
     flags WritingMode: u8 {
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,

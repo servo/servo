@@ -8,7 +8,6 @@ use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;
 use url::Url;
-use util::mem::HeapSizeOf;
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Source {

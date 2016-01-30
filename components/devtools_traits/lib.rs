@@ -13,10 +13,11 @@
 #![deny(unsafe_code)]
 
 #![feature(custom_derive, plugin)]
-#![plugin(serde_macros, plugins)]
+#![plugin(heapsize_plugin, serde_macros)]
 
 #[macro_use]
 extern crate bitflags;
+extern crate heapsize;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
@@ -36,7 +37,6 @@ use std::net::TcpStream;
 use time::Duration;
 use time::Tm;
 use url::Url;
-use util::mem::HeapSizeOf;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.

@@ -6,7 +6,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::{Image, ImageMetadata};
 use std::sync::Arc;
 use url::Url;
-use util::mem::HeapSizeOf;
 
 /// This is optionally passed to the image cache when requesting
 /// and image, and returned to the specified event loop when the

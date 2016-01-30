@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 #![feature(custom_derive)]
 #![feature(plugin)]
+#![plugin(heapsize_plugin)]
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 #![deny(unsafe_code)]
@@ -17,6 +18,7 @@
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
+extern crate heapsize;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate util;

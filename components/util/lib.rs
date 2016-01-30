@@ -18,7 +18,7 @@
 #![feature(step_trait)]
 #![feature(zero_one)]
 
-#![plugin(plugins, serde_macros)]
+#![plugin(heapsize_plugin, plugins, serde_macros)]
 
 extern crate alloc;
 extern crate app_units;
@@ -30,6 +30,7 @@ extern crate bitflags;
 extern crate cssparser;
 extern crate euclid;
 extern crate getopts;
+extern crate heapsize;
 #[cfg(feature = "non-geckolib")]
 extern crate html5ever;
 #[cfg(feature = "non-geckolib")]
@@ -66,7 +67,6 @@ pub mod geometry;
 pub mod ipc;
 pub mod linked_list;
 pub mod logical_geometry;
-#[macro_use] pub mod mem;
 #[cfg(feature = "non-geckolib")]
 pub mod non_geckolib;
 pub mod opts;

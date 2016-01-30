@@ -27,7 +27,6 @@ use std::sync::{Arc, Mutex};
 use time::{self, Timespec, now};
 use unicase::UniCase;
 use url::{SchemeData, Url};
-use util::mem::HeapSizeOf;
 use util::thread::spawn_named;
 
 /// Interface for network listeners concerned with CORS checks. Proper network requests
@@ -41,6 +40,7 @@ pub struct CORSRequest {
     pub origin: Url,
     pub destination: Url,
     pub mode: RequestMode,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub method: Method,
     #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
