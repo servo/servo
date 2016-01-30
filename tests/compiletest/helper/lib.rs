@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 extern crate compiletest_rs as compiletest;
 
 use std::env;
@@ -16,8 +20,9 @@ pub fn run_mode(mode: &'static str) {
     base_path.pop();
     base_path.pop();
 
-    let debug_path = base_path.join(PathBuf::from("target/debug"));
-    let deps_path = base_path.join(PathBuf::from("target/debug/deps"));
+    let mode = env::var("BUILD_MODE").expect("BUILD_MODE environment variable must be set");
+    let debug_path = base_path.join(PathBuf::from(format!("target/{}", mode)));
+    let deps_path = base_path.join(PathBuf::from(format!("target/{}/deps", mode)));
 
     config.target_rustcflags = Some(format!("-L {} -L {}",  debug_path.display(), deps_path.display()));
     compiletest::run_tests(&config);

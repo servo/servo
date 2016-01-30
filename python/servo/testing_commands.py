@@ -109,7 +109,10 @@ class MachCommands(CommandBase):
                      "include_arg": "include"}),
             ("unit", {"kwargs": {},
                       "paths": [path.abspath(path.join("tests", "unit"))],
-                      "include_arg": "test_name"})
+                      "include_arg": "test_name"}),
+            ("compiletest", {"kwargs": {"release": release},
+                             "paths": [path.abspath(path.join("tests", "compiletest"))],
+                             "include_arg": "test_name"})
         ])
 
         suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
@@ -213,7 +216,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--package', '-p', default=None, help="Specific package to test")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern or file path")
-    def test_compiletest(self, test_name=None, package=None):
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Run with a release build of servo")
+    def test_compiletest(self, test_name=None, package=None, release=False):
         properties = json.loads(subprocess.check_output([
             sys.executable,
             path.join(self.context.topdir, "components", "style", "list_properties.py")
@@ -260,7 +265,15 @@ class MachCommands(CommandBase):
         for crate in packages:
             args += ["-p", "%s_compiletest" % crate]
         args += test_patterns
-        result = call(args, env=self.build_env(), cwd=self.servo_crate())
+
+        env = self.build_env()
+        if release:
+            env["BUILD_MODE"] = "release"
+            args += ["--release"]
+        else:
+            env["BUILD_MODE"] = "debug"
+
+        result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
             return result
 
