@@ -401,7 +401,7 @@ pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> 
 }
 
 fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragment>) {
-    if fragments.len() < 1 {
+    if fragments.is_empty() {
         return
     }
 
