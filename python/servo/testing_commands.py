@@ -232,6 +232,28 @@ class MachCommands(CommandBase):
     def test_tidy(self, faster):
         return tidy.scan(faster)
 
+    @Command('test-webidl',
+             description='Run the WebIDL parser tests',
+             category='testing')
+    @CommandArgument('--quiet', '-q', default=False, action="store_true",
+                     help="Don't print passing tests.")
+    @CommandArgument('tests', default=None, nargs="...",
+                     help="Specific tests to run, relative to the tests directory")
+    def test_webidl(self, quiet, tests):
+        self.ensure_bootstrapped()
+
+        test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
+                                               "dom", "bindings", "codegen", "parser"))
+        # For the `import WebIDL` in runtests.py
+        sys.path.insert(0, test_file_dir)
+
+        run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+
+        verbose = not quiet
+        return run_globals["run_tests"](tests, verbose)
+
     @Command('test-wpt-failure',
              description='Run the web platform tests',
              category='testing')

@@ -20,20 +20,20 @@ class TestHarness(object):
 
     def finish(self):
         if self.verbose or self.printed_intro:
-            print "Finished test %s" % self.test
+            print("Finished test %s" % self.test)
 
     def maybe_print_intro(self):
         if not self.printed_intro:
-            print "Starting test %s" % self.test
+            print("Starting test %s" % self.test)
             self.printed_intro = True
 
     def test_pass(self, msg):
         if self.verbose:
-            print "TEST-PASS | %s" % msg
+            print("TEST-PASS | %s" % msg)
 
     def test_fail(self, msg):
         self.maybe_print_intro()
-        print "TEST-UNEXPECTED-FAIL | %s" % msg
+        print("TEST-UNEXPECTED-FAIL | %s" % msg)
 
     def ok(self, condition, msg):
         if condition:
@@ -46,7 +46,7 @@ class TestHarness(object):
             self.test_pass(msg)
         else:
             self.test_fail(msg)
-            print "\tGot %s expected %s" % (a, b)
+            print("\tGot %s expected %s" % (a, b))
 
 def run_tests(tests, verbose):
     testdir = os.path.join(os.path.dirname(__file__), 'tests')
@@ -63,7 +63,7 @@ def run_tests(tests, verbose):
         try:
             _test.WebIDLTest.__call__(WebIDL.Parser(), harness)
         except Exception, ex:
-            print "TEST-UNEXPECTED-FAIL | Unhandled exception in test %s: %s" % (testpath, ex)
+            print("TEST-UNEXPECTED-FAIL | Unhandled exception in test %s: %s" % (testpath, ex))
             traceback.print_exc()
         finally:
             harness.finish()
