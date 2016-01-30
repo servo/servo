@@ -9,8 +9,9 @@
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(custom_attribute)]
-#![plugin(serde_macros, plugins)]
+#![plugin(heapsize_plugin, serde_macros)]
 
+extern crate heapsize;
 extern crate hyper;
 extern crate image as piston_image;
 extern crate ipc_channel;
@@ -32,7 +33,6 @@ use msg::constellation_msg::{PipelineId};
 use serde::{Deserializer, Serializer};
 use std::thread;
 use url::Url;
-use util::mem::HeapSizeOf;
 use websocket::header;
 
 pub mod hosts;
@@ -69,6 +69,7 @@ pub enum LoadContext {
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
     pub url: Url,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub method: Method,
     #[ignore_heap_size_of = "Defined in hyper"]
     /// Headers that will apply to the initial request only
@@ -297,6 +298,7 @@ pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
 
+    #[ignore_heap_size_of = "Defined in hyper"]
     /// MIME type / subtype.
     pub content_type: Option<(ContentType)>,
 
@@ -307,6 +309,7 @@ pub struct Metadata {
     /// Headers
     pub headers: Option<Headers>,
 
+    #[ignore_heap_size_of = "Defined in hyper"]
     /// HTTP Status
     pub status: Option<RawStatus>,
 }

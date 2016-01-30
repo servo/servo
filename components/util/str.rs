@@ -16,7 +16,7 @@ use std::iter::{Filter, Peekable};
 use std::ops::{Deref, DerefMut};
 use std::str::{Bytes, CharIndices, FromStr, Split, from_utf8};
 
-#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Deserialize, Serialize, Hash, Debug)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct DOMString(String);
 
 impl !Send for DOMString {}
@@ -220,7 +220,7 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     })
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, PartialEq)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f32),

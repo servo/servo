@@ -14,7 +14,6 @@ use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_IsExceptionPending, JS_ReportPendingException, JS_SetPendingException};
 use js::jsapi::{JS_RestoreFrameChain, JS_SaveFrameChain};
 use js::jsval::UndefinedValue;
-use util::mem::HeapSizeOf;
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Debug, Clone, HeapSizeOf)]

@@ -13,7 +13,7 @@ headless = ["servo-glutin/headless"]
 
 [dependencies]
 bitflags = "0.3"
-url = "0.5.4"
+url = {version = "0.5.4", features = ["heap_size"]}
 gleam = "0.2"
 euclid = {version = "0.6.1", features = ["plugins"]}
 servo-glutin = "0.4"

@@ -16,7 +16,6 @@ use std::cell::Cell;
 use std::fmt;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
-use util::mem::HeapSizeOf;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 #[derive(Deserialize, Serialize)]

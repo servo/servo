@@ -20,6 +20,7 @@ no_jsmanaged_fields!(OsRng);
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
+    #[ignore_heap_size_of = "Defined in rand"]
     rng: DOMRefCell<OsRng>,
 }
 

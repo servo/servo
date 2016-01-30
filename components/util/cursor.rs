@@ -9,7 +9,7 @@ use std::ascii::AsciiExt;
 
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
-        #[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
+        #[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
         #[repr(u8)]
         pub enum Cursor {
             $( $variant = $value ),+

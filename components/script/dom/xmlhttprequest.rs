@@ -62,7 +62,6 @@ use string_cache::Atom;
 use time;
 use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
-use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 pub type SendParam = BlobOrStringOrURLSearchParams;
@@ -127,11 +126,13 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableHeap<JS<Document>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
+    #[ignore_heap_size_of = "Defined in hyper"]
     override_mime_type: DOMRefCell<Option<Mime>>,
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     override_charset: DOMRefCell<Option<EncodingRef>>,
 
     // Associated concepts
+    #[ignore_heap_size_of = "Defined in hyper"]
     request_method: DOMRefCell<Method>,
     request_url: DOMRefCell<Option<Url>>,
     #[ignore_heap_size_of = "Defined in hyper"]

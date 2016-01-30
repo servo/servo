@@ -15,6 +15,7 @@ use core::nonzero::NonZero;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::JSTraceable;
+use heapsize::HeapSizeOf;
 use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsval::PrivateValue;
 use libc::c_void;
@@ -22,7 +23,6 @@ use std::cell::{Cell, UnsafeCell};
 use std::iter::Iterator;
 use std::mem;
 use std::ops::{Deref, DerefMut, Drop};
-use util::mem::HeapSizeOf;
 
 /// The index of the slot wherein a pointer to the weak holder cell is
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,

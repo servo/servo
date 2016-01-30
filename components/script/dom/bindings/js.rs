@@ -30,6 +30,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::node::Node;
+use heapsize::HeapSizeOf;
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
@@ -40,7 +41,6 @@ use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
-use util::mem::HeapSizeOf;
 use util::thread_state;
 
 /// A traced reference to a DOM object

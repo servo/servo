@@ -12,7 +12,6 @@ use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
 use std::usize;
-use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 #[derive(Copy, Clone, PartialEq)]
