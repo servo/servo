@@ -201,11 +201,11 @@ dependencies = [
 [[package]]
 name = "clipboard"
 version = "0.1.0"
-source = "git+https://github.com/aweinstock314/rust-clipboard#4510d16e640fb52be1cd476557d52f69fa589196"
+source = "git+https://github.com/aweinstock314/rust-clipboard#241deb1b5b800f91f4e0cd59789b9353ffda2d51"
 dependencies = [
  "clipboard-win 1.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc-foundation 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc-foundation 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc_id 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1008,11 +1008,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libc"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "libc"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -1261,11 +1256,10 @@ dependencies = [
 
 [[package]]
 name = "objc-foundation"
-version = "0.0.2"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "block 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc_id 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
