@@ -359,6 +359,7 @@ impl ActiveTimers {
         };
 
         self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
+        self.suspended_since.set(None);
 
         self.schedule_timer_call();
     }
