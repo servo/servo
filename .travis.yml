@@ -11,6 +11,7 @@ matrix:
       script:
          - ./mach build -d --verbose
          - ./mach test-unit
+         - ./mach test-compiletest
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
       cache:
