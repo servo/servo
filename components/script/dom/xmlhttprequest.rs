@@ -10,10 +10,10 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
-use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams::{eBlob, eString, eURLSearchParams};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -64,8 +64,6 @@ use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
-
-pub type SendParam = BlobOrStringOrURLSearchParams;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -472,7 +470,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
-    fn Send(&self, data: Option<SendParam>) -> ErrorResult {
+    fn Send(&self, data: Option<BodyInit>) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState); // Step 1, 2
         }
@@ -1236,7 +1234,7 @@ impl XMLHttpRequest {
 trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
-impl Extractable for SendParam {
+impl Extractable for BodyInit {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         match *self {
