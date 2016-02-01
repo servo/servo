@@ -19,8 +19,8 @@ use range::Range;
 use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
 use selectors::states::ElementState;
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, LinkedList, hash_state};
-use std::hash::Hash;
+use std::collections::{HashMap, LinkedList};
+use std::hash::{BuildHasher, Hash};
 use std::mem::{size_of, transmute};
 use std::rc::Rc;
 use std::result::Result;
@@ -194,7 +194,7 @@ impl<T> HeapSizeOf for Vec<Rc<T>> {
 }
 
 impl<K: HeapSizeOf, V: HeapSizeOf, S> HeapSizeOf for HashMap<K, V, S>
-    where K: Eq + Hash, S: hash_state::HashState {
+    where K: Eq + Hash, S: BuildHasher {
     fn heap_size_of_children(&self) -> usize {
         //TODO(#6908) measure actual bucket memory usage instead of approximating
         let size = self.capacity() * (size_of::<V>() + size_of::<K>());

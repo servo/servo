@@ -46,9 +46,12 @@ impl LateLintPass for InheritancePass {
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields().iter().enumerate().filter_map(|(ctr, f)| {
                 if let hir::TyPath(..) = f.node.ty.node {
-                    if let Some(&def::PathResolution { base_def: def::DefTy(def_id, _), .. }) =
+                    if let Some(&def::PathResolution { base_def: def, .. }) =
                             cx.tcx.def_map.borrow().get(&f.node.ty.id) {
-                        if cx.tcx.has_attr(def_id, "_dom_struct_marker") {
+                        if let def::Def::PrimTy(_) = def {
+                            return None;
+                        }
+                        if cx.tcx.has_attr(def.def_id(), "_dom_struct_marker") {
                             // If the field is not the first, it's probably
                             // being misused (a)
                             if ctr > 0 {
@@ -66,23 +69,26 @@ impl LateLintPass for InheritancePass {
             // We should not have both a reflector and a dom struct field
             if let Some(sp) = reflector_span {
                 if dom_spans.len() > 0 {
-                    cx.span_lint(INHERITANCE_INTEGRITY, cx.tcx.map.expect_item(id).span,
-                                 "This DOM struct has both Reflector and bare DOM struct members");
+                    let mut db = cx.struct_span_lint(INHERITANCE_INTEGRITY,
+                                                     cx.tcx.map.expect_item(id).span,
+                                                     "This DOM struct has both Reflector \
+                                                      and bare DOM struct members");
                     if cx.current_level(INHERITANCE_INTEGRITY) != Level::Allow {
-                        let sess = cx.sess();
-                        sess.span_note(sp, "Reflector found here");
+                        db.span_note(sp, "Reflector found here");
                         for span in &dom_spans {
-                            sess.span_note(*span, "Bare DOM struct found here");
+                            db.span_note(*span, "Bare DOM struct found here");
                         }
                     }
                 }
             // Nor should we have more than one dom struct field
             } else if dom_spans.len() > 1 {
-                cx.span_lint(INHERITANCE_INTEGRITY, cx.tcx.map.expect_item(id).span,
-                             "This DOM struct has multiple DOM struct members, only one is allowed");
+                let mut db = cx.struct_span_lint(INHERITANCE_INTEGRITY,
+                                                 cx.tcx.map.expect_item(id).span,
+                                                 "This DOM struct has multiple \
+                                                  DOM struct members, only one is allowed");
                 if cx.current_level(INHERITANCE_INTEGRITY) != Level::Allow {
                     for span in &dom_spans {
-                        cx.sess().span_note(*span, "Bare DOM struct found here");
+                        db.span_note(*span, "Bare DOM struct found here");
                     }
                 }
             } else if dom_spans.is_empty() {
