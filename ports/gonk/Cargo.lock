@@ -231,7 +231,7 @@ dependencies = [
  "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gaol 0.0.1 (git+https://github.com/pcwalton/gaol)",
+ "gaol 0.0.1 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "gleam 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -543,7 +543,7 @@ dependencies = [
 [[package]]
 name = "gaol"
 version = "0.0.1"
-source = "git+https://github.com/pcwalton/gaol#e1349d8d3d933b3a90f9c86baa390261c510e019"
+source = "git+https://github.com/servo/gaol#e1349d8d3d933b3a90f9c86baa390261c510e019"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1524,7 +1524,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "env_logger 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gaol 0.0.1 (git+https://github.com/pcwalton/gaol)",
+ "gaol 0.0.1 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gleam 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
