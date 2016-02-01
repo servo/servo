@@ -64,22 +64,22 @@ git = "https://github.com/servo/ipc-channel"
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [target.arm-linux-androideabi.dependencies.gaol]
-git = "https://github.com/pcwalton/gaol"
+git = "https://github.com/servo/gaol"
 
 [target.x86_64-apple-darwin.dependencies.gaol]
-git = "https://github.com/pcwalton/gaol"
+git = "https://github.com/servo/gaol"
 
 [target.x86_64-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/pcwalton/gaol"
+git = "https://github.com/servo/gaol"
 
 [target.i686-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/pcwalton/gaol"
+git = "https://github.com/servo/gaol"
 
 [target.arm-unknown-linux-gnueabihf.dependencies.gaol]
-git = "https://github.com/pcwalton/gaol"
+git = "https://github.com/servo/gaol"
 
 [target.aarch64-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/pcwalton/gaol"
+git = "https://github.com/servo/gaol"
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
