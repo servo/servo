@@ -5888,6 +5888,14 @@ impl Shorthand {
         }
     }
 
+    pub fn to_name(&self) -> &str {
+        match *self {
+            % for property in SHORTHANDS:
+                Shorthand::${property.camel_case} => "${property.name}",
+            % endfor
+        }
+    }
+
     pub fn longhands(&self) -> &'static [&'static str] {
         % for property in SHORTHANDS:
             static ${property.ident.upper()}: &'static [&'static str] = &[
