@@ -6127,6 +6127,38 @@ impl PropertyDeclaration {
             _ => PropertyDeclarationParseResult::UnknownProperty
         }
     }
+
+    pub fn shorthands(&self) -> &[Shorthand] {
+        // first generate longhand to shorthands lookup map
+        <%
+            longhand_to_shorthand_map = {}
+            for shorthand in SHORTHANDS:
+                for sub_property in shorthand.sub_properties:
+                    if sub_property.ident not in longhand_to_shorthand_map:
+                        longhand_to_shorthand_map[sub_property.ident] = []
+
+                    longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
+
+            for shorthand_list in longhand_to_shorthand_map.itervalues():
+                shorthand_list.sort()
+        %>
+
+        // based on lookup results for each longhand, create result arrays
+        % for property in LONGHANDS:
+            static ${property.ident.upper()}: &'static [Shorthand] = &[
+                % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
+                    Shorthand::${shorthand},
+                % endfor
+            ];
+        % endfor
+
+        match *self {
+            % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(_) => ${property.ident.upper()},
+            % endfor
+            _ => &[] // include outlet for Custom enum value
+        }
+    }
 }
 
 pub mod style_structs {
