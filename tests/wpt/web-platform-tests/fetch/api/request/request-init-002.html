@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Request init: headers and body</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#request">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      test(function() {
+        var headerDict = {"name1": "value1",
+                          "name2": "value2",
+                          "name3": "value3"
+                         };
+        var headers = new Headers(headerDict);
+        var request = new Request("", { "headers" : headers })
+        for (var name in headerDict) {
+          assert_equals(request.headers.get(name), headerDict[name],
+           "request's headers has " + name + " : " + headerDict[name]);
+        }
+      }, "Initialize Request with headers values");
+
+      function checkRequestInit(body, bodyType, expectedTextBody) {
+        promise_test(function(test) {
+          var request = new Request("", {"method": "POST", "body": body});
+          assert_throws(new TypeError(),
+                        function() { new Request("", {"method": "GET", "body": body}); }
+          );
+          var reqHeaders = request.headers;
+          var mime = reqHeaders.get("Content-Type");
+          assert_true(mime && mime.search(bodyType) > -1, "Content-Type header should be \"" + bodyType + "\", not \"" + mime + "\"");
+          return request.text().then(function(bodyAsText) {
+            //not equals: cannot guess formData exact value
+            assert_true( bodyAsText.search(expectedTextBody) > -1, "Retrieve and verify request body");
+          });
+        }, "Initialize Response's body with " + bodyType);
+      }
+
+      var blob = new Blob(["This is a blob"], {type: "application/octet-binary"});
+      var formaData = new FormData();
+      formaData.append("name", "value");
+      var usvString = "This is a USVString"
+
+      checkRequestInit(blob, "application/octet-binary", "This is a blob");
+      checkRequestInit(formaData, "multipart/form-data", "name=\"name\"\r\n\r\nvalue");
+      checkRequestInit(usvString, "text/plain;charset=UTF-8", "This is a USVString");
+
+      // Ensure test does not time out in case of missing URLSearchParams support.
+      if (window.URLSearchParams) {
+        var urlSearchParams = new URLSearchParams("name=value");
+        checkRequestInit(urlSearchParams, "application/x-www-form-urlencoded;charset=UTF-8", "name=value");
+      } else {
+        promise_test(function(test) {
+          return Promise.reject("URLSearchParams not supported");
+        }, "Initialize Response's body with application/x-www-form-urlencoded;charset=UTF-8");
+      }
+    </script>
+  </body>
+</html>

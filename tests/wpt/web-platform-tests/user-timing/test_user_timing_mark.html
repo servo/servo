@@ -183,7 +183,7 @@
             // test startTime, allow for an acceptable threshold in the difference between the startTime and the
             // expected value for the startTime (loadEventStart + markTestDelay)
             test_true(Math.abs(markEntry.startTime - expectedStartTime) <= testThreshold,
-                      markEntryCommand + ".startTime ~== " + expectedStartTime + " (up to " + testThreshold +
+                      markEntryCommand + ".startTime is approximately correct (up to " + testThreshold +
                       "ms difference allowed)");
 
             // verify entryType

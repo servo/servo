@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Response clone</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#response">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script src="../resources/utils.js"></script>
+    <script>
+      var defaultValues = { "type" : "default",
+                            "url" : "",
+                            "ok" : true,
+                            "status" : 200,
+                            "statusText" : "OK"
+      };
+
+      var response = new Response();
+      var clonedResponse = response.clone();
+      test(function() {
+        for (var attributeName in defaultValues) {
+            var expectedValue = defaultValues[attributeName];
+            assert_equals(clonedResponse[attributeName], expectedValue,
+              "Expect default response." + attributeName + " is " + expectedValue);
+        }
+      }, "Check Response's clone with default values, without body");
+
+      var body = "This is response body";
+      var headersInit = { "name" : "value" };
+      var responseInit  = { "status" : 200,
+                            "statusText" : "GOOD",
+                            "headers" : headersInit
+      };
+      var response = new Response(body, responseInit);
+      var clonedResponse = response.clone();
+      test(function() {
+        assert_equals(clonedResponse.status, responseInit["status"],
+          "Expect response.status is " + responseInit["status"]);
+        assert_equals(clonedResponse.statusText, responseInit["statusText"],
+          "Expect response.statusText is " + responseInit["statusText"]);
+        assert_equals(clonedResponse.headers.get("name"), "value",
+          "Expect response.headers has name:value header");
+      }, "Check Response's clone has the expected attribute values");
+
+      async_test(function(test) {
+        readTextStream(response.body.getReader(), test, body);
+      }, "Check orginal response's body after cloning");
+
+      async_test(function(test) {
+        readTextStream(clonedResponse.body.getReader(), test, body);
+      }, "Check cloned response's body");
+
+      promise_test(function(test) {
+        var disturbedResponse = new Response();
+        return disturbedResponse.text().then(function() {
+            assert_true(disturbedResponse.bodyUsed, "response is disturbed");
+            assert_throws(new TypeError() , function() { disturbedResponse.clone(); },
+              "Expect TypeError exception");
+        });
+      }, "Cannot clone a disturbed response");
+    </script>
+  </body>
+</html>

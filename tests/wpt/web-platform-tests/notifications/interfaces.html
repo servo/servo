@@ -20,7 +20,7 @@ typedef EventHandlerNonNull? EventHandler;
 [Constructor(DOMString title, optional NotificationOptions options)]
 interface Notification : EventTarget {
   static readonly attribute NotificationPermission permission;
-  static void requestPermission(optional NotificationPermissionCallback callback);
+  static Promise<NotificationPermission> requestPermission(optional NotificationPermissionCallback callback);
 
   attribute EventHandler onclick;
   attribute EventHandler onshow;

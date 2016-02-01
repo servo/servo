@@ -33,7 +33,7 @@
     return fd;
   }
 
-  do_test("formdata with blob", create_formdata(['key', new Blob(['value'], {type: 'text/x-value'})]), '\nkey=blob:text/x-value:5,');
+  do_test("formdata with blob", create_formdata(['key', new Blob(['value'], {type: 'text/x-value'})]), 'key=value,\n');
   do_test("formdata with named blob", create_formdata(['key', new Blob(['value'], {type: 'text/x-value'}), 'blob.txt']), '\nkey=blob.txt:text/x-value:5,');
   // If 3rd argument is given and 2nd is not a Blob, formdata.append() should throw
   var test = async_test('formdata.append() should throw if value is string and file name is given'); // needs to be async just because the others above are

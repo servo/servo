@@ -198,7 +198,7 @@
             // test startTime; since for a mark, the startTime is always equal to a mark's value or the value of a
             // navigation timing attribute, the actual startTime should match the expected value exactly
             test_true(Math.abs(measureEntry.startTime - expectedStartTime) == 0,
-                      measureEntryCommand + ".startTime == " + expectedStartTime);
+                      measureEntryCommand + ".startTime is correct");
 
             // test entryType
             test_true(measureEntry.entryType == "measure", measureEntryCommand + ".entryType == \"measure\"");
@@ -206,7 +206,7 @@
             // test duration, allow for an acceptable threshold in the difference between the actual duration and the
             // expected value for the duration
             test_true(Math.abs(measureEntry.duration - expectedDuration) <= testThreshold, measureEntryCommand +
-                      ".duration ~== " + expectedDuration + " (up to " + testThreshold + "ms difference allowed)");
+                      ".duration is aproximately correct (up to " + testThreshold + "ms difference allowed)");
         }
     </script>
     </head>

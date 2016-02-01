@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Response consume</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#response">
+    <meta name="help" href="https://fetch.spec.whatwg.org/#body-mixin">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    function checkBodyText(response, expectedBody) {
+      return response.text().then( function(bodyAsText) {
+        assert_equals(bodyAsText, expectedBody, "Retrieve and verify response's body");
+        assert_true(response.bodyUsed, "body as text: bodyUsed turned true");
+      });
+    }
+
+    function checkBodyBlob(response, expectedBody) {
+      return response.blob().then(function(bodyAsBlob) {
+        var promise = new Promise( function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(evt) {
+            resolve(reader.result)
+          };
+          reader.onerror = function () {
+            reject("Blob's reader failed");
+          };
+          reader.readAsText(bodyAsBlob);
+        });
+        return promise.then(function(body) {
+          assert_equals(body, expectedBody, "Retrieve and verify response's body");
+          assert_true(response.bodyUsed, "body as blob: bodyUsed turned true");
+        });
+      });
+    }
+
+    function checkBodyArrayBuffer(response, expectedBody) {
+      return response.arrayBuffer().then( function(bodyAsArrayBuffer) {
+        var decoder = new TextDecoder("utf-8");
+        var strBody = decoder.decode(bodyAsArrayBuffer);
+        assert_equals(strBody, expectedBody, "Retrieve and verify response's body");
+        assert_true(response.bodyUsed, "body as arrayBuffer: bodyUsed turned true");
+      });
+    }
+
+    function checkBodyJson(response, expectedBody) {
+      return response.json().then(function(bodyAsJson) {
+        var strBody = JSON.stringify(bodyAsJson)
+        assert_equals(strBody, expectedBody, "Retrieve and verify response's body");
+        assert_true(response.bodyUsed, "body as json: bodyUsed turned true");
+      });
+    }
+
+    function checkBodyFormData(response, expectedBody) {
+      return response.formData().then(function(bodyAsFormData) {
+        assert_true(bodyAsFormData instanceof FormData, "Should receive a FormData");
+        assert_true(response.bodyUsed, "body as formData: bodyUsed turned true");
+     });
+    }
+
+    function checkResponseBody(body, bodyType, checkFunction) {
+      promise_test(function(test) {
+        var response = new Response(body);
+        assert_false(response.bodyUsed, "bodyUsed is false at init");
+        return checkFunction(response, body);
+      }, "Consume response's body as " + bodyType);
+    }
+
+    var formData = new FormData();
+    formData.append("name", "value")
+    checkResponseBody("This is response's body", "text", checkBodyText);
+    checkResponseBody("This is response's body", "blob", checkBodyBlob);
+    checkResponseBody("This is response's body", "arrayBuffer", checkBodyArrayBuffer);
+    checkResponseBody(JSON.stringify("This is response's body"), "json", checkBodyJson);
+    checkResponseBody(formData, "formData", checkBodyFormData);
+    </script>
+  </body>
+</html>

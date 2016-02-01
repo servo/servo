@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>cssom-view - scrollingElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="quirksframe"></iframe>
+<iframe id="nonquirksframe"></iframe>
+<div id="log"></div>
+<script>
+
+var quirksFrame;
+var nonQuirksFrame;
+
+function loadTestFrames(callback) {
+  quirksFrame = document.getElementById("quirksframe");
+  quirksFrame.onload = function() {
+    nonQuirksFrame = document.getElementById("nonquirksframe");
+    nonQuirksFrame.onload = callback;
+    nonQuirksFrame.src =
+      URL.createObjectURL(new Blob(["<!doctype html>"], { type: "text/html" }));
+  }
+  quirksFrame.src =
+    URL.createObjectURL(new Blob([""], { type: "text/html" }));
+}
+
+var test = async_test("Tests for scrollingElement");
+loadTestFrames(function() {
+  test.step(function() {
+    var quirksDoc = quirksFrame.contentDocument;
+    var nonQuirksDoc = nonQuirksFrame.contentDocument;
+
+    // Initial checks that we have the expected kinds of documents.
+    assert_equals(quirksDoc.compatMode, "BackCompat", "Should be in quirks mode.");
+    assert_equals(nonQuirksDoc.compatMode, "CSS1Compat", "Should be in standards mode.");
+
+    assert_not_equals(quirksDoc.body, null, "Should have a body element");
+    assert_not_equals(nonQuirksDoc.body, null, "Should have a body element");
+
+    // Tests for quirks mode document.
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body,
+      "scrollingElement in quirks mode should default to body element.");
+
+    quirksDoc.documentElement.style.overflow = "scroll";
+    quirksDoc.body.style.overflow = "scroll";
+    assert_equals(quirksDoc.scrollingElement, null,
+      "scrollingElement in quirks mode should be null if overflow of body and root element isn't visible.");
+    quirksDoc.documentElement.style.overflow = "visible";
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+    quirksDoc.documentElement.style.overflow = "scroll";
+    quirksDoc.body.style.overflow = "visible";
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+    quirksDoc.documentElement.style.overflow = "visible";
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+
+    quirksDoc.body.style.display = "none";
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body)
+    quirksDoc.body.style.display = "block";
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+
+    quirksDoc.documentElement.appendChild(quirksDoc.createElement("body"));
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.getElementsByTagName("body")[0]);
+    quirksDoc.documentElement.removeChild(quirksDoc.documentElement.lastChild);
+    assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+
+    quirksDoc.documentElement.removeChild(quirksDoc.body);
+    assert_equals(quirksDoc.scrollingElement, null);
+    quirksDoc.documentElement.appendChild(quirksDoc.createElementNS("foobarNS", "body"));
+    assert_equals(quirksDoc.scrollingElement, null);
+
+    quirksDoc.removeChild(quirksDoc.documentElement);
+    assert_equals(quirksDoc.scrollingElement, null);
+
+    quirksDoc.appendChild(quirksDoc.createElementNS("foobarNS", "html"));
+    quirksDoc.documentElement.appendChild(quirksDoc.createElement("body"));
+    assert_equals(quirksDoc.scrollingElement, null);
+
+    quirksDoc.removeChild(quirksDoc.documentElement);
+    quirksDoc.appendChild(quirksDoc.createElement("body"));
+    assert_equals(quirksDoc.scrollingElement, null);
+
+    // Tests for standards mode document.
+    assert_equals(nonQuirksDoc.scrollingElement, nonQuirksDoc.documentElement,
+      "scrollingElement in standards mode should be the document element.");
+    nonQuirksDoc.documentElement.style.overflow = "scroll";
+    nonQuirksDoc.body.style.overflow = "scroll";
+    assert_equals(nonQuirksDoc.scrollingElement, nonQuirksDoc.documentElement);
+
+    nonQuirksDoc.removeChild(nonQuirksDoc.documentElement);
+    assert_equals(nonQuirksDoc.scrollingElement, null);
+    nonQuirksDoc.appendChild(nonQuirksDoc.createElement("foobar"));
+    assert_equals(nonQuirksDoc.scrollingElement.localName, "foobar");
+
+  });
+  test.done();
+});
+</script>
