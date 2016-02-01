@@ -100,7 +100,7 @@
 * <https://github.com/servo/rust-mozjs/>, <https://github.com/servo/mozjs/>: bindings to SpiderMonkey
 * <https://github.com/hyperium/hyper/>: an HTTP implementation
 * <https://github.com/servo/html5ever/>: an HTML5 parser
-* <https://github.com/pcwalton/ipc-channel/>: an IPC implementation
+* <https://github.com/servo/ipc-channel/>: an IPC implementation
 * <https://github.com/PistonDevelopers/image/>: image decoders
 * <https://github.com/tomaka/glutin/>: cross-platform windowing and input
 * <https://github.com/servo/rust-azure/>: bindings to Moz2D/Azure (cross-platform 2D rendering library)
