@@ -5858,6 +5858,9 @@ pub enum Shorthand {
         ${property.camel_case},
     % endfor
 }
+use util::str::str_join;
+use std::cell::Ref;
+use std::borrow::ToOwned;
 
 impl Shorthand {
     pub fn from_name(name: &str) -> Option<Shorthand> {
@@ -5889,6 +5892,29 @@ impl Shorthand {
             % for property in SHORTHANDS:
                 Shorthand::${property.camel_case} => ${property.ident.upper()},
             % endfor
+        }
+    }
+
+    pub fn serialize_shorthand(self, declarations: &[Ref<PropertyDeclaration>]) -> String {
+        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+        if let Some(css) = declarations[0].with_variables_from_shorthand(self) {
+            if declarations[1..]
+                   .iter()
+                   .all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+                css.to_owned()
+            } else {
+                String::new()
+            }
+        } else {
+            if declarations.iter().any(|d| d.with_variables()) {
+                String::new()
+            } else {
+                let str_iter = declarations.iter().map(|d| d.value());
+                // FIXME: this needs property-specific code, which probably should be in style/
+                // "as appropriate according to the grammar of shorthand "
+                // https://drafts.csswg.org/cssom/#serialize-a-css-value
+                str_join(str_iter, " ")
+            }
         }
     }
 }
