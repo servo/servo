@@ -5725,16 +5725,92 @@ pub struct PropertyDeclarationBlock {
 }
 
 impl PropertyDeclarationBlock {
-    // TODO: make serialize follow spec - https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     pub fn serialize(&self) -> String {
-        let mut style_str = String::new();
-        let combined = self.normal.iter().chain(self.important.iter());
-        for declaration in combined {
-            style_str.push_str(&format!("{}: {}; ", declaration.name(), declaration.value()));
-       }
 
-       style_str.pop(); // remove trailing space after last declaration
-       style_str
+        let mut result_list = String::new();
+        let mut already_serialized = HashSet::new();
+
+        for declaration in self.normal.iter().chain(self.important.iter()) {
+            let property = declaration.name().to_string();
+            if already_serialized.contains(&property) {
+                continue;
+            }
+
+
+            let mut shorthands = Vec::from(declaration.shorthands());
+
+            if shorthands.len() > 0 {
+                shorthands.sort_by(|a,b| a.longhands().len().cmp(&b.longhands().len()));
+
+                // TODO: Help -  I do not want to do iter cloned, is there a way to
+                // somehow collection into a list or Vec of references?
+                let mut longhands = self.normal.iter().chain(self.important.iter()).cloned()
+                    .filter(|d| !already_serialized.contains(&d.name().to_string()))
+                    .collect::<Vec<PropertyDeclaration>>();
+
+                for shorthand in shorthands {
+                    let properties = shorthand.longhands();
+
+                    // TODO: HELP - want to avoid this cloned if possible
+                    // step 3.3.2.3
+                    let current_longhands = longhands.iter().cloned()
+                        .filter(|l| properties.contains(&&&*l.name().to_string()))
+                        .collect::<Vec<PropertyDeclaration>>();
+
+                    // step 3.3.2.1
+                    if current_longhands.len() == 0 {
+                        continue;
+                    }
+
+                    // PropertyDeclarationBlocks do not have their own flag to indicate
+                    // important or no, which is why this is necessary
+                    let important_count = current_longhands.iter()
+                        .filter(|l| self.important.contains(l))
+                        .count();
+
+                    if important_count == current_longhands.len() {
+                        continue;
+                    }
+
+                    if properties.len() != current_longhands.len() {
+                        continue;
+                    }
+
+                    let is_important = important_count > 0;
+                    // serialize shorthand does not take is_important into account currently
+                    let value value = shorthand.serialize_shorthand(&current_longhands);
+                    if value.is_empty() {
+                        continue;
+                    }
+
+                    result_list.push_str(&format!("{}: {}; ", &shorthand.to_name(), value));
+
+                    for current_longhand in current_longhands {
+                        already_serialized.insert(current_longhand.name().to_string());
+                        let index_to_remove = longhands.iter().position(|l| l == &current_longhand);
+                        if let Some(index) = index_to_remove {
+                            longhands.remove(index);
+                        }
+                     }
+                 }
+            }
+
+            if already_serialized.contains(&property) {
+                continue;
+            }
+
+            let mut value = declaration.value();
+            if self.important.contains(declaration) {
+                value.push_str(" ! important");
+            }
+
+            result_list.push_str(&format!("{}: {}; ", &property, value));
+            already_serialized.insert(property);
+        }
+
+        result_list.pop();
+        result_list
     }
 }
 
@@ -5914,7 +5990,7 @@ impl Shorthand {
         }
     }
 
-    pub fn serialize_shorthand(self, declarations: &[Ref<PropertyDeclaration>]) -> String {
+    pub fn serialize_shorthand(self, declarations: &[PropertyDeclaration]) -> String {
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = declarations[0].with_variables_from_shorthand(self) {
             if declarations[1..]

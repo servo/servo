@@ -142,7 +142,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
-                    Some(declaration) => list.push(declaration),
+                    Some(declaration) => list.push(declaration.clone()),
                     None => return DOMString::new(),
                 }
             }
