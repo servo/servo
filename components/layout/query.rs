@@ -19,7 +19,6 @@ use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeo
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan};
 use script_traits::LayoutMsg as ConstellationMsg;
-use selectors::parser::PseudoElement;
 use sequential;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -27,6 +26,7 @@ use string_cache::Atom;
 use style::computed_values;
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
+use style::selector_impl::PseudoElement;
 use style::values::AuExtensionMethods;
 use util::cursor::Cursor;
 use util::logical_geometry::WritingMode;
