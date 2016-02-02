@@ -22,7 +22,7 @@ path = "../plugins"
 
 [dependencies]
 bitflags = "0.3"
-cssparser = { version = "0.5", features = [ "serde-serialization" ] }
+cssparser = {version = "0.5.2", features = ["serde-serialization"]}
 euclid = {version = "0.6.1", features = ["plugins"]}
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 rustc-serialize = "0.3.4"
