@@ -12,6 +12,7 @@ use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
 use hyper::header::{Authorization, Basic, ContentEncoding, Encoding};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
+use hyper::header::AccessControlAllowOrigin;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
@@ -28,6 +29,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
 use url::{Origin, Url, UrlParser};
+use url::idna::domain_to_ascii;
 use util::thread::spawn_named;
 
 pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchListener + Send>) {
@@ -729,12 +731,12 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
             // Substep 1
             // TODO this substep
-            let cached_response: Option<Response> = None;
+            // let cached_response: Option<Response> = None;
 
             // Substep 2
-            if cached_response.is_none() {
-                return Response::network_error();
-            }
+            // if cached_response.is_none() {
+            //     return Response::network_error();
+            // }
 
             // Substep 3
 
@@ -861,7 +863,46 @@ fn preflight_fetch(request: Rc<Request>) -> Response {
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
 fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     // TODO: Implement CORS check spec
+
+    // Step 1
+    let origin = request.headers.borrow().get::<AccessControlAllowOrigin>();
+
+    // Step 2
+    if origin.is_none() {
+        return Err(());
+    }
+    let origin = origin.unwrap();
+    
+    // Step 3
+    if request.credentials_mode != CredentialsMode::Include &&
+        *origin == AccessControlAllowOrigin::Any {
+        return Ok(());
+    }
+
+    // Step 4
+    // if request.origin != 
+    
+    // Step 5
+    
+    // Step 6
+    
+    // Step 7
+    
+    // Step 8
     Err(())
+}
+
+/// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/browsers.html#ascii-serialisation-of-an-origin)
+fn acii_serialise_origin(origin: &Origin) -> &str {
+
+    match origin {
+        &Origin::Tuple(scheme, mut host, mut port) => {
+
+            format!("{}://{}{}", scheme, host, port).as_str()    
+        },
+        // Step 1
+        _ => "null"
+    }
 }
 
 fn global_user_agent() -> String {

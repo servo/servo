@@ -8,10 +8,10 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use net::fetch::methods::fetch;
-use net_traits::request::{Context, Referer, Request};
+use net_traits::request::{Context, Referer, Request, RequestMode};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use std::rc::Rc;
-use url::Url;
+use url::{Origin, OpaqueOrigin, Url};
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -46,6 +46,72 @@ fn test_fetch_response_is_not_network_error() {
     if Response::is_network_error(&fetch_response) {
         panic!("fetch response shouldn't be a network error");
     }
+}
+
+#[test]
+fn test_fetch_response_is_basic_filtered() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = url.origin();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request, false);
+    let _ = server.close();
+
+    assert!(!Response::is_network_error(&fetch_response));
+    assert_eq!(fetch_response.response_type, ResponseType::Basic);
+}
+
+#[test]
+fn test_fetch_response_is_cors_filtered() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = url.origin();
+    let origin = Origin::UID(OpaqueOrigin::new());
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+    request.mode = RequestMode::CORSMode;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request, false);
+    let _ = server.close();
+
+    assert!(!Response::is_network_error(&fetch_response));
+    assert_eq!(fetch_response.response_type, ResponseType::CORS);
+}
+
+#[test]
+fn test_fetch_response_is_opaque_filtered() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    // an origin mis-match will fall through to an Opaque filtered response
+    let origin = Origin::UID(OpaqueOrigin::new());
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request, false);
+    let _ = server.close();
+
+    assert!(!Response::is_network_error(&fetch_response));
+    assert_eq!(fetch_response.response_type, ResponseType::Opaque);
 }
 
 #[test]
