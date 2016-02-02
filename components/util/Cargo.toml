@@ -47,7 +47,7 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies]
 app_units = {version = "0.2", features = ["plugins"]}
 bitflags = "0.3"
-cssparser = { version = "0.5", features = [ "serde-serialization" ] }
+cssparser = {version = "0.5.2", features = ["serde-serialization"]}
 euclid = {version = "0.6.1", features = ["unstable", "plugins"]}
 getopts = "0.2.11"
 html5ever = { version = "0.4", features = ["unstable"], optional = true }
