@@ -78,7 +78,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -100,7 +100,7 @@ dependencies = [
  "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
- "heapsize 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -523,7 +523,7 @@ name = "euclid"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "heapsize 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -780,7 +780,7 @@ dependencies = [
 
 [[package]]
 name = "heapsize"
-version = "0.2.2"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -901,7 +901,7 @@ name = "js"
 version = "0.1.1"
 source = "git+https://github.com/servo/rust-mozjs#b96675b217534c7742cbfda8150ea0536aedbdfb"
 dependencies = [
- "heapsize 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
@@ -939,7 +939,7 @@ dependencies = [
  "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "io-surface 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
