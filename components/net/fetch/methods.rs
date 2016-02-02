@@ -7,12 +7,12 @@ use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
 use http_loader::{create_http_connector, obtain_response};
 use hyper::client::response::Response as HyperResponse;
+use hyper::header::AccessControlAllowOrigin;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
 use hyper::header::{Authorization, Basic, ContentEncoding, Encoding};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
-use hyper::header::AccessControlAllowOrigin;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
@@ -28,8 +28,8 @@ use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
-use url::{Origin, Url, UrlParser};
 use url::idna::domain_to_ascii;
+use url::{Origin, Url, UrlParser, whatwg_scheme_type_mapper};
 use util::thread::spawn_named;
 
 pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchListener + Send>) {
@@ -865,44 +865,66 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     // TODO: Implement CORS check spec
 
     // Step 1
-    let origin = request.headers.borrow().get::<AccessControlAllowOrigin>();
+    // let headers = request.headers.borrow();
+    let origin = request.headers.borrow().get::<AccessControlAllowOrigin>().cloned();
 
     // Step 2
     if origin.is_none() {
         return Err(());
     }
     let origin = origin.unwrap();
-    
+
     // Step 3
     if request.credentials_mode != CredentialsMode::Include &&
-        *origin == AccessControlAllowOrigin::Any {
+        origin == AccessControlAllowOrigin::Any {
         return Ok(());
     }
+    let origin = match origin {
+        AccessControlAllowOrigin::Value(origin_str) =>
+            Url::parse(origin_str.as_str()).unwrap().origin(),
+        // if it's Any or Null at this point, I see nothing to do but return Err(())
+        _ => return Err(())
+    };
 
     // Step 4
-    // if request.origin != 
-    
+    let serialised_origin = ascii_serialise_origin(&origin);
+    // if request.origin !=
+
     // Step 5
-    
+
     // Step 6
-    
+
     // Step 7
-    
+
     // Step 8
     Err(())
 }
 
-/// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/browsers.html#ascii-serialisation-of-an-origin)
-fn acii_serialise_origin(origin: &Origin) -> &str {
+/// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin)
+fn ascii_serialise_origin(origin: &Origin) -> Result<String, ()> {
 
-    match origin {
-        &Origin::Tuple(scheme, mut host, mut port) => {
+    let result = match *origin {
+        Origin::Tuple(ref scheme, ref host, ref port) => {
 
-            format!("{}://{}{}", scheme, host, port).as_str()    
+            let host = match domain_to_ascii(host.serialize().as_str()) {
+                Ok(host) => host,
+                Err(_) => return Err(())
+            };
+
+            let default_port = whatwg_scheme_type_mapper(scheme).default_port();
+            let port = if Some(*port) == default_port {
+                format!("{}", port)
+            } else {
+                format!(":{}", port)
+            };
+
+            format!("{}://{}{}", scheme, host, port)
         },
         // Step 1
-        _ => "null"
-    }
+        _ => "null".to_owned()
+    };
+
+    Ok(result)
 }
 
 fn global_user_agent() -> String {
