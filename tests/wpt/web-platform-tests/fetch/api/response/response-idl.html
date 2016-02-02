@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Response idl interface</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#response">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/WebIDLParser.js"></script>
+    <script src="/resources/idlharness.js"></script>
+  </head>
+  <body>
+    <script id="body-idl" type="text/plain">
+      typedef any JSON;
+      typedef (Blob or BufferSource or FormData or URLSearchParams or USVString) BodyInit;
+
+      [NoInterfaceObject,
+      Exposed=(Window,Worker)]
+      interface Body {
+        readonly attribute boolean bodyUsed;
+        [NewObject] Promise<ArrayBuffer> arrayBuffer();
+        [NewObject] Promise<Blob> blob();
+        [NewObject] Promise<FormData> formData();
+        [NewObject] Promise<JSON> json();
+        [NewObject] Promise<USVString> text();
+      };
+    </script>
+    <script id="response-idl" type="text/plain">
+      [Constructor(optional BodyInit body, optional ResponseInit init),
+      Exposed=(Window,Worker)]
+      interface Response {
+        [NewObject] static Response error();
+        [NewObject] static Response redirect(USVString url, optional unsigned short status = 302);
+
+        readonly attribute ResponseType type;
+
+        readonly attribute USVString url;
+        readonly attribute unsigned short status;
+        readonly attribute boolean ok;
+        readonly attribute ByteString statusText;
+        [SameObject] readonly attribute Headers headers;
+        readonly attribute ReadableStream? body;
+
+        [NewObject] Response clone();
+      };
+      Response implements Body;
+
+      dictionary ResponseInit {
+        unsigned short status = 200;
+        ByteString statusText = "OK";
+        HeadersInit headers;
+      };
+
+      enum ResponseType { "basic", "cors", "default", "error", "opaque", "opaqueredirect" };
+    </script>
+    <script>
+      var idlsArray = new IdlArray();
+      var idl = document.getElementById("body-idl").innerHTML
+      idl += document.getElementById("response-idl").innerHTML
+
+      idlsArray.add_idls(idl);
+      idlsArray.add_untested_idls("interface Headers {};");
+      idlsArray.add_untested_idls("interface ReadableStream {};");
+      idlsArray.add_objects({ Response: ['new Response()'] });
+      idlsArray.test();
+    </script>
+  </body>
+</html>

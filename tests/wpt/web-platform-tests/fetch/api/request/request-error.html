@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Request error</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#request">
+    <meta name="help" href="https://fetch.spec.whatwg.org/#body-mixin">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"window" : "http://test.url"}); },
+          "Expect TypeError exception");
+      },"RequestInit's window is not null");
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("http://:not a valid URL"); },
+          "Expect TypeError exception");
+      },"Input URL is not valid")
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("http://user:pass@test.url"); },
+          "Expect TypeError exception");
+      },"Input URL has credentials");
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"mode" : "navigate"}); },
+          "Expect TypeError exception");
+      },"RequestInit's mode is navigate");
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"referrer" : "http://:not a valid URL"}); },
+          "Expect TypeError exception");
+      },"RequestInit's referrer is invalid");
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"referrer" : "http://test.url"}); },
+          "Expect TypeError exception");
+      },"RequestInit's referrer has invalid origin")
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"method" : "IN VALID"}); },
+          "Expect TypeError exception");
+      }, "RequestInit's method is invalid");
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"method" : "TRACE"}); },
+          "Expect TypeError exception");
+      }, "RequestInit's method is forbidden");
+
+      test(function() {
+        assert_throws(new TypeError() , function() { new Request("", {"mode" : "no-cors", "method" : "PUT"}); },
+          "Expect TypeError exception");
+      },"RequestInit's mode is no-cors and method is not simple");
+
+      test(function() {
+        assert_throws(new TypeError() ,
+                      function() { new Request("", {"mode" : "no-cors", "integrity" : "not  an empty string"}); },
+                      "Expect TypeError exception");
+      },"RequestInit's mode is no-cors and integrity is not empty");
+
+      test(function() {
+        var initialHeaders = new Headers([["Content-Type", "potato"]]);
+        var initialRequest = new Request("", {"headers" : initialHeaders});
+        var request = new Request(initialRequest);
+        assert_equals(request.headers.get("Content-Type"), "potato");
+      }, "Request should get its content-type from the init request");
+
+      test(function() {
+        var initialHeaders = new Headers([["Content-Type", "potato"]]);
+        var initialRequest = new Request("", {"headers" : initialHeaders});
+        var headers = new Headers([]);
+        var request = new Request(initialRequest, {"headers" : headers});
+        assert_false(request.headers.has("Content-Type"));
+      }, "Request should not get its content-type from the init request if init headers are provided");
+
+      test(function() {
+        var initialHeaders = new Headers([["Content-Type-Extra", "potato"]]);
+        var initialRequest = new Request("", {"headers" : initialHeaders, "body" : "this is my plate", "method" : "POST"});
+        var request = new Request(initialRequest);
+        assert_equals(request.headers.get("Content-Type"), "text/plain;charset=UTF-8");
+      }, "Request should get its content-type from the body if none is provided");
+
+      test(function() {
+        var initialHeaders = new Headers([["Content-Type", "potato"]]);
+        var initialRequest = new Request("", {"headers" : initialHeaders, "body" : "this is my plate", "method" : "POST"});
+        var request = new Request(initialRequest);
+        assert_equals(request.headers.get("Content-Type"), "potato");
+      }, "Request should get its content-type from init headers if one is provided");
+
+      var parameters = ["referrerPolicy", "mode", "credentials", "cache", "redirect"];
+      parameters.forEach(function(parameter) {
+        test(function() {
+          var options = { };
+          options[parameter] = "BAD";
+          assert_throws(new TypeError(), function() { new Request("", options); });
+        },"Bad " + parameter +" init parameter value");
+      });
+    </script>
+  </body>
+</html>

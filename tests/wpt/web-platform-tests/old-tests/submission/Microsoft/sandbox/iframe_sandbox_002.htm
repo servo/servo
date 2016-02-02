@@ -2,18 +2,16 @@
 <html>
 <head>
     <title>HTML5 video with autoplay attribute.</title>
-    <script type="text/javascript" src="/common/media.js"></script>
+    <script src="/common/media.js"></script>
 </head>
 <body>
-    <script type="text/javascript">
-    
-    function do_play(event)
-    {
+    <script>
+    function do_play(event) {
         parent.window.postMessage("play event fired", "*");
     }
-    
+
     document.write(
-        "<video id='video0' src='" + getVideoURI("/media/green-at-15") + "'" + 
+        "<video id='video0' src='" + getVideoURI("/media/green-at-15") + "'" +
         " autoplay onplay='do_play(event);'>"
     );
     </script>

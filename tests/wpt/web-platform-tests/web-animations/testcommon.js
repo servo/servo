@@ -34,7 +34,7 @@ function newAnimation(animationTarget) {
 }
 
 // creates div element, appends it to the document body and
-// add removing of the created element to test cleanup
+// removes the created element during test cleanup
 function createDiv(test, doc) {
     if (!doc) {
         doc = document;

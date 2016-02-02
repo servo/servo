@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animatable.animate tests</title>
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animatable-animate">
+<link rel="author" title="Brian Birtles" href="mailto:bbirtles@mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<iframe src="data:text/html;charset=utf-8," width="10" height="10"
+  id="iframe"></iframe>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_class_string(anim, 'Animation', 'Returned object is an Animation');
+}, 'Element.animate() creates an Animation object');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_class_string(anim.effect, 'KeyframeEffect',
+                      'Returned Animation has a KeyframeEffect');
+}, 'Element.animate() creates an Animation object with a KeyframeEffect');
+
+// Animatable.animate() passes its |frames| argument to the KeyframeEffect
+// constructor. As a result, detailed tests of the handling of that argument
+// are found in the tests for that constructor. Here we just check that the
+// different types of arguments are correctly passed along.
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.effect.getFrames().length, 2);
+  assert_equals(anim.effect.getFrames()[0].opacity, '0');
+  assert_equals(anim.effect.getFrames()[1].opacity, '1');
+}, 'Element.animate() accepts a property-indexed keyframe specification');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate([ { opacity: 0 }, { opacity: 1 } ], 2000);
+  assert_equals(anim.effect.getFrames().length, 2);
+  assert_equals(anim.effect.getFrames()[0].opacity, '0');
+  assert_equals(anim.effect.getFrames()[1].opacity, '1');
+}, 'Element.animate() accepts a frame-indexed keyframe specification');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: 0 }, 2000);
+  assert_equals(anim.effect.getFrames().length, 1);
+  assert_equals(anim.effect.getFrames()[0].opacity, '0');
+}, 'Element.animate() accepts a single-valued keyframe specification');
+
+// As with the |frames| argument, Animatable.animate() passes its |options|
+// argument to the KeyframeEffect constructor as well. As a result, detailed
+// tests of the handling of that argument are found in the tests for that
+// constructor. Here we just check that the different types of arguments are
+// correctly passed along.
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.effect.timing.duration, 2000);
+  // Also check that unspecified parameters receive their default values
+  assert_equals(anim.effect.timing.fill, 'auto');
+}, 'Element.animate() accepts a double as an options argument');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { duration: Infinity, fill: 'forwards' });
+  assert_equals(anim.effect.timing.duration, Infinity);
+  assert_equals(anim.effect.timing.fill, 'forwards');
+  // Also check that unspecified parameters receive their default values
+  assert_equals(anim.effect.timing.direction, 'normal');
+}, 'Element.animate() accepts a KeyframeAnimationOptions argument');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] });
+  assert_equals(anim.effect.timing.duration, 'auto');
+}, 'Element.animate() accepts an absent options argument');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.id, '');
+}, 'Element.animate() correctly sets the id attribute when no id is specified');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, { id: 'test' });
+  assert_equals(anim.id, 'test');
+}, 'Element.animate() correctly sets the id attribute');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.timeline, document.timeline);
+}, 'Element.animate() correctly sets the Animation\'s timeline');
+
+async_test(function(t) {
+  var iframe = document.getElementById('iframe');
+  iframe.addEventListener('load', t.step_func(function() {
+    var div = createDiv(t, iframe.contentDocument);
+    var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+    assert_equals(anim.timeline, iframe.contentDocument.timeline);
+    t.done();
+  }));
+}, 'Element.animate() correctly sets the Animation\'s timeline when ' +
+   'triggered on an element in a different document');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.playState, 'pending');
+}, 'Element.animate() calls play on the Animation');
+
+// TODO: Test the same on CSSPseudoElement
+
+</script>
+</body>

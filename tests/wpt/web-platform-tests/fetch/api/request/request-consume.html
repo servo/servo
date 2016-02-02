@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Request consume</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#request">
+    <meta name="help" href="https://fetch.spec.whatwg.org/#body-mixin">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    function checkBodyText(request, expectedBody) {
+      return request.text().then( function(bodyAsText) {
+        assert_equals(bodyAsText, expectedBody, "Retrieve and verify request's body");
+        assert_true(request.bodyUsed, "body as text: bodyUsed turned true");
+      });
+    }
+
+    function checkBodyBlob(request, expectedBody) {
+      return request.blob().then(function(bodyAsBlob) {
+        var promise = new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(evt) {
+            resolve(reader.result)
+          };
+          reader.onerror = function() {
+            reject("Blob's reader failed");
+          };
+          reader.readAsText(bodyAsBlob);
+        });
+        return promise.then(function(body) {
+          assert_equals(body, expectedBody, "Retrieve and verify request's body");
+          assert_true(request.bodyUsed, "body as blob: bodyUsed turned true");
+        });
+      });
+    }
+
+    <!-- Taken from https://developers.google.com -->
+    function str2ab(str) {
+      var buf = new ArrayBuffer(str.length*2); // 2 bytes for each char
+      var bufView = new Uint16Array(buf);
+      for (var i=0, strLen=str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+      }
+      return buf;
+    }
+
+    function checkBodyArrayBuffer(request, expectedBody) {
+      return request.arrayBuffer().then( function(bodyAsArrayBuffer) {
+        assert_array_equals(bodyAsArrayBuffer, str2ab(expectedBody), "Retrieve and verify request's body");
+        assert_true(request.bodyUsed, "body as arrayBuffer: bodyUsed turned true");
+      });
+    }
+
+    function checkBodyJSON(request, expectedBody) {
+      return request.json().then(function(bodyAsJSON) {
+        var strBody = JSON.stringify(bodyAsJSON)
+        assert_equals(strBody, expectedBody, "Retrieve and verify request's body");
+        assert_true(request.bodyUsed, "body as json: bodyUsed turned true");
+      });
+    }
+
+    function checkBodyFormData(request, expectedBody) {
+      return request.formData().then(function(bodyAsFormData) {
+        assert_true(bodyAsFormData instanceof FormData, "Should receive a FormData");
+        assert_true(request.bodyUsed, "body as formData: bodyUsed turned true");
+     });
+    }
+
+    function checkRequestBody(body, bodyType, checkFunction) {
+      promise_test(function(test) {
+        var request = new Request("", {"method": "POST", "body": body });
+        assert_false(request.bodyUsed, "bodyUsed is false at init");
+        return checkFunction(request, body);
+      }, "Consume request's body as " + bodyType);
+    }
+
+    var formData = new FormData();
+    formData.append("name", "value")
+    checkRequestBody("This is request's body", "text", checkBodyText);
+    checkRequestBody("This is request's body", "blob", checkBodyBlob);
+    checkRequestBody("This is request's body", "arrayBuffer", checkBodyArrayBuffer);
+    checkRequestBody(JSON.stringify("This is request's body"), "json", checkBodyJSON);
+    checkRequestBody(formData, "formData", checkBodyFormData);
+    </script>
+  </body>
+</html>

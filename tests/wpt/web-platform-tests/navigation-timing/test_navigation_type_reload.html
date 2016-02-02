@@ -57,7 +57,7 @@
                     //Verify that the navigation type has updated to reload
                     test_equals(reload_frame.contentWindow.performance.navigation.type,
                             performanceNamespace.navigation.TYPE_RELOAD,
-                            'window.performance.navigation.type == TYPE_RELOAD,{help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"}');
+                            'window.performance.navigation.type == TYPE_RELOAD');
 
                     //Verify that the timing data has been updated into the future
                     var reloadTime = reload_frame.contentWindow.performance.timing;
@@ -76,9 +76,9 @@
                         {
                             test_greater_than(reloadTime[time],
                                               startingTime[time],
-                                              "Reload " + time + "(" + reloadTime[time] + ")" +
+                                              "Reload " + time +
                                               " > " +
-                                              "Original " + time + "(" + startingTime[time] + ")");
+                                              "Original " + time);
                         }
                     }
                 }

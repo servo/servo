@@ -83,9 +83,22 @@
 
   checkbox5.onclick = t5.step_func(function(e) {
     e.preventDefault();
-    assert_false(checkbox5.checked);
+    /*
+    The prevention of the click doesn't have an effect until after all the
+    click event handlers have been run.
+    */
+    assert_true(checkbox5.checked);
     assert_false(checkbox5.indeterminate);
-    t5.done();
+    window.setTimeout(t5.step_func(function(e) {
+      /*
+      The click event has finished being dispatched, so the checkedness and
+      determinateness have been toggled back by now because the event
+      was preventDefault-ed.
+      */
+      assert_false(checkbox5.checked);
+      assert_false(checkbox5.indeterminate);
+      t5.done();
+    }), 0);
   });
 
   t5.step(function(){
@@ -97,9 +110,22 @@
   checkbox6.onclick = t6.step_func(function(e) {
     checkbox6.indeterminate = true;
     e.preventDefault();
-    assert_false(checkbox6.checked);
-    assert_false(checkbox6.indeterminate);
-    t6.done();
+    /*
+    The prevention of the click doesn't have an effect until after all the
+    click event handlers have been run.
+    */
+    assert_true(checkbox6.checked);
+    assert_true(checkbox6.indeterminate);
+    window.setTimeout(t6.step_func(function(e) {
+      /*
+      The click event has finished being dispatched, so the checkedness and
+      determinateness have been toggled back by now because the event
+      was preventDefault-ed.
+      */
+      assert_false(checkbox6.checked);
+      assert_false(checkbox6.indeterminate);
+      t6.done();
+    }), 0);
   });
 
   t6.step(function(){

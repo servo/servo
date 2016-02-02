@@ -13584,6 +13584,10 @@
         "url": "/cssom-view/elementsFromPoint.html"
       },
       {
+        "path": "cssom-view/scrollingElement.html",
+        "url": "/cssom-view/scrollingElement.html"
+      },
+      {
         "path": "custom-elements/concepts/custom-elements-type-naming.html",
         "url": "/custom-elements/concepts/custom-elements-type-naming.html"
       },
@@ -15118,6 +15122,366 @@
       {
         "path": "ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-1.html",
         "url": "/ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-1.html"
+      },
+      {
+        "path": "fetch/api/basic/accept-header-worker.html",
+        "url": "/fetch/api/basic/accept-header-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/accept-header.html",
+        "url": "/fetch/api/basic/accept-header.html"
+      },
+      {
+        "path": "fetch/api/basic/integrity-worker.html",
+        "url": "/fetch/api/basic/integrity-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/integrity.html",
+        "url": "/fetch/api/basic/integrity.html"
+      },
+      {
+        "path": "fetch/api/basic/mode-no-cors-worker.html",
+        "url": "/fetch/api/basic/mode-no-cors-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/mode-no-cors.html",
+        "url": "/fetch/api/basic/mode-no-cors.html"
+      },
+      {
+        "path": "fetch/api/basic/mode-same-origin-worker.html",
+        "url": "/fetch/api/basic/mode-same-origin-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/mode-same-origin.html",
+        "url": "/fetch/api/basic/mode-same-origin.html"
+      },
+      {
+        "path": "fetch/api/basic/request-forbidden-headers-worker.html",
+        "url": "/fetch/api/basic/request-forbidden-headers-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/request-forbidden-headers.html",
+        "url": "/fetch/api/basic/request-forbidden-headers.html"
+      },
+      {
+        "path": "fetch/api/basic/request-headers-worker.html",
+        "url": "/fetch/api/basic/request-headers-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/request-headers.html",
+        "url": "/fetch/api/basic/request-headers.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-about-worker.html",
+        "url": "/fetch/api/basic/scheme-about-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-about.html",
+        "url": "/fetch/api/basic/scheme-about.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-blob-worker.html",
+        "url": "/fetch/api/basic/scheme-blob-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-blob.html",
+        "url": "/fetch/api/basic/scheme-blob.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-data-worker.html",
+        "url": "/fetch/api/basic/scheme-data-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-data.html",
+        "url": "/fetch/api/basic/scheme-data.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-others-worker.html",
+        "url": "/fetch/api/basic/scheme-others-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/scheme-others.html",
+        "url": "/fetch/api/basic/scheme-others.html"
+      },
+      {
+        "path": "fetch/api/basic/stream-response-worker.html",
+        "url": "/fetch/api/basic/stream-response-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/stream-response.html",
+        "url": "/fetch/api/basic/stream-response.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-basic-worker.html",
+        "url": "/fetch/api/cors/cors-basic-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-basic.html",
+        "url": "/fetch/api/cors/cors-basic.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-cookies-worker.html",
+        "url": "/fetch/api/cors/cors-cookies-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-cookies.html",
+        "url": "/fetch/api/cors/cors-cookies.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-filtering-worker.html",
+        "url": "/fetch/api/cors/cors-filtering-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-filtering.html",
+        "url": "/fetch/api/cors/cors-filtering.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-multiple-origins-worker.html",
+        "url": "/fetch/api/cors/cors-multiple-origins-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-multiple-origins.html",
+        "url": "/fetch/api/cors/cors-multiple-origins.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-no-preflight-worker.html",
+        "url": "/fetch/api/cors/cors-no-preflight-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-no-preflight.html",
+        "url": "/fetch/api/cors/cors-no-preflight.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-origin-worker.html",
+        "url": "/fetch/api/cors/cors-origin-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-origin.html",
+        "url": "/fetch/api/cors/cors-origin.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-redirect-worker.html",
+        "url": "/fetch/api/cors/cors-preflight-redirect-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-redirect.html",
+        "url": "/fetch/api/cors/cors-preflight-redirect.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-referrer-worker.html",
+        "url": "/fetch/api/cors/cors-preflight-referrer-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-referrer.html",
+        "url": "/fetch/api/cors/cors-preflight-referrer.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-status-worker.html",
+        "url": "/fetch/api/cors/cors-preflight-status-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-status.html",
+        "url": "/fetch/api/cors/cors-preflight-status.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight-worker.html",
+        "url": "/fetch/api/cors/cors-preflight-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-preflight.html",
+        "url": "/fetch/api/cors/cors-preflight.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-redirect-credentials-worker.html",
+        "url": "/fetch/api/cors/cors-redirect-credentials-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-redirect-credentials.html",
+        "url": "/fetch/api/cors/cors-redirect-credentials.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-redirect-worker.html",
+        "url": "/fetch/api/cors/cors-redirect-worker.html"
+      },
+      {
+        "path": "fetch/api/cors/cors-redirect.html",
+        "url": "/fetch/api/cors/cors-redirect.html"
+      },
+      {
+        "path": "fetch/api/credentials/authentication-basic-worker.html",
+        "url": "/fetch/api/credentials/authentication-basic-worker.html"
+      },
+      {
+        "path": "fetch/api/credentials/authentication-basic.html",
+        "url": "/fetch/api/credentials/authentication-basic.html"
+      },
+      {
+        "path": "fetch/api/credentials/cookies-worker.html",
+        "url": "/fetch/api/credentials/cookies-worker.html"
+      },
+      {
+        "path": "fetch/api/credentials/cookies.html",
+        "url": "/fetch/api/credentials/cookies.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-basic.html",
+        "url": "/fetch/api/headers/headers-basic.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-casing.html",
+        "url": "/fetch/api/headers/headers-casing.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-combine.html",
+        "url": "/fetch/api/headers/headers-combine.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-errors.html",
+        "url": "/fetch/api/headers/headers-errors.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-idl.html",
+        "url": "/fetch/api/headers/headers-idl.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-normalize.html",
+        "url": "/fetch/api/headers/headers-normalize.html"
+      },
+      {
+        "path": "fetch/api/headers/headers-structure.html",
+        "url": "/fetch/api/headers/headers-structure.html"
+      },
+      {
+        "path": "fetch/api/policies/csp-blocked-worker.html",
+        "url": "/fetch/api/policies/csp-blocked-worker.html"
+      },
+      {
+        "path": "fetch/api/policies/csp-blocked.html",
+        "url": "/fetch/api/policies/csp-blocked.html"
+      },
+      {
+        "path": "fetch/api/policies/referrer-no-referrer-worker.html",
+        "url": "/fetch/api/policies/referrer-no-referrer-worker.html"
+      },
+      {
+        "path": "fetch/api/policies/referrer-no-referrer.html",
+        "url": "/fetch/api/policies/referrer-no-referrer.html"
+      },
+      {
+        "path": "fetch/api/policies/referrer-origin-worker.html",
+        "url": "/fetch/api/policies/referrer-origin-worker.html"
+      },
+      {
+        "path": "fetch/api/policies/referrer-origin.html",
+        "url": "/fetch/api/policies/referrer-origin.html"
+      },
+      {
+        "path": "fetch/api/policies/referrer-unsafe-url-worker.html",
+        "url": "/fetch/api/policies/referrer-unsafe-url-worker.html"
+      },
+      {
+        "path": "fetch/api/policies/referrer-unsafe-url.html",
+        "url": "/fetch/api/policies/referrer-unsafe-url.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-count-worker.html",
+        "url": "/fetch/api/redirect/redirect-count-worker.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-count.html",
+        "url": "/fetch/api/redirect/redirect-count.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-location-worker.html",
+        "url": "/fetch/api/redirect/redirect-location-worker.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-location.html",
+        "url": "/fetch/api/redirect/redirect-location.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-method-worker.html",
+        "url": "/fetch/api/redirect/redirect-method-worker.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-method.html",
+        "url": "/fetch/api/redirect/redirect-method.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-mode-worker.html",
+        "url": "/fetch/api/redirect/redirect-mode-worker.html"
+      },
+      {
+        "path": "fetch/api/redirect/redirect-mode.html",
+        "url": "/fetch/api/redirect/redirect-mode.html"
+      },
+      {
+        "path": "fetch/api/request/request-clone.sub.html",
+        "url": "/fetch/api/request/request-clone.sub.html"
+      },
+      {
+        "path": "fetch/api/request/request-consume.html",
+        "url": "/fetch/api/request/request-consume.html"
+      },
+      {
+        "path": "fetch/api/request/request-disturbed.html",
+        "url": "/fetch/api/request/request-disturbed.html"
+      },
+      {
+        "path": "fetch/api/request/request-error.html",
+        "url": "/fetch/api/request/request-error.html"
+      },
+      {
+        "path": "fetch/api/request/request-idl.html",
+        "url": "/fetch/api/request/request-idl.html"
+      },
+      {
+        "path": "fetch/api/request/request-init-001.sub.html",
+        "url": "/fetch/api/request/request-init-001.sub.html"
+      },
+      {
+        "path": "fetch/api/request/request-init-002.html",
+        "url": "/fetch/api/request/request-init-002.html"
+      },
+      {
+        "path": "fetch/api/request/request-init-003.sub.html",
+        "url": "/fetch/api/request/request-init-003.sub.html"
+      },
+      {
+        "path": "fetch/api/request/request-structure.html",
+        "url": "/fetch/api/request/request-structure.html"
+      },
+      {
+        "path": "fetch/api/response/response-clone.html",
+        "url": "/fetch/api/response/response-clone.html"
+      },
+      {
+        "path": "fetch/api/response/response-consume.html",
+        "url": "/fetch/api/response/response-consume.html"
+      },
+      {
+        "path": "fetch/api/response/response-error.html",
+        "url": "/fetch/api/response/response-error.html"
+      },
+      {
+        "path": "fetch/api/response/response-idl.html",
+        "url": "/fetch/api/response/response-idl.html"
+      },
+      {
+        "path": "fetch/api/response/response-init-001.html",
+        "url": "/fetch/api/response/response-init-001.html"
+      },
+      {
+        "path": "fetch/api/response/response-init-002.html",
+        "url": "/fetch/api/response/response-init-002.html"
+      },
+      {
+        "path": "fetch/api/response/response-static-error.html",
+        "url": "/fetch/api/response/response-static-error.html"
+      },
+      {
+        "path": "fetch/api/response/response-static-redirect.html",
+        "url": "/fetch/api/response/response-static-redirect.html"
       },
       {
         "path": "fetch/nosniff/image.html",
@@ -17616,6 +17980,18 @@
         "url": "/html/semantics/embedded-content/media-elements/volume_nonfinite.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-area-element/area-coords.html",
+        "url": "/html/semantics/embedded-content/the-area-element/area-coords.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-area-element/area-processing.html",
+        "url": "/html/semantics/embedded-content/the-area-element/area-processing.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-area-element/area-shape.html",
+        "url": "/html/semantics/embedded-content/the-area-element/area-shape.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-area-element/area-stringifier.html",
         "url": "/html/semantics/embedded-content/the-area-element/area-stringifier.html"
       },
@@ -18054,6 +18430,10 @@
       {
         "path": "html/semantics/embedded-content/the-embed-element/embed-dimension.html",
         "url": "/html/semantics/embedded-content/the-embed-element/embed-dimension.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-embed-element/embed-document.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/embed-document.html"
       },
       {
         "path": "html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm",
@@ -19134,6 +19514,10 @@
       {
         "path": "html/webappapis/scripting/events/event-handler-javascript.html",
         "url": "/html/webappapis/scripting/events/event-handler-javascript.html"
+      },
+      {
+        "path": "html/webappapis/scripting/events/event-handler-onresize.html",
+        "url": "/html/webappapis/scripting/events/event-handler-onresize.html"
       },
       {
         "path": "html/webappapis/scripting/events/event-handler-spec-example.html",
@@ -20858,10 +21242,6 @@
       {
         "path": "old-tests/submission/Microsoft/sandbox/sandbox_001.htm",
         "url": "/old-tests/submission/Microsoft/sandbox/sandbox_001.htm"
-      },
-      {
-        "path": "old-tests/submission/Microsoft/sandbox/sandbox_002.htm",
-        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_002.htm"
       },
       {
         "path": "old-tests/submission/Microsoft/sandbox/sandbox_005.htm",
@@ -26352,6 +26732,10 @@
         "url": "/shadow-dom/ShadowRoot-interface.html"
       },
       {
+        "path": "shadow-dom/styles/shadow-cascade-order.html",
+        "url": "/shadow-dom/styles/shadow-cascade-order.html"
+      },
+      {
         "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html",
         "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html"
       },
@@ -27006,6 +27390,10 @@
       {
         "path": "vibration/silent-ignore.html",
         "url": "/vibration/silent-ignore.html"
+      },
+      {
+        "path": "web-animations/animatable/animate.html",
+        "url": "/web-animations/animatable/animate.html"
       },
       {
         "path": "web-animations/animation-node/animation-node-after.html",
@@ -30272,6 +30660,10 @@
         "url": "/websockets/Create-Secure-verify-url-set-non-default-port.htm"
       },
       {
+        "path": "websockets/Create-asciiSep-protocol-string.htm",
+        "url": "/websockets/Create-asciiSep-protocol-string.htm"
+      },
+      {
         "path": "websockets/Create-invalid-urls.htm",
         "url": "/websockets/Create-invalid-urls.htm"
       },
@@ -30286,6 +30678,10 @@
       {
         "path": "websockets/Create-protocol-with-space.htm",
         "url": "/websockets/Create-protocol-with-space.htm"
+      },
+      {
+        "path": "websockets/Create-protocols-repeated-case-insensitive.htm",
+        "url": "/websockets/Create-protocols-repeated-case-insensitive.htm"
       },
       {
         "path": "websockets/Create-protocols-repeated.htm",
@@ -31572,12 +31968,12 @@
         "url": "/workers/interfaces/WorkerUtils/WindowTimers/004.html"
       },
       {
-        "path": "workers/interfaces/WorkerUtils/importScripts/001.html",
-        "url": "/workers/interfaces/WorkerUtils/importScripts/001.html"
+        "path": "workers/interfaces/WorkerUtils/importScripts/001.worker.js",
+        "url": "/workers/interfaces/WorkerUtils/importScripts/001.worker"
       },
       {
-        "path": "workers/interfaces/WorkerUtils/importScripts/002.html",
-        "url": "/workers/interfaces/WorkerUtils/importScripts/002.html"
+        "path": "workers/interfaces/WorkerUtils/importScripts/002.worker.js",
+        "url": "/workers/interfaces/WorkerUtils/importScripts/002.worker"
       },
       {
         "path": "workers/interfaces/WorkerUtils/importScripts/003.html",
@@ -33002,6 +33398,11 @@
         "url": "/media-source/mediasource-redundant-seek.html"
       },
       {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_002.htm",
+        "timeout": "long",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_002.htm"
+      },
+      {
         "path": "quirks-mode/hashless-hex-color.html",
         "timeout": "long",
         "url": "/quirks-mode/hashless-hex-color.html"
@@ -33316,28 +33717,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "html/webappapis/scripting/events/event-handler-onresize.html": [
-          {
-            "path": "html/webappapis/scripting/events/event-handler-onresize.html",
-            "url": "/html/webappapis/scripting/events/event-handler-onresize.html"
-          }
-        ],
-        "websockets/Create-asciiSep-protocol-string.htm": [
-          {
-            "path": "websockets/Create-asciiSep-protocol-string.htm",
-            "url": "/websockets/Create-asciiSep-protocol-string.htm"
-          }
-        ],
-        "websockets/Create-protocols-repeated-case-insensitive.htm": [
-          {
-            "path": "websockets/Create-protocols-repeated-case-insensitive.htm",
-            "url": "/websockets/Create-protocols-repeated-case-insensitive.htm"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -39450,7 +39830,7 @@
       }
     ]
   },
-  "rev": "0d9238c8062f05a55898a0cb60dc0c353794d87a",
+  "rev": "7f2f85a88f434798e9d643427b34b05fab8278c6",
   "url_base": "/",
   "version": 2
 }
