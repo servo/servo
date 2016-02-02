@@ -47,4 +47,4 @@ euclid = {version = "0.4", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1.12"
-url = "0.5.2"
+url = "0.5.4"
