@@ -17,7 +17,9 @@ __wptrunner__ = {"product": "servo",
                               "reftest": "ServoRefTestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
-                 "env_options": "env_options"}
+                 "env_options": "env_options",
+                 "run_info_extras": "run_info_extras",
+                 "update_properties": "update_properties"}
 
 
 def check_args(**kwargs):
@@ -47,8 +49,16 @@ def env_options():
             "supports_debugger": True}
 
 
+def run_info_extras(**kwargs):
+    return {"backend": kwargs["servo_backend"]}
+
+
+def update_properties():
+    return ["debug", "os", "version", "processor", "bits", "backend"], None
+
+
 def render_arg(render_backend):
-    return {"cpu": "--cpu"}[render_backend]
+    return {"cpu": "--cpu", "webrender": "--webrender"}[render_backend]
 
 
 class ServoBrowser(NullBrowser):

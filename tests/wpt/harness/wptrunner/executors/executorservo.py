@@ -87,7 +87,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
 
         env = os.environ.copy()
         env["HOST_FILE"] = self.hosts_path
-
+        env["RUST_BACKTRACE"] = "1"
 
 
         if not self.interactive:
@@ -223,6 +223,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
             env = os.environ.copy()
             env["HOST_FILE"] = self.hosts_path
+            env["RUST_BACKTRACE"] = "1"
 
             if not self.interactive:
                 self.proc = ProcessHandler(self.command,

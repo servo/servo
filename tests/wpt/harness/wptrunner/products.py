@@ -55,3 +55,18 @@ def load_product(config, product):
             browser_cls, browser_kwargs,
             executor_classes, executor_kwargs,
             env_options, run_info_extras)
+
+
+def load_product_update(config, product):
+    """Return tuple of (property_order, boolean_properties) indicating the
+    run_info properties to use when constructing the expectation data for
+    this product. None for either key indicates that the default keys
+    appropriate for distinguishing based on platform will be used."""
+
+    module = product_module(config, product)
+    data = module.__wptrunner__
+
+    update_properties = (getattr(module, data["update_properties"])()
+                         if "update_properties" in data else (None, None))
+
+    return update_properties

@@ -192,7 +192,7 @@ class B2GExecutorBrowser(ExecutorBrowser):
 
         import sys, subprocess
 
-        self.device = mozdevice.ADBDevice()
+        self.device = mozdevice.ADBB2G()
         self.device.forward("tcp:%s" % self.marionette_port,
                             "tcp:2828")
         self.executor = None

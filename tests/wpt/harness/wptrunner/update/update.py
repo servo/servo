@@ -91,6 +91,8 @@ class UpdateMetadata(Step):
             state.ignore_existing = kwargs["ignore_existing"]
             state.no_patch = kwargs["no_patch"]
             state.suite_name = kwargs["suite_name"]
+            state.product = kwargs["product"]
+            state.config = kwargs["config"]
             runner = MetadataUpdateRunner(self.logger, state)
             runner.run()
 

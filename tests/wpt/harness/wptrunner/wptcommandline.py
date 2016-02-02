@@ -155,7 +155,7 @@ def create_parser(product_choices=None):
     gecko_group.add_argument("--prefs-root", dest="prefs_root", action="store", type=abs_path,
                              help="Path to the folder containing browser prefs")
     gecko_group.add_argument("--e10s", dest="gecko_e10s", action="store_true",
-                             help="Path to the folder containing browser prefs")
+                             help="Run tests with electrolysis preferences")
 
     b2g_group = parser.add_argument_group("B2G-specific")
     b2g_group.add_argument("--b2g-no-backup", action="store_true", default=False,
@@ -338,12 +338,25 @@ def check_args(kwargs):
 
     return kwargs
 
+def check_args_update(kwargs):
+    set_from_config(kwargs)
 
-def create_parser_update():
+    if kwargs["product"] is None:
+        kwargs["product"] = "firefox"
+
+def create_parser_update(product_choices=None):
     from mozlog.structured import commandline
+
+    import products
+
+    if product_choices is None:
+        config_data = config.load()
+        product_choices = products.products_enabled(config_data)
 
     parser = argparse.ArgumentParser("web-platform-tests-update",
                                      description="Update script for web-platform-tests tests.")
+    parser.add_argument("--product", action="store", choices=product_choices,
+                        default=None, help="Browser for which metadata is being updated")
     parser.add_argument("--config", action="store", type=abs_path, help="Path to config file")
     parser.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
                         help="Path to the folder containing test metadata"),
@@ -386,7 +399,7 @@ def parse_args():
 def parse_args_update():
     parser = create_parser_update()
     rv = vars(parser.parse_args())
-    set_from_config(rv)
+    check_args_update(rv)
     return rv
 
 
