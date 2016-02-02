@@ -63,7 +63,7 @@ selectors = "0.4.1"
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
-string_cache = "0.2"
+string_cache = "0.2.7"
 url = {version = "0.5.4", features = ["serde_serialization"]}
 uuid = "0.1.17"
 
