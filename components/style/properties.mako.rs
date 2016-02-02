@@ -6958,6 +6958,12 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
         padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
         padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
     }
+
+    if style.effects.opacity != 1.0 {
+        let mut style = Arc::make_mut(style);
+        let mut effects = Arc::make_mut(&mut style.effects);
+        effects.opacity = 1.0;
+    }
 }
 
 /// Adjusts the `margin` property as necessary to account for the text of an `input` element.
