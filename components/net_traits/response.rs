@@ -31,7 +31,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -39,7 +39,7 @@ pub enum ResponseBody {
 }
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum CacheState {
     None,
     Local,

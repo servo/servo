@@ -69,8 +69,8 @@ impl ResponseMethods for Response {
 
                 let headers = old_headers.iter().filter(|header| {
                     match &*header.name().to_ascii_lowercase() {
-                        "cache-control" | "content-language" |
-                        "content-type" | "expires" | "last-modified" | "Pragma" => true,
+                        "cache-control" | "content-language" | "content-type" |
+                        "expires" | "last-modified" | "pragma" => true,
                         "set-cookie" | "set-cookie2" => false,
                         header => {
                             let result =
@@ -88,12 +88,14 @@ impl ResponseMethods for Response {
                 response.headers = Headers::new();
                 response.status = None;
                 response.body = RefCell::new(ResponseBody::Empty);
+                response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
                 response.body = RefCell::new(ResponseBody::Empty);
+                response.cache_state = CacheState::None;
             }
         }
 

@@ -14,6 +14,7 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate time;
+extern crate unicase;
 extern crate url;
 extern crate util;
 
