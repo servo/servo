@@ -59,6 +59,14 @@ enum InputType {
     InputPassword
 }
 
+#[derive(Debug)]
+enum InputValueMode {
+    Value,
+    Default,
+    DefaultOn,
+    Filename,
+}
+
 #[dom_struct]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
@@ -292,14 +300,46 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
-        self.textinput.borrow().get_content()
+        let default = match get_value_mode(&self) {
+            InputValueMode::Value => DOMString::from(""),
+            InputValueMode::Default => DOMString::from(""),
+            InputValueMode::DefaultOn => DOMString::from("on"),
+            InputValueMode::Filename => DOMString::from(r"C:\fakepath\"),
+        };
+
+        // TODO: append first selected filename (if any)
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), &atom!("value"))
+            .map_or_else(|| default,
+                         |a| DOMString::from(a.summarize().value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) {
-        self.textinput.borrow_mut().set_content(value);
-        self.value_changed.set(true);
-        self.force_relayout();
+        let element = self.upcast::<Element>();
+
+        match get_value_mode(&self) {
+            InputValueMode::Value => {
+                element.set_string_attribute(&atom!("value"), value);
+                self.value_changed.set(true);
+                self.force_relayout();
+                // sanitize
+                // reset cursor
+            },
+            InputValueMode::Default => {
+                element.set_string_attribute(&atom!("value"), value);
+            },
+            InputValueMode::DefaultOn => {
+                element.set_string_attribute(&atom!("value"), value);
+            },
+            InputValueMode::Filename => {
+                if value == DOMString::from("") {
+                    // empty selected files
+                } else {
+                    // throw InvalidStateError
+                }
+            },
+        };
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
@@ -380,6 +420,21 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 }
 
+
+// https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
+fn get_value_mode(input: &HTMLInputElement) -> InputValueMode {
+    match input.input_type.get() {
+        InputType::InputSubmit => InputValueMode::Default,
+        InputType::InputReset => InputValueMode::Default,
+        InputType::InputButton => InputValueMode::Default,
+        InputType::InputText => InputValueMode::Value,
+        InputType::InputFile => InputValueMode::Filename,
+        InputType::InputImage => InputValueMode::Default,
+        InputType::InputCheckbox => InputValueMode::DefaultOn,
+        InputType::InputRadio => InputValueMode::DefaultOn,
+        InputType::InputPassword => InputValueMode::Value,
+    }
+}
 
 #[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
@@ -465,17 +520,11 @@ impl HTMLInputElement {
 
         }
 
-        let mut value = self.Value();
         // Step 3.6
-        if ty == atom!("radio") || ty == atom!("checkbox") {
-            if value.is_empty() {
-                value = DOMString::from("on");
-            }
-        }
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
-            value: value
+            value: self.Value()
         })
     }
 
