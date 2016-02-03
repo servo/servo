@@ -7,9 +7,9 @@ use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
 use http_loader::{create_http_connector, obtain_response};
 use hyper::client::response::Response as HyperResponse;
-use hyper::header::AccessControlAllowOrigin;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
+use hyper::header::{AccessControlAllowCredentials, AccessControlAllowOrigin};
 use hyper::header::{Authorization, Basic, ContentEncoding, Encoding};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
@@ -880,21 +880,34 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
         return Ok(());
     }
     let origin = match origin {
-        AccessControlAllowOrigin::Value(origin_str) =>
-            Url::parse(origin_str.as_str()).unwrap().origin(),
+        AccessControlAllowOrigin::Value(origin) => origin,
         // if it's Any or Null at this point, I see nothing to do but return Err(())
         _ => return Err(())
     };
 
     // Step 4
-    let serialised_origin = ascii_serialise_origin(&origin);
-    // if request.origin !=
+    // strings are already utf-8 encoded, so I don't need to re-encode origin for this step
+    match ascii_serialise_origin(&request.origin) {
+        Ok(request_origin) => {
+            if request_origin != origin {
+                return Err(());
+            }
+        },
+        _ => return Err(())
+    }
 
     // Step 5
+    if request.credentials_mode != CredentialsMode::Include {
+        return Ok(());
+    }
 
     // Step 6
+    let credentials = request.headers.borrow().get::<AccessControlAllowCredentials>().cloned();
 
     // Step 7
+    if credentials.is_some() {
+        return Ok(());
+    }
 
     // Step 8
     Err(())
