@@ -11,10 +11,10 @@ use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use cssparser::{Color, RGBA};
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::DisplayList;
 use layout_debug;
 use model::MaybeAuto;
@@ -439,7 +439,7 @@ impl Flow for TableRowFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 

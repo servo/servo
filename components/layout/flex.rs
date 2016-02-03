@@ -10,7 +10,7 @@ use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::FlexFlowDisplayListBuilding;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use floats::FloatKind;
 use flow;
 use flow::INLINE_POSITION_IS_STATIC;
@@ -18,7 +18,7 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::ImmutableFlowUtils;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::DisplayList;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -432,7 +432,7 @@ impl Flow for FlexFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 

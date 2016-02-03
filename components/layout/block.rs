@@ -43,7 +43,7 @@ use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, Fragmenta
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow_list::FlowList;
 use flow_ref::FlowRef;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
 use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use gfx_traits::LayerId;
@@ -2098,7 +2098,7 @@ impl Flow for BlockFlow {
         self.fragment.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
         self.fragment.compute_overflow(&flow_size,
                                        &self.base

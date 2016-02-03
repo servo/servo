@@ -9,9 +9,9 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;
@@ -83,7 +83,7 @@ impl Flow for TableCaptionFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 
