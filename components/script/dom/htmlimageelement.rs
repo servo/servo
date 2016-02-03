@@ -11,12 +11,13 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
+use dom::imagedata::ImageData;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
@@ -36,6 +37,8 @@ pub struct HTMLImageElement {
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
     metadata: DOMRefCell<Option<ImageMetadata>>,
+    current_request: DOMRefCell<Option<ImageRequest>>,
+    pending_request: DOMRefCell<Option<ImageRequest>>,
 }
 
 impl HTMLImageElement {
@@ -44,6 +47,36 @@ impl HTMLImageElement {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#image-request
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+pub enum ImageState {
+    Unavailable,
+    PartiallyAvailable,
+    CompletelyAvailable,
+    Broken,
+}
+
+#[must_root]
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct ImageRequest {
+    state: ImageState,
+    current_url: DOMString,
+    image_data: JS<ImageData>,
+}
+
+impl ImageRequest {
+    pub fn new(image_data: Root<ImageData>) -> ImageRequest {
+        ImageRequest {
+            state: ImageState::Unavailable,
+            current_url: DOMString::from(""),
+            image_data: JS::from_rooted(&image_data),
+        }
+    }
+
+    pub fn current_url(&self) -> DOMString {
+        self.current_url.clone()
+    }
+}
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
@@ -137,6 +170,8 @@ impl HTMLImageElement {
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
             metadata: DOMRefCell::new(None),
+            current_request: DOMRefCell::new(None),
+            pending_request: DOMRefCell::new(None)
         }
     }
 
@@ -195,6 +230,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_getter!(CrossOrigin, "crossorigin");
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_setter!(SetCrossOrigin, "crossorigin");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
@@ -249,6 +289,14 @@ impl HTMLImageElementMethods for HTMLImageElement {
     fn Complete(&self) -> bool {
         let image = self.image.borrow();
         image.is_some()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
+    fn CurrentSrc(&self) -> DOMString {
+        match *self.current_request.borrow() {
+            Some(ref req) => req.current_url(),
+            None => DOMString::from("")
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
