@@ -53,12 +53,10 @@ headless = ["glutin_app/headless"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 
-# Uncomment to profile on Linux:
-#
-# [profile.release]
-# opt-level = 3
-# debug = true
-# rpath = false
+[profile.release]
+debug = true
+# Uncomment to improve the debugging and profiling experience,
+# at the expense of some optimizations.
 # lto = false
 
 [dependencies.compositing]
