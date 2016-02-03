@@ -63,8 +63,10 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
 
     let type_ = event.type_();
 
-    /* capturing */
+    // Step 4.
     event.set_phase(EventPhase::Capturing);
+
+    // Step 5.
     for cur_target in chain.iter().rev() {
         if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
             event.set_current_target(cur_target);
@@ -85,10 +87,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    /* at target */
+    // Step 6.
     event.set_phase(EventPhase::AtTarget);
+
     event.set_current_target(target);
 
+    // Step 7.
     if let Some(listeners) = target.get_listeners(&type_) {
         for listener in listeners {
             handle_event(window.r(), &listener, target, event);
@@ -105,14 +109,17 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    /* bubbling */
+    // Step 8.
     if !event.bubbles() {
         return;
     }
 
+    // Step 8.2
     event.set_phase(EventPhase::Bubbling);
+
     for cur_target in chain {
         if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
+            // Step 8.3
             event.set_current_target(cur_target);
             for listener in &listeners {
                 handle_event(window.r(), listener, *cur_target, event);
@@ -137,17 +144,16 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     assert_eq!(event.phase(), EventPhase::None);
     assert!(event.GetCurrentTarget().is_none());
 
+    // Step 1.
+    event.set_dispatching(true);
+
+    // Step 2.
     event.set_target(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
         None => target.clone(),
     });
 
-    if event.stop_propagation() {
-        return !event.DefaultPrevented();
-    }
-
-    event.set_dispatching(true);
-
+    // Step 3.
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
@@ -155,6 +161,7 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
         }
     }
 
+    // Steps 4 - 8
     dispatch_to_listeners(event, target, chain.r());
 
     /* default action */
@@ -169,9 +176,15 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
         None => {}
     }
 
+    // Step 9.
     event.set_dispatching(false);
+
+    // Step 10.
     event.set_phase(EventPhase::None);
+
+    // Step 11.
     event.clear_current_target();
 
+    // Return false if event’s canceled flag is set, and true otherwise.
     !event.DefaultPrevented()
 }
