@@ -28,4 +28,4 @@ rustc-serialize = "0.3.4"
 euclid = {version = "0.4", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
-url = "0.5.2"
+url = "0.5.4"

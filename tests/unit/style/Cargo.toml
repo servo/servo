@@ -25,7 +25,7 @@ path = "../../../components/util"
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
-url = "0.5.2"
+url = "0.5.4"
 cssparser = "0.5"
 selectors = "0.4.1"
 string_cache = "0.2"

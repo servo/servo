@@ -19,7 +19,7 @@ num_cpus = "0.2.2"
 selectors = "0.4.1"
 smallvec = "0.1"
 string_cache = "0.2"
-url = "0.5.2"
+url = "0.5.4"
 
 [dependencies.util]
 path = "../../components/util"

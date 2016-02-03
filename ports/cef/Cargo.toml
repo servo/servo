@@ -14,7 +14,7 @@ gleam = "0.2"
 libc = "0.2"
 log = "0.3"
 stb_image = "0.2"
-url = "0.5.2"
+url = "0.5.4"
 
 [dependencies.servo]
 path = "../../components/servo"

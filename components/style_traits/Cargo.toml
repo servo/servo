@@ -23,5 +23,5 @@ rustc-serialize = "0.3"
 selectors = "0.4.1"
 serde = "0.6"
 serde_macros = "0.6"
-url = "0.5.2"
+url = "0.5.4"
 
