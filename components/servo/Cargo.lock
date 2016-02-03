@@ -1640,12 +1640,12 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-fontconfig-sys 2.11.2-really.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-fontconfig-sys 2.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "servo-fontconfig-sys"
-version = "2.11.2-really.1"
+version = "2.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "expat-sys 2.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
