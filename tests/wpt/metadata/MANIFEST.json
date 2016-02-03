@@ -34545,6 +34545,12 @@
             "path": "html/webappapis/scripting/events/event-handler-processing-algorithm.html",
             "url": "/html/webappapis/scripting/events/event-handler-processing-algorithm.html"
           }
+        ],
+        "XMLHttpRequest/responseurl.html": [
+          {
+            "path": "XMLHttpRequest/responseurl.html",
+            "url": "/XMLHttpRequest/responseurl.html"
+          }
         ]
       }
     },
