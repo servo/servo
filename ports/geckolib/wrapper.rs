@@ -17,7 +17,6 @@ use bindings::{ServoNodeData};
 use libc::uintptr_t;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use selectors::states::*;
 use smallvec::VecLike;
 use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
@@ -28,12 +27,14 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
+use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
 use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::{parse_style_attribute};
 use style::restyle_hints::ElementSnapshot;
+use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 #[allow(unused_imports)] // Used in commented-out code.
 use url::Url;
 
@@ -351,17 +352,9 @@ impl<'le> TElement<'le> for GeckoElement<'le> {
     }
 }
 
-macro_rules! state_getter {
-    ($(
-        $(#[$Flag_attr: meta])*
-        state $css: expr => $variant: ident / $method: ident /
-        $flag: ident = $value: expr,
-    )+) => {
-        $( fn $method(&self) -> bool { self.get_state().contains($flag) } )+
-    }
-}
-
 impl<'le> ::selectors::Element for GeckoElement<'le> {
+    type Impl = ServoSelectorImpl;
+
     fn parent_element(&self) -> Option<Self> {
         unimplemented!()
     }
@@ -412,25 +405,28 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         */
     }
 
-    fn is_link(&self) -> bool {
-        unsafe {
-            Gecko_IsLink(self.element) != 0
+    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
+        match pseudo_class {
+            // https://github.com/servo/servo/issues/8718
+            NonTSPseudoClass::Link => unsafe { Gecko_IsLink(self.element) != 0 },
+            NonTSPseudoClass::AnyLink => unsafe { Gecko_IsUnvisitedLink(self.element) != 0 },
+            NonTSPseudoClass::Visited => unsafe { Gecko_IsVisitedLink(self.element) != 0 },
+
+            NonTSPseudoClass::ServoNonZeroBorder => {
+                unimplemented!()
+            },
+
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Focus |
+            NonTSPseudoClass::Hover |
+            NonTSPseudoClass::Enabled |
+            NonTSPseudoClass::Disabled |
+            NonTSPseudoClass::Checked |
+            NonTSPseudoClass::Indeterminate => {
+                self.get_state().contains(pseudo_class.state_flag())
+            },
         }
     }
-
-    fn is_unvisited_link(&self) -> bool {
-        unsafe {
-            Gecko_IsUnvisitedLink(self.element) != 0
-        }
-    }
-
-    fn is_visited_link(&self) -> bool {
-        unsafe {
-            Gecko_IsVisitedLink(self.element) != 0
-        }
-    }
-
-    state_pseudo_classes!(state_getter);
 
     fn get_id(&self) -> Option<Atom> {
         // FIXME(bholley): Servo caches the id atom directly on the element to
@@ -450,10 +446,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 callback(&Atom::from(c));
             }
         }
-    }
-
-    fn has_servo_nonzero_border(&self) -> bool {
-        unimplemented!()
     }
 
     fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {

@@ -61,7 +61,7 @@ fnv = "1.0"
 bitflags = "0.3"
 rustc-serialize = "0.3"
 libc = "0.2"
-selectors = "0.2"
+selectors = "0.4.1"
 smallvec = "0.1"
 string_cache = "0.2"
 euclid = {version = "0.4", features = ["plugins"]}

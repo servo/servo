@@ -63,6 +63,7 @@ use std::default::Default;
 use std::iter::{self, FilterMap, Peekable};
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
+use style::selector_impl::ServoSelectorImpl;
 use util::str::DOMString;
 use util::thread_state;
 use uuid::Uuid;
@@ -291,12 +292,12 @@ impl Node {
 }
 
 pub struct QuerySelectorIterator {
-    selectors: Vec<Selector>,
+    selectors: Vec<Selector<ServoSelectorImpl>>,
     iterator: TreeIterator,
 }
 
 impl<'a> QuerySelectorIterator {
-     fn new(iter: TreeIterator, selectors: Vec<Selector>)
+     fn new(iter: TreeIterator, selectors: Vec<Selector<ServoSelectorImpl>>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,

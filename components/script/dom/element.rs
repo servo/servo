@@ -68,7 +68,6 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use selectors::matching::{DeclarationBlock, matches};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
-use selectors::states::*;
 use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -77,10 +76,12 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
+use style::element_state::*;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
 use util::mem::HeapSizeOf;
@@ -1689,17 +1690,9 @@ impl VirtualMethods for Element {
     }
 }
 
-macro_rules! state_getter {
-    ($(
-        $(#[$Flag_attr: meta])*
-        state $css: expr => $variant: ident / $method: ident /
-        $flag: ident = $value: expr,
-    )+) => {
-        $( fn $method(&self) -> bool { Element::get_state(self).contains($flag) } )+
-    }
-}
-
 impl<'a> ::selectors::Element for Root<Element> {
+    type Impl = ServoSelectorImpl;
+
     fn parent_element(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().GetParentElement()
     }
@@ -1734,46 +1727,52 @@ impl<'a> ::selectors::Element for Root<Element> {
         })
     }
 
-    fn is_link(&self) -> bool {
-        // FIXME: This is HTML only.
-        let node = self.upcast::<Node>();
-        match node.type_id() {
-            // https://html.spec.whatwg.org/multipage/#selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-                self.has_attribute(&atom!("href"))
-            },
-            _ => false,
-         }
-    }
-
-    #[inline]
-    fn is_unvisited_link(&self) -> bool {
-        self.is_link()
-    }
-
-    #[inline]
-    fn is_visited_link(&self) -> bool {
-        // https://github.com/servo/servo/issues/8718
-        false
-    }
-
     fn get_local_name(&self) -> &Atom {
         self.local_name()
     }
+
     fn get_namespace(&self) -> &Namespace {
         self.namespace()
     }
 
-    state_pseudo_classes!(state_getter);
+    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
+        match pseudo_class {
+            // https://github.com/servo/servo/issues/8718
+            NonTSPseudoClass::Link |
+            NonTSPseudoClass::AnyLink => self.is_link(),
+            NonTSPseudoClass::Visited => false,
+
+            NonTSPseudoClass::ServoNonZeroBorder => {
+                match self.downcast::<HTMLTableElement>() {
+                    None => false,
+                    Some(this) => {
+                        match this.get_border() {
+                            None | Some(0) => false,
+                            Some(_) => true,
+                        }
+                    }
+                }
+            },
+
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Focus |
+            NonTSPseudoClass::Hover |
+            NonTSPseudoClass::Enabled |
+            NonTSPseudoClass::Disabled |
+            NonTSPseudoClass::Checked |
+            NonTSPseudoClass::Indeterminate =>
+                Element::get_state(self).contains(pseudo_class.state_flag()),
+        }
+    }
 
     fn get_id(&self) -> Option<Atom> {
         self.id_attribute.borrow().clone()
     }
+
     fn has_class(&self, name: &Atom) -> bool {
         Element::has_class(&**self, name)
     }
+
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
     {
@@ -1782,17 +1781,6 @@ impl<'a> ::selectors::Element for Root<Element> {
             let tokens = tokens.as_tokens();
             for token in tokens {
                 callback(token);
-            }
-        }
-    }
-    fn has_servo_nonzero_border(&self) -> bool {
-        match self.downcast::<HTMLTableElement>() {
-            None => false,
-            Some(this) => {
-                match this.get_border() {
-                    None | Some(0) => false,
-                    Some(_) => true,
-                }
             }
         }
     }
@@ -1884,6 +1872,20 @@ impl Element {
                 None
             }
         }
+    }
+
+    fn is_link(&self) -> bool {
+        // FIXME: This is HTML only.
+        let node = self.upcast::<Node>();
+        match node.type_id() {
+            // https://html.spec.whatwg.org/multipage/#selector-link
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
+                self.has_attribute(&atom!("href"))
+            },
+            _ => false,
+         }
     }
 
     /// Please call this method *only* for real click events

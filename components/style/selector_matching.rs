@@ -6,16 +6,16 @@
 #![allow(unsafe_code)]
 
 use dom::TElement;
+use element_state::*;
 use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use media_queries::{Device, MediaType};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
+use selector_impl::{PseudoElement, ServoSelectorImpl};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
-use selectors::parser::PseudoElement;
-use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
 use std::sync::Arc;
@@ -216,7 +216,7 @@ impl Stylist {
                                    // more expensive than getting it directly from the caller.
                                    current_state: ElementState)
                                    -> RestyleHint
-                                   where E: Element + Clone {
+                                   where E: Element<Impl=ServoSelectorImpl> + Clone {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 
@@ -337,8 +337,8 @@ impl Stylist {
 }
 
 struct PerOriginSelectorMap {
-    normal: SelectorMap<Vec<PropertyDeclaration>>,
-    important: SelectorMap<Vec<PropertyDeclaration>>,
+    normal: SelectorMap<Vec<PropertyDeclaration>, ServoSelectorImpl>,
+    important: SelectorMap<Vec<PropertyDeclaration>, ServoSelectorImpl>,
 }
 
 impl PerOriginSelectorMap {

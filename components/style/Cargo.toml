@@ -29,7 +29,7 @@ matches = "0.1"
 bitflags = "0.3"
 num = "0.1.24"
 lazy_static = "0.1.10"
-selectors = { version = "0.2", features = ["unstable"] }
+selectors = { version = "0.4.1", features = ["unstable"] }
 smallvec = "0.1"
 string_cache = "0.2"
 euclid = {version = "0.4", features = ["plugins"]}
