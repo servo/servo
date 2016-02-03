@@ -34784,7 +34784,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "XMLHttpRequest/responseurl.html": [
+          {
+            "path": "XMLHttpRequest/responseurl.html",
+            "url": "/XMLHttpRequest/responseurl.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
