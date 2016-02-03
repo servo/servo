@@ -67,6 +67,72 @@ enum InputValueMode {
     Filename,
 }
 
+impl Default for InputValueMode {
+    fn default() -> InputValueMode { InputValueMode::Default }
+}
+
+impl InputValueMode {
+
+    // https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
+    fn from_input_element(input: &HTMLInputElement) -> InputValueMode {
+        match input.input_type.get() {
+            InputType::InputSubmit
+                | InputType::InputReset
+                | InputType::InputButton
+                | InputType::InputImage => Default::default(),
+            InputType::InputCheckbox
+                | InputType::InputRadio => InputValueMode::DefaultOn,
+            InputType::InputPassword
+                | InputType::InputText => InputValueMode::Value,
+            InputType::InputFile => InputValueMode::Filename,
+        }
+    }
+
+    fn get_value(&self, input: &HTMLInputElement) -> DOMString{
+        let default = match *self {
+            InputValueMode::Value => DOMString::from(""),
+            InputValueMode::Default => DOMString::from(""),
+            InputValueMode::DefaultOn => DOMString::from("on"),
+            InputValueMode::Filename => DOMString::from(r"C:\fakepath\"),
+        };
+
+        // TODO: append first selected filename (if any)
+        input.upcast::<Element>()
+            .get_attribute(&ns!(), &atom!("value"))
+            .map_or_else(|| default,
+                         |a| DOMString::from(a.summarize().value))
+    }
+
+    fn set_value(&self, input: &HTMLInputElement, value: DOMString) {
+        let element = input.upcast::<Element>();
+
+        match *self {
+            InputValueMode::Value => {
+                element.set_string_attribute(&atom!("value"), value);
+                // sanitize
+                // reset cursor
+            },
+            InputValueMode::Default => {
+                element.set_string_attribute(&atom!("value"), value);
+            },
+            InputValueMode::DefaultOn => {
+                element.set_string_attribute(&atom!("value"), value);
+            },
+            InputValueMode::Filename => {
+                if value == DOMString::from("") {
+                    // empty selected files
+                } else {
+                    // throw InvalidStateError
+                }
+                unimplemented!();
+            },
+        };
+
+        input.value_changed.set(true);
+        input.force_relayout();
+    }
+}
+
 #[dom_struct]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
@@ -383,73 +449,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
         } else {
             self.upcast::<HTMLElement>().labels()
         }
-    }
-}
-
-
-impl Default for InputValueMode {
-    fn default() -> InputValueMode { InputValueMode::Default }
-}
-
-impl InputValueMode {
-
-    // https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
-    fn from_input_element(input: &HTMLInputElement) -> InputValueMode {
-        match input.input_type.get() {
-            InputType::InputSubmit
-                | InputType::InputReset
-                | InputType::InputButton
-                | InputType::InputImage => Default::default(),
-            InputType::InputCheckbox
-                | InputType::InputRadio => InputValueMode::DefaultOn,
-            InputType::InputPassword
-                | InputType::InputText => InputValueMode::Value,
-            InputType::InputFile => InputValueMode::Filename,
-        }
-    }
-
-    fn get_value(&self, input: &HTMLInputElement) -> DOMString{
-        let default = match *self {
-            InputValueMode::Value => DOMString::from(""),
-            InputValueMode::Default => DOMString::from(""),
-            InputValueMode::DefaultOn => DOMString::from("on"),
-            InputValueMode::Filename => DOMString::from(r"C:\fakepath\"),
-        };
-
-        // TODO: append first selected filename (if any)
-        input.upcast::<Element>()
-            .get_attribute(&ns!(), &atom!("value"))
-            .map_or_else(|| default,
-                         |a| DOMString::from(a.summarize().value))
-    }
-
-    fn set_value(&self, input: &HTMLInputElement, value: DOMString) {
-        let element = input.upcast::<Element>();
-
-        match *self {
-            InputValueMode::Value => {
-                element.set_string_attribute(&atom!("value"), value);
-                // sanitize
-                // reset cursor
-            },
-            InputValueMode::Default => {
-                element.set_string_attribute(&atom!("value"), value);
-            },
-            InputValueMode::DefaultOn => {
-                element.set_string_attribute(&atom!("value"), value);
-            },
-            InputValueMode::Filename => {
-                if value == DOMString::from("") {
-                    // empty selected files
-                } else {
-                    // throw InvalidStateError
-                }
-                unimplemented!();
-            },
-        };
-
-        input.value_changed.set(true);
-        input.force_relayout();
     }
 }
 
