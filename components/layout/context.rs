@@ -21,7 +21,7 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResp
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
-use std::collections::hash_state::DefaultState;
+use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -96,7 +96,7 @@ pub struct SharedLayoutContext {
     pub canvas_layers_sender: Mutex<Sender<(LayerId, IpcSender<CanvasMsg>)>>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
-    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
+    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, BuildHasherDefault<FnvHasher>>>,
 }
 
 pub struct LayoutContext<'a> {

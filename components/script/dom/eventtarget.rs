@@ -29,9 +29,9 @@ use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::hash_state::DefaultState;
 use std::default::Default;
 use std::ffi::CString;
+use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::{intrinsics, ptr};
 use string_cache::Atom;
@@ -161,7 +161,7 @@ pub struct EventListenerEntry {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DOMRefCell<HashMap<Atom, Vec<EventListenerEntry>, DefaultState<FnvHasher>>>,
+    handlers: DOMRefCell<HashMap<Atom, Vec<EventListenerEntry>, BuildHasherDefault<FnvHasher>>>,
 }
 
 impl EventTarget {

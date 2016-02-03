@@ -9,7 +9,6 @@
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(hashmap_hasher)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(str_char)]

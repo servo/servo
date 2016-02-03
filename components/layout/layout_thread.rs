@@ -55,7 +55,7 @@ use serde_json;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::hash_state::DefaultState;
+use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -195,7 +195,7 @@ pub struct LayoutThread {
 
     /// The position and size of the visible rect for each layer. We do not build display lists
     /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
-    visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
+    visible_rects: Arc<HashMap<LayerId, Rect<Au>, BuildHasherDefault<FnvHasher>>>,
 
     /// The list of currently-running animations.
     running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
@@ -430,7 +430,7 @@ impl LayoutThread {
             new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
-            visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
+            visible_rects: Arc::new(HashMap::with_hasher(Default::default())),
             running_animations: Arc::new(RwLock::new(HashMap::new())),
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
@@ -1099,7 +1099,7 @@ impl LayoutThread {
         // layers have moved more than `DISPLAY_PORT_THRESHOLD_SIZE_FACTOR` away from their last
         // positions.
         let mut must_regenerate_display_lists = false;
-        let mut old_visible_rects = HashMap::with_hash_state(Default::default());
+        let mut old_visible_rects = HashMap::with_hasher(Default::default());
         let inflation_amount =
             Size2D::new(self.viewport_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
                         self.viewport_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
