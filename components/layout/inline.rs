@@ -8,12 +8,13 @@ use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{EarlyAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use fragment::{SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -1756,14 +1757,13 @@ impl Flow for InlineFlow {
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
-    fn compute_overflow(&self) -> Rect<Au> {
-        let mut overflow = Rect::zero();
+    fn compute_overflow(&self) -> Overflow {
+        let mut overflow = Overflow::new();
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
         let relative_containing_block_size =
             &self.base.early_absolute_position_info.relative_containing_block_size;
         for fragment in &self.fragments.fragments {
-            overflow = overflow.union(&fragment.compute_overflow(&flow_size,
-                                                                 &relative_containing_block_size))
+            overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
         }
         overflow
     }

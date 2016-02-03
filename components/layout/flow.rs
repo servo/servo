@@ -32,7 +32,7 @@ use euclid::{Point2D, Rect, Size2D};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
-use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use gfx_traits::{LayerId, LayerType};
 use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
@@ -266,15 +266,16 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
                 for kid in mut_base(self).children.iter_mut() {
-                    let kid_overflow = base(kid).overflow;
+                    let mut kid_overflow = base(kid).overflow;
                     let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
                                                                       container_size);
-                    overflow = overflow.union(&kid_overflow.translate(&kid_position.origin))
+                    kid_overflow.translate(&kid_position.origin);
+                    overflow.union(&kid_overflow)
                 }
             }
             _ => {}
         }
-        mut_base(self).overflow = overflow;
+        mut_base(self).overflow = overflow
     }
 
     /// Phase 4 of reflow: computes absolute positions.
@@ -286,7 +287,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn build_display_list(&mut self, layout_context: &LayoutContext);
 
     /// Returns the union of all overflow rects of all of this flow's fragments.
-    fn compute_overflow(&self) -> Rect<Au>;
+    fn compute_overflow(&self) -> Overflow;
 
     /// Iterates through border boxes of all of this flow's fragments.
     /// Level provides a zero based index indicating the current
@@ -865,7 +866,7 @@ pub struct BaseFlow {
 
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
     /// pixels of all the display list items for correct invalidation.
-    pub overflow: Rect<Au>,
+    pub overflow: Overflow,
 
     /// Data used during parallel traversals.
     ///
@@ -1078,7 +1079,7 @@ impl BaseFlow {
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
-            overflow: Rect::zero(),
+            overflow: Overflow::new(),
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
@@ -1132,7 +1133,7 @@ impl BaseFlow {
         let container_size = Size2D::zero();
         let position_with_overflow = self.position
                                          .to_physical(self.writing_mode, container_size)
-                                         .union(&self.overflow);
+                                         .union(&self.overflow.paint);
         let bounds = Rect::new(self.stacking_relative_position, position_with_overflow.size);
 
         let all_items = match self.display_list_building_result {

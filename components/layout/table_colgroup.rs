@@ -8,9 +8,9 @@
 
 use app_units::Au;
 use context::LayoutContext;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use layout_debug;
 use std::cmp::max;
 use std::fmt;
@@ -94,8 +94,8 @@ impl Flow for TableColGroupFlow {
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
-    fn compute_overflow(&self) -> Rect<Au> {
-        Rect::zero()
+    fn compute_overflow(&self) -> Overflow {
+        Overflow::new()
     }
 
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {
