@@ -9,11 +9,11 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
 use flow_ref::{self, FlowRef};
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
@@ -186,7 +186,7 @@ impl Flow for MulticolFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 
@@ -264,7 +264,7 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 

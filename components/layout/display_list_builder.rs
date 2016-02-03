@@ -1218,7 +1218,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   CoordinateSystem::Parent)
             }
             StackingContextCreationMode::InnerScrollWrapper => {
-                Rect::new(Point2D::zero(), base_flow.overflow.size)
+                Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
             }
         };
         let overflow = match mode {
@@ -1228,7 +1228,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let border_box_offset =
                     border_box.translate(&-base_flow.stacking_relative_position).origin;
                 // Then, using that, compute our overflow region relative to our border box.
-                base_flow.overflow.translate(&-border_box_offset)
+                base_flow.overflow.paint.translate(&-border_box_offset)
             }
             StackingContextCreationMode::InnerScrollWrapper |
             StackingContextCreationMode::OuterScrollWrapper => {
