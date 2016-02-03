@@ -73,7 +73,7 @@ impl Default for InputValueMode {
 
 impl InputValueMode {
 
-    // https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
+    // https://html.spec.whatwg.org/multipage/#input-type-attr-summary
     fn from_input_element(input: &HTMLInputElement) -> InputValueMode {
         match input.input_type.get() {
             InputType::InputSubmit
@@ -88,7 +88,7 @@ impl InputValueMode {
         }
     }
 
-    fn get_value(&self, input: &HTMLInputElement) -> DOMString{
+    fn get_value(&self, input: &HTMLInputElement) -> DOMString {
         let default = match *self {
             InputValueMode::Value => DOMString::from(""),
             InputValueMode::Default => DOMString::from(""),
