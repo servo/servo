@@ -8,7 +8,7 @@ use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_thread::{CancellationListener, ProgressSender};
-use resource_thread::{send_error, start_sending_sniffed, start_sending_sniffed_opt};
+use resource_thread::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;
@@ -46,6 +46,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
             -> Result<LoadResult, String> {
     loop {
         if cancel_listener.is_cancelled() {
+            let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
             return Ok(LoadResult::Cancelled);
         }
 
@@ -56,29 +57,37 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
     }
 }
 
+fn get_progress_chan(load_data: LoadData, file_path: PathBuf,
+                     senders: LoadConsumer, classifier: Arc<MIMEClassifier>, buf: &[u8])
+                     -> Result<ProgressSender, ()> {
+    let mut metadata = Metadata::default(load_data.url);
+    let mime_type = guess_mime_type(file_path.as_path());
+    metadata.set_content_type(Some(&mime_type));
+    return start_sending_sniffed_opt(senders, metadata, classifier, buf, load_data.context);
+}
+
 pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
-    let url = load_data.url;
-    let context = load_data.context;
-    assert!(&*url.scheme == "file");
+    assert!(&*load_data.url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
-        let file_path: Result<PathBuf, ()> = url.to_file_path();
+        let file_path: Result<PathBuf, ()> = load_data.url.to_file_path();
         match file_path {
             Ok(file_path) => {
                 match File::open(&file_path) {
                     Ok(ref mut reader) => {
                         if cancel_listener.is_cancelled() {
+                            if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
+                                                                         senders, classifier, &[]) {
+                                let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+                            }
                             return;
                         }
                         match read_block(reader) {
                             Ok(ReadStatus::Partial(buf)) => {
-                                let mut metadata = Metadata::default(url);
-                                let mime_type = guess_mime_type(file_path.as_path());
-                                metadata.set_content_type(Some(&mime_type));
-                                let progress_chan = start_sending_sniffed(senders, metadata,
-                                                                          classifier, &buf, context);
+                                let progress_chan = get_progress_chan(load_data, file_path,
+                                                                      senders, classifier, &buf).ok().unwrap();
                                 progress_chan.send(Payload(buf)).unwrap();
                                 let read_result = read_all(reader, &progress_chan, &cancel_listener);
                                 if let Ok(load_result) = read_result {
@@ -89,19 +98,13 @@ pub fn factory(load_data: LoadData,
                                 }
                             }
                             Ok(ReadStatus::EOF) => {
-                                let mut metadata = Metadata::default(url);
-                                let mime_type = guess_mime_type(file_path.as_path());
-                                metadata.set_content_type(Some(&mime_type));
-                                if let Ok(chan) = start_sending_sniffed_opt(senders,
-                                                                            metadata,
-                                                                            classifier,
-                                                                            &[],
-                                                                            context) {
+                                if let Ok(chan) = get_progress_chan(load_data, file_path,
+                                                                    senders, classifier, &[]) {
                                     let _ = chan.send(Done(Ok(())));
                                 }
                             }
                             Err(e) => {
-                                send_error(url, e, senders);
+                                send_error(load_data.url, e, senders);
                             }
                         };
                     }
@@ -110,13 +113,13 @@ pub fn factory(load_data: LoadData,
                         // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                         // but, we'll go for a "file not found!"
                         let url = Url::parse("about:not-found").unwrap();
-                        let load_data_404 = LoadData::new(context, url, None);
+                        let load_data_404 = LoadData::new(load_data.context, url, None);
                         about_loader::factory(load_data_404, senders, classifier, cancel_listener)
                     }
                 }
             }
             Err(_) => {
-                send_error(url, "Could not parse path".to_owned(), senders);
+                send_error(load_data.url, "Could not parse path".to_owned(), senders);
             }
         }
     });
