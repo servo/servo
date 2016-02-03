@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence::{self, eString, eStringSequence};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
@@ -24,6 +23,7 @@ use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
+use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
@@ -233,7 +233,7 @@ impl WebSocket {
         }
 
         // Step 6: Origin.
-        let origin = global.as_window().Location().Origin().0;
+        let origin = UrlHelper::Origin(&global.get_url()).0;
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
