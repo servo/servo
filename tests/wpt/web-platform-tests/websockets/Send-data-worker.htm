@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>W3C WebSocket API - Send data - WebSocket from Worker</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript" src="websocket.js?pipe=sub"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script type="text/javascript">
+
+        async_test(function(t) {
+            var worker = new Worker("Send-data-worker.js");
+
+            var data = "test data";
+
+            worker.onmessage = t.step_func_done(function(e) {
+                assert_equals(e.data, data);
+            });
+
+            worker.postMessage(data);
+
+        }, "W3C WebSocket API - Send data on a WebSocket in a Worker")
+
+    </script>
+</body>
+</html>
