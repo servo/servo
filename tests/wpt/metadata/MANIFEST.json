@@ -34522,6 +34522,12 @@
         ]
       },
       "testharness": {
+        "XMLHttpRequest/responseurl.html": [
+          {
+            "path": "XMLHttpRequest/responseurl.html",
+            "url": "/XMLHttpRequest/responseurl.html"
+          }
+        ],
         "dom/lists/DOMTokenList-value.html": [
           {
             "path": "dom/lists/DOMTokenList-value.html",
