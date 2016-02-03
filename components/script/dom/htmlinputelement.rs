@@ -300,46 +300,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
-        let default = match get_value_mode(&self) {
-            InputValueMode::Value => DOMString::from(""),
-            InputValueMode::Default => DOMString::from(""),
-            InputValueMode::DefaultOn => DOMString::from("on"),
-            InputValueMode::Filename => DOMString::from(r"C:\fakepath\"),
-        };
-
-        // TODO: append first selected filename (if any)
-        self.upcast::<Element>()
-            .get_attribute(&ns!(), &atom!("value"))
-            .map_or_else(|| default,
-                         |a| DOMString::from(a.summarize().value))
+        InputValueMode::from_input_element(&self).get_value(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) {
-        let element = self.upcast::<Element>();
-
-        match get_value_mode(&self) {
-            InputValueMode::Value => {
-                element.set_string_attribute(&atom!("value"), value);
-                self.value_changed.set(true);
-                self.force_relayout();
-                // sanitize
-                // reset cursor
-            },
-            InputValueMode::Default => {
-                element.set_string_attribute(&atom!("value"), value);
-            },
-            InputValueMode::DefaultOn => {
-                element.set_string_attribute(&atom!("value"), value);
-            },
-            InputValueMode::Filename => {
-                if value == DOMString::from("") {
-                    // empty selected files
-                } else {
-                    // throw InvalidStateError
-                }
-            },
-        };
+        InputValueMode::from_input_element(&self).set_value(self, value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
@@ -421,20 +387,72 @@ impl HTMLInputElementMethods for HTMLInputElement {
 }
 
 
-// https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
-fn get_value_mode(input: &HTMLInputElement) -> InputValueMode {
-    match input.input_type.get() {
-        InputType::InputSubmit => InputValueMode::Default,
-        InputType::InputReset => InputValueMode::Default,
-        InputType::InputButton => InputValueMode::Default,
-        InputType::InputText => InputValueMode::Value,
-        InputType::InputFile => InputValueMode::Filename,
-        InputType::InputImage => InputValueMode::Default,
-        InputType::InputCheckbox => InputValueMode::DefaultOn,
-        InputType::InputRadio => InputValueMode::DefaultOn,
-        InputType::InputPassword => InputValueMode::Value,
+impl Default for InputValueMode {
+    fn default() -> InputValueMode { InputValueMode::Default }
+}
+
+impl InputValueMode {
+
+    // https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
+    fn from_input_element(input: &HTMLInputElement) -> InputValueMode {
+        match input.input_type.get() {
+            InputType::InputSubmit
+                | InputType::InputReset
+                | InputType::InputButton
+                | InputType::InputImage => Default::default(),
+            InputType::InputCheckbox
+                | InputType::InputRadio => InputValueMode::DefaultOn,
+            InputType::InputPassword
+                | InputType::InputText => InputValueMode::Value,
+            InputType::InputFile => InputValueMode::Filename,
+        }
+    }
+
+    fn get_value(&self, input: &HTMLInputElement) -> DOMString{
+        let default = match *self {
+            InputValueMode::Value => DOMString::from(""),
+            InputValueMode::Default => DOMString::from(""),
+            InputValueMode::DefaultOn => DOMString::from("on"),
+            InputValueMode::Filename => DOMString::from(r"C:\fakepath\"),
+        };
+
+        // TODO: append first selected filename (if any)
+        input.upcast::<Element>()
+            .get_attribute(&ns!(), &atom!("value"))
+            .map_or_else(|| default,
+                         |a| DOMString::from(a.summarize().value))
+    }
+
+    fn set_value(&self, input: &HTMLInputElement, value: DOMString) {
+        let element = input.upcast::<Element>();
+
+        match *self {
+            InputValueMode::Value => {
+                element.set_string_attribute(&atom!("value"), value);
+                // sanitize
+                // reset cursor
+            },
+            InputValueMode::Default => {
+                element.set_string_attribute(&atom!("value"), value);
+            },
+            InputValueMode::DefaultOn => {
+                element.set_string_attribute(&atom!("value"), value);
+            },
+            InputValueMode::Filename => {
+                if value == DOMString::from("") {
+                    // empty selected files
+                } else {
+                    // throw InvalidStateError
+                }
+                unimplemented!();
+            },
+        };
+
+        input.value_changed.set(true);
+        input.force_relayout();
     }
 }
+
 
 #[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
