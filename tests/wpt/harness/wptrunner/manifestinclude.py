@@ -8,6 +8,7 @@ The manifest is represented by a tree of IncludeManifest objects, the root
 representing the file and each subnode representing a subdirectory that should
 be included or excluded.
 """
+import glob
 import os
 import urlparse
 
@@ -90,29 +91,36 @@ class IncludeManifest(ManifestItem):
             variant += "?" + query
 
         maybe_path = os.path.join(rest, last)
+        paths = glob.glob(maybe_path)
 
-        if os.path.exists(maybe_path):
-            for manifest, data in test_manifests.iteritems():
-                rel_path = os.path.relpath(maybe_path, data["tests_path"])
-                if ".." not in rel_path.split(os.sep):
-                    url = data["url_base"] + rel_path.replace(os.path.sep, "/") + variant
-                    break
+        if paths:
+            urls = []
+            for path in paths:
+                for manifest, data in test_manifests.iteritems():
+                    rel_path = os.path.relpath(path, data["tests_path"])
+                    if ".." not in rel_path.split(os.sep):
+                        urls.append(data["url_base"] + rel_path.replace(os.path.sep, "/") + variant)
+                        break
+        else:
+            urls = [url]
 
         assert direction in ("include", "exclude")
-        components = self._get_components(url)
 
-        node = self
-        while components:
-            component = components.pop()
-            if component not in node.child_map:
-                new_node = IncludeManifest(DataNode(component))
-                node.append(new_node)
-                new_node.set("skip", node.get("skip", {}))
+        for url in urls:
+            components = self._get_components(url)
 
-            node = node.child_map[component]
+            node = self
+            while components:
+                component = components.pop()
+                if component not in node.child_map:
+                    new_node = IncludeManifest(DataNode(component))
+                    node.append(new_node)
+                    new_node.set("skip", node.get("skip", {}))
 
-        skip = False if direction == "include" else True
-        node.set("skip", str(skip))
+                node = node.child_map[component]
+
+            skip = False if direction == "include" else True
+            node.set("skip", str(skip))
 
     def add_include(self, test_manifests, url_prefix):
         """Add a rule indicating that tests under a url path

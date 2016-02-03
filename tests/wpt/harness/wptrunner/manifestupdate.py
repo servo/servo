@@ -49,13 +49,18 @@ def data_cls_getter(output_node, visited_node):
 
 
 class ExpectedManifest(ManifestItem):
-    def __init__(self, node, test_path=None, url_base=None):
+    def __init__(self, node, test_path=None, url_base=None, property_order=None,
+                 boolean_properties=None):
         """Object representing all the tests in a particular manifest
 
         :param node: AST Node associated with this object. If this is None,
                      a new AST is created to associate with this manifest.
         :param test_path: Path of the test file associated with this manifest.
-        :param url_base: Base url for serving the tests in this manifest
+        :param url_base: Base url for serving the tests in this manifest.
+        :param property_order: List of properties to use in expectation metadata
+                               from most to least significant.
+        :param boolean_properties: Set of properties in property_order that should
+                                   be treated as boolean.
         """
         if node is None:
             node = DataNode(None)
@@ -65,6 +70,8 @@ class ExpectedManifest(ManifestItem):
         self.url_base = url_base
         assert self.url_base is not None
         self.modified = False
+        self.boolean_properties = boolean_properties
+        self.property_order = property_order
 
     def append(self, child):
         ManifestItem.append(self, child)
@@ -229,7 +236,10 @@ class TestNode(ManifestItem):
                     self.set("expected", status, condition=None)
                     final_conditionals.append(self._data["expected"][-1])
             else:
-                for conditional_node, status in group_conditionals(self.new_expected):
+                for conditional_node, status in group_conditionals(
+                        self.new_expected,
+                        property_order=self.root.property_order,
+                        boolean_properties=self.root.boolean_properties):
                     if status != unconditional_status:
                         self.set("expected", status, condition=conditional_node.children[0])
                         final_conditionals.append(self._data["expected"][-1])
@@ -308,17 +318,29 @@ class SubtestNode(TestNode):
         return True
 
 
-def group_conditionals(values):
+def group_conditionals(values, property_order=None, boolean_properties=None):
     """Given a list of Result objects, return a list of
     (conditional_node, status) pairs representing the conditional
     expressions that are required to match each status
 
-    :param values: List of Results"""
+    :param values: List of Results
+    :param property_order: List of properties to use in expectation metadata
+                           from most to least significant.
+    :param boolean_properties: Set of properties in property_order that should
+                               be treated as boolean."""
 
     by_property = defaultdict(set)
     for run_info, status in values:
         for prop_name, prop_value in run_info.iteritems():
             by_property[(prop_name, prop_value)].add(status)
+
+    if property_order is None:
+        property_order = ["debug", "os", "version", "processor", "bits"]
+
+    if boolean_properties is None:
+        boolean_properties = set(["debug"])
+    else:
+        boolean_properties = set(boolean_properties)
 
     # If we have more than one value, remove any properties that are common
     # for all the values
@@ -328,11 +350,9 @@ def group_conditionals(values):
                 del by_property[key]
 
     properties = set(item[0] for item in by_property.iterkeys())
-
-    prop_order = ["debug", "e10s", "os", "version", "processor", "bits"]
     include_props = []
 
-    for prop in prop_order:
+    for prop in property_order:
         if prop in properties:
             include_props.append(prop)
 
@@ -343,20 +363,25 @@ def group_conditionals(values):
         if prop_set in conditions:
             continue
 
-        expr = make_expr(prop_set, status)
+        expr = make_expr(prop_set, status, boolean_properties=boolean_properties)
         conditions[prop_set] = (expr, status)
 
     return conditions.values()
 
 
-def make_expr(prop_set, status):
+def make_expr(prop_set, status, boolean_properties=None):
     """Create an AST that returns the value ``status`` given all the
-    properties in prop_set match."""
+    properties in prop_set match.
+
+    :param prop_set: tuple of (property name, value) pairs for each
+                     property in this expression and the value it must match
+    :param status: Status on RHS when all the given properties match
+    :param boolean_properties: Set of properties in property_order that should
+                               be treated as boolean.
+    """
     root = ConditionalNode()
 
     assert len(prop_set) > 0
-
-    no_value_props = set(["debug", "e10s"])
 
     expressions = []
     for prop, value in prop_set:
@@ -364,7 +389,7 @@ def make_expr(prop_set, status):
         value_cls = (NumberNode
                      if type(value) in number_types
                      else StringNode)
-        if prop not in no_value_props:
+        if prop not in boolean_properties:
             expressions.append(
                 BinaryExpressionNode(
                     BinaryOperatorNode("=="),
@@ -397,24 +422,32 @@ def make_expr(prop_set, status):
     return root
 
 
-def get_manifest(metadata_root, test_path, url_base):
+def get_manifest(metadata_root, test_path, url_base, property_order=None,
+                 boolean_properties=None):
     """Get the ExpectedManifest for a particular test path, or None if there is no
     metadata stored for that test path.
 
     :param metadata_root: Absolute path to the root of the metadata directory
     :param test_path: Path to the test(s) relative to the test root
     :param url_base: Base url for serving the tests in this manifest
-    """
+    :param property_order: List of properties to use in expectation metadata
+                           from most to least significant.
+    :param boolean_properties: Set of properties in property_order that should
+                               be treated as boolean."""
     manifest_path = expected.expected_path(metadata_root, test_path)
     try:
         with open(manifest_path) as f:
-            return compile(f, test_path, url_base)
+            return compile(f, test_path, url_base, property_order=property_order,
+                           boolean_properties=boolean_properties)
     except IOError:
         return None
 
 
-def compile(manifest_file, test_path, url_base):
+def compile(manifest_file, test_path, url_base, property_order=None,
+            boolean_properties=None):
     return conditional.compile(manifest_file,
                                data_cls_getter=data_cls_getter,
                                test_path=test_path,
-                               url_base=url_base)
+                               url_base=url_base,
+                               property_order=property_order,
+                               boolean_properties=boolean_properties)

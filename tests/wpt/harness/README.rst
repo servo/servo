@@ -29,7 +29,7 @@ following are most significant:
   The path to a binary file for the product (browser) to test against.
 
 ``--webdriver-binary`` (required if product is `chrome`)
-  The path to a `*driver` binary; e.g., a `chromedriver` binary.
+  The path to a `driver` binary; e.g., a `chromedriver` binary.
 
 ``--certutil-binary`` (required if product is `firefox` [#]_)
   The path to a `certutil` binary (for tests that must be run over https).
@@ -43,13 +43,18 @@ following are most significant:
 ``--prefs-root`` (required only when testing a Firefox binary)
   The path to a directory containing Firefox test-harness preferences. [#]_
 
+``--config`` (should default to `wptrunner.default.ini`)
+  The path to the config (ini) file.
+
 .. [#] The ``--certutil-binary`` option is required when the product is
    ``firefox`` unless ``--ssl-type=none`` is specified.
 
 .. [#] The ``--metadata`` path is to a directory that contains:
 
-  * a ``MANIFEST.json`` file (the web-platform-tests documentation has
-    instructions on generating this file); and
+  * a ``MANIFEST.json`` file (instructions on generating this file are
+    available in the `detailed documentation
+    <http://wptrunner.readthedocs.org/en/latest/usage.html#installing-wptrunner>`_);
+    and
   * (optionally) any expectation files (see below)
 
 .. [#] Example ``--prefs-root`` value: ``~/mozilla-central/testing/profiles``.
@@ -125,7 +130,7 @@ input to the `wptupdate` tool.
 Expectation File Format
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Metadat about tests, notably including their expected results, is
+Metadata about tests, notably including their expected results, is
 stored in a modified ini-like format that is designed to be human
 editable, but also to be machine updatable.
 

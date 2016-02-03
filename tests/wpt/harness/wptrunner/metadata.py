@@ -32,7 +32,7 @@ def load_test_manifests(serve_root, test_paths):
 
 def update_expected(test_paths, serve_root, log_file_names,
                     rev_old=None, rev_new="HEAD", ignore_existing=False,
-                    sync_root=None):
+                    sync_root=None, property_order=None, boolean_properties=None):
     """Update the metadata files for web-platform-tests based on
     the results obtained in a previous run"""
 
@@ -51,7 +51,9 @@ def update_expected(test_paths, serve_root, log_file_names,
 
     expected_map_by_manifest = update_from_logs(manifests,
                                                 *log_file_names,
-                                                ignore_existing=ignore_existing)
+                                                ignore_existing=ignore_existing,
+                                                property_order=property_order,
+                                                boolean_properties=boolean_properties)
 
     for test_manifest, expected_map in expected_map_by_manifest.iteritems():
         url_base = manifests[test_manifest]["url_base"]
@@ -127,14 +129,19 @@ def unexpected_changes(manifests, change_data, files_changed):
 
 
 def update_from_logs(manifests, *log_filenames, **kwargs):
-    ignore_existing = kwargs.pop("ignore_existing", False)
+    ignore_existing = kwargs.get("ignore_existing", False)
+    property_order = kwargs.get("property_order")
+    boolean_properties = kwargs.get("boolean_properties")
 
     expected_map = {}
     id_test_map = {}
 
     for test_manifest, paths in manifests.iteritems():
-        expected_map_manifest, id_path_map_manifest = create_test_tree(paths["metadata_path"],
-                                                                       test_manifest)
+        expected_map_manifest, id_path_map_manifest = create_test_tree(
+            paths["metadata_path"],
+            test_manifest,
+            property_order=property_order,
+            boolean_properties=boolean_properties)
         expected_map[test_manifest] = expected_map_manifest
         id_test_map.update(id_path_map_manifest)
 
@@ -284,15 +291,22 @@ class ExpectedUpdater(object):
         del self.test_cache[test_id]
 
 
-def create_test_tree(metadata_path, test_manifest):
+def create_test_tree(metadata_path, test_manifest, property_order=None,
+                     boolean_properties=None):
     expected_map = {}
     id_test_map = {}
     exclude_types = frozenset(["stub", "helper", "manual"])
     include_types = set(manifest.item_types) - exclude_types
     for test_path, tests in test_manifest.itertypes(*include_types):
-        expected_data = load_expected(test_manifest, metadata_path, test_path, tests)
+        expected_data = load_expected(test_manifest, metadata_path, test_path, tests,
+                                      property_order=property_order,
+                                      boolean_properties=boolean_properties)
         if expected_data is None:
-            expected_data = create_expected(test_manifest, test_path, tests)
+            expected_data = create_expected(test_manifest,
+                                            test_path,
+                                            tests,
+                                            property_order=property_order,
+                                            boolean_properties=boolean_properties)
 
         for test in tests:
             id_test_map[test.id] = (test_manifest, test)
@@ -301,17 +315,23 @@ def create_test_tree(metadata_path, test_manifest):
     return expected_map, id_test_map
 
 
-def create_expected(test_manifest, test_path, tests):
-    expected = manifestupdate.ExpectedManifest(None, test_path, test_manifest.url_base)
+def create_expected(test_manifest, test_path, tests, property_order=None,
+                    boolean_properties=None):
+    expected = manifestupdate.ExpectedManifest(None, test_path, test_manifest.url_base,
+                                               property_order=property_order,
+                                               boolean_properties=boolean_properties)
     for test in tests:
         expected.append(manifestupdate.TestNode.create(test.item_type, test.id))
     return expected
 
 
-def load_expected(test_manifest, metadata_path, test_path, tests):
+def load_expected(test_manifest, metadata_path, test_path, tests, property_order=None,
+                  boolean_properties=None):
     expected_manifest = manifestupdate.get_manifest(metadata_path,
                                                     test_path,
-                                                    test_manifest.url_base)
+                                                    test_manifest.url_base,
+                                                    property_order=property_order,
+                                                    boolean_properties=boolean_properties)
     if expected_manifest is None:
         return
 
