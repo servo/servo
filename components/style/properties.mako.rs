@@ -5711,89 +5711,115 @@ pub struct PropertyDeclarationBlock {
 impl PropertyDeclarationBlock {
     // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     pub fn serialize(&self) -> String {
-
+        // Step 1
         let mut result_list = String::new();
+
+        // Step 2
         let mut already_serialized = HashSet::new();
 
+        // Step 3
         for declaration in self.normal.iter().chain(self.important.iter()) {
+            // Step 3.1
             let property = declaration.name().to_string();
+
+            // Step 3.2
             if already_serialized.contains(&property) {
                 continue;
             }
 
-
+            // Step 3.3
             let mut shorthands = Vec::from(declaration.shorthands());
-
             if shorthands.len() > 0 {
                 shorthands.sort_by(|a,b| a.longhands().len().cmp(&b.longhands().len()));
 
-                // TODO: Help -  I do not want to do iter cloned, is there a way to
-                // somehow collection into a list or Vec of references?
+                // Step 3.3.1
                 let mut longhands = self.normal.iter().chain(self.important.iter()).cloned()
                     .filter(|d| !already_serialized.contains(&d.name().to_string()))
                     .collect::<Vec<PropertyDeclaration>>();
 
+                // Step 3.3.2
                 for shorthand in shorthands {
                     let properties = shorthand.longhands();
 
-                    // TODO: HELP - want to avoid this cloned if possible
-                    // step 3.3.2.3
+                    // Substep 2 & 3
                     let current_longhands = longhands.iter().cloned()
                         .filter(|l| properties.contains(&&&*l.name().to_string()))
                         .collect::<Vec<PropertyDeclaration>>();
 
-                    // step 3.3.2.1
+                    // Substep 1
                     if current_longhands.len() == 0 {
                         continue;
                     }
 
-                    // PropertyDeclarationBlocks do not have their own flag to indicate
-                    // important or no, which is why this is necessary
+                    let current_longhand_properties: HashSet<String> = HashSet::from_iter(
+                        current_longhands.iter().map(|l| l.name().to_string())
+                    );
+
+                    let mut is_property_missing = false;
+                    for property in properties {
+                        if !current_longhand_properties.contains(&String::from(*property)) {
+                            is_property_missing = true;
+                            break;
+                        }
+                    }
+
+                    if is_property_missing {
+                        continue;
+                    }
+
+                    // Substep 4
                     let important_count = current_longhands.iter()
                         .filter(|l| self.important.contains(l))
                         .count();
 
-                    if important_count == current_longhands.len() {
-                        continue;
-                    }
-
-                    if properties.len() != current_longhands.len() {
-                        continue;
-                    }
-
                     let is_important = important_count > 0;
-                    // serialize shorthand does not take is_important into account currently
-                    let value value = shorthand.serialize_shorthand(&current_longhands);
+                    if is_important && important_count != current_longhands.len() {
+                        continue;
+                    }
+
+                    // TODO: serialize shorthand does not take is_important into account currently
+                    // Substep 5
+                    let value = shorthand.serialize_shorthand(&current_longhands);
+
+                    // Substep 6
                     if value.is_empty() {
                         continue;
                     }
 
+                    // Substep 7 & 8
                     result_list.push_str(&format!("{}: {}; ", &shorthand.to_name(), value));
 
                     for current_longhand in current_longhands {
+                        // Substep 9
                         already_serialized.insert(current_longhand.name().to_string());
                         let index_to_remove = longhands.iter().position(|l| l == &current_longhand);
                         if let Some(index) = index_to_remove {
+                            // Substep 10
                             longhands.remove(index);
                         }
                      }
                  }
             }
 
+            // Step 3.3.4
             if already_serialized.contains(&property) {
                 continue;
             }
 
+            // Step 3.3.5
             let mut value = declaration.value();
             if self.important.contains(declaration) {
                 value.push_str(" ! important");
             }
-
+            // Steps 3.3.6 & 3.3.7
             result_list.push_str(&format!("{}: {}; ", &property, value));
+
+            // Step 3.3.8
             already_serialized.insert(property);
         }
 
-        result_list.pop();
+        result_list.pop(); // remove trailling whitespace
+        // Step 4
         result_list
     }
 }
@@ -5934,9 +5960,11 @@ pub enum Shorthand {
         ${property.camel_case},
     % endfor
 }
-use util::str::str_join;
-use std::cell::Ref;
+
 use std::borrow::ToOwned;
+use std::cell::Ref;
+use std::iter::FromIterator;
+use util::str::str_join;
 
 impl Shorthand {
     pub fn from_name(name: &str) -> Option<Shorthand> {
