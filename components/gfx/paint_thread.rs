@@ -30,7 +30,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::mem as std_mem;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Select, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
 use util::geometry::{ExpandToPixelBoundaries};
 use util::opts;
@@ -301,20 +301,13 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
 
         loop {
             let message = {
-                let select = Select::new();
-                let mut layout_to_paint_handle = select.handle(&self.layout_to_paint_port);
-                let mut chrome_to_paint_handle = select.handle(&self.chrome_to_paint_port);
-                unsafe {
-                    layout_to_paint_handle.add();
-                    chrome_to_paint_handle.add();
-                }
-                let result = select.wait();
-                if result == layout_to_paint_handle.id() {
-                    Msg::FromLayout(self.layout_to_paint_port.recv().unwrap())
-                } else if result == chrome_to_paint_handle.id() {
-                    Msg::FromChrome(self.chrome_to_paint_port.recv().unwrap())
-                } else {
-                    panic!("unexpected select result")
+                let layout_to_paint = &self.layout_to_paint_port;
+                let chrome_to_paint = &self.chrome_to_paint_port;
+                select! {
+                    msg = layout_to_paint.recv() =>
+                        Msg::FromLayout(msg.unwrap()),
+                    msg = chrome_to_paint.recv() =>
+                        Msg::FromChrome(msg.unwrap())
                 }
             };
 
