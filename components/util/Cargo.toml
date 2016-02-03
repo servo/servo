@@ -45,7 +45,7 @@ optional = true
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-app_units = {version = "0.1", features = ["plugins"]}
+app_units = {version = "0.2", features = ["plugins"]}
 cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 log = "0.3"
 bitflags = "0.3"
@@ -56,7 +56,7 @@ rustc-serialize = "0.3"
 smallvec = "0.1"
 num_cpus = "0.2.2"
 num = "0.1.24"
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["unstable", "plugins"]}
 selectors = "0.4.1"
 serde = "0.6"
 serde_macros = "0.6"

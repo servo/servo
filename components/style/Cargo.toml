@@ -19,7 +19,7 @@ path = "../util"
 path = "../style_traits"
 
 [dependencies]
-app_units = {version = "0.1", features = ["plugins"]}
+app_units = {version = "0.2", features = ["plugins"]}
 cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
@@ -32,7 +32,7 @@ lazy_static = "0.1.10"
 selectors = { version = "0.4.1", features = ["unstable"] }
 smallvec = "0.1"
 string_cache = "0.2"
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1"

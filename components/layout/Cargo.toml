@@ -54,7 +54,7 @@ path = "../util"
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-app_units = {version = "0.1", features = ["plugins"]}
+app_units = {version = "0.2", features = ["plugins"]}
 cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 log = "0.3"
 fnv = "1.0"
@@ -64,7 +64,7 @@ libc = "0.2"
 selectors = "0.4.1"
 smallvec = "0.1"
 string_cache = "0.2"
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 serde_json = "0.5"

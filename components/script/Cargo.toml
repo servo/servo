@@ -63,7 +63,7 @@ features = ["unstable"]
 path = "../gfx_traits"
 
 [dependencies]
-app_units = {version = "0.1", features = ["plugins"]}
+app_units = {version = "0.2", features = ["plugins"]}
 cssparser = { version = "0.5", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
@@ -81,7 +81,7 @@ smallvec = "0.1"
 html5ever = { version = "0.4", features = ["unstable"] }
 selectors = "0.4.1"
 string_cache = { version = "0.2", features = ["unstable"] }
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
 rand = "0.3"
 serde = "0.6"
 caseless = "0.1.0"

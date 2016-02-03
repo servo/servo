@@ -161,4 +161,4 @@ env_logger = "0.3"
 bitflags = "0.3"
 libc = "0.2"
 url = {version = "0.5.4", features = ["serde_serialization", "query_encoding"]}
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}

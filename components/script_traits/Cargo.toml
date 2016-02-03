@@ -41,9 +41,9 @@ path = "../devtools_traits"
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-app_units = {version = "0.1", features = ["plugins"]}
+app_units = {version = "0.2", features = ["plugins"]}
 libc = "0.2"
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1.12"

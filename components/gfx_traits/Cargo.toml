@@ -25,6 +25,6 @@ path = "../plugins"
 path = "../util"
 
 [dependencies]
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
