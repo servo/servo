@@ -33717,7 +33717,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "websockets/Send-data-worker.htm": [
+          {
+            "path": "websockets/Send-data-worker.htm",
+            "url": "/websockets/Send-data-worker.htm"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
