@@ -59,6 +59,14 @@ enum InputType {
     InputPassword
 }
 
+#[derive(Debug, PartialEq)]
+enum ValueMode {
+    Value,
+    Default,
+    DefaultOn,
+    Filename,
+}
+
 #[dom_struct]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
@@ -134,6 +142,26 @@ impl HTMLInputElement {
             .get_attribute(&ns!(), &atom!("type"))
             .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
     }
+
+    fn get_value_mode(&self) -> ValueMode {
+        HTMLInputElement::get_value_mode_for_input_type(self.input_type.get())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#input-type-attr-summary
+    fn get_value_mode_for_input_type(input_type: InputType) -> ValueMode {
+        match input_type {
+            InputType::InputSubmit
+                | InputType::InputReset
+                | InputType::InputButton
+                | InputType::InputImage => ValueMode::Default,
+            InputType::InputCheckbox
+                | InputType::InputRadio => ValueMode::DefaultOn,
+            InputType::InputPassword
+                | InputType::InputText => ValueMode::Value,
+            InputType::InputFile => ValueMode::Filename,
+        }
+    }
+
 }
 
 pub trait LayoutHTMLInputElementHelpers {
@@ -292,12 +320,32 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
-        self.textinput.borrow().get_content()
+        match self.get_value_mode() {
+            ValueMode::Filename | ValueMode::Value => self.textinput.borrow().get_content(),
+            ValueMode::Default =>
+                self.upcast::<Element>()
+                .get_attribute(&ns!(), &atom!("value"))
+                .map_or_else(|| DOMString::from(""),
+                             |a| DOMString::from(a.summarize().value)),
+            ValueMode::DefaultOn =>
+                self.upcast::<Element>()
+                .get_attribute(&ns!(), &atom!("value"))
+                .map_or_else(|| DOMString::from("on"),
+                             |a| DOMString::from(a.summarize().value)),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) {
-        self.textinput.borrow_mut().set_content(value);
+        match self.get_value_mode() {
+            ValueMode::Value => self.textinput.borrow_mut().set_content(value),
+            ValueMode::Default | ValueMode::DefaultOn => {
+                self.textinput.borrow_mut().set_content(value.clone());
+                self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
+            },
+            ValueMode::Filename => {},
+        }
+
         self.value_changed.set(true);
         self.force_relayout();
     }
@@ -465,17 +513,11 @@ impl HTMLInputElement {
 
         }
 
-        let mut value = self.Value();
         // Step 3.6
-        if ty == atom!("radio") || ty == atom!("checkbox") {
-            if value.is_empty() {
-                value = DOMString::from("on");
-            }
-        }
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
-            value: value
+            value: self.Value()
         })
     }
 
@@ -574,7 +616,8 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        let value = match attr.value().as_atom() {
+                        let old_type = self.input_type.get();
+                        let new_type = match attr.value().as_atom() {
                             &atom!("button") => InputType::InputButton,
                             &atom!("submit") => InputType::InputSubmit,
                             &atom!("reset") => InputType::InputReset,
@@ -584,8 +627,30 @@ impl VirtualMethods for HTMLInputElement {
                             &atom!("password") => InputType::InputPassword,
                             _ => InputType::InputText,
                         };
-                        self.input_type.set(value);
-                        if value == InputType::InputRadio {
+
+                        // https://html.spec.whatwg.org/multipage/#input-type-change
+                        let old_idl_value = self.Value();
+                        self.input_type.set(new_type);
+
+                        let old_value_mode = HTMLInputElement::get_value_mode_for_input_type(old_type);
+                        let new_value_mode = HTMLInputElement::get_value_mode_for_input_type(new_type);
+
+                        if old_value_mode == ValueMode::Value && old_idl_value != DOMString::from("")
+                            && (new_value_mode == ValueMode::Default || new_value_mode == ValueMode::DefaultOn) {
+                            // Step 1
+                            self.SetValue(old_idl_value);
+                        } else if old_value_mode != ValueMode::Value && new_value_mode == ValueMode::Value {
+                            // Step 2
+                            self.SetValue(self.upcast::<Element>()
+                                          .get_attribute(&ns!(), &atom!("value"))
+                                          .map_or_else(|| DOMString::from(""),
+                                                       |a| DOMString::from(a.summarize().value)));
+                        } else if old_value_mode != ValueMode::Filename && new_value_mode == ValueMode::Filename {
+                            // Step 3
+                            self.SetValue(DOMString::from(""));
+                        }
+
+                        if new_type == InputType::InputRadio {
                             self.radio_group_updated(
                                 self.get_radio_group_name().as_ref());
                         }
