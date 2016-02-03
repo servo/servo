@@ -6,9 +6,8 @@ use rand;
 use rand::Rng;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::hash_state::DefaultState;
 use std::default::Default;
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher, SipHasher};
 use std::slice::Iter;
 
 
@@ -17,7 +16,7 @@ pub struct HashCache<K, V>
     where K: Clone + PartialEq + Eq + Hash,
           V: Clone,
 {
-    entries: HashMap<K, V, DefaultState<SipHasher>>,
+    entries: HashMap<K, V, BuildHasherDefault<SipHasher>>,
 }
 
 impl<K, V> HashCache<K, V>
@@ -26,7 +25,7 @@ impl<K, V> HashCache<K, V>
 {
     pub fn new() -> HashCache<K, V> {
         HashCache {
-          entries: HashMap::with_hash_state(<DefaultState<SipHasher> as Default>::default()),
+          entries: HashMap::with_hasher(Default::default()),
         }
     }
 

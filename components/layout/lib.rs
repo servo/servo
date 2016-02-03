@@ -6,7 +6,6 @@
 #![feature(box_syntax)]
 #![feature(cell_extras)]
 #![feature(custom_derive)]
-#![feature(hashmap_hasher)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(plugin)]

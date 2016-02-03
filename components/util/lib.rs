@@ -8,7 +8,6 @@
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
 #![feature(fnbox)]
-#![feature(hashmap_hasher)]
 #![feature(heap_api)]
 #![feature(oom)]
 #![feature(optin_builtin_traits)]
