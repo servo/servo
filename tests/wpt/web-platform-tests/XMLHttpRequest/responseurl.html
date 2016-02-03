@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseURL test</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responseurl-attribute"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        assert_equals(client.responseURL, "")
+        client.open("GET", "foo.html", false)
+        client.send()
+        assert_equals(client.responseURL, "http://web-platform.test:8000/XMLHttpRequest/foo.html")
+      })
+    </script>
+  </body>
+</html>

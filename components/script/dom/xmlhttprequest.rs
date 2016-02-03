@@ -119,7 +119,7 @@ pub struct XMLHttpRequest {
     timeout: Cell<u32>,
     with_credentials: Cell<bool>,
     upload: JS<XMLHttpRequestUpload>,
-    response_url: String,
+    response_url: DOMRefCell<String>,
     status: Cell<u16>,
     status_text: DOMRefCell<ByteString>,
     response: DOMRefCell<ByteString>,
@@ -156,7 +156,7 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
-            response_url: String::from(""),
+            response_url: DOMRefCell::new(String::from("")),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
@@ -624,7 +624,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responseurl-attribute
     fn ResponseURL(&self) -> USVString {
-        USVString(self.response_url.clone())
+        USVString(self.response_url.borrow().clone())
     }
 
     // https://xhr.spec.whatwg.org/#the-status-attribute
@@ -901,6 +901,7 @@ impl XMLHttpRequest {
 
                 // Subsubsteps 5-7
                 self.send_flag.set(false);
+                *self.response_url.borrow_mut() = self.request_url.borrow().clone().unwrap().serialize_no_fragment();
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12
