@@ -36,6 +36,6 @@ path = "../util"
 
 [dependencies]
 cssparser = { version = "0.5", features = [ "serde-serialization" ] }
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
 serde_macros = "0.6"
 

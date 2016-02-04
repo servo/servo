@@ -24,9 +24,9 @@ path = "../../../components/style_traits"
 path = "../../../components/util"
 
 [dependencies]
-app_units = {version = "0.1", features = ["plugins"]}
+app_units = {version = "0.2", features = ["plugins"]}
 url = "0.5.4"
 cssparser = "0.5"
 selectors = "0.4.1"
 string_cache = "0.2"
-euclid = {version = "0.4", features = ["plugins"]}
+euclid = {version = "0.6.1", features = ["plugins"]}
