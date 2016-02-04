@@ -28,19 +28,22 @@ pub type intptr_t = int64_t;
 pub type uintptr_t = uint64_t;
 pub type intmax_t = ::libc::c_long;
 pub type uintmax_t = ::libc::c_ulong;
-pub type Enum_NodeType = ::libc::c_uint;
-pub const ELEMENT_NODE: ::libc::c_uint = 1;
-pub const ATTRIBUTE_NODE: ::libc::c_uint = 2;
-pub const TEXT_NODE: ::libc::c_uint = 3;
-pub const CDATA_SECTION_NODE: ::libc::c_uint = 4;
-pub const ENTITY_REFERENCE_NODE: ::libc::c_uint = 5;
-pub const ENTITY_NODE: ::libc::c_uint = 6;
-pub const PROCESSING_INSTRUCTION_NODE: ::libc::c_uint = 7;
-pub const COMMENT_NODE: ::libc::c_uint = 8;
-pub const DOCUMENT_NODE: ::libc::c_uint = 9;
-pub const DOCUMENT_TYPE_NODE: ::libc::c_uint = 10;
-pub const DOCUMENT_FRAGMENT_NODE: ::libc::c_uint = 11;
-pub const NOTATION_NODE: ::libc::c_uint = 12;
+#[derive(Clone, Copy)]
+#[repr(u32)]
+pub enum Enum_NodeType {
+    ELEMENT_NODE = 1,
+    ATTRIBUTE_NODE = 2,
+    TEXT_NODE = 3,
+    CDATA_SECTION_NODE = 4,
+    ENTITY_REFERENCE_NODE = 5,
+    ENTITY_NODE = 6,
+    PROCESSING_INSTRUCTION_NODE = 7,
+    COMMENT_NODE = 8,
+    DOCUMENT_NODE = 9,
+    DOCUMENT_TYPE_NODE = 10,
+    DOCUMENT_FRAGMENT_NODE = 11,
+    NOTATION_NODE = 12,
+}
 pub enum Struct_RawGeckoNode { }
 pub type RawGeckoNode = Struct_RawGeckoNode;
 pub enum Struct_RawGeckoElement { }
@@ -49,10 +52,15 @@ pub enum Struct_RawGeckoDocument { }
 pub type RawGeckoDocument = Struct_RawGeckoDocument;
 pub enum Struct_ServoNodeData { }
 pub type ServoNodeData = Struct_ServoNodeData;
+pub enum Struct_ServoArcStyleSheet { }
+pub type ServoArcStyleSheet = Struct_ServoArcStyleSheet;
+pub enum Struct_ServoStyleSetData { }
+pub type ServoStyleSetData = Struct_ServoStyleSetData;
 extern "C" {
     pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> uint8_t;
-    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const uint8_t,
-                               name: *const uint8_t, length: *mut uint32_t)
+    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
+                               ns: *const uint8_t, name: *const uint8_t,
+                               length: *mut uint32_t)
      -> *const ::libc::c_char;
     pub fn Gecko_ChildrenCount(node: *mut RawGeckoNode) -> uint32_t;
     pub fn Gecko_GetDocumentElement(document: *mut RawGeckoDocument)
@@ -61,21 +69,50 @@ extern "C" {
     pub fn Gecko_GetLastChild(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_GetPrevSibling(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_GetNextSibling(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
+    pub fn Gecko_GetParentElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetFirstChildElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetLastChildElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetPrevSiblingElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
+    pub fn Gecko_GetNextSiblingElement(element: *mut RawGeckoElement)
+     -> *mut RawGeckoElement;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_GetParentNode(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
-    pub fn Gecko_LocalName(element: *mut RawGeckoElement, length: *mut uint32_t)
-     -> *const uint16_t;
+    pub fn Gecko_LocalName(element: *mut RawGeckoElement,
+                           length: *mut uint32_t) -> *const uint16_t;
     pub fn Gecko_IsHTMLElementInHTMLDocument(element: *mut RawGeckoElement)
      -> ::libc::c_int;
     pub fn Gecko_IsLink(element: *mut RawGeckoElement) -> ::libc::c_int;
     pub fn Gecko_IsTextNode(node: *mut RawGeckoNode) -> ::libc::c_int;
-    pub fn Gecko_IsVisitedLink(element: *mut RawGeckoElement) -> ::libc::c_int;
-    pub fn Gecko_IsUnvisitedLink(element: *mut RawGeckoElement) -> ::libc::c_int;
-    pub fn Gecko_Namespace(element: *mut RawGeckoElement, length: *mut uint32_t)
-     -> *const uint16_t;
+    pub fn Gecko_IsVisitedLink(element: *mut RawGeckoElement)
+     -> ::libc::c_int;
+    pub fn Gecko_IsUnvisitedLink(element: *mut RawGeckoElement)
+     -> ::libc::c_int;
+    pub fn Gecko_IsRootElement(element: *mut RawGeckoElement)
+     -> ::libc::c_int;
+    pub fn Gecko_Namespace(element: *mut RawGeckoElement,
+                           length: *mut uint32_t) -> *const uint16_t;
     pub fn Gecko_NodeIsElement(node: *mut RawGeckoNode) -> ::libc::c_int;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
-                                  data: *mut ServoNodeData) -> ();
-    pub fn Servo_RestyleDocument(aDoc: *mut RawGeckoDocument) -> ();
-    pub fn Servo_DropNodeData(data: *mut ServoNodeData) -> ();
+                             data: *mut ServoNodeData);
+    pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
+                                 data: *mut ServoStyleSetData);
+    pub fn Servo_DropNodeData(data: *mut ServoNodeData);
+    pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
+                                         length: uint32_t)
+     -> *mut ServoArcStyleSheet;
+    pub fn Servo_AppendStyleSheet(sheet: *mut ServoArcStyleSheet,
+                                  data: *mut ServoStyleSetData);
+    pub fn Servo_PrependStyleSheet(sheet: *mut ServoArcStyleSheet,
+                                   data: *mut ServoStyleSetData);
+    pub fn Servo_RemoveStyleSheet(sheet: *mut ServoArcStyleSheet,
+                                  data: *mut ServoStyleSetData);
+    pub fn Servo_StyleSheetHasRules(sheet: *mut ServoArcStyleSheet)
+     -> ::libc::c_int;
+    pub fn Servo_DropStylesheet(sheet: *mut ServoArcStyleSheet);
+    pub fn Servo_InitStyleSetData() -> *mut ServoStyleSetData;
+    pub fn Servo_DropStyleSetData(data: *mut ServoStyleSetData);
 }

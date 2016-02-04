@@ -50,6 +50,7 @@ pub fn heap_size_of_local_context() -> usize {
     })
 }
 
+// Keep this implementation in sync with the one in ports/geckolib/traversal.rs.
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
                                -> Rc<LocalLayoutContext> {
     LOCAL_CONTEXT_KEY.with(|r| {

@@ -6,27 +6,22 @@
 
 use app_units::Au;
 use bindings::RawGeckoDocument;
-use bindings::ServoNodeData;
+use bindings::{ServoArcStyleSheet, ServoNodeData, ServoStyleSetData, uint8_t, uint32_t};
+use data::PerDocumentStyleData;
 use euclid::Size2D;
-use euclid::size::TypedSize2D;
-use num_cpus;
-use std::cmp;
-use std::collections::HashMap;
-use std::sync::mpsc::{channel, Sender};
-use std::sync::{Arc, Mutex, RwLock};
-use style::animation::Animation;
+use std::mem::{forget, transmute};
+use std::slice;
+use std::str::from_utf8_unchecked;
+use std::sync::{Arc, Mutex};
 use style::context::{ReflowGoal, SharedStyleContext, StylistWrapper};
 use style::dom::{TDocument, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::media_queries::{Device, MediaType};
-use style::parallel::{self, WorkQueueData};
-use style::selector_matching::Stylist;
-use style::stylesheets::Stylesheet;
-use style::traversal::RecalcStyleOnly;
-use util::geometry::ViewportPx;
+use style::parallel;
+use style::stylesheets::{Origin, Stylesheet};
+use traversal::RecalcStyleOnly;
+use url::Url;
+use util::arc_ptr_eq;
 use util::resource_files::set_resources_path;
-use util::thread_state;
-use util::workqueue::WorkQueue;
 use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
 
 /*
@@ -38,55 +33,126 @@ use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
  */
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument) -> () {
+pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut ServoStyleSetData) -> () {
     let document = unsafe { GeckoDocument::from_raw(doc) };
     let node = match document.root_node() {
         Some(x) => x,
         None => return,
     };
+    let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // FIXME(bholley): Don't hardcode resources path. We may want to use Gecko's UA stylesheets
     // anyway.
     set_resources_path(Some("/files/mozilla/stylo/servo/resources/".to_owned()));
 
-    // FIXME(bholley): Real window size.
-    let window_size: TypedSize2D<ViewportPx, f32> = Size2D::typed(800.0, 600.0);
-    let device = Device::new(MediaType::Screen, window_size);
-
-    // FIXME(bholley): Real stylist and stylesheets.
-    let stylesheets: Vec<Arc<Stylesheet>> = Vec::new();
-    let mut stylist = Box::new(Stylist::new(device));
-    let _needs_dirtying = stylist.update(&stylesheets, false);
-
-    // FIXME(bholley): Hook this up to something.
-    let new_animations_sender: Sender<Animation> = channel().0;
+    let _needs_dirtying = data.stylist.update(&data.stylesheets, data.stylesheets_changed);
+    data.stylesheets_changed = false;
 
     let shared_style_context = SharedStyleContext {
         viewport_size: Size2D::new(Au(0), Au(0)),
         screen_size_changed: false,
         generation: 0,
         goal: ReflowGoal::ForScriptQuery,
-        stylist: StylistWrapper(&*stylist),
-        new_animations_sender: Mutex::new(new_animations_sender),
-        running_animations: Arc::new(RwLock::new(HashMap::new())),
-        expired_animations: Arc::new(RwLock::new(HashMap::new())),
+        stylist: StylistWrapper(&data.stylist),
+        new_animations_sender: Mutex::new(data.new_animations_sender.clone()),
+        running_animations: data.running_animations.clone(),
+        expired_animations: data.expired_animations.clone(),
         error_reporter: Box::new(StdoutErrorReporter),
     };
 
-    let num_threads = cmp::max(num_cpus::get() * 3 / 4, 1);
-    let mut parallel_traversal: WorkQueue<SharedStyleContext, WorkQueueData> =
-        WorkQueue::new("StyleWorker", thread_state::LAYOUT, num_threads);
-
     if node.is_dirty() || node.has_dirty_descendants() {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut parallel_traversal);
+        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut data.work_queue);
     }
-
-    parallel_traversal.shutdown();
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
     unsafe {
         let _ = Box::<NonOpaqueStyleData>::from_raw(data as *mut NonOpaqueStyleData);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
+                                                length: uint32_t) -> *mut ServoArcStyleSheet {
+
+    let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
+
+    // FIXME(heycam): Pass in the real base URL and sheet origin to use.
+    let url = Url::parse("about:none").unwrap();
+    let sheet = Arc::new(Stylesheet::from_str(input, url, Origin::Author, Box::new(StdoutErrorReporter)));
+    unsafe {
+        transmute(sheet)
+    }
+}
+
+fn with_arc_stylesheet<F, Output>(raw: *mut ServoArcStyleSheet, cb: F) -> Output
+                                 where F: FnOnce(&Arc<Stylesheet>) -> Output {
+    let owned = unsafe { consume_arc_stylesheet(raw) };
+    let result = cb(&owned);
+    forget(owned);
+    result
+}
+
+unsafe fn consume_arc_stylesheet(raw: *mut ServoArcStyleSheet) -> Arc<Stylesheet> {
+    transmute(raw)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: *mut ServoArcStyleSheet,
+                                         raw_data: *mut ServoStyleSetData) {
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    with_arc_stylesheet(raw_sheet, |sheet| {
+        data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
+        data.stylesheets.push(sheet.clone());
+        data.stylesheets_changed = true;
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut ServoArcStyleSheet,
+                                          raw_data: *mut ServoStyleSetData) {
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    with_arc_stylesheet(raw_sheet, |sheet| {
+        data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
+        data.stylesheets.insert(0, sheet.clone());
+        data.stylesheets_changed = true;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: *mut ServoArcStyleSheet,
+                                         raw_data: *mut ServoStyleSetData) {
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    with_arc_stylesheet(raw_sheet, |sheet| {
+        data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
+        data.stylesheets_changed = true;
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheetHasRules(raw_sheet: *mut ServoArcStyleSheet) -> ::libc::c_int {
+    with_arc_stylesheet(raw_sheet, |sheet| if sheet.rules.is_empty() { 0 } else { 1 })
+}
+
+
+#[no_mangle]
+pub extern "C" fn Servo_DropStylesheet(sheet: *mut ServoArcStyleSheet) -> () {
+    unsafe {
+        let _ = consume_arc_stylesheet(sheet);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_InitStyleSetData() -> *mut ServoStyleSetData {
+    let data = Box::new(PerDocumentStyleData::new());
+    Box::into_raw(data) as *mut ServoStyleSetData
+}
+
+
+#[no_mangle]
+pub extern "C" fn Servo_DropStyleSetData(data: *mut ServoStyleSetData) -> () {
+    unsafe {
+        let _ = Box::<PerDocumentStyleData>::from_raw(data as *mut PerDocumentStyleData);
     }
 }
