@@ -1220,7 +1220,6 @@ impl XMLHttpRequest {
         }
     }
 
-    #[allow(dead_code)]
     fn final_mime_type(&self) -> Option<Mime> {
         if self.override_mime_type.borrow().is_some() {
             self.override_mime_type.borrow().clone()
