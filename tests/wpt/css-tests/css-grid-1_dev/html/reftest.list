@@ -49,6 +49,7 @@ grid-inline-z-axis-ordering-overlapped-items-003.htm == reference/grid-filled-bl
 grid-inline-z-axis-ordering-overlapped-items-004.htm == reference/grid-filled-blue-yellow-green-overlapped-100px-squares.htm
 grid-inline-z-axis-ordering-overlapped-items-005.htm == reference/grid-filled-blue-yellow-green-overlapped-100px-squares.htm
 grid-inline-z-axis-ordering-overlapped-items-006.htm == reference/grid-filled-blue-yellow-green-overlapped-100px-squares.htm
+grid-item-containing-block-001.htm == reference/ref-filled-green-100px-square.htm
 grid-items-001.htm == reference/ref-filled-green-100px-square.htm
 grid-items-002.htm == reference/ref-filled-green-100px-square.htm
 grid-items-003.htm == reference/ref-filled-green-100px-square.htm
@@ -84,6 +85,7 @@ grid-order-property-painting-002.htm == reference/ref-filled-green-100px-square.
 grid-order-property-painting-003.htm == reference/ref-filled-green-100px-square.htm
 grid-order-property-painting-004.htm == reference/ref-filled-green-100px-square.htm
 grid-order-property-painting-005.htm == reference/ref-filled-green-100px-square.htm
+grid-support-grid-auto-columns-rows-001.htm == reference/grid-support-grid-auto-columns-rows-001-ref.htm
 grid-vertical-align-001.htm == reference/ref-filled-green-100px-square.htm
 grid-z-axis-ordering-001.htm == reference/ref-filled-green-100px-square.htm
 grid-z-axis-ordering-002.htm == reference/ref-filled-green-100px-square.htm

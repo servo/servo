@@ -4,17 +4,19 @@
 <link href="http://www.intel.com" rel="author" title="Intel">
 <style>
   #ref {
-    border: 1px solid black;
+    border: 5px solid orange;
+    font: 20px/1 Ahem;
     width: 200px;
   }
   #test {
-    border: 1px solid blue;
+    border: 5px solid blue;
+    font: 20px/1 Ahem;
     width: 200px;
   }
 </style>
 </head><body>
-  <p>Test passes if the 'FillerText' overflows the blue border box, but breaks line within the black border box.</p>
-  <p id="ref">FillerTextFillerTextFillerTextFille rText</p>
+  <p class="instructions">Test passes if the black box overflows the blue border box, but fits within the orange border box.</p>
+  <p id="ref">FillerText<br>FillerText<br>FillerText<br>FillerText</p>
   <p id="test">FillerTextFillerTextFillerTextFillerText</p>
 
 </body></html>

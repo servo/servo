@@ -117,6 +117,8 @@ html/grid-inline-z-axis-ordering-overlapped-items-005.htm	a9e60495cfeb298a38dcd9
 xhtml1/grid-inline-z-axis-ordering-overlapped-items-005.xht	a9e60495cfeb298a38dcd92605a9f4b0b0bad1d7	?
 html/grid-inline-z-axis-ordering-overlapped-items-006.htm	f4574091e7672396c158ad6615a8e6472b869119	?
 xhtml1/grid-inline-z-axis-ordering-overlapped-items-006.xht	f4574091e7672396c158ad6615a8e6472b869119	?
+html/grid-item-containing-block-001.htm	33ce7313559679d850701d643560930b6757c72b	?
+xhtml1/grid-item-containing-block-001.xht	33ce7313559679d850701d643560930b6757c72b	?
 html/grid-items-001.htm	332ee8c0abf2e50bea4be4e4c5fba1320cb03c94	?
 xhtml1/grid-items-001.xht	332ee8c0abf2e50bea4be4e4c5fba1320cb03c94	?
 html/grid-items-002.htm	c112630d0ada73c080925378745cca6d0b68d5c1	?
@@ -193,6 +195,8 @@ html/grid-support-display-001.htm	18055d2ae743945500cc0444a2658411a0791120	?
 xhtml1/grid-support-display-001.xht	18055d2ae743945500cc0444a2658411a0791120	?
 html/grid-support-flexible-lengths-001.htm	d291ecbfb4665d4119d0737beaa4451b306b1b82	?
 xhtml1/grid-support-flexible-lengths-001.xht	d291ecbfb4665d4119d0737beaa4451b306b1b82	?
+html/grid-support-grid-auto-columns-rows-001.htm	cac1ff5703bfd822ddea20e4810a7f3aa4d0fb72	?
+xhtml1/grid-support-grid-auto-columns-rows-001.xht	cac1ff5703bfd822ddea20e4810a7f3aa4d0fb72	?
 html/grid-support-grid-template-areas-001.htm	ba4d646749df2afdba6897cfb6cbdf9402f15b6c	?
 xhtml1/grid-support-grid-template-areas-001.xht	ba4d646749df2afdba6897cfb6cbdf9402f15b6c	?
 html/grid-support-grid-template-columns-rows-001.htm	9a79b1fd5bc89c0b2dd0a0b38850a15096130f99	?
