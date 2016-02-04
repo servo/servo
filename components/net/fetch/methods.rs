@@ -862,7 +862,6 @@ fn preflight_fetch(request: Rc<Request>) -> Response {
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
 fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
-    // TODO: Implement CORS check spec
 
     // Step 1
     // let headers = request.headers.borrow();

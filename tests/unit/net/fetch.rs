@@ -103,7 +103,6 @@ fn test_fetch_response_is_cors_filtered() {
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
         response.headers_mut().set(AccessControlAllowOrigin::Any);
-        println!("server says: {}", response.headers_mut());
         response.send(MESSAGE).unwrap();
     };
     let (mut server, url) = make_server(handler);
