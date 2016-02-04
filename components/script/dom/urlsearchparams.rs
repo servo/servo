@@ -6,7 +6,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
-use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams::{eUSVString, eURLSearchParams};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -43,11 +42,11 @@ impl URLSearchParams {
         // Step 1.
         let query = URLSearchParams::new(global);
         match init {
-            Some(eUSVString(init)) => {
+            Some(USVStringOrURLSearchParams::USVString(init)) => {
                 // Step 2.
                 *query.list.borrow_mut() = parse(init.0.as_bytes());
             },
-            Some(eURLSearchParams(init)) => {
+            Some(USVStringOrURLSearchParams::URLSearchParams(init)) => {
                 // Step 3.
                 *query.list.borrow_mut() = init.list.borrow().clone();
             },

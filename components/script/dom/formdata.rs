@@ -5,7 +5,7 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrUSVString::{self, eBlob, eUSVString};
+use dom::bindings::codegen::UnionTypes::BlobOrUSVString;
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -88,8 +88,8 @@ impl FormDataMethods for FormData {
         self.data.borrow()
                  .get(&Atom::from(&*name.0))
                  .map(|entry| match entry[0] {
-                     FormDatum::StringData(ref s) => eUSVString(USVString(s.clone())),
-                     FormDatum::BlobData(ref b) => eBlob(Root::from_ref(&*b)),
+                     FormDatum::StringData(ref s) => BlobOrUSVString::USVString(USVString(s.clone())),
+                     FormDatum::BlobData(ref b) => BlobOrUSVString::Blob(Root::from_ref(&*b)),
                  })
     }
 
@@ -99,8 +99,8 @@ impl FormDataMethods for FormData {
                  .get(&Atom::from(&*name.0))
                  .map_or(vec![], |data|
                     data.iter().map(|item| match *item {
-                        FormDatum::StringData(ref s) => eUSVString(USVString(s.clone())),
-                        FormDatum::BlobData(ref b) => eBlob(Root::from_ref(&*b)),
+                        FormDatum::StringData(ref s) => BlobOrUSVString::USVString(USVString(s.clone())),
+                        FormDatum::BlobData(ref b) => BlobOrUSVString::Blob(Root::from_ref(&*b)),
                     }).collect()
                  )
     }
@@ -114,8 +114,8 @@ impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set(&self, name: USVString, value: BlobOrUSVString) {
         let val = match value {
-            eUSVString(s) => FormDatum::StringData(s.0),
-            eBlob(b) => FormDatum::BlobData(JS::from_rooted(&b))
+            BlobOrUSVString::USVString(s) => FormDatum::StringData(s.0),
+            BlobOrUSVString::Blob(b) => FormDatum::BlobData(JS::from_rooted(&b))
         };
         self.data.borrow_mut().insert(Atom::from(&*name.0), vec!(val));
     }

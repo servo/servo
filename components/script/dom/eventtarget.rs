@@ -127,7 +127,7 @@ impl EventListenerType {
                             let cx = global.r().get_cx();
                             let error = RootedValue::new(cx, event.Error(cx));
                             let _ = handler.Call_(object,
-                                                  EventOrString::eString(event.Message()),
+                                                  EventOrString::String(event.Message()),
                                                   Some(event.Filename()),
                                                   Some(event.Lineno()),
                                                   Some(event.Colno()),
@@ -136,7 +136,7 @@ impl EventListenerType {
                             return;
                         }
 
-                        let _ = handler.Call_(object, EventOrString::eEvent(Root::from_ref(event)),
+                        let _ = handler.Call_(object, EventOrString::Event(Root::from_ref(event)),
                                               None, None, None, None, exception_handle);
                     }
 

@@ -1060,17 +1060,17 @@ impl Document {
                                        -> Fallible<Root<Node>> {
         if nodes.len() == 1 {
             Ok(match nodes.pop().unwrap() {
-                NodeOrString::eNode(node) => node,
-                NodeOrString::eString(string) => Root::upcast(self.CreateTextNode(string)),
+                NodeOrString::Node(node) => node,
+                NodeOrString::String(string) => Root::upcast(self.CreateTextNode(string)),
             })
         } else {
             let fragment = Root::upcast::<Node>(self.CreateDocumentFragment());
             for node in nodes {
                 match node {
-                    NodeOrString::eNode(node) => {
+                    NodeOrString::Node(node) => {
                         try!(fragment.AppendChild(node.r()));
                     },
-                    NodeOrString::eString(string) => {
+                    NodeOrString::String(string) => {
                         let node = Root::upcast::<Node>(self.CreateTextNode(string));
                         // No try!() here because appending a text node
                         // should not fail.
