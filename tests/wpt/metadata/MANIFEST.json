@@ -33724,6 +33724,12 @@
             "path": "websockets/Send-data-worker.htm",
             "url": "/websockets/Send-data-worker.htm"
           }
+        ],
+        "websockets/Send-data.worker.js": [
+          {
+            "path": "websockets/Send-data.worker.js",
+            "url": "/websockets/Send-data.worker"
+          }
         ]
       }
     },
