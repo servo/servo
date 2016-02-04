@@ -901,7 +901,7 @@ impl XMLHttpRequest {
 
                 // Subsubsteps 5-7
                 self.send_flag.set(false);
-                *self.response_url.borrow_mut() = self.request_url.borrow().clone().unwrap().serialize_no_fragment();
+                *self.response_url.borrow_mut() = self.request_url.borrow().as_ref().unwrap().serialize_no_fragment();
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12

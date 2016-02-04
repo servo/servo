@@ -14,7 +14,16 @@
         assert_equals(client.responseURL, "")
         client.open("GET", "foo.html", false)
         client.send()
-        assert_equals(client.responseURL, "http://web-platform.test:8000/XMLHttpRequest/foo.html")
+        expected = location.href.replace(/[^/]*$/, 'foo.html')
+        assert_equals(client.responseURL, expected)
+      })
+      test(function() {
+        var client = new XMLHttpRequest()
+        assert_equals(client.responseURL, "")
+        expected = "http://example.not"
+        client.open("GET", "resource/redirect.py&location=" + expected, false)
+        client.send()
+        assert_equals(client.responseURL, expected)
       })
     </script>
   </body>
