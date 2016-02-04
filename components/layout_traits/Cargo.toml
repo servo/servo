@@ -31,4 +31,4 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies]
 serde = "0.6"
 serde_macros = "0.6"
-url = "0.5.4"
+url = {version = "0.5.4", features = ["heap_size"]}

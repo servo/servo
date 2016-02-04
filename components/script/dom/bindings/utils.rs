@@ -13,6 +13,7 @@ use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
 use dom::window;
+use heapsize::HeapSizeOf;
 use js;
 use js::error::throw_type_error;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
@@ -36,7 +37,6 @@ use libc::{self, c_uint};
 use std::default::Default;
 use std::ffi::CString;
 use std::ptr;
-use util::mem::HeapSizeOf;
 use util::non_geckolib::jsstring_to_str;
 
 /// Proxy handler for a WindowProxy.

@@ -64,27 +64,29 @@ path = "../gfx_traits"
 
 [dependencies]
 app_units = {version = "0.2", features = ["plugins"]}
-cssparser = { version = "0.5", features = [ "serde-serialization" ] }
-log = "0.3"
-encoding = "0.2"
-fnv = "1.0"
-hyper = { version = "0.7", features = [ "serde-serialization" ] }
-time = "0.1.12"
 bitflags = "0.3"
-rustc-serialize = "0.3"
-libc = "0.2"
-unicase = "1.0"
-num = "0.1.24"
-websocket = "0.14.0"
-uuid = "0.1.16"
-smallvec = "0.1"
-html5ever = { version = "0.4", features = ["unstable"] }
-selectors = "0.4.1"
-string_cache = { version = "0.2", features = ["unstable"] }
-euclid = {version = "0.6.1", features = ["plugins"]}
-rand = "0.3"
-serde = "0.6"
 caseless = "0.1.0"
+cssparser = {version = "0.5.2", features = ["heap_size", "serde-serialization"]}
+encoding = "0.2"
+euclid = {version = "0.6.1", features = ["plugins"]}
+fnv = "1.0"
+heapsize = "0.2.5"
+heapsize_plugin = "0.1.2"
+html5ever = {version = "0.4.2", features = ["heap_size", "unstable"]}
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
-url = "0.5.4"
+libc = "0.2"
+log = "0.3"
+num = "0.1.24"
+rand = "0.3"
 ref_slice = "0.1.0"
+rustc-serialize = "0.3"
+selectors = {version = "0.4.1", features = ["heap_size"]}
+serde = "0.6"
+smallvec = "0.1"
+string_cache = {version = "0.2.7", features = ["heap_size", "unstable"]}
+time = "0.1.12"
+unicase = "1.0"
+url = {version = "0.5.4", features = ["heap_size"]}
+uuid = "0.1.16"
+websocket = "0.14.0"

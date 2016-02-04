@@ -163,8 +163,8 @@ version = "0.2"
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [dependencies]
-env_logger = "0.3"
 bitflags = "0.3"
-libc = "0.2"
-url = {version = "0.5.4", features = ["serde_serialization", "query_encoding"]}
+env_logger = "0.3"
 euclid = {version = "0.6.1", features = ["plugins"]}
+libc = "0.2"
+url = {version = "0.5.4", features = ["heap_size", "serde_serialization", "query_encoding"]}

@@ -8,7 +8,6 @@ use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use std::ascii::AsciiExt;
 use util::geometry::ViewportPx;
-use util::mem::HeapSizeOf;
 use values::specified;
 
 

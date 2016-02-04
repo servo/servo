@@ -16,6 +16,5 @@ extern crate util;
 #[cfg(test)] mod logical_geometry;
 #[cfg(test)] mod thread;
 #[cfg(test)] mod vec;
-#[cfg(test)] mod mem;
 #[cfg(test)] mod str;
 #[cfg(test)] mod opts;

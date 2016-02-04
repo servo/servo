@@ -14,14 +14,15 @@ path = "../util"
 path = "../plugins"
 
 [dependencies]
-cssparser = { version = "0.5", features = [ "serde-serialization" ] }
+cssparser = {version = "0.5.2", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.1", features = ["plugins"]}
-log = "0.3"
+heapsize = "0.2.5"
+heapsize_plugin = "0.1.2"
 lazy_static = "0.1.10"
+log = "0.3"
 num = "0.1.24"
 rustc-serialize = "0.3"
-selectors = "0.4.1"
+selectors = {version = "0.4.1", features = ["heap_size"]}
 serde = "0.6"
 serde_macros = "0.6"
-url = "0.5.4"
-
+url = {version = "0.5.4", features = ["heap_size"]}

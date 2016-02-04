@@ -9,7 +9,6 @@ use core::nonzero::NonZero;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -47,6 +46,7 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use euclid::rect::Rect;
+use heapsize::{HeapSizeOf, heap_size_of};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg};
 use libc::{self, c_void, uintptr_t};
@@ -57,7 +57,7 @@ use selectors::matching::matches;
 use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{Cell, UnsafeCell};
 use std::cmp::max;
 use std::default::Default;
 use std::iter::{self, FilterMap, Peekable};
@@ -120,7 +120,7 @@ pub struct Node {
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
-    unique_id: DOMRefCell<Option<Box<Uuid>>>,
+    unique_id: UniqueId,
 }
 
 bitflags! {
@@ -755,11 +755,7 @@ impl Node {
     }
 
     pub fn get_unique_id(&self) -> String {
-        if self.unique_id.borrow().is_none() {
-            let mut unique_id = self.unique_id.borrow_mut();
-            *unique_id = Some(Box::new(Uuid::new_v4()));
-        }
-        self.unique_id.borrow().as_ref().unwrap().to_simple_string()
+        self.unique_id.borrow().to_simple_string()
     }
 
     pub fn summarize(&self) -> NodeInfo {
@@ -1266,7 +1262,7 @@ impl Node {
 
             style_and_layout_data: Cell::new(None),
 
-            unique_id: DOMRefCell::new(None),
+            unique_id: UniqueId::new(),
         }
     }
 
@@ -2436,5 +2432,42 @@ impl<'a> UnbindContext<'a> {
         let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
         self.index.set(Some(index));
         index
+    }
+}
+
+/// A node's unique ID, for devtools.
+struct UniqueId {
+    cell: UnsafeCell<Option<Box<Uuid>>>,
+}
+
+no_jsmanaged_fields!(UniqueId);
+
+impl HeapSizeOf for UniqueId {
+    #[allow(unsafe_code)]
+    fn heap_size_of_children(&self) -> usize {
+        if let &Some(ref uuid) = unsafe { &*self.cell.get() } {
+            heap_size_of(&** uuid as *const Uuid as *const c_void)
+        } else {
+            0
+        }
+    }
+}
+
+impl UniqueId {
+    /// Create a new `UniqueId` value. The underlying `Uuid` is lazily created.
+    fn new() -> UniqueId {
+        UniqueId { cell: UnsafeCell::new(None) }
+    }
+
+    /// The Uuid of that unique ID.
+    #[allow(unsafe_code)]
+    fn borrow(&self) -> &Uuid {
+        unsafe {
+            let ptr = self.cell.get();
+            if (*ptr).is_none() {
+                *ptr = Some(box Uuid::new_v4());
+            }
+            &(&*ptr).as_ref().unwrap()
+        }
     }
 }

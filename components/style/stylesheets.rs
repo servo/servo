@@ -19,7 +19,6 @@ use std::iter::Iterator;
 use std::slice;
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::mem::HeapSizeOf;
 use viewport::ViewportRule;
 
 

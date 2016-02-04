@@ -9,6 +9,7 @@ use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::JSTraceable;
 use dom::window::ScriptHelpers;
 use euclid::length::Length;
+use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, Heap, RootedValue};
 use js::jsval::{JSVal, UndefinedValue};
@@ -19,7 +20,6 @@ use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
 use std::default::Default;
 use std::rc::Rc;
-use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]

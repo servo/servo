@@ -7,13 +7,14 @@
 #![feature(custom_derive)]
 #![feature(nonzero)]
 #![feature(plugin)]
-#![plugin(serde_macros, plugins)]
+#![plugin(heapsize_plugin, plugins, serde_macros)]
 
 extern crate azure;
 extern crate core;
 extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;
+extern crate heapsize;
 extern crate ipc_channel;
 extern crate layers;
 extern crate offscreen_gl_context;
@@ -40,7 +41,6 @@ use std::default::Default;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
-use util::mem::HeapSizeOf;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FillRule {

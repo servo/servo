@@ -42,9 +42,11 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 app_units = {version = "0.2", features = ["plugins"]}
-libc = "0.2"
 euclid = {version = "0.6.1", features = ["plugins"]}
+heapsize = "0.2.5"
+heapsize_plugin = "0.1.2"
+libc = "0.2"
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1.12"
-url = "0.5.4"
+url = {version = "0.5.4", features = ["heap_size"]}

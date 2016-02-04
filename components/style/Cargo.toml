@@ -20,21 +20,23 @@ path = "../style_traits"
 
 [dependencies]
 app_units = {version = "0.2", features = ["plugins"]}
-cssparser = { version = "0.5", features = [ "serde-serialization" ] }
+cssparser = {version = "0.5.2", features = ["heap_size", "serde-serialization"]}
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
+heapsize = "0.2.5"
+heapsize_plugin = "0.1.2"
 rustc-serialize = "0.3"
 matches = "0.1"
 bitflags = "0.3"
 num = "0.1.24"
 lazy_static = "0.1.10"
-selectors = { version = "0.4.1", features = ["unstable"] }
+selectors = {version = "0.4.1", features = ["heap_size", "unstable"]}
 smallvec = "0.1"
-string_cache = "0.2"
+string_cache = {version = "0.2.7", features = ["heap_size"]}
 euclid = {version = "0.6.1", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1"
-url = "0.5.4"
+url = {version = "0.5.4", features = ["heap_size"]}
 

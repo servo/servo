@@ -13,6 +13,7 @@ use font::SpecifiedFontStyle;
 use font::{Font, FontGroup};
 use font_cache_thread::FontCacheThread;
 use font_template::FontTemplateDescriptor;
+use heapsize::HeapSizeOf;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
@@ -28,7 +29,6 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
 use util::cache::HashCache;
-use util::mem::HeapSizeOf;
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
