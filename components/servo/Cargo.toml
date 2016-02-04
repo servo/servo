@@ -41,6 +41,12 @@ path = "../../tests/unit/style"
 [dev-dependencies.util_tests]
 path = "../../tests/unit/util"
 
+[dev-dependencies.compiletest_helper]
+path = "../../tests/compiletest/helper"
+
+[dev-dependencies.plugin_compiletest]
+path = "../../tests/compiletest/plugin"
+
 [[test]]
 name = "reftest"
 path = "../../tests/reftest.rs"
