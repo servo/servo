@@ -70,7 +70,7 @@ cssparser = {version = "0.5.2", features = ["serde-serialization"]}
 encoding = "0.2"
 euclid = {version = "0.6.1", features = ["plugins"]}
 fnv = "1.0"
-html5ever = { version = "0.4", features = ["unstable"] }
+html5ever = {version = "0.4.2", features = ["unstable"]}
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
 libc = "0.2"
