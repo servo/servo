@@ -78,6 +78,12 @@ pub enum ResponseTainting {
     Opaque
 }
 
+/// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
+pub enum CORSSettings {
+    Anonymous,
+    UseCredentials
+}
+
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 #[derive(Clone)]
 pub struct Request {
@@ -113,7 +119,10 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(url: Url, context: Context, origin: Origin, is_service_worker_global_scope: bool) -> Request {
+    pub fn new(url: Url,
+               context: Context,
+               origin: Origin,
+               is_service_worker_global_scope: bool) -> Request {
          Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
@@ -137,6 +146,52 @@ impl Request {
             mode: RequestMode::NoCORS,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
+            cache_mode: Cell::new(CacheMode::Default),
+            redirect_mode: Cell::new(RedirectMode::Follow),
+            redirect_count: Cell::new(0),
+            response_tainting: Cell::new(ResponseTainting::Basic)
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+    pub fn potential_cors_request(url: Url,
+                               cors_attribute_state: Option<CORSSettings>,
+                               context: Context,
+                               is_service_worker_global_scope: bool,
+                               same_origin_fallback: bool) -> Request {
+        let origin = url.origin();
+        Request {
+            method: RefCell::new(Method::Get),
+            local_urls_only: false,
+            url_list: RefCell::new(vec![url]),
+            headers: RefCell::new(Headers::new()),
+            unsafe_request: false,
+            body: None,
+            preserve_content_codings: false,
+            is_service_worker_global_scope: is_service_worker_global_scope,
+            skip_service_worker: Cell::new(false),
+            context: context,
+            context_frame_type: ContextFrameType::ContextNone,
+            origin: origin,
+            force_origin_header: false,
+            same_origin_data: Cell::new(false),
+            omit_origin_header: false,
+            referer: Referer::Client,
+            authentication: false,
+            synchronous: false,
+            use_cors_preflight: false,
+            // Step 1-2
+            mode: match cors_attribute_state {
+                Some(_) => RequestMode::CORSMode,
+                None if same_origin_fallback => RequestMode::SameOrigin,
+                None => RequestMode::NoCORS
+            },
+            // Step 3-4
+            credentials_mode: match cors_attribute_state {
+                Some(CORSSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+                _ => CredentialsMode::Include,
+            },
+            use_url_credentials: true,
             cache_mode: Cell::new(CacheMode::Default),
             redirect_mode: Cell::new(RedirectMode::Follow),
             redirect_count: Cell::new(0),
