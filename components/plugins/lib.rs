@@ -39,9 +39,9 @@ pub mod jstraceable;
 pub mod lints;
 /// Autogenerates implementations of Reflectable on DOM structs
 pub mod reflector;
-/// Utilities for writing plugins
-pub mod casing;
+/// The `url!` plugin.
 mod url_plugin;
+/// Utilities for writing plugins
 pub mod utils;
 
 #[plugin_registrar]
@@ -49,8 +49,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
     reg.register_syntax_extension(intern("derive_JSTraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
     reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
-    reg.register_macro("to_lower", casing::expand_lower);
-    reg.register_macro("to_upper", casing::expand_upper);
     reg.register_macro("url", url_plugin::expand_url);
     reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
     reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
