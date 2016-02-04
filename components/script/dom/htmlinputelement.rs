@@ -59,7 +59,7 @@ enum InputType {
     InputPassword
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum InputValueMode {
     Value,
     Default,
@@ -90,43 +90,29 @@ impl InputValueMode {
 
     fn get_value(&self, input: &HTMLInputElement) -> DOMString {
         let default = match *self {
-            InputValueMode::Value => DOMString::from(""),
-            InputValueMode::Default => DOMString::from(""),
             InputValueMode::DefaultOn => DOMString::from("on"),
             InputValueMode::Filename => DOMString::from(r"C:\fakepath\"),
+            _ => DOMString::from(""),
         };
 
-        // TODO: append first selected filename (if any)
-        input.upcast::<Element>()
-            .get_attribute(&ns!(), &atom!("value"))
-            .map_or_else(|| default,
-                         |a| DOMString::from(a.summarize().value))
+        if *self == InputValueMode::Value {
+            input.textinput.borrow().get_content()
+        } else {
+            input.upcast::<Element>()
+                .get_attribute(&ns!(), &atom!("value"))
+                .map_or_else(|| default,
+                             |a| DOMString::from(a.summarize().value))
+        }
     }
 
     fn set_value(&self, input: &HTMLInputElement, value: DOMString) {
         let element = input.upcast::<Element>();
 
-        match *self {
-            InputValueMode::Value => {
-                element.set_string_attribute(&atom!("value"), value);
-                // sanitize
-                // reset cursor
-            },
-            InputValueMode::Default => {
-                element.set_string_attribute(&atom!("value"), value);
-            },
-            InputValueMode::DefaultOn => {
-                element.set_string_attribute(&atom!("value"), value);
-            },
-            InputValueMode::Filename => {
-                if value == DOMString::from("") {
-                    // empty selected files
-                } else {
-                    // throw InvalidStateError
-                }
-                unimplemented!();
-            },
-        };
+        if *self == InputValueMode::Value {
+            input.textinput.borrow_mut().set_content(value);
+        } else {
+            element.set_string_attribute(&atom!("value"), value);
+        }
 
         input.value_changed.set(true);
         input.force_relayout();
