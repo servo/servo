@@ -866,7 +866,9 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
 
     // Step 1
     // let headers = request.headers.borrow();
-    let origin = request.headers.borrow().get::<AccessControlAllowOrigin>().cloned();
+    println!("FETCH SAYS: {}", response.headers);
+    let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
+    println!("{}", origin.is_none());
 
     // Step 2
     if origin.is_none() {

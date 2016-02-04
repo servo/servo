@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use hyper::header::{Location};
+use hyper::header::{AccessControlAllowOrigin, Location};
 use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
@@ -49,6 +49,34 @@ fn test_fetch_response_is_not_network_error() {
 }
 
 #[test]
+fn test_fetch_response_body_matches_const_message() {
+
+    static MESSAGE: &'static [u8] = b"Hello World!";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = url.origin();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request, false);
+    let _ = server.close();
+
+    assert!(!Response::is_network_error(&fetch_response));
+    assert_eq!(fetch_response.response_type, ResponseType::Basic);
+
+    match *fetch_response.body.borrow() {
+        ResponseBody::Done(ref body) => {
+            assert_eq!(&**body, MESSAGE);
+        },
+        _ => panic!()
+    };
+}
+
+#[test]
 fn test_fetch_response_is_basic_filtered() {
 
     static MESSAGE: &'static [u8] = b"";
@@ -73,12 +101,13 @@ fn test_fetch_response_is_basic_filtered() {
 fn test_fetch_response_is_cors_filtered() {
 
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(AccessControlAllowOrigin::Any);
+        println!("server says: {}", response.headers_mut());
         response.send(MESSAGE).unwrap();
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin();
     let origin = Origin::UID(OpaqueOrigin::new());
     let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
@@ -112,34 +141,6 @@ fn test_fetch_response_is_opaque_filtered() {
 
     assert!(!Response::is_network_error(&fetch_response));
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
-}
-
-#[test]
-fn test_fetch_response_body_matches_const_message() {
-
-    static MESSAGE: &'static [u8] = b"Hello World!";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
-    };
-    let (mut server, url) = make_server(handler);
-
-    let origin = url.origin();
-    let mut request = Request::new(url, Context::Fetch, origin, false);
-    request.referer = Referer::NoReferer;
-    let wrapped_request = Rc::new(request);
-
-    let fetch_response = fetch(wrapped_request, false);
-    let _ = server.close();
-
-    assert!(!Response::is_network_error(&fetch_response));
-    assert_eq!(fetch_response.response_type, ResponseType::Basic);
-
-    match *fetch_response.body.borrow() {
-        ResponseBody::Done(ref body) => {
-            assert_eq!(&**body, MESSAGE);
-        },
-        _ => panic!()
-    };
 }
 
 fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Response {
