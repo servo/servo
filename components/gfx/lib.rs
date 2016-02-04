@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // For simd (currently x86_64/aarch64)
-#![cfg_attr(any(target_arch = "x86_64", target_arch = "aarch64"), feature(convert))]
 #![cfg_attr(any(target_os = "linux", target_os = "android", target_os = "windows"), feature(heap_api))]
 
 #![feature(alloc)]

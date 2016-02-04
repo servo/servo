@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(clone_from_slice)]
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(mpsc_select)]
