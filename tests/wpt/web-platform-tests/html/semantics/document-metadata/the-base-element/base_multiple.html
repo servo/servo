@@ -12,6 +12,9 @@
   <script>
     async_test(function() {
       window.onload = this.step_func(function() {
+        var fr1 = document.getElementById("test1");
+        fr1.addEventListener("load", this.unreached_func("loaded in the wrong iframe"));
+
         var fr2 = document.getElementById("test2");
         fr2.addEventListener("load", this.step_func_done(function () {
           var doc2 = fr2.contentDocument;
@@ -19,8 +22,7 @@
           assert_equals(doc2.getElementById("d1").innerHTML, "PASS", "The opend page should be the example2.html.");
         }), true);
 
-        var doc1 = document.getElementById("test1").contentDocument;
-        doc1.getElementById("a1").click();
+        fr1.contentDocument.getElementById("a1").click();
       });
     }, "The attributes of the a element must be affected by the first base element");
   </script>
