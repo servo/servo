@@ -34,6 +34,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::{intrinsics, ptr};
@@ -109,7 +110,7 @@ pub struct InternalRawUncompiledHandler {
 /// A representation of an event handler, either compiled or uncompiled raw source, or null.
 #[derive(JSTraceable, PartialEq, Clone)]
 pub enum InlineEventListener {
-    Uncompiled(Option<InternalRawUncompiledHandler>),
+    Uncompiled(InternalRawUncompiledHandler),
     Compiled(CommonEventHandler),
     Null,
 }
@@ -120,34 +121,20 @@ impl InlineEventListener {
     /// https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_compiled_handler(&mut self, owner: &EventTarget, ty: &Atom)
                             -> Option<CommonEventHandler> {
-        enum Action {
-            StoreCompiled(CommonEventHandler),
-            StoreNull,
-        }
-
-        let (action, rv) = match self {
-            &mut InlineEventListener::Null => (None, None),
-            &mut InlineEventListener::Uncompiled(ref mut inner) => {
-                let handler = inner.take().unwrap();
+        match mem::replace(self, InlineEventListener::Null) {
+            InlineEventListener::Null => None,
+            InlineEventListener::Uncompiled(handler) => {
                 let result = owner.get_compiled_event_handler(handler, ty);
-
-                if let Some(compiled) = result {
-                    (Some(Action::StoreCompiled(compiled.clone())), Some(compiled))
-                } else {
-                    (Some(Action::StoreNull), None)
+                if let Some(compiled) = result.as_ref() {
+                    *self = InlineEventListener::Compiled(compiled.clone());
                 }
+                result
             }
-            &mut InlineEventListener::Compiled(ref handler) => (None, Some(handler.clone())),
-        };
-
-        if let Some(action) = action {
-            match action {
-                Action::StoreNull => *self = InlineEventListener::Null,
-                Action::StoreCompiled(compiled) => *self = InlineEventListener::Compiled(compiled),
+            InlineEventListener::Compiled(handler) => {
+                *self = InlineEventListener::Compiled(handler.clone());
+                Some(handler)
             }
         }
-
-        rv
     }
 }
 
@@ -236,7 +223,7 @@ struct EventListenerEntry {
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
-/// A mix of potentially uncompiled and compiled event listeners.
+/// A mix of potentially uncompiled and compiled event listeners of the same type.
 struct EventListeners(Vec<EventListenerEntry>);
 
 impl Deref for EventListeners {
@@ -372,7 +359,7 @@ impl EventTarget {
             url: url,
         };
         self.set_inline_event_listener(Atom::from(ty),
-                                       Some(InlineEventListener::Uncompiled(Some(handler))));
+                                       Some(InlineEventListener::Uncompiled(handler)));
     }
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
