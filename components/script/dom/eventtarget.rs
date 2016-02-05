@@ -117,6 +117,7 @@ pub enum InlineEventListener {
 impl InlineEventListener {
     /// Get a compiled representation of this event handler, compiling it from its
     /// raw source if necessary.
+    /// https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_compiled_handler(&mut self, owner: &EventTarget, ty: &Atom)
                             -> Option<CommonEventHandler> {
         enum Action {
