@@ -7,14 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "util"
 path = "lib.rs"
 
-# Disable doctests, because of linking issues with rustdoc. rustdoc compiles
-# documentation tests with prefer-dynamic. This causes issues because rustc
-# looks for -lazure, which does not exist (rust-azure is a dependency of
-# rust-layers). This crate only has one documentation example anyway and it's
-# imported from the rust-lang codebase.
-# See https://github.com/rust-lang/rust/issues/21246
-doctest = false
-
 [features]
 
 # This feature allows us to avoid depending on various things we don't need for
@@ -22,23 +14,13 @@ doctest = false
 # feature, but Cargo is generally set up for features to add dependencies, not
 # remove them. So we do it this way, and request that all non-GeckoLib builds
 # set this feature.
-non-geckolib = ["azure", "js", "layers", "html5ever", "hyper"]
+non-geckolib = ["js"]
 
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.azure]
-git = "https://github.com/servo/rust-azure"
-features = ["plugins"]
-optional = true
-
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
-optional = true
-
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
 optional = true
 
 [dependencies.ipc-channel]
@@ -50,10 +32,8 @@ bitflags = "0.3"
 cssparser = {version = "0.5.2", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.1", features = ["unstable", "plugins"]}
 getopts = "0.2.11"
-html5ever = {version = "0.4.2", features = ["heap_size", "unstable"], optional = true}
 heapsize = "0.2.5"
 heapsize_plugin = "0.1.2"
-hyper = { version = "0.7", optional = true }
 lazy_static = "0.1"
 libc = "0.2"
 log = "0.3"
