@@ -10,8 +10,9 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use net::fetch::methods::fetch;
-use net_traits::request::{Context, Referer, Request, RequestMode};
+use net_traits::request::{Context, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use std::cell::Cell;
 use std::rc::Rc;
 use time::{self, Duration};
 use unicase::UniCase;
@@ -141,6 +142,7 @@ fn test_fetch_response_is_cors_filtered() {
     };
     let (mut server, url) = make_server(handler);
 
+    // an origin mis-match will stop it from defaulting to a basic filtered response
     let origin = Origin::UID(OpaqueOrigin::new());
     let mut request = Request::new(url, Context::Fetch, origin, false);
     request.referer = Referer::NoReferer;
@@ -188,6 +190,57 @@ fn test_fetch_response_is_opaque_filtered() {
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
 
     assert!(fetch_response.url_list.into_inner().len() == 0);
+    assert!(fetch_response.url.is_none());
+    // this also asserts that status message is "the empty byte sequence"
+    assert!(fetch_response.status.is_none());
+    assert_eq!(fetch_response.headers, Headers::new());
+    match fetch_response.body.into_inner() {
+        ResponseBody::Empty => { },
+        _ => panic!()
+    }
+    match fetch_response.cache_state {
+        CacheState::None => { },
+        _ => panic!()
+    }
+}
+
+#[test]
+fn test_fetch_response_is_opaque_redirect_filtered() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+
+        let redirects = match request.uri {
+            RequestUri::AbsolutePath(url) =>
+                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+            RequestUri::AbsoluteUri(url) =>
+                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+            _ => panic!()
+        };
+
+        if redirects == 1 {
+            response.send(MESSAGE).unwrap();
+        } else {
+            *response.status_mut() = StatusCode::Found;
+            let url = format!("{}", 1);
+            response.headers_mut().set(Location(url.to_owned()));
+        }
+    };
+
+    let (mut server, url) = make_server(handler);
+
+    let origin = url.origin();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+    request.redirect_mode = Cell::new(RedirectMode::Manual);
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request, false);
+    let _ = server.close();
+
+    assert!(!Response::is_network_error(&fetch_response));
+    assert_eq!(fetch_response.response_type, ResponseType::OpaqueRedirect);
+
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());
