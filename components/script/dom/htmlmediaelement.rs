@@ -50,6 +50,8 @@ struct HTMLMediaElementContext {
     url: Url,
     /// Whether the media metadata has been completely received.
     have_metadata: bool,
+    /// True if this response is invalid and should be ignored.
+    ignore_response: bool,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -59,7 +61,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
             self.elem.root().queue_dedicated_media_source_failure_steps();
             // Ensure that the element doesn't receive any further notifications
             // of the aborted fetch.
-            self.generation_id -= 1;
+            self.ignore_response = true;
         }
 
         self.metadata = Some(metadata);
@@ -72,6 +74,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         let elem = self.elem.root();
 
         if !self.have_metadata {
+            //TODO: actually check if the payload contains the full metadata
             elem.change_ready_state(HAVE_METADATA);
             self.have_metadata = true;
         } else {
@@ -116,7 +119,8 @@ impl AsyncResponseListener for HTMLMediaElementContext {
 
 impl PreInvoke for HTMLMediaElementContext {
     fn should_invoke(&self) -> bool {
-        self.elem.root().generation_id.get() == self.generation_id
+        !self.ignore_response &&
+            self.elem.root().generation_id.get() == self.generation_id
     }
 }
 
@@ -132,6 +136,7 @@ impl HTMLMediaElementContext {
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             url: url,
             have_metadata: false,
+            ignore_response: false,
         }
     }
 }
