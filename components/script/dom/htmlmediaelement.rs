@@ -516,6 +516,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
+    // Missing value default is user-agent defined.
     make_enumerated_getter!(Preload, "preload", "", ("none") | ("metadata") | ("auto"));
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
     make_setter!(SetPreload, "preload");
