@@ -282,7 +282,7 @@ impl HTMLMediaElement {
 
                 if self.autoplaying.get() &&
                    self.Paused() &&
-                   self.upcast::<Element>().has_attribute(&Atom::from("autoplay")) {
+                   self.Autoplay() {
                     self.paused.set(false);
                     // TODO: show poster
                     self.queue_fire_simple_event("play");
