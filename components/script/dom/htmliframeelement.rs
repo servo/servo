@@ -113,6 +113,7 @@ impl HTMLIFrameElement {
             // document; the new navigation will continue blocking it.
             load_blocker.terminate();
         }
+        *load_blocker = None;
 
         //TODO: Deal with the case where an iframe is being reloaded so url is None.
         //      The iframe should always have access to the nested context's active
