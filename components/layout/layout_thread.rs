@@ -865,7 +865,7 @@ impl LayoutThread {
                     if rw_data.stylist.viewport_constraints().is_some() {
                         root_flow.position.size.to_physical(root_flow.writing_mode)
                     } else {
-                        root_flow.overflow.size
+                        root_flow.overflow.scroll.size
                     }
                 };
                 let mut display_list = box DisplayList::new();

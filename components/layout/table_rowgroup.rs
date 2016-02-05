@@ -9,9 +9,9 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
 use rustc_serialize::{Encodable, Encoder};
 use std::fmt;
@@ -217,7 +217,7 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 

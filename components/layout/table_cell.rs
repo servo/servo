@@ -13,7 +13,7 @@ use cssparser::Color;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{Flow, FlowClass, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::DisplayList;
 use layout_debug;
 use model::MaybeAuto;
@@ -197,7 +197,7 @@ impl Flow for TableCellFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
     }
 

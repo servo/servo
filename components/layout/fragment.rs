@@ -2176,7 +2176,7 @@ impl Fragment {
     pub fn compute_overflow(&self,
                             flow_size: &Size2D<Au>,
                             relative_containing_block_size: &LogicalSize<Au>)
-                            -> Rect<Au> {
+                            -> Overflow {
         let mut border_box = self.border_box.to_physical(self.style.writing_mode, *flow_size);
 
         // Relative position can cause us to draw outside our border box.
@@ -2186,31 +2186,33 @@ impl Fragment {
         let relative_position = self.relative_position(relative_containing_block_size);
         border_box =
             border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
-        let mut overflow = border_box;
+        let mut overflow = Overflow::from_rect(&border_box);
 
         // Box shadows cause us to draw outside our border box.
         for box_shadow in &self.style().get_effects().box_shadow.0 {
             let offset = Point2D::new(box_shadow.offset_x, box_shadow.offset_y);
             let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
                 BLUR_INFLATION_FACTOR;
-            overflow = overflow.union(&border_box.translate(&offset).inflate(inflation, inflation))
+            overflow.paint = overflow.paint.union(&border_box.translate(&offset)
+                                                             .inflate(inflation, inflation))
         }
 
         // Outlines cause us to draw outside our border box.
         let outline_width = self.style.get_outline().outline_width;
         if outline_width != Au(0) {
-            overflow = overflow.union(&border_box.inflate(outline_width, outline_width))
+            overflow.paint = overflow.paint.union(&border_box.inflate(outline_width,
+                                                                      outline_width))
         }
 
         // Include the overflow of the block flow, if any.
         match self.specific {
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow = overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&flow::base(block_flow).overflow);
             }
             SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow = overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&flow::base(block_flow).overflow);
             }
             _ => (),
         }
@@ -2569,6 +2571,45 @@ impl WhitespaceStrippingResult {
         } else {
             WhitespaceStrippingResult::RetainFragment
         }
+    }
+}
+
+/// The overflow area. We need two different notions of overflow: paint overflow and scrollable
+/// overflow.
+#[derive(Copy, Clone, Debug)]
+pub struct Overflow {
+    pub scroll: Rect<Au>,
+    pub paint: Rect<Au>,
+}
+
+impl Overflow {
+    pub fn new() -> Overflow {
+        Overflow {
+            scroll: Rect::zero(),
+            paint: Rect::zero(),
+        }
+    }
+
+    pub fn from_rect(border_box: &Rect<Au>) -> Overflow {
+        Overflow {
+            scroll: *border_box,
+            paint: *border_box,
+        }
+    }
+
+    pub fn union(&mut self, other: &Overflow) {
+        self.scroll = self.scroll.union(&other.scroll);
+        self.paint = self.paint.union(&other.paint);
+    }
+
+    pub fn union_rect(&mut self, rect: &Rect<Au>) {
+        self.scroll = self.scroll.union(&rect);
+        self.paint = self.paint.union(&rect);
+    }
+
+    pub fn translate(&mut self, point: &Point2D<Au>) {
+        self.scroll = self.scroll.translate(point);
+        self.paint = self.paint.translate(point);
     }
 }
 

@@ -11,10 +11,11 @@ use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
+use fragment::{Overflow};
 use generated_content;
 use gfx::display_list::DisplayList;
 use incremental::RESOLVE_GENERATED_CONTENT;
@@ -152,14 +153,14 @@ impl Flow for ListItemFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn compute_overflow(&self) -> Rect<Au> {
+    fn compute_overflow(&self) -> Overflow {
         let mut overflow = self.block_flow.compute_overflow();
         let flow_size = self.block_flow.base.position.size.to_physical(self.block_flow.base.writing_mode);
         let relative_containing_block_size =
             &self.block_flow.base.early_absolute_position_info.relative_containing_block_size;
 
         for fragment in &self.marker_fragments {
-            overflow = overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
+            overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
         }
         overflow
     }
