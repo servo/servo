@@ -236,11 +236,11 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         match &*id {
             "2d" => {
                 self.get_or_init_2d_context()
-                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D)
+                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::CanvasRenderingContext2D)
             }
             "webgl" | "experimental-webgl" => {
                 self.get_or_init_webgl_context(cx, attributes.get(0).cloned())
-                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext)
+                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::WebGLRenderingContext)
             }
             _ => None
         }

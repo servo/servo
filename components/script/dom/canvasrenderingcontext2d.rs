@@ -228,12 +228,12 @@ impl CanvasRenderingContext2D {
                        image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D)
                            -> bool {
         match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(canvas) => {
                 canvas.origin_is_clean()
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) =>
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(image) =>
                 image.r().origin_is_clean(),
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) =>
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) =>
                 match image.get_url() {
                     None => true,
                     Some(url) => {
@@ -279,19 +279,19 @@ impl CanvasRenderingContext2D {
                   dh: Option<f64>)
                   -> Fallible<()> {
         let result = match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(ref canvas) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
                 self.draw_html_canvas_element(canvas.r(),
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(ref image) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref image) => {
                 let context = image.r();
                 let canvas = context.Canvas();
                 self.draw_html_canvas_element(canvas.r(),
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(ref image) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(ref image) => {
                 let image_element = image.r();
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
@@ -913,13 +913,13 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(DOMString::from(result))
+                StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
+                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(Root::from_ref(&*gradient))
             },
             CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(Root::from_ref(&*pattern))
+                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(Root::from_ref(&*pattern))
             }
         }
     }
@@ -927,7 +927,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
-            StringOrCanvasGradientOrCanvasPattern::eString(string) => {
+            StringOrCanvasGradientOrCanvasPattern::String(string) => {
                 if let Ok(rgba) = self.parse_color(&string) {
                     self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
                     self.ipc_renderer
@@ -936,14 +936,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                         .unwrap();
                 }
             },
-            StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
+            StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().stroke_style =
                     CanvasFillOrStrokeStyle::Gradient(JS::from_ref(gradient.r()));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
-            StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+            StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().stroke_style =
                     CanvasFillOrStrokeStyle::Pattern(JS::from_ref(pattern.r()));
                 let msg = CanvasMsg::Canvas2d(
@@ -962,13 +962,13 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(DOMString::from(result))
+                StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
+                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(Root::from_ref(&*gradient))
             },
             CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(Root::from_ref(&*pattern))
+                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(Root::from_ref(&*pattern))
             }
         }
     }
@@ -976,7 +976,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
-            StringOrCanvasGradientOrCanvasPattern::eString(string) => {
+            StringOrCanvasGradientOrCanvasPattern::String(string) => {
                 if let Ok(rgba) = self.parse_color(&string) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                     self.ipc_renderer
@@ -985,14 +985,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                         .unwrap()
                 }
             }
-            StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
+            StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().fill_style =
                     CanvasFillOrStrokeStyle::Gradient(JS::from_rooted(&gradient));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             }
-            StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+            StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().fill_style =
                     CanvasFillOrStrokeStyle::Pattern(JS::from_rooted(&pattern));
                 let msg = CanvasMsg::Canvas2d(
@@ -1156,18 +1156,18 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      mut repetition: DOMString)
                      -> Fallible<Root<CanvasPattern>> {
         let (image_data, image_size) = match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(ref image) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
                 try!(self.fetch_image_data(&image.r()).ok_or(Error::InvalidState))
             },
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(ref canvas) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
                 let _ = canvas.get_or_init_2d_context();
 
                 try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
             },
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(ref context) => {
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref context) => {
                 let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 

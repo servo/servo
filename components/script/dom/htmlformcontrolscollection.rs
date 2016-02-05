@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
-use dom::bindings::codegen::UnionTypes::RadioNodeListOrElement::{self, eElement, eRadioNodeList};
+use dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -62,7 +62,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
             let mut peekable = filter_map.peekable();
             // Step 2
             if peekable.peek().is_none() {
-                Some(eElement(elem))
+                Some(RadioNodeListOrElement::Element(elem))
             } else {
                 // Step 4-5
                 let once = iter::once(Root::upcast::<Node>(elem));
@@ -70,7 +70,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 let global = self.global();
                 let global = global.r();
                 let window = global.as_window();
-                Some(eRadioNodeList(RadioNodeList::new_simple_list(window, list)))
+                Some(RadioNodeListOrElement::RadioNodeList(RadioNodeList::new_simple_list(window, list)))
             }
         // Step 3
         } else { None }
