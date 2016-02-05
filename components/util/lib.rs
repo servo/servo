@@ -21,8 +21,6 @@
 
 extern crate alloc;
 extern crate app_units;
-#[cfg(feature = "non-geckolib")]
-extern crate azure;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -30,15 +28,9 @@ extern crate cssparser;
 extern crate euclid;
 extern crate getopts;
 extern crate heapsize;
-#[cfg(feature = "non-geckolib")]
-extern crate html5ever;
-#[cfg(feature = "non-geckolib")]
-extern crate hyper;
 extern crate ipc_channel;
 #[cfg(feature = "non-geckolib")]
 extern crate js;
-#[cfg(feature = "non-geckolib")]
-extern crate layers;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
