@@ -1231,6 +1231,7 @@ impl Document {
                            ReflowReason::RequestAnimationFrame);
     }
 
+    /// Add a load to the list of loads blocking this document's load.
     pub fn add_blocking_load(&self, load: LoadType) {
         let mut loader = self.loader.borrow_mut();
         loader.add_blocking_load(load)

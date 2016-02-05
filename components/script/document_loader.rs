@@ -117,6 +117,7 @@ impl DocumentLoader {
         }
     }
 
+    /// Add a load to the list of blocking loads.
     pub fn add_blocking_load(&mut self, load: LoadType) {
         self.blocking_loads.push(load);
     }
