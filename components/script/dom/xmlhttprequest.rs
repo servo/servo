@@ -676,12 +676,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
-            => return Ok(()),
+                => return Ok(()),
+            GlobalRoot::Window(_) if self.sync.get() => return Err(Error::InvalidAccess),
             _ => {}
         }
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(Error::InvalidState),
-            _ if self.sync.get() => Err(Error::InvalidAccess),
             _ => {
                 self.response_type.set(response_type);
                 Ok(())
