@@ -21,6 +21,7 @@
           assert_equals(url, innerURL, "iframe url (" + pingCount + ")");
           pingCount++;
           if (pingCount == 5) {
+            iframe.src = 'about:blank';
             t.done();
           }
       });
