@@ -511,7 +511,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_bool_setter!(SetAutoplay, "autoplay");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
-    make_getter!(Src, "src");
+    make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_setter!(SetSrc, "src");
 
