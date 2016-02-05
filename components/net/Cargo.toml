@@ -40,4 +40,4 @@ flate2 = "0.2.0"
 uuid = "0.1.16"
 url = {version = "0.5.4", features = ["heap_size"]}
 websocket = "0.14.0"
-immeta = "0.2"
+immeta = "0.3.1"
