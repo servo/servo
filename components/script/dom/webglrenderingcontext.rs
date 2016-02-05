@@ -1124,11 +1124,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         let (pixels, size) = match source {
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eImageData(image_data) => {
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
                 let global = self.global();
                 (image_data.get_data_array(&global.r()), image_data.get_size())
             },
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLImageElement(image) => {
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
                 let img_url = match image.get_url() {
                     Some(url) => url,
                     None => return,
@@ -1157,7 +1157,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             // TODO(ecoal95): Getting canvas data is implemented in CanvasRenderingContext2D, but
             // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLCanvasElement(canvas) => {
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 let canvas = canvas.r();
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     byte_swap(&mut data);
@@ -1166,7 +1166,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return
                 }
             },
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLVideoElement(_rooted_video)
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLVideoElement(_rooted_video)
                 => unimplemented!(),
         };
 

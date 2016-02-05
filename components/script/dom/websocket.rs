@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::codegen::UnionTypes::StringOrStringSequence::{self, eString, eStringSequence};
+use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -210,8 +210,8 @@ impl WebSocket {
 
         // Step 4.
         let protocols = match protocols {
-            Some(eString(string)) => vec![String::from(string)],
-            Some(eStringSequence(sequence)) => {
+            Some(StringOrStringSequence::String(string)) => vec![String::from(string)],
+            Some(StringOrStringSequence::StringSequence(sequence)) => {
                 sequence.into_iter().map(String::from).collect()
             },
             _ => Vec::new(),
