@@ -20,9 +20,8 @@ use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::hash_state::DefaultState;
 use std::default::Default;
-use std::hash::{Hash, Hasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
@@ -86,7 +85,7 @@ pub struct FontContext {
     paint_font_cache: Vec<PaintFontCacheEntry>,
 
     layout_font_group_cache:
-        HashMap<LayoutFontGroupCacheKey, Rc<FontGroup>, DefaultState<FnvHasher>>,
+        HashMap<LayoutFontGroupCacheKey, Rc<FontGroup>, BuildHasherDefault<FnvHasher>>,
 
     epoch: usize,
 }
@@ -100,7 +99,7 @@ impl FontContext {
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
             paint_font_cache: vec!(),
-            layout_font_group_cache: HashMap::with_hash_state(Default::default()),
+            layout_font_group_cache: HashMap::with_hasher(Default::default()),
             epoch: 0,
         }
     }
