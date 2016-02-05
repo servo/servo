@@ -2,29 +2,28 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Test: flex container should layout flex items vertically</title>
+  <title>CSS Test: flex container with row-reverse direction should layout flex
+    items in reverse order horizontally</title>
   <link rel="author" title="Kyle Zentner" href="mailto:zentner.kyle@gmail.com">
   <link rel="help" href="https://drafts.csswg.org/css-flexbox/">
-  <link rel=match href=flex_column_direction_ref.html>
+  <link rel=match href=flex_row_direction_ref.html>
   <style>
     body {
       margin: 0;
     }
     .flexbox {
       display: flex;
-      flex-direction: column;
-      height: 300px;
+      flex-direction: row-reverse;
+      width: 300px;
     }
     .first-item {
-      background: orange;
-      height: 150px;
-      width: 100px;
+      background: blue;
+      height: 100px;
       flex: 1 0 auto;
     }
     .second-item {
-      background: blue;
-      height: 150px;
-      width: 100px;
+      background: orange;
+      height: 100px;
       flex: 1 0 auto;
     }
   </style>

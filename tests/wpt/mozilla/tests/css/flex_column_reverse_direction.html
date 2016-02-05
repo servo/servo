@@ -2,7 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Test: flex container should layout flex items vertically</title>
+  <title>CSS Test: flex container with column-reverse should layout flex items
+    vertically in reverse order</title>
   <link rel="author" title="Kyle Zentner" href="mailto:zentner.kyle@gmail.com">
   <link rel="help" href="https://drafts.csswg.org/css-flexbox/">
   <link rel=match href=flex_column_direction_ref.html>
@@ -16,13 +17,13 @@
       height: 300px;
     }
     .first-item {
-      background: orange;
+      background: blue;
       height: 150px;
       width: 100px;
       flex: 1 0 auto;
     }
     .second-item {
-      background: blue;
+      background: orange;
       height: 150px;
       width: 100px;
       flex: 1 0 auto;
