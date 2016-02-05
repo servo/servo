@@ -362,13 +362,6 @@ class CommandBase(object):
             env["OPENSSL_LIB_DIR"] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(env["GONKDIR"], "external/openssl/include")
 
-        if "ANDROID_SDK" in env:
-            env["ANDROID_HOME"] = env["ANDROID_SDK"]
-        if "ANDROID_NDK" in env:
-            env["NDK_HOME"] = env["ANDROID_NDK"]
-        if "ANDROID_TOOLCHAIN" in env:
-            env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
-
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
