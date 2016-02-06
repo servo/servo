@@ -90,12 +90,12 @@ impl TestBindingMethods for TestBinding {
         Blob::new(self.global().r(), Vec::new(), "")
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
-    fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::eLong(0) }
+    fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
-    fn Union2Attribute(&self) -> EventOrString { EventOrString::eString(DOMString::new()) }
+    fn Union2Attribute(&self) -> EventOrString { EventOrString::String(DOMString::new()) }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn Union3Attribute(&self) -> EventOrUSVString {
-        EventOrUSVString::eUSVString(USVString("".to_owned()))
+        EventOrUSVString::USVString(USVString("".to_owned()))
     }
     fn SetUnion3Attribute(&self, _: EventOrUSVString) {}
     fn ArrayAttribute(&self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
@@ -157,11 +157,11 @@ impl TestBindingMethods for TestBinding {
     fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
-        Some(HTMLElementOrLong::eLong(0))
+        Some(HTMLElementOrLong::Long(0))
     }
     fn SetUnionAttributeNullable(&self, _: Option<HTMLElementOrLong>) {}
     fn GetUnion2AttributeNullable(&self) -> Option<EventOrString> {
-        Some(EventOrString::eString(DOMString::new()))
+        Some(EventOrString::String(DOMString::new()))
     }
     fn SetUnion2AttributeNullable(&self, _: Option<EventOrString>) {}
     fn BinaryRenamedMethod(&self) -> () {}
@@ -188,11 +188,11 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
-    fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::eLong(0) }
-    fn ReceiveUnion2(&self) -> EventOrString { EventOrString::eString(DOMString::new()) }
-    fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::eLongSequence(vec![]) }
-    fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::eStringSequence(vec![]) }
-    fn ReceiveUnion5(&self) -> BlobOrBlobSequence { BlobOrBlobSequence::eBlobSequence(vec![]) }
+    fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
+    fn ReceiveUnion2(&self) -> EventOrString { EventOrString::String(DOMString::new()) }
+    fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::LongSequence(vec![]) }
+    fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::StringSequence(vec![]) }
+    fn ReceiveUnion5(&self) -> BlobOrBlobSequence { BlobOrBlobSequence::BlobSequence(vec![]) }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
         vec![Blob::new(self.global().r(), Vec::new(), "")]
@@ -220,13 +220,13 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
-        Some(HTMLElementOrLong::eLong(0))
+        Some(HTMLElementOrLong::Long(0))
     }
     fn ReceiveNullableUnion2(&self) -> Option<EventOrString> {
-        Some(EventOrString::eString(DOMString::new()))
+        Some(EventOrString::String(DOMString::new()))
     }
     fn ReceiveNullableUnion3(&self) -> Option<StringOrLongSequence> {
-        Some(StringOrLongSequence::eString(DOMString::new()))
+        Some(StringOrLongSequence::String(DOMString::new()))
     }
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
 
