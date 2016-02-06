@@ -675,16 +675,18 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global() {
-            GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
-            => return Ok(()),
+            GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document => return Ok(()),
             _ => {}
         }
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(Error::InvalidState),
-            _ if self.sync.get() => Err(Error::InvalidAccess),
             _ => {
-                self.response_type.set(response_type);
-                Ok(())
+                if let (GlobalRoot::Window(_), true) = (self.global(), self.sync.get()) {
+                    Err(Error::InvalidAccess)
+                } else {
+                    self.response_type.set(response_type);
+                    Ok(())
+                }
             }
         }
     }
