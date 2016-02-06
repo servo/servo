@@ -5718,7 +5718,8 @@ impl PropertyDeclarationBlock {
         let mut already_serialized = HashSet::new();
 
         // Step 3
-        for declaration in self.normal.iter().chain(self.important.iter()) {
+        let declarations = self.normal.iter().chain(self.important.iter()).collect::<Vec<_>>();
+        for declaration in &declarations {
             // Step 3.1
             let property = declaration.name().to_string();
 
@@ -5733,9 +5734,9 @@ impl PropertyDeclarationBlock {
                 shorthands.sort_by(|a,b| a.longhands().len().cmp(&b.longhands().len()));
 
                 // Step 3.3.1
-                let mut longhands = self.normal.iter().chain(self.important.iter()).cloned()
-                    .filter(|d| !already_serialized.contains(&d.name().to_string()))
-                    .collect::<Vec<PropertyDeclaration>>();
+                let mut longhands = declarations.iter().cloned()
+                .filter(|d| !already_serialized.contains(&d.name().to_string()))
+                    .collect::<Vec<_>>();
 
                 // Step 3.3.2
                 for shorthand in shorthands {
@@ -5744,7 +5745,7 @@ impl PropertyDeclarationBlock {
                     // Substep 2 & 3
                     let current_longhands = longhands.iter().cloned()
                         .filter(|l| properties.contains(&&&*l.name().to_string()))
-                        .collect::<Vec<PropertyDeclaration>>();
+                        .collect::<Vec<_>>();
 
                     // Substep 1
                     if current_longhands.len() == 0 {
@@ -5779,7 +5780,7 @@ impl PropertyDeclarationBlock {
 
                     // TODO: serialize shorthand does not take is_important into account currently
                     // Substep 5
-                    let value = shorthand.serialize_shorthand(&current_longhands);
+                    let value = shorthand.serialize_shorthand(&current_longhands[..]);
 
                     // Substep 6
                     if value.is_empty() {
@@ -5998,7 +5999,7 @@ impl Shorthand {
         }
     }
 
-    pub fn serialize_shorthand(self, declarations: &[PropertyDeclaration]) -> String {
+    pub fn serialize_shorthand(self, declarations: &[&PropertyDeclaration]) -> String {
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = declarations[0].with_variables_from_shorthand(self) {
             if declarations[1..]
