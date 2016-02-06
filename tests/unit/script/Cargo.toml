@@ -11,8 +11,14 @@ doctest = false
 [dependencies.msg]
 path = "../../../components/msg"
 
+[dependencies.plugins]
+path = "../../../components/plugins"
+
 [dependencies.script]
 path = "../../../components/script"
 
 [dependencies.util]
 path = "../../../components/util"
+
+[dependencies]
+url = {version = "0.5.8", features = ["heap_size"]}
