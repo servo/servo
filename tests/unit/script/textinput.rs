@@ -48,7 +48,7 @@ fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_le
     //                   world"
     //                   ----
 
-    textinput.insert_string("cruel\nterrible\nbad".to_string());
+    textinput.insert_string("cruel\nterrible\nbad".to_owned());
 
     assert_eq!(textinput.get_content(), "hcruel\nterrible\nd");
 }
@@ -64,7 +64,7 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
 
     textinput.edit_point = TextPoint { line: 1, index: 0 };
 
-    textinput.insert_string("cruel\nterrible".to_string());
+    textinput.insert_string("cruel\nterrible".to_owned());
 
     assert_eq!(textinput.get_content(), "hello\ncruel\nworld");
 }
