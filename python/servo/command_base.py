@@ -362,10 +362,10 @@ class CommandBase(object):
             env["OPENSSL_LIB_DIR"] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(env["GONKDIR"], "external/openssl/include")
 
-        # FIXME: These are set because they are the variable names that
-        # android-rs-glue expects. However, other submodules have makefiles that
-        # reference the env var names above. Once glutin is enabled and set as
-        # the default, we could modify the subproject makefiles to use the names
+        # These are set because they are the variable names that build-apk
+        # expects. However, other submodules have makefiles that reference
+        # the env var names above. Once glutin is enabled and set as the
+        # default, we could modify the subproject makefiles to use the names
         # below and remove the vars above, to avoid duplication.
         if "ANDROID_SDK" in env:
             env["ANDROID_HOME"] = env["ANDROID_SDK"]
