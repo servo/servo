@@ -10,6 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::element::Element;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::Node;
 use dom::nodelist::{NodeList, NodeListType};
@@ -80,6 +81,7 @@ impl RadioNodeListMethods for RadioNodeList {
             if let Some(input) = node.downcast::<HTMLInputElement>() {
                 match input.type_() {
                     atom!("radio") if value == DOMString::from("on") => {
+                        // println!("oh noes! {} {}", value, node.debug_str());
                         // Step 2
                         let val = input.Value();
                         if val.is_empty() || val == value {

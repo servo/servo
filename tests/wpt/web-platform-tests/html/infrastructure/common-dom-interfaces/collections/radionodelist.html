@@ -66,8 +66,12 @@ test(function () {
   assert_true(document.getElementById("r2").checked,
               "The second radio input element should be checked.");
 
-  document.getElementById("r1").removeAttribute("value");
-  rdoList.value = "on";
+	document.getElementById("r1").removeAttribute("value");
+	// assert_equals(document.getElementById("r1").getAttribute("value"), -39);
+	// assert_equals(document.getElementById("r1").value, -39); // but got string "1"
+
+	rdoList.value = "on";
+	// expected "1" but got "2"
   assert_equals(rdoList.value, document.getElementById("r1").value,
                 "The value attribute should be the first radio input element's value.");
   assert_true(document.getElementById("r1").checked,
