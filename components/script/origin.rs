@@ -2,21 +2,50 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::rc::Rc;
-use url::Origin as UrlOrigin;
+use url::{OpaqueOrigin, Origin as UrlOrigin};
 use url::{Url, Host};
 
-/// A representation of an [origin](https://url.spec.whatwg.org/#origin)
-#[derive(Clone, JSTraceable, HeapSizeOf)]
+/// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
+#[derive(Clone, HeapSizeOf)]
 pub struct Origin {
     #[ignore_heap_size_of = "Rc<T> has unclear ownership semantics"]
-    repr: Rc<OriginRepresentation>,
+    inner: Rc<InnerOrigin>,
 }
 
-#[derive(Clone, JSTraceable)]
+// We can't use RefCell inside JSTraceable, but Origin doesn't contain JS values and
+// DOMRefCell makes it much harder to write unit tests (due to setting up required TLS).
+no_jsmanaged_fields!(Origin);
+
+/// An wrapper to encapsulate mutation of an origin in order to support aliasing.
+struct InnerOrigin {
+    repr: RefCell<OriginRepresentation>,
+}
+
+impl InnerOrigin {
+    fn set(&self, origin: Origin) {
+        let dealiased = origin.inner.dealiased();
+        let repr = dealiased.repr.borrow().clone();
+        *self.repr.borrow_mut() = repr;
+    }
+
+    fn is_scheme_host_port_tuple(&self) -> bool {
+        self.repr.borrow().is_scheme_host_port_tuple()
+    }
+
+    fn host(&self) -> Option<Host> {
+        self.repr.borrow().host().clone()
+    }
+}
+
+/// The representation of the different types of origins.
+#[derive(Clone)]
 enum OriginRepresentation {
+    /// An origin defined by the [URL specification](https://url.spec.whatwg.org/#concept-url-origin)
     Origin(UrlOrigin),
-    Alias(Rc<OriginRepresentation>),
+    /// A transparent alias to an existing origin.
+    Alias(Rc<InnerOrigin>),
 }
 
 impl OriginRepresentation {
@@ -28,9 +57,9 @@ impl OriginRepresentation {
         }
     }
 
-    fn host(&self) -> Option<&Host> {
+    fn host(&self) -> Option<Host> {
         match *self {
-            OriginRepresentation::Origin(UrlOrigin::Tuple(_, ref host, _)) => Some(host),
+            OriginRepresentation::Origin(UrlOrigin::Tuple(_, ref host, _)) => Some(host.clone()),
             OriginRepresentation::Origin(UrlOrigin::UID(..)) => None,
             OriginRepresentation::Alias(ref origin) => origin.host(),
         }
@@ -38,30 +67,48 @@ impl OriginRepresentation {
 }
 
 impl Origin {
+    #[allow(dead_code)]
+    /// Set this origin to another de-aliased origin.
+    pub fn set(&self, origin: Origin) {
+        self.inner.set(origin);
+    }
+
+    /// Create a new origin comprising a unique, opaque identifier.
     pub fn opaque_identifier() -> Origin {
+        let opaque = UrlOrigin::UID(OpaqueOrigin::new());
         Origin {
-            repr: Rc::new(OriginRepresentation::Origin(url!("file:///tmp").origin())),
+            inner: Rc::new(InnerOrigin {
+                repr: RefCell::new(OriginRepresentation::Origin(opaque)),
+            }),
         }
     }
 
+    /// Create a new origin that aliases the callee.
     pub fn alias(&self) -> Origin {
         Origin {
-            repr: Rc::new(OriginRepresentation::Alias(self.repr.clone())),
+            inner: Rc::new(InnerOrigin {
+                repr: RefCell::new(OriginRepresentation::Alias(self.inner.clone())),
+            }),
         }
     }
 
+    /// Create a new origin for the given URL.
     pub fn new(url: &Url) -> Origin {
         Origin {
-            repr: Rc::new(OriginRepresentation::Origin(url.origin())),
+            inner: Rc::new(InnerOrigin {
+                repr: RefCell::new(OriginRepresentation::Origin(url.origin())),
+            }),
         }
     }
 
+    /// Does this (possibly dealiased) origin represent a host/scheme/port tuple?
     pub fn is_scheme_host_port_tuple(&self) -> bool {
-        self.repr.is_scheme_host_port_tuple()
+        self.inner.is_scheme_host_port_tuple()
     }
 
-    pub fn host(&self) -> Option<&Host> {
-        self.repr.host()
+    /// Return the host associated with this origin.
+    pub fn host(&self) -> Option<Host> {
+        self.inner.host()
     }
 }
 
@@ -69,9 +116,9 @@ trait Dealias {
     fn dealiased(&self) -> Self;
 }
 
-impl Dealias for Rc<OriginRepresentation> {
-    fn dealiased(&self) -> Rc<OriginRepresentation> {
-        match **self {
+impl Dealias for Rc<InnerOrigin> {
+    fn dealiased(&self) -> Rc<InnerOrigin> {
+        match *self.repr.borrow() {
             OriginRepresentation::Alias(ref aliased) => aliased.dealiased(),
             _ => self.clone(),
         }
@@ -80,10 +127,14 @@ impl Dealias for Rc<OriginRepresentation> {
 
 impl PartialEq for Origin {
     fn eq(&self, other: &Origin) -> bool {
-        match (&*self.repr.dealiased(), &*other.repr.dealiased()) {
+        let first = self.inner.dealiased();
+        let second = other.inner.dealiased();
+        let first = first.repr.borrow();
+        let second = second.repr.borrow();
+        match (&*first, &*second) {
             (&OriginRepresentation::Origin(ref origin1),
              &OriginRepresentation::Origin(ref origin2)) => origin1 == origin2,
-            _ => false,
+            _ => unreachable!(),
         }
     }
 }
