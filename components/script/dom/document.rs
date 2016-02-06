@@ -1803,7 +1803,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
         if let Some(host) = self.effective_script_origin.host() {
-            if let &Host::Ipv6(ipv6) = host {
+            if let Host::Ipv6(ipv6) = host {
                 // Omit square brackets for IPv6 addresses.
                 return DOMString::from(ipv6.to_string());
             }
