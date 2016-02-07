@@ -5718,7 +5718,10 @@ impl PropertyDeclarationBlock {
         let mut already_serialized = HashSet::new();
 
         // Step 3
-        let declarations = self.normal.iter().chain(self.important.iter()).collect::<Vec<_>>();
+        // restore order of declarations since PropertyDeclarationBlock is stored in reverse order
+        let declarations = self.normal.iter().chain(self.important.iter()).rev().collect::<Vec<_>>();
+
+
         for declaration in &declarations {
             // Step 3.1
             let property = declaration.name().to_string();
@@ -5743,28 +5746,23 @@ impl PropertyDeclarationBlock {
                     let properties = shorthand.longhands();
 
                     // Substep 2 & 3
-                    let current_longhands = longhands.iter().cloned()
-                        .filter(|l| properties.contains(&&&*l.name().to_string()))
-                        .collect::<Vec<_>>();
-
-                    // Substep 1
-                    if current_longhands.len() == 0 {
-                        continue;
-                    }
-
-                    let current_longhand_properties: HashSet<String> = HashSet::from_iter(
-                        current_longhands.iter().map(|l| l.name().to_string())
+                    let mut current_longhands = Vec::new();
+                    let mut missing_properties: HashSet<_> = HashSet::from_iter(
+                        properties.iter().map(|&s| s.to_owned())
                     );
 
-                    let mut is_property_missing = false;
-                    for property in properties {
-                        if !current_longhand_properties.contains(*property) {
-                            is_property_missing = true;
-                            break;
+                    for longhand in longhands.iter().cloned() {
+                        let longhand_string = longhand.name().to_string();
+                        if !properties.contains(&&*longhand_string) {
+                            continue;
                         }
+
+                        missing_properties.remove(&longhand_string);
+                        current_longhands.push(longhand);
                     }
 
-                    if is_property_missing {
+                    // Substep 1
+                    if current_longhands.len() == 0 || missing_properties.len() > 0 {
                         continue;
                     }
 
