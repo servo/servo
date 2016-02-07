@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMetho
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
 use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams;
-use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams::{eBlob, eString, eURLSearchParams};
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
@@ -1242,17 +1241,17 @@ impl Extractable for SendParam {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         match *self {
-            eString(ref s) => {
+            BlobOrStringOrURLSearchParams::String(ref s) => {
                 let encoding = UTF_8 as EncodingRef;
                 (encoding.encode(s, EncoderTrap::Replace).unwrap(),
                     Some(DOMString::from("text/plain;charset=UTF-8")))
             },
-            eURLSearchParams(ref usp) => {
+            BlobOrStringOrURLSearchParams::URLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
                 (usp.serialize(None).into_bytes(),
                     Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
             },
-            eBlob(ref b) => {
+            BlobOrStringOrURLSearchParams::Blob(ref b) => {
                 let data = b.get_data();
                 let content_type = if b.Type().as_ref().is_empty() {
                     None
