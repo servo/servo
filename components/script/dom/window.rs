@@ -120,15 +120,15 @@ pub struct Window {
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     #[ignore_heap_size_of = "thread sources are hard"]
-    dom_manipulation_thread_source: DOMManipulationThreadSource,
+    dom_manipulation_task_source: DOMManipulationThreadSource,
     #[ignore_heap_size_of = "thread sources are hard"]
-    user_interaction_thread_source: UserInteractionThreadSource,
+    user_interaction_task_source: UserInteractionThreadSource,
     #[ignore_heap_size_of = "thread sources are hard"]
-    networking_thread_source: NetworkingThreadSource,
+    networking_task_source: NetworkingThreadSource,
     #[ignore_heap_size_of = "thread sources are hard"]
-    history_traversal_thread_source: HistoryTraversalThreadSource,
+    history_traversal_task_source: HistoryTraversalThreadSource,
     #[ignore_heap_size_of = "thread sources are hard"]
-    file_reading_thread_source: FileReadingThreadSource,
+    file_reading_task_source: FileReadingThreadSource,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -252,24 +252,24 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn dom_manipulation_thread_source(&self) -> Box<ScriptChan + Send> {
-        self.dom_manipulation_thread_source.clone()
+    pub fn dom_manipulation_task_source(&self) -> Box<ScriptChan + Send> {
+        self.dom_manipulation_task_source.clone()
     }
 
-    pub fn user_interaction_thread_source(&self) -> Box<ScriptChan + Send> {
-        self.user_interaction_thread_source.clone()
+    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
+        self.user_interaction_task_source.clone()
     }
 
-    pub fn networking_thread_source(&self) -> Box<ScriptChan + Send> {
-        self.networking_thread_source.clone()
+    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
+        self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_thread_source(&self) -> Box<ScriptChan + Send> {
-        self.history_traversal_thread_source.clone()
+    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+        self.history_traversal_task_source.clone()
     }
 
-    pub fn file_reading_thread_source(&self) -> Box<ScriptChan + Send> {
-        self.file_reading_thread_source.clone()
+    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+        self.file_reading_task_source.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1291,11 +1291,11 @@ impl Window {
     pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
-               dom_thread_source: DOMManipulationThreadSource,
-               user_thread_source: UserInteractionThreadSource,
-               network_thread_source: NetworkingThreadSource,
-               history_thread_source: HistoryTraversalThreadSource,
-               file_thread_source: FileReadingThreadSource,
+               dom_task_source: DOMManipulationThreadSource,
+               user_task_source: UserInteractionThreadSource,
+               network_task_source: NetworkingThreadSource,
+               history_task_source: HistoryTraversalThreadSource,
+               file_task_source: FileReadingThreadSource,
                image_cache_chan: ImageCacheChan,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
@@ -1321,11 +1321,11 @@ impl Window {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
-            dom_manipulation_thread_source: dom_thread_source,
-            user_interaction_thread_source: user_thread_source,
-            networking_thread_source: network_thread_source,
-            history_traversal_thread_source: history_thread_source,
-            file_reading_thread_source: file_thread_source,
+            dom_manipulation_task_source: dom_task_source,
+            user_interaction_task_source: user_task_source,
+            networking_task_source: network_task_source,
+            history_traversal_task_source: history_task_source,
+            file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
             console: Default::default(),
             crypto: Default::default(),
