@@ -210,10 +210,10 @@ impl HTMLIFrameElement {
         // TODO Step 3 - set child document  `mut iframe load` flag
 
         // Step 4
-        let window = window_from_node(self);
-        self.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
+        self.upcast::<EventTarget>().fire_simple_event("load");
         // TODO Step 5 - unset child document `mut iframe load` flag
 
+        let window = window_from_node(self);
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
                       ReflowReason::IFrameLoadEvent);

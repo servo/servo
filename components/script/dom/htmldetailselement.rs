@@ -5,7 +5,6 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -97,11 +96,8 @@ impl ToggleEventRunnable {
 impl Runnable for ToggleEventRunnable {
     fn handler(self: Box<ToggleEventRunnable>) {
         let target = self.element.root();
-        let window = window_from_node(target.upcast::<Node>());
-
         if target.check_toggle_count(self.toggle_number) {
-            target.upcast::<EventTarget>()
-                  .fire_simple_event("toggle", GlobalRef::Window(window.r()));
+            target.upcast::<EventTarget>().fire_simple_event("toggle");
         }
     }
 }

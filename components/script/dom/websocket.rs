@@ -487,7 +487,7 @@ impl Runnable for ConnectionEstablishedTask {
         // Step 5: Cookies.
 
         // Step 6.
-        ws.upcast().fire_simple_event("open", global.r());
+        ws.upcast().fire_simple_event("open");
     }
 }
 
@@ -537,8 +537,7 @@ impl Runnable for CloseTask {
         if self.failed {
             ws.upcast().fire_event("error",
                                    EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable,
-                                   global.r());
+                                   EventCancelable::Cancelable);
         }
 
         // Step 3.
