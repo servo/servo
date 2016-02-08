@@ -247,6 +247,7 @@ impl StyleSharingCandidate {
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
+            // TODO(ecoal95): Refactor this.
             link: element.match_non_ts_pseudo_class(E::Impl::parse_non_ts_pseudo_class(&ParserContext::new(), "any-link").unwrap()),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
@@ -315,6 +316,7 @@ impl StyleSharingCandidate {
             }
         }
 
+        // TODO(ecoal95): Refactor this (SelectorImplExt or similar in servo?).
         if element.match_non_ts_pseudo_class(E::Impl::parse_non_ts_pseudo_class(&ParserContext::new(), "any-link").unwrap()) != self.link {
             return false
         }
@@ -530,6 +532,15 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
+        // TODO(ecoal95): refactor this to be generic about pseudo-elements.
+        // ¿Possibly an `each_pseudo` method in selectors?
+        //
+        // Impl::each_pseudo(|pseudo|
+        //     stylist.push_applicable_declarations(self,
+        //                                          parent_bf,
+        //                                          None,
+        //                                          Some(pseudo),
+        //                                          applicable_declarations.per_pseudo.entry(pseudo.clone()).or_insert(vec![])));
         stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
