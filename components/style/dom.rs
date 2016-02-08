@@ -12,6 +12,7 @@ use selectors::matching::DeclarationBlock;
 use selectors::parser::SelectorImpl;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
+use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::sync::Arc;

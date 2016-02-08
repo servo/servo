@@ -11,7 +11,6 @@ use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use media_queries::{Device, MediaType};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::{PseudoElement};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
 use selectors::bloom::BloomFilter;
@@ -20,6 +19,7 @@ use selectors::matching::{Rule, SelectorMap};
 use selector_impl::ServoSelectorImpl;
 use smallvec::VecLike;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::process;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
@@ -83,7 +83,8 @@ lazy_static! {
     };
 }
 
-pub struct Stylist<Impl: SelectorImpl> {
+pub struct Stylist<Impl: SelectorImpl>
+    where Impl::PseudoElement: Eq + Hash {
     // Device that the stylist is currently evaluating against.
     pub device: Device,
 
@@ -106,7 +107,8 @@ pub struct Stylist<Impl: SelectorImpl> {
     state_deps: DependencySet<Impl>,
 }
 
-impl<Impl: SelectorImpl> Stylist<Impl> {
+impl<Impl: SelectorImpl> Stylist<Impl>
+    where Impl::PseudoElement: Eq + Hash {
     #[inline]
     pub fn new(device: Device) -> Stylist<Impl> {
         Stylist {

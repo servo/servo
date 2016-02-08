@@ -9,6 +9,7 @@ use selectors::bloom::BloomFilter;
 use selectors::parser::SelectorImpl;
 use selectors::Element;
 use std::cell::RefCell;
+use std::hash::Hash;
 use util::opts;
 use util::tid::tid;
 
@@ -44,10 +45,11 @@ thread_local!(
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
 fn take_thread_local_bloom_filter<'ln, N, Impl: SelectorImpl>(parent_node: Option<N>,
-                                                             root: OpaqueNode,
-                                                             context: &SharedStyleContext<Impl>)
-                                                             -> Box<BloomFilter>
-                                                             where N: TNode<'ln> {
+                                                              root: OpaqueNode,
+                                                              context: &SharedStyleContext<Impl>)
+                                                              -> Box<BloomFilter>
+                                                              where N: TNode<'ln>,
+                                                                    Impl::PseudoElement: Eq + Hash {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -81,7 +83,8 @@ fn take_thread_local_bloom_filter<'ln, N, Impl: SelectorImpl>(parent_node: Optio
 
 pub fn put_thread_local_bloom_filter<Impl: SelectorImpl>(bf: Box<BloomFilter>,
                                                          unsafe_node: &UnsafeNode,
-                                                         context: &SharedStyleContext<Impl>) {
+                                                         context: &SharedStyleContext<Impl>)
+                                                         where Impl::PseudoElement: Eq + Hash {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken thread-local bloom filter");
@@ -124,7 +127,8 @@ pub fn recalc_style_at<'a, 'ln, N, C>(context: &'a C,
                                       node: N)
     where N: TNode<'ln>,
           C: StyleContext<'a, <N::ConcreteElement as Element>::Impl>,
-          <N::ConcreteElement as Element>::Impl: 'a {
+          <N::ConcreteElement as Element>::Impl: 'a,
+          <<N::ConcreteElement as Element>::Impl as SelectorImpl>::PseudoElement: Eq + Hash {
     // Initialize layout data.
     //
     // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML

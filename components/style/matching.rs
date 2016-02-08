@@ -360,7 +360,8 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln> {
+trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln>
+    where Impl::PseudoElement: Eq + Hash {
     fn cascade_node_pseudo_element(&self,
                                    context: &SharedStyleContext<Impl>,
                                    parent_style: Option<&Arc<ComputedValues>>,
@@ -479,7 +480,8 @@ trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln> {
     }
 }
 
-impl<'ln, N: TNode<'ln>, Impl: SelectorImpl> PrivateMatchMethods<'ln, Impl> for N {}
+impl<'ln, N: TNode<'ln>, Impl: SelectorImpl> PrivateMatchMethods<'ln, Impl> for N
+    where Impl::PseudoElement: Eq + Hash {}
 
 trait PrivateElementMatchMethods<'le>: TElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
@@ -513,7 +515,8 @@ trait PrivateElementMatchMethods<'le>: TElement<'le> {
 
 impl<'le, E: TElement<'le>> PrivateElementMatchMethods<'le> for E {}
 
-pub trait ElementMatchMethods<'le> : TElement<'le> {
+pub trait ElementMatchMethods<'le> : TElement<'le>
+    where <Self::Impl as SelectorImpl>::PseudoElement: Eq + Hash {
     fn match_element(&self,
                      stylist: &Stylist<Self::Impl>,
                      parent_bf: Option<&BloomFilter>,
@@ -581,7 +584,8 @@ pub trait ElementMatchMethods<'le> : TElement<'le> {
     }
 }
 
-impl<'le, E: TElement<'le>> ElementMatchMethods<'le> for E {}
+impl<'le, E: TElement<'le>> ElementMatchMethods<'le> for E
+    where <E::Impl as SelectorImpl>::PseudoElement: Eq + Hash {}
 
 pub trait MatchMethods<'ln> : TNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
@@ -637,7 +641,8 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                                                parent: Option<Self>,
                                                applicable_declarations: &ApplicableDeclarations,
                                                applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                                               new_animations_sender: &Mutex<Sender<Animation>>) {
+                                               new_animations_sender: &Mutex<Sender<Animation>>)
+        where Impl::PseudoElement: Eq + Hash {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
