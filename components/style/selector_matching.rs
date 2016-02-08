@@ -180,9 +180,9 @@ impl Stylist {
                 if $style_rule.declarations.$priority.len() > 0 {
                     for selector in &$style_rule.selectors {
                         let map = match selector.pseudo_element {
-                            None => &mut element_map,
                             Some(PseudoElement::Before) => &mut before_map,
                             Some(PseudoElement::After) => &mut after_map,
+                            _ => &mut element_map,
                         };
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
@@ -266,9 +266,9 @@ impl Stylist {
                 "Style attributes do not apply to pseudo-elements");
 
         let map = match pseudo_element {
-            None => &self.element_map,
             Some(PseudoElement::Before) => &self.before_map,
             Some(PseudoElement::After) => &self.after_map,
+            _ => &self.element_map,
         };
 
         let mut shareable = true;
