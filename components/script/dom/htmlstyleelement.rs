@@ -17,7 +17,8 @@ use layout_interface::{LayoutChan, Msg};
 use std::sync::Arc;
 use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
-use style::stylesheets::{Origin, Stylesheet};
+use style::servo::Stylesheet;
+use style::stylesheets::Origin;
 use util::str::DOMString;
 
 #[dom_struct]

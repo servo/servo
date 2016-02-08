@@ -2,15 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use element_state::ElementState;
+use selector_matching::{USER_OR_USER_AGENT_STYLESHEETS, QUIRKS_MODE_STYLESHEET};
+use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
+use stylesheets::Stylesheet;
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+pub trait ElementExt: Element {
+    fn is_link(&self) -> bool;
+}
+
+pub trait SelectorImplExt : SelectorImpl + Sized {
+    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(<Self as SelectorImpl>::PseudoElement);
+
+    fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
+
+    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>];
+
+    fn get_quirks_mode_stylesheet() -> &'static Stylesheet<Self>;
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum PseudoElement {
     Before,
     After,
 }
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum NonTSPseudoClass {
     AnyLink,
     Link,
@@ -82,10 +100,42 @@ impl SelectorImpl for ServoSelectorImpl {
     fn parse_pseudo_element(_context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
-        match_ignore_ascii_case! { name,
-            "before" => Ok(Before),
-            "after" => Ok(After),
-            _ => Err(())
-        }
+        let pseudo_element = match_ignore_ascii_case! { name,
+            "before" => Before,
+            "after" => After,
+            _ => return Err(())
+        };
+
+        Ok(pseudo_element)
+    }
+}
+
+impl<E: Element<Impl=ServoSelectorImpl>> ElementExt for E {
+    fn is_link(&self) -> bool {
+        self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
+    }
+}
+
+impl SelectorImplExt for ServoSelectorImpl {
+    #[inline]
+    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(PseudoElement) {
+        fun(PseudoElement::Before);
+        fun(PseudoElement::After);
+    }
+
+    #[inline]
+    fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
+        pc.state_flag()
+    }
+
+    #[inline]
+    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>] {
+        &*USER_OR_USER_AGENT_STYLESHEETS
+    }
+
+    #[inline]
+    fn get_quirks_mode_stylesheet() -> &'static Stylesheet<Self> {
+        &*QUIRKS_MODE_STYLESHEET
     }
 }

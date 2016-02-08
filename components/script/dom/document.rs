@@ -105,7 +105,7 @@ use std::sync::Arc;
 use string_cache::{Atom, QualName};
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
-use style::stylesheets::Stylesheet;
+use style::servo::Stylesheet;
 use time;
 use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};

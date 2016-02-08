@@ -22,7 +22,7 @@ lazy_static = "0.1.10"
 log = "0.3"
 num = "0.1.24"
 rustc-serialize = "0.3"
-selectors = {version = "0.4.2", features = ["heap_size"]}
+selectors = {version = "0.5", features = ["heap_size"]}
 serde = "0.6"
 serde_macros = "0.6"
 url = {version = "0.5.5", features = ["heap_size"]}

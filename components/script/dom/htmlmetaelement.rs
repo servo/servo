@@ -15,7 +15,8 @@ use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use string_cache::Atom;
-use style::stylesheets::{CSSRule, Origin, Stylesheet};
+use style::servo::Stylesheet;
+use style::stylesheets::{CSSRule, Origin};
 use style::viewport::ViewportRule;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 

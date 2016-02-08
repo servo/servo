@@ -5,13 +5,24 @@
 #![feature(as_unsafe_cell)]
 #![feature(box_syntax)]
 #![feature(ptr_as_ref)]
+#![feature(custom_derive)]
+#![feature(plugin)]
+
+#![plugin(heapsize_plugin)]
+#![plugin(plugins)]
 
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
 extern crate cssparser;
 extern crate euclid;
+extern crate heapsize;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate num_cpus;
 extern crate selectors;
 extern crate smallvec;
@@ -26,5 +37,6 @@ mod bindings;
 mod data;
 #[allow(non_snake_case)]
 pub mod glue;
+mod selector_impl;
 mod traversal;
 mod wrapper;

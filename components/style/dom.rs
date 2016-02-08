@@ -8,7 +8,8 @@ use data::PrivateStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::ServoSelectorImpl;
+use selector_impl::ElementExt;
+use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
@@ -136,15 +137,18 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     /// Borrows the PrivateStyleData without checks.
     #[inline(always)]
-    unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData>;
+    unsafe fn borrow_data_unchecked(&self)
+        -> Option<*const PrivateStyleData<<Self::ConcreteElement as Element>::Impl>>;
 
     /// Borrows the PrivateStyleData immutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn borrow_data(&self) -> Option<Ref<PrivateStyleData>>;
+    fn borrow_data(&self)
+        -> Option<Ref<PrivateStyleData<<Self::ConcreteElement as Element>::Impl>>>;
 
     /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>>;
+    fn mutate_data(&self)
+        -> Option<RefMut<PrivateStyleData<<Self::ConcreteElement as Element>::Impl>>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
@@ -165,7 +169,7 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&self) -> Ref<Arc<ComputedValues>> {
+    fn style(&'ln self) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }
 
@@ -186,7 +190,7 @@ pub trait TDocument<'ld> : Sized + Copy + Clone {
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
 }
 
-pub trait TElement<'le> : Sized + Copy + Clone + ::selectors::Element<Impl=ServoSelectorImpl> {
+pub trait TElement<'le> : Sized + Copy + Clone + ElementExt {
     type ConcreteNode: TNode<'le, ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<'le, ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 

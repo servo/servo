@@ -62,6 +62,7 @@ pub mod restyle_hints;
 pub mod selector_impl;
 pub mod selector_matching;
 pub mod sequential;
+pub mod servo;
 pub mod stylesheets;
 pub mod traversal;
 #[macro_use]

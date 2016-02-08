@@ -16,6 +16,7 @@ use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDam
 use std::mem;
 use style::context::{StyleContext, ReflowGoal};
 use style::matching::MatchMethods;
+use style::selector_impl::ServoSelectorImpl;
 use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
@@ -27,7 +28,8 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
     root: OpaqueNode,
 }
 
-impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAndConstructFlows<'lc> {
+impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAndConstructFlows<'lc>
+    where N::ConcreteElement: ::selectors::Element<Impl=ServoSelectorImpl> {
     type SharedContext = SharedLayoutContext;
     #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {

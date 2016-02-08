@@ -27,6 +27,6 @@ path = "../../../components/util"
 app_units = {version = "0.2.1", features = ["plugins"]}
 cssparser = {version = "0.5.3", features = ["heap_size"]}
 euclid = {version = "0.6.2", features = ["plugins"]}
-selectors = {version = "0.4.2", features = ["heap_size"]}
+selectors = {version = "0.5", features = ["heap_size"]}
 string_cache = {version = "0.2.9", features = ["heap_size"]}
 url = {version = "0.5.5", features = ["heap_size"]}
