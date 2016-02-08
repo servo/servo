@@ -8,6 +8,7 @@ use selectors::parser::{ParserContext, SelectorImpl};
 pub enum PseudoElement {
     Before,
     After,
+    FirstLine,
 
     // https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
     MozNonElement,
@@ -151,6 +152,8 @@ impl SelectorImpl for ServoSelectorImpl {
         let pseudo_element = match_ignore_ascii_case! { name,
             "before" => Before,
             "after" => After,
+            "first-line" => FirstLine,
+
             "-moz-non-element" => MozNonElement,
 
             "-moz-anonymous-block" => MozAnonymousBlock,
