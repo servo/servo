@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
@@ -228,7 +227,6 @@ impl HTMLFormElement {
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
         let doc = document_from_node(self);
-        let win = window_from_node(self);
         let base = doc.url();
         // TODO: Handle browsing contexts
         // Step 4
@@ -237,8 +235,7 @@ impl HTMLFormElement {
         {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
-                self.upcast::<EventTarget>()
-                    .fire_simple_event("invalid", GlobalRef::Window(win.r()));
+                self.upcast::<EventTarget>().fire_simple_event("invalid");
                 return;
             }
         }
@@ -247,8 +244,7 @@ impl HTMLFormElement {
             let event = self.upcast::<EventTarget>()
                 .fire_event("submit",
                             EventBubbles::Bubbles,
-                            EventCancelable::Cancelable,
-                            GlobalRef::Window(win.r()));
+                            EventCancelable::Cancelable);
             if event.DefaultPrevented() {
                 return;
             }
@@ -302,6 +298,7 @@ impl HTMLFormElement {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/#planned-navigation
+        let win = window_from_node(self);
         win.main_thread_script_chan().send(MainThreadScriptMsg::Navigate(
             win.pipeline(), load_data)).unwrap();
     }
@@ -341,13 +338,11 @@ impl HTMLFormElement {
         // Step 4
         if invalid_controls.is_empty() { return Ok(()); }
         // Step 5-6
-        let win = window_from_node(self);
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
             let event = field.as_event_target()
                 .fire_event("invalid",
                             EventBubbles::DoesNotBubble,
-                            EventCancelable::Cancelable,
-                            GlobalRef::Window(win.r()));
+                            EventCancelable::Cancelable);
             if !event.DefaultPrevented() { return Some(field); }
             None
         }).collect::<Vec<FormSubmittableElement>>();
@@ -469,12 +464,10 @@ impl HTMLFormElement {
             self.marked_for_reset.set(true);
         }
 
-        let win = window_from_node(self);
         let event = self.upcast::<EventTarget>()
             .fire_event("reset",
                         EventBubbles::Bubbles,
-                        EventCancelable::Cancelable,
-                        GlobalRef::Window(win.r()));
+                        EventCancelable::Cancelable);
         if event.DefaultPrevented() {
             return;
         }

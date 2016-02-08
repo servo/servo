@@ -82,11 +82,12 @@ impl Runnable for ImageResponseHandlerRunnable {
         document.content_changed(element.upcast(), NodeDamage::OtherNodeDamage);
 
         // Fire image.onload
-        let window = window_from_node(document.r());
         if trigger_image_load {
-            element.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
+            element.upcast::<EventTarget>().fire_simple_event("load");
         }
+
         // Trigger reflow
+        let window = window_from_node(document.r());
         window.add_pending_reflow();
     }
 }

@@ -550,8 +550,7 @@ impl Document {
 
         self.ready_state.set(state);
 
-        self.upcast::<EventTarget>().fire_simple_event("readystatechange",
-                                                       GlobalRef::Window(&self.window));
+        self.upcast::<EventTarget>().fire_simple_event("readystatechange");
     }
 
     /// Return whether scripting is enabled or not
@@ -1357,8 +1356,7 @@ impl Document {
         let doctarget = self.upcast::<EventTarget>();
         let _ = doctarget.fire_event("DOMContentLoaded",
                                      EventBubbles::Bubbles,
-                                     EventCancelable::NotCancelable,
-                                     GlobalRef::Window(self.window()));
+                                     EventCancelable::NotCancelable);
 
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
@@ -1693,14 +1691,17 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
-        let target = self;                                                        // Step 1.
+        // Step 1.
+        let target = self;
         let browsing_context = self.window.browsing_context();
         let browsing_context = browsing_context.as_ref();
 
         match browsing_context {
             Some(browsing_context) => {
-                let condidate = browsing_context.active_document();                        // Step 2.
-                if condidate.node.get_unique_id() == target.node.get_unique_id() {           // Step 3.
+                // Step 2.
+                let candidate = browsing_context.active_document();
+                // Step 3.
+                if candidate == target {
                     true
                 } else {
                     false //TODO  Step 4.

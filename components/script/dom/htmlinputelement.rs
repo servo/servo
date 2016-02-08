@@ -866,17 +866,13 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
-                    let win = window_from_node(self);
                     let target = self.upcast::<EventTarget>();
-
                     target.fire_event("input",
                                       EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable,
-                                      GlobalRef::Window(win.r()));
+                                      EventCancelable::NotCancelable);
                     target.fire_event("change",
                                       EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable,
-                                      GlobalRef::Window(win.r()));
+                                      EventCancelable::NotCancelable);
                 }
             },
             _ => ()

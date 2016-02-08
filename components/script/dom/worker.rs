@@ -122,8 +122,7 @@ impl Worker {
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
-        let global = worker.r().global();
-        worker.upcast().fire_simple_event("error", global.r());
+        worker.upcast().fire_simple_event("error");
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
