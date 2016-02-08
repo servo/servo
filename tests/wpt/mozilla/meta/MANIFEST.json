@@ -6167,6 +6167,12 @@
             "path": "mozilla/windowproxy.html",
             "url": "/_mozilla/mozilla/windowproxy.html"
           }
+        ],
+        "mozilla/sequence-hole.html": [
+          {
+            "path": "mozilla/sequence-hole.html",
+            "url": "/_mozilla/mozilla/sequence-hole.html"
+          }
         ]
       }
     },
