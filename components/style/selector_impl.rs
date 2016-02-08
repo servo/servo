@@ -3,8 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use element_state::ElementState;
 use selectors::parser::{ParserContext, SelectorImpl};
-use std::ascii::AsciiExt;
-use string_cache::Atom;
+
+#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+pub enum PseudoElement {
+    Before,
+    After,
+}
 
 #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
 pub enum NonTSPseudoClass {
@@ -20,8 +24,6 @@ pub enum NonTSPseudoClass {
     Indeterminate,
     ServoNonZeroBorder,
 }
-
-pub type PseudoElement = Atom;
 
 impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
@@ -79,12 +81,11 @@ impl SelectorImpl for ServoSelectorImpl {
 
     fn parse_pseudo_element(_context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
-        // This prevents an extra allocation in the common case
-        // in which the name is already lowercase.
-        if name.chars().all(|c| c.is_lowercase()) {
-            Ok(PseudoElement::from(name))
-        } else {
-            Ok(PseudoElement::from(&*name.to_ascii_lowercase()))
+        use self::PseudoElement::*;
+        match_ignore_ascii_case! { name,
+            "before" => Ok(Before),
+            "after" => Ok(After),
+            _ => Err(())
         }
     }
 }

@@ -9,7 +9,7 @@ use context::SharedStyleContext;
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::NonTSPseudoClass;
+use selector_impl::{NonTSPseudoClass, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
@@ -529,12 +529,12 @@ pub trait ElementMatchMethods<'le> : TElement<'le> {
         stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
-                                             Some(atom!("before")),
+                                             Some(PseudoElement::Before),
                                              &mut applicable_declarations.before);
         stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
-                                             Some(atom!("after")),
+                                             Some(PseudoElement::After),
                                              &mut applicable_declarations.after);
 
         applicable_declarations.normal_shareable &&

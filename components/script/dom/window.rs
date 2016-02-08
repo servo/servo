@@ -639,9 +639,9 @@ impl WindowMethods for Window {
         // Steps 1-4.
         let pseudo = match pseudo.map(|mut s| { s.make_ascii_lowercase(); s }) {
             Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" =>
-                Some(atom!("before")),
+                Some(PseudoElement::Before),
             Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" =>
-                Some(atom!("before")),
+                Some(PseudoElement::After),
             _ => None
         };
 
