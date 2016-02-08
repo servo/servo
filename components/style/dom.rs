@@ -8,8 +8,8 @@ use data::PrivateStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::ServoSelectorImpl;
 use selectors::matching::DeclarationBlock;
+use selectors::parser::SelectorImpl;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
@@ -186,7 +186,7 @@ pub trait TDocument<'ld> : Sized + Copy + Clone {
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
 }
 
-pub trait TElement<'le> : Sized + Copy + Clone + ::selectors::Element<Impl=ServoSelectorImpl> {
+pub trait TElement<'le> : Sized + Copy + Clone + ::selectors::Element {
     type ConcreteNode: TNode<'le, ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<'le, ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 

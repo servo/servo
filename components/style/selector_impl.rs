@@ -4,7 +4,7 @@
 use element_state::ElementState;
 use selectors::parser::{ParserContext, SelectorImpl};
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum PseudoElement {
     Before,
     After,
@@ -77,7 +77,7 @@ pub enum PseudoElement {
     MozSVGText,
 }
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum NonTSPseudoClass {
     AnyLink,
     Link,

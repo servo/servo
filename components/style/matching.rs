@@ -12,6 +12,7 @@ use properties::{ComputedValues, PropertyDeclaration, cascade};
 use selector_impl::{NonTSPseudoClass, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
+use selectors::parser::{ParserContext, SelectorImpl};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -246,7 +247,7 @@ impl StyleSharingCandidate {
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
-            link: element.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink),
+            link: element.match_non_ts_pseudo_class(E::Impl::parse_non_ts_pseudo_class(&ParserContext::new(), "any-link").unwrap()),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
                    create_common_style_affecting_attributes_from_element::<'le, E>(&element)
@@ -314,7 +315,7 @@ impl StyleSharingCandidate {
             }
         }
 
-        if element.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink) != self.link {
+        if element.match_non_ts_pseudo_class(E::Impl::parse_non_ts_pseudo_class(&ParserContext::new(), "any-link").unwrap()) != self.link {
             return false
         }
 
@@ -359,9 +360,9 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-trait PrivateMatchMethods<'ln>: TNode<'ln> {
+trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln> {
     fn cascade_node_pseudo_element(&self,
-                                   context: &SharedStyleContext,
+                                   context: &SharedStyleContext<Impl>,
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
@@ -434,7 +435,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
     }
 
     fn update_animations_for_cascade(&self,
-                                     context: &SharedStyleContext,
+                                     context: &SharedStyleContext<Impl>,
                                      style: &mut Option<Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
@@ -478,7 +479,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln> {
     }
 }
 
-impl<'ln, N: TNode<'ln>> PrivateMatchMethods<'ln> for N {}
+impl<'ln, N: TNode<'ln>, Impl: SelectorImpl> PrivateMatchMethods<'ln, Impl> for N {}
 
 trait PrivateElementMatchMethods<'le>: TElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
@@ -514,7 +515,7 @@ impl<'le, E: TElement<'le>> PrivateElementMatchMethods<'le> for E {}
 
 pub trait ElementMatchMethods<'le> : TElement<'le> {
     fn match_element(&self,
-                     stylist: &Stylist,
+                     stylist: &Stylist<Self::Impl>,
                      parent_bf: Option<&BloomFilter>,
                      applicable_declarations: &mut ApplicableDeclarations)
                      -> bool {
@@ -529,12 +530,12 @@ pub trait ElementMatchMethods<'le> : TElement<'le> {
         stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
-                                             Some(PseudoElement::Before),
+                                             Some(Self::Impl::parse_pseudo_element(&ParserContext::new(), "before").unwrap()),
                                              &mut applicable_declarations.before);
         stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
-                                             Some(PseudoElement::After),
+                                             Some(Self::Impl::parse_pseudo_element(&ParserContext::new(), "after").unwrap()),
                                              &mut applicable_declarations.after);
 
         applicable_declarations.normal_shareable &&
@@ -631,12 +632,12 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
         }
     }
 
-    unsafe fn cascade_node(&self,
-                           context: &SharedStyleContext,
-                           parent: Option<Self>,
-                           applicable_declarations: &ApplicableDeclarations,
-                           applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                           new_animations_sender: &Mutex<Sender<Animation>>) {
+    unsafe fn cascade_node<Impl: SelectorImpl>(&self,
+                                               context: &SharedStyleContext<Impl>,
+                                               parent: Option<Self>,
+                                               applicable_declarations: &ApplicableDeclarations,
+                                               applicable_declarations_cache: &mut ApplicableDeclarationsCache,
+                                               new_animations_sender: &Mutex<Sender<Animation>>) {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
