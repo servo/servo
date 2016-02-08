@@ -98,6 +98,7 @@ pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
     before_map: PerPseudoElementSelectorMap,
     after_map: PerPseudoElementSelectorMap,
+    other_pseudo_elements_map: PerPseudoElementSelectorMap,
     rules_source_order: usize,
 
     // Selector dependencies used to compute restyle hints.
@@ -116,6 +117,7 @@ impl Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
+            other_pseudo_elements_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
         }
@@ -130,6 +132,7 @@ impl Stylist {
         self.element_map = PerPseudoElementSelectorMap::new();
         self.before_map = PerPseudoElementSelectorMap::new();
         self.after_map = PerPseudoElementSelectorMap::new();
+        self.other_pseudo_elements_map = PerPseudoElementSelectorMap::new();
         self.rules_source_order = 0;
         self.state_deps.clear();
 
@@ -154,20 +157,23 @@ impl Stylist {
         if !stylesheet.is_effective_for_device(device) {
             return;
         }
-        let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
+        let (mut element_map, mut before_map, mut others_map, mut after_map) = match stylesheet.origin {
             Origin::UserAgent => (
                 &mut self.element_map.user_agent,
                 &mut self.before_map.user_agent,
+                &mut self.other_pseudo_elements_map.user_agent,
                 &mut self.after_map.user_agent,
             ),
             Origin::Author => (
                 &mut self.element_map.author,
                 &mut self.before_map.author,
+                &mut self.other_pseudo_elements_map.author,
                 &mut self.after_map.author,
             ),
             Origin::User => (
                 &mut self.element_map.user,
                 &mut self.before_map.user,
+                &mut self.other_pseudo_elements_map.user,
                 &mut self.after_map.user,
             ),
         };
@@ -182,7 +188,8 @@ impl Stylist {
                         let map = match selector.pseudo_element {
                             Some(PseudoElement::Before) => &mut before_map,
                             Some(PseudoElement::After) => &mut after_map,
-                            _ => &mut element_map,
+                            Some(_) => &mut others_map,
+                            None => &mut element_map,
                         };
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
@@ -268,7 +275,8 @@ impl Stylist {
         let map = match pseudo_element {
             Some(PseudoElement::Before) => &self.before_map,
             Some(PseudoElement::After) => &self.after_map,
-            _ => &self.element_map,
+            Some(_) => &self.other_pseudo_elements_map,
+            None => &self.element_map,
         };
 
         let mut shareable = true;
