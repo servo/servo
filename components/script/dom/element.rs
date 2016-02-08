@@ -676,24 +676,28 @@ impl Element {
     }
 
     pub fn remove_inline_style_property(&self, property: &str) {
-        let mut inline_declarations = self.style_attribute.borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let index = declarations.normal
-                                    .iter()
-                                    .position(|decl| decl.matches(property));
-            if let Some(index) = index {
-                Arc::make_mut(&mut declarations.normal).remove(index);
-                return;
-            }
+        fn remove(element: &Element, property: &str) {
+            let mut inline_declarations = element.style_attribute.borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+                let index = declarations.normal
+                                        .iter()
+                                        .position(|decl| decl.matches(property));
+                if let Some(index) = index {
+                    Arc::make_mut(&mut declarations.normal).remove(index);
+                    return;
+                }
 
-            let index = declarations.important
-                                    .iter()
-                                    .position(|decl| decl.matches(property));
-            if let Some(index) = index {
-                Arc::make_mut(&mut declarations.important).remove(index);
-                return;
+                let index = declarations.important
+                                        .iter()
+                                        .position(|decl| decl.matches(property));
+                if let Some(index) = index {
+                    Arc::make_mut(&mut declarations.important).remove(index);
+                    return;
+                }
             }
         }
+
+        remove(self, property);
         self.sync_property_with_attrs_style();
     }
 
@@ -719,7 +723,9 @@ impl Element {
                         return;
                     }
                 }
-                existing_declarations.push(property_decl);
+
+                // inserting instead of pushing since the declarations are in reverse order
+                existing_declarations.insert(0, property_decl);
                 return;
             }
 
@@ -742,28 +748,30 @@ impl Element {
     pub fn set_inline_style_property_priority(&self,
                                               properties: &[&str],
                                               style_priority: StylePriority) {
-        let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let (from, to) = if style_priority == StylePriority::Important {
-                (&mut declarations.normal, &mut declarations.important)
-            } else {
-                (&mut declarations.important, &mut declarations.normal)
-            };
+        {
+            let mut inline_declarations = self.style_attribute().borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+              let (from, to) = if style_priority == StylePriority::Important {
+                  (&mut declarations.normal, &mut declarations.important)
+              } else {
+                  (&mut declarations.important, &mut declarations.normal)
+              };
 
-            // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
-            // could make them greater than that.
-            let from = Arc::make_mut(from);
-            let to = Arc::make_mut(to);
-            let mut new_from = Vec::new();
-            for declaration in from.drain(..) {
-                let name = declaration.name();
-                if properties.iter().any(|p| name == **p) {
-                    to.push(declaration)
-                } else {
-                    new_from.push(declaration)
-                }
+              // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
+              // could make them greater than that.
+              let from = Arc::make_mut(from);
+              let to = Arc::make_mut(to);
+              let mut new_from = Vec::new();
+              for declaration in from.drain(..) {
+                  let name = declaration.name();
+                  if properties.iter().any(|p| name == **p) {
+                      to.push(declaration)
+                  } else {
+                      new_from.push(declaration)
+                  }
+              }
+              mem::replace(from, new_from);
             }
-            mem::replace(from, new_from);
         }
 
         self.sync_property_with_attrs_style();
