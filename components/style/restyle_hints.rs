@@ -4,10 +4,10 @@
 
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
-use selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, NamespaceConstraint, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, CompoundSelector, NamespaceConstraint, SelectorImpl, SimpleSelector};
 use std::clone::Clone;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
@@ -78,12 +78,16 @@ impl ElementSnapshot {
 
 static EMPTY_SNAPSHOT: ElementSnapshot = ElementSnapshot { state: None, attrs: None };
 
-struct ElementWrapper<'a, E> where E: Element {
+struct ElementWrapper<'a, E>
+    where E: Element,
+          E::Impl: SelectorImplExt {
     element: E,
     snapshot: &'a ElementSnapshot,
 }
 
-impl<'a, E> ElementWrapper<'a, E> where E: Element {
+impl<'a, E> ElementWrapper<'a, E>
+    where E: Element,
+          E::Impl: SelectorImplExt {
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: &EMPTY_SNAPSHOT }
     }
@@ -93,16 +97,19 @@ impl<'a, E> ElementWrapper<'a, E> where E: Element {
     }
 }
 
-impl<'a, E> Element for ElementWrapper<'a, E> where E: Element<Impl=ServoSelectorImpl> {
+impl<'a, E> Element for ElementWrapper<'a, E>
+    where E: Element,
+          E::Impl: SelectorImplExt {
     type Impl = E::Impl;
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
-        let flag = pseudo_class.state_flag();
+    fn match_non_ts_pseudo_class(&self,
+                                 pseudo_class: <Self::Impl as SelectorImpl>::NonTSPseudoClass) -> bool {
+        let flag = Self::Impl::pseudo_class_state_flag(&pseudo_class);
         if flag == ElementState::empty() {
             self.element.match_non_ts_pseudo_class(pseudo_class)
         } else {
             match self.snapshot.state {
-                Some(s) => s.contains(pseudo_class.state_flag()),
+                Some(s) => s.contains(flag),
                 None => self.element.match_non_ts_pseudo_class(pseudo_class)
             }
         }
@@ -177,14 +184,14 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element<Impl=ServoSelecto
     }
 }
 
-fn selector_to_state(sel: &SimpleSelector<ServoSelectorImpl>) -> ElementState {
+fn selector_to_state<Impl: SelectorImplExt>(sel: &SimpleSelector<Impl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
+        SimpleSelector::NonTSPseudoClass(ref pc) => Impl::pseudo_class_state_flag(pc),
         _ => ElementState::empty(),
     }
 }
 
-fn is_attr_selector(sel: &SimpleSelector<ServoSelectorImpl>) -> bool {
+fn is_attr_selector<Impl: SelectorImpl>(sel: &SimpleSelector<Impl>) -> bool {
     match *sel {
         SimpleSelector::ID(_) |
         SimpleSelector::Class(_) |
@@ -249,25 +256,25 @@ impl Sensitivities {
 // maximum effect that a given state or attribute change may have on the style of
 // elements in the document.
 #[derive(Debug)]
-struct Dependency {
-    selector: Arc<CompoundSelector<ServoSelectorImpl>>,
+struct Dependency<Impl: SelectorImplExt> {
+    selector: Arc<CompoundSelector<Impl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
 
 #[derive(Debug)]
-pub struct DependencySet {
-    deps: Vec<Dependency>,
+pub struct DependencySet<Impl: SelectorImplExt> {
+    deps: Vec<Dependency<Impl>>,
 }
 
-impl DependencySet {
-    pub fn new() -> DependencySet {
+impl<Impl: SelectorImplExt> DependencySet<Impl> {
+    pub fn new() -> DependencySet<Impl> {
         DependencySet { deps: Vec::new() }
     }
 
     pub fn compute_hint<E>(&self, el: &E, snapshot: &ElementSnapshot, current_state: ElementState)
                           -> RestyleHint
-                          where E: Element<Impl=ServoSelectorImpl> + Clone {
+                          where E: Element<Impl=Impl> + Clone {
         let state_changes = snapshot.state.map_or(ElementState::empty(), |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.attrs.is_some();
         let mut hint = RestyleHint::empty();
@@ -287,7 +294,7 @@ impl DependencySet {
         hint
     }
 
-    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<ServoSelectorImpl>>) {
+    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<Impl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {

@@ -36,7 +36,8 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
-use style::stylesheets::{Origin, Stylesheet};
+use style::servo::Stylesheet;
+use style::stylesheets::Origin;
 use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 

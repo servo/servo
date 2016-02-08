@@ -8,7 +8,8 @@ use euclid::size::Size2D;
 use std::borrow::ToOwned;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
-use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
+use style::servo::Stylesheet;
+use style::stylesheets::{Origin, CSSRuleIteratorExt};
 use style::values::specified;
 
 pub struct CSSErrorReporterTest;

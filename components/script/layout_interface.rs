@@ -24,7 +24,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::selector_impl::PseudoElement;
-use style::stylesheets::Stylesheet;
+use style::servo::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 

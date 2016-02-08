@@ -8,19 +8,20 @@ use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
+use selector_impl::SelectorImplExt;
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
 
-pub struct StylistWrapper(pub *const Stylist);
+pub struct StylistWrapper<Impl: SelectorImplExt>(pub *const Stylist<Impl>);
 
 // FIXME(#6569) This implementation is unsound.
 #[allow(unsafe_code)]
-unsafe impl Sync for StylistWrapper {}
+unsafe impl<Impl: SelectorImplExt> Sync for StylistWrapper<Impl> {}
 
-pub struct SharedStyleContext {
+pub struct SharedStyleContext<Impl: SelectorImplExt> {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
 
@@ -30,7 +31,7 @@ pub struct SharedStyleContext {
     /// The CSS selector stylist.
     ///
     /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    pub stylist: StylistWrapper,
+    pub stylist: StylistWrapper<Impl>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -58,8 +59,9 @@ pub struct LocalStyleContext {
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
 }
 
-pub trait StyleContext<'a> {
-    fn shared_context(&self) -> &'a SharedStyleContext;
+pub trait StyleContext<'a, Impl: SelectorImplExt> {
+
+    fn shared_context(&self) -> &'a SharedStyleContext<Impl>;
     fn local_context(&self) -> &LocalStyleContext;
 }
 

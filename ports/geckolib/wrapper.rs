@@ -19,6 +19,8 @@ use bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetN
 use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use bindings::{ServoNodeData};
 use libc::uintptr_t;
+use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
+use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
@@ -29,7 +31,6 @@ use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
-use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
@@ -38,7 +39,7 @@ use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclaration
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::{parse_style_attribute};
 use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use style::selector_impl::ElementExt;
 #[allow(unused_imports)] // Used in commented-out code.
 use url::Url;
 
@@ -357,7 +358,7 @@ impl<'le> TElement<'le> for GeckoElement<'le> {
 }
 
 impl<'le> ::selectors::Element for GeckoElement<'le> {
-    type Impl = ServoSelectorImpl;
+    type Impl = GeckoSelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
         unsafe {
@@ -427,11 +428,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Link => unsafe { Gecko_IsLink(self.element) != 0 },
             NonTSPseudoClass::AnyLink => unsafe { Gecko_IsUnvisitedLink(self.element) != 0 },
             NonTSPseudoClass::Visited => unsafe { Gecko_IsVisitedLink(self.element) != 0 },
-
-            NonTSPseudoClass::ServoNonZeroBorder => {
-                unimplemented!()
-            },
-
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Hover |
@@ -486,6 +482,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         unsafe {
             Gecko_IsHTMLElementInHTMLDocument(self.element) != 0
         }
+    }
+}
+
+impl<'le> ElementExt for GeckoElement<'le> {
+    fn is_link(&self) -> bool {
+        self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
 }
 

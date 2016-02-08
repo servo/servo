@@ -10,8 +10,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
-use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};
+use style::stylesheets::{CSSRule, StyleRule, Origin};
 use style::error_reporting::ParseErrorReporter;
+use style::servo::Stylesheet;
 
 #[test]
 fn test_parse_stylesheet() {

@@ -11,12 +11,14 @@ use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use media_queries::{Device, MediaType};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::{PseudoElement, ServoSelectorImpl};
+use selector_impl::{SelectorImplExt, ServoSelectorImpl};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
+use selectors::parser::SelectorImpl;
 use smallvec::VecLike;
+use std::collections::HashMap;
 use std::process;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
@@ -30,7 +32,7 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
 lazy_static! {
-    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
+    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet<ServoSelectorImpl>> = {
         let mut stylesheets = vec!();
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
@@ -61,7 +63,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet = {
+    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet<ServoSelectorImpl> = {
         match read_resource_file(&["quirks-mode.css"]) {
             Ok(res) => {
                 Stylesheet::from_bytes(
@@ -80,7 +82,7 @@ lazy_static! {
     };
 }
 
-pub struct Stylist {
+pub struct Stylist<Impl: SelectorImplExt> {
     // Device that the stylist is currently evaluating against.
     pub device: Device,
 
@@ -95,50 +97,55 @@ pub struct Stylist {
 
     // The current selector maps, after evaluating media
     // rules against the current device.
-    element_map: PerPseudoElementSelectorMap,
-    before_map: PerPseudoElementSelectorMap,
-    after_map: PerPseudoElementSelectorMap,
+    element_map: PerPseudoElementSelectorMap<Impl>,
+    pseudos_map: HashMap<Impl::PseudoElement, PerPseudoElementSelectorMap<Impl>>,
     rules_source_order: usize,
 
     // Selector dependencies used to compute restyle hints.
-    state_deps: DependencySet,
+    state_deps: DependencySet<Impl>,
 }
 
-impl Stylist {
+impl<Impl: SelectorImplExt> Stylist<Impl> {
     #[inline]
-    pub fn new(device: Device) -> Stylist {
-        Stylist {
+    pub fn new(device: Device) -> Stylist<Impl> {
+        let mut stylist = Stylist {
             viewport_constraints: None,
             device: device,
             is_device_dirty: true,
             quirks_mode: false,
 
             element_map: PerPseudoElementSelectorMap::new(),
-            before_map: PerPseudoElementSelectorMap::new(),
-            after_map: PerPseudoElementSelectorMap::new(),
+            pseudos_map: HashMap::new(),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
-        }
+        };
+
+        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+            stylist.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
+        });
+
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+
+        stylist
     }
 
-    pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet>],
-                      stylesheets_changed: bool) -> bool {
+    pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet<Impl>>],
+                  stylesheets_changed: bool) -> bool
+                  where Impl: 'static {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
         self.element_map = PerPseudoElementSelectorMap::new();
-        self.before_map = PerPseudoElementSelectorMap::new();
-        self.after_map = PerPseudoElementSelectorMap::new();
+        self.pseudos_map = HashMap::new();
         self.rules_source_order = 0;
         self.state_deps.clear();
 
-        for ref stylesheet in USER_OR_USER_AGENT_STYLESHEETS.iter() {
+        for ref stylesheet in Impl::get_user_or_user_agent_stylesheets().iter() {
             self.add_stylesheet(&stylesheet);
         }
 
         if self.quirks_mode {
-            self.add_stylesheet(&QUIRKS_MODE_STYLESHEET);
+            self.add_stylesheet(&Impl::get_quirks_mode_stylesheet());
         }
 
         for ref stylesheet in doc_stylesheets.iter() {
@@ -149,28 +156,12 @@ impl Stylist {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet<Impl>) {
         let device = &self.device;
         if !stylesheet.is_effective_for_device(device) {
             return;
         }
-        let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
-            Origin::UserAgent => (
-                &mut self.element_map.user_agent,
-                &mut self.before_map.user_agent,
-                &mut self.after_map.user_agent,
-            ),
-            Origin::Author => (
-                &mut self.element_map.author,
-                &mut self.before_map.author,
-                &mut self.after_map.author,
-            ),
-            Origin::User => (
-                &mut self.element_map.user,
-                &mut self.before_map.user,
-                &mut self.after_map.user,
-            ),
-        };
+
         let mut rules_source_order = self.rules_source_order;
 
         // Take apart the StyleRule into individual Rules and insert
@@ -179,11 +170,14 @@ impl Stylist {
             ($style_rule: ident, $priority: ident) => {
                 if $style_rule.declarations.$priority.len() > 0 {
                     for selector in &$style_rule.selectors {
-                        let map = match selector.pseudo_element {
-                            None => &mut element_map,
-                            Some(PseudoElement::Before) => &mut before_map,
-                            Some(PseudoElement::After) => &mut after_map,
+                        let map = if let Some(ref pseudo) = selector.pseudo_element {
+                            self.pseudos_map.entry(pseudo.clone())
+                                            .or_insert_with(PerPseudoElementSelectorMap::new)
+                                            .borrow_for_origin(&stylesheet.origin)
+                        } else {
+                            self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
+
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
                                 declarations: DeclarationBlock {
@@ -216,11 +210,11 @@ impl Stylist {
                                    // more expensive than getting it directly from the caller.
                                    current_state: ElementState)
                                    -> RestyleHint
-                                   where E: Element<Impl=ServoSelectorImpl> + Clone {
+                                   where E: Element<Impl=Impl> + Clone {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
+    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet<Impl>>]) {
         let cascaded_rule = stylesheets.iter()
             .flat_map(|s| s.effective_rules(&self.device).viewport())
             .cascade();
@@ -256,19 +250,18 @@ impl Stylist {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
-                                        pseudo_element: Option<PseudoElement>,
+                                        pseudo_element: Option<Impl::PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element + TElement<'le>,
+                                        where E: Element<Impl=Impl> + TElement<'le>,
                                               V: VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
 
         let map = match pseudo_element {
+            Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
             None => &self.element_map,
-            Some(PseudoElement::Before) => &self.before_map,
-            Some(PseudoElement::After) => &self.after_map,
         };
 
         let mut shareable = true;
@@ -336,14 +329,14 @@ impl Stylist {
     }
 }
 
-struct PerOriginSelectorMap {
-    normal: SelectorMap<Vec<PropertyDeclaration>, ServoSelectorImpl>,
-    important: SelectorMap<Vec<PropertyDeclaration>, ServoSelectorImpl>,
+struct PerOriginSelectorMap<Impl: SelectorImpl> {
+    normal: SelectorMap<Vec<PropertyDeclaration>, Impl>,
+    important: SelectorMap<Vec<PropertyDeclaration>, Impl>,
 }
 
-impl PerOriginSelectorMap {
+impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
     #[inline]
-    fn new() -> PerOriginSelectorMap {
+    fn new() -> PerOriginSelectorMap<Impl> {
         PerOriginSelectorMap {
             normal: SelectorMap::new(),
             important: SelectorMap::new(),
@@ -351,19 +344,28 @@ impl PerOriginSelectorMap {
     }
 }
 
-struct PerPseudoElementSelectorMap {
-    user_agent: PerOriginSelectorMap,
-    author: PerOriginSelectorMap,
-    user: PerOriginSelectorMap,
+struct PerPseudoElementSelectorMap<Impl: SelectorImpl> {
+    user_agent: PerOriginSelectorMap<Impl>,
+    author: PerOriginSelectorMap<Impl>,
+    user: PerOriginSelectorMap<Impl>,
 }
 
-impl PerPseudoElementSelectorMap {
+impl<Impl: SelectorImpl> PerPseudoElementSelectorMap<Impl> {
     #[inline]
-    fn new() -> PerPseudoElementSelectorMap {
+    fn new() -> PerPseudoElementSelectorMap<Impl> {
         PerPseudoElementSelectorMap {
             user_agent: PerOriginSelectorMap::new(),
             author: PerOriginSelectorMap::new(),
             user: PerOriginSelectorMap::new(),
+        }
+    }
+
+    #[inline]
+    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut PerOriginSelectorMap<Impl> {
+        match *origin {
+            Origin::UserAgent => &mut self.user_agent,
+            Origin::Author => &mut self.author,
+            Origin::User => &mut self.user,
         }
     }
 }

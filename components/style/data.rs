@@ -3,29 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use properties::ComputedValues;
+use selectors::parser::SelectorImpl;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
-pub struct PrivateStyleData {
+pub struct PrivateStyleData<Impl: SelectorImpl> {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ComputedValues>>,
 
-    /// The results of CSS styling for this node's `before` pseudo-element, if any.
-    pub before_style: Option<Arc<ComputedValues>>,
-
-    /// The results of CSS styling for this node's `after` pseudo-element, if any.
-    pub after_style: Option<Arc<ComputedValues>>,
+    /// The results of CSS styling for each pseudo-element (if any).
+    pub per_pseudo: HashMap<Impl::PseudoElement, Option<Arc<ComputedValues>>>,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
 }
 
-impl PrivateStyleData {
-    pub fn new() -> PrivateStyleData {
+impl<Impl: SelectorImpl> PrivateStyleData<Impl> {
+    pub fn new() -> PrivateStyleData<Impl> {
         PrivateStyleData {
             style: None,
-            before_style: None,
-            after_style: None,
+            per_pseudo: HashMap::new(),
             parallel: DomParallelInfo::new(),
         }
     }

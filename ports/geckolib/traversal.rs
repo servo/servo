@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use selector_impl::{GeckoSelectorImpl, SharedStyleContext};
 use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
-use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
+use style::context::{LocalStyleContext, StyleContext};
 use style::dom::{OpaqueNode, TNode};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use style::traversal::{DomTraversalContext, recalc_style_at};
@@ -48,7 +49,7 @@ impl<'a> StandaloneStyleContext<'a> {
     }
 }
 
-impl<'a> StyleContext<'a> for StandaloneStyleContext<'a> {
+impl<'a> StyleContext<'a, GeckoSelectorImpl> for StandaloneStyleContext<'a> {
     fn shared_context(&self) -> &'a SharedStyleContext {
         &self.shared
     }
@@ -63,7 +64,8 @@ pub struct RecalcStyleOnly<'lc> {
     root: OpaqueNode,
 }
 
-impl<'lc, 'ln, N: TNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleOnly<'lc> {
+impl<'lc, 'ln, N: TNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleOnly<'lc>
+    where N::ConcreteElement: ::selectors::Element<Impl=GeckoSelectorImpl> {
     type SharedContext = SharedStyleContext;
     #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {

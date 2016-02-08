@@ -25,8 +25,10 @@ use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
-use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
+use style::context::{LocalStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
+use style::selector_impl::ServoSelectorImpl;
+use style::servo::SharedStyleContext;
 use url::Url;
 use util::opts;
 
@@ -104,7 +106,7 @@ pub struct LayoutContext<'a> {
     cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 
-impl<'a> StyleContext<'a> for LayoutContext<'a> {
+impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
     fn shared_context(&self) -> &'a SharedStyleContext {
         &self.shared.style_context
     }

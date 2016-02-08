@@ -5,6 +5,8 @@
 use context::{SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
+use selector_impl::SelectorImplExt;
+use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use util::opts;
@@ -41,11 +43,11 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_thread_local_bloom_filter<'ln, N>(parent_node: Option<N>,
-                                        root: OpaqueNode,
-                                        context: &SharedStyleContext)
-                                        -> Box<BloomFilter>
-                                        where N: TNode<'ln> {
+fn take_thread_local_bloom_filter<'ln, N, Impl: SelectorImplExt>(parent_node: Option<N>,
+                                                              root: OpaqueNode,
+                                                              context: &SharedStyleContext<Impl>)
+                                                              -> Box<BloomFilter>
+                                                              where N: TNode<'ln> {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -77,9 +79,9 @@ fn take_thread_local_bloom_filter<'ln, N>(parent_node: Option<N>,
     })
 }
 
-pub fn put_thread_local_bloom_filter(bf: Box<BloomFilter>,
-                               unsafe_node: &UnsafeNode,
-                               context: &SharedStyleContext) {
+pub fn put_thread_local_bloom_filter<Impl: SelectorImplExt>(bf: Box<BloomFilter>,
+                                                            unsafe_node: &UnsafeNode,
+                                                            context: &SharedStyleContext<Impl>) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken thread-local bloom filter");
@@ -117,7 +119,12 @@ pub trait DomTraversalContext<'ln, N: TNode<'ln>>  {
 /// layout computation. This computes the styles applied to each node.
 #[inline]
 #[allow(unsafe_code)]
-pub fn recalc_style_at<'a, 'ln, N: TNode<'ln>, C: StyleContext<'a>> (context: &'a C, root: OpaqueNode, node: N) {
+pub fn recalc_style_at<'a, 'ln, N, C>(context: &'a C,
+                                      root: OpaqueNode,
+                                      node: N)
+    where N: TNode<'ln>,
+          C: StyleContext<'a, <N::ConcreteElement as Element>::Impl>,
+          <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a {
     // Initialize layout data.
     //
     // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
