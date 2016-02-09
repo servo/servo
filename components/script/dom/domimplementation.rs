@@ -116,6 +116,7 @@ impl DOMImplementationMethods for DOMImplementation {
         // Step 1-2.
         let doc = Document::new(win,
                                 None,
+                                None,
                                 IsHTMLDocument::HTMLDocument,
                                 None,
                                 None,

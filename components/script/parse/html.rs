@@ -275,7 +275,7 @@ pub fn parse_html_fragment(context_node: &Node,
 
     // Step 1.
     let loader = DocumentLoader::new(&*context_document.loader());
-    let document = Document::new(window.r(), Some(url.clone()),
+    let document = Document::new(window.r(), None, Some(url.clone()),
                                  IsHTMLDocument::HTMLDocument,
                                  None, None,
                                  DocumentSource::FromParser,
