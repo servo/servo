@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
 use dom::bindings::codegen::UnionTypes::BlobOrStringOrURLSearchParams;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -160,7 +159,7 @@ impl XMLHttpRequest {
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
-            response_type: Cell::new(_empty),
+            response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
@@ -332,7 +331,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // XXXManishearth Do some handling of username/passwords
                 if self.sync.get() {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 || self.with_credentials.get() || self.response_type.get() != _empty {
+                    if self.timeout.get() != 0 || self.with_credentials.get() ||
+                       self.response_type.get() != XMLHttpRequestResponseType::_empty {
                         return Err(Error::InvalidAccess)
                     }
                 }
@@ -696,7 +696,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         unsafe {
             let mut rval = RootedValue::new(cx, UndefinedValue());
             match self.response_type.get() {
-                _empty | Text => {
+                XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                     let ready_state = self.ready_state.get();
                     if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
                         self.text_response().to_jsval(cx, rval.handle_mut());
@@ -715,7 +715,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         return NullValue();
                     }
                 },
-                Json => {
+                XMLHttpRequestResponseType::Json => {
                     let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                     let decoded: Vec<u16> = decoded.utf16_units().collect();
                     if !JS_ParseJSON(cx,
@@ -738,7 +738,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute
     fn GetResponseText(&self) -> Fallible<USVString> {
         match self.response_type.get() {
-            _empty | Text => {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 Ok(USVString(String::from(match self.ready_state.get() {
                     XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
                     _ => "".to_owned()
@@ -751,7 +751,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         match self.response_type.get() {
-            _empty | XMLHttpRequestResponseType::Document => {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 match self.ready_state.get() {
                     XMLHttpRequestState::Done => {
                         match self.response_xml.get() {
