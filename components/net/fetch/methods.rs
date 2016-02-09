@@ -9,6 +9,7 @@ use http_loader::{create_http_connector, obtain_response};
 use hyper::client::response::Response as HyperResponse;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
+use hyper::header::{AccessControlAllowCredentials, AccessControlAllowOrigin};
 use hyper::header::{Authorization, Basic, ContentEncoding, Encoding};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
@@ -27,7 +28,8 @@ use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
-use url::{Origin, Url, UrlParser};
+use url::idna::domain_to_ascii;
+use url::{Origin, Url, UrlParser, whatwg_scheme_type_mapper};
 use util::thread::spawn_named;
 
 pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchListener + Send>) {
@@ -729,12 +731,12 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
             // Substep 1
             // TODO this substep
-            let cached_response: Option<Response> = None;
+            // let cached_response: Option<Response> = None;
 
             // Substep 2
-            if cached_response.is_none() {
-                return Response::network_error();
-            }
+            // if cached_response.is_none() {
+            //     return Response::network_error();
+            // }
 
             // Substep 3
 
@@ -860,8 +862,86 @@ fn preflight_fetch(request: Rc<Request>) -> Response {
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
 fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
-    // TODO: Implement CORS check spec
+
+    // Step 1
+    // let headers = request.headers.borrow();
+    let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
+
+    // Step 2
+    let origin = try!(origin.ok_or(()));
+
+    // Step 3
+    if request.credentials_mode != CredentialsMode::Include &&
+        origin == AccessControlAllowOrigin::Any {
+        return Ok(());
+    }
+
+    // Step 4
+    let origin = match origin {
+        AccessControlAllowOrigin::Value(origin) => origin,
+        // if it's Any or Null at this point, I see nothing to do but return Err(())
+        _ => return Err(())
+    };
+
+    // strings are already utf-8 encoded, so I don't need to re-encode origin for this step
+    match ascii_serialise_origin(&request.origin) {
+        Ok(request_origin) => {
+            if request_origin != origin {
+                return Err(());
+            }
+        },
+        _ => return Err(())
+    }
+
+    // Step 5
+    if request.credentials_mode != CredentialsMode::Include {
+        return Ok(());
+    }
+
+    // Step 6
+    let credentials = request.headers.borrow().get::<AccessControlAllowCredentials>().cloned();
+
+    // Step 7
+    if credentials.is_some() {
+        return Ok(());
+    }
+
+    // Step 8
     Err(())
+}
+
+/// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin)
+fn ascii_serialise_origin(origin: &Origin) -> Result<String, ()> {
+
+    let result = match *origin {
+
+        // Step 1
+        Origin::UID(_) => "null".to_owned(),
+
+        // Step 2
+        Origin::Tuple(ref scheme, ref host, ref port) => {
+
+            // Step 3
+            // this step is handled by the format!()s later in the function
+
+            // Step 4
+            // TODO throw a SecurityError in a meaningful way
+            // let host = host.as_str();
+            let host = try!(domain_to_ascii(host.serialize().as_str()).or(Err(())));
+
+            // Step 5
+            let default_port = whatwg_scheme_type_mapper(scheme).default_port();
+
+            if Some(*port) == default_port {
+                format!("{}://{}", scheme, host)
+            } else {
+                format!("{}://{}{}", scheme, host, port)
+            }
+        }
+    };
+
+    // Step 6
+    Ok(result)
 }
 
 fn global_user_agent() -> String {

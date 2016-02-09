@@ -35,3 +35,4 @@ hyper = "0.7"
 url = {version = "0.5.4", features = ["heap_size"]}
 time = "0.1"
 flate2 = "0.2.0"
+unicase = "1.0"
