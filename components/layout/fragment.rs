@@ -2602,11 +2602,6 @@ impl Overflow {
         self.paint = self.paint.union(&other.paint);
     }
 
-    pub fn union_rect(&mut self, rect: &Rect<Au>) {
-        self.scroll = self.scroll.union(&rect);
-        self.paint = self.paint.union(&rect);
-    }
-
     pub fn translate(&mut self, point: &Point2D<Au>) {
         self.scroll = self.scroll.translate(point);
         self.paint = self.paint.translate(point);
