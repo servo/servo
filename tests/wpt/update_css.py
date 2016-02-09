@@ -27,6 +27,8 @@ def update_tests(**kwargs):
 
 
 def set_defaults(kwargs):
+    if kwargs["product"] is None:
+        kwargs["product"] = "servo"
     if kwargs["config"] is None:
         kwargs["config"] = wpt_path('config_css.ini')
     wptcommandline.set_from_config(kwargs)
