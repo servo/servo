@@ -9,7 +9,7 @@ use context::SharedStyleContext;
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::{NonTSPseudoClass, PseudoElement};
+use selector_impl::{SelectorImplExt};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
@@ -17,6 +17,7 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use smallvec::SmallVec;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
 use std::sync::mpsc::Sender;
@@ -52,21 +53,21 @@ fn create_common_style_affecting_attributes_from_element<'le, E: TElement<'le>>(
     flags
 }
 
-pub struct ApplicableDeclarations {
+pub struct ApplicableDeclarations<Impl: SelectorImpl>
+    where Impl::PseudoElement: Eq + Hash {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
-    pub before: Vec<DeclarationBlock>,
-    pub after: Vec<DeclarationBlock>,
+    pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
 }
 
-impl ApplicableDeclarations {
-    pub fn new() -> ApplicableDeclarations {
+impl<Impl: SelectorImpl> ApplicableDeclarations<Impl>
+    where Impl::PseudoElement: Eq + Hash {
+    pub fn new() -> ApplicableDeclarations<Impl> {
         ApplicableDeclarations {
             normal: SmallVec::new(),
-            before: Vec::new(),
-            after: Vec::new(),
+            per_pseudo: HashMap::new(),
             normal_shareable: false,
         }
     }
@@ -247,8 +248,7 @@ impl StyleSharingCandidate {
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(), &atom!("class"))
                           .map(|string| string.to_owned()),
-            // TODO(ecoal95): Refactor this.
-            link: element.match_non_ts_pseudo_class(E::Impl::parse_non_ts_pseudo_class(&ParserContext::new(), "any-link").unwrap()),
+            link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
                    create_common_style_affecting_attributes_from_element::<'le, E>(&element)
@@ -316,8 +316,7 @@ impl StyleSharingCandidate {
             }
         }
 
-        // TODO(ecoal95): Refactor this (SelectorImplExt or similar in servo?).
-        if element.match_non_ts_pseudo_class(E::Impl::parse_non_ts_pseudo_class(&ParserContext::new(), "any-link").unwrap()) != self.link {
+        if element.is_link() != self.link {
             return false
         }
 
@@ -518,11 +517,12 @@ trait PrivateElementMatchMethods<'le>: TElement<'le> {
 impl<'le, E: TElement<'le>> PrivateElementMatchMethods<'le> for E {}
 
 pub trait ElementMatchMethods<'le> : TElement<'le>
-    where <Self::Impl as SelectorImpl>::PseudoElement: Eq + Hash {
+    where <Self::Impl as SelectorImpl>::PseudoElement: Eq + Hash,
+          Self::Impl: SelectorImplExt {
     fn match_element(&self,
                      stylist: &Stylist<Self::Impl>,
                      parent_bf: Option<&BloomFilter>,
-                     applicable_declarations: &mut ApplicableDeclarations)
+                     applicable_declarations: &mut ApplicableDeclarations<Self::Impl>)
                      -> bool {
         let style_attribute = self.style_attribute().as_ref();
 
@@ -532,29 +532,16 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
-        // TODO(ecoal95): refactor this to be generic about pseudo-elements.
-        // ¿Possibly an `each_pseudo` method in selectors?
-        //
-        // Impl::each_pseudo(|pseudo|
-        //     stylist.push_applicable_declarations(self,
-        //                                          parent_bf,
-        //                                          None,
-        //                                          Some(pseudo),
-        //                                          applicable_declarations.per_pseudo.entry(pseudo.clone()).or_insert(vec![])));
-        stylist.push_applicable_declarations(self,
-                                             parent_bf,
-                                             None,
-                                             Some(Self::Impl::parse_pseudo_element(&ParserContext::new(), "before").unwrap()),
-                                             &mut applicable_declarations.before);
-        stylist.push_applicable_declarations(self,
-                                             parent_bf,
-                                             None,
-                                             Some(Self::Impl::parse_pseudo_element(&ParserContext::new(), "after").unwrap()),
-                                             &mut applicable_declarations.after);
+        Self::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+            stylist.push_applicable_declarations(self,
+                                                 parent_bf,
+                                                 None,
+                                                 Some(pseudo),
+                                                 applicable_declarations.per_pseudo.entry(pseudo.clone()).or_insert(vec![]));
+        });
 
         applicable_declarations.normal_shareable &&
-        applicable_declarations.before.is_empty() &&
-        applicable_declarations.after.is_empty()
+        applicable_declarations.per_pseudo.values().all(|v| v.is_empty())
     }
 
     /// Attempts to share a style with another node. This method is unsafe because it depends on
@@ -596,7 +583,8 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
 }
 
 impl<'le, E: TElement<'le>> ElementMatchMethods<'le> for E
-    where <E::Impl as SelectorImpl>::PseudoElement: Eq + Hash {}
+    where <E::Impl as SelectorImpl>::PseudoElement: Eq + Hash,
+          E::Impl: SelectorImplExt {}
 
 pub trait MatchMethods<'ln> : TNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
@@ -650,7 +638,7 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
     unsafe fn cascade_node<Impl: SelectorImpl>(&self,
                                                context: &SharedStyleContext<Impl>,
                                                parent: Option<Self>,
-                                               applicable_declarations: &ApplicableDeclarations,
+                                               applicable_declarations: &ApplicableDeclarations<Impl>,
                                                applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                                                new_animations_sender: &Mutex<Sender<Animation>>)
         where Impl::PseudoElement: Eq + Hash {
@@ -690,28 +678,23 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                     new_animations_sender,
                     applicable_declarations.normal_shareable,
                     true);
-                if !applicable_declarations.before.is_empty() {
-                    damage = damage | self.cascade_node_pseudo_element(
-                        context,
-                        Some(data.style.as_ref().unwrap()),
-                        &*applicable_declarations.before,
-                        &mut data.before_style,
-                        applicable_declarations_cache,
-                        new_animations_sender,
-                        false,
-                        false);
-                }
-                if !applicable_declarations.after.is_empty() {
-                    damage = damage | self.cascade_node_pseudo_element(
-                        context,
-                        Some(data.style.as_ref().unwrap()),
-                        &*applicable_declarations.after,
-                        &mut data.after_style,
-                        applicable_declarations_cache,
-                        new_animations_sender,
-                        false,
-                        false);
-                }
+                Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+                    let applicable_declarations_for_this_pseudo =
+                        self.applicable_declarations.per_pseudo.get(&pseudo).unwrap();
+
+
+                    if !applicable_declarations_for_this_pseudo.is_empty() {
+                        damage = damage | self.cascade_node_pseudo_element(
+                            context,
+                            Some(data.style.as_ref().unwrap()),
+                            &*applicable_declarations_for_this_pseudo,
+                            data.per_pseudo.entry(&pseudo).or_insert(None),
+                            applicable_declarations_cache,
+                            new_animations_sender,
+                            false,
+                            false);
+                    }
+                });
             }
 
             // This method needs to borrow the data as mutable, so make sure data_ref goes out of

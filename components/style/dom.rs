@@ -9,7 +9,9 @@ use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selectors::matching::DeclarationBlock;
+use selectors::Element;
 use selectors::parser::SelectorImpl;
+use selector_impl::ElementExt;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
 use std::hash::Hash;
@@ -137,15 +139,18 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     /// Borrows the PrivateStyleData without checks.
     #[inline(always)]
-    unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData>;
+    unsafe fn borrow_data_unchecked(&self)
+        -> Option<*const PrivateStyleData<<Self::ConcreteElement as Element>::Impl>>;
 
     /// Borrows the PrivateStyleData immutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn borrow_data(&self) -> Option<Ref<PrivateStyleData>>;
+    fn borrow_data(&self)
+        -> Option<Ref<<Self::ConcreteElement as Element>::Impl>>;
 
     /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>>;
+    fn mutate_data(&self)
+        -> Option<RefMut<<Self::ConcreteElement as Element>::Impl>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
@@ -187,7 +192,7 @@ pub trait TDocument<'ld> : Sized + Copy + Clone {
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
 }
 
-pub trait TElement<'le> : Sized + Copy + Clone + ::selectors::Element {
+pub trait TElement<'le> : Sized + Copy + Clone + ElementExt {
     type ConcreteNode: TNode<'le, ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<'le, ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 

@@ -3,78 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use element_state::ElementState;
 use selectors::parser::{ParserContext, SelectorImpl};
+use selectors::Element;
+
+pub trait ElementExt: Element {
+    fn is_link(&self) -> bool;
+}
+
+pub trait SelectorImplExt : SelectorImpl {
+    fn each_eagerly_cascaded_pseudo_element<F>(fun: F)
+        where F: Fn(<Self as SelectorImpl>::PseudoElement);
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum PseudoElement {
     Before,
     After,
     FirstLine,
-
-    // https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
-    MozNonElement,
-    MozAnonymousBlock,
-    MozAnonymousPositionedBlock,
-    MozMathMLAnonymousBlock,
-    MozXULAnonymousBlock,
-
-    MozHorizontalFramesetBorder,
-    MozVerticalFramesetBorder,
-    MozLineFrame,
-    MozButtonContent,
-    MozButtonLabel,
-    MozCellContent,
-    MozDropdownList,
-    MozFieldsetContent,
-    MozFramesetBlank,
-    MozDisplayComboboxControlFrame,
-
-    MozHTMLCanvasContent,
-    MozInlineTable,
-    MozTable,
-    MozTableCell,
-    MozTableColumnGroup,
-    MozTableColumn,
-    MozTableOuter,
-    MozTableRowGroup,
-    MozTableRow,
-
-    MozCanvas,
-    MozPageBreak,
-    MozPage,
-    MozPageContent,
-    MozPageSequence,
-    MozScrolledContent,
-    MozScrolledCanvas,
-    MozScrolledPageSequence,
-    MozColumnContent,
-    MozViewport,
-    MozViewportScroll,
-    MozAnonymousFlexItem,
-    MozAnonymousGridItem,
-
-    MozRuby,
-    MozRubyBase,
-    MozRubyBaseContainer,
-    MozRubyText,
-    MozRubyTextContainer,
-
-    MozTreeColumn,
-    MozTreeRow,
-    MozTreeSeparator,
-    MozTreeCell,
-    MozTreeIndentation,
-    MozTreeLine,
-    MozTreeTwisty,
-    MozTreeImage,
-    MozTreeCellText,
-    MozTreeCheckbox,
-    MozTreeProgressMeter,
-    MozTreeDropFeedback,
-
-    MozSVGMarkerAnonChild,
-    MozSVGOuterSVGAnonChild,
-    MozSVGForeignContent,
-    MozSVGText,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
@@ -153,75 +97,24 @@ impl SelectorImpl for ServoSelectorImpl {
             "before" => Before,
             "after" => After,
             "first-line" => FirstLine,
-
-            "-moz-non-element" => MozNonElement,
-
-            "-moz-anonymous-block" => MozAnonymousBlock,
-            "-moz-anonymous-positioned-block" => MozAnonymousPositionedBlock,
-            "-moz-mathml-anonymous-block" => MozMathMLAnonymousBlock,
-            "-moz-xul-anonymous-block" => MozXULAnonymousBlock,
-
-            "-moz-hframeset-border" => MozHorizontalFramesetBorder,
-            "-moz-vframeset-border" => MozVerticalFramesetBorder,
-
-            "-moz-line-frame" => MozLineFrame,
-
-            "-moz-button-content" => MozButtonContent,
-            "-moz-buttonlabel" => MozButtonLabel,
-            "-moz-cell-content" => MozCellContent,
-            "-moz-dropdown-list" => MozDropdownList,
-            "-moz-fieldset-content" => MozFieldsetContent,
-            "-moz-frameset-blank" => MozFramesetBlank,
-            "-moz-display-comboboxcontrol-frame" => MozDisplayComboboxControlFrame,
-            "-moz-html-canvas-content" => MozHTMLCanvasContent,
-
-            "-moz-inline-table" => MozInlineTable,
-            "-moz-table" => MozTable,
-            "-moz-table-cell" => MozTableCell,
-            "-moz-table-column-group" => MozTableColumnGroup,
-            "-moz-table-column" => MozTableColumn,
-            "-moz-table-outer" => MozTableOuter,
-            "-moz-table-row-group" => MozTableRowGroup,
-            "-moz-table-row" => MozTableRow,
-
-            "-moz-canvas" => MozCanvas,
-            "-moz-pagebreak" => MozPageBreak,
-            "-moz-page" => MozPage,
-            "-moz-pagecontent" => MozPageContent,
-            "-moz-page-sequence" => MozPageSequence,
-            "-moz-scrolled-content" => MozScrolledContent,
-            "-moz-scrolled-canvas" => MozScrolledCanvas,
-            "-moz-scrolled-page-sequence" => MozScrolledPageSequence,
-            "-moz-column-content" => MozColumnContent,
-            "-moz-viewport" => MozViewport,
-            "-moz-viewport-scroll" => MozViewportScroll,
-            "-moz-anonymous-flex-item" => MozAnonymousFlexItem,
-            "-moz-anonymous-grid-item" => MozAnonymousGridItem,
-            "-moz-ruby" => MozRuby,
-            "-moz-ruby-base" => MozRubyBase,
-            "-moz-ruby-base-container" => MozRubyBaseContainer,
-            "-moz-ruby-text" => MozRubyText,
-            "-moz-ruby-text-container" => MozRubyTextContainer,
-            "-moz-tree-column" => MozTreeColumn,
-            "-moz-tree-row" => MozTreeRow,
-            "-moz-tree-separator" => MozTreeSeparator,
-            "-moz-tree-cell" => MozTreeCell,
-            "-moz-tree-indentation" => MozTreeIndentation,
-            "-moz-tree-line" => MozTreeLine,
-            "-moz-tree-twisty" => MozTreeTwisty,
-            "-moz-tree-image" => MozTreeImage,
-            "-moz-tree-cell-text" => MozTreeCellText,
-            "-moz-tree-checkbox" => MozTreeCheckbox,
-            "-moz-tree-progressmeter" => MozTreeProgressMeter,
-            "-moz-tree-drop-feedback" => MozTreeDropFeedback,
-            "-moz-svg-marker-anon-child" => MozSVGMarkerAnonChild,
-            "-moz-svg-outer-svg-anon-child" => MozSVGOuterSVGAnonChild,
-            "-moz-svg-foreign-content" => MozSVGForeignContent,
-            "-moz-svg-text" => MozSVGText,
-
             _ => return Err(())
         };
 
         Ok(pseudo_element)
+    }
+}
+
+impl<E: Element<Impl=ServoSelectorImpl>> ElementExt for E {
+    fn is_link(&self) -> bool {
+        self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
+    }
+}
+
+impl SelectorImplExt for ServoSelectorImpl {
+    fn each_eagerly_cascaded_pseudo_element<F>(fun: F)
+        where F: Fn(PseudoElement) {
+        fun(PseudoElement::Before);
+        fun(PseudoElement::After);
+        fun(PseudoElement::FirstLine);
     }
 }

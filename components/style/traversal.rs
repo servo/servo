@@ -5,6 +5,7 @@
 use context::{SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
+use selector_impl::SelectorImplExt;
 use selectors::bloom::BloomFilter;
 use selectors::parser::SelectorImpl;
 use selectors::Element;
@@ -127,7 +128,7 @@ pub fn recalc_style_at<'a, 'ln, N, C>(context: &'a C,
                                       node: N)
     where N: TNode<'ln>,
           C: StyleContext<'a, <N::ConcreteElement as Element>::Impl>,
-          <N::ConcreteElement as Element>::Impl: 'a,
+          <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a,
           <<N::ConcreteElement as Element>::Impl as SelectorImpl>::PseudoElement: Eq + Hash {
     // Initialize layout data.
     //
