@@ -12,7 +12,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
-use js::glue::{CreateWrapperProxyHandler, ProxyTraps, WrapperNew};
+use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra};
 use js::jsapi::{Handle, JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue};
 use js::jsapi::{HandleId, HandleObject, MutableHandle, MutableHandleValue};
@@ -56,11 +56,7 @@ impl BrowsingContext {
             assert!(((*JS_GetClass(parent.get())).flags & JSCLASS_IS_GLOBAL) != 0);
             let _ac = JSAutoCompartment::new(cx, parent.get());
             let window_proxy = RootedObject::new(cx,
-                                                 WrapperNew(cx,
-                                                            parent,
-                                                            handler,
-                                                            ptr::null(),
-                                                            true));
+                NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.ptr.is_null());
 
             let object = box BrowsingContext::new_inherited(document, frame_element);
