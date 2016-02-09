@@ -60,6 +60,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net_traits::Metadata;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -299,6 +300,7 @@ no_jsmanaged_fields!(Mime);
 no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
+no_jsmanaged_fields!(HttpsState);
 
 impl JSTraceable for ConstellationChan<ScriptMsg> {
     #[inline]

@@ -48,7 +48,7 @@ pub enum CacheState {
 }
 
 /// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
-#[derive(Clone)]
+#[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
 pub enum HttpsState {
     None,
     Deprecated,

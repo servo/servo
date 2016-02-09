@@ -84,6 +84,7 @@ use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
+use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_thread::{MainThreadScriptMsg, Runnable};
@@ -204,6 +205,8 @@ pub struct Document {
     dom_complete: Cell<u64>,
     /// Vector to store CSS errors
     css_errors_store: DOMRefCell<Vec<CSSError>>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
+    https_state: Cell<HttpsState>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -287,6 +290,11 @@ impl Document {
     #[inline]
     pub fn is_html_document(&self) -> bool {
         self.is_html_document
+    }
+
+    pub fn set_https_state(&self, https_state: HttpsState) {
+        self.https_state.set(https_state);
+        self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
     pub fn report_css_error(&self, css_error: CSSError) {
@@ -1523,6 +1531,7 @@ impl Document {
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
+            https_state: Cell::new(HttpsState::None),
         }
     }
 
