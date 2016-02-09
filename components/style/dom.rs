@@ -10,11 +10,9 @@ use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selectors::matching::DeclarationBlock;
 use selectors::Element;
-use selectors::parser::SelectorImpl;
 use selector_impl::ElementExt;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
-use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::sync::Arc;
@@ -145,12 +143,12 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
     /// Borrows the PrivateStyleData immutably. Fails on a conflicting borrow.
     #[inline(always)]
     fn borrow_data(&self)
-        -> Option<Ref<<Self::ConcreteElement as Element>::Impl>>;
+        -> Option<Ref<PrivateStyleData<<Self::ConcreteElement as Element>::Impl>>>;
 
     /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
     #[inline(always)]
     fn mutate_data(&self)
-        -> Option<RefMut<<Self::ConcreteElement as Element>::Impl>>;
+        -> Option<RefMut<PrivateStyleData<<Self::ConcreteElement as Element>::Impl>>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
@@ -171,7 +169,7 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&self) -> Ref<Arc<ComputedValues>> {
+    fn style(&'ln self) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }
 

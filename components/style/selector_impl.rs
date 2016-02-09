@@ -10,8 +10,10 @@ pub trait ElementExt: Element {
 }
 
 pub trait SelectorImplExt : SelectorImpl {
-    fn each_eagerly_cascaded_pseudo_element<F>(fun: F)
-        where F: Fn(<Self as SelectorImpl>::PseudoElement);
+    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(<Self as SelectorImpl>::PseudoElement);
+
+    fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
@@ -111,10 +113,16 @@ impl<E: Element<Impl=ServoSelectorImpl>> ElementExt for E {
 }
 
 impl SelectorImplExt for ServoSelectorImpl {
-    fn each_eagerly_cascaded_pseudo_element<F>(fun: F)
-        where F: Fn(PseudoElement) {
+    #[inline]
+    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(PseudoElement) {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
         fun(PseudoElement::FirstLine);
+    }
+
+    #[inline]
+    fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
+        pc.state_flag()
     }
 }

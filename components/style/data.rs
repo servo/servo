@@ -5,21 +5,21 @@
 use properties::ComputedValues;
 use selectors::parser::SelectorImpl;
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
-pub struct PrivateStyleData<Impl: SelectorImpl>
-    where Impl::PseudoElement: Eq + Hash {
+pub struct PrivateStyleData<Impl: SelectorImpl> {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
     pub per_pseudo: HashMap<Impl::PseudoElement, Option<Arc<ComputedValues>>>,
+
+    /// Information needed during parallel traversals.
+    pub parallel: DomParallelInfo,
 }
 
-impl<Impl: SelectorImpl> PrivateStyleData<Impl>
-    where Impl::PseudoElement: Eq + Hash {
+impl<Impl: SelectorImpl> PrivateStyleData<Impl> {
     pub fn new() -> PrivateStyleData<Impl> {
         PrivateStyleData {
             style: None,

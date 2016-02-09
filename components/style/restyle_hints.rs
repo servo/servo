@@ -4,6 +4,7 @@
 
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
+use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{AttrSelector, Combinator, CompoundSelector, NamespaceConstraint, SelectorImpl, SimpleSelector};
@@ -77,12 +78,16 @@ impl ElementSnapshot {
 
 static EMPTY_SNAPSHOT: ElementSnapshot = ElementSnapshot { state: None, attrs: None };
 
-struct ElementWrapper<'a, E> where E: Element {
+struct ElementWrapper<'a, E>
+    where E: Element,
+          E::Impl: SelectorImplExt {
     element: E,
     snapshot: &'a ElementSnapshot,
 }
 
-impl<'a, E> ElementWrapper<'a, E> where E: Element {
+impl<'a, E> ElementWrapper<'a, E>
+    where E: Element,
+          E::Impl: SelectorImplExt {
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: &EMPTY_SNAPSHOT }
     }
@@ -92,20 +97,22 @@ impl<'a, E> ElementWrapper<'a, E> where E: Element {
     }
 }
 
-impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
+impl<'a, E> Element for ElementWrapper<'a, E>
+    where E: Element,
+          E::Impl: SelectorImplExt {
     type Impl = E::Impl;
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: <Self::Impl as SelectorImpl>::NonTSPseudoClass) -> bool {
-        // TODO(ecoal95)
-        // let flag = pseudo_class.state_flag();
-        // if flag == ElementState::empty() {
-        self.element.match_non_ts_pseudo_class(pseudo_class)
-        // } else {
-        //     match self.snapshot.state {
-        //         Some(s) => s.contains(pseudo_class.state_flag()),
-        //         None => self.element.match_non_ts_pseudo_class(pseudo_class)
-        //     }
-        // }
+    fn match_non_ts_pseudo_class(&self,
+                                 pseudo_class: <Self::Impl as SelectorImpl>::NonTSPseudoClass) -> bool {
+        let flag = Self::Impl::pseudo_class_state_flag(&pseudo_class);
+        if flag == ElementState::empty() {
+            self.element.match_non_ts_pseudo_class(pseudo_class)
+        } else {
+            match self.snapshot.state {
+                Some(s) => s.contains(flag),
+                None => self.element.match_non_ts_pseudo_class(pseudo_class)
+            }
+        }
     }
 
     fn parent_element(&self) -> Option<Self> {
@@ -177,13 +184,11 @@ impl<'a, E> Element for ElementWrapper<'a, E> where E: Element {
     }
 }
 
-// TODO(ecoal95): This will probably require an extension trait that gets the state
-fn selector_to_state<Impl: SelectorImpl>(sel: &SimpleSelector<Impl>) -> ElementState {
-    ElementState::empty()
-    // match *sel {
-    //     SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
-    //     _ => ElementState::empty(),
-    // }
+fn selector_to_state<Impl: SelectorImplExt>(sel: &SimpleSelector<Impl>) -> ElementState {
+    match *sel {
+        SimpleSelector::NonTSPseudoClass(ref pc) => Impl::pseudo_class_state_flag(pc),
+        _ => ElementState::empty(),
+    }
 }
 
 fn is_attr_selector<Impl: SelectorImpl>(sel: &SimpleSelector<Impl>) -> bool {
@@ -251,18 +256,18 @@ impl Sensitivities {
 // maximum effect that a given state or attribute change may have on the style of
 // elements in the document.
 #[derive(Debug)]
-struct Dependency<Impl: SelectorImpl> {
+struct Dependency<Impl: SelectorImplExt> {
     selector: Arc<CompoundSelector<Impl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
 
 #[derive(Debug)]
-pub struct DependencySet<Impl: SelectorImpl> {
+pub struct DependencySet<Impl: SelectorImplExt> {
     deps: Vec<Dependency<Impl>>,
 }
 
-impl<Impl: SelectorImpl> DependencySet<Impl> {
+impl<Impl: SelectorImplExt> DependencySet<Impl> {
     pub fn new() -> DependencySet<Impl> {
         DependencySet { deps: Vec::new() }
     }

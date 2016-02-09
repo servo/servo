@@ -9,10 +9,10 @@ use context::SharedStyleContext;
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::{SelectorImplExt};
+use selector_impl::SelectorImplExt;
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
-use selectors::parser::{ParserContext, SelectorImpl};
+use selectors::parser::SelectorImpl;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -53,8 +53,7 @@ fn create_common_style_affecting_attributes_from_element<'le, E: TElement<'le>>(
     flags
 }
 
-pub struct ApplicableDeclarations<Impl: SelectorImpl>
-    where Impl::PseudoElement: Eq + Hash {
+pub struct ApplicableDeclarations<Impl: SelectorImpl> {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
     pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>>,
 
@@ -62,8 +61,7 @@ pub struct ApplicableDeclarations<Impl: SelectorImpl>
     pub normal_shareable: bool,
 }
 
-impl<Impl: SelectorImpl> ApplicableDeclarations<Impl>
-    where Impl::PseudoElement: Eq + Hash {
+impl<Impl: SelectorImpl> ApplicableDeclarations<Impl> {
     pub fn new() -> ApplicableDeclarations<Impl> {
         ApplicableDeclarations {
             normal: SmallVec::new(),
@@ -361,10 +359,10 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln>
-    where Impl::PseudoElement: Eq + Hash {
+trait PrivateMatchMethods<'ln>: TNode<'ln>
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
     fn cascade_node_pseudo_element(&self,
-                                   context: &SharedStyleContext<Impl>,
+                                   context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
@@ -437,7 +435,7 @@ trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln>
     }
 
     fn update_animations_for_cascade(&self,
-                                     context: &SharedStyleContext<Impl>,
+                                     context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
                                      style: &mut Option<Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
@@ -481,8 +479,8 @@ trait PrivateMatchMethods<'ln, Impl: SelectorImpl>: TNode<'ln>
     }
 }
 
-impl<'ln, N: TNode<'ln>, Impl: SelectorImpl> PrivateMatchMethods<'ln, Impl> for N
-    where Impl::PseudoElement: Eq + Hash {}
+impl<'ln, N: TNode<'ln>> PrivateMatchMethods<'ln> for N
+    where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
 
 trait PrivateElementMatchMethods<'le>: TElement<'le> {
     fn share_style_with_candidate_if_possible(&self,
@@ -494,7 +492,7 @@ trait PrivateElementMatchMethods<'le>: TElement<'le> {
             Some(_) | None => return None,
         };
 
-        let parent_data: Option<&PrivateStyleData> = unsafe {
+        let parent_data: Option<&PrivateStyleData<_>> = unsafe {
             parent_node.borrow_data_unchecked().map(|d| &*d)
         };
 
@@ -517,8 +515,7 @@ trait PrivateElementMatchMethods<'le>: TElement<'le> {
 impl<'le, E: TElement<'le>> PrivateElementMatchMethods<'le> for E {}
 
 pub trait ElementMatchMethods<'le> : TElement<'le>
-    where <Self::Impl as SelectorImpl>::PseudoElement: Eq + Hash,
-          Self::Impl: SelectorImplExt {
+    where Self::Impl: SelectorImplExt {
     fn match_element(&self,
                      stylist: &Stylist<Self::Impl>,
                      parent_bf: Option<&BloomFilter>,
@@ -536,8 +533,8 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  None,
-                                                 Some(pseudo),
-                                                 applicable_declarations.per_pseudo.entry(pseudo.clone()).or_insert(vec![]));
+                                                 Some(pseudo.clone()),
+                                                 applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]));
         });
 
         applicable_declarations.normal_shareable &&
@@ -583,8 +580,7 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
 }
 
 impl<'le, E: TElement<'le>> ElementMatchMethods<'le> for E
-    where <E::Impl as SelectorImpl>::PseudoElement: Eq + Hash,
-          E::Impl: SelectorImplExt {}
+    where E::Impl: SelectorImplExt {}
 
 pub trait MatchMethods<'ln> : TNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
@@ -635,13 +631,13 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
         }
     }
 
-    unsafe fn cascade_node<Impl: SelectorImpl>(&self,
-                                               context: &SharedStyleContext<Impl>,
-                                               parent: Option<Self>,
-                                               applicable_declarations: &ApplicableDeclarations<Impl>,
-                                               applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                                               new_animations_sender: &Mutex<Sender<Animation>>)
-        where Impl::PseudoElement: Eq + Hash {
+    unsafe fn cascade_node(&self,
+                           context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
+                           parent: Option<Self>,
+                           applicable_declarations: &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>,
+                           applicable_declarations_cache: &mut ApplicableDeclarationsCache,
+                           new_animations_sender: &Mutex<Sender<Animation>>)
+                           where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
@@ -678,9 +674,10 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                     new_animations_sender,
                     applicable_declarations.normal_shareable,
                     true);
-                Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+
+                <Self::ConcreteElement as Element>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
                     let applicable_declarations_for_this_pseudo =
-                        self.applicable_declarations.per_pseudo.get(&pseudo).unwrap();
+                        applicable_declarations.per_pseudo.get(&pseudo).unwrap();
 
 
                     if !applicable_declarations_for_this_pseudo.is_empty() {
@@ -688,7 +685,7 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
                             context,
                             Some(data.style.as_ref().unwrap()),
                             &*applicable_declarations_for_this_pseudo,
-                            data.per_pseudo.entry(&pseudo).or_insert(None),
+                            data.per_pseudo.entry(pseudo).or_insert(None),
                             applicable_declarations_cache,
                             new_animations_sender,
                             false,

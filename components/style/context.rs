@@ -8,24 +8,20 @@ use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use selectors::parser::SelectorImpl;
+use selector_impl::SelectorImplExt;
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
 
-pub struct StylistWrapper<Impl: SelectorImpl>(pub *const Stylist<Impl>)
-    where Impl::PseudoElement: Eq + Hash;
+pub struct StylistWrapper<Impl: SelectorImplExt>(pub *const Stylist<Impl>);
 
 // FIXME(#6569) This implementation is unsound.
 #[allow(unsafe_code)]
-unsafe impl<Impl: SelectorImpl> Sync for StylistWrapper<Impl>
-    where Impl::PseudoElement: Eq + Hash {}
+unsafe impl<Impl: SelectorImplExt> Sync for StylistWrapper<Impl> {}
 
-pub struct SharedStyleContext<Impl: SelectorImpl>
-    where Impl::PseudoElement: Eq + Hash {
+pub struct SharedStyleContext<Impl: SelectorImplExt> {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
 
@@ -63,8 +59,7 @@ pub struct LocalStyleContext {
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
 }
 
-pub trait StyleContext<'a, Impl: SelectorImpl>
-    where Impl::PseudoElement: Eq + Hash {
+pub trait StyleContext<'a, Impl: SelectorImplExt> {
 
     fn shared_context(&self) -> &'a SharedStyleContext<Impl>;
     fn local_context(&self) -> &LocalStyleContext;
