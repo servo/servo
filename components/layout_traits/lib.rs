@@ -14,6 +14,7 @@ extern crate script_traits;
 extern crate serde;
 extern crate url;
 extern crate util;
+extern crate webrender_traits;
 
 // This module contains traits in layout used generically
 //   in the rest of Servo.
@@ -54,5 +55,6 @@ pub trait LayoutThreadFactory {
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: IpcSender<()>,
-              content_process_shutdown_chan: IpcSender<()>);
+              content_process_shutdown_chan: IpcSender<()>,
+              webrender_api_sender: Option<webrender_traits::RenderApiSender>);
 }

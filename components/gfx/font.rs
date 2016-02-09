@@ -23,6 +23,7 @@ use text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
 use util::cache::HashCache;
+use webrender_traits;
 
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
@@ -100,6 +101,7 @@ pub struct Font {
     pub shaper: Option<Shaper>,
     pub shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
     pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
+    pub font_key: Option<webrender_traits::FontKey>,
 }
 
 bitflags! {

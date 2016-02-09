@@ -28,6 +28,7 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
 use util::cache::HashCache;
+use webrender_traits;
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
@@ -105,9 +106,12 @@ impl FontContext {
     }
 
     /// Create a font for use in layout calculations.
-    fn create_layout_font(&self, template: Arc<FontTemplateData>,
-                            descriptor: FontTemplateDescriptor, pt_size: Au,
-                            variant: font_variant::T) -> Result<Font, ()> {
+    fn create_layout_font(&self,
+                          template: Arc<FontTemplateData>,
+                          descriptor: FontTemplateDescriptor,
+                          pt_size: Au,
+                          variant: font_variant::T,
+                          font_key: Option<webrender_traits::FontKey>) -> Result<Font, ()> {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.
@@ -133,6 +137,7 @@ impl FontContext {
                 metrics: metrics,
                 shape_cache: HashCache::new(),
                 glyph_advance_cache: HashCache::new(),
+                font_key: font_key,
             }
         })
     }
@@ -201,14 +206,15 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_thread.find_font_template(family.clone(),
-                                                                            desc.clone());
-                match font_template {
-                    Some(font_template) => {
-                        let layout_font = self.create_layout_font(font_template,
+                let template_info = self.font_cache_thread.find_font_template(family.clone(),
+                                                                             desc.clone());
+                match template_info {
+                    Some(template_info) => {
+                        let layout_font = self.create_layout_font(template_info.font_template,
                                                                   desc.clone(),
                                                                   style.font_size,
-                                                                  style.font_variant);
+                                                                  style.font_variant,
+                                                                  template_info.font_key);
                         let font = match layout_font {
                             Ok(layout_font) => {
                                 let layout_font = Rc::new(RefCell::new(layout_font));
@@ -250,11 +256,12 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_thread.last_resort_font_template(desc.clone());
-                let layout_font = self.create_layout_font(font_template,
+                let template_info = self.font_cache_thread.last_resort_font_template(desc.clone());
+                let layout_font = self.create_layout_font(template_info.font_template,
                                                           desc.clone(),
                                                           style.font_size,
-                                                          style.font_variant);
+                                                          style.font_variant,
+                                                          template_info.font_key);
                 match layout_font {
                     Ok(layout_font) => {
                         let layout_font = Rc::new(RefCell::new(layout_font));

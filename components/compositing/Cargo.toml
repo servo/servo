@@ -81,6 +81,12 @@ git = "https://github.com/servo/gaol"
 [target.aarch64-unknown-linux-gnu.dependencies.gaol]
 git = "https://github.com/servo/gaol"
 
+[dependencies.webrender_traits]
+git = "https://github.com/glennw/webrender_traits"
+
+[dependencies.webrender]
+git = "https://github.com/glennw/webrender"
+
 [dependencies]
 app_units = {version = "0.2", features = ["plugins"]}
 image = "0.5.0"

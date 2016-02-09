@@ -33,6 +33,9 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
+[dependencies.webrender_traits]
+git = "https://github.com/glennw/webrender_traits"
+
 [dependencies]
 log = "0.3"
 num = "0.1.24"

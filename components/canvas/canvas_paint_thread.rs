@@ -24,6 +24,7 @@ use std::sync::mpsc::{Sender, channel};
 use util::opts;
 use util::thread::spawn_named;
 use util::vec::byte_swap;
+use webrender_traits;
 
 impl<'a> CanvasPaintThread<'a> {
     /// It reads image data from the canvas
@@ -63,6 +64,8 @@ pub struct CanvasPaintThread<'a> {
     path_builder: PathBuilder,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
+    webrender_api: Option<webrender_traits::RenderApi>,
+    webrender_image_key: Option<webrender_traits::ImageKey>,
 }
 
 #[derive(Clone)]
@@ -102,27 +105,34 @@ impl<'a> CanvasPaintState<'a> {
 }
 
 impl<'a> CanvasPaintThread<'a> {
-    fn new(size: Size2D<i32>) -> CanvasPaintThread<'a> {
+    fn new(size: Size2D<i32>,
+           webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
+        let webrender_api = webrender_api_sender.map(|wr| wr.create_api());
+        let webrender_image_key = webrender_api.as_ref().map(|wr| wr.alloc_image());
         CanvasPaintThread {
             drawtarget: draw_target,
             path_builder: path_builder,
             state: CanvasPaintState::new(),
             saved_states: Vec::new(),
+            webrender_api: webrender_api,
+            webrender_image_key: webrender_image_key,
         }
     }
 
     /// Creates a new `CanvasPaintThread` and returns the out-of-process sender and the in-process
     /// sender for it.
-    pub fn start(size: Size2D<i32>) -> (IpcSender<CanvasMsg>, Sender<CanvasMsg>) {
+    pub fn start(size: Size2D<i32>,
+                 webrender_api_sender: Option<webrender_traits::RenderApiSender>)
+                    -> (IpcSender<CanvasMsg>, Sender<CanvasMsg>) {
         // TODO(pcwalton): Ask the pipeline to create this for us instead of spawning it directly.
         // This will be needed for multiprocess Servo.
         let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
         ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
         spawn_named("CanvasThread".to_owned(), move || {
-            let mut painter = CanvasPaintThread::new(size);
+            let mut painter = CanvasPaintThread::new(size, webrender_api_sender);
             loop {
                 let msg = in_process_port.recv();
                 match msg.unwrap() {
@@ -190,8 +200,8 @@ impl<'a> CanvasPaintThread<'a> {
                     },
                     CanvasMsg::FromLayout(message) => {
                         match message {
-                            FromLayoutMsg::SendPixelContents(chan) => {
-                                painter.send_pixel_contents(chan)
+                            FromLayoutMsg::SendData(chan) => {
+                                painter.send_data(chan)
                             }
                         }
                     }
@@ -519,9 +529,24 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget = CanvasPaintThread::create(size);
     }
 
-    fn send_pixel_contents(&mut self, chan: IpcSender<IpcSharedMemory>) {
+    fn send_data(&mut self, chan: IpcSender<CanvasData>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            chan.send(IpcSharedMemory::from_bytes(element)).unwrap();
+            if let Some(ref webrender_api) = self.webrender_api {
+                let size = self.drawtarget.get_size();
+                let mut bytes = Vec::new();
+                bytes.extend_from_slice(element);
+                webrender_api.update_image(self.webrender_image_key.unwrap(),
+                                           size.width as u32,
+                                           size.height as u32,
+                                           webrender_traits::ImageFormat::RGBA8,
+                                           bytes);
+            }
+
+            let pixel_data = CanvasPixelData {
+                image_data: IpcSharedMemory::from_bytes(element),
+                image_key: self.webrender_image_key,
+            };
+            chan.send(CanvasData::Pixels(pixel_data)).unwrap();
         })
     }
 

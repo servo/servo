@@ -15,6 +15,7 @@ use platform::font_list::system_default_family;
 use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
@@ -24,10 +25,17 @@ use url::Url;
 use util::prefs;
 use util::str::LowercaseString;
 use util::thread::spawn_named;
+use webrender_traits;
 
 /// A list of font templates that make up a given font family.
 struct FontTemplates {
     templates: Vec<FontTemplate>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FontTemplateInfo {
+    pub font_template: Arc<FontTemplateData>,
+    pub font_key: Option<webrender_traits::FontKey>,
 }
 
 impl FontTemplates {
@@ -73,7 +81,8 @@ impl FontTemplates {
             }
         }
 
-        let template = FontTemplate::new(identifier, maybe_data);
+        let template = FontTemplate::new(identifier,
+                                         maybe_data);
         self.templates.push(template);
     }
 }
@@ -91,7 +100,7 @@ pub enum Command {
 /// Reply messages sent from the font cache thread to the FontContext caller.
 #[derive(Deserialize, Serialize, Debug)]
 pub enum Reply {
-    GetFontTemplateReply(Option<Arc<FontTemplateData>>),
+    GetFontTemplateReply(Option<FontTemplateInfo>),
 }
 
 /// The font cache thread itself. It maintains a list of reference counted
@@ -104,6 +113,8 @@ struct FontCache {
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
     resource_thread: ResourceThread,
+    webrender_api: Option<webrender_traits::RenderApi>,
+    webrender_fonts: HashMap<Atom, webrender_traits::FontKey>,
 }
 
 fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
@@ -285,24 +296,54 @@ impl FontCache {
         }
     }
 
+    fn get_font_template_info(&mut self, template: Arc<FontTemplateData>) -> FontTemplateInfo {
+        let font_key = if let Some(ref webrender_api) = self.webrender_api {
+            let font_key = match self.webrender_fonts.entry(template.identifier.clone()) {
+                Entry::Occupied(occupied) => {
+                    occupied.into_mut()
+                }
+                Entry::Vacant(vacant) => {
+                    let font_key = match (template.bytes_if_in_memory(), template.native_font()) {
+                        (Some(bytes), _) => webrender_api.add_raw_font(bytes),
+                        (None, Some(native_font)) => webrender_api.add_native_font(native_font),
+                        (None, None) => webrender_api.add_raw_font(template.bytes().clone()),
+                    };
+                    vacant.insert(font_key)
+                }
+            };
+            Some(*font_key)
+        } else {
+            None
+        };
+
+        FontTemplateInfo {
+            font_template: template,
+            font_key: font_key,
+        }
+    }
+
     fn find_font_template(&mut self, family: &FontFamily, desc: &FontTemplateDescriptor)
-                            -> Option<Arc<FontTemplateData>> {
-        self.find_font_in_web_family(family, desc)
+                            -> Option<FontTemplateInfo> {
+        let template = self.find_font_in_web_family(family, desc)
             .or_else(|| {
                 let transformed_family = self.transform_family(family);
                 self.find_font_in_local_family(&transformed_family, desc)
-            })
+            });
+
+        template.map(|template| {
+            self.get_font_template_info(template)
+        })
     }
 
     fn last_resort_font_template(&mut self, desc: &FontTemplateDescriptor)
-                                        -> Arc<FontTemplateData> {
+                                        -> FontTemplateInfo {
         let last_resort = last_resort_font_families();
 
         for family in &last_resort {
             let family = LowercaseString::new(family);
             let maybe_font_in_family = self.find_font_in_local_family(&family, desc);
             if let Some(family) = maybe_font_in_family {
-                return family;
+                return self.get_font_template_info(family)
             }
         }
 
@@ -318,7 +359,8 @@ pub struct FontCacheThread {
 }
 
 impl FontCacheThread {
-    pub fn new(resource_thread: ResourceThread) -> FontCacheThread {
+    pub fn new(resource_thread: ResourceThread,
+               webrender_api: Option<webrender_traits::RenderApi>) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
         let channel_to_self = chan.clone();
@@ -334,6 +376,8 @@ impl FontCacheThread {
                 web_families: HashMap::new(),
                 font_context: FontContextHandle::new(),
                 resource_thread: resource_thread,
+                webrender_api: webrender_api,
+                webrender_fonts: HashMap::new(),
             };
 
             cache.refresh_local_families();
@@ -346,7 +390,7 @@ impl FontCacheThread {
     }
 
     pub fn find_font_template(&self, family: FontFamily, desc: FontTemplateDescriptor)
-                                                -> Option<Arc<FontTemplateData>> {
+                                                -> Option<FontTemplateInfo> {
 
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
@@ -361,7 +405,7 @@ impl FontCacheThread {
     }
 
     pub fn last_resort_font_template(&self, desc: FontTemplateDescriptor)
-                                                -> Arc<FontTemplateData> {
+                                                -> FontTemplateInfo {
 
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan)).unwrap();
