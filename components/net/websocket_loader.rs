@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_storage::CookieStorage;
+use http_loader;
 use hyper::header::Host;
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
@@ -40,6 +41,8 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     if !protocols.is_empty() {
         request.headers.set(WebSocketProtocol(protocols.clone()));
     };
+
+    http_loader::set_request_cookies(resource_url.clone(), &mut request.headers, &cookie_jar);
 
     let response = try!(request.send());
     try!(response.validate());
