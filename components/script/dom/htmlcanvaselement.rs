@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::{CanvasMsg, FromLayoutMsg};
+use canvas_traits::{CanvasMsg, FromLayoutMsg, CanvasData};
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -202,10 +202,17 @@ impl HTMLCanvasElement {
 
         let data = if let Some(renderer) = self.ipc_renderer() {
             let (sender, receiver) = ipc::channel().unwrap();
-            let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendPixelContents(sender));
+            let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender));
             renderer.send(msg).unwrap();
 
-            receiver.recv().unwrap().to_vec()
+            match receiver.recv().unwrap() {
+                CanvasData::Pixels(pixel_data)
+                    => pixel_data.image_data.to_vec(),
+                CanvasData::WebGL(_)
+                    // TODO(ecoal95): Not sure if WebGL canvas is required for 2d spec,
+                    // but I think it's not.
+                    => return None,
+            }
         } else {
             repeat(0xffu8).take((size.height as usize) * (size.width as usize) * 4).collect()
         };

@@ -70,6 +70,42 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "cgl"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gleam 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-foundation"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "core-foundation-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "core-graphics"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "cssparser"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -172,6 +208,25 @@ version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "gl_generator"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml-rs 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gleam"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gl_generator 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "heapsize"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -204,6 +259,11 @@ dependencies = [
  "winapi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "khronos_api"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "lazy_static"
@@ -248,6 +308,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "offscreen_gl_context"
+version = "0.1.0"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aa899f18860c1bdc503350a67cd89fd9e339d392"
+dependencies = [
+ "cgl 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "phf_generator"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,6 +336,11 @@ dependencies = [
 [[package]]
 name = "phf_shared"
 version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -503,6 +585,7 @@ dependencies = [
  "string_cache 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.1.0 (git+https://github.com/glennw/webrender_traits)",
 ]
 
 [[package]]
@@ -520,6 +603,21 @@ version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "webrender_traits"
+version = "0.1.0"
+source = "git+https://github.com/glennw/webrender_traits#8ccc1608590d219d1df54e49f2f1e887995b4d60"
+dependencies = [
+ "app_units 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "winapi"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -528,4 +626,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "winapi-build"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "x11"
+version = "2.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "xml-rs"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
