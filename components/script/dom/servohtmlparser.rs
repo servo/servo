@@ -522,7 +522,7 @@ struct Tracer {
 impl tree_builder::Tracer for Tracer {
     type Handle = JS<Node>;
     #[allow(unrooted_must_root)]
-    fn trace_handle(&self, node: JS<Node>) {
+    fn trace_handle(&self, node: &JS<Node>) {
         node.trace(self.trc);
     }
 }

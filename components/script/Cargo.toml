@@ -72,7 +72,7 @@ euclid = {version = "0.6.1", features = ["plugins"]}
 fnv = "1.0"
 heapsize = "0.2.5"
 heapsize_plugin = "0.1.2"
-html5ever = {version = "0.4.2", features = ["heap_size", "unstable"]}
+html5ever = {version = "0.5.0", features = ["heap_size", "unstable"]}
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
 libc = "0.2"
