@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence::{self, eString, eStringSequence};
 use dom::bindings::conversions::{ToJSValConvertible};
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -29,7 +29,8 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
-use net_traits::ControlMsg::WebsocketConnect;
+use net_traits::ControlMsg::{WebsocketConnect, SetCookiesForUrl};
+use net_traits::CookieSource::HTTP;
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
@@ -485,10 +486,24 @@ impl Runnable for ConnectionEstablishedTask {
         };
 
         // Step 5: Cookies.
+        if let Some(cookies) = self.headers.get_raw("set-cookie") {
+            for cookie in cookies.iter() {
+                if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                    //TODO - currently not addressing the ErrorResult (?)
+                    SetWebSocketCookie(ws.global().r(), &ws.url, cookie_value);
+                }
+            }
+        }
 
         // Step 6.
         ws.upcast().fire_simple_event("open", global.r());
     }
+}
+
+fn SetWebSocketCookie(global: GlobalRef, url: &Url, cookie: String) -> ErrorResult {
+    let _ = global.resource_thread()
+            .send(SetCookiesForUrl((*url).clone(), cookie, HTTP));
+    Ok(())
 }
 
 struct BufferedAmountTask {
