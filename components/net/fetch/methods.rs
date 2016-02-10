@@ -29,7 +29,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
 use url::idna::domain_to_ascii;
-use url::{Origin, Url, UrlParser, whatwg_scheme_type_mapper};
+use url::{Origin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
 use util::thread::spawn_named;
 
 pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchListener + Send>) {
@@ -435,91 +435,16 @@ fn http_fetch(request: Rc<Request>,
         StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
         StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
 
-            // Step 1
-            if request.redirect_mode.get() == RedirectMode::Error {
-                return Response::network_error();
-            }
-
-            // Step 3
-            if !actual_response.headers.has::<Location>() {
-                drop(actual_response);
-                return Rc::try_unwrap(response).ok().unwrap();
-            }
-
-            // Step 2
-            let location = match actual_response.headers.get::<Location>() {
-                Some(&Location(ref location)) => location.clone(),
-                // Step 4
-                _ => return Response::network_error(),
-            };
-
-            // Step 5
-            let location_url = UrlParser::new().base_url(&request.current_url()).parse(&*location);
-
-            // Step 6
-            let location_url = match location_url {
-                Ok(url) => url,
-                _ => { return Response::network_error(); }
-            };
-
-            // Step 7
-            if request.redirect_count.get() >= 20 {
-                return Response::network_error();
-            }
-
-            // Step 8
-            request.redirect_count.set(request.redirect_count.get() + 1);
-
-            // Step 9
-            request.same_origin_data.set(false);
-
             match request.redirect_mode.get() {
-
-                // Step 10
+                RedirectMode::Error => response = Rc::new(Response::network_error()),
                 RedirectMode::Manual => {
                     response = Rc::new(Response::to_filtered(actual_response, ResponseType::OpaqueRedirect));
-                }
-
-                // Step 11
+                },
                 RedirectMode::Follow => {
-
-                    // Substep 1
-                    // FIXME: Use Url::origin
-                    // if (request.mode == RequestMode::CORSMode ||
-                    //     request.mode == RequestMode::ForcedPreflightMode) &&
-                    //     location_url.origin() != request.url.origin() &&
-                    //     has_credentials(&location_url) {
-                    //     return Response::network_error();
-                    // }
-
-                    // Substep 2
-                    if cors_flag && has_credentials(&location_url) {
-                        return Response::network_error();
-                    }
-
-                    // Substep 3
-                    // FIXME: Use Url::origin
-                    // if cors_flag && location_url.origin() != request.url.origin() {
-                    //     request.borrow_mut().origin = Origin::UID(OpaqueOrigin);
-                    // }
-
-                    // Substep 4
-                    if actual_response.status.unwrap() == StatusCode::SeeOther ||
-                       ((actual_response.status.unwrap() == StatusCode::MovedPermanently ||
-                         actual_response.status.unwrap() == StatusCode::Found) &&
-                        *request.method.borrow() == Method::Post) {
-                        *request.method.borrow_mut() = Method::Get;
-                    }
-
-                    // Substep 5
-                    request.url_list.borrow_mut().push(location_url);
-
-                    // Substep 6
-                    return main_fetch(request.clone(), cors_flag, true);
+                    response = Rc::new(http_redirect_fetch(request, response, cors_flag));
                 }
-                RedirectMode::Error => { panic!("RedirectMode is Error after step 8") }
             }
-        }
+        },
 
         // Code 401
         StatusCode::Unauthorized => {
@@ -571,6 +496,92 @@ fn http_fetch(request: Rc<Request>,
 
     // Step 7
     Rc::try_unwrap(response).ok().unwrap()
+}
+
+/// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
+fn http_redirect_fetch(request: Rc<Request>,
+                       response: Rc<Response>,
+                       cors_flag: bool) -> Response {
+
+    // TODO implement http redirect fetch
+
+    // Step 1
+    let actual_response = match response.internal_response {
+        Some(ref res) => res.clone(),
+        _ => response.clone()
+    };
+
+    // Step 3
+    // this step is done early, because querying if Location is available says
+    // if it is None or Some, making it easy to seperate from the retrieval failure case
+    if !actual_response.headers.has::<Location>() {
+        drop(actual_response);
+        return Rc::try_unwrap(response).ok().unwrap();
+    }
+
+    // Step 2
+    let location = match actual_response.headers.get::<Location>() {
+        Some(&Location(ref location)) => location.clone(),
+        // Step 4
+        _ => return Response::network_error(),
+    };
+
+    // Step 5
+    let location_url = UrlParser::new().base_url(&request.current_url()).parse(&*location);
+
+    // Step 6
+    let location_url = match location_url {
+        Ok(url) => url,
+        _ => return Response::network_error()
+    };
+
+    // Step 7
+    if request.redirect_count.get() >= 20 {
+        return Response::network_error();
+    }
+
+    // Step 8
+    request.redirect_count.set(request.redirect_count.get() + 1);
+
+    // Step 9
+    request.same_origin_data.set(false);
+
+    // TODO check request.origin is same_origin() as location_url's origin
+    let same_origin = true;
+    let has_credentials = has_credentials(&location_url);
+
+    // Step 10
+    if request.mode == RequestMode::CORSMode && !same_origin && has_credentials {
+        // return Response::network_error();
+    }
+
+    // Step 11
+    if cors_flag && has_credentials {
+        // return Response::network_error();
+    }
+
+    // Step 12
+    if cors_flag && !same_origin {
+        // TODO I seem to need to set Origin to RefCell to do this?
+        // request.origin.borrow_mut() = Origin::UID(OpaqueOrigin::new());
+    }
+
+    // Step 13
+    if (match actual_response.status.unwrap() {
+        StatusCode::MovedPermanently | StatusCode::Found => true,
+        // TODO how do I compare a refcell object?
+        _ => false }) || //&& *request.method == Method::Post) ||
+        actual_response.status.unwrap() == StatusCode::SeeOther {
+
+        *request.method.borrow_mut() = Method::Get;
+        // TODO body needs to be RefCell
+        // request.body = None;
+    }
+
+    // Step 14
+
+    // Step 15
+    main_fetch(request, cors_flag, true)
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
