@@ -581,6 +581,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     }
 
     // Step 14
+    request.url_list.borrow_mut().push(location_url);
 
     // Step 15
     main_fetch(request, cors_flag, true)
