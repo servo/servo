@@ -1231,6 +1231,12 @@ impl Document {
                            ReflowReason::RequestAnimationFrame);
     }
 
+    /// Add a load to the list of loads blocking this document's load.
+    pub fn add_blocking_load(&self, load: LoadType) {
+        let mut loader = self.loader.borrow_mut();
+        loader.add_blocking_load(load)
+    }
+
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
         loader.prepare_async_load(load)
@@ -1291,8 +1297,8 @@ impl Document {
         };
 
         if self.script_blocking_stylesheets_count.get() == 0 && script.is_ready_to_be_executed() {
-            script.execute();
             self.pending_parsing_blocking_script.set(None);
+            script.execute();
             return ParserBlockedByScript::Unblocked;
         }
         ParserBlockedByScript::Blocked
