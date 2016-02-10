@@ -5,6 +5,7 @@
 use hyper::header::{AccessControlAllowHeaders, AccessControlAllowOrigin};
 use hyper::header::{CacheControl, ContentLanguage, ContentType, Expires, LastModified};
 use hyper::header::{Headers, HttpDate, Location, SetCookie, Pragma};
+use hyper::method::Method;
 use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
@@ -14,6 +15,7 @@ use net_traits::request::{Context, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex, mpsc};
 use time::{self, Duration};
 use unicase::UniCase;
 use url::{Origin, OpaqueOrigin, Url};
@@ -323,4 +325,99 @@ fn test_fetch_redirect_count_failure() {
         ResponseBody::Done(_) | ResponseBody::Receiving(_) => panic!(),
         _ => { }
     };
+}
+
+fn test_fetch_redirect_updates_method_runner(tx: mpsc::Sender<bool>, status_code: StatusCode, method: Method) {
+
+    let handler_method = method.clone();
+    let handler_tx = Arc::new(Mutex::new(tx));
+
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+
+        let redirects = match request.uri {
+            RequestUri::AbsolutePath(url) =>
+                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+            RequestUri::AbsoluteUri(url) =>
+                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+            _ => panic!()
+        };
+
+        let mut test_pass = true;
+
+        if redirects == 0 {
+
+            *response.status_mut() = StatusCode::TemporaryRedirect;
+            response.headers_mut().set(Location("1".to_owned()));
+
+        } else if redirects == 1 {
+
+            // this makes sure that the request method does't change from the wrong status code
+            if handler_method != Method::Get && request.method == Method::Get {
+                test_pass = false;
+            }
+            *response.status_mut() = status_code;
+            response.headers_mut().set(Location("2".to_owned()));
+
+        } else if request.method != Method::Get {
+            test_pass = false;
+        }
+
+        // the first time this handler is reached, nothing is being tested, so don't send anything
+        if redirects > 0 {
+            handler_tx.lock().unwrap().send(test_pass).unwrap();
+        }
+
+    };
+
+    let (mut server, url) = make_server(handler);
+    let origin = url.origin();
+
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+    *request.method.borrow_mut() = method;
+    let wrapped_request = Rc::new(request);
+
+    let _ = fetch(wrapped_request, false);
+    let _ = server.close();
+}
+
+#[test]
+fn test_fetch_redirect_updates_method() {
+
+    let (tx, rx) = mpsc::channel();
+
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.recv().unwrap(), true);
+    // make sure the test doesn't send more data than expected
+    assert_eq!(rx.try_recv().is_err(), true);
+
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::Found, Method::Post);
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.try_recv().is_err(), true);
+
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SeeOther, Method::Get);
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.try_recv().is_err(), true);
+
+    let extension = Method::Extension("FOO".to_owned());
+
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, extension.clone());
+    assert_eq!(rx.recv().unwrap(), true);
+    // for MovedPermanently and Found, Method should only be changed if it was Post
+    assert_eq!(rx.recv().unwrap(), false);
+    assert_eq!(rx.try_recv().is_err(), true);
+
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::Found, extension.clone());
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.recv().unwrap(), false);
+    assert_eq!(rx.try_recv().is_err(), true);
+
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SeeOther, extension.clone());
+    assert_eq!(rx.recv().unwrap(), true);
+    // for SeeOther, Method should always be changed, so this should be true
+    assert_eq!(rx.recv().unwrap(), true);
+    assert_eq!(rx.try_recv().is_err(), true);
 }
