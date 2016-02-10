@@ -206,8 +206,7 @@ class MachCommands(CommandBase):
         if android:
             opts += ["--target", self.config["android"]["target"]]
 
-        if debug_mozjs or self.config["build"]["debug-mozjs"]:
-            features += ["script/debugmozjs"]
+        features += ["script/debugmozjs"]
 
         if (headless or is_headless_build()) and headless_supported():
             opts += ["--no-default-features"]
