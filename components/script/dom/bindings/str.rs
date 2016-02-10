@@ -116,6 +116,26 @@ impl ByteString {
             }
         })
     }
+
+    /// Normalize `self`, as defined by
+    /// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
+    pub fn normalize_header_value(&mut self) {
+        const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
+
+        let ByteString(ref mut vec) = *self;
+        let back_skip = vec.iter().rev().take_while(|&b| HTTP_WS_BYTES.contains(b)).count();
+
+        if back_skip != 0 {
+            let new_len = vec.len() - back_skip;
+            vec.truncate(new_len);
+        }
+
+        let front_skip = vec.iter().take_while(|&b| HTTP_WS_BYTES.contains(b)).count();
+
+        if front_skip != 0 {
+            *vec = vec.split_off(front_skip);
+        }
+    }
 }
 
 impl Hash for ByteString {

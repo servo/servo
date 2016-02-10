@@ -370,8 +370,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState); // Step 1, 2
         }
+
+        value.normalize_header_value(); // Step 3
+
+        // Step 4
         if !name.is_token() || !value.is_field_value() {
-            return Err(Error::Syntax); // Step 3, 4
+            return Err(Error::Syntax);
         }
         let name_lower = name.to_lower();
         let name_str = match name_lower.as_str() {
