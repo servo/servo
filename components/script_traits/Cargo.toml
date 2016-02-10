@@ -41,7 +41,7 @@ path = "../devtools_traits"
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-app_units = {version = "0.2", features = ["plugins"]}
+app_units = {version = "0.2.1", features = ["plugins"]}
 euclid = {version = "0.6.1", features = ["plugins"]}
 heapsize = "0.2.5"
 heapsize_plugin = "0.1.2"

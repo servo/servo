@@ -2,7 +2,7 @@
 name = "geckoservo"
 version = "0.0.1"
 dependencies = [
- "app_units 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "app_units 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "app_units"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -378,7 +378,7 @@ dependencies = [
 name = "style"
 version = "0.0.1"
 dependencies = [
- "app_units 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "app_units 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -478,7 +478,7 @@ dependencies = [
 name = "util"
 version = "0.0.1"
 dependencies = [
- "app_units 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "app_units 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",

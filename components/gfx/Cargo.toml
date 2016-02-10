@@ -9,7 +9,7 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = {version = "0.2", features = ["plugins"]}
+app_units = {version = "0.2.1", features = ["plugins"]}
 bitflags = "0.3"
 euclid = {version = "0.6.1", features = ["plugins"]}
 fnv = "1.0"
