@@ -4,16 +4,22 @@
 use element_state::ElementState;
 use selectors::parser::{ParserContext, SelectorImpl};
 use selectors::Element;
+use stylesheets::Stylesheet;
+use selector_matching::{USER_OR_USER_AGENT_STYLESHEETS, QUIRKS_MODE_STYLESHEET};
 
 pub trait ElementExt: Element {
     fn is_link(&self) -> bool;
 }
 
-pub trait SelectorImplExt : SelectorImpl {
+pub trait SelectorImplExt : SelectorImpl + Sized {
     fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement);
 
     fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
+
+    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>];
+
+    fn get_quirks_mode_stylesheet() -> &'static Stylesheet<Self>;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
@@ -124,5 +130,15 @@ impl SelectorImplExt for ServoSelectorImpl {
     #[inline]
     fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
+    }
+
+    #[inline]
+    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>] {
+        &*USER_OR_USER_AGENT_STYLESHEETS
+    }
+
+    #[inline]
+    fn get_quirks_mode_stylesheet() -> &'static Stylesheet<Self> {
+        &*QUIRKS_MODE_STYLESHEET
     }
 }

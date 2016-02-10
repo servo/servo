@@ -123,7 +123,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet<Impl>>],
-                      stylesheets_changed: bool) -> bool {
+                  stylesheets_changed: bool) -> bool
+                  where Impl: 'static {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
@@ -132,14 +133,12 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         self.rules_source_order = 0;
         self.state_deps.clear();
 
-        for ref stylesheet in USER_OR_USER_AGENT_STYLESHEETS.iter() {
-            // TODO(ecoal95)
-            // self.add_stylesheet(&stylesheet);
+        for ref stylesheet in Impl::get_user_or_user_agent_stylesheets().iter() {
+            self.add_stylesheet(&stylesheet);
         }
 
         if self.quirks_mode {
-            // TODO(ecoal95)
-            // self.add_stylesheet(&QUIRKS_MODE_STYLESHEET);
+            self.add_stylesheet(&Impl::get_quirks_mode_stylesheet());
         }
 
         for ref stylesheet in doc_stylesheets.iter() {
