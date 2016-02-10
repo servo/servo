@@ -24,12 +24,12 @@ rand = "0.3"
 rustc-serialize = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
+servo-skia = "0.20130412.0"
 smallvec = "0.1"
 string_cache = {version = "0.2.7", features = ["heap_size"]}
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
 url = {version = "0.5.4", features = ["heap_size"]}
-servo-skia = "0.20130412.0"
 
 [dependencies.plugins]
 path = "../plugins"
