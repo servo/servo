@@ -12,7 +12,6 @@ use properties::{ComputedValues, PropertyDeclaration, cascade};
 use selector_impl::SelectorImplExt;
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
-use selectors::parser::SelectorImpl;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -53,7 +52,7 @@ fn create_common_style_affecting_attributes_from_element<'le, E: TElement<'le>>(
     flags
 }
 
-pub struct ApplicableDeclarations<Impl: SelectorImpl> {
+pub struct ApplicableDeclarations<Impl: SelectorImplExt> {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
     pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>>,
 
@@ -61,13 +60,19 @@ pub struct ApplicableDeclarations<Impl: SelectorImpl> {
     pub normal_shareable: bool,
 }
 
-impl<Impl: SelectorImpl> ApplicableDeclarations<Impl> {
+impl<Impl: SelectorImplExt> ApplicableDeclarations<Impl> {
     pub fn new() -> ApplicableDeclarations<Impl> {
-        ApplicableDeclarations {
+        let mut applicable_declarations = ApplicableDeclarations {
             normal: SmallVec::new(),
             per_pseudo: HashMap::new(),
             normal_shareable: false,
-        }
+        };
+
+        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+            applicable_declarations.per_pseudo.insert(pseudo, vec![]);
+        });
+
+        applicable_declarations
     }
 }
 
