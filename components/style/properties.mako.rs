@@ -5700,6 +5700,10 @@ mod property_bit_field {
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
+// TODO: Because normal & important are stored in seperate lists, it is impossible to know their
+// exact declaration order. They should be changed into one list, adding an important/normal
+// flag to PropertyDeclaration
+
 #[derive(Debug, PartialEq, HeapSizeOf)]
 pub struct PropertyDeclarationBlock {
     #[ignore_heap_size_of = "#7038"]
@@ -5719,7 +5723,7 @@ impl PropertyDeclarationBlock {
 
         // Step 3
         // restore order of declarations since PropertyDeclarationBlock is stored in reverse order
-        let declarations = self.normal.iter().chain(self.important.iter()).rev().collect::<Vec<_>>();
+        let declarations = self.normal.iter().rev().chain(self.important.iter().rev()).collect::<Vec<_>>();
 
 
         for declaration in &declarations {
