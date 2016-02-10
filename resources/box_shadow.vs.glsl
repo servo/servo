@@ -4,8 +4,8 @@
 
 void main(void)
 {
-	vPosition = aPosition.xy;
-	vColor = aColorRectTL;
+    vPosition = aPosition.xy;
+    vColor = aColorRectTL;
     vBorderPosition = aBorderPosition;
     vBorderRadii = aBorderRadii;
     vBlurRadius = aBlurRadius;

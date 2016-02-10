@@ -51,7 +51,7 @@ void main(void)
         if (aPosition.x == 0.0) {
             localPos.x = rect_origin.x;
             if (isBorderCorner) {
-                vColor = !isBottomTriangle ? aColorRectTR : aColorRectBL;
+                vColor = isBottomTriangle ? aColorRectBL : aColorRectTR;
             }
         } else {
             localPos.x = rect_origin.x + rect_size.x;
@@ -69,7 +69,7 @@ void main(void)
         } else {
             localPos.x = rect_origin.x + rect_size.x;
             if (isBorderCorner) {
-                vColor = !isBottomTriangle ? aColorRectTR : aColorRectBL;
+                vColor = isBottomTriangle ? aColorRectBL : aColorRectTR;
             }
         }
     }
