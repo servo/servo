@@ -1,0 +1,60 @@
+<!doctype html>
+<title>Fragment Navigation: When fragid is TOP scroll to the top of the document</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div></div>
+<div id="not-the-top"></div>
+<div style="height:200em"></div>
+<script>
+var steps = [{
+    fragid:'not-the-top',
+    handler: function(){
+      assert_not_equals( scrollPosition(), 0 );
+    }
+  },{
+    fragid:'top',
+    handler: function(){
+      assert_equals( scrollPosition(), 0 );
+    }
+  },{
+    fragid:'not-the-top',
+    handler: function(){
+      assert_not_equals( scrollPosition(), 0 );
+    }
+  },{
+    fragid:'TOP',
+    handler: function(){
+      assert_equals( scrollPosition(), 0 );
+    }
+  }];
+
+function scrollPosition(){
+  return document.documentElement.scrollTop || document.body.scrollTop;
+}
+
+function runNextStep(){
+    if( steps.length > 0 ) {
+      var step = steps.shift();
+      var listener = t.step_func( function(){
+        step.handler();
+        runNextStep();
+      });
+      scrollToFragmentThenDo( step.fragid, listener );
+    } else {
+      t.done();
+    }
+}
+
+function scrollToFragmentThenDo( fragid, then ){
+  location.hash = fragid;
+  setTimeout( then, 1 );
+}
+
+var t = async_test();
+t.step( function(){
+  assert_equals(location.hash, "", "Page must be loaded with no hash");
+  runNextStep();
+})
+</script>
