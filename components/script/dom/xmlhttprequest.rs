@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::str::FromStr;
 use cors::CORSResponse;
 use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_origin_request};
 use document_loader::DocumentLoader;
@@ -370,8 +371,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState); // Step 1, 2
         }
+        // Step 3
+        let whitespace: &[char] = &['\x09', '\x0A', '\x0D', '\x20'];
+        value = ByteString::from_str(value.as_str().unwrap().trim_matches(whitespace)).unwrap();
         if !name.is_token() || !value.is_field_value() {
-            return Err(Error::Syntax); // Step 3, 4
+            return Err(Error::Syntax); // Step 4
         }
         let name_lower = name.to_lower();
         let name_str = match name_lower.as_str() {
