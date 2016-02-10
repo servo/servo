@@ -95,10 +95,6 @@ Cross-compilation for Android:
 Pre-installed Android tools are needed. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android)
 
-Using Virtualbox:
-
-If you're running servo on a guest machine, make sure 3D Acceleration is switched off ([#5643](https://github.com/servo/servo/issues/5643))
-
 ## The Rust compiler
 
 Servo's build system automatically downloads a Rust compiler to build itself.
