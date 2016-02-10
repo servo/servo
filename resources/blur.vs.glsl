@@ -4,7 +4,7 @@
 
 void main(void)
 {
-	vColorTexCoord = aColorTexCoordRectTop.xy;
+    vColorTexCoord = aColorTexCoordRectTop.xy;
     vBorderPosition = aBorderPosition;
     vBlurRadius = aBlurRadius;
     vDestTextureSize = aDestTextureSize;
