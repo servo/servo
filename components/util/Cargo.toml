@@ -45,7 +45,7 @@ selectors = {version = "0.4.1", features = ["heap_size"]}
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
-string_cache = {version = "0.2.7", features = ["heap_size"]}
+string_cache = {version = "0.2.9", features = ["heap_size"]}
 url = {version = "0.5.4", features = ["heap_size", "serde_serialization"]}
 uuid = "0.1.17"
 
