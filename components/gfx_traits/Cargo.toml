@@ -25,7 +25,7 @@ path = "../plugins"
 path = "../util"
 
 [dependencies]
-euclid = {version = "0.6.1", features = ["plugins"]}
+euclid = {version = "0.6.2", features = ["plugins"]}
 heapsize = "0.2.5"
 heapsize_plugin = "0.1.2"
 serde = "0.6"
