@@ -108,7 +108,7 @@ pub struct Stylist<Impl: SelectorImplExt> {
 impl<Impl: SelectorImplExt> Stylist<Impl> {
     #[inline]
     pub fn new(device: Device) -> Stylist<Impl> {
-        Stylist {
+        let mut stylist = Stylist {
             viewport_constraints: None,
             device: device,
             is_device_dirty: true,
@@ -118,8 +118,15 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             pseudos_map: HashMap::new(),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
-        }
+        };
+
+        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+            stylist.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
+        });
+
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+
+        stylist
     }
 
     pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet<Impl>>],
@@ -171,10 +178,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                             self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
-                        // let map = match selector.pseudo_element {
-                        //     Some(ref pseudo) => &mut maybe_pseudo_map.unwrap().borrow_for_origin(&stylesheet.origin),
-                        //     None => &mut element_map,
-                        // };
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
                                 declarations: DeclarationBlock {
@@ -257,8 +260,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                 "Style attributes do not apply to pseudo-elements");
 
         let map = match pseudo_element {
-            // TODO(ecoal95): I think it's safe to unwrap() here since the rules have been parsed
-            // previously, but I might be wrong.
             Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
             None => &self.element_map,
         };

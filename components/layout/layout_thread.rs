@@ -14,7 +14,6 @@ use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, heap_size_of_local_context};
 use display_list_builder::ToGfxColor;
-use dom::Stylesheet;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -63,13 +62,15 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::animation::Animation;
 use style::computed_values::{filter, mix_blend_mode};
-use style::context::{SharedStyleContext, StylistWrapper, ReflowGoal};
+use style::context::{ReflowGoal, StylistWrapper};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
-use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
-use style::stylesheets::{CSSRuleIteratorExt};
+use style::selector_impl::ServoSelectorImpl;
+use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
+use style::servo::{SharedStyleContext, Stylesheet, Stylist};
+use style::stylesheets::CSSRuleIteratorExt;
 use traversal::RecalcStyleAndConstructFlows;
 use url::Url;
 use util::geometry::MAX_RECT;
@@ -475,7 +476,7 @@ impl LayoutThread {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
                 screen_size_changed: screen_size_changed,
-                stylist: StylistWrapper(&*rw_data.stylist),
+                stylist: StylistWrapper::<ServoSelectorImpl>(&*rw_data.stylist),
                 generation: self.generation,
                 goal: goal,
                 new_animations_sender: Mutex::new(self.new_animations_sender.clone()),

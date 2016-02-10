@@ -124,7 +124,6 @@ impl SelectorImplExt for ServoSelectorImpl {
         where F: FnMut(PseudoElement) {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
-        fun(PseudoElement::FirstLine);
     }
 
     #[inline]
