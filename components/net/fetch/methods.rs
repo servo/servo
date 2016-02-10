@@ -7,10 +7,10 @@ use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
 use http_loader::{create_http_connector, obtain_response};
 use hyper::client::response::Response as HyperResponse;
-use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
-use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView};
+use hyper::header::{Accept, CacheControl, IfMatch, IfRange, IfUnmodifiedSince, Location};
+use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView, Pragma};
 use hyper::header::{AccessControlAllowCredentials, AccessControlAllowOrigin};
-use hyper::header::{Authorization, Basic, ContentEncoding, Encoding};
+use hyper::header::{Authorization, Basic, CacheDirective, ContentEncoding, Encoding};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
@@ -347,6 +347,8 @@ fn http_fetch(request: Rc<Request>,
                 request.mode != RequestMode::NoCORS) ||
                (res.response_type == ResponseType::OpaqueRedirect &&
                 request.redirect_mode.get() != RedirectMode::Manual) ||
+               (res.url_list.borrow().len() > 1 &&
+                request.redirect_mode.get() != RedirectMode::Follow) ||
                res.response_type == ResponseType::Error {
                 return Response::network_error();
             }
@@ -406,8 +408,8 @@ fn http_fetch(request: Rc<Request>,
         // Substep 3
         let credentials = match request.credentials_mode {
             CredentialsMode::Include => true,
-            CredentialsMode::CredentialsSameOrigin if (!cors_flag ||
-                request.response_tainting.get() == ResponseTainting::Opaque)
+            CredentialsMode::CredentialsSameOrigin if
+                request.response_tainting.get() == ResponseTainting::Basic
                 => true,
             _ => false
         };
@@ -451,7 +453,7 @@ fn http_fetch(request: Rc<Request>,
 
             // Step 1
             // FIXME: Figure out what to do with request window objects
-            if cors_flag {
+            if cors_flag || request.credentials_mode != CredentialsMode::Include {
                 drop(actual_response);
                 return Rc::try_unwrap(response).ok().unwrap();
             }
@@ -647,49 +649,67 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     }
 
     // Step 10
-    // modify_request_headers(http_request.headers.borrow());
+    if http_request.cache_mode.get() == CacheMode::Reload {
+
+        // Substep 1
+        if !http_request.headers.borrow().has::<Pragma>() {
+            http_request.headers.borrow_mut().set(Pragma::NoCache);
+        }
+
+        // Substep 2
+        if !http_request.headers.borrow().has::<CacheControl>() {
+            http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::NoCache]));
+        }
+    }
 
     // Step 11
+    // modify_request_headers(http_request.headers.borrow());
+
+    // Step 12
     // TODO some of this step can't be implemented yet
     if credentials_flag {
+
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
 
         // Substep 2
-        let mut authorization_value = None;
+        if !http_request.headers.borrow().has::<Authorization<String>>() {
 
-        // Substep 3
-        // TODO be able to retrieve https://fetch.spec.whatwg.org/#authentication-entry
+            // Substep 3
+            let mut authorization_value = None;
 
-        // Substep 4
-        if authentication_fetch_flag {
+            // Substep 4
+            // TODO be able to retrieve https://fetch.spec.whatwg.org/#authentication-entry
 
-            let current_url = http_request.current_url();
+            // Substep 5
+            if authentication_fetch_flag {
 
-            authorization_value = if includes_credentials(&current_url) {
-                Some(Basic {
-                    username: current_url.username().unwrap_or("").to_owned(),
-                    password: current_url.password().map(str::to_owned)
-                })
+                let current_url = http_request.current_url();
 
-            } else {
-                None
+                authorization_value = if includes_credentials(&current_url) {
+                    Some(Basic {
+                        username: current_url.username().unwrap_or("").to_owned(),
+                        password: current_url.password().map(str::to_owned)
+                    })
+                } else {
+                    None
+                }
             }
-        }
 
-        // Substep 5
-        if let Some(basic) = authorization_value {
-            http_request.headers.borrow_mut().set(Authorization(basic));
+            // Substep 6
+            if let Some(basic) = authorization_value {
+                http_request.headers.borrow_mut().set(Authorization(basic));
+            }
         }
     }
 
-    // Step 12
+    // Step 13
     // TODO this step can't be implemented
 
-    // Step 13
+    // Step 14
     let mut response: Option<Response> = None;
 
-    // Step 14
+    // Step 15
     // TODO have a HTTP cache to check for a completed response
     let complete_http_response_from_cache: Option<Response> = None;
     if http_request.cache_mode.get() != CacheMode::NoStore &&
@@ -721,20 +741,20 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             // TODO this substep
         }
 
-    // Step 15
+    // Step 16
     // TODO have a HTTP cache to check for a partial response
     } else if http_request.cache_mode.get() == CacheMode::Default ||
         http_request.cache_mode.get() == CacheMode::ForceCache {
         // TODO this substep
     }
 
-    // Step 16
+    // Step 17
     if response.is_none() {
         response = Some(http_network_fetch(request.clone(), http_request.clone(), credentials_flag));
     }
     let response = response.unwrap();
 
-    // Step 17
+    // Step 18
     if let Some(status) = response.status {
         if status == StatusCode::NotModified &&
             (http_request.cache_mode.get() == CacheMode::Default ||
@@ -760,7 +780,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 18
+    // Step 19
     response
 }
 
@@ -844,12 +864,8 @@ fn http_network_fetch(request: Rc<Request>,
         // TODO update response in the HTTP cache for request
     }
 
-    // TODO these steps aren't possible yet
+    // TODO this step isn't possible yet
     // Step 9
-        // Substep 1
-        // Substep 2
-        // Substep 3
-        // Substep 4
 
     // TODO these steps
     // Step 10
