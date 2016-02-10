@@ -28,5 +28,5 @@ log = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
 stb_image = "0.2"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}
 websocket = "0.14.0"

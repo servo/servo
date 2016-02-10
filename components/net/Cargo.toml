@@ -38,6 +38,6 @@ cookie = "0.2"
 mime_guess = "1.1.1"
 flate2 = "0.2.0"
 uuid = "0.1.16"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}
 websocket = "0.14.0"
 immeta = "0.3.1"

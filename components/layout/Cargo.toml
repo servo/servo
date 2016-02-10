@@ -73,4 +73,4 @@ string_cache = {version = "0.2.9", features = ["heap_size"]}
 time = "0.1"
 unicode-bidi = "0.2"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}

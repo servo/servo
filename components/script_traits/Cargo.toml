@@ -49,4 +49,4 @@ libc = "0.2"
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1.12"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}

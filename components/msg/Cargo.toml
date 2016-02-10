@@ -30,4 +30,4 @@ hyper = { version = "0.7", features = [ "serde-serialization" ] }
 rustc-serialize = "0.3.4"
 serde = "0.6"
 serde_macros = "0.6"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}

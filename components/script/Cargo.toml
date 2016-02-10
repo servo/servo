@@ -87,6 +87,6 @@ smallvec = "0.1"
 string_cache = {version = "0.2.9", features = ["heap_size", "unstable"]}
 time = "0.1.12"
 unicase = "1.0"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}
 uuid = "0.1.16"
 websocket = "0.14.0"
