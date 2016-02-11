@@ -708,8 +708,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     return NullValue()
                 },
                 XMLHttpRequestResponseType::Document => {
-                    let op_doc = self.GetResponseXML();
-                    if let Ok(Some(doc)) = op_doc {
+                    let op_doc = self.document_response();
+                    if let Some(doc) = op_doc {
                         doc.to_jsval(cx, rval.handle_mut());
                     } else {
                         return NullValue();
@@ -1068,6 +1068,7 @@ impl XMLHttpRequest {
             _ => { return None; }
         }
         temp_doc.set_encoding_name(DOMString::from(charset.name()));
+        self.response_xml.set(Some(temp_doc.r()));
         Some(temp_doc)
     }
 
