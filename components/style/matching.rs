@@ -17,7 +17,7 @@ use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectin
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use smallvec::SmallVec;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::slice::Iter;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -54,7 +54,7 @@ fn create_common_style_affecting_attributes_from_element<'le, E: TElement<'le>>(
 
 pub struct ApplicableDeclarations<Impl: SelectorImplExt> {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
-    pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>>,
+    pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>, BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
@@ -64,7 +64,7 @@ impl<Impl: SelectorImplExt> ApplicableDeclarations<Impl> {
     pub fn new() -> ApplicableDeclarations<Impl> {
         let mut applicable_declarations = ApplicableDeclarations {
             normal: SmallVec::new(),
-            per_pseudo: HashMap::new(),
+            per_pseudo: HashMap::with_hasher(Default::default()),
             normal_shareable: false,
         };
 
