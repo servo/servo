@@ -425,8 +425,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
         match pseudo_class {
             // https://github.com/servo/servo/issues/8718
-            NonTSPseudoClass::Link => unsafe { Gecko_IsLink(self.element) != 0 },
-            NonTSPseudoClass::AnyLink => unsafe { Gecko_IsUnvisitedLink(self.element) != 0 },
+            NonTSPseudoClass::AnyLink => unsafe { Gecko_IsLink(self.element) != 0 },
+            NonTSPseudoClass::Link => unsafe { Gecko_IsUnvisitedLink(self.element) != 0 },
             NonTSPseudoClass::Visited => unsafe { Gecko_IsVisitedLink(self.element) != 0 },
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
