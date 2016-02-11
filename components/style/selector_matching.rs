@@ -19,6 +19,7 @@ use selectors::matching::{Rule, SelectorMap};
 use selectors::parser::SelectorImpl;
 use smallvec::VecLike;
 use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
 use std::process;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
@@ -98,7 +99,7 @@ pub struct Stylist<Impl: SelectorImplExt> {
     // The current selector maps, after evaluating media
     // rules against the current device.
     element_map: PerPseudoElementSelectorMap<Impl>,
-    pseudos_map: HashMap<Impl::PseudoElement, PerPseudoElementSelectorMap<Impl>>,
+    pseudos_map: HashMap<Impl::PseudoElement, PerPseudoElementSelectorMap<Impl>, BuildHasherDefault<::fnv::FnvHasher>>,
     rules_source_order: usize,
 
     // Selector dependencies used to compute restyle hints.
@@ -115,7 +116,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             quirks_mode: false,
 
             element_map: PerPseudoElementSelectorMap::new(),
-            pseudos_map: HashMap::new(),
+            pseudos_map: HashMap::with_hasher(Default::default()),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
         };
@@ -136,7 +137,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             return false;
         }
         self.element_map = PerPseudoElementSelectorMap::new();
-        self.pseudos_map = HashMap::new();
+        self.pseudos_map = HashMap::with_hasher(Default::default());
         self.rules_source_order = 0;
         self.state_deps.clear();
 
