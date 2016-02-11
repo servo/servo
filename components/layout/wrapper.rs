@@ -713,14 +713,20 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     /// Unlike the version on TNode, this handles pseudo-elements.
     fn unstyle(self) {
         let mut data = self.mutate_layout_data().unwrap();
-        // FIXME(ecoal95): This is unfortunate.
-        let mut none = None;
         let style =
             match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => data.style_data.per_pseudo
-                                                    .get_mut(&PseudoElement::Before).unwrap_or(&mut none),
-                PseudoElementType::After(_) => data.style_data.per_pseudo
-                                                   .get_mut(&PseudoElement::After).unwrap_or(&mut none),
+                PseudoElementType::Before(_) => {
+                    match data.style_data.per_pseudo.get_mut(&PseudoElement::Before) {
+                        None => return,
+                        Some(style) => style,
+                    }
+                }
+                PseudoElementType::After(_) => {
+                    match data.style_data.per_pseudo.get_mut(&PseudoElement::After) {
+                        None => return,
+                        Some(style) => style,
+                    }
+                }
                 PseudoElementType::Normal => &mut data.style_data.style,
             };
 
