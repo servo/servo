@@ -221,10 +221,10 @@ impl EventTarget {
                 }
             }
             None => {
-                if listener.is_some() {
+                if let Some(listener) = listener {
                     entries.push(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
-                        listener: EventListenerType::Inline(listener.unwrap()),
+                        listener: EventListenerType::Inline(listener),
                     });
                 }
             }
