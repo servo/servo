@@ -106,7 +106,6 @@ promise_test(function(t) {
 
 promise_test(function(t) {
     var cache_name = 'cache-storage/open';
-    var url = '../resources/simple.txt';
     var cache;
     return self.caches.delete(cache_name)
       .then(function() {
@@ -135,7 +134,7 @@ promise_test(function(t) {
           assert_array_equals(actual_urls, expected_urls,
                               'CacheStorage.open should return a new Cache ' +
                               'object for the same backing store.');
-        })
+        });
   }, 'CacheStorage.open with existing cache');
 
 promise_test(function(t) {

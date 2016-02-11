@@ -15,8 +15,8 @@
 <input type=radio id=radio5>
 <input type=radio id=radio6 disabled>
 
-<input type=radio id=radio71 checked>
-<input type=radio id=radio72>
+<input type=radio name="group5" id=radio71 checked>
+<input type=radio name="group5" id=radio72>
 
 <input type=radio name=group3 id=radio8 checked>
 <input type=radio name=group3 id=radio9>
@@ -37,8 +37,7 @@
       radio9 = document.getElementById('radio9'),
       radio10 = document.getElementById('radio10'),
       radio11 = document.getElementById('radio11'),
-      t1 = async_test("click on mutable radio fires the input event"),
-      t2 = async_test("click on mutable radio fires the change event"),
+      t1 = async_test("click on mutable radio fires click event, then input event, then change event"),
       t3 = async_test("click on non-mutable radio doesn't fire the input event"),
       t4 = async_test("click on non-mutable radio doesn't fire the change event"),
       t5 = async_test("canceled activation steps on unchecked radio"),
@@ -80,18 +79,28 @@
     assert_false(radio11.checked);
   }, "changing the name of a radio input element and setting its checkedness to true makes all the other elements' checkedness in the same radio button group be set to false");
 
-  radio5.oninput= t1.step_func(function(e) {
-    input_fired = true;
-    assert_true(e.bubbles, "event should bubble")
-    assert_true(e.isTrusted, "event should be trusted");
-    assert_false(e.cancelable, "event shoud not be cancelable");
+  radio5.onclick = t1.step_func(function(e) {
+    click_fired = true;
+    assert_false(input_fired, "click event should fire before input event");
+    assert_false(change_fired, "click event should fire before change event");
   });
 
-  radio5.onchange = t2.step_func(function(e) {
+  radio5.oninput = t1.step_func(function(e) {
+    input_fired = true;
+    assert_true(click_fired, "input event should fire after click event");
+    assert_false(change_fired, "input event should fire before change event");
+    assert_true(e.bubbles, "input event should bubble")
+    assert_false(e.isTrusted, "click()-initiated input event shouldn't be trusted");
+    assert_false(e.cancelable, "input event should not be cancelable");
+  });
+
+  radio5.onchange = t1.step_func(function(e) {
     change_fired = true;
-    assert_true(e.bubbles, "event should bubble")
-    assert_true(e.isTrusted, "event should be trusted");
-    assert_false(e.cancelable, "event shoud not be cancelable");
+    assert_true(click_fired, "change event should fire after click event");
+    assert_true(input_fired, "change event should fire after input event");
+    assert_true(e.bubbles, "change event should bubble")
+    assert_false(e.isTrusted, "click()-initiated change event shouldn't be trusted");
+    assert_false(e.cancelable, "change event should not be cancelable");
   });
 
   radio6.oninput= t3.step_func_done(function(e) {
@@ -108,11 +117,6 @@
     t1.done();
   });
 
-  t2.step(function() {
-    assert_true(change_fired);
-    t2.done();
-  })
-
   t3.step(function(){
     radio6.click();
     t3.done();
@@ -120,18 +124,20 @@
   });
 
   radio72.onclick = t5.step_func_done(function(e){
-    assert_false(radio71.checked);
-    assert_true(radio72.checked);
+    assert_false(radio71.checked, "click on radio should uncheck other radio in same group");
+    assert_true(radio72.checked, "click on radio should check that radio");
     e.preventDefault();
-    assert_false(radio71.checked);
-    assert_true(radio72.checked);
+    // The cancelation of the click doesn't have an effect until after all the click event handlers have been run.
+    assert_false(radio71.checked, "radio remains unchecked immediately after click event on other radio in same group is canceled");
+    assert_true(radio72.checked, "clicked radio remains checked immediately after click event is canceled");
   });
 
   t5.step(function(){
-    assert_true(radio71.checked);
-    assert_false(radio72.checked);
+    assert_true(radio71.checked, "initially checked radio should be checked");
+    assert_false(radio72.checked, "other radios in same group as initially-checked radio should be unchecked");
     radio72.click();
-    assert_true(radio71.checked);
-    assert_false(radio72.checked);
+    // Now that the click event has been fully dispatched, its cancelation has taken effect.
+    assert_true(radio71.checked, "canceled click event on radio should leave the previously-checked radio checked");
+    assert_false(radio72.checked, "canceled click event on previously-unchecked radio should leave that radio unchecked");
   });
 </script>

@@ -3230,6 +3230,10 @@
         "url": "/uievents/order-of-events/mouse-events/click-on-body-manual.html"
       },
       {
+        "path": "uievents/order-of-events/mouse-events/click-on-div-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/click-on-div-manual.html"
+      },
+      {
         "path": "uievents/order-of-events/mouse-events/click-on-html-manual.html",
         "url": "/uievents/order-of-events/mouse-events/click-on-html-manual.html"
       },
@@ -11648,6 +11652,10 @@
         "url": "/IndexedDB/idbindex_get7.htm"
       },
       {
+        "path": "IndexedDB/idbindex_get8.htm",
+        "url": "/IndexedDB/idbindex_get8.htm"
+      },
+      {
         "path": "IndexedDB/idbindex_getAll.html",
         "url": "/IndexedDB/idbindex_getAll.html"
       },
@@ -11684,6 +11692,10 @@
         "url": "/IndexedDB/idbindex_getKey7.htm"
       },
       {
+        "path": "IndexedDB/idbindex_getKey8.htm",
+        "url": "/IndexedDB/idbindex_getKey8.htm"
+      },
+      {
         "path": "IndexedDB/idbindex_indexNames.htm",
         "url": "/IndexedDB/idbindex_indexNames.htm"
       },
@@ -11696,6 +11708,10 @@
         "url": "/IndexedDB/idbindex_openCursor2.htm"
       },
       {
+        "path": "IndexedDB/idbindex_openCursor3.htm",
+        "url": "/IndexedDB/idbindex_openCursor3.htm"
+      },
+      {
         "path": "IndexedDB/idbindex_openKeyCursor.htm",
         "url": "/IndexedDB/idbindex_openKeyCursor.htm"
       },
@@ -11706,6 +11722,10 @@
       {
         "path": "IndexedDB/idbindex_openKeyCursor3.htm",
         "url": "/IndexedDB/idbindex_openKeyCursor3.htm"
+      },
+      {
+        "path": "IndexedDB/idbindex_openKeyCursor4.htm",
+        "url": "/IndexedDB/idbindex_openKeyCursor4.htm"
       },
       {
         "path": "IndexedDB/idbkeyrange.htm",
@@ -12238,6 +12258,10 @@
       {
         "path": "XMLHttpRequest/event-progress.htm",
         "url": "/XMLHttpRequest/event-progress.htm"
+      },
+      {
+        "path": "XMLHttpRequest/event-readystate-sync-open.htm",
+        "url": "/XMLHttpRequest/event-readystate-sync-open.htm"
       },
       {
         "path": "XMLHttpRequest/event-readystatechange-loaded.htm",
@@ -13584,6 +13608,10 @@
         "url": "/cssom-view/elementsFromPoint.html"
       },
       {
+        "path": "cssom-view/negativeMargins.html",
+        "url": "/cssom-view/negativeMargins.html"
+      },
+      {
         "path": "cssom-view/scrollingElement.html",
         "url": "/cssom-view/scrollingElement.html"
       },
@@ -14386,6 +14414,10 @@
       {
         "path": "dom/nodes/Node-insertBefore.html",
         "url": "/dom/nodes/Node-insertBefore.html"
+      },
+      {
+        "path": "dom/nodes/Node-isEqualNode.html",
+        "url": "/dom/nodes/Node-isEqualNode.html"
       },
       {
         "path": "dom/nodes/Node-isEqualNode.xhtml",
@@ -15626,6 +15658,18 @@
       {
         "path": "html/browsers/browsing-the-web/history-traversal/hashchange_event.html",
         "url": "/html/browsers/browsing-the-web/history-traversal/hashchange_event.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-basic.html",
+        "url": "/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-basic.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-samedoc.html",
+        "url": "/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-samedoc.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-navigation-samedoc.html",
+        "url": "/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-navigation-samedoc.html"
       },
       {
         "path": "html/browsers/browsing-the-web/history-traversal/popstate_event.html",
@@ -17064,6 +17108,10 @@
         "url": "/html/editing/focus/document-level-focus-apis/document-level-apis.html"
       },
       {
+        "path": "html/editing/focus/focus-management/focus-event-targets-simple.html",
+        "url": "/html/editing/focus/focus-management/focus-event-targets-simple.html"
+      },
+      {
         "path": "html/editing/focus/focus-management/focus-events.html",
         "url": "/html/editing/focus/focus-management/focus-events.html"
       },
@@ -17246,6 +17294,10 @@
       {
         "path": "html/semantics/edits/the-ins-element/ins_effect.html",
         "url": "/html/semantics/edits/the-ins-element/ins_effect.html"
+      },
+      {
+        "path": "html/semantics/embedded-content-0/media-elements/video_008.htm",
+        "url": "/html/semantics/embedded-content-0/media-elements/video_008.htm"
       },
       {
         "path": "html/semantics/embedded-content/media-elements/audio_volume_check.html",
@@ -19522,6 +19574,14 @@
       {
         "path": "html/webappapis/scripting/events/event-handler-spec-example.html",
         "url": "/html/webappapis/scripting/events/event-handler-spec-example.html"
+      },
+      {
+        "path": "html/webappapis/scripting/events/inline-event-handler-ordering.html",
+        "url": "/html/webappapis/scripting/events/inline-event-handler-ordering.html"
+      },
+      {
+        "path": "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html",
+        "url": "/html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html"
       },
       {
         "path": "html/webappapis/scripting/events/onerroreventhandler.html",
@@ -30896,6 +30956,10 @@
         "url": "/websockets/Send-data.htm"
       },
       {
+        "path": "websockets/Send-data.worker.js",
+        "url": "/websockets/Send-data.worker"
+      },
+      {
         "path": "websockets/Send-null.htm",
         "url": "/websockets/Send-null.htm"
       },
@@ -32503,6 +32567,16 @@
         "url": "/eventsource/shared-worker/eventsource-constructor-non-same-origin.htm"
       },
       {
+        "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-cross-origin.html",
+        "timeout": "long",
+        "url": "/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-cross-origin.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-navigation-cross-origin.html",
+        "timeout": "long",
+        "url": "/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-navigation-cross-origin.html"
+      },
+      {
         "path": "html/browsers/browsing-the-web/scroll-to-fragid/007.html",
         "timeout": "long",
         "url": "/html/browsers/browsing-the-web/scroll-to-fragid/007.html"
@@ -33433,6 +33507,11 @@
         "url": "/service-workers/cache-storage/serviceworker/cache-match.https.html"
       },
       {
+        "path": "service-workers/cache-storage/serviceworker/cache-matchAll.https.html",
+        "timeout": "long",
+        "url": "/service-workers/cache-storage/serviceworker/cache-matchAll.https.html"
+      },
+      {
         "path": "service-workers/cache-storage/serviceworker/cache-put.https.html",
         "timeout": "long",
         "url": "/service-workers/cache-storage/serviceworker/cache-put.https.html"
@@ -33466,6 +33545,11 @@
         "path": "service-workers/cache-storage/window/cache-match.https.html",
         "timeout": "long",
         "url": "/service-workers/cache-storage/window/cache-match.https.html"
+      },
+      {
+        "path": "service-workers/cache-storage/window/cache-matchAll.https.html",
+        "timeout": "long",
+        "url": "/service-workers/cache-storage/window/cache-matchAll.https.html"
       },
       {
         "path": "service-workers/cache-storage/window/cache-put.https.html",
@@ -33506,6 +33590,11 @@
         "path": "service-workers/cache-storage/worker/cache-match.https.html",
         "timeout": "long",
         "url": "/service-workers/cache-storage/worker/cache-match.https.html"
+      },
+      {
+        "path": "service-workers/cache-storage/worker/cache-matchAll.https.html",
+        "timeout": "long",
+        "url": "/service-workers/cache-storage/worker/cache-matchAll.https.html"
       },
       {
         "path": "service-workers/cache-storage/worker/cache-put.https.html",
@@ -33717,28 +33806,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "html/webappapis/scripting/events/inline-event-handler-ordering.html": [
-          {
-            "path": "html/webappapis/scripting/events/inline-event-handler-ordering.html",
-            "url": "/html/webappapis/scripting/events/inline-event-handler-ordering.html"
-          }
-        ],
-        "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html": [
-          {
-            "path": "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html",
-            "url": "/html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html"
-          }
-        ],
-        "websockets/Send-data.worker.js": [
-          {
-            "path": "websockets/Send-data.worker.js",
-            "url": "/websockets/Send-data.worker"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -39851,7 +39919,7 @@
       }
     ]
   },
-  "rev": "7f2f85a88f434798e9d643427b34b05fab8278c6",
+  "rev": "95aad3bd9b82b5c65d84d53517b65ba084de9394",
   "url_base": "/",
   "version": 2
 }

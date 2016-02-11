@@ -18,12 +18,12 @@
   document.getElementById('file').oninput = t1.step_func_done(function(e) {
     assert_true(e.bubbles, "input event bubbles");
     assert_true(e.isTrusted, "input event should be trusted");
-    assert_false(e.cancelable, "input event shoud not be cancelable");
+    assert_false(e.cancelable, "input event should not be cancelable");
   })
   document.getElementById('file').onchange = t2.step_func_done(function(e) {
     assert_true(e.bubbles, "change event bubbles");
     assert_true(e.isTrusted, "change event should be trusted");
-    assert_false(e.cancelable, "change event shoud not be cancelable");
+    assert_false(e.cancelable, "change event should not be cancelable");
     assert_true(input.files instanceof FileList);
     assert_equals(input.value, "C:\\fakepath\\" + input.files[0].name);
   })

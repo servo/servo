@@ -84,6 +84,24 @@
     checkRequestBody("This is request's body", "arrayBuffer", checkBodyArrayBuffer);
     checkRequestBody(JSON.stringify("This is request's body"), "json", checkBodyJSON);
     checkRequestBody(formData, "formData", checkBodyFormData);
+
+    var goodJSONValues = ["null", "1", "true", "\"string\""];
+    goodJSONValues.forEach(function(value) {
+      promise_test(function(test) {
+        var request = new Request("", {"method": "POST", "body": value});
+        return request.json().then(function(v) {
+          assert_equals(v, JSON.parse(value));
+        });
+      }, "Consume JSON from text: '" + JSON.stringify(value) + "'");
+    });
+
+    var badJSONValues = ["undefined", "{", "a", "["];
+    badJSONValues.forEach(function(value) {
+      promise_test(function(test) {
+        var request = new Request("", {"method": "POST", "body": value});
+        return promise_rejects(test, new SyntaxError(), request.json());
+      }, "Trying to consume bad JSON text as JSON: '" + value + "'");
+    });
     </script>
   </body>
 </html>

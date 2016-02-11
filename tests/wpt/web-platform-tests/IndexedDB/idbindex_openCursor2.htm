@@ -17,8 +17,12 @@
         var store = db.createObjectStore("store", { keyPath: "key" });
         var index = store.createIndex("index", "indexedProperty");
         store.add({ key: 1, indexedProperty: "data" });
-
-        e.target.transaction.abort();
+    }
+    open_rq.onsuccess = function(e) {
+        db = e.target.result;
+        var tx = db.transaction('store');
+        var index = tx.objectStore('store').index('index');
+        tx.abort();
 
         assert_throws("TransactionInactiveError", function(){
             index.openCursor();
@@ -26,4 +30,3 @@
         t.done();
     }
 </script>
-

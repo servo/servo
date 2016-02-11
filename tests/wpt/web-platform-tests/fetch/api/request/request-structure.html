@@ -51,7 +51,7 @@
             break;
 
           case "headers":
-            request.headers = new Headers ( {"name":"value"} );
+            request.headers = new Headers ({"name":"value"});
             assert_false(request.headers.has("name"), "Headers attribute is read only");
             return;
             break;
@@ -117,16 +117,18 @@
            "Attribute " + attributeToCheck + " is read only. Default value is " + defaultValue);
       }
 
-      for (var idx in methods)
+      for (var idx in methods) {
         test(function() {
           assert_true(methods[idx] in request, "request has " + methods[idx] + " method");
         }, "Request has " + methods[idx] + " method");
+      }
 
-      for (var idx in attributes)
+      for (var idx in attributes) {
         test(function() {
           assert_true(attributes[idx] in request, "request has " + attributes[idx] + " attribute");
           IsreadOnly(request, attributes[idx]);
         }, "Check " + attributes[idx] + " attribute");
+      }
     </script>
   </body>
 </html>

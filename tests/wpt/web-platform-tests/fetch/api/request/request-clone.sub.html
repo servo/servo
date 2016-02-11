@@ -11,7 +11,7 @@
   </head>
   <body>
     <script>
-      var headers = new Headers( {"name":"value"} );
+      var headers = new Headers({"name" : "value"});
       var emptyHeaders = new Headers();
 
       var initValuesDict = {"method" : "POST",
@@ -43,6 +43,21 @@
         var requestToCheck = RequestInitialized.clone();
         checkRequest(requestToCheck, expectedInitialized);
       }, "Check cloning a request");
+
+      test(function() {
+        var initialRequest = new Request("", {"headers" : new Headers({"a": "1", "b" : "2"})});
+        var request = initialRequest.clone();
+        assert_equals(request.headers.get("a"), "1", "cloned request should have header 'a'");
+        assert_equals(request.headers.get("b"), "2", "cloned request should have header 'b'");
+
+        initialRequest.headers.delete("a");
+        assert_equals(request.headers.get("a"), "1", "cloned request should still have header 'a'");
+
+        request.headers.delete("a");
+        assert_equals(initialRequest.headers.get("b"), "2", "initial request should have header 'b'");
+
+      }, "Check cloning a request copies the headers");
+
     </script>
   </body>
 </html>

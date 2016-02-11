@@ -17,7 +17,7 @@
             var isOpenCalled = false;
 
             wsocket.addEventListener('open', testOpen.step_func(function (evt) {
-                assert_equals(wsocket.protocol, __PROTOCOL, "protocol should be set to echo");
+                assert_equals(wsocket.protocol, "echo", "protocol should be set to echo");
                 wsocket.close();
                 isOpenCalled = true;
                 testOpen.done();

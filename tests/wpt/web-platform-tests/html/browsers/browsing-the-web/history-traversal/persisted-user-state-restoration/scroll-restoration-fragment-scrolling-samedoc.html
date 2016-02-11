@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<style>
+  body {
+    height: 2000px;
+    width: 2000px;
+  }
+
+  #fragment {
+    position: absolute;
+    top: 800px;
+    background-color: #faa;
+    display: block;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+
+<body>
+  <a id="fragment" name="fragment" class='box'></a>
+</body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="text/javascript">
+  'use strict';
+
+  async_test(function(t) {
+    history.scrollRestoration = 'manual';
+    assert_equals(history.scrollRestoration, 'manual');
+
+    location.hash = '#fragment';
+    assert_equals(window.scrollY, 800, 'new navigations should scroll to fragment');
+
+    // create a new entry and reset the scroll before verification
+    history.pushState(null, null, '#done');
+    window.scrollTo(0, 0);
+    assert_equals(window.scrollY, 0, 'should reset scroll before verification');
+
+    setTimeout(function() {
+      // setup verification
+      window.addEventListener('hashchange', t.step_func(function() {
+        assert_equals(location.hash, '#fragment');
+        assert_equals(history.scrollRestoration, 'manual');
+        // navigating back should give precedent to history restoration which is 'manual'
+        assert_equals(window.scrollX, 0, 'should not scroll to fragment');
+        assert_equals(window.scrollY, 0, 'should not scroll to fragment');
+        t.done();
+      }));
+      // kick off verification
+      window.history.back();
+    }, 0);
+
+  }, 'Manual scroll restoration should take precedent over scrolling to fragment in cross doc navigation');
+</script>

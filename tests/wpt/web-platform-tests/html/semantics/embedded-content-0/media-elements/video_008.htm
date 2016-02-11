@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>HTML5 Media Elements: 'media' attribute</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://www.w3.org/TR/html5/video.html#the-source-element" />
+    <meta name="assert" content="'media' attribute is 'all' by default." />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript" src="/common/media.js"></script>
+    <script type="text/javascript">
+      var videotest = async_test();
+
+      function do_play(event)
+      {
+        videotest.step(function() {
+          var vid = document.getElementById("video0");
+          assert_true(vid.currentSrc.indexOf("movie_300") > 0);
+        });
+        videotest.done();
+      }
+
+    </script>
+  </head>
+  <body>
+  <div id='log'></div>
+
+  <video id="video0" autoplay onplay="do_play(event);">
+    <script type="text/javascript">
+
+      document.write(
+        "<source media='not all' src='" + getVideoURI("/media/movie_300") + "'" +
+        " />"
+      );
+      document.write(
+        "<source src='" + getVideoURI("/media/movie_5") + "'" +
+        " media='all' />"
+      );
+
+    </script>
+    Your browser does not support media elements.
+  </video>
+</body>
+</html>
