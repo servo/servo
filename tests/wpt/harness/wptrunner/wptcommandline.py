@@ -72,6 +72,8 @@ def create_parser(product_choices=None):
                         help="Multiplier relative to standard test timeout to use")
     parser.add_argument("--repeat", action="store", type=int, default=1,
                         help="Number of times to run the tests")
+    parser.add_argument("--repeat-until-unexpected", action="store_true", default=None,
+                        help="Run tests in a loop until one returns an unexpected result")
 
     parser.add_argument("--no-capture-stdio", action="store_true", default=False,
                         help="Don't capture stdio and write to logging")
