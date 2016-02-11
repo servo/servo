@@ -135,15 +135,35 @@ class MachCommands(CommandBase):
 
         print("Extracting Rust compiler...")
         extract(tgz_file, install_dir)
+        print("Rust compiler ready.")
 
+    @Command('bootstrap-rust-libs',
+             description='Download the Rust lib directory',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Force download even if a copy already exists')
+    def bootstrap_rust_lib(self, force=False, targets=[]):
         # Each Rust stdlib has a name of the form `rust-std-nightly-TRIPLE.tar.gz`, with
         # a directory of the name `rust-std-TRIPLE` inside and then a `lib` directory.
         # This `lib` directory needs to be extracted and merged with the `rustc/lib`
         # directory from the host compiler above.
         # TODO: make it possible to request an additional cross-target to add to this
         # list.
-        stdlibs = [host_triple(), "arm-linux-androideabi"]
-        for target in stdlibs:
+        date = self.rust_path().split("/")[0]
+        install_dir = path.join(self.context.sharedir, "rust", date)
+        lib_dir = path.join(install_dir, "rustc-nightly-{}".format(host_triple()),
+                            "rustc", "lib", "rustlib")
+        for target in targets:
+            target_lib_dir = path.join(lib_dir, target)
+            if path.exists(target_lib_dir):
+                if force:
+                    shutil.rmtree(target_lib_dir)
+                else:
+                    print("Rust lib for target {} already downloaded.".format(target), end=" ")
+                    print("Use |bootstrap-rust-lib --force| to download again.")
+                    continue
+
             std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
                        % (date, target))
             tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target)
@@ -157,7 +177,7 @@ class MachCommands(CommandBase):
                                       "rustc", "lib", "rustlib", target))
             shutil.rmtree(path.join(install_dir, "rust-std-nightly-%s" % target))
 
-        print("Rust ready.")
+            print("Rust {} libs ready.".format(target))
 
     @Command('bootstrap-rust-docs',
              description='Download the Rust documentation',

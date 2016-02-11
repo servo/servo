@@ -394,9 +394,14 @@ class CommandBase(object):
     def android_build_dir(self, dev):
         return path.join(self.get_target_dir(), "arm-linux-androideabi", "debug" if dev else "release")
 
-    def ensure_bootstrapped(self):
+    def ensure_bootstrapped(self, targets=[]):
         if self.context.bootstrapped:
             return
+
+        # ensure that at least the libs for the hosts target is downloaded
+        host_target = host_triple()
+        if host_target not in targets:
+            targets.append(host_target)
 
         Registrar.dispatch("update-submodules", context=self.context)
 
@@ -410,5 +415,8 @@ class CommandBase(object):
            not path.exists(path.join(
                 self.config["tools"]["cargo-root"], "cargo", "bin", "cargo" + BIN_SUFFIX)):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
+        if not self.config["tools"]["system-rust"] and not all([path.exists(path.join(
+                self.config["tools"]["rust-root"], "rustc", "lib", "rustlib", x)) for x in targets]):
+            Registrar.dispatch("bootstrap-rust-libs", context=self.context, targets=targets)
 
         self.context.bootstrapped = True
