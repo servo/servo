@@ -41,6 +41,8 @@ def create_parser_wpt():
     parser = wptcommandline.create_parser()
     parser.add_argument('--release', default=False, action="store_true",
                         help="Run with a release build of servo")
+    parser.add_argument('--chaos', default=False, action="store_true",
+                        help="Run under chaos mode in rr until a failure is captured")
     return parser
 
 
@@ -344,6 +346,11 @@ class MachCommands(CommandBase):
     def wptrunner(self, run_file, **kwargs):
         os.environ["RUST_BACKTRACE"] = "1"
         kwargs["debug"] = not kwargs["release"]
+        if kwargs["chaos"]:
+            kwargs["debugger"] = "rr"
+            kwargs["debugger_args"] = "record --chaos"
+            kwargs["repeat_until_unexpected"] = True
+            # TODO: Delete rr traces from green test runs?
 
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
