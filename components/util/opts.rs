@@ -367,6 +367,14 @@ fn args_fail(msg: &str) -> ! {
     process::exit(1)
 }
 
+fn parseopt_fail(err_str: &str) -> ! {
+    let mut stderr = io::stderr();
+    stderr.write_all(b"Error parsing option: ").unwrap();
+    stderr.write_all(err_str.as_bytes()).unwrap();
+    stderr.write_all(b"\n").unwrap();
+    process::exit(1);
+}
+
 // Always use CPU painting on android.
 
 #[cfg(target_os = "android")]
@@ -587,31 +595,39 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
-        Some(tile_size_str) => tile_size_str.parse().unwrap(),
+        Some(tile_size_str) => tile_size_str.parse().unwrap_or_else(|err| {
+            parseopt_fail(&format!("-s\t{}", err))
+        }),
         None => 512,
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        dppx_str.parse().unwrap()
+        dppx_str.parse().unwrap_or_else(|err| {
+            parseopt_fail(&format!("--device-pixel-ratio\t{}", err))
+        })
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {
-        Some(paint_threads_str) => paint_threads_str.parse().unwrap(),
+        Some(paint_threads_str) => paint_threads_str.parse()
+            .unwrap_or_else(|err| parseopt_fail(&format!("-t\t{}", err))),
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
     let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
-        period.parse().unwrap()
+        period.parse().unwrap_or_else(|err| parseopt_fail(&format!("-p\t{}", err)))
     });
+
     let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        period.parse().unwrap()
+        period.parse().unwrap_or_else(|err| parseopt_fail(&format!("-m\t{}", err)))
     });
 
     let gpu_painting = !FORCE_CPU_PAINTING && opt_match.opt_present("g");
 
     let mut layout_threads: usize = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => layout_threads_str.parse().unwrap(),
+        Some(layout_threads_str) => layout_threads_str.parse().unwrap_or_else(|err| {
+            parseopt_fail(&format!("-y\t{}", err))
+        }),
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
@@ -625,16 +641,19 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
-        port.parse().unwrap()
+        port.parse().unwrap_or_else(|err| parseopt_fail(&format!("--devtools\t{}", err)))
     });
 
     let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
-        port.parse().unwrap()
+        port.parse().unwrap_or_else(|err| parseopt_fail(&format!("--webdriver\t{}", err)))
     });
 
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
-            let res: Vec<u32> = res_string.split('x').map(|r| r.parse().unwrap()).collect();
+            let res: Vec<u32> = res_string.split('x').map(|r| match r.parse() {
+                Ok(good) => good,
+                Err(err) => parseopt_fail(&format!("--resolution\t{}", err))
+            }).collect();
             Size2D::typed(res[0], res[1])
         }
         None => {
