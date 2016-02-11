@@ -137,7 +137,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     let mut response = if response.is_none() {
 
         let current_url = request.current_url();
-        let origin_match = request.origin == current_url.origin();
+        let origin_match = *request.origin.borrow() == current_url.origin();
 
         if (!cors_flag && origin_match) ||
             (current_url.scheme == "data" && request.same_origin_data.get()) ||
@@ -238,7 +238,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     }
 
     // Step 17
-    if request.body.is_some() && match &*request.current_url().scheme {
+    if request.body.borrow().is_some() && match &*request.current_url().scheme {
         "http" | "https" => true,
         _ => false }
         {
@@ -373,7 +373,7 @@ fn http_fetch(request: Rc<Request>,
             let mut method_mismatch = false;
             let mut header_mismatch = false;
 
-            let origin = request.origin.clone();
+            let origin = request.origin.borrow().clone();
             let url = request.current_url();
             let credentials = request.credentials_mode == CredentialsMode::Include;
             let method_cache_match = cache.match_method(CacheRequestDetails {
@@ -505,8 +505,6 @@ fn http_redirect_fetch(request: Rc<Request>,
                        response: Rc<Response>,
                        cors_flag: bool) -> Response {
 
-    // TODO implement http redirect fetch
-
     // Step 1
     let actual_response = match response.internal_response {
         Some(ref res) => res.clone(),
@@ -548,36 +546,32 @@ fn http_redirect_fetch(request: Rc<Request>,
     // Step 9
     request.same_origin_data.set(false);
 
-    // TODO check request.origin is same_origin() as location_url's origin
-    let same_origin = true;
+    let same_origin = *request.origin.borrow() == location_url.origin();
     let has_credentials = has_credentials(&location_url);
 
     // Step 10
     if request.mode == RequestMode::CORSMode && !same_origin && has_credentials {
-        // return Response::network_error();
+        return Response::network_error();
     }
 
     // Step 11
     if cors_flag && has_credentials {
-        // return Response::network_error();
+        return Response::network_error();
     }
 
     // Step 12
     if cors_flag && !same_origin {
-        // TODO I seem to need to set Origin to RefCell to do this?
-        // request.origin.borrow_mut() = Origin::UID(OpaqueOrigin::new());
+        *request.origin.borrow_mut() = Origin::UID(OpaqueOrigin::new());
     }
 
     // Step 13
-    if (match actual_response.status.unwrap() {
+    if match actual_response.status.unwrap() {
         StatusCode::MovedPermanently | StatusCode::Found => true,
-        // TODO how do I compare a refcell object?
-        _ => false }) || //&& *request.method == Method::Post) ||
-        actual_response.status.unwrap() == StatusCode::SeeOther {
+        StatusCode::SeeOther if *request.method.borrow() == Method::Post => true,
+        _ => false } {
 
         *request.method.borrow_mut() = Method::Get;
-        // TODO body needs to be RefCell
-        // request.body = None;
+        *request.body.borrow_mut() = None;
     }
 
     // Step 14
@@ -603,7 +597,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         Rc::new((*request).clone())
     };
 
-    let content_length_value = match http_request.body {
+    let content_length_value = match *http_request.body.borrow() {
         None =>
             match *http_request.method.borrow() {
                 // Step 3
@@ -912,7 +906,7 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     };
 
     // strings are already utf-8 encoded, so I don't need to re-encode origin for this step
-    match ascii_serialise_origin(&request.origin) {
+    match ascii_serialise_origin(&request.origin.borrow()) {
         Ok(request_origin) => {
             if request_origin != origin {
                 return Err(());
