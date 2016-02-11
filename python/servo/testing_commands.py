@@ -332,19 +332,19 @@ class MachCommands(CommandBase):
     @Command('test-wpt',
              description='Run the web platform tests',
              category='testing',
-             parser=wptcommandline.create_parser)
-    @CommandArgument('--release', default=False, action="store_true",
-                     help="Run with a release build of servo")
+             parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
-
         os.environ["hosts_file_path"] = hosts_file_path
-        os.environ["RUST_BACKTRACE"] = "1"
+        run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run_wpt.py"))
+        return self.wptrunner(run_file, **kwargs)
 
+    # Helper for test_css and test_wpt:
+    def wptrunner(self, run_file, **kwargs):
+        os.environ["RUST_BACKTRACE"] = "1"
         kwargs["debug"] = not kwargs["release"]
 
-        run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run_wpt.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["run_tests"](**kwargs)
@@ -398,11 +398,8 @@ class MachCommands(CommandBase):
              parser=create_parser_wpt)
     def test_css(self, **kwargs):
         self.ensure_bootstrapped()
-
         run_file = path.abspath(path.join("tests", "wpt", "run_css.py"))
-        run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
-        return run_globals["run_tests"](**kwargs)
+        return self.wptrunner(run_file, **kwargs)
 
     @Command('update-css',
              description='Update the web platform tests',
