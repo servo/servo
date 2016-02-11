@@ -5,6 +5,7 @@
 use properties::ComputedValues;
 use selectors::parser::SelectorImpl;
 use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
@@ -13,7 +14,7 @@ pub struct PrivateStyleData<Impl: SelectorImpl> {
     pub style: Option<Arc<ComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
-    pub per_pseudo: HashMap<Impl::PseudoElement, Option<Arc<ComputedValues>>>,
+    pub per_pseudo: HashMap<Impl::PseudoElement, Option<Arc<ComputedValues>>, BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
@@ -23,7 +24,7 @@ impl<Impl: SelectorImpl> PrivateStyleData<Impl> {
     pub fn new() -> PrivateStyleData<Impl> {
         PrivateStyleData {
             style: None,
-            per_pseudo: HashMap::new(),
+            per_pseudo: HashMap::with_hasher(Default::default()),
             parallel: DomParallelInfo::new(),
         }
     }
