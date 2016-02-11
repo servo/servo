@@ -26,9 +26,6 @@ optional = true
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.webrender_traits]
-git = "https://github.com/glennw/webrender_traits"
-
 [dependencies]
 app_units = {version = "0.2.1", features = ["plugins"]}
 bitflags = "0.3"

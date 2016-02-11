@@ -2097,7 +2097,6 @@ dependencies = [
  "string_cache 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_traits 0.1.0 (git+https://github.com/glennw/webrender_traits)",
 ]
 
 [[package]]
