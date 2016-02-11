@@ -19,9 +19,8 @@ use js::jsapi::{HandleId, HandleObject, MutableHandle, MutableHandleValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GetClass};
 use js::jsapi::{JSContext, JSErrNum, JSObject, JSPropertyDescriptor};
 use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_DefinePropertyById6, JS_GetPropertyDescriptorById};
+use js::jsapi::{JS_DefinePropertyById6, JS_GetOwnPropertyDescriptorById};
 use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
-use std::ptr;
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -140,16 +139,13 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-    // XXX This should be JS_GetOwnPropertyDescriptorById
-    if !JS_GetPropertyDescriptorById(cx, target.handle(), id, desc) {
+    if !JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, desc) {
         return false;
     }
 
-    if (*desc.ptr).obj != target.ptr {
-        // Not an own property
-        (*desc.ptr).obj = ptr::null_mut();
-    } else {
-        (*desc.ptr).obj = *proxy.ptr;
+    assert!(desc.get().obj.is_null() || desc.get().obj == target.ptr);
+    if desc.get().obj == target.ptr {
+        desc.get().obj = *proxy.ptr;
     }
 
     true
