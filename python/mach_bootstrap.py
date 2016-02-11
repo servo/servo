@@ -149,6 +149,13 @@ def _activate_virtualenv(topdir):
 def bootstrap(topdir):
     topdir = os.path.abspath(topdir)
 
+    # We don't support paths with spaces for now
+    # https://github.com/servo/servo/issues/9442
+    if ' ' in topdir:
+        print('Cannot run mach in a path with spaces.')
+        print('Current path:', topdir)
+        sys.exit(1)
+
     # Ensure we are running Python 2.7+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module
     # import.
