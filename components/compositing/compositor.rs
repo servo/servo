@@ -1417,6 +1417,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         Some(ref mut total_delta) => *total_delta = *total_delta + this_delta,
                     }
                 }
+                // TODO(gw): Support zoom (WR issue #28).
                 if let Some(total_delta) = total_delta {
                     webrender_api.scroll(total_delta.to_untyped(), last_cursor.to_untyped());
                 }
