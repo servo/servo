@@ -158,8 +158,8 @@ pub enum NonTSPseudoClass {
 
 impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
-        use style::element_state::*;
         use self::NonTSPseudoClass::*;
+        use style::element_state::*;
         match *self {
             Active => IN_ACTIVE_STATE,
             Focus => IN_FOCUS_STATE,

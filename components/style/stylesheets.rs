@@ -15,8 +15,8 @@ use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::iter::Iterator;
-use std::slice;
 use std::marker::PhantomData;
+use std::slice;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use viewport::ViewportRule;
@@ -232,11 +232,11 @@ impl<'a, Impl: SelectorImpl + 'a> Iterator for Rules<'a, Impl> {
 pub mod rule_filter {
     //! Specific `CSSRule` variant iterators.
 
+    use selectors::parser::SelectorImpl;
     use std::marker::PhantomData;
     use super::super::font_face::FontFaceRule;
     use super::super::viewport::ViewportRule;
     use super::{CSSRule, MediaRule, StyleRule};
-    use selectors::parser::SelectorImpl;
 
     macro_rules! rule_filter {
         ($variant:ident -> $value:ty) => {
@@ -247,7 +247,8 @@ pub mod rule_filter {
                 _lifetime: PhantomData<&'a ()>
             }
 
-            impl<'a, I, Impl: SelectorImpl + 'a> $variant<'a, I> where I: Iterator<Item=&'a CSSRule<Impl>> {
+            impl<'a, I, Impl: SelectorImpl + 'a> $variant<'a, I>
+                where I: Iterator<Item=&'a CSSRule<Impl>> {
                 pub fn new(iter: I) -> $variant<'a, I> {
                     $variant {
                         iter: iter,
@@ -256,7 +257,8 @@ pub mod rule_filter {
                 }
             }
 
-            impl<'a, I, Impl: SelectorImpl + 'a> Iterator for $variant<'a, I> where I: Iterator<Item=&'a CSSRule<Impl>> {
+            impl<'a, I, Impl: SelectorImpl + 'a> Iterator for $variant<'a, I>
+                where I: Iterator<Item=&'a CSSRule<Impl>> {
                 type Item = &'a $value;
 
                 fn next(&mut self) -> Option<&'a $value> {
@@ -321,7 +323,11 @@ impl<'a, I, Impl: SelectorImpl + 'a> CSSRuleIteratorExt<'a, Impl> for I where I:
 }
 
 fn parse_nested_rules<Impl: SelectorImpl>(context: &ParserContext, input: &mut Parser) -> Vec<CSSRule<Impl>> {
-    let mut iter = RuleListParser::new_for_nested_rule(input, NestedRuleParser { context: context, _impl: PhantomData });
+    let mut iter = RuleListParser::new_for_nested_rule(input,
+                                                       NestedRuleParser {
+                                                           context: context,
+                                                           _impl: PhantomData
+                                                       });
     let mut rules = Vec::new();
     while let Some(result) = iter.next() {
         match result {

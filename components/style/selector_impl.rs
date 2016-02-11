@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use element_state::ElementState;
-use selectors::parser::{ParserContext, SelectorImpl};
-use selectors::Element;
-use stylesheets::Stylesheet;
 use selector_matching::{USER_OR_USER_AGENT_STYLESHEETS, QUIRKS_MODE_STYLESHEET};
+use selectors::Element;
+use selectors::parser::{ParserContext, SelectorImpl};
+use stylesheets::Stylesheet;
 
 pub trait ElementExt: Element {
     fn is_link(&self) -> bool;

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use selector_impl::{GeckoSelectorImpl, SharedStyleContext};
 use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
-use selector_impl::{GeckoSelectorImpl, SharedStyleContext};
 use style::context::{LocalStyleContext, StyleContext};
 use style::dom::{OpaqueNode, TNode};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};

@@ -664,16 +664,20 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        self.borrow_layout_data().unwrap().style_data.per_pseudo.get(&PseudoElement::Before).unwrap_or(&None).as_ref().map(|style| {
-            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
-        })
+        self.borrow_layout_data().unwrap()
+            .style_data.per_pseudo
+            .get(&PseudoElement::Before).unwrap_or(&None).as_ref().map(|style| {
+                self.with_pseudo(PseudoElementType::Before(style.get_box().display))
+            })
     }
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        self.borrow_layout_data().unwrap().style_data.per_pseudo.get(&PseudoElement::After).unwrap_or(&None).as_ref().map(|style| {
-            self.with_pseudo(PseudoElementType::After(style.get_box().display))
-        })
+        self.borrow_layout_data().unwrap()
+            .style_data.per_pseudo
+            .get(&PseudoElement::After).unwrap_or(&None).as_ref().map(|style| {
+                self.with_pseudo(PseudoElementType::After(style.get_box().display))
+            })
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -713,9 +717,11 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
         let mut none = None;
         let style =
             match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => data.style_data.per_pseudo.get_mut(&PseudoElement::Before).unwrap_or(&mut none),
-                PseudoElementType::After(_) => data.style_data.per_pseudo.get_mut(&PseudoElement::After).unwrap_or(&mut none),
-                PseudoElementType::Normal    => &mut data.style_data.style,
+                PseudoElementType::Before(_) => data.style_data.per_pseudo
+                                                    .get_mut(&PseudoElement::Before).unwrap_or(&mut none),
+                PseudoElementType::After(_) => data.style_data.per_pseudo
+                                                   .get_mut(&PseudoElement::After).unwrap_or(&mut none),
+                PseudoElementType::Normal => &mut data.style_data.style,
             };
 
         *style = None;

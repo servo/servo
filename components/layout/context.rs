@@ -26,9 +26,9 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use style::context::{LocalStyleContext, StyleContext};
+use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use style::selector_impl::ServoSelectorImpl;
 use style::servo::SharedStyleContext;
-use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use url::Url;
 use util::opts;
 

@@ -37,6 +37,6 @@ mod bindings;
 mod data;
 #[allow(non_snake_case)]
 pub mod glue;
+mod selector_impl;
 mod traversal;
 mod wrapper;
-mod selector_impl;
