@@ -15,7 +15,6 @@ use platform::font_list::system_default_family;
 use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
@@ -297,24 +296,16 @@ impl FontCache {
     }
 
     fn get_font_template_info(&mut self, template: Arc<FontTemplateData>) -> FontTemplateInfo {
-        let font_key = if let Some(ref webrender_api) = self.webrender_api {
-            let font_key = match self.webrender_fonts.entry(template.identifier.clone()) {
-                Entry::Occupied(occupied) => {
-                    occupied.into_mut()
+        let webrender_fonts = &mut self.webrender_fonts;
+        let font_key = self.webrender_api.as_ref().map(|webrender_api| {
+            *webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
+                match (template.bytes_if_in_memory(), template.native_font()) {
+                    (Some(bytes), _) => webrender_api.add_raw_font(bytes),
+                    (None, Some(native_font)) => webrender_api.add_native_font(native_font),
+                    (None, None) => webrender_api.add_raw_font(template.bytes().clone()),
                 }
-                Entry::Vacant(vacant) => {
-                    let font_key = match (template.bytes_if_in_memory(), template.native_font()) {
-                        (Some(bytes), _) => webrender_api.add_raw_font(bytes),
-                        (None, Some(native_font)) => webrender_api.add_native_font(native_font),
-                        (None, None) => webrender_api.add_raw_font(template.bytes().clone()),
-                    };
-                    vacant.insert(font_key)
-                }
-            };
-            Some(*font_key)
-        } else {
-            None
-        };
+            })
+        });
 
         FontTemplateInfo {
             font_template: template,
