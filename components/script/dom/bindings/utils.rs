@@ -36,6 +36,7 @@ use js::{JS_CALLEE};
 use libc::{self, c_uint};
 use std::default::Default;
 use std::ffi::CString;
+use std::os::raw::c_void;
 use std::ptr;
 use util::non_geckolib::jsstring_to_str;
 
@@ -91,7 +92,7 @@ pub struct DOMClass {
     pub type_id: TopTypeId,
 
     /// The HeapSizeOf function wrapper for that interface.
-    pub heap_size_of: unsafe fn(*const libc::c_void) -> usize,
+    pub heap_size_of: unsafe fn(*const c_void) -> usize,
 }
 unsafe impl Sync for DOMClass {}
 

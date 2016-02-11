@@ -1257,7 +1257,7 @@ pub struct GradientDisplayItem {
 impl HeapSizeOf for GradientDisplayItem {
     fn heap_size_of_children(&self) -> usize {
         use heapsize::heap_size_of;
-        use libc::c_void;
+        use std::os::raw::c_void;
 
         // We can't measure `stops` via Vec's HeapSizeOf implementation because GradientStop isn't
         // defined in this module, and we don't want to import GradientStop into util::mem where
