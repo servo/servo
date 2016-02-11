@@ -1785,6 +1785,7 @@ impl ScriptThread {
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
+                                 self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
@@ -1839,6 +1840,9 @@ impl ScriptThread {
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id)).unwrap();
+
+        // Notify devtools that a new script global exists.
+        self.notify_devtools(document.Title(), final_url.clone(), (page.pipeline(), None));
 
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
@@ -2199,15 +2203,10 @@ impl ScriptThread {
         document.process_deferred_scripts();
 
         window.set_fragment_name(final_url.fragment.clone());
-
-        // Notify devtools that a new script global exists.
-        //TODO: should this happen as soon as the global is created, or at least once the first
-        // script runs?
-        self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
-                                  line: u32, column: u32, msg: String) {
+                                  line: usize, column: usize, msg: String) {
         let parent_page = self.root_page();
         let page = match parent_page.find(pipeline_id) {
             Some(page) => page,
