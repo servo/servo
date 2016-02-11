@@ -193,18 +193,21 @@ class MachCommands(CommandBase):
             print("Please specify either --dev or --release.")
             sys.exit(1)
 
-        self.ensure_bootstrapped()
-
+        targets = []
         if release:
             opts += ["--release"]
         if target:
             opts += ["--target", target]
+            targets.append(target)
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
         if android:
             opts += ["--target", self.config["android"]["target"]]
+            targets.append("arm-linux-androideabi")
+
+        self.ensure_bootstrapped(targets=targets)
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]

@@ -394,18 +394,21 @@ class CommandBase(object):
     def android_build_dir(self, dev):
         return path.join(self.get_target_dir(), "arm-linux-androideabi", "debug" if dev else "release")
 
-    def ensure_bootstrapped(self):
+    def ensure_bootstrapped(self, targets=[]):
         if self.context.bootstrapped:
             return
 
         Registrar.dispatch("update-submodules", context=self.context)
 
         if not self.config["tools"]["system-rust"] and \
-           not path.exists(path.join(
-                self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX)):
+           (not path.exists(path.join(
+                            self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX)) or
+                not all([path.exists(path.join(
+                        self.config["tools"]["rust-root"], "rustc", "lib", "rustlib", x
+                        )) for x in targets])):
             print("looking for rustc at %s" % path.join(
                 self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX))
-            Registrar.dispatch("bootstrap-rust", context=self.context)
+            Registrar.dispatch("bootstrap-rust", context=self.context, target=targets)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
                 self.config["tools"]["cargo-root"], "cargo", "bin", "cargo" + BIN_SUFFIX)):
