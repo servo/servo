@@ -31,6 +31,7 @@ matrix:
             - python-virtualenv
             - xorg-dev
             - ccache
+            - ninja-build
 
 branches:
   only:
