@@ -1,0 +1,7 @@
+[submodule "support/rust-openssl"]
+	path = support/rust-openssl
+	url = https://github.com/notriddle/rust-openssl
+	branch = libressl-static-v0.7.1
+[submodule "support/rust-libressl-static"]
+	path = support/rust-libressl-static
+	url = https://github.com/notriddle/rust-libressl-static
