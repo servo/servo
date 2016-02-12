@@ -666,7 +666,8 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn get_before_pseudo(&self) -> Option<Self> {
         self.borrow_layout_data().unwrap()
             .style_data.per_pseudo
-            .get(&PseudoElement::Before).unwrap_or(&None).as_ref().map(|style| {
+            .get(&PseudoElement::Before)
+            .map(|style| {
                 self.with_pseudo(PseudoElementType::Before(style.get_box().display))
             })
     }
@@ -675,7 +676,8 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn get_after_pseudo(&self) -> Option<Self> {
         self.borrow_layout_data().unwrap()
             .style_data.per_pseudo
-            .get(&PseudoElement::After).unwrap_or(&None).as_ref().map(|style| {
+            .get(&PseudoElement::After)
+            .map(|style| {
                 self.with_pseudo(PseudoElementType::After(style.get_box().display))
             })
     }
@@ -700,8 +702,8 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn style(&self) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
             let style = match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => data.style_data.per_pseudo.get(&PseudoElement::Before).unwrap(),
-                PseudoElementType::After(_) => data.style_data.per_pseudo.get(&PseudoElement::After).unwrap(),
+                PseudoElementType::Before(_) => data.style_data.per_pseudo.get(&PseudoElement::Before),
+                PseudoElementType::After(_) => data.style_data.per_pseudo.get(&PseudoElement::After),
                 PseudoElementType::Normal => &data.style_data.style,
             };
             style.as_ref().unwrap()

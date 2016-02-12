@@ -370,16 +370,16 @@ trait PrivateMatchMethods<'ln>: TNode<'ln>
                                    context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
-                                   style: &mut Option<Arc<ComputedValues>>,
+                                   mut style: Option<&mut Arc<ComputedValues>>,
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
                                    new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
-                                   -> Self::ConcreteRestyleDamage {
+                                   -> (Self::ConcreteRestyleDamage, Arc<ComputedValues>) {
         let mut cacheable = true;
         if animate_properties {
-            cacheable = !self.update_animations_for_cascade(context, style) && cacheable;
+            cacheable = !self.update_animations_for_cascade(context, &mut style) && cacheable;
         }
 
         let mut this_style;
@@ -414,7 +414,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln>
         // Trigger transitions if necessary. This will reset `this_style` back to its old value if
         // it did trigger a transition.
         if animate_properties {
-            if let Some(ref style) = *style {
+            if let Some(ref style) = style {
                 let animations_started =
                     animation::start_transitions_if_applicable(new_animations_sender,
                                                                self.opaque(),
@@ -426,7 +426,7 @@ trait PrivateMatchMethods<'ln>: TNode<'ln>
 
         // Calculate style difference.
         let this_style = Arc::new(this_style);
-        let damage = Self::ConcreteRestyleDamage::compute(style, &*this_style);
+        let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &*this_style);
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
@@ -434,14 +434,13 @@ trait PrivateMatchMethods<'ln>: TNode<'ln>
                                                  this_style.clone());
         }
 
-        // Write in the final style and return the damage done to our caller.
-        *style = Some(this_style);
-        damage
+        // Return the final style and the damage done to our caller.
+        (damage, this_style)
     }
 
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
-                                     style: &mut Option<Arc<ComputedValues>>)
+                                     style: &mut Option<&mut Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
             None => return false,
@@ -572,7 +571,7 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
                     let node = self.as_node();
                     let style = &mut node.mutate_data().unwrap().style;
                     let damage = <<Self as TElement<'le>>::ConcreteNode as TNode<'le>>
-                                     ::ConcreteRestyleDamage::compute(style, &*shared_style);
+                                     ::ConcreteRestyleDamage::compute((*style).as_ref(), &*shared_style);
                     *style = Some(shared_style);
                     return StyleSharingResult::StyleWasShared(i, damage)
                 }
@@ -666,19 +665,20 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
             let cloned_parent_style = parent_style.unwrap().clone();
             data.style = Some(cloned_parent_style);
         } else {
-            let mut damage;
-            {
+            let damage = {
                 let mut data_ref = self.mutate_data().unwrap();
                 let mut data = &mut *data_ref;
-                damage = self.cascade_node_pseudo_element(
+                let (mut damage, final_style) = self.cascade_node_pseudo_element(
                     context,
                     parent_style,
                     &applicable_declarations.normal,
-                    &mut data.style,
+                    data.style.as_mut(),
                     applicable_declarations_cache,
                     new_animations_sender,
                     applicable_declarations.normal_shareable,
                     true);
+
+                data.style = Some(final_style);
 
                 <Self::ConcreteElement as Element>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
                     let applicable_declarations_for_this_pseudo =
@@ -686,18 +686,23 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
 
 
                     if !applicable_declarations_for_this_pseudo.is_empty() {
-                        damage = damage | self.cascade_node_pseudo_element(
+                        let (new_damage, style) = self.cascade_node_pseudo_element(
                             context,
                             Some(data.style.as_ref().unwrap()),
                             &*applicable_declarations_for_this_pseudo,
-                            data.per_pseudo.entry(pseudo).or_insert(None),
+                            data.per_pseudo.get_mut(&pseudo),
                             applicable_declarations_cache,
                             new_animations_sender,
                             false,
                             false);
+                        data.per_pseudo.insert(pseudo, style);
+
+                        damage = damage | new_damage;
                     }
                 });
-            }
+
+                damage
+            };
 
             // This method needs to borrow the data as mutable, so make sure data_ref goes out of
             // scope first.

@@ -979,7 +979,7 @@ pub fn update_style_for_animation<ConcreteRestyleDamage: TRestyleDamage>(animati
     let mut new_style = (*style).clone();
     animation.property_animation.update(&mut *Arc::make_mut(&mut new_style), progress);
     if let Some(damage) = damage {
-        *damage = *damage | ConcreteRestyleDamage::compute(&Some((*style).clone()), &new_style);
+        *damage = *damage | ConcreteRestyleDamage::compute(Some(style), &new_style);
     }
 
     *style = new_style
