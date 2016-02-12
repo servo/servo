@@ -108,56 +108,72 @@ class MachCommands(CommandBase):
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Force download even if a copy already exists')
-    def bootstrap_rustc(self, force=False):
+    @CommandArgument('--target',
+                     action='append',
+                     default=[],
+                     help='Download rust stdlib for specified target')
+    def bootstrap_rustc(self, force=False, target=[]):
         rust_dir = path.join(
             self.context.sharedir, "rust", self.rust_path())
-        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
-            print("Rust compiler already downloaded.", end=" ")
-            print("Use |bootstrap-rust --force| to download again.")
-            return
-
-        if path.isdir(rust_dir):
-            shutil.rmtree(rust_dir)
-        os.makedirs(rust_dir)
-
         date = self.rust_path().split("/")[0]
         install_dir = path.join(self.context.sharedir, "rust", date)
 
-        # The Rust compiler is hosted on the nightly server under the date with a name
-        # rustc-nightly-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
-        # giving a directory name that will be the same as the tarball name (rustc is
-        # in that directory).
-        rustc_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
-                     % self.rust_path())
-        tgz_file = rust_dir + '-rustc.tar.gz'
+        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
+            print("Rust compiler already downloaded.", end=" ")
+            print("Use |bootstrap-rust --force| to download again.")
+        else:
+            if path.isdir(rust_dir):
+                shutil.rmtree(rust_dir)
+            os.makedirs(rust_dir)
 
-        download_file("Rust compiler", rustc_url, tgz_file)
+            # The Rust compiler is hosted on the nightly server under the date with a name
+            # rustc-nightly-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
+            # giving a directory name that will be the same as the tarball name (rustc is
+            # in that directory).
+            rustc_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
+                         % self.rust_path())
+            tgz_file = rust_dir + '-rustc.tar.gz'
 
-        print("Extracting Rust compiler...")
-        extract(tgz_file, install_dir)
+            download_file("Rust compiler", rustc_url, tgz_file)
+
+            print("Extracting Rust compiler...")
+            extract(tgz_file, install_dir)
+            print("Rust compiler ready.")
 
         # Each Rust stdlib has a name of the form `rust-std-nightly-TRIPLE.tar.gz`, with
         # a directory of the name `rust-std-TRIPLE` inside and then a `lib` directory.
         # This `lib` directory needs to be extracted and merged with the `rustc/lib`
         # directory from the host compiler above.
-        # TODO: make it possible to request an additional cross-target to add to this
-        # list.
-        stdlibs = [host_triple(), "arm-linux-androideabi"]
-        for target in stdlibs:
+        lib_dir = path.join(install_dir, "rustc-nightly-{}".format(host_triple()),
+                            "rustc", "lib", "rustlib")
+
+        # ensure that the libs for the host's target is downloaded
+        host_target = host_triple()
+        if host_target not in target:
+            target.append(host_target)
+
+        for target_triple in target:
+            target_lib_dir = path.join(lib_dir, target_triple)
+            if path.exists(target_lib_dir):
+                # No need to check for force. If --force the directory is already deleted
+                print("Rust lib for target {} already downloaded.".format(target_triple), end=" ")
+                print("Use |bootstrap-rust --force| to download again.")
+                continue
+
             std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
-                       % (date, target))
-            tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target)
+                       % (date, target_triple))
+            tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target_triple)
 
-            download_file("Host rust library for target %s" % target, std_url, tgz_file)
-            print("Extracting Rust stdlib for target %s..." % target)
+            download_file("Host rust library for target %s" % target_triple, std_url, tgz_file)
+            print("Extracting Rust stdlib for target %s..." % target_triple)
             extract(tgz_file, install_dir)
-            shutil.copytree(path.join(install_dir, "rust-std-nightly-%s" % target,
-                                      "rust-std-%s" % target, "lib", "rustlib", target),
+            shutil.copytree(path.join(install_dir, "rust-std-nightly-%s" % target_triple,
+                                      "rust-std-%s" % target_triple, "lib", "rustlib", target_triple),
                             path.join(install_dir, "rustc-nightly-%s" % host_triple(),
-                                      "rustc", "lib", "rustlib", target))
-            shutil.rmtree(path.join(install_dir, "rust-std-nightly-%s" % target))
+                                      "rustc", "lib", "rustlib", target_triple))
+            shutil.rmtree(path.join(install_dir, "rust-std-nightly-%s" % target_triple))
 
-        print("Rust ready.")
+            print("Rust {} libs ready.".format(target_triple))
 
     @Command('bootstrap-rust-docs',
              description='Download the Rust documentation',
