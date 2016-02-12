@@ -60,3 +60,11 @@ bool IsBottomTriangle() {
     return false;
 }
 
+vec2 SnapToPixels(vec2 pos)
+{
+    // Snap the vertex to pixel position to guarantee correct texture
+    // sampling when using bilinear filtering.
+
+    // TODO(gw): ES2 doesn't have round(). Do we ever get negative coords here?
+    return floor(0.5 + pos * uDevicePixelRatio) / uDevicePixelRatio;
+}

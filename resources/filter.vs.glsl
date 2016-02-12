@@ -6,6 +6,7 @@ void main(void)
 {
     vColorTexCoord = aColorTexCoordRectTop.xy;
     vMaskTexCoord = aMaskTexCoordRectTop.xy;
-    gl_Position = uTransform * vec4(aPosition, 1.0);
+    vec4 pos = vec4(aPosition, 1.0);
+    pos.xy = SnapToPixels(pos.xy);
+    gl_Position = uTransform * pos;
 }
-

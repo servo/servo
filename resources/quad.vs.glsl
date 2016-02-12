@@ -2,18 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-vec2 SnapToPixels(vec2 pos)
-{
-    // Snap the vertex to pixel position to guarantee correct texture
-    // sampling when using bilinear filtering.
-#ifdef SERVO_ES2
-    // TODO(gw): ES2 doesn't have round(). Do we ever get negative coords here?
-    return floor(0.5 + pos * uDevicePixelRatio) / uDevicePixelRatio;
-#else
-    return round(pos * uDevicePixelRatio) / uDevicePixelRatio;
-#endif
-}
-
 vec2 Bilerp2(vec2 tl, vec2 tr, vec2 br, vec2 bl, vec2 st) {
     return mix(mix(tl, bl, st.y), mix(tr, br, st.y), st.x);
 }
