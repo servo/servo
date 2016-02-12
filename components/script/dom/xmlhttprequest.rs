@@ -17,7 +17,7 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap};
+use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
@@ -122,6 +122,8 @@ pub struct XMLHttpRequest {
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableHeap<JS<Document>>,
+    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    response_json: MutHeapJSVal,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -161,6 +163,7 @@ impl XMLHttpRequest {
             response: DOMRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
+            response_json: MutHeapJSVal::new(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
             override_charset: DOMRefCell::new(None),
@@ -716,15 +719,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     }
                 },
                 XMLHttpRequestResponseType::Json => {
-                    let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
-                    let decoded: Vec<u16> = decoded.utf16_units().collect();
-                    if !JS_ParseJSON(cx,
-                                     decoded.as_ptr(),
-                                     decoded.len() as u32,
-                                     rval.handle_mut()) {
-                        JS_ClearPendingException(cx);
-                        return NullValue();
-                    }
+                    self.json_response(cx).to_jsval(cx, rval.handle_mut());
                 }
                 _ => {
                     // XXXManishearth handle other response types
@@ -1069,6 +1064,39 @@ impl XMLHttpRequest {
         }
         temp_doc.set_encoding_name(DOMString::from(charset.name()));
         Some(temp_doc)
+    }
+
+    #[allow(unsafe_code)]
+    // https://xhr.spec.whatwg.org/#json-response
+    fn json_response(&self, cx: *mut JSContext) -> JSVal {
+        // Step 1
+        let response_json = self.response_json.get();
+        if !response_json.is_null_or_undefined() {
+            return response_json;
+        }
+        // Step 2
+        let bytes = self.response.borrow();
+        // Step 3
+        if bytes.len() == 0 {
+            return NullValue();
+        }
+        // Step 4
+        let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap().to_owned();
+        let json_text: Vec<u16> = json_text.utf16_units().collect();
+        // Step 5
+        let mut rval = RootedValue::new(cx, UndefinedValue());
+        unsafe {
+            if !JS_ParseJSON(cx,
+                             json_text.as_ptr(),
+                             json_text.len() as u32,
+                             rval.handle_mut()) {
+                JS_ClearPendingException(cx);
+                return NullValue();
+            }
+        }
+        // Step 6
+        self.response_json.set(rval.ptr);
+        self.response_json.get()
     }
 
     fn document_text_html(&self) -> Root<Document>{
