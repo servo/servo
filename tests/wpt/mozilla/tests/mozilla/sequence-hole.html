@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var t = new TestBinding;
+  t.passSequence([1,, 3]);
+  t.passStringSequence(["camembert",, "comté"]);
+  assert_throws(new TypeError, function () { t.passInterfaceSequence([new Blob,, new Blob]) });
+}, "Sequences with holes are correctly handled");
+
+test(function() {
+  var test_error = { name: "test" };
+  Object.defineProperty(Array.prototype, 1, { get: function() { throw test_error; } });
+  var t = new TestBinding;
+  assert_throws(test_error, function() {
+    t.passSequence([1,, 3]);
+  });
+  assert_throws(test_error, function() {
+    t.passStringSequence(["camembert",, "comté"]);
+  });
+  assert_throws(test_error, function() {
+    t.passInterfaceSequence([new Blob,, new Blob]);
+  });
+}, "Sequences with holes and a getter on the prototype are correctly handled");
+</script>
