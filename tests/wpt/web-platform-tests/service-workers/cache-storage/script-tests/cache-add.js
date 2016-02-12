@@ -16,6 +16,16 @@ cache_test(function(cache) {
       .then(function(result) {
           assert_equals(result, undefined,
                         'Cache.add should resolve with undefined on success.');
+          return cache.match('../resources/simple.txt');
+        })
+        .then(function(response) {
+          assert_class_string(response, 'Response',
+                              'Cache.add should put a resource in the cache.');
+          return response.text();
+        })
+        .then(function(body) {
+          assert_equals(body, 'a simple text file\n',
+                        'Cache.add should retrieve the correct body.');
         });
   }, 'Cache.add called with relative URL specified as a string');
 
@@ -36,6 +46,15 @@ cache_test(function(cache) {
   }, 'Cache.add called with Request object');
 
 cache_test(function(cache) {
+    var request = new Request('../resources/simple.txt',
+                              {method: 'POST', body: 'This is a body.'});
+    return assert_promise_rejects(
+      cache.add(request),
+      new TypeError(),
+      'Cache.add should throw a TypeError for non-GET requests.');
+  }, 'Cache.add called with POST request');
+
+cache_test(function(cache) {
     var request = new Request('../resources/simple.txt');
     return cache.add(request)
       .then(function(result) {
@@ -50,6 +69,17 @@ cache_test(function(cache) {
                         'Cache.add should resolve with undefined on success.');
         });
   }, 'Cache.add called twice with the same Request object');
+
+cache_test(function(cache) {
+    var request = new Request('../resources/simple.txt');
+    return request.text()
+      .then(function() {
+          assert_false(request.bodyUsed);
+        })
+      .then(function() {
+          return cache.add(request);
+        });
+  }, 'Cache.add with request with null body (not consumed)');
 
 cache_test(function(cache) {
     return cache.add('this-does-not-exist-please-dont-create-it')
@@ -84,19 +114,62 @@ cache_test(function(cache) {
   }, 'Cache.addAll with a mix of valid and undefined arguments');
 
 cache_test(function(cache) {
-    // Assumes the existence of ../resources/simple.txt and ../resources/blank.html
-    var urls = ['../resources/simple.txt', self.location.href, '../resources/blank.html'];
+    return cache.addAll([])
+      .then(function(result) {
+          assert_equals(result, undefined,
+                        'Cache.addAll should resolve with undefined on ' +
+                        'success.');
+          return cache.keys();
+        })
+      .then(function(result) {
+          assert_equals(result.length, 0,
+                        'There should be no entry in the cache.');
+        });
+  }, 'Cache.addAll with an empty array');
+
+cache_test(function(cache) {
+    // Assumes the existence of ../resources/simple.txt and
+    // ../resources/blank.html
+    var urls = ['../resources/simple.txt',
+                self.location.href,
+                '../resources/blank.html'];
     return cache.addAll(urls)
       .then(function(result) {
           assert_equals(result, undefined,
                         'Cache.addAll should resolve with undefined on ' +
                         'success.');
+          return Promise.all(
+            urls.map(function(url) { return cache.match(url); }));
+        })
+      .then(function(responses) {
+          assert_class_string(
+            responses[0], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          assert_class_string(
+            responses[1], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          assert_class_string(
+            responses[2], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          return Promise.all(
+            responses.map(function(response) { return response.text(); }));
+        })
+      .then(function(bodies) {
+          assert_equals(
+            bodies[0], 'a simple text file\n',
+            'Cache.add should retrieve the correct body.');
+          assert_equals(
+            bodies[2], '<!DOCTYPE html>\n<title>Empty doc</title>\n',
+            'Cache.add should retrieve the correct body.');
         });
   }, 'Cache.addAll with string URL arguments');
 
 cache_test(function(cache) {
-    // Assumes the existence of ../resources/simple.txt and ../resources/blank.html
-    var urls = ['../resources/simple.txt', self.location.href, '../resources/blank.html'];
+    // Assumes the existence of ../resources/simple.txt and
+    // ../resources/blank.html
+    var urls = ['../resources/simple.txt',
+                self.location.href,
+                '../resources/blank.html'];
     var requests = urls.map(function(url) {
         return new Request(url);
       });
@@ -105,13 +178,38 @@ cache_test(function(cache) {
           assert_equals(result, undefined,
                         'Cache.addAll should resolve with undefined on ' +
                         'success.');
+          return Promise.all(
+            urls.map(function(url) { return cache.match(url); }));
+        })
+      .then(function(responses) {
+          assert_class_string(
+            responses[0], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          assert_class_string(
+            responses[1], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          assert_class_string(
+            responses[2], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          return Promise.all(
+            responses.map(function(response) { return response.text(); }));
+        })
+      .then(function(bodies) {
+          assert_equals(
+            bodies[0], 'a simple text file\n',
+            'Cache.add should retrieve the correct body.');
+          assert_equals(
+            bodies[2], '<!DOCTYPE html>\n<title>Empty doc</title>\n',
+            'Cache.add should retrieve the correct body.');
         });
   }, 'Cache.addAll with Request arguments');
 
 cache_test(function(cache) {
-    // Assumes that ../resources/simple.txt and ../resources/blank.html exist. The second
-    // resource does not.
-    var urls = ['../resources/simple.txt', 'this-resource-should-not-exist', '../resources/blank.html'];
+    // Assumes that ../resources/simple.txt and ../resources/blank.html exist.
+    // The second resource does not.
+    var urls = ['../resources/simple.txt',
+                'this-resource-should-not-exist',
+                '../resources/blank.html'];
     var requests = urls.map(function(url) {
         return new Request(url);
       });
@@ -120,6 +218,32 @@ cache_test(function(cache) {
           assert_equals(result, undefined,
                         'Cache.addAll should resolve with undefined on ' +
                         'success.');
+          return Promise.all(
+            urls.map(function(url) { return cache.match(url); }));
+        })
+      .then(function(responses) {
+          assert_class_string(
+            responses[0], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          assert_class_string(
+            responses[1], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          assert_equals(
+            responses[1].status, 404,
+            'Cache.addAll should put a 404 resource in the cache.');
+          assert_class_string(
+            responses[2], 'Response',
+            'Cache.addAll should put a resource in the cache.');
+          return Promise.all(
+            responses.map(function(response) { return response.text(); }));
+        })
+      .then(function(bodies) {
+          assert_equals(
+            bodies[0], 'a simple text file\n',
+            'Cache.add should retrieve the correct body.');
+          assert_equals(
+            bodies[2], '<!DOCTYPE html>\n<title>Empty doc</title>\n',
+            'Cache.add should retrieve the correct body.');
         });
   }, 'Cache.addAll with a mix of succeeding and failing requests');
 

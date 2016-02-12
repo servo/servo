@@ -29,6 +29,9 @@
           assert_throws(new TypeError(),
                         function() { new Request("", {"method": "GET", "body": body}); }
           );
+          assert_throws(new TypeError(),
+                        function() { new Request("", {"method": "HEAD", "body": body}); }
+          );
           var reqHeaders = request.headers;
           var mime = reqHeaders.get("Content-Type");
           assert_true(mime && mime.search(bodyType) > -1, "Content-Type header should be \"" + bodyType + "\", not \"" + mime + "\"");
@@ -36,7 +39,7 @@
             //not equals: cannot guess formData exact value
             assert_true( bodyAsText.search(expectedTextBody) > -1, "Retrieve and verify request body");
           });
-        }, "Initialize Response's body with " + bodyType);
+        }, "Initialize Request's body with " + bodyType);
       }
 
       var blob = new Blob(["This is a blob"], {type: "application/octet-binary"});
@@ -55,7 +58,7 @@
       } else {
         promise_test(function(test) {
           return Promise.reject("URLSearchParams not supported");
-        }, "Initialize Response's body with application/x-www-form-urlencoded;charset=UTF-8");
+        }, "Initialize Request's body with application/x-www-form-urlencoded;charset=UTF-8");
       }
     </script>
   </body>

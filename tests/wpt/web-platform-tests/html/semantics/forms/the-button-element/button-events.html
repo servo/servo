@@ -23,25 +23,25 @@ var btn = document.getElementById("btn"),
 
 document.forms.fm1.onsubmit = t1.step_func(function (evt) {
   evt.preventDefault();
-  assert_true(evt.isTrusted, "The isTrusted attribute of the submit event shoud be true.");
-  assert_true(evt.bubbles, "The bubbles attribute of the submit event shoud be true.");
-  assert_true(evt.cancelable, "The cancelable attribute of the submit event shoud be true.");
+  assert_true(evt.isTrusted, "The isTrusted attribute of the submit event should be true.");
+  assert_true(evt.bubbles, "The bubbles attribute of the submit event should be true.");
+  assert_true(evt.cancelable, "The cancelable attribute of the submit event should be true.");
   assert_true(evt instanceof Event, "The submit event is an instance of Event interface.");
   t1.done();
 });
 
 document.forms.fm1.onreset = t2.step_func(function (evt) {
-  assert_true(evt.isTrusted, "The isTrusted attribute of the reset event shoud be true.");
-  assert_true(evt.bubbles, "The bubbles attribute of the reset event shoud be true.");
-  assert_true(evt.cancelable, "The cancelable attribute of the reset event shoud be true.");
+  assert_true(evt.isTrusted, "The isTrusted attribute of the reset event should be true.");
+  assert_true(evt.bubbles, "The bubbles attribute of the reset event should be true.");
+  assert_true(evt.cancelable, "The cancelable attribute of the reset event should be true.");
   assert_true(evt instanceof Event, "The reset event is an instance of Event interface.");
   t2.done();
 });
 
 document.getElementById("menu").onshow = t3.step_func(function (evt) {
-  assert_true(evt.isTrusted, "The isTrusted attribute of the show event shoud be true.");
+  assert_true(evt.isTrusted, "The isTrusted attribute of the show event should be true.");
   assert_equals(evt.relatedTarget, menu_btn, "The relatedTarget attribute should be initialized to the related button element.");
-  assert_true(evt.cancelable, "The cancelable attribute of the show event shoud be true.");
+  assert_true(evt.cancelable, "The cancelable attribute of the show event should be true.");
   assert_true(evt instanceof RelatedEvent, "The show event is an instance of RelatedEvent interface.");
   t3.done();
 });

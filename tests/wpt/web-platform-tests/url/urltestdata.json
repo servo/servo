@@ -1938,7 +1938,7 @@
     "hash": ""
   },
   {
-    "input": "http://example.com/foo\t%91",
+    "input": "http://example.com/foo\t\u0091%91",
     "base": "about:blank",
     "href": "http://example.com/foo%C2%91%91",
     "origin": "http://example.com",
@@ -2201,7 +2201,7 @@
   {
     "input": "http://www/foo%2Ehtml",
     "base": "about:blank",
-    "href": "http://www/foo%2Ehtml",
+    "href": "http://www/foo.html",
     "origin": "http://www",
     "protocol": "http:",
     "username": "",
@@ -2209,7 +2209,7 @@
     "host": "www",
     "hostname": "www",
     "port": "",
-    "pathname": "/foo%2Ehtml",
+    "pathname": "/foo.html",
     "search": "",
     "hash": ""
   },

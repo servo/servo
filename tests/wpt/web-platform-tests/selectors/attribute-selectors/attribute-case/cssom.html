@@ -43,13 +43,6 @@ tests.forEach(function(arr) {
 
     test(function() {
       var sheet = new_sheet(use_media);
-      sheet.insertRule('before_set {}', 0);
-      sheet.cssRules[0].cssText = input + ' {}';
-      assert_equals(sheet.cssRules[0].cssText.substr(0, expected.length), expected);
-    }, input + ' setting CSSRule#cssText' + use_media);
-
-    test(function() {
-      var sheet = new_sheet(use_media);
       sheet.insertRule(input + ' {}', 0);
       assert_equals(sheet.cssRules[0].selectorText, expected);
     }, input + ' getting CSSStyleRule#selectorText' + use_media);

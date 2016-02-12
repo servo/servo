@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta name=timeout content=long>
+<title>Precedence of scroll restoration mode over fragment scrolling in cross-origin history traversal</title>
+<style>
+  iframe {
+    height: 300px;
+    width: 300px;
+  }
+</style>
+
+<body>
+  <iframe></iframe>
+</body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="text/javascript">
+  'use strict';
+
+  // The test does the following navigation steps for iframe
+  // 1. load page-with-fragment.html#fragment
+  // 2. load blank1
+  // 3. go back to page-with-fragment.html
+  async_test(function(t) {
+    var iframe = document.querySelector('iframe');
+    var baseURL = location.href.substring(0, location.href.lastIndexOf('/'));
+
+    var steps = [
+      function() {
+        iframe.src = 'resources/page-with-fragment.html#fragment';
+      }, function() {
+        assert_equals(iframe.contentWindow.location.href, baseURL + '/resources/page-with-fragment.html#fragment', 'should be on page-with-fragment page');
+        // wait one animation frame to ensure layout is run and fragment scrolling is complete
+        iframe.contentWindow.requestAnimationFrame(function() {
+          assert_equals(iframe.contentWindow.scrollY, 800, 'should scroll to fragment');
+
+          iframe.contentWindow.history.scrollRestoration = 'manual';
+          assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual');
+          setTimeout(next, 0);
+        });
+      }, function() {
+        // navigate to a new page from a different origin
+        iframe.src = iframe.src.replace("http://", "http://www.").replace("page-with-fragment.html#fragment", "blank1.html");
+      }, function() {
+        // going back causes the iframe to traverse back
+        history.back();
+      }, function() {
+        // coming back from history, scrollRestoration should be set to manual and respected
+        assert_equals(iframe.contentWindow.location.href, baseURL + '/resources/page-with-fragment.html#fragment', 'should be back on page-with-fragment page');
+        iframe.contentWindow.requestAnimationFrame(function() {
+          assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual', 'navigating back should retain scrollRestoration value');
+          assert_equals(iframe.contentWindow.scrollX, 0, 'should not scroll to fragment');
+          assert_equals(iframe.contentWindow.scrollY, 0, 'should not scroll to fragment');
+          t.done();
+        });
+      }
+    ];
+
+    var stepCount = 0;
+    var next = t.step_func(function() {
+      steps[stepCount++]();
+    });
+
+    iframe.onload = next;
+    next();
+  }, 'Manual scroll restoration should take precedent over scrolling to fragment in cross origin navigation');
+</script>

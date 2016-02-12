@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBIndex.getKey() - throw InvalidStateError on index deleted by aborted upgrade</title>
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-getkey">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+<div id="log"></div>
+<script>
+    var db,
+        t = async_test();
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var store = db.createObjectStore("store", { keyPath: "key" });
+        var index = store.createIndex("index", "indexedProperty");
+        store.add({ key: 1, indexedProperty: "data" });
+
+        e.target.transaction.abort();
+
+        assert_throws("InvalidStateError", function(){
+            index.getKey("data");
+        });
+        t.done();
+    }
+</script>

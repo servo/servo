@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() call fires sync readystate event</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[13]/ol[1]/li[2]" />
+
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        var eventsFired = []
+        client.onreadystatechange = function(){
+          eventsFired.push(client.readyState)
+        }
+        client.open('GET', "...", false)
+        assert_array_equals(eventsFired, [1])
+      }, document.title + ' (sync)')
+      test(function() {
+        var client = new XMLHttpRequest()
+        var eventsFired = []
+        client.onreadystatechange = function(){
+          eventsFired.push(client.readyState)
+        }
+        client.open('GET', "...", true)
+        assert_array_equals(eventsFired, [1])
+      }, document.title + ' (async)')
+    </script>
+  </body>
+</html>

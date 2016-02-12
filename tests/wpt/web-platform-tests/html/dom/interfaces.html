@@ -285,7 +285,7 @@ interface Element : Node {
 
            attribute DOMString id;
            attribute DOMString className;
-  [SameObject] readonly attribute DOMTokenList classList;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList classList;
 
   boolean hasAttributes();
   [SameObject] readonly attribute NamedNodeMap attributes;
@@ -462,14 +462,12 @@ interface DOMTokenList {
   void add(DOMString... tokens);
   void remove(DOMString... tokens);
   boolean toggle(DOMString token, optional boolean force);
+  void replace(DOMString token, DOMString newToken);
+  boolean supports(DOMString token);
+           attribute DOMString value;
   stringifier;
 //  iterable<DOMString>;
-};
-
-interface DOMSettableTokenList : DOMTokenList {
-            attribute DOMString value;
-};
-</script>
+};</script>
 <!-- UI Events IDLs -->
 <script type=text/plain class=untested>
 [Constructor(DOMString type, optional UIEventInit eventInitDict)]
@@ -998,10 +996,10 @@ interface HTMLElement : Element {
 
   // microdata
            attribute boolean itemScope;
-  [PutForwards=value] readonly attribute DOMSettableTokenList itemType;
+  [PutForwards=value] readonly attribute DOMTokenList itemType;
            attribute DOMString itemId;
-  [PutForwards=value] readonly attribute DOMSettableTokenList itemRef;
-  [PutForwards=value] readonly attribute DOMSettableTokenList itemProp;
+  [PutForwards=value] readonly attribute DOMTokenList itemRef;
+  [PutForwards=value] readonly attribute DOMTokenList itemProp;
   readonly attribute HTMLPropertiesCollection properties;
            attribute any itemValue; // acts as DOMString on setting
 
@@ -1014,7 +1012,7 @@ interface HTMLElement : Element {
            attribute DOMString accessKey;
   readonly attribute DOMString accessKeyLabel;
            attribute boolean draggable;
-  [PutForwards=value] readonly attribute DOMSettableTokenList dropzone;
+  [PutForwards=value] readonly attribute DOMTokenList dropzone;
            attribute DOMString contentEditable;
   readonly attribute boolean isContentEditable;
            attribute HTMLMenuElement? contextMenu;
@@ -1052,11 +1050,11 @@ interface HTMLLinkElement : HTMLElement {
            attribute DOMString href;
            attribute DOMString crossOrigin;
            attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [PutForwards=value] readonly attribute DOMTokenList relList;
            attribute DOMString media;
            attribute DOMString hreflang;
            attribute DOMString type;
-  [PutForwards=value] readonly attribute DOMSettableTokenList sizes;
+  [PutForwards=value] readonly attribute DOMTokenList sizes;
 
   // also has obsolete members
 };
@@ -1132,9 +1130,9 @@ interface HTMLDivElement : HTMLElement {
 interface HTMLAnchorElement : HTMLElement {
   attribute DOMString target;
   attribute DOMString download;
-  [PutForwards=value] readonly attribute DOMSettableTokenList ping;
+  [PutForwards=value] readonly attribute DOMTokenList ping;
   attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [PutForwards=value] readonly attribute DOMTokenList relList;
   attribute DOMString hreflang;
   attribute DOMString type;
 
@@ -1192,7 +1190,7 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString src;
            attribute DOMString srcdoc;
            attribute DOMString name;
-  [PutForwards=value] readonly attribute DOMSettableTokenList sandbox;
+  [PutForwards=value] readonly attribute DOMTokenList sandbox;
            attribute boolean seamless;
            attribute boolean allowFullscreen;
            attribute DOMString width;
@@ -1502,9 +1500,9 @@ interface HTMLAreaElement : HTMLElement {
   attribute DOMString shape;
   attribute DOMString target;
   attribute DOMString download;
-  [PutForwards=value] readonly attribute DOMSettableTokenList ping;
+  [PutForwards=value] readonly attribute DOMTokenList ping;
   attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [PutForwards=value] readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
 };
 HTMLAreaElement implements HTMLHyperlinkElementUtils;
@@ -1572,7 +1570,7 @@ interface HTMLTableHeaderCellElement : HTMLTableCellElement {
 interface HTMLTableCellElement : HTMLElement {
            attribute unsigned long colSpan;
            attribute unsigned long rowSpan;
-  [PutForwards=value] readonly attribute DOMSettableTokenList headers;
+  [PutForwards=value] readonly attribute DOMTokenList headers;
   readonly attribute long cellIndex;
 
   // also has obsolete members
@@ -1816,7 +1814,7 @@ interface HTMLKeygenElement : HTMLElement {
 };
 
 interface HTMLOutputElement : HTMLElement {
-  [PutForwards=value] readonly attribute DOMSettableTokenList htmlFor;
+  [PutForwards=value] readonly attribute DOMTokenList htmlFor;
   readonly attribute HTMLFormElement? form;
            attribute DOMString name;
 
@@ -2309,8 +2307,11 @@ interface BarProp {
            attribute boolean visible;
 };
 
+enum ScrollRestoration { "auto", "manual" };
 interface History {
+
   readonly attribute long length;
+  attribute ScrollRestoration scrollRestoration;
   readonly attribute any state;
   void go(optional long delta);
   void back();

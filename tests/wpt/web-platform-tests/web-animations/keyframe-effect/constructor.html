@@ -108,7 +108,7 @@ test(function(t) {
     var effect = new KeyframeEffectReadOnly(target, {
       left: ["10px", "20px"]
     }, { easing: easing });
-    assert_equals(effect.getFrames()[0].easing, expected,
+    assert_equals(effect.timing.easing, expected,
                   "resulting easing for '" + easing + "'");
   });
 }, "easing values are parsed correctly when passed to the " +

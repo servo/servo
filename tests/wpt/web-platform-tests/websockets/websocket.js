@@ -4,25 +4,8 @@ var __SECURE__PORT = {{ports[wss][0]}};
 var __NEW__PORT = __PORT; //All ports are non-default for now
 var __NEW__SECURE__PORT = __SECURE__PORT; //All ports are non-default for now
 var __PATH = "echo";
-var __CONTROLPATH = "control";
-var __PROTOCOL = "echo";
-var __PROTOCOLS = ["echo", "chat"];
-var __REPEATED__PROTOCOLS = ["echo", "echo"];
-var __REPEATED__PROTOCOLS_CASE_INSENSITIVE = ["echo", "eCho"];
-var __URL;
-var __IS__WEBSOCKET;
-var __PASS = "Pass";
-var __FAIL = "Fail";
 var wsocket;
-var csocket;
 var data;
-
-// variables for testing Close Browser/Navigate Away scenarios
-var isAssociated = false;
-var guid;
-var dataReceived;
-var closeCode;
-var urlToOpen;
 
 function IsWebSocket() {
     if (!self.WebSocket) {
@@ -32,92 +15,93 @@ function IsWebSocket() {
 
 function CreateWebSocketNonAbsolute() {
     IsWebSocket();
-    __URL = __SERVER__NAME;
-    wsocket = new WebSocket(__URL);
+    var url = __SERVER__NAME;
+    wsocket = new WebSocket(url);
 }
 
 function CreateWebSocketNonWsScheme() {
     IsWebSocket();
-    __URL = "http://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL);
+    var url = "http://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url);
 }
 
 function CreateWebSocketNonAsciiProtocol(nonAsciiProtocol) {
     IsWebSocket();
-    __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL, nonAsciiProtocol);
+    var url = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url, nonAsciiProtocol);
 }
 
 function CreateWebSocketWithAsciiSep(asciiWithSep) {
     IsWebSocket();
-    __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL, asciiWithSep);
+    var url = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url, asciiWithSep);
 }
 
 function CreateWebSocketWithBlockedPort(blockedPort) {
     IsWebSocket();
-    __URL = "wss://" + __SERVER__NAME + ":" + blockedPort + "/" + __PATH;
-    wsocket = new WebSocket(__URL);
+    var url = "wss://" + __SERVER__NAME + ":" + blockedPort + "/" + __PATH;
+    wsocket = new WebSocket(url);
 }
 
 function CreateWebSocketWithSpaceInUrl(urlWithSpace) {
     IsWebSocket();
-    __URL = "ws://" + urlWithSpace + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL);
+    var url = "ws://" + urlWithSpace + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url);
 }
 
 function CreateWebSocketWithSpaceInProtocol(protocolWithSpace) {
     IsWebSocket();
-    __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL, protocolWithSpace);
+    var url = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url, protocolWithSpace);
 }
 
 function CreateWebSocketWithRepeatedProtocols() {
     IsWebSocket();
-    __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL, __REPEATED__PROTOCOLS);
+    var url = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url, ["echo", "echo"]);
 }
 
 function CreateWebSocketWithRepeatedProtocolsCaseInsensitive() {
     IsWebSocket();
-    __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-    wsocket = new WebSocket(__URL, __REPEATED__PROTOCOLS_CASE_INSENSITIVE);
+    var url = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+    wsocket = new WebSocket(url, ["echo", "eCho"]);
 }
 
 function CreateWebSocket(isSecure, isProtocol, isProtocols) {
     IsWebSocket();
+    var url;
     if (isSecure) {
         if (__SECURE__PORT === null) {
             throw new Error("wss not yet supported");
         }
-        __URL = "wss://" + __SERVER__NAME + ":" + __SECURE__PORT + "/" + __PATH;
+        url = "wss://" + __SERVER__NAME + ":" + __SECURE__PORT + "/" + __PATH;
     }
     else {
-        __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
+        url = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
     }
 
     if (isProtocol) {
-        wsocket = new WebSocket(__URL, __PROTOCOL);
+        wsocket = new WebSocket(url, "echo");
     }
     else if (isProtocols) {
-        wsocket = new WebSocket(__URL, __PROTOCOLS);
+        wsocket = new WebSocket(url, ["echo", "chat"]);
     }
     else {
-        wsocket = new WebSocket(__URL);
+        wsocket = new WebSocket(url);
     }
     return wsocket;
 }
 
 function CreateControlWebSocket(isSecure) {
     IsWebSocket();
+    var url;
     if (isSecure) {
-        __URL = "wss://" + __SERVER__NAME + ":" + __SECURE__PORT + "/" + __CONTROLPATH;
+        url = "wss://" + __SERVER__NAME + ":" + __SECURE__PORT + "/control";
     }
     else {
-        __URL = "ws://" + __SERVER__NAME + ":" + __PORT + "/" + __CONTROLPATH;
+        url = "ws://" + __SERVER__NAME + ":" + __PORT + "/control";
     }
 
-    csocket = new WebSocket(__URL);
-    return csocket;
+    return new WebSocket(url);
 }
 
