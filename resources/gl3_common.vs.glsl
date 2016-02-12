@@ -60,3 +60,9 @@ bool IsBottomTriangle() {
     return gl_VertexID > 2;
 }
 
+vec2 SnapToPixels(vec2 pos)
+{
+    // Snap the vertex to pixel position to guarantee correct texture
+    // sampling when using bilinear filtering.
+    return round(pos * uDevicePixelRatio) / uDevicePixelRatio;
+}
