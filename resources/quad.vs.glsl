@@ -95,7 +95,7 @@ void main(void)
         localPos.x = clamp(localPos.x, clipInRect.x, clipInRect.z);
         localPos.y = clamp(localPos.y, clipInRect.y, clipInRect.w);
         localST = (localPos.xy - rect_origin) / rect_size;
-        vClipInRect = vec4(-1e-37, -1e-37, 1e38, 1e38);
+        vClipInRect = vec4(-1e37, -1e37, 1e38, 1e38);
     }
 
     vColorTexCoord = Bilerp2(aColorTexCoordRectTop.xy, aColorTexCoordRectTop.zw,
