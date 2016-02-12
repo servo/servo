@@ -37,6 +37,19 @@ fn test_sniff_mp4_matcher() {
     }
 }
 
+#[test]
+fn test_sniff_mp4_matcher_long() {
+    // Check that a multi-byte length is calculated correctly
+    let matcher = Mp4Matcher;
+
+    let mut data: [u8; 260] = [0; 260];
+    &data[.. 11].clone_from_slice(
+        &[0x00, 0x00, 0x01, 0x04, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34]
+    );
+
+    assert!(matcher.matches(&data));
+}
+
 #[cfg(test)]
 fn test_sniff_with_flags(filename_orig: &path::Path,
                                  type_string: &str,
