@@ -952,7 +952,7 @@ impl Runnable for ChangeEventRunnable {
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
                                atom!("input"),
-                               EventBubbles::DoesNotBubble,
+                               EventBubbles::Bubbles,
                                EventCancelable::NotCancelable);
         target.upcast::<EventTarget>().dispatch_event(&event);
     }
