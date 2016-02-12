@@ -253,6 +253,7 @@ pub mod eventtarget;
 pub mod file;
 pub mod filelist;
 pub mod filereader;
+pub mod focusevent;
 pub mod formdata;
 pub mod htmlanchorelement;
 pub mod htmlappletelement;
