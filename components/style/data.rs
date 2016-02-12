@@ -14,7 +14,7 @@ pub struct PrivateStyleData<Impl: SelectorImpl> {
     pub style: Option<Arc<ComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
-    pub per_pseudo: HashMap<Impl::PseudoElement, Option<Arc<ComputedValues>>, BuildHasherDefault<::fnv::FnvHasher>>,
+    pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ComputedValues>, BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
