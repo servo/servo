@@ -261,7 +261,12 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                 "Style attributes do not apply to pseudo-elements");
 
         let map = match pseudo_element {
-            Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
+            Some(ref pseudo) => match self.pseudos_map.get(pseudo) {
+                Some(map) => map,
+                // TODO(ecoal95): get non eagerly-cascaded pseudo-element rules here.
+                // Actually assume there are no rules applicable.
+                None => return true,
+            },
             None => &self.element_map,
         };
 
