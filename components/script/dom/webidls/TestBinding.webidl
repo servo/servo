@@ -92,6 +92,11 @@ interface TestBinding {
            attribute (HTMLElement or long) unionAttribute;
            attribute (Event or DOMString) union2Attribute;
            attribute (Event or USVString) union3Attribute;
+           attribute (DOMString or unsigned long) union4Attribute;
+           attribute (DOMString or boolean) union5Attribute;
+           attribute (unsigned long or boolean) union6Attribute;
+           attribute (Blob or boolean) union7Attribute;
+           attribute (Blob or unsigned long) union8Attribute;
   readonly attribute Uint8ClampedArray arrayAttribute;
            attribute any anyAttribute;
            attribute object objectAttribute;
@@ -118,6 +123,9 @@ interface TestBinding {
            attribute object? objectAttributeNullable;
            attribute (HTMLElement or long)? unionAttributeNullable;
            attribute (Event or DOMString)? union2AttributeNullable;
+           attribute (Blob or boolean)? union3AttributeNullable;
+           attribute (unsigned long or boolean)? union4AttributeNullable;
+           attribute (DOMString or boolean)? union5AttributeNullable;
   [BinaryName="BinaryRenamedAttribute"] attribute DOMString attrToBinaryRename;
   [BinaryName="BinaryRenamedAttribute2"] attribute DOMString attr-to-binary-rename;
   attribute DOMString attr-to-automatically-rename;
@@ -152,6 +160,10 @@ interface TestBinding {
   (DOMString or sequence<long>) receiveUnion3();
   (DOMString or sequence<DOMString>) receiveUnion4();
   (Blob or sequence<Blob>) receiveUnion5();
+  (DOMString or unsigned long) receiveUnion6();
+  (DOMString or boolean) receiveUnion7();
+  (unsigned long or boolean) receiveUnion8();
+  (HTMLElement or unsigned long or DOMString or boolean) receiveUnion9();
   sequence<long> receiveSequence();
   sequence<Blob> receiveInterfaceSequence();
 
@@ -177,6 +189,8 @@ interface TestBinding {
   (HTMLElement or long)? receiveNullableUnion();
   (Event or DOMString)? receiveNullableUnion2();
   (DOMString or sequence<long>)? receiveNullableUnion3();
+  (sequence<long> or boolean)? receiveNullableUnion4();
+  (unsigned long or boolean)? receiveNullableUnion5();
   sequence<long>? receiveNullableSequence();
 
   void passBoolean(boolean arg);
@@ -201,6 +215,9 @@ interface TestBinding {
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
   void passUnion4((DOMString or sequence<DOMString>) seq);
+  void passUnion5((DOMString or boolean) data);
+  void passUnion6((unsigned long or boolean) bool);
+  void passUnion7((sequence<DOMString> or unsigned long) arg);
   void passAny(any arg);
   void passObject(object arg);
   void passCallbackFunction(Function fun);
@@ -230,6 +247,9 @@ interface TestBinding {
   void passNullableObject(object? arg);
   void passNullableUnion((HTMLElement or long)? arg);
   void passNullableUnion2((Event or DOMString)? data);
+  void passNullableUnion3((DOMString or sequence<long>)? data);
+  void passNullableUnion4((sequence<long> or boolean)? bool);
+  void passNullableUnion5((unsigned long or boolean)? arg);
   void passNullableCallbackFunction(Function? fun);
   void passNullableCallbackInterface(EventListener? listener);
   void passNullableSequence(sequence<long>? seq);
@@ -254,6 +274,9 @@ interface TestBinding {
   void passOptionalInterface(optional Blob arg);
   void passOptionalUnion(optional (HTMLElement or long) arg);
   void passOptionalUnion2(optional (Event or DOMString) data);
+  void passOptionalUnion3(optional (DOMString or sequence<long>) arg);
+  void passOptionalUnion4(optional (sequence<long> or boolean) data);
+  void passOptionalUnion5(optional (unsigned long or boolean) bool);
   void passOptionalAny(optional any arg);
   void passOptionalObject(optional object arg);
   void passOptionalCallbackFunction(optional Function fun);
@@ -281,6 +304,9 @@ interface TestBinding {
   void passOptionalNullableObject(optional object? arg);
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
   void passOptionalNullableUnion2(optional (Event or DOMString)? data);
+  void passOptionalNullableUnion3(optional (DOMString or sequence<long>)? arg);
+  void passOptionalNullableUnion4(optional (sequence<long> or boolean)? data);
+  void passOptionalNullableUnion5(optional (unsigned long or boolean)? bool);
   void passOptionalNullableCallbackFunction(optional Function? fun);
   void passOptionalNullableCallbackInterface(optional EventListener? listener);
   void passOptionalNullableSequence(optional sequence<long>? seq);
@@ -362,6 +388,9 @@ interface TestBinding {
   void passVariadicUnion((HTMLElement or long)... args);
   void passVariadicUnion2((Event or DOMString)... args);
   void passVariadicUnion3((Blob or DOMString)... args);
+  void passVariadicUnion4((Blob or boolean)... args);
+  void passVariadicUnion5((DOMString or unsigned long)... args);
+  void passVariadicUnion6((unsigned long or boolean)... args);
   void passVariadicAny(any... args);
   void passVariadicObject(object... args);
 
