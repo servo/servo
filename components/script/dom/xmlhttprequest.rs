@@ -293,7 +293,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
+    fn Open_(&self, method: ByteString, url: USVString, async: bool,
+                 username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
+        self.sync.set(!async);
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
@@ -324,10 +326,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 // Step 6
                 let base = self.global().r().get_url();
-                let parsed_url = match base.join(&url.0) {
+                let mut parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Error::Syntax) // Step 7
                 };
+
                 // XXXManishearth Do some handling of username/passwords
                 if self.sync.get() {
                     // FIXME: This should only happen if the global environment is a document environment
@@ -336,6 +339,18 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         return Err(Error::InvalidAccess)
                     }
                 }
+
+                if parsed_url.host().is_some() {
+                    if let Some(scheme_data) = parsed_url.relative_scheme_data_mut() {
+                        if let Some(user_str) = username {
+                            scheme_data.username = user_str.0;
+                        }
+                        if let Some(pass_str) = password {
+                            scheme_data.password = Some(pass_str.0);
+                        }
+                    }
+                }
+
                 // abort existing requests
                 self.terminate_ongoing_fetch();
 
@@ -359,10 +374,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open_(&self, method: ByteString, url: USVString, async: bool,
-                 _username: Option<USVString>, _password: Option<USVString>) -> ErrorResult {
-        self.sync.set(!async);
-        self.Open(method, url)
+    fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
+        self.Open_(method, url, true, None, None)
     }
 
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
