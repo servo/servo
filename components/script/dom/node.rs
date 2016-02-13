@@ -1556,9 +1556,8 @@ impl Node {
         let old_previous_sibling = node.GetPreviousSibling();
         // Step 8.
         let old_next_sibling = node.GetNextSibling();
-        // Step 9.
+        // Steps 9-10 are handled in unbind_from_tree.
         parent.remove_child(node, cached_index);
-        // Step 10. removing steps (https://dom.spec.whatwg.org/#concept-node-remove-ext)
         // Step 11. transient registered observers
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
