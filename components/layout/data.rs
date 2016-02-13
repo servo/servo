@@ -4,7 +4,7 @@
 
 use construct::ConstructionResult;
 use incremental::RestyleDamage;
-use style::data::PrivateStyleData;
+use style::servo::PrivateStyleData;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {

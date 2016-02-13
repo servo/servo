@@ -20,14 +20,14 @@ use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
     context: LayoutContext<'lc>,
     root: OpaqueNode,
 }
 
-impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAndConstructFlows<'lc> {
+impl<'lc, 'ln> DomTraversalContext<'ln, ServoLayoutNode<'ln>> for RecalcStyleAndConstructFlows<'lc> {
     type SharedContext = SharedLayoutContext;
     #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
@@ -67,8 +67,8 @@ impl<'lc, 'ln, N: LayoutNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleAn
         }
     }
 
-    fn process_preorder(&self, node: N) { recalc_style_at(&self.context, self.root, node); }
-    fn process_postorder(&self, node: N) { construct_flows_at(&self.context, self.root, node); }
+    fn process_preorder(&self, node: ServoLayoutNode<'ln>) { recalc_style_at(&self.context, self.root, node); }
+    fn process_postorder(&self, node: ServoLayoutNode<'ln>) { construct_flows_at(&self.context, self.root, node); }
 }
 
 /// A bottom-up, parallelizable traversal.

@@ -64,13 +64,13 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
-use style::data::PrivateStyleData;
 use style::dom::{TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
+use style::servo::PrivateStyleData;
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -664,16 +664,22 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        self.borrow_layout_data().unwrap().style_data.before_style.as_ref().map(|style| {
-            self.with_pseudo(PseudoElementType::Before(style.get_box().display))
-        })
+        self.borrow_layout_data().unwrap()
+            .style_data.per_pseudo
+            .get(&PseudoElement::Before)
+            .map(|style| {
+                self.with_pseudo(PseudoElementType::Before(style.get_box().display))
+            })
     }
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        self.borrow_layout_data().unwrap().style_data.after_style.as_ref().map(|style| {
-            self.with_pseudo(PseudoElementType::After(style.get_box().display))
-        })
+        self.borrow_layout_data().unwrap()
+            .style_data.per_pseudo
+            .get(&PseudoElement::After)
+            .map(|style| {
+                self.with_pseudo(PseudoElementType::After(style.get_box().display))
+            })
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -696,11 +702,11 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     fn style(&self) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
             let style = match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => &data.style_data.before_style,
-                PseudoElementType::After(_) => &data.style_data.after_style,
-                PseudoElementType::Normal => &data.style_data.style,
+                PseudoElementType::Before(_) => data.style_data.per_pseudo.get(&PseudoElement::Before),
+                PseudoElementType::After(_) => data.style_data.per_pseudo.get(&PseudoElement::After),
+                PseudoElementType::Normal => data.style_data.style.as_ref(),
             };
-            style.as_ref().unwrap()
+            style.unwrap()
         })
     }
 
@@ -709,14 +715,18 @@ pub trait ThreadSafeLayoutNode<'ln> : Clone + Copy + Sized {
     /// Unlike the version on TNode, this handles pseudo-elements.
     fn unstyle(self) {
         let mut data = self.mutate_layout_data().unwrap();
-        let style =
-            match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => &mut data.style_data.before_style,
-                PseudoElementType::After (_) => &mut data.style_data.after_style,
-                PseudoElementType::Normal    => &mut data.style_data.style,
-            };
 
-        *style = None;
+        match self.get_pseudo_element_type() {
+            PseudoElementType::Before(_) => {
+                data.style_data.per_pseudo.remove(&PseudoElement::Before);
+            }
+            PseudoElementType::After(_) => {
+                data.style_data.per_pseudo.remove(&PseudoElement::After);
+            }
+            PseudoElementType::Normal => {
+                data.style_data.style = None;
+            }
+        };
     }
 
     fn is_ignorable_whitespace(&self) -> bool;
@@ -934,11 +944,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
             let data = &self.borrow_layout_data().unwrap().style_data;
 
             let style = if self.pseudo.is_before() {
-                &data.before_style
+                data.per_pseudo.get(&PseudoElement::Before).unwrap()
             } else {
-                &data.after_style
+                data.per_pseudo.get(&PseudoElement::After).unwrap()
             };
-            return match style.as_ref().unwrap().get_box().content {
+
+            return match style.as_ref().get_box().content {
                 content::T::Content(ref value) if !value.is_empty() => {
                     TextContent::GeneratedContent((*value).clone())
                 }

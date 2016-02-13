@@ -32,7 +32,7 @@ log = "0.3"
 matches = "0.1"
 num = "0.1.24"
 rustc-serialize = "0.3"
-selectors = {version = "0.4.2", features = ["heap_size", "unstable"]}
+selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
