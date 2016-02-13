@@ -41,7 +41,7 @@ def host_triple():
         os_type = "apple-darwin"
     elif os_type == "android":
         os_type = "linux-androideabi"
-    elif os_type.startswith("mingw64_nt-"):
+    elif os_type == "windows" or os_type.startswith("mingw64_nt-"):
         os_type = "pc-windows-gnu"
     else:
         os_type = "unknown"
