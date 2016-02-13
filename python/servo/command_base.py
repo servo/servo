@@ -13,6 +13,8 @@ import contextlib
 import subprocess
 from subprocess import PIPE
 import sys
+import platform
+
 import toml
 
 from mach.registrar import Registrar
@@ -32,7 +34,7 @@ def cd(new_path):
 
 
 def host_triple():
-    os_type = subprocess.check_output(["uname", "-s"]).strip().lower()
+    os_type = platform.system().lower()
     if os_type == "linux":
         os_type = "unknown-linux-gnu"
     elif os_type == "darwin":
@@ -44,7 +46,7 @@ def host_triple():
     else:
         os_type = "unknown"
 
-    cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
+    cpu_type = platform.machine().lower()
     if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
         cpu_type = "i686"
     elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
