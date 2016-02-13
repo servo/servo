@@ -9,12 +9,12 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = {version = "0.2", features = ["plugins"]}
+app_units = {version = "0.2.1", features = ["plugins"]}
 bitflags = "0.3"
-euclid = {version = "0.6.1", features = ["plugins"]}
+euclid = {version = "0.6.2", features = ["plugins"]}
 fnv = "1.0"
 harfbuzz-sys = "0.1"
-heapsize = "0.2.5"
+heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 lazy_static = "0.1"
 libc = "0.2"
@@ -24,12 +24,12 @@ rand = "0.3"
 rustc-serialize = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
+servo-skia = "0.20130412.0"
 smallvec = "0.1"
-string_cache = {version = "0.2.7", features = ["heap_size"]}
+string_cache = {version = "0.2.9", features = ["heap_size"]}
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
-url = {version = "0.5.4", features = ["heap_size"]}
-servo-skia = "0.20130412.0"
+url = {version = "0.5.5", features = ["heap_size"]}
 
 [dependencies.plugins]
 path = "../plugins"

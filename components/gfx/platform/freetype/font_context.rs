@@ -28,7 +28,7 @@ const FT_ALIGNMENT: usize = 1;
 extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
     unsafe {
         let ptr = heap::allocate(req_size as usize, FT_ALIGNMENT) as *mut c_void;
-        let actual_size = heap_size_of(ptr);
+        let actual_size = heap_size_of(ptr as *const _);
 
         let user = (*mem).user as *mut User;
         (*user).size += actual_size;
@@ -39,7 +39,7 @@ extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
 
 extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     unsafe {
-        let actual_size = heap_size_of(ptr);
+        let actual_size = heap_size_of(ptr as *const _);
 
         let user = (*mem).user as *mut User;
         (*user).size -= actual_size;
@@ -51,10 +51,10 @@ extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
 extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
                      old_ptr: *mut c_void) -> *mut c_void {
     unsafe {
-        let old_actual_size = heap_size_of(old_ptr);
+        let old_actual_size = heap_size_of(old_ptr as *const _);
         let new_ptr = heap::reallocate(old_ptr as *mut u8, old_actual_size,
                                        new_req_size as usize, FT_ALIGNMENT) as *mut c_void;
-        let new_actual_size = heap_size_of(new_ptr);
+        let new_actual_size = heap_size_of(new_ptr as *const _);
 
         let user = (*mem).user as *mut User;
         (*user).size += new_actual_size;
@@ -90,11 +90,12 @@ impl Drop for FreeTypeLibraryHandle {
 
 impl HeapSizeOf for FreeTypeLibraryHandle {
     fn heap_size_of_children(&self) -> usize {
-        let ft_size = unsafe { (*self.user).size };
-        ft_size +
-            heap_size_of(self.ctx as *const c_void) +
-            heap_size_of(self.mem as *const c_void) +
-            heap_size_of(self.user as *const c_void)
+        unsafe {
+            (*self.user).size +
+                heap_size_of(self.ctx as *const _) +
+                heap_size_of(self.mem as *const _) +
+                heap_size_of(self.user as *const _)
+        }
     }
 }
 

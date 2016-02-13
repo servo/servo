@@ -2446,7 +2446,7 @@ impl HeapSizeOf for UniqueId {
     #[allow(unsafe_code)]
     fn heap_size_of_children(&self) -> usize {
         if let &Some(ref uuid) = unsafe { &*self.cell.get() } {
-            heap_size_of(&** uuid as *const Uuid as *const c_void)
+            unsafe { heap_size_of(&** uuid as *const Uuid as *const _) }
         } else {
             0
         }

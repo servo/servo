@@ -9,12 +9,12 @@ path = "lib.rs"
 crate-type = ["dylib"]
 
 [dependencies]
-euclid = {version = "0.6.1", features = ["plugins"]}
+euclid = {version = "0.6.2", features = ["plugins"]}
 gleam = "0.2"
 libc = "0.2"
 log = "0.3"
 stb_image = "0.2"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}
 
 [dependencies.servo]
 path = "../../components/servo"

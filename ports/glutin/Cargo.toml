@@ -13,9 +13,9 @@ headless = ["servo-glutin/headless"]
 
 [dependencies]
 bitflags = "0.3"
-url = {version = "0.5.4", features = ["heap_size"]}
+url = {version = "0.5.5", features = ["heap_size"]}
 gleam = "0.2"
-euclid = {version = "0.6.1", features = ["plugins"]}
+euclid = {version = "0.6.2", features = ["plugins"]}
 servo-glutin = "0.4"
 
 [dependencies.compositing]

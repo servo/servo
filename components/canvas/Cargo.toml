@@ -37,4 +37,4 @@ git = "https://github.com/servo/ipc-channel"
 log = "0.3"
 num = "0.1.24"
 gleam = "0.2"
-euclid = {version = "0.6.1", features = ["plugins"]}
+euclid = {version = "0.6.2", features = ["plugins"]}

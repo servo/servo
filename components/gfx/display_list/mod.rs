@@ -1238,7 +1238,7 @@ pub struct ImageDisplayItem {
 
 
 /// Paints a gradient.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct GradientDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1252,21 +1252,6 @@ pub struct GradientDisplayItem {
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 }
-
-
-impl HeapSizeOf for GradientDisplayItem {
-    fn heap_size_of_children(&self) -> usize {
-        use heapsize::heap_size_of;
-        use libc::c_void;
-
-        // We can't measure `stops` via Vec's HeapSizeOf implementation because GradientStop isn't
-        // defined in this module, and we don't want to import GradientStop into util::mem where
-        // the HeapSizeOf trait is defined. So we measure the elements directly.
-        self.base.heap_size_of_children() +
-            heap_size_of(self.stops.as_ptr() as *const c_void)
-    }
-}
-
 
 /// Paints a border.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
