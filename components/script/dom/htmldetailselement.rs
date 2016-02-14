@@ -83,7 +83,7 @@ impl ToggleEventRunnable {
     pub fn send(node: &HTMLDetailsElement, toggle_number: u32) {
         let window = window_from_node(node);
         let window = window.r();
-        let chan = window.dom_manipulation_thread_source();
+        let chan = window.dom_manipulation_task_source();
         let handler = Trusted::new(node, chan.clone());
         let dispatcher = ToggleEventRunnable {
             element: handler,

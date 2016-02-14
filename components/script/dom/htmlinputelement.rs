@@ -936,7 +936,7 @@ impl ChangeEventRunnable {
     pub fn send(node: &Node) {
         let window = window_from_node(node);
         let window = window.r();
-        let chan = window.user_interaction_thread_source();
+        let chan = window.user_interaction_task_source();
         let handler = Trusted::new(node, chan.clone());
         let dispatcher = ChangeEventRunnable {
             element: handler,
