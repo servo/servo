@@ -22,6 +22,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
+use dom::blob::Blob;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -122,6 +123,7 @@ pub struct XMLHttpRequest {
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableHeap<JS<Document>>,
+    response_blob: MutNullableHeap<JS<Blob>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -161,6 +163,7 @@ impl XMLHttpRequest {
             response: DOMRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
+            response_blob: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
             override_charset: DOMRefCell::new(None),
@@ -726,6 +729,32 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         return NullValue();
                     }
                 }
+                XMLHttpRequestResponseType::Blob => {
+                    match self.response_blob.get() {
+                        // Step 1
+                        Some(response) => response.to_jsval(cx, rval.handle_mut()),
+                        None => {
+                            // Step 2
+                            let mime: String = match self.response_headers.borrow().get() {
+                                Some(&ContentType(ref response_mime)) => response_mime.to_string(),
+                                _ => "".to_owned(),
+                            };
+
+                            // Step 3
+                            let bytes = self.response.borrow();
+                            let body = if bytes.is_empty() {
+                                Vec::new()
+                            } else {
+                                bytes.to_vec()
+                            };
+
+                            // Step 4
+                            let blob = Blob::new(self.global().r(), body, &mime);
+                            self.response_blob.set(Some(blob.r()));
+                            blob.to_jsval(cx, rval.handle_mut());
+                        },
+                    }
+                },
                 _ => {
                     // XXXManishearth handle other response types
                     self.response.borrow().to_jsval(cx, rval.handle_mut());
