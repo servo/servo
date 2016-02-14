@@ -32582,6 +32582,21 @@
         "url": "/html/browsers/browsing-the-web/scroll-to-fragid/007.html"
       },
       {
+        "path": "html/browsers/browsing-the-web/scroll-to-fragid/scroll-frag-percent-encoded.html",
+        "timeout": "long",
+        "url": "/html/browsers/browsing-the-web/scroll-to-fragid/scroll-frag-percent-encoded.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-anchor-name.html",
+        "timeout": "long",
+        "url": "/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-anchor-name.html"
+      },
+      {
+        "path": "html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-id-top.html",
+        "timeout": "long",
+        "url": "/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-id-top.html"
+      },
+      {
         "path": "html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-top.html",
         "timeout": "long",
         "url": "/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-top.html"
