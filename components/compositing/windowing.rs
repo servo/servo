@@ -16,8 +16,8 @@ use net_traits::net_error_list::NetError;
 use script_traits::{MouseButton, TouchEventType, TouchId};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
+use style_traits::cursor::Cursor;
 use url::Url;
-use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 
 #[derive(Clone)]

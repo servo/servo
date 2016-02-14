@@ -38,6 +38,9 @@ path = "../script_traits"
 [dependencies.style]
 path = "../style"
 
+[dependencies.style_traits]
+path = "../style_traits"
+
 [dependencies.plugins]
 path = "../plugins"
 

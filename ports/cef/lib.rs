@@ -39,6 +39,7 @@ extern crate net_traits;
 extern crate msg;
 extern crate util;
 extern crate style;
+extern crate style_traits;
 extern crate stb_image;
 
 extern crate libc;

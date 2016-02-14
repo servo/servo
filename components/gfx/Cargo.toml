@@ -55,6 +55,9 @@ path = "../profile_traits"
 [dependencies.style]
 path = "../style"
 
+[dependencies.style_traits]
+path = "../style_traits"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 features = ["plugins"]

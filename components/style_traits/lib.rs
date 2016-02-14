@@ -23,6 +23,7 @@ extern crate rustc_serialize;
 extern crate serde;
 extern crate util;
 
+pub mod cursor;
 #[macro_use]
 pub mod values;
 pub mod viewport;

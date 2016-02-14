@@ -30,8 +30,8 @@ use std::mem::{transmute, size_of, zeroed};
 use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender, Receiver};
+use style_traits::cursor::Cursor;
 use url::Url;
-use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 
 const GRALLOC_USAGE_HW_TEXTURE: c_int = 0x00000100;
