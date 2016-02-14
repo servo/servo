@@ -22,6 +22,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
+use dom::blob::Blob;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -54,6 +55,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
+use std::string::ToString;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
@@ -122,6 +124,7 @@ pub struct XMLHttpRequest {
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableHeap<JS<Document>>,
+    response_blob: MutNullableHeap<JS<Blob>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -161,6 +164,7 @@ impl XMLHttpRequest {
             response: DOMRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
+            response_blob: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
             override_charset: DOMRefCell::new(None),
@@ -725,7 +729,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
-                }
+                },
+                XMLHttpRequestResponseType::Blob => {
+                    self.blob_response().to_jsval(cx, rval.handle_mut());
+                },
                 _ => {
                     // XXXManishearth handle other response types
                     self.response.borrow().to_jsval(cx, rval.handle_mut());
@@ -1036,6 +1043,21 @@ impl XMLHttpRequest {
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
+    }
+
+    // https://xhr.spec.whatwg.org/#blob-response
+    fn blob_response(&self) -> Root<Blob> {
+        // Step 1
+        if let Some(response) = self.response_blob.get() {
+            return response;
+        }
+        // Step 2
+        let mime = self.final_mime_type().as_ref().map(ToString::to_string).unwrap_or("".to_owned());
+
+        // Steps 3 && 4
+        let blob = Blob::new(self.global().r(), self.response.borrow().to_vec(), &mime);
+        self.response_blob.set(Some(blob.r()));
+        blob
     }
 
     fn document_response(&self) -> Option<Root<Document>> {
