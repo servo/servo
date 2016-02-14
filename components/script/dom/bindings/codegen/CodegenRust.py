@@ -1894,11 +1894,13 @@ class CGInterfaceObjectJSClass(CGThing):
             "constructor": constructor,
             "hasInstance": HASINSTANCE_HOOK_NAME,
             "name": self.descriptor.interface.identifier.name,
+            "id": self.descriptor.interface.identifier.name,
+            "index": self.descriptor.prototypeDepth
         }
         return """\
 static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(%(constructor)s, %(hasInstance)s,
-                                         fun_to_string);
+                                         fun_to_string, PrototypeList::ID::%(id)s, %(index)s);
 """ % args
 
 
@@ -4746,16 +4748,7 @@ class CGClassHasInstanceHook(CGAbstractExternMethod):
                                         'bool', args)
 
     def definition_body(self):
-        id = "PrototypeList::ID::%s" % self.descriptor.interface.identifier.name
-        return CGGeneric("""\
-match has_instance(cx, obj, value.handle(), %(id)s, %(index)s) {
-    Ok(result) => {
-        *rval = result;
-        true
-    }
-    Err(()) => false,
-}
-""" % {"id": id, "index": self.descriptor.prototypeDepth})
+        return CGGeneric("call_has_instance(cx, obj, value.handle(), rval)")
 
 
 class CGClassFunToStringHook(CGAbstractExternMethod):
@@ -5367,7 +5360,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
             'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
             'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
-            'dom::bindings::interface::{create_noncallback_interface_object, has_instance}',
+            'dom::bindings::interface::{call_has_instance, create_noncallback_interface_object, has_instance}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
