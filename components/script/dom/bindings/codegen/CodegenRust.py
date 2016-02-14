@@ -1894,11 +1894,13 @@ class CGInterfaceObjectJSClass(CGThing):
             "constructor": constructor,
             "hasInstance": HASINSTANCE_HOOK_NAME,
             "name": self.descriptor.interface.identifier.name,
+            "id": self.descriptor.interface.identifier.name,
+            "index": self.descriptor.prototypeDepth
         }
         return """\
 static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(%(constructor)s, %(hasInstance)s,
-                                         fun_to_string);
+                                         fun_to_string, PrototypeList::ID::%(id)s, %(index)s);
 """ % args
 
 
@@ -4746,16 +4748,15 @@ class CGClassHasInstanceHook(CGAbstractExternMethod):
                                         'bool', args)
 
     def definition_body(self):
-        id = "PrototypeList::ID::%s" % self.descriptor.interface.identifier.name
         return CGGeneric("""\
-match has_instance(cx, obj, value.handle(), %(id)s, %(index)s) {
+match has_instance(cx, obj, value.handle()) {
     Ok(result) => {
         *rval = result;
         true
     }
     Err(()) => false,
 }
-""" % {"id": id, "index": self.descriptor.prototypeDepth})
+""")
 
 
 class CGClassFunToStringHook(CGAbstractExternMethod):
