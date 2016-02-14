@@ -9,7 +9,7 @@ use dom::bindings::conversions::get_dom_class;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, HandleObject, HandleValue, JSClass};
 use js::jsapi::{JSContext, JSFunctionSpec, JSPropertySpec, JSString, JS_DefineProperty1};
-use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetFunctionObject};
+use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject};
 use js::jsapi::{JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
 use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_DefineProperty};
 use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject};
@@ -104,17 +104,25 @@ pub type FunToStringHook =
 pub struct NonCallbackInterfaceObjectClass {
     /// The SpiderMonkey Class structure.
     pub class: Class,
+    /// The prototype id parameter of has_instance function
+    pub proto_id: PrototypeList::ID,
+    /// The depth parameter of has_instance function
+    pub index: usize,
 }
+
 unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
     pub const fn new(
             constructor: ConstructorClassHook,
-            has_instance: HasInstanceClassHook,
-            fun_to_string: FunToStringHook)
+            fun_to_string: FunToStringHook,
+            proto_id: PrototypeList::ID,
+            index: usize)
             -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
+            proto_id: proto_id,
+            index: index,
             class: Class {
                 name: b"Function\0" as *const _ as *const libc::c_char,
                 flags: 0,
@@ -127,7 +135,7 @@ impl NonCallbackInterfaceObjectClass {
                 convert: None,
                 finalize: None,
                 call: Some(constructor),
-                hasInstance: Some(has_instance),
+                hasInstance: None,
                 construct: Some(constructor),
                 trace: None,
                 spec: ClassSpec {
@@ -258,14 +266,26 @@ pub unsafe fn create_named_constructors(
     }
 }
 
+/// Wrapper to centralize has_instance function calls
+pub unsafe fn call_has_instance(cx: *mut JSContext,
+                                obj: HandleObject,
+                                handle: HandleValue,
+                                rval: *mut bool) -> bool {
+    match has_instance(cx, obj, handle) {
+        Ok(result) => {
+            *rval = result;
+            true
+        }
+        Err(()) => false,
+    }
+}
+
 /// Return whether a value is an instance of a given prototype.
 /// http://heycam.github.io/webidl/#es-interface-hasinstance
 pub unsafe fn has_instance(
         cx: *mut JSContext,
         prototype: HandleObject,
-        value: HandleValue,
-        id: PrototypeList::ID,
-        index: usize)
+        value: HandleValue)
         -> Result<bool, ()> {
     if !value.is_object() {
         // Step 1.
@@ -273,10 +293,12 @@ pub unsafe fn has_instance(
     }
     let mut value = RootedObject::new(cx, value.to_object());
 
-    // Steps 2-3 only concern callback interface objects.
+    let class = JS_GetClass(*prototype.ptr);
+    let object = &*(&class as *const _ as *const NonCallbackInterfaceObjectClass);
 
+    // Steps 2-3 only concern callback interface objects.
     if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.ptr, /* stopAtOuter = */ 0)) {
-        if dom_class.interface_chain[index] == id {
+        if dom_class.interface_chain[object.index] == object.proto_id {
             // Step 4.
             return Ok(true);
         }
