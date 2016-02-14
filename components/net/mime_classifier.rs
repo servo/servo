@@ -744,7 +744,7 @@ impl ByteMatcher {
         TagTerminatedByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<HTML",
-                mask: b"\xFF\xDF\xDF\xDF\xDF\xFF",
+                mask: b"\xFF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
