@@ -10,11 +10,12 @@ use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, HandleObject, HandleValue, JSClass};
 use js::jsapi::{JSContext, JSFunctionSpec, JSPropertySpec, JSString, JS_DefineProperty1};
 use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetFunctionObject};
-use js::jsapi::{JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
 use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_DefineProperty};
 use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject};
 use js::jsapi::{RootedString, RootedValue, Value};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
+use js::jsval::{UInt32Value, UndefinedValue};
 use js::rust::{define_methods, define_properties};
 use js::{JSPROP_ENUMERATE, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
@@ -260,7 +261,7 @@ pub unsafe fn create_named_constructors(
 /// http://heycam.github.io/webidl/#es-interface-hasinstance
 pub unsafe fn has_instance(
         cx: *mut JSContext,
-        prototype: HandleObject,
+        obj: HandleObject,
         value: HandleValue,
         id: PrototypeList::ID,
         index: usize)
@@ -271,14 +272,20 @@ pub unsafe fn has_instance(
     }
     let mut value = RootedObject::new(cx, value.to_object());
 
-    // Steps 2-3 only concern callback interface objects.
-
     if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.ptr, /* stopAtOuter = */ 0)) {
         if dom_class.interface_chain[index] == id {
             // Step 4.
             return Ok(true);
         }
     }
+
+    // Step 2.
+    let mut prototype_property_value = RootedValue::new(cx, UndefinedValue());
+    assert!(JS_GetProperty(cx, obj, b"prototype\0".as_ptr() as *const libc::c_char,
+                           prototype_property_value.handle_mut()));
+    let prototype = RootedObject::new(cx, prototype_property_value.handle().to_object());
+
+    // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
     while JS_GetPrototype(cx, value.handle(), value.handle_mut()) {
         if value.ptr.is_null() {

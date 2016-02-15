@@ -5826,6 +5826,12 @@
             "url": "/_mozilla/mozilla/global.html"
           }
         ],
+        "mozilla/has-instance.html": [
+          {
+            "path": "mozilla/has-instance.html",
+            "url": "/_mozilla/mozilla/has-instance.html"
+          }
+        ],
         "mozilla/htmlcollection.html": [
           {
             "path": "mozilla/htmlcollection.html",
