@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
+use app_units::Au;
+use cssparser::{self, Color, RGBA};
+use euclid::num::Zero;
+use std::ascii::AsciiExt;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto, parse_unsigned_integer, parse_legacy_color, parse_length};
-use util::str::{parse_nonzero_length, split_html_space_chars, str_join, parse_integer};
+use util::str::{DOMString, LengthOrPercentageOrAuto, WHITESPACE, parse_unsigned_integer, parse_length};
+use util::str::{split_html_space_chars, str_join, parse_integer};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -210,6 +213,145 @@ impl Deref for AttrValue {
                 AttrValue::Url(ref value, _) |
                 AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
+        }
+    }
+}
+
+/// HTML5 § 2.4.4.5.
+///
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
+pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
+    match parse_length(value) {
+        LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,
+        LengthOrPercentageOrAuto::Percentage(0.) => LengthOrPercentageOrAuto::Auto,
+        x => x,
+    }
+}
+
+/// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
+pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
+    // Steps 1 and 2.
+    if input.is_empty() {
+        return Err(())
+    }
+
+    // Step 3.
+    input = input.trim_matches(WHITESPACE);
+
+    // Step 4.
+    if input.eq_ignore_ascii_case("transparent") {
+        return Err(())
+    }
+
+    // Step 5.
+    if let Ok(Color::RGBA(rgba)) = cssparser::parse_color_keyword(input) {
+        return Ok(rgba);
+    }
+
+    // Step 6.
+    if input.len() == 4 {
+        if let (b'#', Ok(r), Ok(g), Ok(b)) =
+                (input.as_bytes()[0],
+                hex(input.as_bytes()[1] as char),
+                hex(input.as_bytes()[2] as char),
+                hex(input.as_bytes()[3] as char)) {
+            return Ok(RGBA {
+                red: (r as f32) * 17.0 / 255.0,
+                green: (g as f32) * 17.0 / 255.0,
+                blue: (b as f32) * 17.0 / 255.0,
+                alpha: 1.0,
+            })
+        }
+    }
+
+    // Step 7.
+    let mut new_input = String::new();
+    for ch in input.chars() {
+        if ch as u32 > 0xffff {
+            new_input.push_str("00")
+        } else {
+            new_input.push(ch)
+        }
+    }
+    let mut input = &*new_input;
+
+    // Step 8.
+    for (char_count, (index, _)) in input.char_indices().enumerate() {
+        if char_count == 128 {
+            input = &input[..index];
+            break
+        }
+    }
+
+    // Step 9.
+    if input.as_bytes()[0] == b'#' {
+        input = &input[1..]
+    }
+
+    // Step 10.
+    let mut new_input = Vec::new();
+    for ch in input.chars() {
+        if hex(ch).is_ok() {
+            new_input.push(ch as u8)
+        } else {
+            new_input.push(b'0')
+        }
+    }
+    let mut input = new_input;
+
+    // Step 11.
+    while input.is_empty() || (input.len() % 3) != 0 {
+        input.push(b'0')
+    }
+
+    // Step 12.
+    let mut length = input.len() / 3;
+    let (mut red, mut green, mut blue) = (&input[..length],
+                                          &input[length..length * 2],
+                                          &input[length * 2..]);
+
+    // Step 13.
+    if length > 8 {
+        red = &red[length - 8..];
+        green = &green[length - 8..];
+        blue = &blue[length - 8..];
+        length = 8
+    }
+
+    // Step 14.
+    while length > 2 && red[0] == b'0' && green[0] == b'0' && blue[0] == b'0' {
+        red = &red[1..];
+        green = &green[1..];
+        blue = &blue[1..];
+        length -= 1
+    }
+
+    // Steps 15-20.
+    return Ok(RGBA {
+        red: hex_string(red).unwrap() as f32 / 255.0,
+        green: hex_string(green).unwrap() as f32 / 255.0,
+        blue: hex_string(blue).unwrap() as f32 / 255.0,
+        alpha: 1.0,
+    });
+
+    fn hex(ch: char) -> Result<u8, ()> {
+        match ch {
+            '0'...'9' => Ok((ch as u8) - b'0'),
+            'a'...'f' => Ok((ch as u8) - b'a' + 10),
+            'A'...'F' => Ok((ch as u8) - b'A' + 10),
+            _ => Err(()),
+        }
+    }
+
+    fn hex_string(string: &[u8]) -> Result<u8, ()> {
+        match string.len() {
+            0 => Err(()),
+            1 => hex(string[0] as char),
+            _ => {
+                let upper = try!(hex(string[0] as char));
+                let lower = try!(hex(string[1] as char));
+                Ok((upper << 4) | lower)
+            }
         }
     }
 }

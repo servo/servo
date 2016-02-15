@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::{self, Color, RGBA};
-use euclid::num::Zero;
 use libc::c_char;
 use num_lib::ToPrimitive;
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
@@ -123,7 +120,7 @@ pub type StaticStringVec = &'static [&'static str];
 
 /// Whitespace as defined by HTML5 § 2.4.1.
 // TODO(SimonSapin) Maybe a custom Pattern can be more efficient?
-const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
+pub const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
 
 pub fn is_whitespace(s: &str) -> bool {
     s.chars().all(char_is_whitespace)
@@ -160,7 +157,7 @@ fn is_ascii_digit(c: &char) -> bool {
 }
 
 
-fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
+pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
     match iter.peek() {
         Some(c) if is_ascii_digit(c) => (),
         _ => return None,
@@ -295,201 +292,6 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
         Err(_) => LengthOrPercentageOrAuto::Auto,
     }
 }
-
-/// HTML5 § 2.4.4.5.
-///
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
-pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
-    match parse_length(value) {
-        LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,
-        LengthOrPercentageOrAuto::Percentage(0.) => LengthOrPercentageOrAuto::Auto,
-        x => x,
-    }
-}
-
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
-pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
-    // Steps 1 & 2 are not relevant
-
-    // Step 3
-    input = input.trim_matches(WHITESPACE);
-
-    enum ParseMode {
-        RelativePlus,
-        RelativeMinus,
-        Absolute,
-    }
-    let mut input_chars = input.chars().peekable();
-    let parse_mode = match input_chars.peek() {
-        // Step 4
-        None => return None,
-
-        // Step 5
-        Some(&'+') => {
-            let _ = input_chars.next();  // consume the '+'
-            ParseMode::RelativePlus
-        }
-        Some(&'-') => {
-            let _ = input_chars.next();  // consume the '-'
-            ParseMode::RelativeMinus
-        }
-        Some(_) => ParseMode::Absolute,
-    };
-
-    // Steps 6, 7, 8
-    let mut value = match read_numbers(input_chars) {
-        Some(v) => v,
-        None => return None,
-    };
-
-    // Step 9
-    match parse_mode {
-        ParseMode::RelativePlus => value = 3 + value,
-        ParseMode::RelativeMinus => value = 3 - value,
-        ParseMode::Absolute => (),
-    }
-
-    // Steps 10, 11, 12
-    Some(match value {
-        n if n >= 7 => "xxx-large",
-        6 => "xx-large",
-        5 => "x-large",
-        4 => "large",
-        3 => "medium",
-        2 => "small",
-        n if n <= 1 => "x-small",
-        _ => unreachable!(),
-    })
-}
-
-/// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
-pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
-    // Steps 1 and 2.
-    if input.is_empty() {
-        return Err(())
-    }
-
-    // Step 3.
-    input = input.trim_matches(WHITESPACE);
-
-    // Step 4.
-    if input.eq_ignore_ascii_case("transparent") {
-        return Err(())
-    }
-
-    // Step 5.
-    if let Ok(Color::RGBA(rgba)) = cssparser::parse_color_keyword(input) {
-        return Ok(rgba);
-    }
-
-    // Step 6.
-    if input.len() == 4 {
-        if let (b'#', Ok(r), Ok(g), Ok(b)) =
-                (input.as_bytes()[0],
-                hex(input.as_bytes()[1] as char),
-                hex(input.as_bytes()[2] as char),
-                hex(input.as_bytes()[3] as char)) {
-            return Ok(RGBA {
-                red: (r as f32) * 17.0 / 255.0,
-                green: (g as f32) * 17.0 / 255.0,
-                blue: (b as f32) * 17.0 / 255.0,
-                alpha: 1.0,
-            })
-        }
-    }
-
-    // Step 7.
-    let mut new_input = String::new();
-    for ch in input.chars() {
-        if ch as u32 > 0xffff {
-            new_input.push_str("00")
-        } else {
-            new_input.push(ch)
-        }
-    }
-    let mut input = &*new_input;
-
-    // Step 8.
-    for (char_count, (index, _)) in input.char_indices().enumerate() {
-        if char_count == 128 {
-            input = &input[..index];
-            break
-        }
-    }
-
-    // Step 9.
-    if input.as_bytes()[0] == b'#' {
-        input = &input[1..]
-    }
-
-    // Step 10.
-    let mut new_input = Vec::new();
-    for ch in input.chars() {
-        if hex(ch).is_ok() {
-            new_input.push(ch as u8)
-        } else {
-            new_input.push(b'0')
-        }
-    }
-    let mut input = new_input;
-
-    // Step 11.
-    while input.is_empty() || (input.len() % 3) != 0 {
-        input.push(b'0')
-    }
-
-    // Step 12.
-    let mut length = input.len() / 3;
-    let (mut red, mut green, mut blue) = (&input[..length],
-                                          &input[length..length * 2],
-                                          &input[length * 2..]);
-
-    // Step 13.
-    if length > 8 {
-        red = &red[length - 8..];
-        green = &green[length - 8..];
-        blue = &blue[length - 8..];
-        length = 8
-    }
-
-    // Step 14.
-    while length > 2 && red[0] == b'0' && green[0] == b'0' && blue[0] == b'0' {
-        red = &red[1..];
-        green = &green[1..];
-        blue = &blue[1..];
-        length -= 1
-    }
-
-    // Steps 15-20.
-    return Ok(RGBA {
-        red: hex_string(red).unwrap() as f32 / 255.0,
-        green: hex_string(green).unwrap() as f32 / 255.0,
-        blue: hex_string(blue).unwrap() as f32 / 255.0,
-        alpha: 1.0,
-    });
-
-    fn hex(ch: char) -> Result<u8, ()> {
-        match ch {
-            '0'...'9' => Ok((ch as u8) - b'0'),
-            'a'...'f' => Ok((ch as u8) - b'a' + 10),
-            'A'...'F' => Ok((ch as u8) - b'A' + 10),
-            _ => Err(()),
-        }
-    }
-
-    fn hex_string(string: &[u8]) -> Result<u8, ()> {
-        match string.len() {
-            0 => Err(()),
-            1 => hex(string[0] as char),
-            _ => {
-                let upper = try!(hex(string[0] as char));
-                let lower = try!(hex(string[1] as char));
-                Ok((upper << 4) | lower)
-            }
-        }
-    }
-}
-
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
 pub struct LowercaseString {

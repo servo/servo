@@ -15,7 +15,7 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::values::specified;
-use util::str::{DOMString, parse_legacy_font_size};
+use util::str::{DOMString, WHITESPACE, read_numbers};
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -117,6 +117,61 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
                 .cloned()
         }
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
+    // Steps 1 & 2 are not relevant
+
+    // Step 3
+    input = input.trim_matches(WHITESPACE);
+
+    enum ParseMode {
+        RelativePlus,
+        RelativeMinus,
+        Absolute,
+    }
+    let mut input_chars = input.chars().peekable();
+    let parse_mode = match input_chars.peek() {
+        // Step 4
+        None => return None,
+
+        // Step 5
+        Some(&'+') => {
+            let _ = input_chars.next();  // consume the '+'
+            ParseMode::RelativePlus
+        }
+        Some(&'-') => {
+            let _ = input_chars.next();  // consume the '-'
+            ParseMode::RelativeMinus
+        }
+        Some(_) => ParseMode::Absolute,
+    };
+
+    // Steps 6, 7, 8
+    let mut value = match read_numbers(input_chars) {
+        Some(v) => v,
+        None => return None,
+    };
+
+    // Step 9
+    match parse_mode {
+        ParseMode::RelativePlus => value = 3 + value,
+        ParseMode::RelativeMinus => value = 3 - value,
+        ParseMode::Absolute => (),
+    }
+
+    // Steps 10, 11, 12
+    Some(match value {
+        n if n >= 7 => "xxx-large",
+        6 => "xx-large",
+        5 => "x-large",
+        4 => "large",
+        3 => "medium",
+        2 => "small",
+        n if n <= 1 => "x-small",
+        _ => unreachable!(),
+    })
 }
 
 fn parse_length(value: &str) -> Option<specified::Length> {
