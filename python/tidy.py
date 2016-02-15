@@ -48,17 +48,31 @@ ignored_files = [
 ]
 
 
-def should_check(file_name):
-    if os.path.basename(file_name) == "Cargo.lock":
-        return True
-    if ".#" in file_name:
-        return False
-    if os.path.splitext(file_name)[1] not in filetypes_to_check:
-        return False
-    for pattern in ignored_files:
-        if fnmatch.fnmatch(file_name, pattern):
-            return False
-    return True
+def filter_files(start_dir, faster):
+    args = 'find %s -type f | wc -l' % start_dir
+    tree_count = subprocess.Popen(args, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    total_files, progress = '???', '???'
+    for idx, file_name in enumerate(get_file_list(start_dir, faster)):
+        if type(total_files) is int:
+            progress = int(float(idx + 1) / total_files * 100)
+        elif tree_count.poll() is not None:   # don't block on the output
+            total_files = int(tree_count.stdout.read())
+        sys.stdout.write('\r  Progress: %s%% (%d/%s)\t' % (progress, idx + 1, total_files))
+        sys.stdout.flush()
+        if os.path.basename(file_name) == "Cargo.lock":
+            yield file_name
+        if ".#" in file_name:
+            continue
+        if os.path.splitext(file_name)[1] not in filetypes_to_check:
+            continue
+        loop_again = False
+        for pattern in ignored_files:
+            if fnmatch.fnmatch(file_name, pattern):
+                loop_again = True
+                break
+        if loop_again:
+            continue
+        yield file_name
 
 
 EMACS_HEADER = "/* -*- Mode:"
@@ -543,7 +557,7 @@ def get_file_list(directory, only_changed_files=False):
 
 def scan(faster=False):
     # standard checks
-    files_to_check = filter(should_check, get_file_list(".", faster))
+    files_to_check = filter_files('.', faster)
     checking_functions = (check_flake8, check_lock, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
@@ -556,10 +570,10 @@ def scan(faster=False):
 
     error = None
     for error in errors:
-        print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
-
+        print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+    # '\r' is to overwrite the progress displayed
     if error is None:
-        print "\033[92mtidy reported no errors.\033[0m"
+        print "\r\033[92mtidy reported no errors.\033[0m"
         return 0
     else:
         return 1
