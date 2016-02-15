@@ -5285,23 +5285,6 @@ class CGDictionary(CGThing):
         return deps
 
 
-class CGRegisterProtos(CGAbstractMethod):
-    def __init__(self, config):
-        arguments = [
-            Argument('*mut JSContext', 'cx'),
-            Argument('HandleObject', 'global'),
-        ]
-        CGAbstractMethod.__init__(self, None, 'Register', 'void', arguments,
-                                  unsafe=False, pub=True)
-        self.config = config
-
-    def definition_body(self):
-        return CGList([
-            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(cx, global);" % desc.name)
-            for desc in self.config.getDescriptors(hasInterfaceObject=True, register=True)
-        ], "\n")
-
-
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
@@ -6155,15 +6138,12 @@ class GlobalGenRoots():
     def RegisterBindings(config):
         # TODO - Generate the methods we want
         code = CGList([
-            CGRegisterProtos(config),
             CGRegisterProxyHandlers(config),
         ], "\n")
 
         return CGImports(code, [], [], [
             'dom::bindings::codegen',
             'dom::bindings::codegen::PrototypeList::Proxies',
-            'js::jsapi::JSContext',
-            'js::jsapi::HandleObject',
             'libc',
         ], ignored_warnings=[])
 
