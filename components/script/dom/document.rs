@@ -514,17 +514,36 @@ impl Document {
 
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
+    // 1. Apply the URL parser algorithm to the URL, and let fragid be the fragment component
+    //    of the resulting parsed URL.
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
+        // 2. If fragid is the empty string, then the indicated part of the document is the top
+        //    of the document; stop the algorithm here.
         if fragid == "" {
             self.GetDocumentElement()
         } else {
             use url::percent_encoding::percent_decode;
+            // 3. Let fragid bytes be the result of percent-decoding fragid.
+            // 4. Let decoded fragid be the result of applying the UTF-8 decoder algorithm to
+            //    fragid bytes. If the UTF-8 decoder emits a decoder error, abort the decoder and
+            //    instead jump to the step labeled No decoded fragid.
             String::from_utf8(percent_decode(fragid.as_bytes())).ok()
+                // 5. If there is an element in the DOM that has an ID exactly equal to decoded
+                //    fragid, then the first such element in tree order is the indicated part of
+                //    the document; stop the algorithm here.
                 .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(&*decoded_fragid)))
+                // 6. No decoded fragid: If there is an a element in the DOM that has a name 
+                //    attribute whose value is exactly equal to fragid (not decoded fragid), then
+                //    the first such element in tree order is the indicated part of the document;
+                //    stop the algorithm here.
                 .or_else(|| self.get_anchor_by_name(fragid))
+                // 7. If fragid is an ASCII case-insensitive match for the string top, then the
+                //    indicated part of the document is the top of the document; stop the algorithm
+                //    here.
                 .or_else(|| if fragid.to_lowercase() == "top" {
                     self.GetDocumentElement()
                 } else {
+                    // 8. Otherwise, there is no indicated part of the document.
                     None
                 })
         }
