@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use bezier::Bezier;
 use cssparser::{Color, RGBA};
 use dom::{OpaqueNode, TRestyleDamage};
 use euclid::point::Point2D;
@@ -29,7 +30,6 @@ use std::iter::repeat;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use time;
-use util::bezier::Bezier;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage, Time};

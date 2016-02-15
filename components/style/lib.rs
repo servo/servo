@@ -47,6 +47,7 @@ extern crate util;
 
 pub mod animation;
 pub mod attr;
+pub mod bezier;
 pub mod context;
 mod custom_properties;
 pub mod data;
