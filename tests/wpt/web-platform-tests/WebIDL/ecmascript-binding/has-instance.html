@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var obj = Object.create(Element.prototype);
+  assert_true(obj instanceof Element);
+  assert_true(obj instanceof Node);
+  assert_false(obj instanceof Attr);
+}, "Manually-constructed prototype chains are correctly handled by instanceof");
+</script>

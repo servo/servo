@@ -6,20 +6,19 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
+use dom::bindings::utils::get_proto_or_iface_array;
 use js::glue::UncheckedUnwrapObject;
-use js::jsapi::{Class, ClassExtension, ClassSpec, HandleObject, HandleValue, JSClass};
-use js::jsapi::{JSContext, JSFunctionSpec, JSPropertySpec, JSString, JS_DefineProperty1};
-use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetFunctionObject};
-use js::jsapi::{JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
-use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_DefineProperty};
-use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject};
-use js::jsapi::{RootedString, Value};
-use js::jsapi::{RootedValue};
+use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
+use js::jsapi::{JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
+use js::jsapi::{JS_DefineProperty4, JS_GetFunctionObject, JS_GetPrototype, JS_InternString};
+use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
+use js::jsapi::{JS_NewObjectWithUniqueType, JS_DefineProperty, MutableHandleObject};
+use js::jsapi::{MutableHandleValue, ObjectOps, RootedObject, RootedString, RootedValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
 use js::{JSPROP_ENUMERATE, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
-use libc::c_uint;
 use std::ptr;
 
 /// Representation of an IDL constant value.
@@ -61,7 +60,7 @@ impl ConstantSpec {
 
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
-    unsafe extern "C" fn (arg1: *mut JSContext, arg2: c_uint, arg3: *mut JSVal) -> bool;
+    unsafe extern "C" fn (arg1: *mut JSContext, arg2: libc::c_uint, arg3: *mut JSVal) -> bool;
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
@@ -262,7 +261,7 @@ pub unsafe fn create_named_constructors(
 /// http://heycam.github.io/webidl/#es-interface-hasinstance
 pub unsafe fn has_instance(
         cx: *mut JSContext,
-        prototype: HandleObject,
+        interface_object: HandleObject,
         value: HandleValue,
         id: PrototypeList::ID,
         index: usize)
@@ -273,14 +272,20 @@ pub unsafe fn has_instance(
     }
     let mut value = RootedObject::new(cx, value.to_object());
 
-    // Steps 2-3 only concern callback interface objects.
-
     if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.ptr, /* stopAtOuter = */ 0)) {
         if dom_class.interface_chain[index] == id {
             // Step 4.
             return Ok(true);
         }
     }
+
+    // Step 2.
+    let global = GetGlobalForObjectCrossCompartment(interface_object.get());
+    assert!(!global.is_null());
+    let proto_or_iface_array = get_proto_or_iface_array(global);
+    let prototype = RootedObject::new(cx, (*proto_or_iface_array)[id as usize]);
+    assert!(!prototype.ptr.is_null());
+    // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
     while JS_GetPrototype(cx, value.handle(), value.handle_mut()) {
         if value.ptr.is_null() {
