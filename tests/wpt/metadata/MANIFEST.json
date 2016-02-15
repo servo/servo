@@ -33806,7 +33806,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "WebIDL/ecmascript-binding/has-instance.html": [
+          {
+            "path": "WebIDL/ecmascript-binding/has-instance.html",
+            "url": "/WebIDL/ecmascript-binding/has-instance.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
