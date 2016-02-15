@@ -515,16 +515,22 @@ impl Document {
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
+        // Step 2
         if fragid == "" {
             self.GetDocumentElement()
         } else {
             use url::percent_encoding::percent_decode;
+            // Step 3 & 4
             String::from_utf8(percent_decode(fragid.as_bytes())).ok()
+                // Step 5
                 .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(&*decoded_fragid)))
+                // Step 6
                 .or_else(|| self.get_anchor_by_name(fragid))
+                // Step 7
                 .or_else(|| if fragid.to_lowercase() == "top" {
                     self.GetDocumentElement()
                 } else {
+                    // Step 8
                     None
                 })
         }
