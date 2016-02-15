@@ -123,7 +123,7 @@ pub type StaticStringVec = &'static [&'static str];
 
 /// Whitespace as defined by HTML5 § 2.4.1.
 // TODO(SimonSapin) Maybe a custom Pattern can be more efficient?
-const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
+pub const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
 
 pub fn is_whitespace(s: &str) -> bool {
     s.chars().all(char_is_whitespace)
@@ -160,7 +160,7 @@ fn is_ascii_digit(c: &char) -> bool {
 }
 
 
-fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
+pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
     match iter.peek() {
         Some(c) if is_ascii_digit(c) => (),
         _ => return None,
@@ -305,61 +305,6 @@ pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
         LengthOrPercentageOrAuto::Percentage(0.) => LengthOrPercentageOrAuto::Auto,
         x => x,
     }
-}
-
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
-pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
-    // Steps 1 & 2 are not relevant
-
-    // Step 3
-    input = input.trim_matches(WHITESPACE);
-
-    enum ParseMode {
-        RelativePlus,
-        RelativeMinus,
-        Absolute,
-    }
-    let mut input_chars = input.chars().peekable();
-    let parse_mode = match input_chars.peek() {
-        // Step 4
-        None => return None,
-
-        // Step 5
-        Some(&'+') => {
-            let _ = input_chars.next();  // consume the '+'
-            ParseMode::RelativePlus
-        }
-        Some(&'-') => {
-            let _ = input_chars.next();  // consume the '-'
-            ParseMode::RelativeMinus
-        }
-        Some(_) => ParseMode::Absolute,
-    };
-
-    // Steps 6, 7, 8
-    let mut value = match read_numbers(input_chars) {
-        Some(v) => v,
-        None => return None,
-    };
-
-    // Step 9
-    match parse_mode {
-        ParseMode::RelativePlus => value = 3 + value,
-        ParseMode::RelativeMinus => value = 3 - value,
-        ParseMode::Absolute => (),
-    }
-
-    // Steps 10, 11, 12
-    Some(match value {
-        n if n >= 7 => "xxx-large",
-        6 => "xx-large",
-        5 => "x-large",
-        4 => "large",
-        3 => "medium",
-        2 => "small",
-        n if n <= 1 => "x-small",
-        _ => unreachable!(),
-    })
 }
 
 /// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
