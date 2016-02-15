@@ -4,6 +4,10 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
+// Please note that valid Rust syntax may be mangled by the Mako parser.
+// For example, Vec<&Foo> will be mangled as Vec&Foo>. To work around these issues, the code
+// can be escaped. In the above example, Vec<<&Foo> achieves the desired result of Vec<&Foo>.
+
 use std::ascii::AsciiExt;
 use std::collections::HashSet;
 use std::default::Default;
