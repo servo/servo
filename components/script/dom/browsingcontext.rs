@@ -14,9 +14,9 @@ use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, GetProxyPrivate, NewWindowProxy};
 use js::glue::{ProxyTraps, SetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, JS_AlreadyHasOwnPropertyById};
-use js::jsapi::{JS_DefinePropertyById6, JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
-use js::jsapi::{JS_GetClass, JS_GetOwnPropertyDescriptorById};
+use js::jsapi::{Handle, HandleId, HandleObject, JS_DefinePropertyById6};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
+use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, JSContext, JSErrNum, JSObject};
 use js::jsapi::{JSPropertyDescriptor, MutableHandle, MutableHandleValue, ObjectOpResult};
 use js::jsapi::{RootedObject, RootedValue};
@@ -172,11 +172,11 @@ unsafe extern "C" fn defineProperty(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn hasOwn(cx: *mut JSContext,
-                            proxy: HandleObject,
-                            id: HandleId,
-                            bp: *mut bool)
-                            -> bool {
+unsafe extern "C" fn has(cx: *mut JSContext,
+                         proxy: HandleObject,
+                         id: HandleId,
+                         bp: *mut bool)
+                         -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if window.is_some() {
         *bp = true;
@@ -185,7 +185,7 @@ unsafe extern "C" fn hasOwn(cx: *mut JSContext,
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = false;
-    if !JS_AlreadyHasOwnPropertyById(cx, target.handle(), id, &mut found) {
+    if !JS_HasPropertyById(cx, target.handle(), id, &mut found) {
         return false;
     }
 
@@ -243,13 +243,13 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     enumerate: None,
     preventExtensions: None,
     isExtensible: None,
-    has: None,
+    has: Some(has),
     get: Some(get),
     set: Some(set),
     call: None,
     construct: None,
     getPropertyDescriptor: Some(get_property_descriptor),
-    hasOwn: Some(hasOwn),
+    hasOwn: None,
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
     hasInstance: None,
