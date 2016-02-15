@@ -14,6 +14,7 @@ use hsts::{HSTSEntry, HSTSList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
 use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{Authorization, Basic};
 use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
@@ -529,6 +530,25 @@ pub fn modify_request_headers(headers: &mut Headers,
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
         set_request_cookies(doc_url.clone(), headers, cookie_jar);
+
+        // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
+        if !headers.has::<Authorization<Basic>>() {
+            if let Some(auth) = auth_from_url(doc_url) {
+                headers.set(auth);
+            }
+        }
+    }
+}
+
+fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
+    match doc_url.username() {
+        Some(username) if username != "" => {
+            Some(Authorization(Basic {
+                username: username.to_owned(),
+                password: Some(doc_url.password().unwrap_or("").to_owned())
+            }))
+        },
+        _ => None
     }
 }
 
