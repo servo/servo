@@ -2134,7 +2134,7 @@ impl NodeMethods for Node {
         }
         fn is_equal_node(this: &Node, node: &Node) -> bool {
             // Step 2.
-            if this.type_id() != node.type_id() {
+            if this.NodeType() != node.NodeType() {
                 return false;
             }
 
