@@ -13,15 +13,14 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
-use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
-use js::glue::{GetProxyPrivate, SetProxyExtra};
-use js::jsapi::{Handle, JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue};
-use js::jsapi::{HandleId, HandleObject, MutableHandle, MutableHandleValue};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GetClass};
-use js::jsapi::{JSContext, JSErrNum, JSObject, JSPropertyDescriptor};
-use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_DefinePropertyById6, JS_GetOwnPropertyDescriptorById};
-use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
+use js::glue::{CreateWrapperProxyHandler, GetProxyPrivate, NewWindowProxy};
+use js::glue::{ProxyTraps, SetProxyExtra};
+use js::jsapi::{Handle, HandleId, HandleObject, JSAutoCompartment, JSAutoRequest, JSContext};
+use js::jsapi::{JSErrNum, JSObject, JSPropertyDescriptor, JS_AlreadyHasOwnPropertyById};
+use js::jsapi::{JS_DefinePropertyById6, JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
+use js::jsapi::{JS_GetClass, JS_GetOwnPropertyDescriptorById, MutableHandle, MutableHandleValue};
+use js::jsapi::{ObjectOpResult, RootedObject, RootedValue};
+use js::jsval::{ObjectValue, PrivateValue, UndefinedValue};
 
 #[dom_struct]
 pub struct BrowsingContext {
