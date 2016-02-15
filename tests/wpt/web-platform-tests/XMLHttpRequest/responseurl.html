@@ -20,7 +20,7 @@
       test(function() {
         var client = new XMLHttpRequest()
         assert_equals(client.responseURL, "")
-        expected = "http://example.not"
+        expected = "resources/image.gif"
         client.open("GET", "resource/redirect.py&location=" + expected, false)
         client.send()
         assert_equals(client.responseURL, expected)
