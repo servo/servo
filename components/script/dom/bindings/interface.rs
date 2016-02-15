@@ -13,13 +13,11 @@ use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_GetFunctionObject};
 use js::jsapi::{JS_GetPrototype, JS_InternString, JS_LinkConstructorAndPrototype};
 use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_DefineProperty};
 use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject};
-use js::jsapi::{RootedString, Value};
-use js::jsapi::{RootedValue};
+use js::jsapi::{RootedString, RootedValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
 use js::{JSPROP_ENUMERATE, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
-use libc::c_uint;
 use std::ptr;
 
 /// Representation of an IDL constant value.
@@ -61,7 +59,7 @@ impl ConstantSpec {
 
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
-    unsafe extern "C" fn (arg1: *mut JSContext, arg2: c_uint, arg3: *mut JSVal) -> bool;
+    unsafe extern "C" fn (arg1: *mut JSContext, arg2: libc::c_uint, arg3: *mut JSVal) -> bool;
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
