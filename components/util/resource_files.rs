@@ -34,6 +34,22 @@ pub fn resources_dir_path() -> PathBuf {
             // under `<servo source>[/$target_triple]/target/debug`
             // or `<servo source>[/$target_triple]/target/release`.
             let mut path = env::current_exe().expect("can't get exe path");
+
+            // Follow symlink until it's not a link anymore.
+            // Example:
+            // /usr/local/bin/servo links to ../opt/servo/bin/servo which links to ../servo
+            loop {
+                match path.read_link() {
+                    Ok(resolved_path) => {
+                        // Remove file name (./servo)
+                        path.pop();
+                        // expand with the resolved path, which includes the file name (./servo)
+                        path.push(resolved_path);
+                    },
+                    _ => break,
+                }
+            }
+
             path.pop();
             path.push("resources");
             if !path.is_dir() {   // resources dir not in same dir as exe?
