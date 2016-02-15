@@ -15,8 +15,8 @@ html/cssom-view-window-screen-interface.htm	79daf2ef9d0330e2b53c927d08176233fa5d
 xhtml1/cssom-view-window-screen-interface.xht	79daf2ef9d0330e2b53c927d08176233fa5d1536	?
 html/elementfrompoint-001.htm	00242151f0ccec94846f3beae1d9e3a3bc3590f0	?
 xhtml1/elementfrompoint-001.xht	00242151f0ccec94846f3beae1d9e3a3bc3590f0	?
-html/elementfromposition.htm	0f1ddd54f1c9a31666c541814998c0ae035a4703	?
-xhtml1/elementfromposition.xht	0f1ddd54f1c9a31666c541814998c0ae035a4703	?
+html/elementfromposition.htm	8267d99d7721978fab7c386c463d1407df1d1234	?
+xhtml1/elementfromposition.xht	8267d99d7721978fab7c386c463d1407df1d1234	?
 html/htmlelement-offset-width-001.htm	2aa3ebf3ff6268a05bc53f09d8f54c32b9f3dac8	?
 xhtml1/htmlelement-offset-width-001.xht	2aa3ebf3ff6268a05bc53f09d8f54c32b9f3dac8	?
 html/matchmedia.htm	968cc094c6258392a6d1f8dd5eb814f43ed6692f	?
@@ -35,6 +35,8 @@ html/scrollwidthheight.htm	dc82a1c1dfddec949ed64ab7ffb8c30625b911b2	?
 xhtml1/scrollwidthheight.xht	dc82a1c1dfddec949ed64ab7ffb8c30625b911b2	?
 html/scrollwidthheightwhennotscrollable.htm	5d33a8bab0ff6b187dd544afaefce6b7662128b5	?
 xhtml1/scrollwidthheightwhennotscrollable.xht	5d33a8bab0ff6b187dd544afaefce6b7662128b5	?
+html/ttwf-js-cssomview-getclientrects-length.htm	e58e37e2af72fc1e3cb6faf9a4368a531d971d20	?
+xhtml1/ttwf-js-cssomview-getclientrects-length.xht	e58e37e2af72fc1e3cb6faf9a4368a531d971d20	?
 html/ttwf-scrollintoview.htm	39b4f7131eaae2baedbad247d316af93dda5e0f0	?
 xhtml1/ttwf-scrollintoview.xht	39b4f7131eaae2baedbad247d316af93dda5e0f0	?
 html/window-interface.htm	40732ddf8d7cd2185d6a6cb9d57d9dcbd2d73c42	?

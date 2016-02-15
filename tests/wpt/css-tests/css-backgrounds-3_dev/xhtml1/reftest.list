@@ -241,5 +241,4 @@ css3-border-image-source.xht == reference/css3-border-image-source-ref.xht
 css3-box-shadow.xht == reference/css3-box-shadow-ref.xht
 diagonal-percentage-vector-background.xht == reference/diagonal-percentage-vector-background-ref.xht
 scroll-positioned-multiple-background-images.xht == reference/60x60-green-background.xht
-ttwf-reftest-background-repeat-x.xht == reference/ttwf-reftest-background-repeat-x-ref.xht
 ttwf-reftest-borderRadius.xht == reference/ttwf-reftest-borderRadius-ref.xht

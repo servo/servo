@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSSOM View Module Level 1 Test Suite</h1>
-  <h2>Extensions to the Element Interface (6 tests)</h2>
+  <h2>Extensions to the Element Interface (7 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -30,7 +30,7 @@
     <tbody id="s7">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7">+</a>
-        <a href="http://www.w3.org/TR/cssom-view/#extensions-to-the-element-interface">7 Extensions to the Element Interface</a></th></tr>
+        <a href="https://www.w3.org/TR/cssom-view/#extensions-to-the-element-interface">7 Extensions to the Element Interface</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.#dom-element-clientheight">
@@ -47,9 +47,9 @@
     </tbody>
     <tbody id="s7.#dom-element-getboundingclientrect">
       <!-- 2 tests -->
-      <tr id="cssom-getboundingclientrect-001-7.#dom-element-getboundingclientrect" class="primary dom script">
-        <td><strong>
-            <a href="cssom-getBoundingClientRect-001.xht">cssom-getboundingclientrect-001</a></strong></td>
+      <tr id="cssom-getboundingclientrect-001-7.#dom-element-getboundingclientrect" class="dom script">
+        <td>
+            <a href="cssom-getBoundingClientRect-001.xht">cssom-getboundingclientrect-001</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>CSSOM View - 6.1 - getBoundingClientRect tests
@@ -68,10 +68,10 @@
       </tr>
     </tbody>
     <tbody id="s7.#dom-element-getclientrects">
-      <!-- 2 tests -->
-      <tr id="cssom-getboundingclientrect-002-7.#dom-element-getclientrects" class="primary dom script">
-        <td><strong>
-            <a href="cssom-getBoundingClientRect-002.xht">cssom-getboundingclientrect-002</a></strong></td>
+      <!-- 3 tests -->
+      <tr id="cssom-getboundingclientrect-002-7.#dom-element-getclientrects" class="dom script">
+        <td>
+            <a href="cssom-getBoundingClientRect-002.xht">cssom-getboundingclientrect-002</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>getBoundingClientRect of element outside DOM
@@ -80,14 +80,25 @@
           </ul>
         </td>
       </tr>
-      <tr id="cssom-getclientrects-7.#dom-element-getclientrects" class="primary dom script">
-        <td><strong>
-            <a href="cssom-getClientRects.xht">cssom-getclientrects</a></strong></td>
+      <tr id="cssom-getclientrects-7.#dom-element-getclientrects" class="dom script">
+        <td>
+            <a href="cssom-getClientRects.xht">cssom-getclientrects</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>getClientRects of element outside DOM
           <ul class="assert">
             <li>Calling getClientRects on an element that is outside of the DOM (and therefore does not have an associated layout box) should result in an empty DOMRectList and should definitely not throw an error.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ttwf-js-cssomview-getclientrects-length-7.#dom-element-getclientrects" class="primary dom script">
+        <td><strong>
+            <a href="ttwf-js-cssomview-getclientrects-length.xht">ttwf-js-cssomview-getclientrects-length</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>the length of getClientRects
+          <ul class="assert">
+            <li>getClientRects will return rects of the correct number</li>
           </ul>
         </td>
       </tr>
@@ -97,9 +108,9 @@
     </tbody>
     <tbody id="s7.#dom-element-scrollintoview">
       <!-- 1 tests -->
-      <tr id="ttwf-scrollintoview-7.#dom-element-scrollintoview" class="primary dom script">
-        <td><strong>
-            <a href="ttwf-scrollintoview.xht">ttwf-scrollintoview</a></strong></td>
+      <tr id="ttwf-scrollintoview-7.#dom-element-scrollintoview" class="dom script">
+        <td>
+            <a href="ttwf-scrollintoview.xht">ttwf-scrollintoview</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>CSSOM View - 6 - scrollIntoView tests
@@ -114,17 +125,17 @@
     </tbody>
     <tbody id="s7.#dom-element-scrollwidth">
       <!-- 2 tests -->
-      <tr id="scrollwidthheight-7.#dom-element-scrollwidth" class="primary dom script">
-        <td><strong>
-            <a href="scrollWidthHeight.xht">scrollwidthheight</a></strong></td>
+      <tr id="scrollwidthheight-7.#dom-element-scrollwidth" class="dom script">
+        <td>
+            <a href="scrollWidthHeight.xht">scrollwidthheight</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>CSSOM View scrollWidth and scrollHeight
         </td>
       </tr>
-      <tr id="scrollwidthheightwhennotscrollable-7.#dom-element-scrollwidth" class="primary dom script">
-        <td><strong>
-            <a href="scrollWidthHeightWhenNotScrollable.xht">scrollwidthheightwhennotscrollable</a></strong></td>
+      <tr id="scrollwidthheightwhennotscrollable-7.#dom-element-scrollwidth" class="dom script">
+        <td>
+            <a href="scrollWidthHeightWhenNotScrollable.xht">scrollwidthheightwhennotscrollable</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>CSSOM View scrollWidth/scrollHeight (for nonscrollable elements)
@@ -140,13 +151,13 @@
     <tbody id="s7.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
-        <a href="http://www.w3.org/TR/cssom-view/#the-getclientrects()-and-getboundingclientrect()-methods">7.1 The getClientRects() and getBoundingClientRect() methods</a></th></tr>
+        <a href="https://www.w3.org/TR/cssom-view/#the-getclientrects()-and-getboundingclientrect()-methods">7.1 The getClientRects() and getBoundingClientRect() methods</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.2">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.2">+</a>
-        <a href="http://www.w3.org/TR/cssom-view/#element-scrolling-members">7.2 Element Scrolling Members</a></th></tr>
+        <a href="https://www.w3.org/TR/cssom-view/#element-scrolling-members">7.2 Element Scrolling Members</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.2.#scroll-an-element">

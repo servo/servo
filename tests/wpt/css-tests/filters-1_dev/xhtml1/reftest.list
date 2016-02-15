@@ -17,6 +17,10 @@ filter-contrast-003.xht == reference/filter-contrast-003-ref.xht
 filter-external-001-test.xht == reference/filter-external-001-ref.xht
 filter-external-002-test.xht == reference/filter-external-001-ref.xht
 filter-grayscale-001.xht == reference/filter-grayscale-ref.xht
+filter-grayscale-002.xht == reference/filter-grayscale-ref.xht
+filter-grayscale-003.xht == reference/filter-grayscale-ref.xht
+filter-grayscale-004.xht == reference/filter-grayscale-ref.xht
+filter-grayscale-005.xht == reference/filter-grayscale-ref.xht
 filter-hue_rotate-001-test.xht == reference/filter-hue_rotate-001-ref.xht
 filter-invert-001-test.xht == reference/filter-invert-001-ref.xht
 filter-invert-002-test.xht == reference/filter-invert-002-ref.xht
