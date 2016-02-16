@@ -587,31 +587,32 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
-        Some(tile_size_str) => tile_size_str.parse().unwrap(),
+        Some(tile_size_str) => tile_size_str.parse().expect("Error parsing option: -s"),
         None => 512,
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        dppx_str.parse().unwrap()
+        dppx_str.parse().expect("Error parsing option: --device-pixel-ratio")
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {
-        Some(paint_threads_str) => paint_threads_str.parse().unwrap(),
+        Some(paint_threads_str) => paint_threads_str.parse().expect("Error parsing option: -t"),
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
     let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
-        period.parse().unwrap()
+        period.parse().expect("Error parsing option: -p")
     });
+
     let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        period.parse().unwrap()
+        period.parse().expect("Error parsing option: -m")
     });
 
     let gpu_painting = !FORCE_CPU_PAINTING && opt_match.opt_present("g");
 
     let mut layout_threads: usize = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => layout_threads_str.parse().unwrap(),
+        Some(layout_threads_str) => layout_threads_str.parse().expect("Error parsing option: -y"),
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
@@ -625,16 +626,18 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
-        port.parse().unwrap()
+        port.parse().expect("Error parsing option: --devtools")
     });
 
     let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
-        port.parse().unwrap()
+        port.parse().expect("Error parsing option: --webdriver")
     });
 
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
-            let res: Vec<u32> = res_string.split('x').map(|r| r.parse().unwrap()).collect();
+            let res: Vec<u32> = res_string.split('x').map(|r| {
+                r.parse().expect("Error parsing option: --resolution")
+            }).collect();
             Size2D::typed(res[0], res[1])
         }
         None => {
