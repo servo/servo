@@ -34,6 +34,8 @@ pub fn resources_dir_path() -> PathBuf {
             // under `<servo source>[/$target_triple]/target/debug`
             // or `<servo source>[/$target_triple]/target/release`.
             let mut path = env::current_exe().expect("can't get exe path");
+            // Follow symlink
+            path = path.canonicalize().expect("path does not exist");
             path.pop();
             path.push("resources");
             if !path.is_dir() {   // resources dir not in same dir as exe?
