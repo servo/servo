@@ -21,7 +21,7 @@ use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::{ByteString, USVString, is_token};
 use dom::blob::Blob;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
@@ -345,7 +345,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some(Method::Extension(ref t)) if &**t == "TRACK" => Err(Error::Security),
             Some(parsed_method) => {
                 // Step 3
-                if !method.is_token() {
+                if !is_token(&method) {
                     return Err(Error::Syntax)
                 }
 
@@ -413,7 +413,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
         // FIXME(#9548): Step 3. Normalize value
         // Step 4
-        if !name.is_token() || !value.is_field_value() {
+        if !is_token(&name) || !value.is_field_value() {
             return Err(Error::Syntax);
         }
         let name_lower = name.to_lower();

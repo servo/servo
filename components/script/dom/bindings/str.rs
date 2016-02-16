@@ -49,12 +49,6 @@ impl ByteString {
         ByteString::new(self.0.to_ascii_lowercase())
     }
 
-    /// Returns whether `self` is a `token`, as defined by
-    /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
-    pub fn is_token(&self) -> bool {
-        is_token(&self.0)
-    }
-
     /// Returns whether `self` is a `field-value`, as defined by
     /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
     pub fn is_field_value(&self) -> bool {
