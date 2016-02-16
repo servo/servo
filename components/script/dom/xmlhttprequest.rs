@@ -1106,7 +1106,7 @@ impl XMLHttpRequest {
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
         // Step 1, 2, 6
-        charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
+        charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap()
     }
 
     // https://xhr.spec.whatwg.org/#blob-response
@@ -1173,7 +1173,7 @@ impl XMLHttpRequest {
             return NullValue();
         }
         // Step 4
-        let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap().to_owned();
+        let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
         let json_text: Vec<u16> = json_text.utf16_units().collect();
         // Step 5
         let mut rval = RootedValue::new(cx, UndefinedValue());
@@ -1195,7 +1195,7 @@ impl XMLHttpRequest {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let wr = wr.r();
-        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
         parse_html(document.r(), DOMString::from(decoded), wr.get_url(), ParseContext::Owner(Some(wr.pipeline())));
@@ -1206,7 +1206,7 @@ impl XMLHttpRequest {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let wr = wr.r();
-        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
         parse_xml(document.r(), DOMString::from(decoded), wr.get_url(), xml::ParseContext::Owner(Some(wr.pipeline())));
