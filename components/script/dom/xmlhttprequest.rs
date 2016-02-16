@@ -55,6 +55,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
+use std::str;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
@@ -406,12 +407,15 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
-    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
+    fn SetRequestHeader(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState);
         }
-        // FIXME(#9548): Step 3. Normalize value
+
+        // Step 3
+        let value = trim_http_whitespace(&value);
+
         // Step 4
         if !is_token(&name) || !is_field_value(&value) {
             return Err(Error::Syntax);
@@ -438,24 +442,24 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             None => unreachable!()
         };
 
-        debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), value.as_str());
+        debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), str::from_utf8(value).ok());
         let mut headers = self.request_headers.borrow_mut();
 
 
         // Step 6
-        match headers.get_raw(name_str) {
+        let value = match headers.get_raw(name_str) {
             Some(raw) => {
                 debug!("SetRequestHeader: old value = {:?}", raw[0]);
                 let mut buf = raw[0].clone();
                 buf.extend_from_slice(b", ");
-                buf.extend_from_slice(&value);
+                buf.extend_from_slice(value);
                 debug!("SetRequestHeader: new value = {:?}", buf);
-                value = ByteString::new(buf);
+                buf
             },
-            None => {}
-        }
+            None => value.into(),
+        };
 
-        headers.set_raw(name_str.to_owned(), vec![value.into()]);
+        headers.set_raw(name_str.to_owned(), vec![value]);
         Ok(())
     }
 
@@ -1451,4 +1455,28 @@ pub fn is_field_value(slice: &[u8]) -> bool {
             _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
         }
     })
+}
+
+/// Normalize `self`, as defined by
+/// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
+pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
+    const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
+
+    loop {
+        match slice.split_first() {
+            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    loop {
+        match slice.split_last() {
+            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    slice
 }
