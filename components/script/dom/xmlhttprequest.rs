@@ -413,7 +413,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
         // FIXME(#9548): Step 3. Normalize value
         // Step 4
-        if !is_token(&name) || !value.is_field_value() {
+        if !is_token(&name) || !is_field_value(&value) {
             return Err(Error::Syntax);
         }
         let name_lower = name.to_lower();
@@ -1387,4 +1387,68 @@ impl Extractable for SendParam {
             },
         }
     }
+}
+
+/// Returns whether `bs` is a `field-value`, as defined by
+/// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
+pub fn is_field_value(slice: &[u8]) -> bool {
+    // Classifications of characters necessary for the [CRLF] (SP|HT) rule
+    #[derive(PartialEq)]
+    enum PreviousCharacter {
+        Other,
+        CR,
+        LF,
+        SPHT, // SP or HT
+    }
+    let mut prev = PreviousCharacter::Other; // The previous character
+    slice.iter().all(|&x| {
+        // http://tools.ietf.org/html/rfc2616#section-2.2
+        match x {
+            13  => { // CR
+                if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT {
+                    prev = PreviousCharacter::CR;
+                    true
+                } else {
+                    false
+                }
+            },
+            10 => { // LF
+                if prev == PreviousCharacter::CR {
+                    prev = PreviousCharacter::LF;
+                    true
+                } else {
+                    false
+                }
+            },
+            32 => { // SP
+                if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
+                    prev = PreviousCharacter::SPHT;
+                    true
+                } else if prev == PreviousCharacter::Other {
+                    // Counts as an Other here, since it's not preceded by a CRLF
+                    // SP is not a CTL, so it can be used anywhere
+                    // though if used immediately after a CR the CR is invalid
+                    // We don't change prev since it's already Other
+                    true
+                } else {
+                    false
+                }
+            },
+            9 => { // HT
+                if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
+                    prev = PreviousCharacter::SPHT;
+                    true
+                } else {
+                    false
+                }
+            },
+            0...31 | 127 => false, // CTLs
+            x if x > 127 => false, // non ASCII
+            _ if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT => {
+                prev = PreviousCharacter::Other;
+                true
+            },
+            _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
+        }
+    })
 }
