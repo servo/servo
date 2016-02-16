@@ -21,7 +21,7 @@ use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
@@ -269,7 +269,7 @@ pub struct JsTimers {
 #[privatize]
 struct JsTimersState {
     #[ignore_heap_size_of = "Because it is non-owning"]
-    oneshots: Weak<OneshotTimers>,
+    oneshots: Rc<OneshotTimers>,
     next_timer_handle: Cell<JsTimerHandle>,
     active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
@@ -327,7 +327,7 @@ impl JsTimers {
     pub fn new(oneshots: Rc<OneshotTimers>) -> JsTimers {
         JsTimers {
             state: Rc::new(JsTimersState {
-                oneshots: Rc::downgrade(&oneshots),
+                oneshots: oneshots,
                 next_timer_handle: Cell::new(JsTimerHandle(1)),
                 active_timers: DOMRefCell::new(HashMap::new()),
                 nesting_level: Cell::new(0),
@@ -391,15 +391,8 @@ impl JsTimers {
         let mut active_timers = self.state.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
-            self.state.oneshots().unschedule_callback(entry.oneshot_handle);
+            self.state.oneshots.unschedule_callback(entry.oneshot_handle);
         }
-    }
-}
-
-impl JsTimersState {
-    fn oneshots(&self) -> Rc<OneshotTimers> {
-        self.oneshots.upgrade()
-            .expect("OneshotTimers should be reachable while the script task runs.")
     }
 }
 
@@ -421,7 +414,7 @@ fn initialize_and_schedule(mut task: JsTimerTask) {
     // essentially step 11-14
     let source = task.source;
     let callback = OneshotTimerCallback::JsTimer(task);
-    let oneshot_handle = timers.oneshots().schedule_callback(callback, duration, source);
+    let oneshot_handle = timers.oneshots.schedule_callback(callback, duration, source);
 
     // step 3
     let entry = active_timers.entry(handle).or_insert(JsTimerEntry {
