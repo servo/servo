@@ -5,13 +5,13 @@
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
-use std::ascii::AsciiExt;
 use num::ToPrimitive;
+use std::ascii::AsciiExt;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS, WHITESPACE, LengthOrPercentageOrAuto, parse_legacy_color};
-use util::str::{parse_length, parse_nonzero_length, read_numbers, split_html_space_chars, str_join};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS, WHITESPACE, LengthOrPercentageOrAuto};
+use util::str::{parse_length, read_numbers, split_html_space_chars, str_join};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.

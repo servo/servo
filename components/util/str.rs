@@ -4,8 +4,6 @@
 
 use app_units::Au;
 use libc::c_char;
-use num_lib::ToPrimitive;
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
