@@ -29,8 +29,8 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
+use style_traits::cursor::Cursor;
 use url::Url;
-use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 #[cfg(feature = "window")]
 use util::opts;

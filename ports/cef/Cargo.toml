@@ -50,6 +50,9 @@ features = ["non-geckolib"]
 [dependencies.style]
 path = "../../components/style"
 
+[dependencies.style_traits]
+path = "../../components/style_traits"
+
 [dependencies.devtools]
 path = "../../components/devtools"
 

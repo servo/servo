@@ -28,7 +28,7 @@ use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
 use style::values::AuExtensionMethods;
-use util::cursor::Cursor;
+use style_traits::cursor::Cursor;
 use util::logical_geometry::WritingMode;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 

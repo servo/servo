@@ -50,7 +50,6 @@ extern crate uuid;
 use std::sync::Arc;
 
 pub mod cache;
-pub mod cursor;
 pub mod debug_utils;
 pub mod deque;
 pub mod geometry;

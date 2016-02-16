@@ -35,7 +35,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use std_url::Url;
-use util::cursor::Cursor;
+use style_traits::cursor::Cursor;
 use util::geometry::ScreenPx;
 #[cfg(target_os="linux")]
 extern crate x11;

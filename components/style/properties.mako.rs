@@ -2517,7 +2517,6 @@ pub mod longhands {
     ${new_style_struct("Pointing", is_inherited=True)}
 
     <%self:longhand name="cursor">
-        use util::cursor as util_cursor;
         pub use self::computed_value::T as SpecifiedValue;
         use values::computed::ComputedValueAsSpecified;
 
@@ -2526,7 +2525,7 @@ pub mod longhands {
         pub mod computed_value {
             use cssparser::ToCss;
             use std::fmt;
-            use util::cursor::Cursor;
+            use style_traits::cursor::Cursor;
 
             #[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
             pub enum T {
@@ -2550,11 +2549,12 @@ pub mod longhands {
         }
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             use std::ascii::AsciiExt;
+            use style_traits::cursor::Cursor;
             let ident = try!(input.expect_ident());
             if ident.eq_ignore_ascii_case("auto") {
                 Ok(SpecifiedValue::AutoCursor)
             } else {
-                util_cursor::Cursor::from_css_keyword(&ident)
+                Cursor::from_css_keyword(&ident)
                 .map(SpecifiedValue::SpecifiedCursor)
             }
         }

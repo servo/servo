@@ -15,9 +15,9 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Failure, NavigationDirection, PipelineId};
 use msg::constellation_msg::{LoadData, SubpageId};
 use offscreen_gl_context::GLContextAttributes;
+use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
-use util::cursor::Cursor;
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
