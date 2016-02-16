@@ -18,7 +18,8 @@ use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
-use util::str::{self, DOMString, LengthOrPercentageOrAuto};
+use style::attr::parse_unsigned_integer;
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLTableElement {
@@ -176,12 +177,12 @@ impl VirtualMethods for HTMLTableElement {
             atom!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
-                    str::parse_unsigned_integer(value.chars()).unwrap_or(1)
+                    parse_unsigned_integer(value.chars()).unwrap_or(1)
                 }));
             }
             atom!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_unsigned_integer(value.chars())
+                    parse_unsigned_integer(value.chars())
                 }));
             },
             _ => {},

@@ -5,12 +5,13 @@
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
+use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto, WHITESPACE, parse_unsigned_integer, parse_length};
-use util::str::{split_html_space_chars, str_join, parse_integer};
+use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS, WHITESPACE};
+use util::str::{parse_length, read_numbers, split_html_space_chars, str_join};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -27,6 +28,48 @@ pub enum AttrValue {
     Color(DOMString, Option<RGBA>),
     Dimension(DOMString, LengthOrPercentageOrAuto),
     Url(DOMString, Option<Url>),
+}
+
+/// Shared implementation to parse an integer according to
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
+fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
+    let mut input = input.skip_while(|c| {
+        HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
+    }).peekable();
+
+    let sign = match input.peek() {
+        None => return None,
+        Some(&'-') => {
+            input.next();
+            -1
+        },
+        Some(&'+') => {
+            input.next();
+            1
+        },
+        Some(_) => 1,
+    };
+
+    let value = read_numbers(input);
+
+    value.and_then(|value| value.checked_mul(sign))
+}
+
+/// Parse an integer according to
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
+pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
+    do_parse_integer(input).and_then(|result| {
+        result.to_i32()
+    })
+}
+
+/// Parse an integer according to
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
+pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
+    do_parse_integer(input).and_then(|result| {
+        result.to_u32()
+    })
 }
 
 impl AttrValue {
