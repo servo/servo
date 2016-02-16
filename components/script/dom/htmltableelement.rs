@@ -19,7 +19,7 @@ use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::attr::parse_unsigned_integer;
-use util::str::{self, DOMString, LengthOrPercentageOrAuto};
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLTableElement {

@@ -5,6 +5,7 @@
 use app_units::Au;
 use libc::c_char;
 use num_lib::ToPrimitive;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
@@ -12,7 +13,6 @@ use std::fmt;
 use std::iter::{Filter, Peekable};
 use std::ops::{Deref, DerefMut};
 use std::str::{Bytes, CharIndices, FromStr, Split, from_utf8};
-use style::attr::parse_integer;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct DOMString(String);
