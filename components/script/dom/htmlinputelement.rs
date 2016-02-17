@@ -143,21 +143,17 @@ impl HTMLInputElement {
             .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
     }
 
-    fn get_value_mode(&self) -> ValueMode {
-        HTMLInputElement::get_value_mode_for_input_type(self.input_type.get())
-    }
-
     // https://html.spec.whatwg.org/multipage/#input-type-attr-summary
-    fn get_value_mode_for_input_type(input_type: InputType) -> ValueMode {
-        match input_type {
-            InputType::InputSubmit
-                | InputType::InputReset
-                | InputType::InputButton
-                | InputType::InputImage => ValueMode::Default,
-            InputType::InputCheckbox
-                | InputType::InputRadio => ValueMode::DefaultOn,
-            InputType::InputPassword
-                | InputType::InputText => ValueMode::Value,
+    fn get_value_mode(&self) -> ValueMode {
+        match self.input_type.get() {
+            InputType::InputSubmit |
+            InputType::InputReset |
+            InputType::InputButton |
+            InputType::InputImage => ValueMode::Default,
+            InputType::InputCheckbox |
+            InputType::InputRadio => ValueMode::DefaultOn,
+            InputType::InputPassword |
+            InputType::InputText => ValueMode::Value,
             InputType::InputFile => ValueMode::Filename,
         }
     }
@@ -322,16 +318,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn Value(&self) -> DOMString {
         match self.get_value_mode() {
             ValueMode::Filename | ValueMode::Value => self.textinput.borrow().get_content(),
-            ValueMode::Default =>
+            ValueMode::Default => {
                 self.upcast::<Element>()
-                .get_attribute(&ns!(), &atom!("value"))
-                .map_or_else(|| DOMString::from(""),
-                             |a| DOMString::from(a.summarize().value)),
-            ValueMode::DefaultOn =>
+                    .get_attribute(&ns!(), &atom!("value"))
+                    .map_or_else(|| DOMString::from(""),
+                                 |a| DOMString::from(a.summarize().value))
+            }
+            ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                .get_attribute(&ns!(), &atom!("value"))
-                .map_or_else(|| DOMString::from("on"),
-                             |a| DOMString::from(a.summarize().value)),
+                    .get_attribute(&ns!(), &atom!("value"))
+                    .map_or_else(|| DOMString::from("on"),
+                                 |a| DOMString::from(a.summarize().value))
+            }
         }
     }
 
@@ -342,8 +340,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.textinput.borrow_mut().set_content(value.clone());
                 self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
-            },
-            ValueMode::Filename => {},
+            }
+            ValueMode::Filename => {}
         }
 
         self.value_changed.set(true);
@@ -650,6 +648,7 @@ impl VirtualMethods for HTMLInputElement {
                             self.SetValue(DOMString::from(""));
                         }
 
+                        // Step 5
                         if new_type == InputType::InputRadio {
                             self.radio_group_updated(
                                 self.get_radio_group_name().as_ref());
