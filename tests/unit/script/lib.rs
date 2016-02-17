@@ -10,4 +10,5 @@ extern crate util;
 #[cfg(test)] mod textinput;
 #[cfg(test)] mod dom {
     mod blob;
+    mod bindings;
 }
