@@ -153,20 +153,12 @@ impl ServoXMLParser {
         //self.tokenizer.borrow_mut().set_plaintext_state()
     }
 
-    pub fn end_tokenizer(&self) {
-        self.tokenizer.borrow_mut().end()
-    }
-
     pub fn document(&self) -> &Document {
         &self.document
     }
 
     pub fn last_chunk_received(&self) -> &Cell<bool> {
         &self.last_chunk_received
-    }
-
-    pub fn tokenizer(&self) -> &DOMRefCell<Tokenizer> {
-        &self.tokenizer
     }
 }
 
