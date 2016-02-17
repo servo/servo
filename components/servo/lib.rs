@@ -152,7 +152,8 @@ impl Browser {
         });
 
         let (webrender, webrender_api_sender) = if opts::get().use_webrender {
-            let resource_path = resources_dir_path();
+            let mut resource_path = resources_dir_path();
+            resource_path.push("shaders");
 
             // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
             let hidpi_factor = window.as_ref()
