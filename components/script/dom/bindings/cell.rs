@@ -149,4 +149,9 @@ impl<T> DOMRefCell<T> {
     pub fn borrow_mut(&self) -> RefMut<T> {
         self.try_borrow_mut().expect("DOMRefCell<T> already borrowed")
     }
+
+    /// Consumes the `DOMRefCell`, returning the wrapped value.
+    pub fn into_inner(self) -> T {
+        self.value.into_inner()
+    }
 }

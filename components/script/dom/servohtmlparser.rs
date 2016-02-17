@@ -19,9 +19,9 @@ use dom::servoxmlparser::ServoXMLParser;
 use dom::window::Window;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
-use html5ever::tokenizer;
+use html5ever::driver::{Parser as H5eParser, parse_document, parse_fragment_for_element};
+use html5ever::tendril::TendrilSink;
 use html5ever::tree_builder;
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
@@ -51,8 +51,6 @@ pub struct FragmentContext<'a> {
     pub context_elem: &'a Node,
     pub form_elem: Option<&'a Node>,
 }
-
-pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 
 #[must_root]
 #[derive(JSTraceable, HeapSizeOf)]
@@ -334,7 +332,7 @@ impl PreInvoke for ParserContext {
 pub struct ServoHTMLParser {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in html5ever"]
-    tokenizer: DOMRefCell<Tokenizer>,
+    html5ever_parser: DOMRefCell<Option<H5eParser<Sink>>>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<VecDeque<String>>,
     /// The document associated with this parser.
@@ -361,7 +359,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
         assert!(!self.suspended.get());
         assert!(self.pending_input.borrow().is_empty());
 
-        self.tokenizer.borrow_mut().end();
+        self.html5ever_parser.borrow_mut().take().unwrap().finish();
         debug!("finished parsing");
 
         self.document.set_current_parser(None);
@@ -381,16 +379,9 @@ impl ServoHTMLParser {
             document: JS::from_ref(document),
         };
 
-        let tb = TreeBuilder::new(sink, TreeBuilderOpts {
-            ignore_missing_rules: true,
-            .. Default::default()
-        });
-
-        let tok = tokenizer::Tokenizer::new(tb, Default::default());
-
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
-            tokenizer: DOMRefCell::new(tok),
+            html5ever_parser: DOMRefCell::new(Some(parse_document(sink, Default::default()))),
             pending_input: DOMRefCell::new(VecDeque::new()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
@@ -410,24 +401,15 @@ impl ServoHTMLParser {
             document: JS::from_ref(document),
         };
 
-        let tb_opts = TreeBuilderOpts {
-            ignore_missing_rules: true,
-            .. Default::default()
-        };
-        let tb = TreeBuilder::new_for_fragment(sink,
-                                               JS::from_ref(fragment_context.context_elem),
-                                               fragment_context.form_elem.map(|n| JS::from_ref(n)),
-                                               tb_opts);
-
-        let tok_opts = tokenizer::TokenizerOpts {
-            initial_state: Some(tb.tokenizer_state_for_context_elem()),
-            .. Default::default()
-        };
-        let tok = tokenizer::Tokenizer::new(tb, tok_opts);
+        let html5ever_parser = parse_fragment_for_element(
+            sink,
+            Default::default(),
+            JS::from_ref(fragment_context.context_elem),
+            fragment_context.form_elem.map(|n| JS::from_ref(n)));
 
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
-            tokenizer: DOMRefCell::new(tok),
+            html5ever_parser: DOMRefCell::new(Some(html5ever_parser)),
             pending_input: DOMRefCell::new(VecDeque::new()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
@@ -439,23 +421,13 @@ impl ServoHTMLParser {
                            ServoHTMLParserBinding::Wrap)
     }
 
-    #[inline]
-    pub fn tokenizer(&self) -> &DOMRefCell<Tokenizer> {
-        &self.tokenizer
-    }
-
     pub fn set_plaintext_state(&self) {
-        self.tokenizer.borrow_mut().set_plaintext_state()
-    }
-
-    pub fn end_tokenizer(&self) {
-        self.tokenizer.borrow_mut().end()
+        self.html5ever_parser.borrow_mut().as_mut().unwrap().tokenizer.set_plaintext_state()
     }
 
     pub fn pending_input(&self) -> &DOMRefCell<VecDeque<String>> {
         &self.pending_input
     }
-
 }
 
 
@@ -467,9 +439,9 @@ impl ServoHTMLParser {
            self.document.reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
             if let Some(chunk) = pending_input.pop_front() {
-                self.tokenizer.borrow_mut().feed(chunk.into());
+                self.html5ever_parser.borrow_mut().as_mut().unwrap().process(chunk.into());
             } else {
-                self.tokenizer.borrow_mut().run();
+                self.html5ever_parser.borrow_mut().as_mut().unwrap().tokenizer.run();
             }
 
             // Document parsing is blocked on an external resource.
@@ -527,14 +499,14 @@ impl tree_builder::Tracer for Tracer {
     }
 }
 
-impl JSTraceable for Tokenizer {
+impl JSTraceable for H5eParser<Sink> {
     fn trace(&self, trc: *mut JSTracer) {
         let tracer = Tracer {
             trc: trc,
         };
         let tracer = &tracer as &tree_builder::Tracer<Handle=JS<Node>>;
 
-        let tree_builder = self.sink();
+        let tree_builder = self.tokenizer.sink();
         tree_builder.trace_handles(tracer);
         tree_builder.sink().trace(trc);
     }
