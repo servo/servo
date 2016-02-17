@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::utils::WindowProxyHandler;
@@ -78,7 +78,7 @@ impl BrowsingContext {
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
-        self.frame_element.as_ref().map(|element| &**element)
+        self.frame_element.r()
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {

@@ -444,6 +444,13 @@ impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
     }
 }
 
+/// Get an `Option<&T> out of an `Option<JS<T>>`
+impl<T: Reflectable> RootedReference<T> for Option<JS<T>> {
+    fn r(&self) -> Option<&T> {
+        self.as_ref().map(|inner| &**inner)
+    }
+}
+
 /// Get an `Option<Option<&T>>` out of an `Option<Option<Root<T>>>`
 pub trait OptionalRootedReference<T> {
     /// Obtain a safe optional optional reference to the wrapped JS owned-value

@@ -812,7 +812,7 @@ impl Activatable for HTMLInputElement {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
                     let name = self.get_radio_group_name();
-                    match cache.checked_radio.as_ref().map(|t| &*t) {
+                    match cache.checked_radio.r() {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
