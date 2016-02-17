@@ -48,6 +48,9 @@ mod export {
 #[cfg(feature = "webdriver")]
 extern crate webdriver_server;
 
+extern crate webrender;
+extern crate webrender_traits;
+
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
     webdriver_server::start_server(port, constellation);
@@ -82,6 +85,7 @@ use std::borrow::Borrow;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::opts;
+use util::resource_files::resources_dir_path;
 
 pub use _util as util;
 pub use export::canvas;
@@ -147,6 +151,35 @@ impl Browser {
             devtools::start_server(port)
         });
 
+        let (webrender, webrender_api_sender) = if opts::get().use_webrender {
+            let mut resource_path = resources_dir_path();
+            resource_path.push("shaders");
+
+            // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
+            let hidpi_factor = window.as_ref()
+                                     .map(|window| window.hidpi_factor().get())
+                                     .unwrap_or(1.0);
+            let device_pixel_ratio = match opts.device_pixels_per_px {
+                Some(device_pixels_per_px) => device_pixels_per_px,
+                None => match opts.output_file {
+                    Some(_) => 1.0,
+                    None => hidpi_factor,
+                }
+            };
+
+            let (webrender, webrender_sender) =
+                webrender::Renderer::new(webrender::RendererOptions {
+                    device_pixel_ratio: device_pixel_ratio,
+                    resource_path: resource_path,
+                    enable_aa: opts.enable_text_antialiasing,
+                    enable_msaa: opts.use_msaa,
+                    enable_profiler: opts.webrender_stats,
+                });
+            (Some(webrender), Some(webrender_sender))
+        } else {
+            (None, None)
+        };
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -155,7 +188,8 @@ impl Browser {
                                                       time_profiler_chan.clone(),
                                                       mem_profiler_chan.clone(),
                                                       devtools_chan,
-                                                      supports_clipboard);
+                                                      supports_clipboard,
+                                                      webrender_api_sender.clone());
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -171,6 +205,8 @@ impl Browser {
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
+            webrender: webrender,
+            webrender_api_sender: webrender_api_sender,
         });
 
         Browser {
@@ -200,11 +236,13 @@ fn create_constellation(opts: opts::Opts,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-                        supports_clipboard: bool) -> Sender<ConstellationMsg> {
+                        supports_clipboard: bool,
+                        webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
     let resource_thread = new_resource_thread(opts.user_agent.clone(), devtools_chan.clone());
-
-    let image_cache_thread = new_image_cache_thread(resource_thread.clone());
-    let font_cache_thread = FontCacheThread::new(resource_thread.clone());
+    let image_cache_thread = new_image_cache_thread(resource_thread.clone(),
+                                                    webrender_api_sender.as_ref().map(|wr| wr.create_api()));
+    let font_cache_thread = FontCacheThread::new(resource_thread.clone(),
+                                                 webrender_api_sender.as_ref().map(|wr| wr.create_api()));
     let storage_thread: StorageThread = StorageThreadFactory::new();
 
     let initial_state = InitialConstellationState {
@@ -217,6 +255,7 @@ fn create_constellation(opts: opts::Opts,
         time_profiler_chan: time_profiler_chan,
         mem_profiler_chan: mem_profiler_chan,
         supports_clipboard: supports_clipboard,
+        webrender_api_sender: webrender_api_sender,
     };
     let constellation_chan =
         Constellation::<layout::layout_thread::LayoutThread,

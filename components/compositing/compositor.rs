@@ -6,7 +6,7 @@ use CompositorMsg as ConstellationMsg;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
 use compositor_thread::{CompositorEventListener, CompositorProxy};
-use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg};
+use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
 use constellation::SendableFrameTree;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -27,15 +27,15 @@ use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
-use msg::constellation_msg::{Image, PixelFormat};
+use msg::constellation_msg::{ConvertPipelineIdFromWebRender, ConvertPipelineIdToWebRender, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::CompositorEvent::{MouseMoveEvent, TouchEvent};
+use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{MouseButton, TouchEventType, TouchId};
+use script_traits::{MouseButton, MouseEventType, TouchEventType, TouchId};
 use scrolling::ScrollingTimerProxy;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -51,6 +51,8 @@ use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
 use util::print_tree::PrintTree;
+use webrender;
+use webrender_traits;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -192,6 +194,12 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The id of the pipeline that was last sent a mouse move event, if any.
     last_mouse_move_recipient: Option<PipelineId>,
+
+    /// The webrender renderer, if enabled.
+    webrender: Option<webrender::Renderer>,
+
+    /// The webrender interface, if enabled.
+    webrender_api: Option<webrender_traits::RenderApi>,
 }
 
 pub struct ScrollZoomEvent {
@@ -261,7 +269,23 @@ pub enum CompositeTarget {
     PngFile
 }
 
-fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLuint>) {
+struct RenderTargetInfo {
+    framebuffer_ids: Vec<gl::GLuint>,
+    texture_ids: Vec<gl::GLuint>,
+    renderbuffer_ids: Vec<gl::GLuint>,
+}
+
+impl RenderTargetInfo {
+    fn empty() -> RenderTargetInfo {
+        RenderTargetInfo {
+            framebuffer_ids: Vec::new(),
+            texture_ids: Vec::new(),
+            renderbuffer_ids: Vec::new()
+        }
+    }
+}
+
+fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
     let framebuffer_ids = gl::gen_framebuffers(1);
     gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
@@ -278,11 +302,62 @@ fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLui
 
     gl::bind_texture(gl::TEXTURE_2D, 0);
 
-    (framebuffer_ids, texture_ids)
+    let renderbuffer_ids = if opts::get().use_webrender {
+        let renderbuffer_ids = gl::gen_renderbuffers(1);
+        gl::bind_renderbuffer(gl::RENDERBUFFER, renderbuffer_ids[0]);
+        gl::renderbuffer_storage(gl::RENDERBUFFER,
+                                 gl::STENCIL_INDEX8,
+                                 width as GLsizei,
+                                 height as GLsizei);
+        gl::framebuffer_renderbuffer(gl::FRAMEBUFFER,
+                                     gl::STENCIL_ATTACHMENT,
+                                     gl::RENDERBUFFER,
+                                     renderbuffer_ids[0]);
+        renderbuffer_ids
+    } else {
+        Vec::new()
+    };
+
+    RenderTargetInfo {
+        framebuffer_ids: framebuffer_ids,
+        texture_ids: texture_ids,
+        renderbuffer_ids: renderbuffer_ids
+    }
 }
 
 pub fn reporter_name() -> String {
     "compositor-reporter".to_owned()
+}
+
+struct RenderNotifier {
+    compositor_proxy: Box<CompositorProxy>,
+    constellation_chan: Sender<ConstellationMsg>,
+}
+
+impl RenderNotifier {
+    fn new(compositor_proxy: Box<CompositorProxy>,
+           constellation_chan: Sender<ConstellationMsg>) -> RenderNotifier {
+        RenderNotifier {
+            compositor_proxy: compositor_proxy,
+            constellation_chan: constellation_chan,
+        }
+    }
+}
+
+impl webrender_traits::RenderNotifier for RenderNotifier {
+    fn new_frame_ready(&mut self) {
+        self.compositor_proxy.recomposite();
+    }
+
+    fn pipeline_size_changed(&mut self,
+                             pipeline_id: webrender_traits::PipelineId,
+                             size: Option<Size2D<f32>>) {
+        let pipeline_id = pipeline_id.from_webrender();
+        let size = size.unwrap_or(Size2D::zero());
+
+        self.constellation_chan.send(ConstellationMsg::FrameSize(pipeline_id,
+                                                                 size)).unwrap();
+    }
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
@@ -306,6 +381,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
         };
+
+        let webrender_api = state.webrender_api_sender.map(|sender| {
+            sender.create_api()
+        });
+
         let native_display = window.native_display();
         IOCompositor {
             window: window,
@@ -345,12 +425,22 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
             pending_subpages: HashSet::new(),
             last_mouse_move_recipient: None,
+            webrender: state.webrender,
+            webrender_api: webrender_api,
         }
     }
 
     pub fn create(window: Rc<Window>, state: InitialCompositorState)
                   -> IOCompositor<Window> {
         let mut compositor = IOCompositor::new(window, state);
+
+        if let Some(ref mut webrender) = compositor.webrender {
+            let compositor_proxy_for_webrender = compositor.channel_to_self
+                                                           .clone_compositor_proxy();
+            let render_notifier = RenderNotifier::new(compositor_proxy_for_webrender,
+                                                      compositor.constellation_chan.clone());
+            webrender.set_render_notifier(Box::new(render_notifier));
+        }
 
         // Set the size of the root layer.
         compositor.update_zoom_transform();
@@ -673,6 +763,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pending_subpages.clear();
 
         self.root_pipeline = Some(frame_tree.pipeline.clone());
+
+        if let Some(ref webrender_api) = self.webrender_api {
+            let pipeline_id = frame_tree.pipeline.id.to_webrender();
+            webrender_api.set_root_pipeline(pipeline_id);
+        }
 
         // If we have an old root layer, release all old tiles before replacing it.
         let old_root_layer = self.scene.root.take();
@@ -1172,6 +1267,36 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             MouseWindowEvent::MouseDown(_, p) => p,
             MouseWindowEvent::MouseUp(_, p) => p,
         };
+
+        if let Some(ref webrender_api) = self.webrender_api {
+            let root_pipeline_id = match self.get_root_pipeline_id() {
+                Some(root_pipeline_id) => root_pipeline_id,
+                None => return,
+            };
+            let root_pipeline = match self.pipeline(root_pipeline_id) {
+                Some(root_pipeline) => root_pipeline,
+                None => return,
+            };
+
+            let translated_point =
+                webrender_api.translate_point_to_layer_space(&point.to_untyped());
+            let event_to_send = match mouse_window_event {
+                MouseWindowEvent::Click(button, _) => {
+                    MouseButtonEvent(MouseEventType::Click, button, translated_point)
+                }
+                MouseWindowEvent::MouseDown(button, _) => {
+                    MouseButtonEvent(MouseEventType::MouseDown, button, translated_point)
+                }
+                MouseWindowEvent::MouseUp(button, _) => {
+                    MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
+                }
+            };
+            root_pipeline.script_chan
+                         .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
+                                                                  event_to_send))
+                         .unwrap();
+        }
+
         match self.find_topmost_layer_at_point(point / self.scene.scale) {
             Some(result) => result.layer.send_mouse_event(self, mouse_window_event, result.point),
             None => {},
@@ -1182,6 +1307,25 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if opts::get().convert_mouse_to_touch {
             self.on_touch_move(TouchId(0), cursor);
             return
+        }
+
+        if let Some(ref webrender_api) = self.webrender_api {
+            let root_pipeline_id = match self.get_root_pipeline_id() {
+                Some(root_pipeline_id) => root_pipeline_id,
+                None => return,
+            };
+            let root_pipeline = match self.pipeline(root_pipeline_id) {
+                Some(root_pipeline) => root_pipeline,
+                None => return,
+            };
+
+            let translated_point =
+                webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
+            let event_to_send = MouseMoveEvent(Some(translated_point));
+            root_pipeline.script_chan
+                         .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
+                                                                  event_to_send))
+                         .unwrap();
         }
 
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
@@ -1285,30 +1429,52 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn process_pending_scroll_events(&mut self) {
         let had_events = self.pending_scroll_zoom_events.len() > 0;
-        for event in std_mem::replace(&mut self.pending_scroll_zoom_events,
-                                             Vec::new()) {
-            let delta = event.delta / self.scene.scale;
-            let cursor = event.cursor.as_f32() / self.scene.scale;
 
-            if let Some(ref mut layer) = self.scene.root {
-                layer.handle_scroll_event(delta, cursor);
+        match self.webrender_api {
+            Some(ref webrender_api) => {
+                // Batch up all scroll events into one, or else we'll do way too much painting.
+                let mut total_delta = None;
+                let mut last_cursor = Point2D::zero();
+                for scroll_event in self.pending_scroll_zoom_events.drain(..) {
+                    let this_delta = scroll_event.delta / self.scene.scale;
+                    last_cursor = scroll_event.cursor.as_f32() / self.scene.scale;
+                    match total_delta {
+                        None => total_delta = Some(this_delta),
+                        Some(ref mut total_delta) => *total_delta = *total_delta + this_delta,
+                    }
+                }
+                // TODO(gw): Support zoom (WR issue #28).
+                if let Some(total_delta) = total_delta {
+                    webrender_api.scroll(total_delta.to_untyped(), last_cursor.to_untyped());
+                }
             }
+            None => {
+                for event in std_mem::replace(&mut self.pending_scroll_zoom_events,
+                                                     Vec::new()) {
+                    let delta = event.delta / self.scene.scale;
+                    let cursor = event.cursor.as_f32() / self.scene.scale;
 
-            if event.magnification != 1.0 {
-                self.zoom_action = true;
-                self.zoom_time = precise_time_s();
-                self.viewport_zoom = ScaleFactor::new(
-                    (self.viewport_zoom.get() * event.magnification)
-                    .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
-                    .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
-                self.update_zoom_transform();
+                    if let Some(ref mut layer) = self.scene.root {
+                        layer.handle_scroll_event(delta, cursor);
+                    }
+
+                    if event.magnification != 1.0 {
+                        self.zoom_action = true;
+                        self.zoom_time = precise_time_s();
+                        self.viewport_zoom = ScaleFactor::new(
+                            (self.viewport_zoom.get() * event.magnification)
+                            .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
+                            .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
+                        self.update_zoom_transform();
+                    }
+
+                    self.perform_updates_after_scroll();
+                }
+
+                if had_events {
+                    self.send_viewport_rects_for_all_layers();
+                }
             }
-
-            self.perform_updates_after_scroll();
-        }
-
-        if had_events {
-            self.send_viewport_rects_for_all_layers();
         }
     }
 
@@ -1542,6 +1708,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// Returns true if any buffer requests were sent or false otherwise.
     fn send_buffer_requests_for_all_layers(&mut self) -> bool {
+        if self.webrender.is_some() {
+            return false;
+        }
+
         if let Some(ref root_layer) = self.scene.root {
             root_layer.update_transform_state(&Matrix4::identity(),
                                               &Matrix4::identity(),
@@ -1656,7 +1826,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
                 for (id, details) in &self.pipeline_details {
-                    pipeline_epochs.insert(*id, details.current_epoch);
+                    if let Some(ref webrender) = self.webrender {
+                        let webrender_pipeline_id = id.to_webrender();
+                        if let Some(webrender_traits::Epoch(epoch)) = webrender.current_epoch(webrender_pipeline_id) {
+                            let epoch = Epoch(epoch);
+                            pipeline_epochs.insert(*id, epoch);
+                        }
+                    } else {
+                        pipeline_epochs.insert(*id, details.current_epoch);
+                    }
                 }
 
                 // Pass the pipeline/epoch states to the constellation and check
@@ -1707,13 +1885,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
     pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
 
-        if !self.context.is_some() {
+        if self.context.is_none() && self.webrender.is_none() {
             return Err(UnableToComposite::NoContext)
         }
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
             return Err(UnableToComposite::WindowUnprepared)
+        }
+
+        if let Some(ref mut webrender) = self.webrender {
+            assert!(self.context.is_none());
+            webrender.update();
         }
 
         let wait_for_stable_image = match target {
@@ -1738,8 +1921,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        let (framebuffer_ids, texture_ids) = match target {
-            CompositeTarget::Window => (vec!(), vec!()),
+        let render_target_info = match target {
+            CompositeTarget::Window => RenderTargetInfo::empty(),
             _ => initialize_png(width, height)
         };
 
@@ -1760,7 +1943,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             };
 
             // Paint the scene.
-            if let Some(ref layer) = self.scene.root {
+            if let Some(ref mut webrender) = self.webrender {
+                assert!(self.context.is_none());
+                webrender.render(self.window_size.to_untyped());
+            } else if let Some(ref layer) = self.scene.root {
                 match self.context {
                     Some(context) => {
                         if let Some((point, size)) = self.viewport {
@@ -1790,16 +1976,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let rv = match target {
             CompositeTarget::Window => None,
             CompositeTarget::WindowAndPng => {
-                let img = self.draw_img(framebuffer_ids, texture_ids, width, height);
+                let img = self.draw_img(render_target_info,
+                                        width,
+                                        height);
                 Some(Image {
                     width: img.width(),
                     height: img.height(),
                     format: PixelFormat::RGB8,
                     bytes: IpcSharedMemory::from_bytes(&*img),
+                    id: None,
                 })
             }
             CompositeTarget::PngFile => {
-                let img = self.draw_img(framebuffer_ids, texture_ids, width, height);
+                let img = self.draw_img(render_target_info,
+                                        width,
+                                        height);
                 let path = opts::get().output_file.as_ref().unwrap();
                 let mut file = File::create(path).unwrap();
                 DynamicImage::ImageRgb8(img).save(&mut file, ImageFormat::PNG).unwrap();
@@ -1820,8 +2011,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn draw_img(&self,
-                framebuffer_ids: Vec<gl::GLuint>,
-                texture_ids: Vec<gl::GLuint>,
+                render_target_info: RenderTargetInfo,
                 width: usize,
                 height: usize)
                 -> RgbImage {
@@ -1832,8 +2022,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-        gl::delete_buffers(&texture_ids);
-        gl::delete_frame_buffers(&framebuffer_ids);
+        gl::delete_buffers(&render_target_info.texture_ids);
+        gl::delete_frame_buffers(&render_target_info.framebuffer_ids);
+        if opts::get().use_webrender  {
+            gl::delete_renderbuffers(&render_target_info.renderbuffer_ids);
+        }
 
         // flip image vertically (texture is upside down)
         let orig_pixels = pixels.clone();
@@ -1859,10 +2052,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn initialize_compositing(&mut self) {
-        let show_debug_borders = opts::get().show_debug_borders;
-        self.context = Some(rendergl::RenderContext::new(self.native_display.clone(),
-                                                         show_debug_borders,
-                                                         opts::get().output_file.is_some()))
+        if self.webrender.is_none() {
+            let show_debug_borders = opts::get().show_debug_borders;
+            self.context = Some(rendergl::RenderContext::new(self.native_display.clone(),
+                                                             show_debug_borders,
+                                                             opts::get().output_file.is_some()))
+        }
     }
 
     fn find_topmost_layer_at_point_for_layer(&self,
@@ -1949,6 +2144,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     {
         let surfaces = buffers.into_iter().map(|buffer| buffer.native_surface);
         self.surface_map.insert_surfaces(&self.native_display, surfaces);
+    }
+
+    fn get_root_pipeline_id(&self) -> Option<PipelineId> {
+        self.scene.root.as_ref().map(|root_layer| root_layer.extra_data.borrow().pipeline_id)
     }
 
     #[allow(dead_code)]
@@ -2076,19 +2275,37 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
     ///
     /// This is used when resizing the window.
     fn repaint_synchronously(&mut self) {
-        while self.shutdown_state != ShutdownState::ShuttingDown {
-            let msg = self.port.recv_compositor_msg();
-            let received_new_buffers = match msg {
-                Msg::AssignPaintedBuffers(..) => true,
-                _ => false,
-            };
-            let keep_going = self.handle_browser_message(msg);
-            if received_new_buffers {
-                self.composite();
-                break
+        if self.webrender.is_none() {
+            while self.shutdown_state != ShutdownState::ShuttingDown {
+                let msg = self.port.recv_compositor_msg();
+                let received_new_buffers = match msg {
+                    Msg::AssignPaintedBuffers(..) => true,
+                    _ => false,
+                };
+                let keep_going = self.handle_browser_message(msg);
+                if received_new_buffers {
+                    self.composite();
+                    break
+                }
+                if !keep_going {
+                    break
+                }
             }
-            if !keep_going {
-                break
+        } else {
+            while self.shutdown_state != ShutdownState::ShuttingDown {
+                let msg = self.port.recv_compositor_msg();
+                let need_recomposite = match msg {
+                    Msg::RecompositeAfterScroll => true,
+                    _ => false,
+                };
+                let keep_going = self.handle_browser_message(msg);
+                if need_recomposite {
+                    self.composite();
+                    break
+                }
+                if !keep_going {
+                    break
+                }
             }
         }
     }

@@ -59,6 +59,7 @@ extern crate unicode_script;
 extern crate url;
 #[macro_use]
 extern crate util;
+extern crate webrender_traits;
 
 #[macro_use]
 mod layout_debug;
@@ -95,4 +96,5 @@ mod table_rowgroup;
 mod table_wrapper;
 mod text;
 mod traversal;
+mod webrender_helpers;
 mod wrapper;
