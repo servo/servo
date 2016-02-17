@@ -2211,10 +2211,10 @@ name = "webrender"
 version = "0.1.0"
 source = "git+https://github.com/glennw/webrender#ff7e7f837e176bc80dd7907ae2c000e4450c654f"
 dependencies = [
- "app_units 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "app_units 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gleam 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2232,9 +2232,9 @@ name = "webrender_traits"
 version = "0.1.0"
 source = "git+https://github.com/glennw/webrender_traits#8ccc1608590d219d1df54e49f2f1e887995b4d60"
 dependencies = [
- "app_units 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "app_units 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
