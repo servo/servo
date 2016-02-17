@@ -2391,9 +2391,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             return CGGeneric("""\
 create_callback_interface_object(cx, receiver, sConstants, %s);""" % str_to_const_array(name))
 
-        protoChain = self.descriptor.prototypeChain
-        if len(protoChain) == 1:
-            getPrototypeProto = "prototype_proto.ptr = JS_GetObjectPrototype(cx, global)"
+        if len(self.descriptor.prototypeChain) == 1:
+            if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
+                getPrototypeProto = "prototype_proto.ptr = JS_GetErrorPrototype(cx)"
+            else:
+                getPrototypeProto = "prototype_proto.ptr = JS_GetObjectPrototype(cx, global)"
         else:
             getPrototypeProto = ("%s::GetProtoObject(cx, global, receiver, prototype_proto.handle_mut())" %
                                  toBindingNamespace(self.descriptor.prototypeChain[-2]))
@@ -5340,10 +5342,10 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
             'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
             'js::jsapi::{JS_ComputeThis, JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
-            'js::jsapi::{JS_GetClass, JS_GetFunctionPrototype, JS_GetGlobalForObject}',
-            'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
-            'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot, JS_HasProperty}',
-            'js::jsapi::{JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
+            'js::jsapi::{JS_GetClass, JS_GetErrorPrototype, JS_GetFunctionPrototype}',
+            'js::jsapi::{JS_GetGlobalForObject, JS_GetObjectPrototype, JS_GetProperty}',
+            'js::jsapi::{JS_GetPropertyById, JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
+            'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
             'js::jsapi::{JS_InternString, JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
             'js::jsapi::{JS_NewObjectWithoutMetadata, JS_NewStringCopyZ, JS_SetProperty}',
             'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment}',

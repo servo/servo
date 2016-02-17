@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
- * The origin of this IDL file is:
- * https://dom.spec.whatwg.org/#domexception
+
+/* https://heycam.github.io/webidl/#es-DOMException
+ * https://heycam.github.io/webidl/#es-DOMException-constructor-object
  */
 
-// XXXkhuey this is an 'exception', not an interface, but we don't have any
-// parser or codegen mechanisms for dealing with exceptions.
+[ExceptionClass]
 interface DOMException {
   const unsigned short INDEX_SIZE_ERR = 1;
   const unsigned short DOMSTRING_SIZE_ERR = 2; // historical
