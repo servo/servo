@@ -8,8 +8,6 @@
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
 #![feature(fnbox)]
-#![feature(heap_api)]
-#![feature(oom)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(reflect_marker)]
@@ -25,6 +23,7 @@ extern crate app_units;
 extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
+extern crate deque;
 extern crate euclid;
 extern crate getopts;
 extern crate heapsize;
@@ -51,7 +50,6 @@ use std::sync::Arc;
 
 pub mod cache;
 pub mod debug_utils;
-pub mod deque;
 pub mod geometry;
 pub mod ipc;
 pub mod linked_list;
