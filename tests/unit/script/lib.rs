@@ -9,5 +9,6 @@ extern crate util;
 #[cfg(all(test, target_pointer_width = "64"))] mod size_of;
 #[cfg(test)] mod textinput;
 #[cfg(test)] mod dom {
+    mod bindings;
     mod blob;
 }
