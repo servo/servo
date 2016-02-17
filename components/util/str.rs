@@ -4,7 +4,6 @@
 
 use app_units::Au;
 use libc::c_char;
-use num_lib::ToPrimitive;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
@@ -171,49 +170,6 @@ pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64
         }).and_then(|accumulator| {
             accumulator.checked_add(d)
         })
-    })
-}
-
-
-/// Shared implementation to parse an integer according to
-/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
-/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
-fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
-    let mut input = input.skip_while(|c| {
-        HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
-    }).peekable();
-
-    let sign = match input.peek() {
-        None => return None,
-        Some(&'-') => {
-            input.next();
-            -1
-        },
-        Some(&'+') => {
-            input.next();
-            1
-        },
-        Some(_) => 1,
-    };
-
-    let value = read_numbers(input);
-
-    value.and_then(|value| value.checked_mul(sign))
-}
-
-/// Parse an integer according to
-/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
-pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
-    do_parse_integer(input).and_then(|result| {
-        result.to_i32()
-    })
-}
-
-/// Parse an integer according to
-/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
-pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
-    do_parse_integer(input).and_then(|result| {
-        result.to_u32()
     })
 }
 
