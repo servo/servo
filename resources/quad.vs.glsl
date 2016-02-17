@@ -26,9 +26,11 @@ void main(void)
     vec2 offsetParams = uOffsets[Bottom7Bits(int(aMisc.x))].xy;
     mat4 matrix = uMatrixPalette[Bottom7Bits(int(aMisc.x))];
 
-    // Extract the rectangle and snap it to device pixels
-    vec2 rect_origin = SnapToPixels(aPositionRect.xy + offsetParams);
-    vec2 rect_size = aPositionRect.zw;
+    vec2 p0 = aPositionRect.xy + offsetParams;
+    vec2 p1 = p0 + aPositionRect.zw;
+
+    vec2 rect_origin = SnapToPixels(p0);
+    vec2 rect_size = SnapToPixels(p1) - rect_origin;
 
     // Determine the position, color, and mask texture coordinates of this vertex.
     vec4 localPos = vec4(0.0, 0.0, 0.0, 1.0);
