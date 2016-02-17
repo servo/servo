@@ -7,6 +7,7 @@
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
+use std::mem;
 use std::ops;
 use std::str;
 use std::str::FromStr;
@@ -24,14 +25,24 @@ impl ByteString {
     /// Returns `self` as a string, if it encodes valid UTF-8, and `None`
     /// otherwise.
     pub fn as_str(&self) -> Option<&str> {
-        let ByteString(ref vec) = *self;
-        str::from_utf8(&vec).ok()
+        str::from_utf8(&self.0).ok()
+    }
+
+    /// Takes ownership of the underlying Vec<u8>. The ByteString is
+    /// unusable afterwards.
+    pub fn own_bytes(self) -> Vec<u8> {
+        self.0
+    }
+
+    /// Returns ownership of the underlying Vec<u8> and copies an empty
+    /// vec in its place
+    pub fn into_bytes(&mut self) -> Vec<u8> {
+        mem::replace(&mut self.0, Vec::new())
     }
 
     /// Returns the length.
     pub fn len(&self) -> usize {
-        let ByteString(ref vector) = *self;
-        vector.len()
+        self.0.len()
     }
 
     /// Compare `self` to `other`, matching A–Z and a–z as equal.
