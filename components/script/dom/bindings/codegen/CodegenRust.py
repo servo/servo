@@ -3509,7 +3509,7 @@ class CGEnum(CGThing):
 
         decl = """\
 #[repr(usize)]
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf, Debug)]
 pub enum %s {
     %s
 }
