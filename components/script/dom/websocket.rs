@@ -238,7 +238,7 @@ impl WebSocket {
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
-        let address = Trusted::new(ws.r(), global.networking_thread_source());
+        let address = Trusted::new(ws.r(), global.networking_task_source());
 
         let connect_data = WebSocketConnectData {
             resource_url: resource_url.clone(),
@@ -265,7 +265,7 @@ impl WebSocket {
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
         let moved_address = address.clone();
-        let sender = global.networking_thread_source();
+        let sender = global.networking_task_source();
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
@@ -308,7 +308,7 @@ impl WebSocket {
         };
 
         let global = self.global();
-        let chan = global.r().networking_thread_source();
+        let chan = global.r().networking_task_source();
         let address = Trusted::new(self, chan.clone());
 
         match data_byte_len.checked_add(self.buffered_amount.get()) {
@@ -434,7 +434,7 @@ impl WebSocketMethods for WebSocket {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let global = self.global();
-                let sender = global.r().networking_thread_source();
+                let sender = global.r().networking_task_source();
                 let address = Trusted::new(self, sender.clone());
                 fail_the_websocket_connection(address, sender);
             }
@@ -468,7 +468,7 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
-            let sender = global.r().networking_thread_source();
+            let sender = global.r().networking_task_source();
             fail_the_websocket_connection(self.addr, sender);
             return;
         }
