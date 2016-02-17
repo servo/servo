@@ -1111,6 +1111,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_navigation_window_event(direction);
             }
 
+            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
+                self.on_touchpad_pressure_event(cursor, pressure, stage);
+            }
+
             WindowEvent::KeyEvent(key, state, modifiers) => {
                 self.on_key_event(key, state, modifiers);
             }
@@ -1451,6 +1455,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         self.constellation_chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
+    }
+
+    fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32, stage: i64) {
+        match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
+            Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, stage),
+            None => {},
+        }
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {

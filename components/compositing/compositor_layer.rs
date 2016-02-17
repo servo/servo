@@ -14,7 +14,7 @@ use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::constellation_msg::PipelineId;
 use script_traits::CompositorEvent;
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
+use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchpadPressureEvent};
 use script_traits::ConstellationControlMsg;
 use script_traits::MouseEventType;
 use std::rc::Rc;
@@ -138,6 +138,13 @@ pub trait CompositorLayer {
                           compositor: &IOCompositor<Window>,
                           event: CompositorEvent)
                           where Window: WindowMethods;
+
+    fn send_touchpad_pressure_event<Window>(&self,
+                                            compositor: &IOCompositor<Window>,
+                                            cursor: TypedPoint2D<LayerPixel, f32>,
+                                            pressure: f32,
+                                            stage: i64)
+                                            where Window: WindowMethods;
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
                                             new_offset: TypedPoint2D<LayerPixel, f32>)
@@ -396,6 +403,18 @@ impl CompositorLayer for Layer<CompositorData> {
         if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
             let _ = pipeline.script_chan
                     .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), event));
+        }
+    }
+
+    fn send_touchpad_pressure_event<Window>(&self,
+                                            compositor: &IOCompositor<Window>,
+                                            cursor: TypedPoint2D<LayerPixel, f32>,
+                                            pressure: f32,
+                                            stage: i64)
+                                            where Window: WindowMethods {
+        if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
+            let message = TouchpadPressureEvent(cursor.to_untyped(), pressure, stage);
+            let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
         }
     }
 

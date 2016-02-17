@@ -39,6 +39,7 @@ use dom::element::{Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
+use dom::forcetouchevent::ForceTouchEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
@@ -209,6 +210,7 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
+    touchpad_pressure_stage: Cell<i64>, // FIXME: use enum
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -757,6 +759,64 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
+    }
+
+    pub fn handle_touchpad_pressure_event(&self,
+                                          js_runtime: *mut JSRuntime,
+                                          client_point: Point2D<f32>,
+                                          pressure: f32,
+                                          stage: i64) {
+
+
+
+        let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                                      client_point.y + self.window.PageYOffset() as f32);
+        let node = match self.hit_test(&page_point) {
+            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            None => return
+        };
+
+        let el = match node.downcast::<Element>() {
+            Some(el) => Root::from_ref(el),
+            None => {
+                let parent = node.GetParentNode();
+                match parent.and_then(Root::downcast::<Element>) {
+                    Some(parent) => parent,
+                    None => return
+                }
+            },
+        };
+
+        // FIXME: If the target is an iframe, forward the event to the child document.
+
+        let node = el.upcast::<Node>();
+        let target = node.upcast();
+        let force = (stage as f32) + pressure;
+        let stage_before = self.touchpad_pressure_stage.get();
+        self.touchpad_pressure_stage.set(stage);
+
+        self.fire_forcetouch_event("webkitmouseforcechanged".to_owned(), target, force);
+        if stage_before == 0 && stage > 0 {
+            self.fire_forcetouch_event("webkitmouseforcewillbegin".to_owned(), target, force);
+        }
+        if stage_before <= 1 && stage > 1 {
+            self.fire_forcetouch_event("webkitmouseforcedown".to_owned(), target, force);
+        }
+        if stage_before > 1 && stage <= 1 {
+            self.fire_forcetouch_event("webkitmouseforceup".to_owned(), target, force);
+        }
+    }
+
+    fn fire_forcetouch_event(&self, event_name: String, target: &EventTarget, force: f32) {
+        let force_event = ForceTouchEvent::new(&self.window,
+                                               DOMString::from(event_name),
+                                               EventBubbles::Bubbles,
+                                               EventCancelable::Cancelable,
+                                               Some(&self.window),
+                                               0i32,
+                                               force);
+        let event = force_event.upcast::<Event>();
+        event.fire(target);
     }
 
     pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
@@ -1583,6 +1643,7 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
+            touchpad_pressure_stage: Cell::new(0),
         }
     }
 

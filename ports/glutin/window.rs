@@ -225,6 +225,11 @@ impl Window {
                 let point = Point2D::typed(touch.location.0 as f32, touch.location.1 as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
             }
+            Event::TouchpadPressure(pressure, stage) => {
+                let m = self.mouse_pos.get();
+                let point = Point2D::typed(m.x as f32, m.y as f32);
+                self.event_queue.borrow_mut().push(WindowEvent::TouchpadPressure(point, pressure, stage));
+            }
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             }
