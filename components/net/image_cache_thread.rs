@@ -5,7 +5,7 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::image::base::{Image, ImageMetadata, load_from_memory};
+use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelFormat};
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
@@ -23,6 +23,7 @@ use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
 use util::threadpool::ThreadPool;
+use webrender_traits;
 
 ///
 /// TODO(gw): Remaining work on image cache:
@@ -49,6 +50,12 @@ struct PendingLoad {
     // The url being loaded. Do not forget that this may be several Mb
     // if we are loading a data: url.
     url: Arc<Url>
+}
+
+enum LoadResult {
+    Loaded(Image),
+    PlaceholderLoaded(Arc<Image>),
+    None
 }
 
 impl PendingLoad {
@@ -250,6 +257,9 @@ struct ImageCache {
 
     // The placeholder image used when an image fails to load
     placeholder_image: Option<Arc<Image>>,
+
+    // Webrender API instance, if enabled.
+    webrender_api: Option<webrender_traits::RenderApi>,
 }
 
 /// Message that the decoder worker threads send to main image cache thread.
@@ -263,6 +273,16 @@ enum SelectResult {
     Command(ImageCacheCommand),
     Progress(ResourceLoadInfo),
     Decoder(DecoderMsg),
+}
+
+fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
+    match format {
+        PixelFormat::K8 | PixelFormat::KA8 => {
+            panic!("Not support by webrender yet");
+        }
+        PixelFormat::RGB8 => webrender_traits::ImageFormat::RGB8,
+        PixelFormat::RGBA8 => webrender_traits::ImageFormat::RGBA8,
+    }
 }
 
 impl ImageCache {
@@ -381,10 +401,10 @@ impl ImageCache {
                     Err(_) => {
                         match self.placeholder_image.clone() {
                             Some(placeholder_image) => {
-                                self.complete_load(msg.key, ImageResponse::PlaceholderLoaded(
+                                self.complete_load(msg.key, LoadResult::PlaceholderLoaded(
                                         placeholder_image))
                             }
-                            None => self.complete_load(msg.key, ImageResponse::None),
+                            None => self.complete_load(msg.key, LoadResult::None),
                         }
                     }
                 }
@@ -395,15 +415,33 @@ impl ImageCache {
     // Handle a message from one of the decoder worker threads
     fn handle_decoder(&mut self, msg: DecoderMsg) {
         let image = match msg.image {
-            None => ImageResponse::None,
-            Some(image) => ImageResponse::Loaded(Arc::new(image)),
+            None => LoadResult::None,
+            Some(image) => LoadResult::Loaded(image),
         };
         self.complete_load(msg.key, image);
     }
 
     // Change state of a url from pending -> loaded.
-    fn complete_load(&mut self, key: LoadKey, image_response: ImageResponse) {
+    fn complete_load(&mut self, key: LoadKey, mut load_result: LoadResult) {
         let pending_load = self.pending_loads.remove(&key).unwrap();
+
+        if let Some(ref webrender_api) = self.webrender_api {
+            match load_result {
+                LoadResult::Loaded(ref mut image) => {
+                    let format = convert_format(image.format);
+                    let mut bytes = Vec::new();
+                    bytes.extend_from_slice(&*image.bytes);
+                    image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
+                }
+                LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
+            }
+        }
+
+        let image_response = match load_result {
+            LoadResult::Loaded(image) => ImageResponse::Loaded(Arc::new(image)),
+            LoadResult::PlaceholderLoaded(image) => ImageResponse::PlaceholderLoaded(image),
+            LoadResult::None => ImageResponse::None,
+        };
 
         let completed_load = CompletedLoad::new(image_response.clone());
         self.completed_loads.insert(pending_load.url, completed_load);
@@ -510,7 +548,8 @@ impl ImageCache {
 }
 
 /// Create a new image cache.
-pub fn new_image_cache_thread(resource_thread: ResourceThread) -> ImageCacheThread {
+pub fn new_image_cache_thread(resource_thread: ResourceThread,
+                              webrender_api: Option<webrender_traits::RenderApi>) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
     let (progress_sender, progress_receiver) = channel();
     let (decoder_sender, decoder_receiver) = channel();
@@ -526,7 +565,14 @@ pub fn new_image_cache_thread(resource_thread: ResourceThread) -> ImageCacheThre
             file.read_to_end(&mut image_data)
         });
         let placeholder_image = result.ok().map(|_| {
-            Arc::new(load_from_memory(&image_data).unwrap())
+            let mut image = load_from_memory(&image_data).unwrap();
+            if let Some(ref webrender_api) = webrender_api {
+                let format = convert_format(image.format);
+                let mut bytes = Vec::new();
+                bytes.extend_from_slice(&*image.bytes);
+                image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
+            }
+            Arc::new(image)
         });
 
         // Ask the router to proxy messages received over IPC to us.
@@ -543,6 +589,7 @@ pub fn new_image_cache_thread(resource_thread: ResourceThread) -> ImageCacheThre
             completed_loads: HashMap::new(),
             resource_thread: resource_thread,
             placeholder_image: placeholder_image,
+            webrender_api: webrender_api,
         };
 
         cache.run();

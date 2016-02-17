@@ -28,6 +28,9 @@ path = "../msg"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
+[dependencies.webrender_traits]
+git = "https://github.com/glennw/webrender_traits"
+
 [dependencies]
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 log = "0.3"
