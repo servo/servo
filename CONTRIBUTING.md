@@ -12,6 +12,10 @@ pull requests. Each pull request will be reviewed by a core contributor
 given feedback for changes that would be required. All contributions should
 follow this format, even those from core contributors.
 
+Should you wish to work on an issue, please claim it first by commenting on
+the GitHub issue that you want to work on it. This is to prevent duplicated
+efforts from contributors on the same issue.
+
 Head over to [Servo Starters](http://servo.github.io/servo-starters/) to find
 good tasks to start with.
 
