@@ -269,9 +269,23 @@ pub enum CompositeTarget {
     PngFile
 }
 
-fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>,
-                                                   Vec<gl::GLuint>,
-                                                   Vec<gl::GLuint>) {
+struct RenderTargetInfo {
+    framebuffer_ids: Vec<gl::GLuint>,
+    texture_ids: Vec<gl::GLuint>,
+    renderbuffer_ids: Vec<gl::GLuint>,
+}
+
+impl RenderTargetInfo {
+    fn empty() -> RenderTargetInfo {
+        RenderTargetInfo {
+            framebuffer_ids: Vec::new(),
+            texture_ids: Vec::new(),
+            renderbuffer_ids: Vec::new()
+        }
+    }
+}
+
+fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
     let framebuffer_ids = gl::gen_framebuffers(1);
     gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
@@ -304,7 +318,11 @@ fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>,
         Vec::new()
     };
 
-    (framebuffer_ids, texture_ids, renderbuffer_ids)
+    RenderTargetInfo {
+        framebuffer_ids: framebuffer_ids,
+        texture_ids: texture_ids,
+        renderbuffer_ids: renderbuffer_ids
+    }
 }
 
 pub fn reporter_name() -> String {
@@ -1251,28 +1269,32 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         if let Some(ref webrender_api) = self.webrender_api {
-            if let Some(root_pipeline_id) = self.get_root_pipeline_id() {
-                if let Some(root_pipeline) = self.pipeline(root_pipeline_id) {
-                    let translated_point =
-                        webrender_api.translate_point_to_layer_space(&point.to_untyped());
-                    let event_to_send = match mouse_window_event {
-                        MouseWindowEvent::Click(button, _) => {
-                            MouseButtonEvent(MouseEventType::Click, button, translated_point)
-                        }
-                        MouseWindowEvent::MouseDown(button, _) => {
-                            MouseButtonEvent(MouseEventType::MouseDown, button, translated_point)
-                        }
-                        MouseWindowEvent::MouseUp(button, _) => {
-                            MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
-                        }
-                    };
-                    root_pipeline.script_chan
-                                 .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
-                                                                          event_to_send))
-                                 .unwrap();
-                    return;
+            let root_pipeline_id = match self.get_root_pipeline_id() {
+                Some(root_pipeline_id) => root_pipeline_id,
+                None => return,
+            };
+            let root_pipeline = match self.pipeline(root_pipeline_id) {
+                Some(root_pipeline) => root_pipeline,
+                None => return,
+            };
+
+            let translated_point =
+                webrender_api.translate_point_to_layer_space(&point.to_untyped());
+            let event_to_send = match mouse_window_event {
+                MouseWindowEvent::Click(button, _) => {
+                    MouseButtonEvent(MouseEventType::Click, button, translated_point)
                 }
-            }
+                MouseWindowEvent::MouseDown(button, _) => {
+                    MouseButtonEvent(MouseEventType::MouseDown, button, translated_point)
+                }
+                MouseWindowEvent::MouseUp(button, _) => {
+                    MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
+                }
+            };
+            root_pipeline.script_chan
+                         .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
+                                                                  event_to_send))
+                         .unwrap();
         }
 
         match self.find_topmost_layer_at_point(point / self.scene.scale) {
@@ -1288,18 +1310,22 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if let Some(ref webrender_api) = self.webrender_api {
-            if let Some(root_pipeline_id) = self.get_root_pipeline_id() {
-                if let Some(root_pipeline) = self.pipeline(root_pipeline_id) {
-                    let translated_point =
-                        webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
-                    let event_to_send = MouseMoveEvent(Some(translated_point));
-                    root_pipeline.script_chan
-                                 .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
-                                                                          event_to_send))
-                                 .unwrap();
-                    return;
-                }
-            }
+            let root_pipeline_id = match self.get_root_pipeline_id() {
+                Some(root_pipeline_id) => root_pipeline_id,
+                None => return,
+            };
+            let root_pipeline = match self.pipeline(root_pipeline_id) {
+                Some(root_pipeline) => root_pipeline,
+                None => return,
+            };
+
+            let translated_point =
+                webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
+            let event_to_send = MouseMoveEvent(Some(translated_point));
+            root_pipeline.script_chan
+                         .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
+                                                                  event_to_send))
+                         .unwrap();
         }
 
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
@@ -1409,7 +1435,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // Batch up all scroll events into one, or else we'll do way too much painting.
                 let mut total_delta = None;
                 let mut last_cursor = Point2D::zero();
-                for scroll_event in std_mem::replace(&mut self.pending_scroll_zoom_events, vec![]) {
+                for scroll_event in self.pending_scroll_zoom_events.drain(..) {
                     let this_delta = scroll_event.delta / self.scene.scale;
                     last_cursor = scroll_event.cursor.as_f32() / self.scene.scale;
                     match total_delta {
@@ -1802,13 +1828,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 for (id, details) in &self.pipeline_details {
                     if let Some(ref webrender) = self.webrender {
                         let webrender_pipeline_id = id.to_webrender();
-                        match webrender.current_epoch(webrender_pipeline_id) {
-                            Some(epoch) => {
-                                let webrender_traits::Epoch(epoch) = epoch;
-                                let epoch = Epoch(epoch);
-                                pipeline_epochs.insert(*id, epoch);
-                            }
-                            None => {}
+                        if let Some(webrender_traits::Epoch(epoch)) = webrender.current_epoch(webrender_pipeline_id) {
+                            let epoch = Epoch(epoch);
+                            pipeline_epochs.insert(*id, epoch);
                         }
                     } else {
                         pipeline_epochs.insert(*id, details.current_epoch);
@@ -1899,8 +1921,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        let (framebuffer_ids, texture_ids, renderbuffer_ids) = match target {
-            CompositeTarget::Window => (vec!(), vec!(), vec!()),
+        let render_target_info = match target {
+            CompositeTarget::Window => RenderTargetInfo::empty(),
             _ => initialize_png(width, height)
         };
 
@@ -1954,9 +1976,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let rv = match target {
             CompositeTarget::Window => None,
             CompositeTarget::WindowAndPng => {
-                let img = self.draw_img(framebuffer_ids,
-                                        texture_ids,
-                                        renderbuffer_ids,
+                let img = self.draw_img(render_target_info,
                                         width,
                                         height);
                 Some(Image {
@@ -1968,9 +1988,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 })
             }
             CompositeTarget::PngFile => {
-                let img = self.draw_img(framebuffer_ids,
-                                        texture_ids,
-                                        renderbuffer_ids,
+                let img = self.draw_img(render_target_info,
                                         width,
                                         height);
                 let path = opts::get().output_file.as_ref().unwrap();
@@ -1993,9 +2011,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn draw_img(&self,
-                framebuffer_ids: Vec<gl::GLuint>,
-                texture_ids: Vec<gl::GLuint>,
-                renderbuffer_ids: Vec<gl::GLuint>,
+                render_target_info: RenderTargetInfo,
                 width: usize,
                 height: usize)
                 -> RgbImage {
@@ -2006,10 +2022,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-        gl::delete_buffers(&texture_ids);
-        gl::delete_frame_buffers(&framebuffer_ids);
+        gl::delete_buffers(&render_target_info.texture_ids);
+        gl::delete_frame_buffers(&render_target_info.framebuffer_ids);
         if opts::get().use_webrender  {
-            gl::delete_renderbuffers(&renderbuffer_ids);
+            gl::delete_renderbuffers(&render_target_info.renderbuffer_ids);
         }
 
         // flip image vertically (texture is upside down)
