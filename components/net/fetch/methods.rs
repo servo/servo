@@ -16,7 +16,7 @@ use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
-use net_traits::request::{CacheMode, Context, ContextFrameType, CredentialsMode};
+use net_traits::request::{CacheMode, CredentialsMode, Type, Origin, Window};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{CacheState, HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
@@ -29,71 +29,82 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
 use url::idna::domain_to_ascii;
-use url::{Origin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
+use url::{Origin as UrlOrigin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
 use util::thread::spawn_named;
 
-pub fn fetch_async(request: Request, cors_flag: bool, listener: Box<AsyncFetchListener + Send>) {
-    spawn_named(format!("fetch for {:?}", request.get_last_url_string()), move || {
+pub fn fetch_async(request: Request, listener: Box<AsyncFetchListener + Send>) {
+    spawn_named(format!("fetch for {:?}", request.current_url_string()), move || {
         let request = Rc::new(request);
-        let res = fetch(request, cors_flag);
+        let res = fetch(request);
         listener.response_available(res);
     })
 }
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub fn fetch(request: Rc<Request>, cors_flag: bool) -> Response {
+pub fn fetch(request: Rc<Request>) -> Response {
 
     // Step 1
-    if request.context != Context::Fetch && !request.headers.borrow().has::<Accept>() {
-
-        // Substep 1
-        let value = match request.context {
-
-            Context::Favicon | Context::Image | Context::ImageSet
-                => vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
-                    // FIXME: This should properly generate a MimeType that has a
-                    // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
-                    qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_owned()), vec![])),
-                    QualityItem::new(Mime(TopLevel::Image, SubLevel::Star, vec![]), q(0.8)),
-                    QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.5))],
-
-            Context::Form | Context::Frame | Context::Hyperlink |
-            Context::IFrame | Context::Location | Context::MetaRefresh |
-            Context::PreRender
-                => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                    // FIXME: This should properly generate a MimeType that has a
-                    // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                    qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-                    QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
-                    QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
-
-            Context::Internal if request.context_frame_type != ContextFrameType::ContextNone
-                => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                    // FIXME: This should properly generate a MimeType that has a
-                    // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                    qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-                    QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
-                    QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
-
-            Context::Style
-                => vec![qitem(Mime(TopLevel::Text, SubLevel::Css, vec![])),
-                    QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.1))],
-            _ => vec![qitem(Mime(TopLevel::Star, SubLevel::Star, vec![]))]
-        };
-
-        // Substep 2
-        request.headers.borrow_mut().set(Accept(value));
+    if request.window.get() == Window::Client {
+        // TODO: Set window to request's client object if client is a Window object
+    } else {
+        request.window.set(Window::NoWindow);
     }
 
     // Step 2
-    if request.context != Context::Fetch && !request.headers.borrow().has::<AcceptLanguage>() {
+    if *request.origin.borrow() == Origin::Client {
+        // TODO: set request's origin to request's client's origin
+        unimplemented!()
+    }
+
+    // Step 3
+    if !request.headers.borrow().has::<Accept>() {
+
+        let value = match request.type_ {
+
+            // Substep 2
+            _ if request.is_navigation_request() =>
+                vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                     // FIXME: This should properly generate a MimeType that has a
+                     // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
+                     qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+                     QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
+                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
+
+            // Substep 3
+            Type::Image =>
+                vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
+                     // FIXME: This should properly generate a MimeType that has a
+                     // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
+                     qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_owned()), vec![])),
+                     QualityItem::new(Mime(TopLevel::Image, SubLevel::Star, vec![]), q(0.8)),
+                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.5))],
+
+            // Substep 3
+            Type::Style =>
+                vec![qitem(Mime(TopLevel::Text, SubLevel::Css, vec![])),
+                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.1))],
+            // Substep 1
+            _ => vec![qitem(Mime(TopLevel::Star, SubLevel::Star, vec![]))]
+        };
+
+        // Substep 4
+        request.headers.borrow_mut().set(Accept(value));
+    }
+
+    // Step 4
+    if !request.headers.borrow().has::<AcceptLanguage>() {
         request.headers.borrow_mut().set(AcceptLanguage(vec![qitem("en-US".parse().unwrap())]));
     }
 
+    // Step 5
     // TODO: Figure out what a Priority object is
-    // Step 3
-    // Step 4
-    main_fetch(request, cors_flag, false)
+
+    // Step 6
+    if request.is_subresource_request() {
+        // TODO: create a fetch record and append it to request's client's fetch group list
+    }
+    // Step 7
+    main_fetch(request, false, false)
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -137,9 +148,13 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     let mut response = if response.is_none() {
 
         let current_url = request.current_url();
-        let origin_match = *request.origin.borrow() == current_url.origin();
+        let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
+            *origin == current_url.origin()
+        } else {
+            false
+        };
 
-        if (!cors_flag && origin_match) ||
+        if (!cors_flag && same_origin) ||
             (current_url.scheme == "data" && request.same_origin_data.get()) ||
             current_url.scheme == "about" ||
             request.mode == RequestMode::Navigate {
@@ -158,13 +173,13 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
         } else if request.use_cors_preflight ||
             (request.unsafe_request &&
-            (!is_simple_method(&request.method.borrow()) ||
-            request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
+             (!is_simple_method(&request.method.borrow()) ||
+              request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
 
             request.response_tainting.set(ResponseTainting::CORSTainting);
             request.redirect_mode.set(RedirectMode::Error);
             let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
-            if Response::is_network_error(&response) {
+            if response.is_network_error() {
                 // TODO clear cache entries using request
             }
             response
@@ -197,7 +212,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     };
 
     // Step 12
-    let mut internal_response = if Response::is_network_error(&response) {
+    let mut internal_response = if response.is_network_error() {
         Rc::new(Response::network_error())
     } else {
         response.internal_response.clone().unwrap()
@@ -207,7 +222,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // TODO this step
 
     // Step 14
-    if !Response::is_network_error(&response) && (is_null_body_status(&internal_response.status) ||
+    if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
         match *request.method.borrow() {
             Method::Head | Method::Connect => true,
             _ => false })
@@ -219,7 +234,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 15
     // TODO be able to compare response integrity against request integrity metadata
-    // if !Response::is_network_error(&response) {
+    // if !response.is_network_error() {
 
     //     // Substep 1
     //     // TODO wait for response
@@ -306,7 +321,7 @@ fn http_fetch_async(request: Request,
                     authentication_fetch_flag: bool,
                     listener: Box<AsyncFetchListener + Send>) {
 
-    spawn_named(format!("http_fetch for {:?}", request.get_last_url_string()), move || {
+    spawn_named(format!("http_fetch for {:?}", request.current_url_string()), move || {
         let request = Rc::new(request);
         let res = http_fetch(request, BasicCORSCache::new(),
                              cors_flag, cors_preflight_flag,
@@ -444,7 +459,7 @@ fn http_fetch(request: Rc<Request>,
                 },
                 RedirectMode::Follow => Rc::new(http_redirect_fetch(request, response, cors_flag))
             }
-        },
+        }
 
         // Code 401
         StatusCode::Unauthorized => {
@@ -544,7 +559,11 @@ fn http_redirect_fetch(request: Rc<Request>,
     // Step 9
     request.same_origin_data.set(false);
 
-    let same_origin = *request.origin.borrow() == location_url.origin();
+    let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
+        *origin == request.current_url().origin()
+    } else {
+        false
+    };
     let has_credentials = has_credentials(&location_url);
 
     // Step 10
@@ -559,7 +578,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
     // Step 12
     if cors_flag && !same_origin {
-        *request.origin.borrow_mut() = Origin::UID(OpaqueOrigin::new());
+        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
     }
 
     // Step 13
@@ -626,7 +645,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     };
 
     // Step 7
-    if http_request.omit_origin_header == false {
+    if http_request.omit_origin_header.get() == false {
         // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
         // http_request.headers.borrow_mut().set_raw("origin", origin);
     }
@@ -853,7 +872,7 @@ fn http_network_fetch(request: Rc<Request>,
     // TODO this step isn't possible yet
 
     // Step 8
-    if Response::is_network_error(&response) && request.cache_mode.get() == CacheMode::NoStore {
+    if response.is_network_error() && request.cache_mode.get() == CacheMode::NoStore {
         // TODO update response in the HTTP cache for request
     }
 
@@ -933,13 +952,14 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
 /// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin)
 fn ascii_serialise_origin(origin: &Origin) -> Result<String, ()> {
 
-    let result = match *origin {
+    // Step 6
+    match *origin {
 
         // Step 1
-        Origin::UID(_) => "null".to_owned(),
+        Origin::Origin(UrlOrigin::UID(_)) => Ok("null".to_owned()),
 
         // Step 2
-        Origin::Tuple(ref scheme, ref host, ref port) => {
+        Origin::Origin(UrlOrigin::Tuple(ref scheme, ref host, ref port)) => {
 
             // Step 3
             // this step is handled by the format!()s later in the function
@@ -953,15 +973,13 @@ fn ascii_serialise_origin(origin: &Origin) -> Result<String, ()> {
             let default_port = whatwg_scheme_type_mapper(scheme).default_port();
 
             if Some(*port) == default_port {
-                format!("{}://{}", scheme, host)
+                Ok(format!("{}://{}", scheme, host))
             } else {
-                format!("{}://{}{}", scheme, host, port)
+                Ok(format!("{}://{}{}", scheme, host, port))
             }
         }
-    };
-
-    // Step 6
-    Ok(result)
+        _ => Err(())
+    }
 }
 
 fn global_user_agent() -> String {
