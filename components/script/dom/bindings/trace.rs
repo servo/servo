@@ -70,7 +70,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
@@ -196,6 +196,17 @@ impl JSTraceable for Heap<JSVal> {
 // XXXManishearth Check if the following three are optimized to no-ops
 // if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
 impl<T: JSTraceable> JSTraceable for Vec<T> {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        for e in &*self {
+            e.trace(trc);
+        }
+    }
+}
+
+// XXXManishearth Check if the following three are optimized to no-ops
+// if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
+impl<T: JSTraceable> JSTraceable for VecDeque<T> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
         for e in &*self {
