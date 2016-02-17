@@ -14,7 +14,7 @@ use dom::servohtmlparser::ParserRef;
 use dom::window::Window;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
-use parse::Parser;
+use parse::{Parser, Chunk};
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -38,7 +38,7 @@ pub struct ServoXMLParser {
     #[ignore_heap_size_of = "Defined in xml5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<VecDeque<String>>,
+    pending_input: DOMRefCell<VecDeque<Chunk>>,
     /// The document associated with this parser.
     document: JS<Document>,
     /// True if this parser should avoid passing any further data to the tokenizer.
@@ -51,7 +51,7 @@ pub struct ServoXMLParser {
 }
 
 impl<'a> Parser for &'a ServoXMLParser {
-    fn parse_chunk(self, input: String) {
+    fn parse_chunk(self, input: Chunk) {
         self.document.set_current_parser(Some(ParserRef::XML(self)));
         self.pending_input.borrow_mut().push_back(input);
         if !self.is_suspended() {
@@ -127,7 +127,12 @@ impl ServoXMLParser {
            self.document.reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
             if let Some(chunk) = pending_input.pop_front() {
-                self.tokenizer.borrow_mut().feed(chunk.into());
+                // FIXME: use xml5ever’s bytes API when there is one.
+                let string = match chunk {
+                    Chunk::Bytes(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
+                    Chunk::Dom(domstring) => String::from(domstring),
+                };
+                self.tokenizer.borrow_mut().feed(string.into());
             }
 
             // Document parsing is blocked on an external resource.
@@ -145,7 +150,7 @@ impl ServoXMLParser {
         }
     }
 
-    pub fn pending_input(&self) -> &DOMRefCell<VecDeque<String>> {
+    pub fn pending_input(&self) -> &DOMRefCell<VecDeque<Chunk>> {
         &self.pending_input
     }
 

@@ -32,7 +32,7 @@ use html5ever::serialize::{AttrRef, Serializable, Serializer};
 use html5ever::tendril::StrTendril;
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode, TreeSink};
 use msg::constellation_msg::PipelineId;
-use parse::Parser;
+use parse::{Parser, Chunk};
 use std::borrow::Cow;
 use std::io::{self, Write};
 use string_cache::QualName;
@@ -261,7 +261,7 @@ pub fn parse_html(document: &Document,
         ParseContext::Fragment(fc) =>
             ServoHTMLParser::new_for_fragment(Some(url), document, fc),
     };
-    parser.parse_chunk(String::from(input));
+    parser.parse_chunk(Chunk::Dom(input));
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
