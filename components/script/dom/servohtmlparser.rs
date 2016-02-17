@@ -32,6 +32,7 @@ use parse::Parser;
 use script_thread::{ScriptChan, ScriptThread};
 use std::cell::Cell;
 use std::cell::UnsafeCell;
+use std::collections::VecDeque;
 use std::default::Default;
 use std::ptr;
 use url::Url;
@@ -171,7 +172,7 @@ impl<'a> ParserRef<'a> {
         }
     }
 
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
+    pub fn pending_input(&self) -> &DOMRefCell<VecDeque<String>> {
         match *self {
             ParserRef::HTML(parser) => parser.pending_input(),
             ParserRef::XML(parser) => parser.pending_input(),
@@ -263,13 +264,13 @@ impl AsyncResponseListener for ParserContext {
                 self.is_synthesized_document = true;
                 let page = format!("<html><body><img src='{}' /></body></html>",
                                    self.url.serialize());
-                parser.pending_input().borrow_mut().push(page);
+                parser.pending_input().borrow_mut().push_back(page);
                 parser.parse_sync();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = format!("<pre>\n");
-                parser.pending_input().borrow_mut().push(page);
+                parser.pending_input().borrow_mut().push_back(page);
                 parser.parse_sync();
                 parser.set_plaintext_state();
             },
@@ -285,7 +286,7 @@ impl AsyncResponseListener for ParserContext {
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
                     toplevel.as_str(), sublevel.as_str());
                 self.is_synthesized_document = true;
-                parser.pending_input().borrow_mut().push(page);
+                parser.pending_input().borrow_mut().push_back(page);
                 parser.parse_sync();
             },
             None => {
@@ -335,7 +336,7 @@ pub struct ServoHTMLParser {
     #[ignore_heap_size_of = "Defined in html5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<Vec<String>>,
+    pending_input: DOMRefCell<VecDeque<String>>,
     /// The document associated with this parser.
     document: JS<Document>,
     /// True if this parser should avoid passing any further data to the tokenizer.
@@ -350,7 +351,7 @@ pub struct ServoHTMLParser {
 impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
         self.document.set_current_parser(Some(ParserRef::HTML(self)));
-        self.pending_input.borrow_mut().push(input);
+        self.pending_input.borrow_mut().push_back(input);
         if !self.is_suspended() {
             self.parse_sync();
         }
@@ -390,7 +391,7 @@ impl ServoHTMLParser {
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
             tokenizer: DOMRefCell::new(tok),
-            pending_input: DOMRefCell::new(vec!()),
+            pending_input: DOMRefCell::new(VecDeque::new()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
@@ -427,7 +428,7 @@ impl ServoHTMLParser {
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
             tokenizer: DOMRefCell::new(tok),
-            pending_input: DOMRefCell::new(vec!()),
+            pending_input: DOMRefCell::new(VecDeque::new()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(true),
@@ -451,7 +452,7 @@ impl ServoHTMLParser {
         self.tokenizer.borrow_mut().end()
     }
 
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
+    pub fn pending_input(&self) -> &DOMRefCell<VecDeque<String>> {
         &self.pending_input
     }
 
@@ -465,8 +466,7 @@ impl ServoHTMLParser {
         loop {
            self.document.reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
-            if !pending_input.is_empty() {
-                let chunk = pending_input.remove(0);
+            if let Some(chunk) = pending_input.pop_front() {
                 self.tokenizer.borrow_mut().feed(chunk.into());
             } else {
                 self.tokenizer.borrow_mut().run();
