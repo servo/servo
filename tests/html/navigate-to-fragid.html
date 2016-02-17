@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<title>Navigate to Fragment - issue #1716</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+   .test-target{
+     height:20em;
+   }
+    .bottom-padding{
+      height:200em;
+    }
+</style>
+<p id="test0">
+Manual test to check each link goes to the right place.</p>
+<table id="tests-table">
+  <thead>
+    <th>Fragment Identifier</th>
+    <th>Intended Fragment</th>
+    <th>Test Target</th>
+    <th>Description</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="#top">#top</a></td>
+      <td>Document</td>
+      <td>test0</td>
+      <td>Top of document</td>
+    </tr>
+    <tr>
+      <td><a href="#TOP">#TOP</a></a></td>
+      <td>Document</td>
+      <td>test0</td>
+      <td>Top of document</td>
+    </tr>
+    <tr>
+      <td><a href="#Top">#Top</a></a></td>
+      <td>&lt;p id=&quot;Top&quot;&gt;</td>
+      <td>test8</td>
+      <td>Id takes precendence over &quot;top&quot;</td>
+    </tr>
+    <tr>
+      <td><a href="#sanity-check">#sanity-check</a></td>
+      <td>&lt;p id=&quot;sanity-check&quot;&gt;</td>
+      <td>test1</td>
+      <td>Sanity check</td>
+    </tr>
+    <tr>
+      <td><a href="#has%20space">#has%20space</a></td>
+      <td>&lt;p id=&quot;has space&quot;&gt;</td>
+      <td>test2</td>
+      <td>Contains a space</td>
+    </tr>
+    <tr>
+      <td><a href="#escaped%20space">#escaped%20space</a></td>
+      <td>&lt;p id=&quot;escaped%20space&quot;&gt;</td>
+      <td></td>
+      <td>Contains an escaped space. Only decoded fragid is used for ids.</td>
+    </tr>
+    <tr>
+      <td><a href="#escaped%20unescaped%20collide">#escaped%20unescaped%20collide</a></td>
+      <td>&lt;p id=&quot;escaped unescaped collide&quot;&gt;</td>
+      <td>test4</td>
+      <td>Another element has the same id but pecent-encoded. The decoded one should win.</td>
+    </tr>
+    <tr>
+      <td><a href="#name-match">#name-match</a></td>
+      <td>&lt;a name=&quot;name-match&quot;&gt;</td>
+      <td>test5</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><a href="#name-collide">#name-collide</a></td>
+      <td>&lt;a id=&quot;name-collide&quot;&gt;</td>
+      <td>test6</td>
+      <td>Same id as an anchor name. Id should win.</td>
+    </tr>
+    <tr>
+      <td><a href="#escaped%20name">#escaped%20name</a></td>
+      <td>&lt;a name=&quot;escaped%20name&quot;&gt;</td>
+      <td>test7</td>
+      <td>Undecoded fragid should be used for anchor names.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="test-target" id="test1">
+  <p id="sanity-check">span id=&quot;sanity-check&quot;</p><p>SUCCESS test1</p>
+</div>
+<div class="test-target" id="test2">
+  <p id="has space">span id=&quot;has space&quot;</p><p>SUCCESS test2</p>
+</div>
+<div class="test-target" id="test3">
+  <p id="escaped%20space">span id=&quot;escaped%20space&quot;</p><p>FAIL test3</p>
+  Not in whatwg spec, but a <em>tolerant</em> implementation would do this to give content creator what they probably intended.
+</div>
+<div class="test-target" id="test4">
+  <p id="escaped unescaped collide">span id=&quot;escaped unescaped collide&quot;</p><p>SUCCESS test4</p>
+</div>
+<div class="test-target">
+  <p id="escaped%20unescaped%20collide">span id=&quot;escaped%20unescaped%20collide&quot;</p><p>FAIL test4</p>
+  Not in whatwg spec, but a <em>tolerant</em> implementation would do this to give content creator what they probably intended.
+</div>
+<div class="test-target" id="test5">
+  <a name="name-match">a name=&quot;name-match&quot;</a><p>SUCCESS test5</p>
+</div>
+<div class="test-target">
+  <a name="name-collide">a name=&quot;name-collide&quot;</a><p>FAIL test6</p>
+  An anchor name and an id have the same value. The id should take precence!
+</div>
+<div class="test-target" id="test6">
+  <a id="name-collide">a id=&quot;name-collide&quot;</a><p>SUCCESS test6</p>
+</div>
+<div class="test-target" id="test7">
+  <a name="escaped%20name">a name=&quot;escaped%20name&quot;</a><p>SUCCESS test7</p>
+</div>
+<div class="test-target" id="test8">
+  <p id="Top">p id=&quot;Top&quot;</a><p>SUCCESS test8</p>
+</div>
+<div class="bottom-padding"/>

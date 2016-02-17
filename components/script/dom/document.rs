@@ -107,6 +107,7 @@ use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
 use time;
+use url::percent_encoding::percent_decode;
 use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};
 
@@ -515,18 +516,38 @@ impl Document {
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
-        self.get_element_by_id(&Atom::from(fragid)).or_else(|| {
-            let check_anchor = |node: &HTMLAnchorElement| {
-                let elem = node.upcast::<Element>();
-                elem.get_attribute(&ns!(), &atom!("name"))
-                    .map_or(false, |attr| &**attr.value() == fragid)
-            };
-            let doc_node = self.upcast::<Node>();
-            doc_node.traverse_preorder()
-                    .filter_map(Root::downcast)
-                    .find(|node| check_anchor(&node))
-                    .map(Root::upcast)
-        })
+        // Step 1 is not handled here; the fragid is already obtained by the calling function
+        // Step 2
+        if fragid.is_empty() {
+            self.GetDocumentElement()
+        } else {
+            // Step 3 & 4
+            String::from_utf8(percent_decode(fragid.as_bytes())).ok()
+                // Step 5
+                .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(&*decoded_fragid)))
+                // Step 6
+                .or_else(|| self.get_anchor_by_name(fragid))
+                // Step 7
+                .or_else(|| if fragid.to_lowercase() == "top" {
+                    self.GetDocumentElement()
+                } else {
+                    // Step 8
+                    None
+                })
+        }
+    }
+
+    fn get_anchor_by_name(&self, name: &str) -> Option<Root<Element>> {
+        let check_anchor = |node: &HTMLAnchorElement| {
+            let elem = node.upcast::<Element>();
+            elem.get_attribute(&ns!(), &atom!("name"))
+                .map_or(false, |attr| &**attr.value() == name)
+        };
+        let doc_node = self.upcast::<Node>();
+        doc_node.traverse_preorder()
+                .filter_map(Root::downcast)
+                .find(|node| check_anchor(&node))
+                .map(Root::upcast)
     }
 
     pub fn hit_test(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {

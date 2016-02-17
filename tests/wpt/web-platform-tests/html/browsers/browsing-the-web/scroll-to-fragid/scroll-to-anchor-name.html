@@ -1,0 +1,53 @@
+<!doctype html>
+<title>Fragment Navigation: scroll to anchor name is lower priority than equal id</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div></div>
+<a name="anchor1" style="position:absolute; top:200px;"></a>
+<div id="id-equals-anchor" style="position:absolute; top:300px;"></div>
+<a name="id-equals-anchor" style="position:absolute; top:400px;"></a>
+<div style="height:200em;"></div>
+<script>
+var steps = [{
+    fragid:'anchor1',
+      handler: function(){
+        assert_equals( scrollPosition(), 200 );
+      }
+    },{
+      fragid:'id-equals-anchor',
+      handler: function(){
+        // id still takes precedence over anchor name
+        assert_equals( scrollPosition(), 300 );
+      }
+    }];
+
+function scrollPosition(){
+  return document.documentElement.scrollTop || document.body.scrollTop;
+}
+
+function runNextStep(){
+    if( steps.length > 0 ) {
+      var step = steps.shift();
+      var listener = t.step_func( function(){
+        step.handler();
+        runNextStep();
+      });
+      scrollToFragmentThenDo( step.fragid, listener );
+    } else {
+      t.done();
+    }
+}
+
+function scrollToFragmentThenDo( fragid, then ){
+  location.hash = fragid;
+  setTimeout( then, 1 );
+}
+
+var t = async_test();
+t.step( function(){
+  assert_equals(location.hash, "", "Page must be loaded with no hash");
+  runNextStep();
+})
+</script>
