@@ -1034,7 +1034,7 @@ impl XMLHttpRequest {
         // This will cancel all previous timeouts
         let global = self.global();
         let callback = ScheduledXHRTimeout {
-            xhr: Trusted::new(self, global.r().networking_thread_source()),
+            xhr: Trusted::new(self, global.r().networking_task_source()),
             generation_id: self.generation_id.get(),
         };
         let duration = Length::new(duration_ms as u64);
@@ -1234,7 +1234,7 @@ impl XMLHttpRequest {
             Ok(req) => req,
         };
 
-        let xhr = Trusted::new(self, global.networking_thread_source());
+        let xhr = Trusted::new(self, global.networking_task_source());
 
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
@@ -1248,7 +1248,7 @@ impl XMLHttpRequest {
             let (tx, rx) = global.new_script_pair();
             (tx, Some(rx))
         } else {
-            (global.networking_thread_source(), None)
+            (global.networking_task_source(), None)
         };
 
         let resource_thread = global.resource_thread();
