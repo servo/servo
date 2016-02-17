@@ -17,7 +17,7 @@ use dom::servoxmlparser;
 use dom::servoxmlparser::ServoXMLParser;
 use dom::text::Text;
 use msg::constellation_msg::PipelineId;
-use parse::Parser;
+use parse::{Parser, Chunk};
 use std::borrow::Cow;
 use string_cache::{Atom, QualName, Namespace};
 use url::Url;
@@ -117,6 +117,6 @@ pub fn parse_xml(document: &Document,
         ParseContext::Owner(owner) =>
             ServoXMLParser::new(Some(url), document, owner),
     };
-    parser.parse_chunk(String::from(input));
+    parser.parse_chunk(Chunk::Dom(input));
 }
 
