@@ -17,6 +17,7 @@ use msg::constellation_msg::PipelineId;
 use parse::Parser;
 use script_thread::ScriptThread;
 use std::cell::Cell;
+use std::collections::VecDeque;
 use url::Url;
 use xml5ever::tokenizer;
 use xml5ever::tree_builder::{self, XmlTreeBuilder};
@@ -37,7 +38,7 @@ pub struct ServoXMLParser {
     #[ignore_heap_size_of = "Defined in xml5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<Vec<String>>,
+    pending_input: DOMRefCell<VecDeque<String>>,
     /// The document associated with this parser.
     document: JS<Document>,
     /// True if this parser should avoid passing any further data to the tokenizer.
@@ -52,7 +53,7 @@ pub struct ServoXMLParser {
 impl<'a> Parser for &'a ServoXMLParser {
     fn parse_chunk(self, input: String) {
         self.document.set_current_parser(Some(ParserRef::XML(self)));
-        self.pending_input.borrow_mut().push(input);
+        self.pending_input.borrow_mut().push_back(input);
         if !self.is_suspended() {
             self.parse_sync();
         }
@@ -89,7 +90,7 @@ impl ServoXMLParser {
         let parser = ServoXMLParser {
             reflector_: Reflector::new(),
             tokenizer: DOMRefCell::new(tok),
-            pending_input: DOMRefCell::new(vec!()),
+            pending_input: DOMRefCell::new(VecDeque::new()),
             document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
@@ -125,8 +126,7 @@ impl ServoXMLParser {
         loop {
            self.document.reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
-            if !pending_input.is_empty() {
-                let chunk = pending_input.remove(0);
+            if let Some(chunk) = pending_input.pop_front() {
                 self.tokenizer.borrow_mut().feed(chunk.into());
             }
 
@@ -145,7 +145,7 @@ impl ServoXMLParser {
         }
     }
 
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
+    pub fn pending_input(&self) -> &DOMRefCell<VecDeque<String>> {
         &self.pending_input
     }
 
