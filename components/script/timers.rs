@@ -5,6 +5,7 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::JSTraceable;
 use dom::window::ScriptHelpers;
@@ -30,6 +31,7 @@ pub struct OneshotTimerHandle(i32);
 #[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
 pub struct OneshotTimers {
+    js_timers: JsTimers,
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_chan: IpcSender<TimerEvent>,
     #[ignore_heap_size_of = "Defined in std"]
@@ -62,7 +64,7 @@ struct OneshotTimer {
 
 // This enum is required to work around the fact that trait objects do not support generic methods.
 // A replacement trait would have a method such as
-//     `invoke<T: Reflectable>(self: Box<Self>, this: &T);`.
+//     `invoke<T: Reflectable>(self: Box<Self>, this: &T, js_timers: &JsTimers);`.
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
@@ -70,10 +72,10 @@ pub enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: Reflectable>(self, this: &T) {
+    fn invoke<T: Reflectable>(self, this: &T, js_timers: &JsTimers) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
-            OneshotTimerCallback::JsTimer(task) => task.invoke(this),
+            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
         }
     }
 }
@@ -105,6 +107,7 @@ impl OneshotTimers {
                scheduler_chan: IpcSender<TimerEventRequest>)
                -> OneshotTimers {
         OneshotTimers {
+            js_timers: JsTimers::new(),
             timer_event_chan: timer_event_chan,
             scheduler_chan: scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
@@ -113,6 +116,10 @@ impl OneshotTimers {
             suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
         }
+    }
+
+    pub fn get_js_timers(&self) -> &JsTimers {
+        &self.js_timers
     }
 
     pub fn schedule_callback(&self,
@@ -193,7 +200,7 @@ impl OneshotTimers {
 
         for timer in timers_to_run {
             let callback = timer.callback;
-            callback.invoke(this);
+            callback.invoke(this, &self.js_timers);
         }
 
         self.schedule_timer_call();
@@ -262,14 +269,6 @@ pub struct JsTimerHandle(i32);
 #[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
 pub struct JsTimers {
-    state: Rc<JsTimersState>,
-}
-
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
-struct JsTimersState {
-    #[ignore_heap_size_of = "Because it is non-owning"]
-    oneshots: Rc<OneshotTimers>,
     next_timer_handle: Cell<JsTimerHandle>,
     active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
@@ -286,9 +285,8 @@ struct JsTimerEntry {
 //      to the function when calling it)
 // TODO: Handle rooting during invocation when movable GC is turned on
 #[derive(JSTraceable, HeapSizeOf)]
-struct JsTimerTask {
+pub struct JsTimerTask {
     #[ignore_heap_size_of = "Because it is non-owning"]
-    timers: Rc<JsTimersState>,
     handle: JsTimerHandle,
     source: TimerSource,
     callback: InternalTimerCallback,
@@ -324,19 +322,17 @@ impl HeapSizeOf for InternalTimerCallback {
 }
 
 impl JsTimers {
-    pub fn new(oneshots: Rc<OneshotTimers>) -> JsTimers {
+    pub fn new() -> JsTimers {
         JsTimers {
-            state: Rc::new(JsTimersState {
-                oneshots: oneshots,
-                next_timer_handle: Cell::new(JsTimerHandle(1)),
-                active_timers: DOMRefCell::new(HashMap::new()),
-                nesting_level: Cell::new(0),
-            }),
+            next_timer_handle: Cell::new(JsTimerHandle(1)),
+            active_timers: DOMRefCell::new(HashMap::new()),
+            nesting_level: Cell::new(0),
         }
     }
 
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     pub fn set_timeout_or_interval(&self,
+                               global: GlobalRef,
                                callback: TimerCallback,
                                arguments: Vec<HandleValue>,
                                timeout: i32,
@@ -361,14 +357,13 @@ impl JsTimers {
         };
 
         // step 2
-        let JsTimerHandle(new_handle) = self.state.next_timer_handle.get();
-        self.state.next_timer_handle.set(JsTimerHandle(new_handle + 1));
+        let JsTimerHandle(new_handle) = self.next_timer_handle.get();
+        self.next_timer_handle.set(JsTimerHandle(new_handle + 1));
 
         // step 3 as part of initialize_and_schedule below
 
         // step 4
         let mut task = JsTimerTask {
-            timers: self.state.clone(),
             handle: JsTimerHandle(new_handle),
             source: source,
             callback: callback,
@@ -381,46 +376,44 @@ impl JsTimers {
         task.duration = Length::new(cmp::max(0, timeout) as u64);
 
         // step 3, 6-9, 11-14
-        initialize_and_schedule(task);
+        self.initialize_and_schedule(global, task);
 
         // step 10
         new_handle
     }
 
-    pub fn clear_timeout_or_interval(&self, handle: i32) {
-        let mut active_timers = self.state.active_timers.borrow_mut();
+    pub fn clear_timeout_or_interval(&self, global: GlobalRef, handle: i32) {
+        let mut active_timers = self.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
-            self.state.oneshots.unschedule_callback(entry.oneshot_handle);
+            global.unschedule_callback(entry.oneshot_handle);
         }
     }
-}
 
-// see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-fn initialize_and_schedule(mut task: JsTimerTask) {
-    let handle = task.handle;
-    let timers = task.timers.clone();
-    let mut active_timers = timers.active_timers.borrow_mut();
+    // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+    fn initialize_and_schedule(&self, global: GlobalRef, mut task: JsTimerTask) {
+        let handle = task.handle;
+        let mut active_timers = self.active_timers.borrow_mut();
 
-    // step 6
-    let nesting_level = task.timers.nesting_level.get();
+        // step 6
+        let nesting_level = self.nesting_level.get();
 
-    // step 7
-    let duration = clamp_duration(nesting_level, task.duration);
+        // step 7
+        let duration = clamp_duration(nesting_level, task.duration);
 
-    // step 8, 9
-    task.nesting_level = nesting_level + 1;
+        // step 8, 9
+        task.nesting_level = nesting_level + 1;
 
-    // essentially step 11-14
-    let source = task.source;
-    let callback = OneshotTimerCallback::JsTimer(task);
-    let oneshot_handle = timers.oneshots.schedule_callback(callback, duration, source);
+        // essentially step 11-14
+        let callback = OneshotTimerCallback::JsTimer(task);
+        let oneshot_handle = global.schedule_callback(callback, duration);
 
-    // step 3
-    let entry = active_timers.entry(handle).or_insert(JsTimerEntry {
-        oneshot_handle: oneshot_handle,
-    });
-    entry.oneshot_handle = oneshot_handle;
+        // step 3
+        let entry = active_timers.entry(handle).or_insert(JsTimerEntry {
+            oneshot_handle: oneshot_handle,
+        });
+        entry.oneshot_handle = oneshot_handle;
+    }
 }
 
 // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
@@ -437,12 +430,12 @@ fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     #[allow(unsafe_code)]
-    pub fn invoke<T: Reflectable>(self, this: &T) {
+    pub fn invoke<T: Reflectable>(self, this: &T, timers: &JsTimers) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
         // prep for step 6 in nested set_timeout_or_interval calls
-        self.timers.nesting_level.set(self.nesting_level);
+        timers.nesting_level.set(self.nesting_level);
 
         // step 4.2
         match *&self.callback {
@@ -463,15 +456,15 @@ impl JsTimerTask {
         };
 
         // reset nesting level (see above)
-        self.timers.nesting_level.set(0);
+        timers.nesting_level.set(0);
 
         // step 4.3
         // Since we choose proactively prevent execution (see 4.1 above), we must only
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
-            self.timers.active_timers.borrow().contains_key(&self.handle) {
+            timers.active_timers.borrow().contains_key(&self.handle) {
 
-            initialize_and_schedule(self);
+            timers.initialize_and_schedule(this.global().r(), self);
         }
     }
 }
