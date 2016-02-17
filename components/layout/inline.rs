@@ -1928,9 +1928,14 @@ impl InlineMetrics {
     #[inline]
     pub fn from_font_metrics(font_metrics: &FontMetrics, line_height: Au) -> InlineMetrics {
         let leading = line_height - (font_metrics.ascent + font_metrics.descent);
+        // Calculating the half leading here and then using leading - half_leading
+        // below ensure that we don't introduce any rounding accuracy issues here.
+        // The invariant is that the resulting total line height must exactly
+        // equal the requested line_height.
+        let half_leading = leading.scale_by(0.5);
         InlineMetrics {
-            block_size_above_baseline: font_metrics.ascent + leading.scale_by(0.5),
-            depth_below_baseline: font_metrics.descent + leading.scale_by(0.5),
+            block_size_above_baseline: font_metrics.ascent + half_leading,
+            depth_below_baseline: font_metrics.descent + leading - half_leading,
             ascent: font_metrics.ascent,
         }
     }

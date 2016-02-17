@@ -45,6 +45,7 @@ use util::linked_list::prepend_from;
 use util::opts;
 use util::print_tree::PrintTree;
 use util::range::Range;
+use webrender_traits::WebGLContextId;
 
 pub use style::dom::OpaqueNode;
 
@@ -641,7 +642,10 @@ impl StackingContext {
             layer_info: layer_info,
             last_child_layer_info: None,
         };
-        StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
+        // webrender doesn't care about layers in the display list - it's handled internally.
+        if !opts::get().use_webrender {
+            StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
+        }
         stacking_context
     }
 
@@ -681,7 +685,8 @@ impl StackingContext {
         // TODO(gw): This is a hack to avoid running the DL optimizer
         // on 3d transformed tiles. We should have a better solution
         // than just disabling the opts here.
-        if paint_context.layer_kind == LayerKind::HasTransform {
+        if paint_context.layer_kind == LayerKind::HasTransform ||
+           opts::get().use_webrender {      // webrender takes care of all culling via aabb tree!
             self.draw_into_context(&self.display_list,
                                    paint_context,
                                    &transform,
@@ -775,6 +780,9 @@ struct StackingContextLayerCreator {
 
 impl StackingContextLayerCreator {
     fn new() -> StackingContextLayerCreator {
+        // webrender doesn't care about layers in the display list - it's handled internally.
+        debug_assert!(!opts::get().use_webrender);
+
         StackingContextLayerCreator {
             display_list_for_next_layer: None,
             next_layer_info: None,
@@ -969,6 +977,7 @@ pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),
     ImageClass(Box<ImageDisplayItem>),
+    WebGLClass(Box<WebGLDisplayItem>),
     BorderClass(Box<BorderDisplayItem>),
     GradientClass(Box<GradientDisplayItem>),
     LineClass(Box<LineDisplayItem>),
@@ -976,6 +985,7 @@ pub enum DisplayItem {
     StackingContextClass(Arc<StackingContext>),
     LayeredItemClass(Box<LayeredItem>),
     NoopClass(Box<BaseDisplayItem>),
+    IframeClass(Box<IframeDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -1236,6 +1246,20 @@ pub struct ImageDisplayItem {
     pub image_rendering: image_rendering::T,
 }
 
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct WebGLDisplayItem {
+    pub base: BaseDisplayItem,
+    #[ignore_heap_size_of = "Defined in webrender_traits"]
+    pub context_id: WebGLContextId,
+}
+
+
+/// Paints an iframe.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct IframeDisplayItem {
+    pub base: BaseDisplayItem,
+    pub iframe: PipelineId,
+}
 
 /// Paints a gradient.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
@@ -1450,6 +1474,10 @@ impl DisplayItem {
                                          image_item.image_rendering.clone());
             }
 
+            DisplayItem::WebGLClass(_) => {
+                panic!("Shouldn't be here, WebGL display items are created just with webrender");
+            }
+
             DisplayItem::BorderClass(ref border) => {
                 paint_context.draw_border(&border.base.bounds,
                                           &border.border_widths,
@@ -1499,6 +1527,7 @@ impl DisplayItem {
             DisplayItem::LayeredItemClass(_) => panic!("Found layered item during drawing."),
 
             DisplayItem::NoopClass(_) => { }
+            DisplayItem::IframeClass(..) => {}
         }
     }
 
@@ -1507,6 +1536,7 @@ impl DisplayItem {
             DisplayItem::SolidColorClass(ref solid_color) => Some(&solid_color.base),
             DisplayItem::TextClass(ref text) => Some(&text.base),
             DisplayItem::ImageClass(ref image_item) => Some(&image_item.base),
+            DisplayItem::WebGLClass(ref webgl_item) => Some(&webgl_item.base),
             DisplayItem::BorderClass(ref border) => Some(&border.base),
             DisplayItem::GradientClass(ref gradient) => Some(&gradient.base),
             DisplayItem::LineClass(ref line) => Some(&line.base),
@@ -1514,6 +1544,7 @@ impl DisplayItem {
             DisplayItem::LayeredItemClass(ref layered_item) => layered_item.item.base(),
             DisplayItem::NoopClass(ref base_item) => Some(base_item),
             DisplayItem::StackingContextClass(_) => None,
+            DisplayItem::IframeClass(ref iframe) => Some(&iframe.base),
         }
     }
 
@@ -1563,6 +1594,7 @@ impl fmt::Debug for DisplayItem {
                             solid_color.color.a),
                 DisplayItem::TextClass(_) => "Text".to_owned(),
                 DisplayItem::ImageClass(_) => "Image".to_owned(),
+                DisplayItem::WebGLClass(_) => "WebGL".to_owned(),
                 DisplayItem::BorderClass(_) => "Border".to_owned(),
                 DisplayItem::GradientClass(_) => "Gradient".to_owned(),
                 DisplayItem::LineClass(_) => "Line".to_owned(),
@@ -1571,6 +1603,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::LayeredItemClass(ref layered_item) =>
                     format!("LayeredItem({:?})", layered_item.item),
                 DisplayItem::NoopClass(_) => "Noop".to_owned(),
+                DisplayItem::IframeClass(_) => "Iframe".to_owned(),
             },
             self.bounds(),
         )
