@@ -29,7 +29,8 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
-use net_traits::ControlMsg::WebsocketConnect;
+use net_traits::ControlMsg::{WebsocketConnect, SetCookiesForUrl};
+use net_traits::CookieSource::HTTP;
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
@@ -485,6 +486,15 @@ impl Runnable for ConnectionEstablishedTask {
         };
 
         // Step 5: Cookies.
+        if let Some(cookies) = self.headers.get_raw("set-cookie") {
+            for cookie in cookies.iter() {
+                if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                    let _ = ws.global().r().resource_thread().send(SetCookiesForUrl(ws.url.clone(),
+                                                                                    cookie_value,
+                                                                                    HTTP));
+                }
+            }
+        }
 
         // Step 6.
         ws.upcast().fire_simple_event("open");

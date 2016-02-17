@@ -362,6 +362,6 @@ impl ResourceManager {
     fn websocket_connect(&self,
                          connect: WebSocketCommunicate,
                          connect_data: WebSocketConnectData) {
-        websocket_loader::init(connect, connect_data);
+        websocket_loader::init(connect, connect_data, self.cookie_storage.clone());
     }
 }

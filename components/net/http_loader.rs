@@ -351,7 +351,7 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
-fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
         let mut v = Vec::new();
