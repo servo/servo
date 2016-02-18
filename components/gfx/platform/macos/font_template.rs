@@ -9,9 +9,12 @@ use core_text::font::CTFont;
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::ToOwned;
+use std::fs::File;
+use std::io::Read;
 use std::ops::Deref;
 use std::sync::Mutex;
 use string_cache::Atom;
+use url::Url;
 
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
@@ -61,6 +64,39 @@ impl FontTemplateData {
             }
         }
         ctfont.as_ref().map(|ctfont| (*ctfont).clone())
+    }
+
+    /// Returns a clone of the data in this font. This may be a hugely expensive
+    /// operation (depending on the platform) which performs synchronous disk I/O
+    /// and should never be done lightly.
+    pub fn bytes(&self) -> Vec<u8> {
+        match self.bytes_if_in_memory() {
+            Some(font_data) => return font_data,
+            None => {}
+        }
+
+        let path = Url::parse(&*self.ctfont()
+                                    .expect("No Core Text font available!")
+                                    .url()
+                                    .expect("No URL for Core Text font!")
+                                    .get_string()
+                                    .to_string()).expect("Couldn't parse Core Text font URL!")
+                                                 .to_file_path()
+                                                 .expect("Core Text font didn't name a path!");
+        let mut bytes = Vec::new();
+        File::open(path).expect("Couldn't open font file!").read_to_end(&mut bytes).unwrap();
+        bytes
+    }
+
+    /// Returns a clone of the bytes in this font if they are in memory. This function never
+    /// performs disk I/O.
+    pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
+        self.font_data.clone()
+    }
+
+    /// Returns the native font that underlies this font template, if applicable.
+    pub fn native_font(&self) -> Option<CGFont> {
+        self.ctfont().map(|ctfont| ctfont.copy_to_CGFont())
     }
 }
 

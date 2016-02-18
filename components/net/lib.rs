@@ -27,6 +27,7 @@ extern crate time;
 extern crate url;
 extern crate util;
 extern crate uuid;
+extern crate webrender_traits;
 extern crate websocket;
 
 pub mod about_loader;
