@@ -400,19 +400,25 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let name_lower = name.to_lower();
         let name_str = match name_lower.as_str() {
             Some(s) => {
-                match s {
-                    // Disallowed headers
-                    "accept-charset" | "accept-encoding" |
-                    "access-control-request-headers" |
-                    "access-control-request-method" |
-                    "connection" | "content-length" |
-                    "cookie" | "cookie2" | "date" |"dnt" |
-                    "expect" | "host" | "keep-alive" | "origin" |
-                    "referer" | "te" | "trailer" | "transfer-encoding" |
-                    "upgrade" | "user-agent" | "via" => {
-                        return Ok(()); // Step 5
-                    },
-                    _ => s
+                // Disallowed headers and header prefixes:
+                // https://fetch.spec.whatwg.org/#forbidden-header-name
+                let disallowedHeaders =
+                    ["accept-charset", "accept-encoding",
+                    "access-control-request-headers",
+                    "access-control-request-method",
+                    "connection", "content-length",
+                    "cookie", "cookie2", "date", "dnt",
+                    "expect", "host", "keep-alive", "origin",
+                    "referer", "te", "trailer", "transfer-encoding",
+                    "upgrade", "via"];
+
+                let disallowedHeaderPrefixes = ["sec-", "proxy-"];
+
+                if disallowedHeaders.iter().any(|header| *header == s) |
+                   disallowedHeaderPrefixes.iter().any(|prefix| s.starts_with(prefix)) {
+                    return Ok(())
+                } else {
+                    s
                 }
             },
             None => return Err(Error::Syntax)
