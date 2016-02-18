@@ -3745,25 +3745,50 @@ class CGUnionConversionStruct(CGThing):
             if arrayObject:
                 templateBody.append(arrayObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
+        stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
+        numericTypes = [t for t in memberTypes if t.isNumeric()]
+        booleanTypes = [t for t in memberTypes if t.isBoolean()]
+        if stringTypes or numericTypes or booleanTypes:
+            assert len(stringTypes) <= 1
+            assert len(numericTypes) <= 1
+            assert len(booleanTypes) <= 1
 
-        otherMemberTypes = [
-            t for t in memberTypes if t.isPrimitive() or t.isString() or t.isEnum()
-        ]
-        if len(otherMemberTypes) > 0:
-            assert len(otherMemberTypes) == 1
-            memberType = otherMemberTypes[0]
-            if memberType.isEnum():
-                name = memberType.inner.identifier.name
+            def getStringOrPrimitiveConversion(memberType):
+                typename = get_name(memberType)
+                return CGGeneric(get_match(typename))
+            other = []
+            stringConversion = map(getStringOrPrimitiveConversion, stringTypes)
+            numericConversion = map(getStringOrPrimitiveConversion, numericTypes)
+            booleanConversion = map(getStringOrPrimitiveConversion, booleanTypes)
+            if stringConversion:
+                if booleanConversion:
+                    other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
+                if numericConversion:
+                    other.append(CGIfWrapper("value.get().is_number()", numericConversion[0]))
+                other.append(stringConversion[0])
+            elif numericConversion:
+                if booleanConversion:
+                    other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
+                other.append(numericConversion[0])
             else:
-                name = memberType.name
-            match = (
-                "match %s::TryConvertTo%s(cx, value) {\n"
-                "    Err(_) => return Err(()),\n"
-                "    Ok(Some(value)) => return Ok(%s::%s(value)),\n"
-                "    Ok(None) => (),\n"
-                "}\n") % (self.type, name, self.type, name)
-            conversions.append(CGGeneric(match))
-            names.append(name)
+                assert booleanConversion
+                other.append(booleanConversion[0])
+            conversions.append(CGList(other, "\n\n"))
+        conversions.append(CGGeneric(
+            "throw_not_in_union(cx, \"%s\");\n"
+            "Err(())" % ", ".join(names)))
+        method = CGWrapper(
+            CGIndenter(CGList(conversions, "\n\n")),
+            pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
+                "                     value: HandleValue, _option: ()) -> Result<%s, ()> {\n" % self.type,
+            post="\n}")
+        return CGWrapper(
+            CGIndenter(CGList([
+                CGGeneric("type Config = ();"),
+                method,
+            ], "\n")),
+            pre="impl FromJSValConvertible for %s {\n" % self.type,
+            post="\n}")
 
         conversions.append(CGGeneric(
             "throw_not_in_union(cx, \"%s\");\n"

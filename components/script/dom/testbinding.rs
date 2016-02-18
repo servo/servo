@@ -7,10 +7,12 @@
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
-use dom::bindings::codegen::UnionTypes::{BlobOrBlobSequence};
-use dom::bindings::codegen::UnionTypes::{BlobOrString, EventOrString};
+use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence};
+use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
-use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
+use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
+use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
+use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -98,6 +100,26 @@ impl TestBindingMethods for TestBinding {
         EventOrUSVString::USVString(USVString("".to_owned()))
     }
     fn SetUnion3Attribute(&self, _: EventOrUSVString) {}
+    fn Union4Attribute(&self) -> StringOrUnsignedLong {
+        StringOrUnsignedLong::UnsignedLong(0u32)
+    }
+    fn SetUnion4Attribute(&self, _: StringOrUnsignedLong) {}
+    fn Union5Attribute(&self) -> StringOrBoolean {
+        StringOrBoolean::Boolean(true)
+    }
+    fn SetUnion5Attribute(&self, _: StringOrBoolean) {}
+    fn Union6Attribute(&self) -> UnsignedLongOrBoolean {
+        UnsignedLongOrBoolean::Boolean(true)
+    }
+    fn SetUnion6Attribute(&self, _: UnsignedLongOrBoolean) {}
+    fn Union7Attribute(&self) -> BlobOrBoolean {
+        BlobOrBoolean::Boolean(true)
+    }
+    fn SetUnion7Attribute(&self, _: BlobOrBoolean) {}
+    fn Union8Attribute(&self) -> BlobOrUnsignedLong {
+        BlobOrUnsignedLong::UnsignedLong(0u32)
+    }
+    fn SetUnion8Attribute(&self, _: BlobOrUnsignedLong) {}
     fn ArrayAttribute(&self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
     fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
@@ -164,6 +186,18 @@ impl TestBindingMethods for TestBinding {
         Some(EventOrString::String(DOMString::new()))
     }
     fn SetUnion2AttributeNullable(&self, _: Option<EventOrString>) {}
+    fn GetUnion3AttributeNullable(&self) -> Option<BlobOrBoolean> {
+        Some(BlobOrBoolean::Boolean(true))
+    }
+    fn SetUnion3AttributeNullable(&self, _: Option<BlobOrBoolean>) {}
+    fn GetUnion4AttributeNullable(&self) -> Option<UnsignedLongOrBoolean> {
+        Some(UnsignedLongOrBoolean::Boolean(true))
+    }
+    fn SetUnion4AttributeNullable(&self, _: Option<UnsignedLongOrBoolean>) {}
+    fn GetUnion5AttributeNullable(&self) -> Option<StringOrBoolean> {
+        Some(StringOrBoolean::Boolean(true))
+    }
+    fn SetUnion5AttributeNullable(&self, _: Option<StringOrBoolean>) {}
     fn BinaryRenamedMethod(&self) -> () {}
     fn ReceiveVoid(&self) -> () {}
     fn ReceiveBoolean(&self) -> bool { false }
@@ -193,6 +227,12 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::LongSequence(vec![]) }
     fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::StringSequence(vec![]) }
     fn ReceiveUnion5(&self) -> BlobOrBlobSequence { BlobOrBlobSequence::BlobSequence(vec![]) }
+    fn ReceiveUnion6(&self) -> StringOrUnsignedLong { StringOrUnsignedLong::String(DOMString::new()) }
+    fn ReceiveUnion7(&self) -> StringOrBoolean { StringOrBoolean::Boolean(true) }
+    fn ReceiveUnion8(&self) -> UnsignedLongOrBoolean { UnsignedLongOrBoolean::UnsignedLong(0u32) }
+    fn ReceiveUnion9(&self) -> HTMLElementOrUnsignedLongOrStringOrBoolean {
+        HTMLElementOrUnsignedLongOrStringOrBoolean::Boolean(true)
+    }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
         vec![Blob::new(self.global().r(), Vec::new(), "")]
@@ -228,6 +268,12 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableUnion3(&self) -> Option<StringOrLongSequence> {
         Some(StringOrLongSequence::String(DOMString::new()))
     }
+    fn ReceiveNullableUnion4(&self) -> Option<LongSequenceOrBoolean> {
+        Some(LongSequenceOrBoolean::Boolean(true))
+    }
+    fn ReceiveNullableUnion5(&self) -> Option<UnsignedLongOrBoolean> {
+        Some(UnsignedLongOrBoolean::UnsignedLong(0u32))
+    }
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
 
     fn PassBoolean(&self, _: bool) {}
@@ -252,6 +298,9 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion2(&self, _: EventOrString) {}
     fn PassUnion3(&self, _: BlobOrString) {}
     fn PassUnion4(&self, _: StringOrStringSequence) {}
+    fn PassUnion5(&self, _: StringOrBoolean) {}
+    fn PassUnion6(&self, _: UnsignedLongOrBoolean) {}
+    fn PassUnion7(&self, _: StringSequenceOrUnsignedLong) {}
     fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
     fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
@@ -281,6 +330,9 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
+    fn PassNullableUnion3(&self, _: Option<StringOrLongSequence>) {}
+    fn PassNullableUnion4(&self, _: Option<LongSequenceOrBoolean>) {}
+    fn PassNullableUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
     fn PassNullableCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassNullableCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
     fn PassNullableSequence(&self, _: Option<Vec<i32>>) {}
@@ -305,6 +357,9 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalInterface(&self, _: Option<&Blob>) {}
     fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalUnion2(&self, _: Option<EventOrString>) {}
+    fn PassOptionalUnion3(&self, _: Option<StringOrLongSequence>) {}
+    fn PassOptionalUnion4(&self, _: Option<LongSequenceOrBoolean>) {}
+    fn PassOptionalUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
     fn PassOptionalAny(&self, _: *mut JSContext, _: HandleValue) {}
     fn PassOptionalObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
@@ -332,6 +387,9 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
+    fn PassOptionalNullableUnion3(&self, _: Option<Option<StringOrLongSequence>>) {}
+    fn PassOptionalNullableUnion4(&self, _: Option<Option<LongSequenceOrBoolean>>) {}
+    fn PassOptionalNullableUnion5(&self, _: Option<Option<UnsignedLongOrBoolean>>) {}
     fn PassOptionalNullableCallbackFunction(&self, _: Option<Option<Rc<Function>>>) {}
     fn PassOptionalNullableCallbackInterface(&self, _: Option<Option<Rc<EventListener>>>) {}
     fn PassOptionalNullableSequence(&self, _: Option<Option<Vec<i32>>>) {}
@@ -413,6 +471,9 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion(&self, _: Vec<HTMLElementOrLong>) {}
     fn PassVariadicUnion2(&self, _: Vec<EventOrString>) {}
     fn PassVariadicUnion3(&self, _: Vec<BlobOrString>) {}
+    fn PassVariadicUnion4(&self, _: Vec<BlobOrBoolean>) {}
+    fn PassVariadicUnion5(&self, _: Vec<StringOrUnsignedLong>) {}
+    fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
     fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
 }
