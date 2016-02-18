@@ -22,12 +22,12 @@ use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
 use url::Url;
-use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
 use string_cache::Atom;
 use computed_values;
+use logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use parser::{ParserContext, log_css_error};
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
@@ -6365,7 +6365,7 @@ impl ComputedValues {
 
 /// Return a WritingMode bitflags from the relevant CSS properties.
 pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
-    use util::logical_geometry;
+    use logical_geometry;
     let mut flags = WritingMode::empty();
     match inheritedbox_style.direction {
         computed_values::direction::T::ltr => {},

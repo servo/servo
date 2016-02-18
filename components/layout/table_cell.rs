@@ -20,10 +20,10 @@ use model::MaybeAuto;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style};
+use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
-use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::print_tree::PrintTree;
 use wrapper::{ThreadSafeLayoutNode};
 

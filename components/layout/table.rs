@@ -23,13 +23,13 @@ use std::cmp;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::{TableRowFlow};
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_wrapper::TableLayout;
-use util::logical_geometry::LogicalSize;
 use util::print_tree::PrintTree;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.

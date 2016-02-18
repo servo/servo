@@ -21,12 +21,12 @@ use std::mem;
 use std::sync::Arc;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
 use style::computed_values::{white_space};
+use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font as FontStyle;
 use unicode_bidi::{is_rtl, process_text};
 use unicode_script::{get_script, Script};
 use util::linked_list::split_off_head;
-use util::logical_geometry::{LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
 
 /// Returns the concatenated text of a list of unscanned text fragments.

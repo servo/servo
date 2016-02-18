@@ -17,15 +17,15 @@ extern crate style_traits;
 extern crate url;
 extern crate util;
 
-
-#[cfg(test)] mod stylesheets;
-#[cfg(test)] mod media_queries;
-#[cfg(test)] mod viewport;
 #[cfg(test)] mod attr;
+#[cfg(test)] mod logical_geometry;
+#[cfg(test)] mod media_queries;
+#[cfg(test)] mod stylesheets;
+#[cfg(test)] mod viewport;
 
 #[cfg(test)] mod writing_modes {
+    use style::logical_geometry::WritingMode;
     use style::properties::{INITIAL_VALUES, get_writing_mode};
-    use util::logical_geometry::WritingMode;
 
     #[test]
     fn initial_writing_mode_is_empty() {

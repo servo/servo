@@ -22,9 +22,9 @@ use incremental::RESOLVE_GENERATED_CONTENT;
 use inline::InlineMetrics;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use text;
-use util::logical_geometry::LogicalSize;
 use util::opts;
 
 /// A block with the CSS `display` property equal to `list-item`.

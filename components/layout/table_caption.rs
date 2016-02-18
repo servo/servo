@@ -14,8 +14,8 @@ use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use std::fmt;
 use std::sync::Arc;
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use util::logical_geometry::LogicalSize;
 use util::print_tree::PrintTree;
 
 /// A table formatting context.

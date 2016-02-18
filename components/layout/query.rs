@@ -24,12 +24,12 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values;
+use style::logical_geometry::WritingMode;
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
 use style::values::AuExtensionMethods;
 use style_traits::cursor::Cursor;
-use util::logical_geometry::WritingMode;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
