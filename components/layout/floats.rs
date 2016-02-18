@@ -7,8 +7,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::i32;
 use style::computed_values::float;
-use util::logical_geometry::WritingMode;
-use util::logical_geometry::{LogicalRect, LogicalSize};
+use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::persistent_list::PersistentList;
 
 /// The kind of float: left or right.

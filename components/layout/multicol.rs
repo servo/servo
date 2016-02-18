@@ -18,9 +18,9 @@ use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
 use style::context::StyleContext;
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use util::logical_geometry::LogicalSize;
 use util::print_tree::PrintTree;
 
 pub struct MulticolFlow {

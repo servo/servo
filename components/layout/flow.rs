@@ -48,6 +48,7 @@ use std::sync::atomic::Ordering;
 use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, text_align};
 use style::dom::TRestyleDamage;
+use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
@@ -57,7 +58,6 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::print_tree::PrintTree;
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 

@@ -59,11 +59,11 @@ use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
 use style::computed_values::{position, text_align, transform_style};
 use style::context::StyleContext;
+use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use util::print_tree::PrintTree;
 
