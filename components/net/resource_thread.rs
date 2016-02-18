@@ -332,7 +332,7 @@ impl ResourceManager {
         });
 
         let cancel_listener = CancellationListener::new(cancel_resource);
-        let loader = match &*load_data.url.scheme {
+        let loader = match load_data.url.scheme() {
             "chrome" => from_factory(chrome_loader::factory),
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" => {
@@ -349,12 +349,12 @@ impl ResourceManager {
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
-                debug!("resource_thread: no loader for scheme {}", load_data.url.scheme);
+                debug!("resource_thread: no loader for scheme {}", load_data.url.scheme());
                 send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);
                 return
             }
         };
-        debug!("resource_thread: loading url: {}", load_data.url.serialize());
+        debug!("resource_thread: loading url: {}", load_data.url);
 
         loader.call_box((load_data,
                          consumer,

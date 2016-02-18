@@ -1091,7 +1091,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
 
         fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(ResponseType::Redirect(format!("{}/1", url.serialize()))))
+                Ok(MockRequest::new(ResponseType::Redirect(format!("{}/1", url))))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -1334,13 +1334,13 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         type R = MockRequest;
 
         fn create(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
-            if url.path().unwrap()[0] == "initial" {
+            if url.path_segments().unwrap().next().unwrap() == "initial" {
                 let mut initial_answer_headers = Headers::new();
                 initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
                 Ok(MockRequest::new(
                     ResponseType::RedirectWithHeaders("http://mozilla.org/subsequent/".to_owned(),
                         initial_answer_headers)))
-            } else if url.path().unwrap()[0] == "subsequent" {
+            } else if url.path_segments().unwrap().next().unwrap() == "subsequent" {
                 let mut expected_subsequent_headers = Headers::new();
                 expected_subsequent_headers.set_raw("Cookie", vec![b"mozillaIs=theBest".to_vec()]);
                 assert_headers_included(&expected_subsequent_headers, &headers);

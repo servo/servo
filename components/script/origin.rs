@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use ref_filter_map::ref_filter_map;
+use std::cell::{RefCell, Ref};
 use std::rc::Rc;
-use url::{OpaqueOrigin, Origin as UrlOrigin};
+use url::Origin as UrlOrigin;
 use url::{Url, Host};
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
@@ -21,9 +22,8 @@ no_jsmanaged_fields!(Origin);
 impl Origin {
     /// Create a new origin comprising a unique, opaque identifier.
     pub fn opaque_identifier() -> Origin {
-        let opaque = UrlOrigin::UID(OpaqueOrigin::new());
         Origin {
-            inner: Rc::new(RefCell::new(opaque)),
+            inner: Rc::new(RefCell::new(UrlOrigin::new_opaque())),
         }
     }
 
@@ -40,18 +40,15 @@ impl Origin {
 
     /// Does this origin represent a host/scheme/port tuple?
     pub fn is_scheme_host_port_tuple(&self) -> bool {
-        match *self.inner.borrow() {
-            UrlOrigin::Tuple(..) => true,
-            UrlOrigin::UID(..) => false,
-        }
+        self.inner.borrow().is_tuple()
     }
 
     /// Return the host associated with this origin.
-    pub fn host(&self) -> Option<Host> {
-        match *self.inner.borrow() {
-            UrlOrigin::Tuple(_, ref host, _) => Some(host.clone()),
-            UrlOrigin::UID(..) => None,
-        }
+    pub fn host(&self) -> Option<Ref<Host<String>>> {
+        ref_filter_map(self.inner.borrow(), |origin| match *origin {
+            UrlOrigin::Tuple(_, ref host, _) => Some(host),
+            UrlOrigin::Opaque(..) => None,
+        })
     }
 
     /// https://html.spec.whatwg.org/multipage/#same-origin

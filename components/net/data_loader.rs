@@ -10,9 +10,8 @@ use net_traits::{LoadData, Metadata, NetworkError};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
-use url::SchemeData;
-use url::Url;
 use url::percent_encoding::percent_decode;
+use url::{Position, Url};
 
 pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
@@ -33,58 +32,42 @@ pub enum DecodeError {
 pub type DecodeData = (Mime, Vec<u8>);
 
 pub fn decode(url: &Url) -> Result<DecodeData, DecodeError> {
-    assert!(&*url.scheme == "data");
+    assert!(url.scheme() == "data");
     // Split out content type and data.
-    let mut scheme_data = match url.scheme_data {
-        SchemeData::NonRelative(ref scheme_data) => scheme_data.clone(),
-        _ => panic!("Expected a non-relative scheme URL."),
-    };
-    match url.query {
-        Some(ref query) => {
-            scheme_data.push_str("?");
-            scheme_data.push_str(query);
-        },
-        None => ()
-    }
-    let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
+    let parts: Vec<&str> = url[Position::BeforePath..Position::AfterQuery].splitn(2, ',').collect();
     if parts.len() != 2 {
         return Err(DecodeError::InvalidDataUri);
     }
 
     // ";base64" must come at the end of the content type, per RFC 2397.
     // rust-http will fail to parse it because there's no =value part.
-    let mut is_base64 = false;
-    let mut ct_str = parts[0].to_owned();
-    if ct_str.ends_with(";base64") {
-        is_base64 = true;
-        let end_index = ct_str.len() - 7;
-        ct_str.truncate(end_index);
+    let mut ct_str = parts[0];
+    let is_base64 = ct_str.ends_with(";base64");
+    if is_base64 {
+        ct_str = &ct_str[..ct_str.len() - ";base64".len()];
     }
-    if ct_str.starts_with(";charset=") {
-        ct_str = format!("text/plain{}", ct_str);
-    }
+    let ct_str = if ct_str.starts_with(";charset=") {
+        format!("text/plain{}", ct_str)
+    } else {
+        ct_str.to_owned()
+    };
 
-    // Parse the content type using rust-http.
-    // FIXME: this can go into an infinite loop! (rust-http #25)
-    let mut content_type: Option<Mime> = ct_str.parse().ok();
-    if content_type == None {
-        content_type = Some(Mime(TopLevel::Text, SubLevel::Plain,
-                                 vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))));
-    }
+    let content_type = ct_str.parse().unwrap_or_else(|_| {
+        Mime(TopLevel::Text, SubLevel::Plain,
+             vec![(Attr::Charset, Value::Ext("US-ASCII".to_owned()))])
+    });
 
-    let bytes = percent_decode(parts[1].as_bytes());
-    let bytes = if is_base64 {
+    let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();
+    if is_base64 {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
-        let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
+        bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
             Err(..) => return Err(DecodeError::NonBase64DataUri),
-            Ok(data) => data,
+            Ok(data) => bytes = data,
         }
-    } else {
-        bytes
-    };
-    Ok((content_type.unwrap(), bytes))
+    }
+    Ok((content_type, bytes))
 }
 
 pub fn load(load_data: LoadData,

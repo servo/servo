@@ -14,7 +14,7 @@ use dom::bindings::str::USVString;
 use dom::bindings::weakref::MutableWeakRef;
 use dom::url::URL;
 use encoding::types::EncodingRef;
-use url::form_urlencoded::{parse, serialize_with_encoding};
+use url::form_urlencoded;
 use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#interface-urlsearchparams
@@ -49,7 +49,8 @@ impl URLSearchParams {
         match init {
             Some(USVStringOrURLSearchParams::USVString(init)) => {
                 // Step 2.
-                *query.list.borrow_mut() = parse(init.0.as_bytes());
+                *query.list.borrow_mut() = form_urlencoded::parse(init.0.as_bytes())
+                    .into_owned().collect();
             },
             Some(USVStringOrURLSearchParams::URLSearchParams(init)) => {
                 // Step 3.
@@ -145,7 +146,10 @@ impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlencoded-serializer
     pub fn serialize(&self, encoding: Option<EncodingRef>) -> String {
         let list = self.list.borrow();
-        serialize_with_encoding(list.iter(), encoding)
+        form_urlencoded::Serializer::new(String::new())
+            .encoding_override(encoding)
+            .extend_pairs(&*list)
+            .finish()
     }
 }
 
@@ -154,7 +158,7 @@ impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlsearchparams-update
     fn update_steps(&self) {
         if let Some(url) = self.url.root() {
-            url.set_query(self.serialize(None));
+            url.set_query_pairs(&self.list.borrow())
         }
     }
 }
