@@ -1126,37 +1126,53 @@ impl XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#document-response
     fn document_response(&self) -> Option<Root<Document>> {
-        let mime_type = self.final_mime_type();
-        //TODO: prescan the response to determine encoding if final charset is null
-        let charset = self.final_charset().unwrap_or(UTF_8);
-        let temp_doc: Root<Document>;
-        match mime_type {
-            Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
-                if self.response_type.get() == XMLHttpRequestResponseType::_empty {
-                    return None;
-                }
-                else {
-                    temp_doc = self.document_text_html();
-                }
+        //step 1
+        match self.response_xml.get() {
+            Some(_) => {
+                return self.response_xml.get();
             },
-            Some(Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _)) |
-            Some(Mime(mime::TopLevel::Application, mime::SubLevel::Xml, _)) |
             None => {
-                temp_doc = self.handle_xml();
-            },
-            Some(Mime(_, mime::SubLevel::Ext(sub), _)) => {
-                if sub.ends_with("+xml") {
-                    temp_doc = self.handle_xml();
+                let mime_type = self.final_mime_type();
+                //TODO: prescan the response to determine encoding if final charset is null
+                let charset = self.final_charset().unwrap_or(UTF_8);
+                let temp_doc: Root<Document>;
+                match mime_type {
+                    Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
+                        //step 5
+                        if self.response_type.get() != XMLHttpRequestResponseType::_empty {
+                            return None;
+                        }
+                        //step 6
+                        else {
+                            temp_doc = self.document_text_html();
+                        }
+                    },
+                    //step 7
+                    Some(Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _)) |
+                    Some(Mime(mime::TopLevel::Application, mime::SubLevel::Xml, _)) |
+                    None => {
+                        temp_doc = self.handle_xml();
+                    },
+                    Some(Mime(_, mime::SubLevel::Ext(sub), _)) => {
+                        if sub.ends_with("+xml") {
+                            temp_doc = self.handle_xml();
+                        }
+                        else {
+                            return None;
+                        }
+                    },
+                    //step 4
+                    _ => { return None; }
                 }
-                else {
-                    return None;
-                }
-            },
-            _ => { return None; }
+                //step 9
+                temp_doc.set_encoding_name(DOMString::from(charset.name()));
+
+                //cache result
+                self.response_xml.set(Some(temp_doc.r()));
+
+                return self.response_xml.get();
+            }
         }
-        temp_doc.set_encoding_name(DOMString::from(charset.name()));
-        self.response_xml.set(Some(temp_doc.r()));
-        Some(temp_doc)
     }
 
     #[allow(unsafe_code)]
