@@ -1630,7 +1630,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 let pipeline = self.pipeline(pipeline_id);
 
                 pipeline.parent_info.map(|(containing_pipeline_id, subpage_id)| {
-                    (containing_pipeline_id, subpage_id, pipeline.url.serialize())
+                    (containing_pipeline_id, subpage_id, pipeline.url.to_string())
                 })
             };
 

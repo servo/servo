@@ -991,7 +991,7 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        debug!("layout: received layout request for: {}", self.url.borrow().serialize());
+        debug!("layout: received layout request for: {}", *self.url.borrow());
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1031,8 +1031,7 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        debug!("layout: received layout request for: {}",
-            self.url.borrow().serialize());
+        debug!("layout: received layout request for: {}", *self.url.borrow());
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1432,7 +1431,7 @@ impl LayoutThread {
     /// Returns profiling information which is passed to the time profiler.
     fn profiler_metadata(&self) -> Option<TimerMetadata> {
         Some(TimerMetadata {
-            url: self.url.borrow().serialize(),
+            url: self.url.borrow().to_string(),
             iframe: if self.is_iframe {
                 TimerMetadataFrameType::IFrame
             } else {
