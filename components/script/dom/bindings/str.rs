@@ -25,8 +25,7 @@ impl ByteString {
     /// Returns `self` as a string, if it encodes valid UTF-8, and `None`
     /// otherwise.
     pub fn as_str(&self) -> Option<&str> {
-        let ByteString(ref vec) = *self;
-        str::from_utf8(&vec).ok()
+        str::from_utf8(&self.0).ok()
     }
 
     /// Returns ownership of the underlying Vec<u8> and copies an empty
@@ -37,8 +36,7 @@ impl ByteString {
 
     /// Returns the length.
     pub fn len(&self) -> usize {
-        let ByteString(ref vector) = *self;
-        vector.len()
+        self.0.len()
     }
 
     /// Compare `self` to `other`, matching A–Z and a–z as equal.
@@ -54,8 +52,7 @@ impl ByteString {
     /// Returns whether `self` is a `token`, as defined by
     /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
     pub fn is_token(&self) -> bool {
-        let ByteString(ref vec) = *self;
-        is_token(vec)
+        is_token(&self.0)
     }
 
     /// Returns whether `self` is a `field-value`, as defined by
@@ -69,9 +66,8 @@ impl ByteString {
             LF,
             SPHT, // SP or HT
         }
-        let ByteString(ref vec) = *self;
         let mut prev = PreviousCharacter::Other; // The previous character
-        vec.iter().all(|&x| {
+        self.0.iter().all(|&x| {
             // http://tools.ietf.org/html/rfc2616#section-2.2
             match x {
                 13  => { // CR
