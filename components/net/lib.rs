@@ -18,8 +18,8 @@ extern crate flate2;
 extern crate hyper;
 extern crate immeta;
 extern crate ipc_channel;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
+#[macro_use] extern crate matches;
 #[macro_use]
 extern crate mime;
 extern crate mime_guess;
