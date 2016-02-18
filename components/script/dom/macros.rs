@@ -99,7 +99,7 @@ macro_rules! make_url_or_base_getter(
             let url = element.get_url_attribute(&atom!($htmlname));
             if url.is_empty() {
                 let window = window_from_node(self);
-                DOMString::from(window.get_url().serialize())
+                DOMString::from(window.get_url().into_string())
             } else {
                 url
             }
