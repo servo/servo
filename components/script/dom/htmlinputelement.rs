@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
+use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
@@ -317,7 +318,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
         match self.get_value_mode() {
-            ValueMode::Filename |
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => {
                 self.upcast::<Element>()
@@ -331,6 +331,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
                               .map_or(DOMString::from("on"),
                                       |a| DOMString::from(a.summarize().value))
             }
+            ValueMode::Filename => {
+                // TODO: return C:\fakepath\<first of selected files> when a file is selected
+                DOMString::from("")
+            }
         }
     }
 
@@ -342,7 +346,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
             ValueMode::DefaultOn => {
                 self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
             }
-            ValueMode::Filename => {}
+            ValueMode::Filename => {
+                if value == DOMString::from("") {
+                    // TODO: empty list of selected files
+                } else {
+                    // return DOMException or Error::InvalidState;
+                }
+            }
         }
 
         self.value_changed.set(true);
