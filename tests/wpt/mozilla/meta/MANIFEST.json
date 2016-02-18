@@ -5490,6 +5490,12 @@
             "url": "/_mozilla/mozilla/Event.html"
           }
         ],
+        "mozilla/FocusEvent.html": [
+          {
+            "path": "mozilla/FocusEvent.html",
+            "url": "/_mozilla/mozilla/FocusEvent.html"
+          }
+        ],
         "mozilla/MouseEvent.html": [
           {
             "path": "mozilla/MouseEvent.html",
