@@ -11,7 +11,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::urlhelper::UrlHelper;
 use std::borrow::ToOwned;
-use url::{Host, ParseResult, Url, UrlParser};
+use url::{Host, ParseError, Url, ParseOptions};
 use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#url
@@ -207,10 +207,6 @@ impl URLMethods for URL {
     }
 }
 
-fn parse_with_base(input: USVString, base: Option<&Url>) -> ParseResult<Url> {
-    let mut parser = UrlParser::new();
-    if let Some(base) = base {
-        parser.base_url(base);
-    }
-    parser.parse(&input.0)
+fn parse_with_base(input: USVString, base: Option<&Url>) -> Result<Url, ParseError> {
+    Url::parse_with(&input.0, ParseOptions { base_url: base, ..Default::default() })
 }

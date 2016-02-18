@@ -279,7 +279,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             let tab = TabActor {
                 name: actors.new_name("tab"),
                 title: String::from(title),
-                url: url.serialize(),
+                url: url.into_string(),
                 console: console.name(),
                 inspector: inspector.name(),
                 timeline: timeline.name(),

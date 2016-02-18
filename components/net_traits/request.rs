@@ -241,7 +241,7 @@ impl Request {
     }
 
     pub fn current_url_string(&self) -> String {
-        self.url_list.borrow().last().unwrap().serialize()
+        self.url_list.borrow().last().unwrap().to_string()
     }
 
     pub fn is_navigation_request(&self) -> bool {
