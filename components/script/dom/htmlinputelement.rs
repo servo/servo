@@ -317,18 +317,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
         match self.get_value_mode() {
-            ValueMode::Filename | ValueMode::Value => self.textinput.borrow().get_content(),
+            ValueMode::Filename |
+            ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => {
                 self.upcast::<Element>()
-                    .get_attribute(&ns!(), &atom!("value"))
-                    .map_or_else(|| DOMString::from(""),
-                                 |a| DOMString::from(a.summarize().value))
+                              .get_attribute(&ns!(), &atom!("value"))
+                              .map_or(DOMString::from(""),
+                                      |a| DOMString::from(a.summarize().value))
             }
             ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                    .get_attribute(&ns!(), &atom!("value"))
-                    .map_or_else(|| DOMString::from("on"),
-                                 |a| DOMString::from(a.summarize().value))
+                              .get_attribute(&ns!(), &atom!("value"))
+                              .map_or(DOMString::from("on"),
+                                      |a| DOMString::from(a.summarize().value))
             }
         }
     }
@@ -337,8 +338,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn SetValue(&self, value: DOMString) {
         match self.get_value_mode() {
             ValueMode::Value => self.textinput.borrow_mut().set_content(value),
-            ValueMode::Default | ValueMode::DefaultOn => {
-                self.textinput.borrow_mut().set_content(value.clone());
+            ValueMode::Default |
+            ValueMode::DefaultOn => {
                 self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
             }
             ValueMode::Filename => {}
@@ -642,9 +643,9 @@ impl VirtualMethods for HTMLInputElement {
                             (old_value_mode, _, ValueMode::Value) => {
                                 if old_value_mode != ValueMode::Value {
                                     self.SetValue(self.upcast::<Element>()
-                                            .get_attribute(&ns!(), &atom!("value"))
-                                            .map_or(DOMString::from(""),
-                                                |a| DOMString::from(a.summarize().value)));
+                                                                .get_attribute(&ns!(), &atom!("value"))
+                                                                .map_or(DOMString::from(""),
+                                                                        |a| DOMString::from(a.summarize().value)));
                                 }
                             }
 
