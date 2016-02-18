@@ -1551,12 +1551,15 @@ impl Node {
                 Some(index)
             }
         };
-        // Step 6.
+        // Step 6. pre-removing steps for node iterators
+        // Step 7.
         let old_previous_sibling = node.GetPreviousSibling();
-        // Steps 7-8: mutation observers.
-        // Step 9.
+        // Step 8.
         let old_next_sibling = node.GetNextSibling();
+        // Steps 9-10 are handled in unbind_from_tree.
         parent.remove_child(node, cached_index);
+        // Step 11. transient registered observers
+        // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(
                 &ChildrenMutation::replace(old_previous_sibling.r(),
