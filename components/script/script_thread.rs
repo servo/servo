@@ -101,7 +101,7 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use style::context::ReflowGoal;
 use time::{Tm, now};
-use url::Url;
+use url::{Url, Position};
 use util::opts;
 use util::str::DOMString;
 use util::thread;
@@ -1429,8 +1429,7 @@ impl ScriptThread {
 
         if let Some(root_page) = self.page.borrow().as_ref() {
             for it_page in root_page.iter() {
-                let current_url = it_page.document().url().serialize();
-                urls.push(current_url.clone());
+                let current_url = it_page.document().url().to_string();
 
                 for child in it_page.document().upcast::<Node>().traverse_preorder() {
                     dom_tree_size += heap_size_of_self_and_children(&*child);
@@ -1442,7 +1441,8 @@ impl ScriptThread {
                     path: path![format!("url({})", current_url), "dom-tree"],
                     kind: ReportKind::ExplicitJemallocHeapSize,
                     size: dom_tree_size,
-                })
+                });
+                urls.push(current_url);
             }
         }
         let path_seg = format!("url({})", urls.join(", "));
@@ -1684,7 +1684,7 @@ impl ScriptThread {
             let ConstellationChan(ref chan) = self.constellation_chan;
             chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
         }
-        debug!("ScriptThread: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
+        debug!("ScriptThread: loading {} on page {:?}", incomplete.url, incomplete.pipeline_id);
 
         let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
             // The root page may not exist yet, if the parent of this frame
@@ -1851,30 +1851,20 @@ impl ScriptThread {
         // Notify devtools that a new script global exists.
         self.notify_devtools(document.Title(), final_url.clone(), (page.pipeline(), None));
 
-        let is_javascript = incomplete.url.scheme == "javascript";
+        let is_javascript = incomplete.url.scheme() == "javascript";
         let parse_input = if is_javascript {
-            use url::percent_encoding::percent_decode_to;
+            use url::percent_encoding::lossy_utf8_percent_decode;
 
             // Turn javascript: URL into JS code to eval, according to the steps in
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
             let _ar = JSAutoRequest::new(self.get_cx());
-            let mut script_source_bytes = Vec::new();
-            // Start with the scheme data of the parsed URL (5.), while percent-decoding (8.)
-            percent_decode_to(incomplete.url.non_relative_scheme_data().unwrap().as_bytes(),
-                              &mut script_source_bytes);
-            // Append question mark and query component, if any (6.), while percent-decoding (8.)
-            if let Some(ref query) = incomplete.url.query {
-                script_source_bytes.push(b'?');
-                percent_decode_to(query.as_bytes(), &mut script_source_bytes);
-            }
-            // Append number sign and fragment component if any (7.), while percent-decoding (8.)
-            if let Some(ref fragment) = incomplete.url.fragment {
-                script_source_bytes.push(b'#');
-                percent_decode_to(fragment.as_bytes(), &mut script_source_bytes);
-            }
-
+            // Start with the scheme data of the parsed URL (5.)
+            // Append question mark and query component, if any (6.)
+            // Append number sign and fragment component if any (7.)
+            // Percent-decode (8.)
             // UTF-8 decode (9.)
-            let script_source = String::from_utf8_lossy(&script_source_bytes);
+            let script_source = lossy_utf8_percent_decode(
+                incomplete.url[Position::BeforePath..].as_bytes());
 
             // Script source is ready to be evaluated (11.)
             unsafe {
@@ -2007,7 +1997,7 @@ impl ScriptThread {
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.url();
-                                url.join(&value).map(|url| url.serialize()).ok()
+                                url.join(&value).map(|url| url.to_string()).ok()
                             });
                         let event = ConstellationMsg::NodeStatus(status);
                         let ConstellationChan(ref chan) = self.constellation_chan;
@@ -2077,14 +2067,14 @@ impl ScriptThread {
         // Step 8.
         {
             let nurl = &load_data.url;
-            if let Some(ref fragment) = nurl.fragment {
+            if let Some(fragment) = nurl.fragment() {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
                 let document = document.r();
                 let url = document.url();
-                if url.scheme == nurl.scheme && url.scheme_data == nurl.scheme_data &&
-                    url.query == nurl.query && load_data.method == Method::Get {
-                    match document.find_fragment_node(&*fragment) {
+                if &url[..Position::BeforeFragment] == &nurl[..Position::BeforeFragment]
+                    && load_data.method == Method::Get {
+                    match document.find_fragment_node(fragment) {
                         Some(ref node) => {
                             self.scroll_fragment_point(pipeline_id, node.r());
                         }
@@ -2161,7 +2151,7 @@ impl ScriptThread {
             sender: action_sender,
         };
 
-        if load_data.url.scheme == "javascript" {
+        if load_data.url.scheme() == "javascript" {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
@@ -2209,7 +2199,7 @@ impl ScriptThread {
         // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
         document.process_deferred_scripts();
 
-        window.set_fragment_name(final_url.fragment.clone());
+        window.set_fragment_name(final_url.fragment().map(str::to_owned));
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,

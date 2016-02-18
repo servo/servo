@@ -1078,7 +1078,7 @@ impl Element {
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match base.join(&url) {
-            Ok(parsed) => DOMString::from(parsed.serialize()),
+            Ok(parsed) => DOMString::from(parsed.as_str()),
             Err(_) => DOMString::from(""),
         }
     }

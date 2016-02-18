@@ -397,7 +397,7 @@ impl EventTarget {
         // Step 1.6
         let window = document.window();
 
-        let url_serialized = CString::new(handler.url.serialize()).unwrap();
+        let url_serialized = CString::new(handler.url.to_string()).unwrap();
         let name = CString::new(&**ty).unwrap();
 
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];

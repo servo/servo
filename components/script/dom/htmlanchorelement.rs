@@ -192,7 +192,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     };
 
     // Step 7.
-    debug!("following hyperlink to {}", url.serialize());
+    debug!("following hyperlink to {}", url);
     let window = document.window();
     window.load_url(url);
 }

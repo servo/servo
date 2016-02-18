@@ -120,13 +120,10 @@ pub fn preload_hsts_domains() -> Option<HSTSList> {
 }
 
 pub fn secure_url(url: &Url) -> Url {
-    if &*url.scheme == "http" {
+    if url.scheme() == "http" {
         let mut secure_url = url.clone();
-        secure_url.scheme = "https".to_owned();
-        secure_url.relative_scheme_data_mut()
-            .map(|scheme_data| {
-                scheme_data.default_port = Some(443);
-            });
+        secure_url.set_scheme("https").unwrap();
+        secure_url.set_port(Some(443)).unwrap();
         secure_url
     } else {
         url.clone()

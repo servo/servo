@@ -70,7 +70,7 @@ pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
-    assert!(&*load_data.url.scheme == "file");
+    assert!(load_data.url.scheme() == "file");
     spawn_named("file_loader".to_owned(), move || {
         let file_path: Result<PathBuf, ()> = load_data.url.to_file_path();
         match file_path {

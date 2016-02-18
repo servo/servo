@@ -6,10 +6,10 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
 use url::Url;
 
-static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
+static mut HOST_TABLE: Option<*mut HashMap<String, IpAddr>> = None;
 
 
 pub fn global_init() {
@@ -36,23 +36,20 @@ pub fn global_init() {
     }
 }
 
-pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
+pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, IpAddr>> {
     let mut host_table = HashMap::new();
     let lines: Vec<&str> = hostsfile_content.split('\n').collect();
 
     for line in &lines {
         let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
         if ip_host.len() > 1 {
-            if ip_host[0].parse::<Ipv4Addr>().is_err() && ip_host[0].parse::<Ipv6Addr>().is_err() {
-                continue
-            }
-            let address = ip_host[0].to_owned();
-
-            for token in ip_host.iter().skip(1) {
-                if token.as_bytes()[0] == b'#' {
-                    break;
+            if let Ok(address) = ip_host[0].parse::<IpAddr>() {
+                for token in ip_host.iter().skip(1) {
+                    if token.as_bytes()[0] == b'#' {
+                        break;
+                    }
+                    host_table.insert((*token).to_owned(), address);
                 }
-                host_table.insert((*token).to_owned(), address.clone());
             }
         }
     }
@@ -67,14 +64,15 @@ pub fn replace_hosts(url: &Url) -> Url {
     }
 }
 
-pub fn host_replacement(host_table: *mut HashMap<String, String>,
+pub fn host_replacement(host_table: *mut HashMap<String, IpAddr>,
                         url: &Url) -> Url {
-    unsafe {
-        url.domain().and_then(|domain|
-                              (*host_table).get(domain).map(|ip| {
-                                  let mut net_url = url.clone();
-                                  *net_url.domain_mut().unwrap() = ip.clone();
-                                  net_url
-                              })).unwrap_or(url.clone())
-    }
+    let host_table = unsafe { &*host_table };
+    url.domain().and_then(|domain| host_table.get(domain).map(|ip| {
+        let mut new_url = url.clone();
+        match *ip {
+            IpAddr::V4(v4) => new_url.set_ipv4_host(v4).unwrap(),
+            IpAddr::V6(v6) => new_url.set_ipv6_host(v6).unwrap(),
+        }
+        new_url
+    })).unwrap_or_else(|| url.clone())
 }

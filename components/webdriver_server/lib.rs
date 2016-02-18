@@ -353,7 +353,7 @@ impl Handler {
 
         let url = receiver.recv().unwrap();
 
-        Ok(WebDriverResponse::Generic(ValueResponse::new(url.serialize().to_json())))
+        Ok(WebDriverResponse::Generic(ValueResponse::new(url.as_str().to_json())))
     }
 
     fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {

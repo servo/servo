@@ -20,8 +20,7 @@ pub fn factory(mut load_data: LoadData,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url.clone();
-    let non_relative_scheme_data = url.non_relative_scheme_data().unwrap();
-    match non_relative_scheme_data {
+    match url.path() {
         "blank" => {
             let metadata = Metadata {
                 final_url: load_data.url,
@@ -43,7 +42,7 @@ pub fn factory(mut load_data: LoadData,
         "crash" => panic!("Loading the about:crash URL."),
         "failure" | "not-found" => {
             let mut path = resources_dir_path();
-            let file_name = non_relative_scheme_data.to_owned() + ".html";
+            let file_name = url.path().to_owned() + ".html";
             path.push(&file_name);
             assert!(path.exists());
             load_data.url = Url::from_file_path(&*path).unwrap();

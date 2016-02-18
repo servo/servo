@@ -261,8 +261,7 @@ impl AsyncResponseListener for ParserContext {
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
-                let page = format!("<html><body><img src='{}' /></body></html>",
-                                   self.url.serialize());
+                let page = format!("<html><body><img src='{}' /></body></html>", self.url);
                 parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
             },
@@ -315,7 +314,7 @@ impl AsyncResponseListener for ParserContext {
         parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
-            debug!("Failed to load page URL {}, error: {}", self.url.serialize(), err);
+            debug!("Failed to load page URL {}, error: {}", self.url, err);
             // TODO(Savago): we should send a notification to callers #5463.
         }
 

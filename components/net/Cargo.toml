@@ -44,3 +44,4 @@ uuid = "0.1.16"
 url = {version = "0.5.5", features = ["heap_size"]}
 websocket = "0.15.0"
 immeta = "0.3.1"
+matches = "0.1"

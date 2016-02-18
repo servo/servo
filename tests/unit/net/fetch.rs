@@ -21,7 +21,7 @@ use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::{self, Duration};
 use unicase::UniCase;
-use url::{Origin as UrlOrigin, OpaqueOrigin, Url};
+use url::{Origin as UrlOrigin, Url};
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -159,7 +159,7 @@ fn test_fetch_response_is_cors_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will stop it from defaulting to a basic filtered response
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     request.mode = RequestMode::CORSMode;
@@ -194,7 +194,7 @@ fn test_fetch_response_is_opaque_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
@@ -230,7 +230,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().next_back().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
@@ -278,7 +278,7 @@ fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Respo
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().next_back().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
@@ -351,7 +351,7 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().next_back().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
