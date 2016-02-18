@@ -141,12 +141,18 @@ interface CanvasRenderingContext2D {
 CanvasRenderingContext2D implements CanvasDrawingStyles;
 CanvasRenderingContext2D implements CanvasPathMethods;
 
+enum CanvasLineCap { "butt", "round", "square" };
+enum CanvasLineJoin { "round", "bevel", "miter"};
+enum CanvasTextAlign { "start", "end", "left", "right", "center" };
+enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" };
+enum CanvasDirection { "ltr", "rtl", "inherit" };
+
 [NoInterfaceObject]
 interface CanvasDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
-  attribute DOMString lineCap; // "butt", "round", "square" (default "butt")
-  attribute DOMString lineJoin; // "round", "bevel", "miter" (default "miter")
+  attribute CanvasLineCap lineCap; // "butt", "round", "square" (default "butt")
+  attribute CanvasLineJoin lineJoin; // "round", "bevel", "miter" (default "miter")
   attribute unrestricted double miterLimit; // (default 10)
 
   // dashed lines
@@ -156,10 +162,10 @@ interface CanvasDrawingStyles {
 
   // text
   //attribute DOMString font; // (default 10px sans-serif)
-  //attribute DOMString textAlign; // "start", "end", "left", "right", "center" (default: "start")
-  //attribute DOMString textBaseline; // "top", "hanging", "middle", "alphabetic",
+  //attribute CanvasTextAlign textAlign; // "start", "end", "left", "right", "center" (default: "start")
+  //attribute CanvasTextBaseline textBaseline; // "top", "hanging", "middle", "alphabetic",
                                       // "ideographic", "bottom" (default: "alphabetic")
-  //attribute DOMString direction; // "ltr", "rtl", "inherit" (default: "inherit")
+  //attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
 [NoInterfaceObject]
