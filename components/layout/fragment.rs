@@ -40,6 +40,7 @@ use style::computed_values::{border_collapse, clear, display, mix_blend_mode, ov
 use style::computed_values::{overflow_x, position, text_decoration, transform_style};
 use style::computed_values::{white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
+use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -47,7 +48,6 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::slice_chars;
 use wrapper::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};

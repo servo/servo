@@ -55,7 +55,6 @@ pub mod deque;
 pub mod geometry;
 pub mod ipc;
 pub mod linked_list;
-pub mod logical_geometry;
 #[cfg(feature = "non-geckolib")]
 pub mod non_geckolib;
 pub mod opts;

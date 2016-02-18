@@ -13,8 +13,7 @@ extern crate libc;
 extern crate util;
 
 #[cfg(test)] mod cache;
-#[cfg(test)] mod logical_geometry;
+#[cfg(test)] mod opts;
+#[cfg(test)] mod str;
 #[cfg(test)] mod thread;
 #[cfg(test)] mod vec;
-#[cfg(test)] mod str;
-#[cfg(test)] mod opts;

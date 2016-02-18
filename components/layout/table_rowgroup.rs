@@ -18,10 +18,10 @@ use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
+use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row::{self, CollapsedBordersForRow};
-use util::logical_geometry::{LogicalSize, WritingMode};
 use util::print_tree::PrintTree;
 
 /// A table formatting context.

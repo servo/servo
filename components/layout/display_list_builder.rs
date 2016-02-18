@@ -46,6 +46,7 @@ use style::computed_values::{background_attachment, background_clip, background_
 use style::computed_values::{background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position};
 use style::computed_values::{transform, transform_style, visibility};
+use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::style_structs::Border;
 use style::properties::{self, ComputedValues};
 use style::values::RGBA;
@@ -56,7 +57,6 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use url::Url;
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use util::range::Range;
 
