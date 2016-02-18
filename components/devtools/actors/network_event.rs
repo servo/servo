@@ -312,7 +312,7 @@ impl NetworkEventActor {
     }
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
-        self.request.url = request.url.serialize();
+        self.request.url = request.url.as_str().to_owned();
         self.request.method = request.method.clone();
         self.request.headers = request.headers.clone();
         self.request.body = request.body;

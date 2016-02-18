@@ -6,26 +6,22 @@ use file_loader;
 use mime_classifier::MIMEClassifier;
 use net_traits::{LoadConsumer, LoadData, NetworkError};
 use resource_thread::{CancellationListener, send_error};
-use std::path::Path;
 use std::sync::Arc;
 use url::Url;
 use util::resource_files::resources_dir_path;
 
 pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
-    assert_eq!(url.scheme, "chrome");
-    // Skip the initial //
-    let non_relative_scheme_data = &url.non_relative_scheme_data().unwrap()[2..];
-    let relative_path = Path::new(non_relative_scheme_data);
+    assert_eq!(url.scheme(), "chrome");
+    let resources = resources_dir_path();
+    let mut path = resources.clone();
+    for segment in url.path_segments().unwrap() {
+        path.push(segment)
+    }
+    println!("{:?} {:?}, {:?} {:?}", resources.display(), path.display(), url, url.path());
     // Don't allow chrome URLs access to files outside of the resources directory.
-    if non_relative_scheme_data.find("..").is_some() ||
-       relative_path.is_absolute() ||
-       relative_path.has_root() {
+    if !(path.starts_with(resources) && path.exists()) {
         return Err(());
     }
-
-    let mut path = resources_dir_path();
-    path.push(non_relative_scheme_data);
-    assert!(path.exists());
     return Ok(Url::from_file_path(&*path).unwrap());
 }
 
