@@ -1209,39 +1209,25 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
-    fn LineCap(&self) -> DOMString {
-        let state = self.state.borrow();
-        match state.line_cap {
-            LineCapStyle::Butt => DOMString::from("butt"),
-            LineCapStyle::Round => DOMString::from("round"),
-            LineCapStyle::Square => DOMString::from("square"),
-        }
+    fn LineCap(&self) -> LineCapStyle {
+        self.state.borrow().line_cap
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
-    fn SetLineCap(&self, cap_str: DOMString) {
-        if let Ok(cap) = LineCapStyle::from_str(&cap_str) {
-            self.state.borrow_mut().line_cap = cap;
-            self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineCap(cap))).unwrap()
-        }
+    fn SetLineCap(&self, cap: LineCapStyle) {
+        self.state.borrow_mut().line_cap = cap;
+        self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineCap(cap))).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
-    fn LineJoin(&self) -> DOMString {
-        let state = self.state.borrow();
-        match state.line_join {
-            LineJoinStyle::Round => DOMString::from("round"),
-            LineJoinStyle::Bevel => DOMString::from("bevel"),
-            LineJoinStyle::Miter => DOMString::from("miter"),
-        }
+    fn LineJoin(&self) -> LineJoinStyle {
+        self.state.borrow().line_join
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
-    fn SetLineJoin(&self, join_str: DOMString) {
-        if let Ok(join) = LineJoinStyle::from_str(&join_str) {
-            self.state.borrow_mut().line_join = join;
-            self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineJoin(join))).unwrap()
-        }
+    fn SetLineJoin(&self, join: LineJoinStyle) {
+        self.state.borrow_mut().line_join = join;
+        self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineJoin(join))).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
