@@ -96,6 +96,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptImageCacheMsg => "Script Image Cache Msg",
             ProfilerCategory::ScriptInputEvent => "Script Input Event",
             ProfilerCategory::ScriptNetworkEvent => "Script Network Event",
+            ProfilerCategory::ScriptPlannedNavigation => "Script Planned Navigation",
             ProfilerCategory::ScriptResize => "Script Resize",
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
