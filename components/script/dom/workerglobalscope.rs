@@ -212,7 +212,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             };
 
             match self.runtime.evaluate_script(
-                self.reflector().get_jsobject(), source, url.serialize(), 1) {
+                self.reflector().get_jsobject(), source, url.to_string(), 1) {
                 Ok(_) => (),
                 Err(_) => {
                     println!("evaluate_script failed");
@@ -304,7 +304,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn execute_script(&self, source: DOMString) {
         match self.runtime.evaluate_script(
-            self.reflector().get_jsobject(), String::from(source), self.worker_url.serialize(), 1) {
+            self.reflector().get_jsobject(), String::from(source), self.worker_url.to_string(), 1) {
             Ok(_) => (),
             Err(_) => {
                 // TODO: An error needs to be dispatched to the parent.

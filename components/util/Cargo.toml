@@ -46,7 +46,7 @@ serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
 string_cache = {version = "0.2.10", features = ["heap_size"]}
-url = {version = "0.5.5", features = ["heap_size", "serde_serialization"]}
+url = {version = "0.5.5", features = ["heap_size", "serde"]}
 uuid = "0.1.17"
 
 [target.x86_64-pc-windows-gnu.dependencies]

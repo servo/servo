@@ -29,7 +29,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::thread;
 use url::idna::domain_to_ascii;
-use url::{Origin as UrlOrigin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
+use url::{Origin as UrlOrigin, Url};
 use util::thread::spawn_named;
 
 pub fn fetch_async(request: Request, listener: Box<AsyncFetchListener + Send>) {
@@ -116,10 +116,9 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 2
     if request.local_urls_only {
-        match &*request.current_url().scheme {
-            "about" | "blob" | "data" | "filesystem" => response = Some(Response::network_error()),
-            _ => { }
-        };
+        if matches!(request.current_url().scheme(), "about" | "blob" | "data" | "filesystem") {
+            response = Some(Response::network_error())
+        }
     }
 
     // Step 3
@@ -155,8 +154,8 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         };
 
         if (same_origin && !cors_flag ) ||
-            (current_url.scheme == "data" && request.same_origin_data.get()) ||
-            current_url.scheme == "about" ||
+            (current_url.scheme() == "data" && request.same_origin_data.get()) ||
+            current_url.scheme() == "about" ||
             request.mode == RequestMode::Navigate {
 
             basic_fetch(request.clone())
@@ -168,7 +167,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             request.response_tainting.set(ResponseTainting::Opaque);
             basic_fetch(request.clone())
 
-        } else if current_url.scheme != "http" && current_url.scheme != "https" {
+        } else if !matches!(current_url.scheme(), "http" | "https") {
             Response::network_error()
 
         } else if request.use_cors_preflight ||
@@ -255,10 +254,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     }
 
     // Step 17
-    if request.body.borrow().is_some() && match &*request.current_url().scheme {
-        "http" | "https" => true,
-        _ => false }
-        {
+    if request.body.borrow().is_some() && matches!(request.current_url().scheme(), "http" | "https") {
         // TODO queue a fetch task on request to process end-of-file
     }
 
@@ -297,21 +293,15 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 fn basic_fetch(request: Rc<Request>) -> Response {
 
     let url = request.current_url();
-    let scheme = url.scheme.clone();
 
-    match &*scheme {
+    match url.scheme() {
 
-        "about" => {
-            match url.non_relative_scheme_data() {
-                Some(s) if &*s == "blank" => {
-                    let mut response = Response::new();
-                    response.headers.set(ContentType(Mime(
-                        TopLevel::Text, SubLevel::Html,
-                        vec![(Attr::Charset, Value::Utf8)])));
-                    response
-                },
-                _ => Response::network_error()
-            }
+        "about" if url.path() == "blank" => {
+            let mut response = Response::new();
+            response.headers.set(ContentType(Mime(
+                TopLevel::Text, SubLevel::Html,
+                vec![(Attr::Charset, Value::Utf8)])));
+            response
         },
 
         "http" | "https" => {
@@ -548,7 +538,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     };
 
     // Step 5
-    let location_url = UrlParser::new().base_url(&request.current_url()).parse(&*location);
+    let location_url = request.current_url().join(&*location);
 
     // Step 6
     let location_url = match location_url {
@@ -586,7 +576,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
     // Step 12
     if cors_flag && !same_origin {
-        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::new_opaque());
     }
 
     // Step 13
@@ -645,7 +635,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         Referer::NoReferer =>
             http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
         Referer::RefererUrl(ref http_request_referer) =>
-            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.serialize())),
+            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
         Referer::Client =>
             // it should be impossible for referer to be anything else during fetching
             // https://fetch.spec.whatwg.org/#concept-request-referrer
@@ -706,9 +696,9 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
                 let current_url = http_request.current_url();
 
-                authorization_value = if includes_credentials(&current_url) {
+                authorization_value = if has_credentials(&current_url) {
                     Some(Basic {
-                        username: current_url.username().unwrap_or("").to_owned(),
+                        username: current_url.username().to_owned(),
                         password: current_url.password().map(str::to_owned)
                     })
                 } else {
@@ -930,13 +920,8 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
         _ => return Err(())
     };
 
-    // strings are already utf-8 encoded, so I don't need to re-encode origin for this step
-    match ascii_serialise_origin(&request.origin.borrow()) {
-        Ok(request_origin) => {
-            if request_origin != origin {
-                return Err(());
-            }
-        },
+    match *request.origin.borrow() {
+        Origin::Origin(ref o) if o.ascii_serialization() == origin => {},
         _ => return Err(())
     }
 
@@ -957,39 +942,6 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     Err(())
 }
 
-/// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin)
-fn ascii_serialise_origin(origin: &Origin) -> Result<String, ()> {
-
-    // Step 6
-    match *origin {
-
-        // Step 1
-        Origin::Origin(UrlOrigin::UID(_)) => Ok("null".to_owned()),
-
-        // Step 2
-        Origin::Origin(UrlOrigin::Tuple(ref scheme, ref host, ref port)) => {
-
-            // Step 3
-            // this step is handled by the format!()s later in the function
-
-            // Step 4
-            // TODO throw a SecurityError in a meaningful way
-            // let host = host.as_str();
-            let host = try!(domain_to_ascii(host.serialize().as_str()).or(Err(())));
-
-            // Step 5
-            let default_port = whatwg_scheme_type_mapper(scheme).default_port();
-
-            if Some(*port) == default_port {
-                Ok(format!("{}://{}", scheme, host))
-            } else {
-                Ok(format!("{}://{}{}", scheme, host, port))
-            }
-        }
-        _ => Err(())
-    }
-}
-
 fn global_user_agent() -> String {
     // TODO have a better useragent string
     const USER_AGENT_STRING: &'static str = "Servo";
@@ -997,7 +949,7 @@ fn global_user_agent() -> String {
 }
 
 fn has_credentials(url: &Url) -> bool {
-    !url.username().unwrap_or("").is_empty() || url.password().is_some()
+    !url.username().is_empty() || url.password().is_some()
 }
 
 fn is_no_store_cache(headers: &Headers) -> bool {
@@ -1025,19 +977,6 @@ fn is_simple_method(m: &Method) -> bool {
         Method::Get | Method::Head | Method::Post => true,
         _ => false
     }
-}
-
-fn includes_credentials(url: &Url) -> bool {
-
-    if url.password().is_some() {
-        return true
-    }
-
-    if let Some(name) = url.username() {
-        return name.len() > 0
-    }
-
-    false
 }
 
 fn response_needs_revalidation(response: &Response) -> bool {

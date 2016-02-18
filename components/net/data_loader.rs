@@ -9,7 +9,7 @@ use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
-use url::SchemeData;
+use url::{Url, Position};
 use url::percent_encoding::percent_decode;
 
 pub fn factory(load_data: LoadData,
@@ -23,71 +23,64 @@ pub fn factory(load_data: LoadData,
     load(load_data, senders, classifier, cancel_listener)
 }
 
+fn parse(url: &Url, cancel_listener: CancellationListener)
+         -> Result<(Mime, Vec<u8>), Option<&'static str>> {
+    // Split out content type and data.
+    let parts: Vec<&str> = url[Position::BeforePath..Position::AfterQuery].splitn(2, ',').collect();
+    if parts.len() != 2 {
+        return Err(Some("invalid data uri"))
+    }
+
+    // ";base64" must come at the end of the content type, per RFC 2397.
+    // rust-http will fail to parse it because there's no =value part.
+    let mut ct_str = parts[0];
+    let is_base64 = ct_str.ends_with(";base64");
+    if is_base64 {
+        ct_str = &ct_str[..ct_str.len() - ";base64".len()];
+    }
+    let ct_str = if ct_str.starts_with(";charset=") {
+        format!("text/plain{}", ct_str)
+    } else {
+        ct_str.to_owned()
+    };
+
+    let content_type = ct_str.parse().unwrap_or_else(|_| {
+        Mime(TopLevel::Text, SubLevel::Plain,
+             vec![(Attr::Charset, Value::Ext("US-ASCII".to_owned()))])
+    });
+
+    if cancel_listener.is_cancelled() {
+        return Err(None)
+    }
+
+    let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();
+    if is_base64 {
+        // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
+        // but Acid 3 apparently depends on spaces being ignored.
+        bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
+        match bytes.from_base64() {
+            Err(..) => return Err(Some("non-base64 data uri")),
+            Ok(data) => bytes = data,
+        }
+    }
+    Ok((content_type, bytes))
+}
+
 pub fn load(load_data: LoadData,
             start_chan: LoadConsumer,
             classifier: Arc<MIMEClassifier>,
             cancel_listener: CancellationListener) {
     let url = load_data.url;
-    assert!(&*url.scheme == "data");
+    assert!(url.scheme() == "data");
 
-    // Split out content type and data.
-    let mut scheme_data = match url.scheme_data {
-        SchemeData::NonRelative(ref scheme_data) => scheme_data.clone(),
-        _ => panic!("Expected a non-relative scheme URL.")
-    };
-    match url.query {
-        Some(ref query) => {
-            scheme_data.push_str("?");
-            scheme_data.push_str(query);
-        },
-        None => ()
-    }
-    let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
-    if parts.len() != 2 {
-        send_error(url, "invalid data uri".to_owned(), start_chan);
-        return;
-    }
-
-    // ";base64" must come at the end of the content type, per RFC 2397.
-    // rust-http will fail to parse it because there's no =value part.
-    let mut is_base64 = false;
-    let mut ct_str = parts[0].to_owned();
-    if ct_str.ends_with(";base64") {
-        is_base64 = true;
-        let end_index = ct_str.len() - 7;
-        ct_str.truncate(end_index);
-    }
-    if ct_str.starts_with(";charset=") {
-        ct_str = format!("text/plain{}", ct_str);
-    }
-
-    // Parse the content type using rust-http.
-    // FIXME: this can go into an infinite loop! (rust-http #25)
-    let mut content_type: Option<Mime> = ct_str.parse().ok();
-    if content_type == None {
-        content_type = Some(Mime(TopLevel::Text, SubLevel::Plain,
-                                 vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))));
-    }
-
-    if cancel_listener.is_cancelled() {
-        return;
-    }
-
-    let bytes = percent_decode(parts[1].as_bytes());
-    let bytes = if is_base64 {
-        // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
-        // but Acid 3 apparently depends on spaces being ignored.
-        let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
-        match bytes.from_base64() {
-            Err(..) => return send_error(url, "non-base64 data uri".to_owned(), start_chan),
-            Ok(data) => data,
-        }
-    } else {
-        bytes
+    let (content_type, bytes) = match parse(&url, cancel_listener) {
+        Ok((content_type, bytes)) => (content_type, bytes),
+        Err(Some(s)) => return send_error(url, s.to_owned(), start_chan),
+        Err(None) => return
     };
 
     let mut metadata = Metadata::default(url);
-    metadata.set_content_type(content_type.as_ref());
+    metadata.set_content_type(Some(&content_type));
     if let Ok(chan) = start_sending_sniffed_opt(start_chan,
                                                 metadata,
                                                 classifier,

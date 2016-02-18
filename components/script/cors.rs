@@ -26,7 +26,7 @@ use std::borrow::ToOwned;
 use std::sync::{Arc, Mutex};
 use time::{self, Timespec, now};
 use unicase::UniCase;
-use url::{SchemeData, Url};
+use url::Url;
 use util::thread::spawn_named;
 
 /// Interface for network listeners concerned with CORS checks. Proper network requests
@@ -66,11 +66,10 @@ impl CORSRequest {
                      method: Method,
                      headers: Headers)
                      -> Result<Option<CORSRequest>, ()> {
-        if referer.scheme == destination.scheme && referer.host() == destination.host() &&
-           referer.port() == destination.port() {
+        if referer.origin() == destination.origin() {
             return Ok(None); // Not cross-origin, proceed with a normal fetch
         }
-        match &*destination.scheme {
+        match destination.scheme() {
             // TODO: If the request's same origin data url flag is set (which isn't the case for XHR)
             // we can fetch a data URL normally. about:blank can also be fetched by XHR
             "http" | "https" => {
@@ -92,11 +91,9 @@ impl CORSRequest {
            method: Method,
            headers: Headers)
            -> CORSRequest {
-        if let SchemeData::Relative(ref mut data) = referer.scheme_data {
-            data.path = vec![];
-        }
-        referer.fragment = None;
-        referer.query = None;
+        referer.set_fragment(None);
+        referer.set_query(None);
+        referer.set_path("");
         CORSRequest {
             origin: referer,
             destination: destination,
@@ -397,8 +394,10 @@ impl CORSCache {
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
         buf.iter_mut().find(|e| {
-            e.origin.scheme == request.origin.scheme && e.origin.host() == request.origin.host() &&
-            e.origin.port() == request.origin.port() && e.url == request.destination &&
+            e.origin.scheme() == request.origin.scheme() &&
+            e.origin.host_str() == request.origin.host_str() &&
+            e.origin.port() == request.origin.port() &&
+            e.url == request.destination &&
             e.header_or_method.match_header(header_name)
         })
     }
@@ -424,8 +423,10 @@ impl CORSCache {
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
         buf.iter_mut().find(|e| {
-            e.origin.scheme == request.origin.scheme && e.origin.host() == request.origin.host() &&
-            e.origin.port() == request.origin.port() && e.url == request.destination &&
+            e.origin.scheme() == request.origin.scheme() &&
+            e.origin.host_str() == request.origin.host_str() &&
+            e.origin.port() == request.origin.port()
+            && e.url == request.destination &&
             e.header_or_method.match_method(method)
         })
     }
@@ -479,7 +480,7 @@ fn is_simple_method(m: &Method) -> bool {
 pub fn allow_cross_origin_request(req: &CORSRequest, headers: &Headers) -> bool {
     match headers.get::<AccessControlAllowOrigin>() {
         Some(&AccessControlAllowOrigin::Any) => true, // Not always true, depends on credentials mode
-        Some(&AccessControlAllowOrigin::Value(ref url)) => req.origin.serialize() == *url,
+        Some(&AccessControlAllowOrigin::Value(ref url)) => req.origin.as_str() == *url,
         Some(&AccessControlAllowOrigin::Null) |
         None => false,
     }

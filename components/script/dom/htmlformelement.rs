@@ -264,7 +264,7 @@ impl HTMLFormElement {
         let mut action = submitter.action();
         // Step 8
         if action.is_empty() {
-            action = DOMString::from(base.serialize());
+            action = DOMString::from(base.as_str());
         }
         // Step 9-11
         let action_components = match base.join(&action) {
@@ -272,8 +272,7 @@ impl HTMLFormElement {
             Err(_) => return
         };
         // Step 12-15
-        let _action = action_components.serialize();
-        let scheme = action_components.scheme.clone();
+        let scheme = action_components.scheme().to_owned();
         let enctype = submitter.enctype();
         let method = submitter.method();
         let _target = submitter.target();
@@ -297,7 +296,7 @@ impl HTMLFormElement {
             (_, FormMethod::FormDialog) => return, // Unimplemented
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
             ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) => {
-                load_data.url.query = Some(parsed_data);
+                load_data.url.set_query(Some(&*parsed_data));
                 self.plan_to_navigate(load_data, &win);
             }
             // https://html.spec.whatwg.org/multipage/#submit-body
