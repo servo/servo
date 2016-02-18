@@ -614,7 +614,6 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        let old_type = self.input_type.get();
                         let new_type = match attr.value().as_atom() {
                             &atom!("button") => InputType::InputButton,
                             &atom!("submit") => InputType::InputSubmit,
@@ -627,25 +626,35 @@ impl VirtualMethods for HTMLInputElement {
                         };
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
-                        let old_idl_value = self.Value();
+                        let (old_value_mode, old_idl_value) = (self.get_value_mode(), self.Value());
                         self.input_type.set(new_type);
+                        let new_value_mode = self.get_value_mode();
 
-                        let old_value_mode = HTMLInputElement::get_value_mode_for_input_type(old_type);
-                        let new_value_mode = HTMLInputElement::get_value_mode_for_input_type(new_type);
+                        match (old_value_mode, old_idl_value != DOMString::from(""), new_value_mode) {
 
-                        if old_value_mode == ValueMode::Value && old_idl_value != DOMString::from("")
-                            && (new_value_mode == ValueMode::Default || new_value_mode == ValueMode::DefaultOn) {
                             // Step 1
-                            self.SetValue(old_idl_value);
-                        } else if old_value_mode != ValueMode::Value && new_value_mode == ValueMode::Value {
+                            (ValueMode::Value, true, ValueMode::Default) |
+                            (ValueMode::Value, true, ValueMode::DefaultOn) => {
+                                self.SetValue(old_idl_value);
+                            }
+
                             // Step 2
-                            self.SetValue(self.upcast::<Element>()
-                                          .get_attribute(&ns!(), &atom!("value"))
-                                          .map_or_else(|| DOMString::from(""),
-                                                       |a| DOMString::from(a.summarize().value)));
-                        } else if old_value_mode != ValueMode::Filename && new_value_mode == ValueMode::Filename {
+                            (old_value_mode, _, ValueMode::Value) => {
+                                if old_value_mode != ValueMode::Value {
+                                    self.SetValue(self.upcast::<Element>()
+                                            .get_attribute(&ns!(), &atom!("value"))
+                                            .map_or(DOMString::from(""),
+                                                |a| DOMString::from(a.summarize().value)));
+                                }
+                            }
+
                             // Step 3
-                            self.SetValue(DOMString::from(""));
+                            (old_value_mode, _, ValueMode::Filename) => {
+                                if old_value_mode != ValueMode::Filename {
+                                    self.SetValue(DOMString::from(""));
+                                }
+                            }
+                            _ => {}
                         }
 
                         // Step 5
