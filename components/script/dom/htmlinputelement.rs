@@ -80,6 +80,7 @@ pub struct HTMLInputElement {
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
+    // TODO: selected files for file input
 }
 
 #[derive(JSTraceable)]
