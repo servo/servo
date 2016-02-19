@@ -346,7 +346,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) -> ErrorResult {
         match self.get_value_mode() {
-            ValueMode::Value => self.textinput.borrow_mut().set_content(value),
+            ValueMode::Value => {
+                self.textinput.borrow_mut().set_content(value);
+                self.value_dirty.set(true);
+            }
             ValueMode::Default |
             ValueMode::DefaultOn => {
                 self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
@@ -360,7 +363,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
         }
 
-        self.value_dirty.set(true);
         self.value_changed.set(true);
         self.force_relayout();
         Ok(())
@@ -585,6 +587,7 @@ impl HTMLInputElement {
 
         self.SetValue(self.DefaultValue())
             .expect("Failed to reset input value to default.");
+        self.value_dirty.set(false);
         self.value_changed.set(false);
         self.force_relayout();
     }
