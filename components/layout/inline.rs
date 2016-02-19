@@ -7,6 +7,7 @@
 use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
@@ -15,7 +16,7 @@ use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_P
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{SpecificFragmentInfo};
-use gfx::display_list::OpaqueNode;
+use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RESOLVE_GENERATED_CONTENT};
@@ -1747,8 +1748,15 @@ impl Flow for InlineFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_for_inline(layout_context);
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.collect_stacking_contexts_for_inline(parent_id, contexts)
+    }
+
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
+        self.build_display_list_for_inline(state);
 
         for fragment in &mut self.fragments.fragments {
             fragment.restyle_damage.remove(REPAINT);

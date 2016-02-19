@@ -8,9 +8,11 @@
 
 use app_units::Au;
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
+use gfx::display_list::{StackingContext, StackingContextId};
 use layout_debug;
 use std::cmp::max;
 use std::fmt;
@@ -90,7 +92,14 @@ impl Flow for TableColGroupFlow {
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
     // Table columns are invisible.
-    fn build_display_list(&mut self, _: &LayoutContext) {}
+    fn build_display_list(&mut self, _: &mut DisplayListBuildState) { }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 _: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        parent_id
+    }
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 

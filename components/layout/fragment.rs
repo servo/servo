@@ -14,7 +14,7 @@ use floats::ClearType;
 use flow::{self, Flow};
 use flow_ref::{self, FlowRef};
 use gfx;
-use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
+use gfx::display_list::{BLUR_INFLATION_FACTOR, FragmentType, OpaqueNode, StackingContextId};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::{LayerId, LayerType};
@@ -117,6 +117,11 @@ pub struct Fragment {
 
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     pub debug_id: u16,
+
+    /// The ID of the StackingContext that contains this fragment. This is initialized
+    /// to 0, but it assigned during the collect_stacking_contexts phase of display
+    /// list construction.
+    pub stacking_context_id: StackingContextId,
 }
 
 impl Encodable for Fragment {
@@ -790,6 +795,7 @@ impl Fragment {
             pseudo: node.get_pseudo_element_type().strip(),
             flags: FragmentFlags::empty(),
             debug_id: layout_debug::generate_unique_debug_id(),
+            stacking_context_id: StackingContextId::new(0),
         }
     }
 
@@ -816,6 +822,7 @@ impl Fragment {
             pseudo: pseudo,
             flags: FragmentFlags::empty(),
             debug_id: layout_debug::generate_unique_debug_id(),
+            stacking_context_id: StackingContextId::new(0),
         }
     }
 
@@ -848,6 +855,7 @@ impl Fragment {
             pseudo: self.pseudo.clone(),
             flags: FragmentFlags::empty(),
             debug_id: self.debug_id,
+            stacking_context_id: StackingContextId::new(0),
         }
     }
 
@@ -2139,10 +2147,12 @@ impl Fragment {
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
             (position::T::fixed, _, _, _) |
-            (position::T::relative, _, _, _) => true,
-            (position::T::static_, _, _, _) => {
-                false
-            }
+            (position::T::relative, _, _, _) |
+            (_, _, overflow_x::T::auto, _) |
+            (_, _, overflow_x::T::scroll, _) |
+            (_, _, _, overflow_x::T::auto) |
+            (_, _, _, overflow_x::T::scroll) => true,
+            (position::T::static_, _, _, _) => false
         }
     }
 
@@ -2421,6 +2431,18 @@ impl Fragment {
                         LAST_FRAGMENT_OF_ELEMENT);
                 }
             }
+        }
+    }
+
+    pub fn fragment_id(&self) -> usize {
+        return self as *const Fragment as usize;
+    }
+
+    pub fn fragment_type(&self) -> FragmentType {
+        match self.pseudo {
+            PseudoElementType::Normal => FragmentType::FragmentBody,
+            PseudoElementType::Before(_) => FragmentType::BeforePseudoContent,
+            PseudoElementType::After(_) => FragmentType::AfterPseudoContent
         }
     }
 

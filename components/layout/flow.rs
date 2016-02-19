@@ -28,12 +28,13 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Rect, Size2D};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
-use gfx::display_list::{ClippingRegion, DisplayList};
+use gfx::display_list::{ClippingRegion, DisplayListEntry, StackingContext, StackingContextId};
 use gfx_traits::{LayerId, LayerType};
 use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use inline::InlineFlow;
@@ -221,6 +222,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
+    fn collect_stacking_contexts(&mut self,
+                                 _parent_id: StackingContextId,
+                                 _: &mut Vec<StackingContext>)
+                                 -> StackingContextId;
+
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {}
 
@@ -284,7 +290,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     }
 
     /// Phase 5 of reflow: builds display lists.
-    fn build_display_list(&mut self, layout_context: &LayoutContext);
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState);
 
     /// Returns the union of all overflow rects of all of this flow's fragments.
     fn compute_overflow(&self) -> Overflow;
@@ -361,17 +367,13 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au>;
 
     /// Returns a layer ID for the given fragment.
-    #[allow(unsafe_code)]
     fn layer_id(&self) -> LayerId {
-        let obj = unsafe { mem::transmute::<&&Self, &raw::TraitObject>(&self) };
-        LayerId::new_of_type(LayerType::FragmentBody, obj.data as usize)
+        LayerId::new_of_type(LayerType::FragmentBody, base(self).flow_id())
     }
 
     /// Returns a layer ID for the given fragment.
-    #[allow(unsafe_code)]
     fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        let obj = unsafe { mem::transmute::<&&Self, &raw::TraitObject>(&self) };
-        LayerId::new_of_type(LayerType::OverflowScroll, obj.data as usize)
+        LayerId::new_of_type(LayerType::OverflowScroll, base(self).flow_id())
     }
 
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
@@ -924,7 +926,7 @@ pub struct BaseFlow {
     pub stacking_relative_position_of_display_port: Rect<Au>,
 
     /// The results of display list building for this flow.
-    pub display_list_building_result: Option<Box<DisplayList>>,
+    pub display_list_building_result: Option<Vec<DisplayListEntry>>,
 
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
@@ -934,6 +936,11 @@ pub struct BaseFlow {
 
     /// Various flags for flows, tightly packed to save space.
     pub flags: FlowFlags,
+
+    /// The ID of the StackingContext that contains this flow. This is initialized
+    /// to 0, but it assigned during the collect_stacking_contexts phase of display
+    /// list construction.
+    pub stacking_context_id: StackingContextId,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -958,7 +965,8 @@ impl fmt::Debug for BaseFlow {
         };
 
         write!(f,
-               "pos={:?}, overflow={:?}{}{}{}",
+               "sc={:?} pos={:?}, overflow={:?}{}{}{}",
+               self.stacking_context_id,
                self.position,
                self.overflow,
                child_count_string,
@@ -1097,6 +1105,7 @@ impl BaseFlow {
             flags: flags,
             writing_mode: writing_mode,
             thread_id: 0,
+            stacking_context_id: StackingContextId::new(0),
         }
     }
 
@@ -1136,22 +1145,35 @@ impl BaseFlow {
                                          .union(&self.overflow.paint);
         let bounds = Rect::new(self.stacking_relative_position, position_with_overflow.size);
 
-        let all_items = match self.display_list_building_result {
-            Some(ref display_list) => display_list.flatten(),
-            None => Vec::new(),
+        let items = match self.display_list_building_result {
+            Some(ref items) => items,
+            None => return,
         };
 
-        for item in &all_items {
-            if let Some(base_item) = item.base() {
-                let paint_bounds = base_item.clip.clone().intersect_rect(&base_item.bounds);
-                if !paint_bounds.might_be_nonempty() {
-                    continue;
-                }
-
-                if bounds.union(&paint_bounds.bounding_rect()) != bounds {
-                    error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
-                }
+        for item in items.iter() {
+            let base_item = item.item.base();
+            let paint_bounds = base_item.clip.clone().intersect_rect(&base_item.bounds);
+            if !paint_bounds.might_be_nonempty() {
+                continue;
             }
+
+            if bounds.union(&paint_bounds.bounding_rect()) != bounds {
+                error!("DisplayList item {:?} outside of Flow overflow ({:?})",
+                       item.item,
+                       paint_bounds);
+            }
+        }
+    }
+
+    pub fn flow_id(&self) -> usize {
+        return self as *const BaseFlow as usize;
+    }
+
+    pub fn collect_stacking_contexts_for_children(&mut self,
+                                                  parent_id: StackingContextId,
+                                                  contexts: &mut Vec<StackingContext>) {
+        for kid in self.children.iter_mut() {
+            kid.collect_stacking_contexts(parent_id, contexts);
         }
     }
 }

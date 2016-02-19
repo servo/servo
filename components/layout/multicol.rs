@@ -9,11 +9,13 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
 use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use gfx::display_list::{StackingContext, StackingContextId};
 use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
@@ -177,9 +179,16 @@ impl Flow for MulticolFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         debug!("build_display_list_multicol");
-        self.block_flow.build_display_list(layout_context);
+        self.block_flow.build_display_list(state);
+    }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
@@ -255,9 +264,16 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         debug!("build_display_list_multicol column");
-        self.block_flow.build_display_list(layout_context);
+        self.block_flow.build_display_list(state);
+    }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

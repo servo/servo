@@ -10,11 +10,11 @@ use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use cssparser::Color;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::DisplayList;
+use gfx::display_list::{StackingContext, StackingContextId};
 use layout_debug;
 use model::MaybeAuto;
 use std::fmt;
@@ -174,7 +174,7 @@ impl Flow for TableCellFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         if !self.visible {
             return
         }
@@ -188,9 +188,14 @@ impl Flow for TableCellFlow {
             border_collapse::T::collapse => BorderPaintingMode::Collapse(&self.collapsed_borders),
         };
 
-        self.block_flow.build_display_list_for_block(box DisplayList::new(),
-                                                     layout_context,
-                                                     border_painting_mode)
+        self.block_flow.build_display_list_for_block(state, border_painting_mode)
+    }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
