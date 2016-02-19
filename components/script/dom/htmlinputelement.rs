@@ -80,6 +80,9 @@ pub struct HTMLInputElement {
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
+    // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
+    is_value_dirty: Cell<bool>,
+
     // TODO: selected files for file input
 }
 
@@ -127,7 +130,8 @@ impl HTMLInputElement {
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None)),
-            activation_state: DOMRefCell::new(InputActivationState::new())
+            activation_state: DOMRefCell::new(InputActivationState::new()),
+            is_value_dirty: Cell::new(false),
         }
     }
 
@@ -356,6 +360,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
         }
 
+        self.is_value_dirty.set(true);
         self.value_changed.set(true);
         self.force_relayout();
         Ok(())
@@ -658,6 +663,7 @@ impl VirtualMethods for HTMLInputElement {
                                                                 .get_attribute(&ns!(), &atom!("value"))
                                                                 .map_or(DOMString::from(""),
                                                                         |a| DOMString::from(a.summarize().value)));
+                                    self.is_value_dirty.set(false);
                                 }
                             }
 
