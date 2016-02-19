@@ -678,7 +678,7 @@ impl ByteMatcher {
     fn image_webp() -> ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WEBPVP",
-            mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00,\xFF\xFF\xFF\xFF\xFF\xFF",
+            mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("image", "webp"),
             leading_ignore: &[]
         }
@@ -742,7 +742,7 @@ impl ByteMatcher {
     fn application_ogg() -> ByteMatcher {
         ByteMatcher {
             pattern: b"OggS",
-            mask: b"\xFF\xFF\xFF\xFF\xFF",
+            mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("application", "ogg"),
             leading_ignore: &[]
         }
@@ -992,7 +992,7 @@ impl ByteMatcher {
     fn application_pdf() -> ByteMatcher {
         ByteMatcher {
             pattern: b"%PDF",
-            mask: b"\xFF\xFF\xFF\xFF\xFF",
+            mask: b"\xFF\xFF\xFF\xFF",
             content_type: ("application", "pdf"),
             leading_ignore: &[]
         }
