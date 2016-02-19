@@ -33814,6 +33814,12 @@
             "url": "/WebIDL/ecmascript-binding/has-instance.html"
           }
         ],
+        "XMLHttpRequest/responsexml-get-twice.htm": [
+          {
+            "path": "XMLHttpRequest/responsexml-get-twice.htm",
+            "url": "/XMLHttpRequest/responsexml-get-twice.htm"
+          }
+        ],
         "html/browsers/browsing-the-web/scroll-to-fragid/scroll-frag-percent-encoded.html": [
           {
             "path": "html/browsers/browsing-the-web/scroll-to-fragid/scroll-frag-percent-encoded.html",
