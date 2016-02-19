@@ -50,6 +50,12 @@ fn test_sniff_mp4_matcher_long() {
     assert!(matcher.matches(&data));
 }
 
+#[test]
+fn test_validate_classifier() {
+    let classifier = MIMEClassifier::new();
+    classifier.validate().expect("Validation error")
+}
+
 #[cfg(test)]
 fn test_sniff_with_flags(filename_orig: &path::Path,
                                  type_string: &str,

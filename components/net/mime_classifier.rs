@@ -150,6 +150,18 @@ impl MIMEClassifier {
          }
     }
 
+    pub fn validate(&self) -> Result<(), String> {
+        try!(self.image_classifier.validate());
+        try!(self.audio_video_classifier.validate());
+        try!(self.scriptable_classifier.validate());
+        try!(self.plaintext_classifier.validate());
+        try!(self.archive_classifier.validate());
+        try!(self.binary_or_plaintext.validate());
+        try!(self.feeds_classifier.validate());
+        try!(self.font_classifier.validate());
+        Ok(())
+    }
+
     //some sort of iterator over the classifiers might be better?
     fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> (String, String) {
         let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::OFF;
@@ -231,6 +243,8 @@ pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(St
 //Interface used for composite types
 trait MIMEChecker {
     fn classify(&self, data: &[u8]) -> Option<(String, String)>;
+    /// Validate the MIME checker configuration
+    fn validate(&self) -> Result<(), String>;
 }
 
 trait Matches {
@@ -300,6 +314,15 @@ impl MIMEChecker for ByteMatcher {
             (self.content_type.0.to_owned(), self.content_type.1.to_owned())
         })
     }
+
+    fn validate(&self) -> Result<(), String> {
+        if self.pattern.len() != self.mask.len() {
+            Err(format!("Unequal pattern and mask length for pattern {:?}", self.pattern))
+        }
+        else {
+            Ok(())
+        }
+    }
 }
 
 struct TagTerminatedByteMatcher {
@@ -316,7 +339,12 @@ impl MIMEChecker for TagTerminatedByteMatcher {
                 None
             })
     }
+
+    fn validate(&self) -> Result<(), String> {
+        self.matcher.validate()
+    }
 }
+
 pub struct Mp4Matcher;
 
 impl Mp4Matcher {
@@ -350,6 +378,10 @@ impl MIMEChecker for Mp4Matcher {
             None
         }
     }
+
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 struct BinaryOrPlaintextClassifier;
@@ -375,6 +407,11 @@ impl MIMEChecker for BinaryOrPlaintextClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         as_string_option(Some(self.classify_impl(data)))
     }
+
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
+    }
+
 }
 struct GroupedClassifier {
     byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
@@ -472,6 +509,13 @@ impl MIMEChecker for GroupedClassifier {
             .iter()
             .filter_map(|matcher| matcher.classify(data))
             .next()
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        for byte_matcher in &self.byte_matchers {
+            try!(byte_matcher.validate())
+        }
+        Ok(())
     }
 }
 
@@ -575,6 +619,10 @@ impl FeedsClassifier {
 impl MIMEChecker for FeedsClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
        as_string_option(self.classify_impl(data))
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
     }
 }
 
