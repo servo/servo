@@ -1892,13 +1892,14 @@ class CGInterfaceObjectJSClass(CGThing):
             constructor = "throwing_constructor"
         args = {
             "constructor": constructor,
-            "hasInstance": HASINSTANCE_HOOK_NAME,
             "name": self.descriptor.interface.identifier.name,
+            "id": self.descriptor.interface.identifier.name,
+            "depth": self.descriptor.prototypeDepth
         }
         return """\
 static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
-    NonCallbackInterfaceObjectClass::new(%(constructor)s, %(hasInstance)s,
-                                         fun_to_string);
+    NonCallbackInterfaceObjectClass::new(%(constructor)s, fun_to_string,
+                                         PrototypeList::ID::%(id)s, %(depth)s);
 """ % args
 
 
@@ -4762,29 +4763,6 @@ let args = CallArgs::from_vp(vp, argc);
         return CGList([preamble, callGenerator])
 
 
-class CGClassHasInstanceHook(CGAbstractExternMethod):
-    def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'),
-                Argument('HandleObject', 'obj'),
-                Argument('MutableHandleValue', 'value'),
-                Argument('*mut bool', 'rval')]
-        assert descriptor.interface.hasInterfaceObject() and not descriptor.interface.isCallback()
-        CGAbstractExternMethod.__init__(self, descriptor, HASINSTANCE_HOOK_NAME,
-                                        'bool', args)
-
-    def definition_body(self):
-        id = "PrototypeList::ID::%s" % self.descriptor.interface.identifier.name
-        return CGGeneric("""\
-match has_instance(cx, obj, value.handle(), %(id)s, %(index)s) {
-    Ok(result) => {
-        *rval = result;
-        true
-    }
-    Err(()) => false,
-}
-""" % {"id": id, "index": self.descriptor.prototypeDepth})
-
-
 class CGClassFunToStringHook(CGAbstractExternMethod):
     """
     A hook to convert functions to strings.
@@ -4967,7 +4945,6 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGClassConstructHook(descriptor, ctor))
             if not descriptor.interface.isCallback():
                 cgThings.append(CGInterfaceObjectJSClass(descriptor))
-                cgThings.append(CGClassHasInstanceHook(descriptor))
                 cgThings.append(CGClassFunToStringHook(descriptor))
 
         if not descriptor.interface.isCallback():
@@ -5394,7 +5371,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
             'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
             'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
-            'dom::bindings::interface::{create_noncallback_interface_object, has_instance}',
+            'dom::bindings::interface::{create_noncallback_interface_object}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
