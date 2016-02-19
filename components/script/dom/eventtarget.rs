@@ -326,10 +326,10 @@ impl EventTarget {
                     EventListenerType::Inline(listener.unwrap_or(InlineEventListener::Null));
             }
             None => {
-                if listener.is_some() {
+                if let Some(listener) = listener {
                     entries.push(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
-                        listener: EventListenerType::Inline(listener.unwrap()),
+                        listener: EventListenerType::Inline(listener),
                     });
                 }
             }
