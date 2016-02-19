@@ -57,3 +57,9 @@ impl PrintTree {
         }
     }
 }
+
+impl Drop for PrintTree {
+    fn drop(&mut self) {
+        self.flush_queued_item("└─");
+    }
+}

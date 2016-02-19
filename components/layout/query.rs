@@ -11,7 +11,7 @@ use euclid::rect::Rect;
 use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
+use gfx::display_list::OpaqueNode;
 use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
@@ -69,51 +69,40 @@ impl LayoutRPC for LayoutRPCImpl {
     /// Requests the node containing the point of interest.
     fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        let resp = {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            match rw_data.stacking_context {
-                None => panic!("no root stacking context!"),
-                Some(ref stacking_context) => {
-                    let mut result = Vec::new();
-                    stacking_context.hit_test(point, &mut result, true);
-                    if !result.is_empty() {
-                        Some(HitTestResponse(result[0].node.to_untrusted_node_address()))
-                    } else {
-                        None
-                    }
-                }
-            }
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        let result = match rw_data.display_list {
+            None => panic!("Tried to hit test without a DisplayList"),
+            Some(ref display_list) => display_list.hit_test(point),
         };
 
-        if resp.is_some() {
-            return Ok(resp.unwrap());
+        if result.is_empty() {
+            return Err(());
         }
-        Err(())
+
+        Ok(HitTestResponse(result[0].node.to_untrusted_node_address()))
     }
 
     fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
-        let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        {
+        let mouse_over_list = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();
-            match rw_data.stacking_context {
-                None => panic!("no root stacking context!"),
-                Some(ref stacking_context) => {
-                    stacking_context.hit_test(point, &mut mouse_over_list, false);
-                }
-            }
+            let result = match rw_data.display_list {
+                None => panic!("Tried to hit test without a DisplayList"),
+                Some(ref display_list) => display_list.hit_test(point),
+            };
 
             // Compute the new cursor.
-            let cursor = if !mouse_over_list.is_empty() {
-                mouse_over_list[0].pointing.unwrap()
+            let cursor = if !result.is_empty() {
+                result[0].pointing.unwrap()
             } else {
                 Cursor::DefaultCursor
             };
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
             constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
-        }
+            result
+        };
 
         if mouse_over_list.is_empty() {
             Err(())

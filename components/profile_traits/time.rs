@@ -48,6 +48,7 @@ pub enum ProfilerCategory {
     LayoutTreeBuilder,
     LayoutDamagePropagate,
     LayoutGeneratedContent,
+    LayoutDisplayListSorting,
     LayoutMain,
     LayoutParallelWarmup,
     LayoutDispListBuild,

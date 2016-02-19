@@ -12,6 +12,7 @@ use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtil
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
+use gfx::display_list::StackingContext;
 use style::dom::TNode;
 use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
@@ -75,28 +76,14 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
+                                      root_stacking_context: &mut StackingContext,
                                       shared_layout_context: &SharedLayoutContext) {
-    fn doit(flow: &mut Flow,
-            compute_absolute_positions: ComputeAbsolutePositions,
-            build_display_list: BuildDisplayList) {
-        if compute_absolute_positions.should_process(flow) {
-            compute_absolute_positions.process(flow);
-        }
-
-        for kid in flow::mut_base(flow).child_iter() {
-            doit(kid, compute_absolute_positions, build_display_list);
-        }
-
-        if build_display_list.should_process(flow) {
-            build_display_list.process(flow);
-        }
-    }
-
+    let flow_root = flow_ref::deref_mut(root);
     let layout_context = LayoutContext::new(shared_layout_context);
-    let compute_absolute_positions = ComputeAbsolutePositions { layout_context: &layout_context };
-    let build_display_list         = BuildDisplayList         { layout_context: &layout_context };
-
-    doit(flow_ref::deref_mut(root), compute_absolute_positions, build_display_list);
+    flow_root.traverse_preorder(&ComputeAbsolutePositions { layout_context: &layout_context });
+    flow_root.collect_stacking_contexts(root_stacking_context.id,
+                                        &mut root_stacking_context.children);
+    flow_root.traverse_postorder(&BuildDisplayList { layout_context: &layout_context });
 }
 
 pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,

@@ -9,6 +9,7 @@
 
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
+use display_list_builder::DisplayListBuildState;
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow, CAN_BE_FRAGMENTED};
 use gfx::display_list::OpaqueNode;
@@ -222,7 +223,10 @@ pub struct BuildDisplayList<'a> {
 impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.build_display_list(self.layout_context);
+        let mut state = DisplayListBuildState::new(
+            self.layout_context, flow::base(flow).stacking_context_id);
+        flow.build_display_list(&mut state);
+        flow::mut_base(flow).display_list_building_result = Some(state.items);
         flow::mut_base(flow).restyle_damage.remove(REPAINT);
     }
 

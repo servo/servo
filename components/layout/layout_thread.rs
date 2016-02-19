@@ -22,11 +22,12 @@ use euclid::size::Size2D;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, StackingContext};
+use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo};
+use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx::paint_thread::{LayoutToPaintMsg, PaintLayer};
+use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
@@ -81,7 +82,7 @@ use util::opts;
 use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
-use webrender_helpers::WebRenderStackingContextConverter;
+use webrender_helpers::WebRenderDisplayListConverter;
 use webrender_traits;
 use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
@@ -99,7 +100,7 @@ pub struct LayoutThreadData {
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// The root stacking context.
-    pub stacking_context: Option<Arc<StackingContext>>,
+    pub display_list: Option<Arc<DisplayList>>,
 
     /// Performs CSS selector matching and style resolution.
     pub stylist: Box<Stylist>,
@@ -452,7 +453,7 @@ impl LayoutThread {
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
                     constellation_chan: constellation_chan,
-                    stacking_context: None,
+                    display_list: None,
                     stylist: stylist,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
@@ -671,12 +672,12 @@ impl LayoutThread {
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
-        let stacking_context = rw_data.stacking_context.as_ref();
+        let display_list = rw_data.display_list.as_ref();
         let formatted_url = &format!("url({})", *self.url.borrow());
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
+            size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
         // The LayoutThread has a context in TLS...
@@ -860,7 +861,23 @@ impl LayoutThread {
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            sequential::build_display_list_for_subtree(layout_root, shared_layout_context);
+            let mut root_stacking_context =
+                StackingContext::new(StackingContextId::new(0),
+                                     StackingContextType::Real,
+                                     &Rect::zero(),
+                                     &Rect::zero(),
+                                     0,
+                                     filter::T::new(Vec::new()),
+                                     mix_blend_mode::T::normal,
+                                     Matrix4::identity(),
+                                     Matrix4::identity(),
+                                     true,
+                                     false,
+                                     None);
+
+            sequential::build_display_list_for_subtree(layout_root,
+                                                       &mut root_stacking_context,
+                                                       shared_layout_context);
 
             if data.goal == ReflowGoal::ForDisplay {
                 debug!("Done building display list.");
@@ -875,37 +892,28 @@ impl LayoutThread {
                         root_flow.overflow.scroll.size
                     }
                 };
-                let mut display_list = box DisplayList::new();
-                display_list.append_from(&mut flow::mut_base(flow_ref::deref_mut(layout_root))
-                                         .display_list_building_result);
 
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                let stacking_context = Arc::new(StackingContext::new(display_list,
-                                                                     &origin,
-                                                                     &origin,
-                                                                     0,
-                                                                     filter::T::new(Vec::new()),
-                                                                     mix_blend_mode::T::normal,
-                                                                     Matrix4::identity(),
-                                                                     Matrix4::identity(),
-                                                                     true,
-                                                                     false,
-                                                                     None));
+                root_stacking_context.bounds = origin;
+                root_stacking_context.overflow = origin;
+                root_stacking_context.layer_info = Some(LayerInfo::new(layout_root.layer_id(),
+                                                                       ScrollPolicy::Scrollable,
+                                                                       None,
+                                                                       root_background_color));
+                let display_list = DisplayList::new(
+                    root_stacking_context,
+                    &mut flow::mut_base(flow_ref::deref_mut(layout_root))
+                                        .display_list_building_result);
+
                 if opts::get().dump_display_list {
-                    stacking_context.print("DisplayList".to_owned());
+                    display_list.print();
                 }
                 if opts::get().dump_display_list_json {
-                    println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
+                    println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
                 }
 
-                rw_data.stacking_context = Some(stacking_context.clone());
-
-                let layer_info = LayerInfo::new(layout_root.layer_id(),
-                                                ScrollPolicy::Scrollable,
-                                                None);
-                let paint_layer = PaintLayer::new_with_stacking_context(layer_info,
-                                                                        stacking_context,
-                                                                        root_background_color);
+                let display_list = Arc::new(display_list);
+                rw_data.display_list = Some(display_list.clone());
 
                 debug!("Layout done!");
 
@@ -920,12 +928,12 @@ impl LayoutThread {
 
                     // TODO(gw) For now only create a root scrolling layer!
                     let root_scroll_layer_id = webrender_traits::ScrollLayerId::new(pipeline_id, 0);
-                    let sc_id = rw_data.stacking_context.as_ref()
-                                                        .unwrap()
-                                                        .convert_to_webrender(&self.webrender_api.as_ref().unwrap(),
-                                                                               pipeline_id,
-                                                                               epoch,
-                                                                               Some(root_scroll_layer_id));
+                    let sc_id = rw_data.display_list.as_ref()
+                                                    .unwrap()
+                                                    .convert_to_webrender(&self.webrender_api.as_ref().unwrap(),
+                                                                          pipeline_id,
+                                                                          epoch,
+                                                                          Some(root_scroll_layer_id));
                     let root_background_color = webrender_traits::ColorF::new(root_background_color.r,
                                                                        root_background_color.g,
                                                                        root_background_color.b,
@@ -941,7 +949,7 @@ impl LayoutThread {
                                                   viewport_size);
                 } else {
                     self.paint_chan
-                        .send(LayoutToPaintMsg::PaintInit(self.epoch, paint_layer))
+                        .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
                         .unwrap();
                 }
             }
