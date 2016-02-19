@@ -778,8 +778,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 },
                 // Step 2
                 XMLHttpRequestResponseType::Document => {
-                    let op_doc = self.GetResponseXML();
-                    if let Ok(Some(doc)) = op_doc {
+                    let op_doc = self.document_response();
+                    if let Some(doc) = op_doc {
                         doc.to_jsval(cx, rval.handle_mut());
                     } else {
                     // Substep 1
@@ -1126,19 +1126,28 @@ impl XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#document-response
     fn document_response(&self) -> Option<Root<Document>> {
+        // Step 1
+        let response = self.response_xml.get();
+        if response.is_some() {
+            return self.response_xml.get();
+        }
+
         let mime_type = self.final_mime_type();
-        //TODO: prescan the response to determine encoding if final charset is null
+        // TODO: prescan the response to determine encoding if final charset is null
         let charset = self.final_charset().unwrap_or(UTF_8);
         let temp_doc: Root<Document>;
         match mime_type {
             Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
+                // Step 5
                 if self.response_type.get() == XMLHttpRequestResponseType::_empty {
                     return None;
                 }
+                // Step 6
                 else {
                     temp_doc = self.document_text_html();
                 }
             },
+            // Step 7
             Some(Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _)) |
             Some(Mime(mime::TopLevel::Application, mime::SubLevel::Xml, _)) |
             None => {
@@ -1152,10 +1161,14 @@ impl XMLHttpRequest {
                     return None;
                 }
             },
+            // Step 4
             _ => { return None; }
         }
+        // Step 9
         temp_doc.set_encoding_name(DOMString::from(charset.name()));
-        Some(temp_doc)
+        // Step 13
+        self.response_xml.set(Some(temp_doc.r()));
+        return self.response_xml.get();
     }
 
     #[allow(unsafe_code)]
