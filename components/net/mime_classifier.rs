@@ -741,8 +741,8 @@ impl ByteMatcher {
     //The string "OggS" followed by NUL, the Ogg container signature.
     fn application_ogg() -> ByteMatcher {
         ByteMatcher {
-            pattern: b"OggS",
-            mask: b"\xFF\xFF\xFF\xFF",
+            pattern: b"OggS\x00",
+            mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "ogg"),
             leading_ignore: &[]
         }
