@@ -295,13 +295,13 @@ impl HttpRequest for WrappedHttpRequest {
 
 #[derive(Debug)]
 pub struct LoadError {
-    url: Url,
-    error: LoadErrorType,
-    reason: String,
+    pub url: Url,
+    pub error: LoadErrorType,
+    pub reason: String,
 }
 
 impl LoadError {
-    fn new(url: Url, error: LoadErrorType, reason: String) -> LoadError {
+    pub fn new(url: Url, error: LoadErrorType, reason: String) -> LoadError {
         LoadError {
             url: url,
             error: error,
@@ -310,7 +310,7 @@ impl LoadError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum LoadErrorType {
     Cancelled,
     Connection,
