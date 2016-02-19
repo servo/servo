@@ -583,7 +583,8 @@ impl HTMLInputElement {
             _ => ()
         }
 
-        self.SetValue(self.DefaultValue());
+        self.SetValue(self.DefaultValue())
+            .expect("Failed to reset input value to default.");
         self.value_changed.set(false);
         self.force_relayout();
     }
@@ -653,7 +654,8 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (ValueMode::Value, true, ValueMode::Default) |
                             (ValueMode::Value, true, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value);
+                                self.SetValue(old_idl_value)
+                                    .expect("Failed to set input value on type change to a default ValueMode.");
                             }
 
                             // Step 2
@@ -662,7 +664,8 @@ impl VirtualMethods for HTMLInputElement {
                                     self.SetValue(self.upcast::<Element>()
                                                       .get_attribute(&ns!(), &atom!("value"))
                                                       .map_or(DOMString::from(""),
-                                                              |a| DOMString::from(a.summarize().value)));
+                                                              |a| DOMString::from(a.summarize().value)))
+                                        .expect("Failed to set input value on type change to ValueMode::Value.");
                                     self.is_value_dirty.set(false);
                                 }
                             }
@@ -670,7 +673,8 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 3
                             (old_value_mode, _, ValueMode::Filename) => {
                                 if old_value_mode != ValueMode::Filename {
-                                    self.SetValue(DOMString::from(""));
+                                    self.SetValue(DOMString::from(""))
+                                        .expect("Failed to set input value on type change to ValueMode::Filename.");
                                 }
                             }
                             _ => {}
