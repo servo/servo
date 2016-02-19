@@ -347,7 +347,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
             }
             ValueMode::Filename => {
-                if value == DOMString::from("") {
+                if value.is_empty() {
                     // TODO: empty list of selected files
                 } else {
                     // return DOMException or Error::InvalidState;
@@ -641,7 +641,7 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type.set(new_type);
                         let new_value_mode = self.get_value_mode();
 
-                        match (old_value_mode, old_idl_value != DOMString::from(""), new_value_mode) {
+                        match (old_value_mode, !old_idl_value.is_empty(), new_value_mode) {
 
                             // Step 1
                             (ValueMode::Value, true, ValueMode::Default) |
