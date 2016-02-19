@@ -674,6 +674,8 @@ impl VirtualMethods for HTMLInputElement {
                             self.radio_group_updated(
                                 self.get_radio_group_name().as_ref());
                         }
+
+                        // TODO: Step 6 - value sanitization
                     },
                     AttributeMutation::Removed => {
                         if self.input_type.get() == InputType::InputRadio {
