@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -27,7 +28,7 @@ use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::{PipelineId, WindowSizeData};
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use msg::webdriver_msg::{WebDriverElementRect, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use page::Page;
 use script_thread::get_page;
 use std::rc::Rc;
@@ -46,6 +47,16 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     }
 
     None
+}
+
+fn find_element_by_element_id(page: &Rc<Page>, pipeline: PipelineId, element_id: String) -> Option<Root<Element>> {
+    let page = get_page(&*page, pipeline);
+    page.document().upcast::<Node>().traverse_preorder().find(|x| {
+        match x.downcast::<Element>() {
+            Some(elem) => elem.Id() == &*element_id,
+            None => false
+        }
+    }).map(|x| Root::from_ref(x.downcast::<Element>().unwrap()))
 }
 
 #[allow(unsafe_code)]
@@ -183,6 +194,24 @@ pub fn handle_get_active_element(page: &Rc<Page>,
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
     reply.send(String::from(page.document().Title())).unwrap();
+}
+
+pub fn handle_get_rect(page: &Rc<Page>,
+                       pipeline: PipelineId,
+                       element_id: String,
+                       reply: IpcSender<Result<WebDriverElementRect, ()>>) {
+    reply.send(match find_element_by_element_id(&*page, pipeline, element_id) {
+        Some(elem) => {
+            let rect = elem.GetBoundingClientRect();
+            Ok(WebDriverElementRect {
+                x: rect.X(),
+                y: rect.Y(),
+                width: rect.Width(),
+                height: rect.Height()
+            })
+        },
+        None => Err(())
+    }).unwrap()
 }
 
 pub fn handle_get_text(page: &Rc<Page>,

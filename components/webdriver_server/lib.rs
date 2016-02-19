@@ -51,7 +51,7 @@ use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverM
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
-use webdriver::response::{NewSessionResponse, ValueResponse, WebDriverResponse, WindowSizeResponse};
+use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse, WebDriverResponse, WindowSizeResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
@@ -540,6 +540,23 @@ impl Handler {
         }
     }
 
+    fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.frame_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetElementRect(element.id.clone(), sender);
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        match receiver.recv().unwrap() {
+            Ok(rect) => {
+                let response = ElementRectResponse::new(rect.x, rect.y, rect.width, rect.height);
+                Ok(WebDriverResponse::ElementRect(response))
+            },
+            Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
+                                              "Unable to find element in document"))
+        }
+    }
+
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = try!(self.frame_pipeline());
 
@@ -798,6 +815,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
+            WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),
             WebDriverCommand::GetElementText(ref element) => self.handle_element_text(element),
             WebDriverCommand::GetElementTagName(ref element) => self.handle_element_tag_name(element),
             WebDriverCommand::GetElementAttribute(ref element, ref name) =>
@@ -816,7 +834,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                     ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
                     ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
                 }
-            }
+            },
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
         }
