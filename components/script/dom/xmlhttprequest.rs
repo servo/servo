@@ -456,7 +456,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             None => {}
         }
 
-        headers.set_raw(name_str.to_owned(), vec![value.to_vec()]);
+        headers.set_raw(name_str.to_owned(), vec![value.into()]);
         Ok(())
     }
 
