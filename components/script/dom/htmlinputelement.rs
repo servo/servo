@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
-use dom::bindings::error::Error;
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
@@ -339,7 +339,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) -> ErrorResult {
         match self.get_value_mode() {
             ValueMode::Value => self.textinput.borrow_mut().set_content(value),
             ValueMode::Default |
@@ -350,13 +350,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 if value.is_empty() {
                     // TODO: empty list of selected files
                 } else {
-                    // return DOMException or Error::InvalidState;
+                    return Err(Error::InvalidState);
                 }
             }
         }
 
         self.value_changed.set(true);
         self.force_relayout();
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
