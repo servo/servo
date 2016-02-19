@@ -326,15 +326,15 @@ impl HTMLInputElementMethods for HTMLInputElement {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => {
                 self.upcast::<Element>()
-                              .get_attribute(&ns!(), &atom!("value"))
-                              .map_or(DOMString::from(""),
-                                      |a| DOMString::from(a.summarize().value))
+                    .get_attribute(&ns!(), &atom!("value"))
+                    .map_or(DOMString::from(""),
+                            |a| DOMString::from(a.summarize().value))
             }
             ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                              .get_attribute(&ns!(), &atom!("value"))
-                              .map_or(DOMString::from("on"),
-                                      |a| DOMString::from(a.summarize().value))
+                    .get_attribute(&ns!(), &atom!("value"))
+                    .map_or(DOMString::from("on"),
+                            |a| DOMString::from(a.summarize().value))
             }
             ValueMode::Filename => {
                 // TODO: return C:\fakepath\<first of selected files> when a file is selected
@@ -660,9 +660,9 @@ impl VirtualMethods for HTMLInputElement {
                             (old_value_mode, _, ValueMode::Value) => {
                                 if old_value_mode != ValueMode::Value {
                                     self.SetValue(self.upcast::<Element>()
-                                                                .get_attribute(&ns!(), &atom!("value"))
-                                                                .map_or(DOMString::from(""),
-                                                                        |a| DOMString::from(a.summarize().value)));
+                                                      .get_attribute(&ns!(), &atom!("value"))
+                                                      .map_or(DOMString::from(""),
+                                                              |a| DOMString::from(a.summarize().value)));
                                     self.is_value_dirty.set(false);
                                 }
                             }
