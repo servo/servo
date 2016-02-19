@@ -649,33 +649,29 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type.set(new_type);
                         let new_value_mode = self.get_value_mode();
 
-                        match (old_value_mode, !old_idl_value.is_empty(), new_value_mode) {
+                        match (&old_value_mode, !old_idl_value.is_empty(), new_value_mode) {
 
                             // Step 1
-                            (ValueMode::Value, true, ValueMode::Default) |
-                            (ValueMode::Value, true, ValueMode::DefaultOn) => {
+                            (&ValueMode::Value, true, ValueMode::Default) |
+                            (&ValueMode::Value, true, ValueMode::DefaultOn) => {
                                 self.SetValue(old_idl_value)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             }
 
                             // Step 2
-                            (old_value_mode, _, ValueMode::Value) => {
-                                if old_value_mode != ValueMode::Value {
-                                    self.SetValue(self.upcast::<Element>()
-                                                      .get_attribute(&ns!(), &atom!("value"))
-                                                      .map_or(DOMString::from(""),
-                                                              |a| DOMString::from(a.summarize().value)))
-                                        .expect("Failed to set input value on type change to ValueMode::Value.");
-                                    self.value_dirty.set(false);
-                                }
+                            (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
+                                self.SetValue(self.upcast::<Element>()
+                                                  .get_attribute(&ns!(), &atom!("value"))
+                                                  .map_or(DOMString::from(""),
+                                                          |a| DOMString::from(a.summarize().value)))
+                                    .expect("Failed to set input value on type change to ValueMode::Value.");
+                                self.value_dirty.set(false);
                             }
 
                             // Step 3
-                            (old_value_mode, _, ValueMode::Filename) => {
-                                if old_value_mode != ValueMode::Filename {
-                                    self.SetValue(DOMString::from(""))
-                                        .expect("Failed to set input value on type change to ValueMode::Filename.");
-                                }
+                            (_, _, ValueMode::Filename) if old_value_mode != ValueMode::Filename => {
+                                self.SetValue(DOMString::from(""))
+                                    .expect("Failed to set input value on type change to ValueMode::Filename.");
                             }
                             _ => {}
                         }
