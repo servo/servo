@@ -30,6 +30,7 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
+use dom::browsingcontext::BrowsingContext;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -129,6 +130,8 @@ enum ParserBlockedByScript {
 pub struct Document {
     node: Node,
     window: JS<Window>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
+    browsing_context: Option<JS<BrowsingContext>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -279,6 +282,12 @@ impl Document {
         self.loader.borrow_mut()
     }
 
+    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
+    #[inline]
+    pub fn browsing_context(&self) -> Option<&BrowsingContext> {
+        self.browsing_context.as_ref().map(|browsing_context| &**browsing_context)
+    }
+
     #[inline]
     pub fn window(&self) -> &Window {
         &*self.window
@@ -309,7 +318,7 @@ impl Document {
         let browsing_context = browsing_context.as_ref().unwrap();
         let active_document = browsing_context.active_document();
 
-        if self != active_document {
+        if self != &*active_document {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -1507,6 +1516,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
 impl Document {
     pub fn new_inherited(window: &Window,
+                         browsing_context: Option<&BrowsingContext>,
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
@@ -1525,6 +1535,7 @@ impl Document {
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
+            browsing_context: browsing_context.map(JS::from_ref),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1594,6 +1605,7 @@ impl Document {
         let docloader = DocumentLoader::new(&*doc.loader());
         Ok(Document::new(win,
                          None,
+                         None,
                          IsHTMLDocument::NonHTMLDocument,
                          None,
                          None,
@@ -1602,6 +1614,7 @@ impl Document {
     }
 
     pub fn new(window: &Window,
+               browsing_context: Option<&BrowsingContext>,
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
@@ -1610,6 +1623,7 @@ impl Document {
                doc_loader: DocumentLoader)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
+                                                                      browsing_context,
                                                                       url,
                                                                       doctype,
                                                                       content_type,
@@ -1672,6 +1686,7 @@ impl Document {
                 IsHTMLDocument::NonHTMLDocument
             };
             let new_doc = Document::new(self.window(),
+                                        None,
                                         None,
                                         doctype,
                                         None,
@@ -1761,7 +1776,7 @@ impl DocumentMethods for Document {
                 // Step 2.
                 let candidate = browsing_context.active_document();
                 // Step 3.
-                if candidate == target {
+                if &*candidate == target {
                     true
                 } else {
                     false //TODO  Step 4.

@@ -32,6 +32,7 @@ use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
+use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -1795,6 +1796,10 @@ impl ScriptThread {
                                  incomplete.parent_info,
                                  incomplete.window_size);
 
+        let frame_element = frame_element.r().map(Castable::upcast);
+        let browsing_context = BrowsingContext::new(&window, frame_element);
+        window.init_browsing_context(&browsing_context);
+
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
@@ -1822,16 +1827,14 @@ impl ScriptThread {
         };
 
         let document = Document::new(window.r(),
+                                     Some(&browsing_context),
                                      Some(final_url.clone()),
                                      is_html_document,
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
                                      loader);
-
-        let frame_element = frame_element.r().map(Castable::upcast);
-        window.init_browsing_context(document.r(), frame_element);
-
+        browsing_context.init(&document);
         document.set_ready_state(DocumentReadyState::Loading);
 
         // Create the root frame

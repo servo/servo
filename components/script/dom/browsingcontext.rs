@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
@@ -25,26 +26,24 @@ use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
 #[dom_struct]
 pub struct BrowsingContext {
     reflector: Reflector,
-    history: Vec<SessionHistoryEntry>,
+    history: DOMRefCell<Vec<SessionHistoryEntry>>,
     active_index: usize,
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
-    pub fn new_inherited(document: &Document, frame_element: Option<&Element>) -> BrowsingContext {
+    pub fn new_inherited(frame_element: Option<&Element>) -> BrowsingContext {
         BrowsingContext {
             reflector: Reflector::new(),
-            history: vec![SessionHistoryEntry::new(document)],
+            history: DOMRefCell::new(vec![]),
             active_index: 0,
             frame_element: frame_element.map(JS::from_ref),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(document: &Document, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+    pub fn new(window: &Window, frame_element: Option<&Element>) -> Root<BrowsingContext> {
         unsafe {
-            let window = document.window();
-
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
 
@@ -58,7 +57,7 @@ impl BrowsingContext {
                 NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.ptr.is_null());
 
-            let object = box BrowsingContext::new_inherited(document, frame_element);
+            let object = box BrowsingContext::new_inherited(frame_element);
 
             let raw = Box::into_raw(object);
             SetProxyExtra(window_proxy.ptr, 0, PrivateValue(raw as *const _));
@@ -69,12 +68,18 @@ impl BrowsingContext {
         }
     }
 
-    pub fn active_document(&self) -> &Document {
-        &*self.history[self.active_index].document
+    pub fn init(&self, document: &Document) {
+        assert!(self.history.borrow().is_empty());
+        assert_eq!(self.active_index, 0);
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document));
     }
 
-    pub fn active_window(&self) -> &Window {
-        self.active_document().window()
+    pub fn active_document(&self) -> Root<Document> {
+        Root::from_ref(&*self.history.borrow()[self.active_index].document)
+    }
+
+    pub fn active_window(&self) -> Root<Window> {
+        Root::from_ref(self.active_document().window())
     }
 
     pub fn frame_element(&self) -> Option<&Element> {

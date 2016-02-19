@@ -1605,7 +1605,8 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window, Some((*document.url()).clone()),
+                let document = Document::new(window, None,
+                                             Some((*document.url()).clone()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader);
                 Root::upcast::<Node>(document)
