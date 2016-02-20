@@ -80,7 +80,7 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{HitTestResponse, MouseOverResponse};
+use layout_interface::HitTestResponse;
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
@@ -563,22 +563,14 @@ impl Document {
                 .map(Root::upcast)
     }
 
-    pub fn hit_test(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+    pub fn hit_test(&self, page_point: &Point2D<f32>, update_cursor: bool) -> Option<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().hit_test(*page_point) {
+        match self.window.layout().hit_test(*page_point, update_cursor) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
                 None
             }
-        }
-    }
-
-    pub fn get_node_under_mouse(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
-        assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().mouse_over(*page_point) {
-            Ok(MouseOverResponse(node_address)) => Some(node_address),
-            Err(()) => None,
         }
     }
 
@@ -693,7 +685,7 @@ impl Document {
 
         let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                                       client_point.y + self.window.PageYOffset() as f32);
-        let node = match self.hit_test(&page_point) {
+        let node = match self.hit_test(&page_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -811,7 +803,7 @@ impl Document {
         let mouse_over_address = client_point.as_ref().map(|client_point| {
             let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                                           client_point.y + self.window.PageYOffset() as f32);
-            self.get_node_under_mouse(&page_point)
+            self.hit_test(&page_point, true)
         }).unwrap_or(None);
 
         let mut mouse_over_targets = RootedVec::<JS<Element>>::new();
@@ -918,7 +910,7 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = match self.hit_test(&point) {
+        let node = match self.hit_test(&point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false,
         };
@@ -2585,7 +2577,7 @@ impl DocumentMethods for Document {
 
         let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
-        match self.hit_test(point)  {
+        match self.hit_test(point, false)  {
             Some(untrusted_node_address) => {
                 let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
                 let parent_node = node.GetParentNode().unwrap();
