@@ -58,7 +58,6 @@ pub mod linked_list;
 #[cfg(feature = "non-geckolib")]
 pub mod non_geckolib;
 pub mod opts;
-pub mod persistent_list;
 pub mod prefs;
 pub mod print_tree;
 pub mod range;
