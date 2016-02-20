@@ -1295,6 +1295,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                          .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
                                                                   event_to_send))
                          .unwrap();
+            return
         }
 
         match self.find_topmost_layer_at_point(point / self.scene.scale) {
