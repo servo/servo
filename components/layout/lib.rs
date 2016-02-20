@@ -85,6 +85,7 @@ mod model;
 mod multicol;
 mod opaque_node;
 mod parallel;
+mod persistent_list;
 mod query;
 mod sequential;
 mod table;

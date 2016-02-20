@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
 use std::i32;
 use style::computed_values::float;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use util::persistent_list::PersistentList;
 
 /// The kind of float: left or right.
 #[derive(Clone, RustcEncodable, Debug, Copy)]
