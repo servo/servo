@@ -27,7 +27,7 @@ use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::{PipelineId, WindowSizeData};
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use msg::webdriver_msg::{WebDriverElementRect, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use page::Page;
 use script_thread::get_page;
 use std::rc::Rc;
@@ -46,6 +46,14 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     }
 
     None
+}
+
+fn find_element_by_element_id(page: &Rc<Page>, pipeline: PipelineId, element_id: String) -> Option<Root<Element>> {
+    let page = get_page(&*page, pipeline);
+    page.document().upcast::<Node>().traverse_preorder().find(|x| match x.downcast::<Element>() {
+        Some(elem) => elem.Id() == &*element_id,
+        None => false
+    }).map(|x| Root::from_ref(x.downcast::<Element>().unwrap()))
 }
 
 #[allow(unsafe_code)]
@@ -183,6 +191,44 @@ pub fn handle_get_active_element(page: &Rc<Page>,
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
     reply.send(String::from(page.document().Title())).unwrap();
+}
+
+pub fn handle_get_rect(page: &Rc<Page>,
+                       pipeline: PipelineId,
+                       element_id: String,
+                       reply: IpcSender<Result<WebDriverElementRect, ()>>) {
+    reply.send(match find_element_by_element_id(&*page, pipeline, element_id) {
+        Some(elem) => {
+            // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
+            match elem.downcast::<HTMLElement>() {
+                Some(html_elem) => {
+                    // Step 1
+                    let mut x: i32 = 0;
+                    let mut y: i32 = 0;
+
+                    let mut offset_parent = html_elem.GetOffsetParent();
+
+                    // Step 2
+                    while let Some(element) = offset_parent {
+                        offset_parent = element.downcast::<HTMLElement>().map(|elem| {
+                            x += elem.OffsetLeft();
+                            y += elem.OffsetTop();
+                            elem.GetOffsetParent()
+                        }).unwrap_or(None);
+                    }
+                    // Step 3
+                    Ok(WebDriverElementRect {
+                        x: x as f64,
+                        y: y as f64,
+                        width: html_elem.OffsetWidth() as f64,
+                        height: html_elem.OffsetHeight() as f64
+                    })
+                },
+                None => Err(())
+            }
+        },
+        None => Err(())
+    }).unwrap()
 }
 
 pub fn handle_get_text(page: &Rc<Page>,

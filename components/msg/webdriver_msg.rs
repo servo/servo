@@ -17,6 +17,7 @@ pub enum WebDriverScriptCommand {
     GetActiveElement(IpcSender<Option<String>>),
     GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
+    GetElementRect(String, IpcSender<Result<WebDriverElementRect, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
@@ -50,6 +51,14 @@ pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
     Parent
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize)]
+pub struct WebDriverElementRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
 impl ToJson for WebDriverJSValue {
