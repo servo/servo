@@ -107,11 +107,8 @@ impl LayoutRPC for LayoutRPCImpl {
         if mouse_over_list.is_empty() {
             Err(())
         } else {
-            let response_list =
-                mouse_over_list.iter()
-                               .map(|metadata| metadata.node.to_untrusted_node_address())
-                               .collect();
-            Ok(MouseOverResponse(response_list))
+            let response = mouse_over_list[0].node.to_untrusted_node_address();
+            Ok(MouseOverResponse(response))
         }
     }
 
