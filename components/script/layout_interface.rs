@@ -105,6 +105,7 @@ pub trait LayoutRPC {
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
+    /// Query layout for the topmost node under the mouse.
     fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
@@ -118,7 +119,7 @@ pub struct NodeGeometryResponse {
     pub client_rect: Rect<i32>,
 }
 pub struct HitTestResponse(pub UntrustedNodeAddress);
-pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
+pub struct MouseOverResponse(pub UntrustedNodeAddress);
 pub struct ResolvedStyleResponse(pub Option<String>);
 
 #[derive(Clone)]

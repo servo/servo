@@ -101,7 +101,7 @@ impl LayoutRPC for LayoutRPCImpl {
             match rw_data.stacking_context {
                 None => panic!("no root stacking context!"),
                 Some(ref stacking_context) => {
-                    stacking_context.hit_test(point, &mut mouse_over_list, false);
+                    stacking_context.hit_test(point, &mut mouse_over_list, true);
                 }
             }
 
@@ -118,11 +118,8 @@ impl LayoutRPC for LayoutRPCImpl {
         if mouse_over_list.is_empty() {
             Err(())
         } else {
-            let response_list =
-                mouse_over_list.iter()
-                               .map(|metadata| metadata.node.to_untrusted_node_address())
-                               .collect();
-            Ok(MouseOverResponse(response_list))
+            let response = mouse_over_list[0].node.to_untrusted_node_address();
+            Ok(MouseOverResponse(response))
         }
     }
 
