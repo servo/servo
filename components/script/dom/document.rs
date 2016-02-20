@@ -314,8 +314,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        let browsing_context = self.window.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
+        let browsing_context = match self.browsing_context() {
+            Some(browsing_context) => browsing_context,
+            None => return false,
+        };
         let active_document = browsing_context.active_document();
 
         if self != &*active_document {
@@ -1766,17 +1768,12 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
-        // Step 1.
-        let target = self;
-        let browsing_context = self.window.browsing_context();
-        let browsing_context = browsing_context.as_ref();
-
-        match browsing_context {
+        match self.browsing_context() {
             Some(browsing_context) => {
                 // Step 2.
                 let candidate = browsing_context.active_document();
                 // Step 3.
-                if &*candidate == target {
+                if &*candidate == self {
                     true
                 } else {
                     false //TODO  Step 4.

@@ -72,6 +72,7 @@ impl DOMImplementationMethods for DOMImplementation {
         // Step 1.
         let doc = XMLDocument::new(win,
                                    None,
+                                   None,
                                    IsHTMLDocument::NonHTMLDocument,
                                    None,
                                    None,
