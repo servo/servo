@@ -6,6 +6,7 @@ import os
 
 from wptrunner.update.base import Step, StepRunner
 from wptrunner.update.update import LoadConfig, SyncFromUpstream, UpdateMetadata
+from wptrunner.update.sync import UpdateCheckout
 from wptrunner.update.tree import NoVCSTree
 
 from .tree import GitTree, HgTree, GeckoCommit
@@ -17,10 +18,10 @@ class LoadTrees(Step):
     provides = ["local_tree", "sync_tree"]
 
     def create(self, state):
-        if os.path.exists(state.sync["path"]):
-            sync_tree = GitTree(root=state.sync["path"])
-        else:
-            sync_tree = None
+        if not os.path.exists(state.sync["path"]):
+            os.mkdir(state.sync["path"])
+
+        sync_tree = GitTree(root=state.sync["path"])
 
         if GitTree.is_type():
             local_tree = GitTree(commit_cls=GeckoCommit)
@@ -37,6 +38,7 @@ class UpdateRunner(StepRunner):
     """Overall runner for updating web-platform-tests in Gecko."""
     steps = [LoadConfig,
              LoadTrees,
+             UpdateCheckout,
              SyncToUpstream,
              SyncFromUpstream,
              UpdateMetadata]

@@ -90,6 +90,7 @@ class UpdateCheckout(Step):
 
     def create(self, state):
         sync_tree = state.sync_tree
+        assert sync_tree
         state.local_branch = uuid.uuid4().hex
         sync_tree.update(state.sync["remote_url"],
                          state.sync["branch"],
