@@ -2399,6 +2399,45 @@ impl<'a> ChildrenMutation<'a> {
                    -> ChildrenMutation<'a> {
         ChildrenMutation::ReplaceAll { removed: removed, added: added }
     }
+
+    /// Get the previously-existing child that follows the modified children.
+    pub fn next_child(&self) -> Option<&Node> {
+        match *self {
+            ChildrenMutation::Append { .. } => None,
+            ChildrenMutation::Insert { next, .. } => Some(next),
+            ChildrenMutation::Prepend { next, .. } => Some(next),
+            ChildrenMutation::Replace { next, .. } => next,
+            ChildrenMutation::ReplaceAll { .. } => None,
+        }
+    }
+
+    /// If nodes were added or removed at the start or end of a container, return any
+    /// previously-existing child whose ":first-child" or ":last-child" status *may* have changed.
+    ///
+    /// NOTE: This does not check whether the inserted/removed nodes were elements, so in some
+    /// cases it will return a false positive.  This doesn't matter for correctness, because at
+    /// worst the returned element will be restyled unnecessarily.
+    pub fn modified_edge_element(&self) -> Option<Root<Node>> {
+        match *self {
+            // Prepend: Return the formerly first element.
+            ChildrenMutation::Prepend { next, .. } => {
+                next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Append: Return the formerly last element.
+            ChildrenMutation::Append { prev, .. } => {
+                prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Remove/replace at start of container: Return the newly first element.
+            ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
+                next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Remove/replace at end of container: Return the newly last element.
+            ChildrenMutation::Replace { prev: Some(prev), next: None, .. } => {
+                prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            _ => None
+        }
+    }
 }
 
 /// The context of the unbinding from a tree of a node when one of its
