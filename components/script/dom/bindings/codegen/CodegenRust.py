@@ -5330,9 +5330,8 @@ class CGBindingRoot(CGThing):
                                     (t.identifier.name)))])
                 else:
                     assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider)
-                    cgthings.extend([CGGeneric("\npub type %s = " % (t.identifier.name)),
-                                     getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
-                                     CGGeneric(";\n\n")])
+                    cgthings.extend([CGGeneric("\npub use self::%s as %s;\n\n" % (e.identifier.name,
+                                    (t.identifier.name)))])
 
         # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
