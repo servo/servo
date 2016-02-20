@@ -53,7 +53,7 @@ use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, I
 use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
 use script::layout_interface::TrustedNodeAddress;
-use selectors::matching::DeclarationBlock;
+use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
 use std::borrow::ToOwned;
@@ -603,6 +603,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         unsafe {
             self.element.html_element_in_html_document_for_layout()
         }
+    }
+
+    fn insert_flags(&self, flags: ElementFlags) {
+        self.element.insert_atomic_flags(flags);
     }
 }
 
