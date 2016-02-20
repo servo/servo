@@ -54,7 +54,7 @@ use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElem
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
+use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
@@ -65,7 +65,8 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
-use selectors::matching::{DeclarationBlock, matches};
+use selectors::matching::{DeclarationBlock, ElementFlags, matches};
+use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
 use smallvec::VecLike;
@@ -75,6 +76,7 @@ use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, Namespace, QualName};
 use style::element_state::*;
 use style::error_reporting::ParseErrorReporter;
@@ -102,6 +104,7 @@ pub struct Element {
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
     state: Cell<ElementState>,
+    atomic_flags: AtomicElementFlags,
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -143,6 +146,7 @@ impl Element {
             attr_list: Default::default(),
             class_list: Default::default(),
             state: Cell::new(state),
+            atomic_flags: AtomicElementFlags::new(),
         }
     }
 
@@ -229,8 +233,8 @@ pub trait LayoutElementHelpers {
     fn namespace(&self) -> &Namespace;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
-
     fn get_state_for_layout(&self) -> ElementState;
+    fn insert_atomic_flags(&self, flags: ElementFlags);
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -581,6 +585,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn get_state_for_layout(&self) -> ElementState {
         unsafe {
             (*self.unsafe_get()).state.get()
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn insert_atomic_flags(&self, flags: ElementFlags) {
+        unsafe {
+            (*self.unsafe_get()).atomic_flags.insert(flags);
         }
     }
 }
@@ -1687,6 +1699,33 @@ impl VirtualMethods for Element {
             doc.unregister_named_element(self, value.clone());
         }
     }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(ref s) = self.super_type() {
+            s.children_changed(mutation);
+        }
+
+        let flags = self.atomic_flags.get();
+        if flags.intersects(HAS_SLOW_SELECTOR) {
+            // All children of this node need to be restyled when any child changes.
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        } else {
+            if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+                if let Some(next_child) = mutation.next_child() {
+                    for child in next_child.inclusively_following_siblings() {
+                        if child.is::<Element>() {
+                            child.dirty(NodeDamage::OtherNodeDamage);
+                        }
+                    }
+                }
+            }
+            if flags.intersects(HAS_EDGE_CHILD_SELECTOR) {
+                if let Some(child) = mutation.modified_edge_element() {
+                    child.dirty(NodeDamage::OtherNodeDamage);
+                }
+            }
+        }
+    }
 }
 
 impl<'a> ::selectors::Element for Root<Element> {
@@ -2071,3 +2110,22 @@ impl<'a> AttributeMutation<'a> {
         }
     }
 }
+
+/// Thread-safe wrapper for ElementFlags set during selector matching
+#[derive(JSTraceable, HeapSizeOf)]
+struct AtomicElementFlags(AtomicUsize);
+
+impl AtomicElementFlags {
+    fn new() -> Self {
+        AtomicElementFlags(AtomicUsize::new(0))
+    }
+
+    fn get(&self) -> ElementFlags {
+        ElementFlags::from_bits_truncate(self.0.load(Ordering::Relaxed) as u8)
+    }
+
+    fn insert(&self, flags: ElementFlags) {
+        self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
+    }
+}
+

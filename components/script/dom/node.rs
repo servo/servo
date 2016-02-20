@@ -2399,6 +2399,54 @@ impl<'a> ChildrenMutation<'a> {
                    -> ChildrenMutation<'a> {
         ChildrenMutation::ReplaceAll { removed: removed, added: added }
     }
+
+    /// Get the child that follows the added or removed children.
+    pub fn next_child(&self) -> Option<&Node> {
+        match *self {
+            ChildrenMutation::Append { .. } => None,
+            ChildrenMutation::Insert { next, .. } => Some(next),
+            ChildrenMutation::Prepend { next, .. } => Some(next),
+            ChildrenMutation::Replace { next, .. } => next,
+            ChildrenMutation::ReplaceAll { .. } => None,
+        }
+    }
+
+    /// If nodes were added or removed at the start or end of a container, return any
+    /// previously-existing child whose ":first-child" or ":last-child" status *may* have changed.
+    ///
+    /// NOTE: This does not check whether the inserted/removed nodes were elements, so in some
+    /// cases it will return a false positive.  This doesn't matter for correctness, because at
+    /// worst the returned element will be restyled unnecessarily.
+    pub fn modified_edge_element(&self) -> Option<Root<Node>> {
+        match *self {
+            // Add/remove at start of container: Return the first following element.
+            ChildrenMutation::Prepend { next, .. } |
+            ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
+                next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Add/remove at end of container: Return the last preceding element.
+            ChildrenMutation::Append { prev, .. } |
+            ChildrenMutation::Replace { prev: Some(prev), next: None, .. } => {
+                prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Insert or replace in the middle:
+            ChildrenMutation::Insert { prev, next, .. } |
+            ChildrenMutation::Replace { prev: Some(prev), next: Some(next), .. } => {
+                if prev.inclusively_preceding_siblings().all(|node| !node.is::<Element>()) {
+                    // Before the first element: Return the first following element.
+                    next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+                } else if next.inclusively_following_siblings().all(|node| !node.is::<Element>()) {
+                    // After the last element: Return the last preceding element.
+                    prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+                } else {
+                    None
+                }
+            }
+
+            ChildrenMutation::Replace { prev: None, next: None, .. } => unreachable!(),
+            ChildrenMutation::ReplaceAll { .. } => None,
+        }
+    }
 }
 
 /// The context of the unbinding from a tree of a node when one of its
