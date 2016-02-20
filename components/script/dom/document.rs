@@ -573,11 +573,11 @@ impl Document {
         }
     }
 
-    pub fn get_nodes_under_mouse(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+    pub fn get_node_under_mouse(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
         match self.window.layout().mouse_over(*page_point) {
-            Ok(MouseOverResponse(node_address)) => node_address,
-            Err(()) => vec![],
+            Ok(MouseOverResponse(node_address)) => Some(node_address),
+            Err(()) => None,
         }
     }
 
@@ -807,18 +807,21 @@ impl Document {
                                    client_point: Option<Point2D<f32>>,
                                    prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = client_point.as_ref().map(|client_point| {
+        let mouse_over_address = client_point.as_ref().map(|client_point| {
             let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                                           client_point.y + self.window.PageYOffset() as f32);
-            self.get_nodes_under_mouse(&page_point)
-        }).unwrap_or(vec![]);
-        let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
-            node::from_untrusted_node_address(js_runtime, *node_address)
-                .inclusive_ancestors()
-                .filter_map(Root::downcast::<Element>)
-                .next()
-                .unwrap()
-        }).collect::<RootedVec<JS<Element>>>();
+            self.get_node_under_mouse(&page_point)
+        }).unwrap_or(None);
+
+        let mut mouse_over_targets = RootedVec::<JS<Element>>::new();
+
+        if let Some(address) = mouse_over_address {
+            let node = node::from_untrusted_node_address(js_runtime, address);
+            for node in node.inclusive_ancestors()
+                            .filter_map(Root::downcast::<Element>) {
+                mouse_over_targets.push(JS::from_rooted(&node));
+            }
+        }
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
@@ -855,9 +858,9 @@ impl Document {
         }
 
         // Send mousemove event to topmost target
-        if mouse_over_addresses.len() > 0 {
+        if let Some(address) = mouse_over_address {
             let top_most_node = node::from_untrusted_node_address(js_runtime,
-                                                                  mouse_over_addresses[0]);
+                                                                  address);
             let client_point = client_point.unwrap(); // Must succeed because hit test succeeded.
 
             // If the target is an iframe, forward the event to the child document.
