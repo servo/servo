@@ -815,21 +815,28 @@ impl Document {
             }
         }
 
+        // Werther the topmost element we are hovering now is diffrent than the previous
+        let is_different_topmost_target = mouse_over_targets.is_empty() ||
+                                          prev_mouse_over_targets.is_empty() ||
+                                          prev_mouse_over_targets[0].upcast::<Node>().to_trusted_node_address() !=
+                                              mouse_over_targets[0].upcast::<Node>().to_trusted_node_address();
+
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
-        for target in prev_mouse_over_targets.iter() {
-            if !mouse_over_targets.contains(target) {
-                let target_ref = &**target;
-                if target_ref.get_hover_state() {
-                    target_ref.set_hover_state(false);
+        for (index, target) in prev_mouse_over_targets.iter().enumerate() {
+            // Hover state is reset as appropiate later
+            target.set_hover_state(false);
 
-                    let target = target_ref.upcast();
+            // https://www.w3.org/TR/uievents/#event-type-mouseout
+            //
+            // mouseout must be dispatched when the mouse moves off an element or when pointer
+            // mouse moves from an element onto the boundaries of one of its descendent elements.
+            let has_to_dispatch_mouse_out = index == 0 && is_different_topmost_target;
 
-                    // FIXME: we should be dispatching this event but we lack an actual
-                    //        point to pass to it.
-                    if let Some(client_point) = client_point {
-                        self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
-                    }
+            if has_to_dispatch_mouse_out {
+                let target = target.upcast();
+                if let Some(client_point) = client_point {
+                    self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
                 }
             }
         }
@@ -837,12 +844,20 @@ impl Document {
         // Set hover state for any elements in the current mouse over list.
         // Check if any of them changed state to determine whether to
         // force a reflow below.
-        for target in mouse_over_targets.r() {
-            if !target.get_hover_state() {
-                target.set_hover_state(true);
+        for (index, target) in mouse_over_targets.r().iter().enumerate() {
+            target.set_hover_state(true);
 
+            // https://www.w3.org/TR/uievents/#event-type-mouseover
+            //
+            // Mouseover must be fired when a pointing device is moved onto the boundaries of an
+            // element (we only fire it in the first because it bubbles), or when the pointer has
+            // moved from our children to ours.
+            //
+            // The below condition adresses both situations.
+            let has_to_dispatch_mouse_over = index == 0 && is_different_topmost_target;
+
+            if has_to_dispatch_mouse_over {
                 let target = target.upcast();
-
                 if let Some(client_point) = client_point {
                     self.fire_mouse_event(client_point, target, "mouseover".to_owned());
                 }
