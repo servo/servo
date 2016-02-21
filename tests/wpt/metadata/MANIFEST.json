@@ -34513,6 +34513,14 @@
   "local_changes": {
     "deleted": [],
     "items": {
+      "manual": {
+        "uievents/order-of-events/mouse-events/mouseover-out-manual.html": [
+          {
+            "path": "uievents/order-of-events/mouse-events/mouseover-out-manual.html",
+            "url": "/uievents/order-of-events/mouse-events/mouseover-out-manual.html"
+          }
+        ]
+      },
       "testharness": {
         "html/webappapis/scripting/events/event-handler-processing-algorithm.html": [
           {
