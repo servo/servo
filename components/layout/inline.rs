@@ -21,6 +21,7 @@ use gfx::font_context::FontContext;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
+use range::{Range, RangeIndex};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -34,7 +35,6 @@ use text;
 use unicode_bidi;
 use util;
 use util::print_tree::PrintTree;
-use util::range::{Range, RangeIndex};
 use wrapper::PseudoElementType;
 
 // From gfxFontConstants.h in Firefox

@@ -38,6 +38,7 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_thread::UsePlaceholder;
+use range::Range;
 use std::default::Default;
 use std::sync::Arc;
 use std::{cmp, f32};
@@ -57,7 +58,6 @@ use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::opts;
-use util::range::Range;
 
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);

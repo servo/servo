@@ -6,12 +6,12 @@ use app_units::Au;
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
+use range::Range;
 use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
-use util::range::Range;
 use util::vec::{Comparator, FullBinarySearchMethods};
 use webrender_traits;
 

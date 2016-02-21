@@ -27,6 +27,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
 use paint_thread::{PaintLayerContents, PaintLayer};
+use range::Range;
 use self::DisplayItem::*;
 use smallvec::SmallVec;
 use std::cmp::Ordering;
@@ -44,7 +45,6 @@ use util::geometry::MAX_RECT;
 use util::linked_list::prepend_from;
 use util::opts;
 use util::print_tree::PrintTree;
-use util::range::Range;
 use webrender_traits::WebGLContextId;
 
 pub use style::dom::OpaqueNode;
