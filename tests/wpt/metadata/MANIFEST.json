@@ -34494,7 +34494,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "manual": {
+        "uievents/order-of-events/mouse-events/mouseover-out-manual.html": [
+          {
+            "path": "uievents/order-of-events/mouse-events/mouseover-out-manual.html",
+            "url": "/uievents/order-of-events/mouse-events/mouseover-out-manual.html"
+          }
+        ]
+      },
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
