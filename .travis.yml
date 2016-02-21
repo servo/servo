@@ -4,7 +4,7 @@ matrix:
   fast_finish: true
   include:
     - sudo: false
-      script: ./mach test-tidy
+      script: ./mach test-tidy --no-progress
       cache: false
     - sudo: 9000
       dist: trusty
