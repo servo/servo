@@ -32,6 +32,9 @@ path = "../script"
 [dependencies.layout_traits]
 path = "../layout_traits"
 
+[dependencies.range]
+path = "../range"
+
 [dependencies.script_traits]
 path = "../script_traits"
 

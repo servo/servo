@@ -28,6 +28,7 @@ use filters;
 use font_context::FontContext;
 use gfx_traits::{color, LayerKind};
 use net_traits::image::base::{Image, PixelFormat};
+use range::Range;
 use std::default::Default;
 use std::sync::Arc;
 use std::{f32, mem, ptr};
@@ -36,7 +37,6 @@ use text::TextRun;
 use text::glyph::CharIndex;
 use util::geometry::{self, MAX_RECT, PagePx, ScreenPx};
 use util::opts;
-use util::range::Range;
 
 pub struct PaintContext<'a> {
     pub draw_target: DrawTarget,

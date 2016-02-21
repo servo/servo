@@ -15,6 +15,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
 use inline::InlineFragments;
+use range::{Range, RangeIndex};
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
@@ -27,7 +28,6 @@ use style::properties::style_structs::Font as FontStyle;
 use unicode_bidi::{is_rtl, process_text};
 use unicode_script::{get_script, Script};
 use util::linked_list::split_off_head;
-use util::range::{Range, RangeIndex};
 
 /// Returns the concatenated text of a list of unscanned text fragments.
 fn text(fragments: &LinkedList<Fragment>) -> String {
