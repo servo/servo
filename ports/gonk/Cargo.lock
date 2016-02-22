@@ -61,7 +61,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -83,7 +83,7 @@ dependencies = [
  "core-text 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -152,7 +152,7 @@ dependencies = [
  "cssparser 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "layers 0.2.2 (git+https://github.com/servo/rust-layers)",
@@ -323,7 +323,7 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -365,7 +365,7 @@ name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
@@ -493,7 +493,7 @@ name = "euclid"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -600,7 +600,7 @@ dependencies = [
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gfx_traits 0.0.1",
  "harfbuzz-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "layers 0.2.2 (git+https://github.com/servo/rust-layers)",
@@ -636,7 +636,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.4.1 (git+https://github.com/servo/rust-azure)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.2.2 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
@@ -727,7 +727,7 @@ dependencies = [
 
 [[package]]
 name = "heapsize"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -745,10 +745,10 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -756,7 +756,7 @@ dependencies = [
  "phf_codegen 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "tendril 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -847,7 +847,7 @@ name = "js"
 version = "0.1.2"
 source = "git+https://github.com/servo/rust-mozjs#d88f289340ff32f0aa118e4621e250c0fa2f71e0"
 dependencies = [
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
@@ -885,7 +885,7 @@ dependencies = [
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "io-surface 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -910,7 +910,7 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "layout_traits 0.0.1",
@@ -1103,7 +1103,7 @@ dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
@@ -1159,7 +1159,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1469,9 +1469,9 @@ dependencies = [
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
@@ -1511,7 +1511,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1536,7 +1536,7 @@ dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickersort 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1753,7 +1753,7 @@ version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug_unreachable 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_generator 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1771,7 +1771,7 @@ dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1796,7 +1796,7 @@ version = "0.0.1"
 dependencies = [
  "cssparser 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1843,7 +1843,7 @@ source = "git+https://github.com/Manishearth/rust-tenacious#ea664e2dfe6f0a1a108a
 
 [[package]]
 name = "tendril"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1912,7 +1912,7 @@ version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1953,7 +1953,7 @@ dependencies = [
  "cssparser 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.0 (git+https://github.com/servo/ipc-channel)",
  "js 0.1.2 (git+https://github.com/servo/rust-mozjs)",
@@ -2148,7 +2148,7 @@ dependencies = [
  "phf_codegen 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "tendril 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
