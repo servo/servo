@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id=testframe src="/common/blank.html"></iframe>
+<script>
+var tests = [
+  {
+    name: "Navigating to URL with a data scheme",
+    action: "data:,hello%20world",
+    output: "hello world"
+  }
+];
+tests.forEach(function(test_obj) {
+  test_obj.test = async_test(test_obj.name);
+});
+
+function run_test() {
+  if (tests.length == 0) {
+    return;
+  }
+  var test_obj = tests.pop();
+  var t = test_obj.test;
+  var testframe = document.getElementById("testframe");
+  var testdocument = testframe.contentWindow.document;
+  testdocument.body.innerHTML =
+    "<form id=testform method=get action=\"" + test_obj.action +"\"></form>";
+  testframe.onload = function() {
+    t.step(function() {
+      var body_text = testframe.contentWindow.document.textContent;
+      assert_equals(body_text, test_obj.output);
+    });
+    t.done();
+    run_test();
+  };
+  testdocument.getElementById("testform").submit();
+};
+document.getElementById("testframe").onload = run_test;
+</script>
