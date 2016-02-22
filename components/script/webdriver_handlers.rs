@@ -40,15 +40,7 @@ use util::str::DOMString;
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
     let document = page.document();
-    let node = document.upcast::<Node>();
-
-    for candidate in node.traverse_preorder() {
-        if candidate.get_unique_id() == node_id {
-            return Some(candidate);
-        }
-    }
-
-    None
+    document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.get_unique_id() == node_id)
 }
 
 #[allow(unsafe_code)]
