@@ -458,8 +458,9 @@ mod system_reporter {
     }
 
     extern {
-        fn je_mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
-                      newp: *mut c_void, newlen: size_t) -> c_int;
+        #[cfg_attr(any(target_os = "macos", target_os = "android"), link_name = "je_mallctl")]
+        fn mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
+                   newp: *mut c_void, newlen: size_t) -> c_int;
     }
 
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
@@ -480,7 +481,7 @@ mod system_reporter {
         // Using the same values for the `old` and `new` parameters is enough
         // to get the statistics updated.
         let rv = unsafe {
-            je_mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr,
+            mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr,
                        epoch_len)
         };
         if rv != 0 {
@@ -488,7 +489,7 @@ mod system_reporter {
         }
 
         let rv = unsafe {
-            je_mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0)
+            mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0)
         };
         if rv != 0 {
             return None;
