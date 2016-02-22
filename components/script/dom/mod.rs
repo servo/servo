@@ -250,6 +250,8 @@ pub mod documentfragment;
 pub mod documenttype;
 pub mod domexception;
 pub mod domimplementation;
+pub mod dommatrix;
+pub mod dommatrixreadonly;
 pub mod domparser;
 pub mod dompoint;
 pub mod dompointreadonly;
