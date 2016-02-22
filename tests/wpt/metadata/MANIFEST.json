@@ -33847,6 +33847,12 @@
             "timeout": "long",
             "url": "/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-top.html"
           }
+        ],
+        "html/semantics/forms/form-submission-0/getactionurl.html": [
+          {
+            "path": "html/semantics/forms/form-submission-0/getactionurl.html",
+            "url": "/html/semantics/forms/form-submission-0/getactionurl.html"
+          }
         ]
       }
     },
