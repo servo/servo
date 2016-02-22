@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Interfaces: Test DOMMatrix mutating methods</title>
+    <link href="mailto:peter.hall@algomi.com" rel="author" title="Peter Hall">
+    <link rel="help" href="https://drafts.fxtf.org/geometry/#dom-dommatrixreadonly">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>Test DOMMatrix mutating methods</p>
+    <div id="log"></div>
+    <script>
+        var epsilon64bit = 0.000000000005;
+        var epsilon32bit = 0.000002;
+        var epsilon = epsilon32bit;
+
+        function initialMatrix(){
+          return {
+              m11:1,   m12:-0.5, m13: 0.5,  m14:0,
+              m21:0.5, m22:2,    m23: -0.5, m24:0,
+              m31:0,   m32:0,    m33: 1,    m34:0,
+              m41:10,  m42:20,   m43: 10,   m44:1,
+              is2D: false
+            };
+        }
+
+        function update(matrix, f) {
+          return f(matrix), matrix;
+        }
+
+        test(function() {
+          var result = DOMMatrixReadOnly.fromMatrix(initialMatrix()).translate(1, 5, 3);
+          var expected = update(initialMatrix(), function(m) {
+            m.m41 += 1;
+            m.m42 += 5;
+            m.m43 += 3;
+          });
+          checkDOMMatrix(result, expected);
+        },"test translate()");
+
+        test(function() {
+          var result = DOMMatrixReadOnly.fromMatrix(initialMatrix()).scale(2, 5, 3);
+          var expected = new DOMMatrix(
+              [2.0,  -2.5,  1.5,  0.0,
+               1.0,  10.0,  -1.5, 0.0,
+               0.0,  0.0,   3.0,  0.0,
+               20.0, 100.0, 30.0, 1.0 ]);
+          checkDOMMatrix(result, expected);
+        },"test scale() without offsets");
+
+        test(function() {
+          var result = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .scale(2, 5, 3, 11, 7, 13);
+          var expected = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .translate(11, 7, 13)
+                          .scale(2, 5, 3)
+                          .translate(-11, -7, -13);
+          checkDOMMatrix(result, expected);
+        },"test scale() with offsets");
+
+        test(function() {
+          var result = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .scale3d(7, 5, 2, 3);
+          var expected = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .translate(5, 2, 3)
+                          .scale(7, 7, 7)
+                          .translate(-5, -2, -3);
+          checkDOMMatrix(result, expected);
+        },"test scale3d()");
+
+
+        test(function() {
+          var result = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .rotate(-Math.PI/2);
+          var expected = new DOMMatrix(
+              [ 0.5,   1.0, 0.5,  0.0,
+                -2.0,  0.5, -0.5, 0.0,
+                0.0,   0.0, 1.0,  0.0,
+                -20.0, 10,  10.0, 1.0 ]);
+          checkDOMMatrix(result, expected);
+        },"test rotate() 2d");
+
+
+        test(function() {
+          var result = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .rotate(Math.PI, Math.PI, Math.PI/2);
+          var expected = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .rotate(0,0,-Math.PI/2);
+          checkDOMMatrix(result, expected);
+        },"test rotate()");
+
+
+
+        test(function() {
+          var result = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .rotateFromVector(1,1);
+          var expected = DOMMatrixReadOnly
+                          .fromMatrix(initialMatrix())
+                          .rotate(Math.PI/4);
+          checkDOMMatrix(result, expected);
+        },"test rotateFromVector()");
+
+
+        test(function() {
+          var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+          matrix.rotateAxisAngle(3,4,5, Math.PI/6);
+          checkDOMMatrix(matrix, initial);
+        },"test rotateAxisAngle() ");
+        //
+        // test(function() {
+        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+        //   matrix.skewX(20);
+        //   checkDOMMatrix(matrix, initial);
+        // },"test skewX() doesn't mutate");
+        //
+        // test(function() {
+        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+        //   matrix.skewY(20);
+        //   checkDOMMatrix(matrix, initial);
+        // },"test skewY() doesn't mutate");
+        //
+        // test(function() {
+        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+        //   matrix.multiply({ m11:1, m12:2, m13: 0, m14:0,
+        //                     m21:-1, m22:2, m23: -1, m24:0,
+        //                     m31:0, m32:0, m33: 1, m34:0,
+        //                     m41:5, m42:0, m43: 2, m44:1,
+        //                     is2D: false,
+        //                     isIdentity:false });
+        //   checkDOMMatrix(matrix, initial);
+        // },"test multiply() doesn't mutate");
+        //
+        // test(function() {
+        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+        //   matrix.flipX();
+        //   checkDOMMatrix(matrix, initial);
+        // },"test flipX() doesn't mutate");
+        //
+        // test(function() {
+        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+        //   matrix.flipY();
+        //   checkDOMMatrix(matrix, initial);
+        // },"test flipY() doesn't mutate");
+        //
+        // test(function() {
+        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
+        //   matrix.inverse();
+        //   checkDOMMatrix(matrix, initial);
+        // },"test inverse() doesn't mutate");
+
+        function checkDOMMatrix(m, exp) {
+          assert_approx_equals(m.m11, exp.m11, epsilon, "Expected value for m11 is " + exp.m11);
+          assert_approx_equals(m.m12, exp.m12, epsilon, "Expected value for m12 is " + exp.m12);
+          assert_approx_equals(m.m13, exp.m13, epsilon, "Expected value for m13 is " + exp.m13);
+          assert_approx_equals(m.m14, exp.m14, epsilon, "Expected value for m14 is " + exp.m14);
+          assert_approx_equals(m.m21, exp.m21, epsilon, "Expected value for m21 is " + exp.m21);
+          assert_approx_equals(m.m22, exp.m22, epsilon, "Expected value for m22 is " + exp.m22);
+          assert_approx_equals(m.m23, exp.m23, epsilon, "Expected value for m23 is " + exp.m23);
+          assert_approx_equals(m.m24, exp.m24, epsilon, "Expected value for m24 is " + exp.m24);
+          assert_approx_equals(m.m31, exp.m31, epsilon, "Expected value for m31 is " + exp.m31);
+          assert_approx_equals(m.m32, exp.m32, epsilon, "Expected value for m32 is " + exp.m32);
+          assert_approx_equals(m.m33, exp.m33, epsilon, "Expected value for m33 is " + exp.m33);
+          assert_approx_equals(m.m34, exp.m34, epsilon, "Expected value for m34 is " + exp.m34);
+          assert_approx_equals(m.m41, exp.m41, epsilon, "Expected value for m41 is " + exp.m41);
+          assert_approx_equals(m.m42, exp.m42, epsilon, "Expected value for m42 is " + exp.m42);
+          assert_approx_equals(m.m43, exp.m43, epsilon, "Expected value for m43 is " + exp.m43);
+          assert_approx_equals(m.m44, exp.m44, epsilon, "Expected value for m44 is " + exp.m44);
+          assert_equals(m.is2D, exp.is2D, "Expected value for is2D is " + exp.is2D);
+        }
+
+
+    </script>
+</body>
+</html>
