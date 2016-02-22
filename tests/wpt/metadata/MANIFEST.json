@@ -34514,6 +34514,12 @@
     "deleted": [],
     "items": {
       "testharness": {
+        "html/semantics/forms/form-submission-0/getactionurl.html": [
+          {
+            "path": "html/semantics/forms/form-submission-0/getactionurl.html",
+            "url": "/html/semantics/forms/form-submission-0/getactionurl.html"
+          }
+        ],
         "html/webappapis/scripting/events/event-handler-processing-algorithm.html": [
           {
             "path": "html/webappapis/scripting/events/event-handler-processing-algorithm.html",

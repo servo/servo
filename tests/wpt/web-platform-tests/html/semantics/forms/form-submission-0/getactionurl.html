@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id=testframe src="/common/blank.html"></iframe>
+<script>
+var origin = window.location.origin;
+
+var tests = [
+  {
+    name: "Navigating to URL with a http scheme",
+    action: "data:text/html,%3Cscript%3Eparent.postMessage%28%27hello%20world%27%2C%27" + origin +"%27%29%3B%3C%2Fscript%3E",
+    output: "hello world"
+  }
+];
+tests.forEach(function(test_obj) {
+  test_obj.test = async_test(test_obj.name);
+});
+
+var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+var eventer = window[eventMethod];
+var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+eventer(messageEvent, function(e) {
+  var test_obj = tests.pop();
+  var t = test_obj.test;
+  t.step(function() {
+    assert_equals(e, test_obj.output);
+  });
+  t.done();
+}, false);
+
+function run_test() {
+  if (tests.length == 0) {
+    return;
+  }
+  test_obj = tests[0];
+  var testframe = document.getElementById("testframe");
+  var testdocument = testframe.contentWindow.document;
+  testdocument.body.innerHTML =
+    "<form id=testform method=get action=\"" + test_obj.action +"\"></form>";
+  testframe.onload = function() {
+    run_test();
+  };
+  testdocument.getElementById("testform").submit();
+};
+document.getElementById("testframe").onload = run_test;
+</script>
