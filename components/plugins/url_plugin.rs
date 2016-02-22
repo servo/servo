@@ -4,7 +4,7 @@
 
 use std::error::Error;
 use syntax;
-use syntax::ast::{TokenTree, ExprLit, LitStr, Expr};
+use syntax::ast::{Expr, ExprKind, LitKind, TokenTree};
 use syntax::codemap::Span;
 use syntax::ext::base::{ExtCtxt, MacResult, MacEager, DummyResult};
 use syntax::ext::build::AstBuilder;
@@ -53,8 +53,8 @@ pub fn expand_url(cx: &mut ExtCtxt, sp: Span, tts: &[TokenTree])
 }
 
 fn parse_str_lit(e: &Expr) -> Option<InternedString> {
-    if let ExprLit(ref lit) = e.node {
-        if let LitStr(ref s, _) = lit.node {
+    if let ExprKind::Lit(ref lit) = e.node {
+        if let LitKind::Str(ref s, _) = lit.node {
             return Some(s.clone());
         }
     }

@@ -72,7 +72,7 @@ log = "0.3"
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size"]}
 serde = "0.6"
-serde_json = "0.5"
+serde_json = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
 string_cache = {version = "0.2.9", features = ["heap_size"]}

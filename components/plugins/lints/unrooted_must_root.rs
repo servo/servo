@@ -206,7 +206,7 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
     fn visit_pat(&mut self, pat: &'a hir::Pat) {
         let cx = self.cx;
 
-        if let hir::PatIdent(hir::BindByValue(_), _, _) = pat.node {
+        if let hir::PatKind::Ident(hir::BindingMode::BindByValue(_), _, _) = pat.node {
             if pat_is_binding(&cx.tcx.def_map.borrow(), pat) {
                 let ty = cx.tcx.pat_ty(pat);
                 if is_unrooted_ty(cx, ty, self.in_new_function) {

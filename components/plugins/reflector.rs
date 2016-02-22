@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ast;
-use syntax::ast::MetaItem;
+use syntax::ast::{ItemKind, MetaItem};
 use syntax::codemap::Span;
 use syntax::ext::base::{Annotatable, ExtCtxt};
 use utils::match_ty_unwrap;
@@ -12,7 +11,7 @@ use utils::match_ty_unwrap;
 pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable: &Annotatable,
                         push: &mut FnMut(Annotatable)) {
     if let &Annotatable::Item(ref item) = annotatable {
-        if let ast::ItemStruct(ref def, _) = item.node {
+        if let ItemKind::Struct(ref def, _) = item.node {
             let struct_name = item.ident;
             // This path has to be hardcoded, unfortunately, since we can't resolve paths at expansion time
             match def.fields().iter().find(
