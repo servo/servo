@@ -4341,7 +4341,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             attrs = "JSPROP_ENUMERATE"
-            if self.descriptor.operations['IndexedSetter'] is None:
+            if self.descriptor.operations['NamedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
             fillDescriptor = ("desc.get().value = result_root.ptr;\n"
                               "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\n"
