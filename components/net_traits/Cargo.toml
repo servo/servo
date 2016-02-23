@@ -29,4 +29,4 @@ serde = "0.6"
 serde_macros = "0.6"
 stb_image = "0.2"
 url = {version = "0.5.5", features = ["heap_size"]}
-websocket = "0.14.0"
+websocket = "0.15.0"
