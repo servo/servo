@@ -38,6 +38,16 @@ pub enum ResponseBody {
     Done(Vec<u8>),
 }
 
+impl ResponseBody {
+    pub fn is_done(&self) -> bool {
+        match *self {
+            ResponseBody::Done(..) => true,
+            ResponseBody::Empty | ResponseBody::Receiving(..) => false
+        }
+    }
+}
+
+
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
 #[derive(Clone, Debug)]
 pub enum CacheState {

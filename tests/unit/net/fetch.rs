@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use net::fetch::response::ResponseMethods;
 use hyper::header::{AccessControlAllowHeaders, AccessControlAllowOrigin};
 use hyper::header::{CacheControl, ContentLanguage, ContentType, Expires, LastModified};
 use hyper::header::{Headers, HttpDate, Location, SetCookie, Pragma};
@@ -13,14 +14,55 @@ use hyper::uri::RequestUri;
 use net::fetch::methods::fetch;
 use net_traits::request::{Context, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use net_traits::{AsyncFetchListener};
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use time::{self, Duration};
 use unicase::UniCase;
 use url::{Origin, OpaqueOrigin, Url};
 
 // TODO write a struct that impls Handler for storing test values
+
+struct FetchResponse {
+    sender: Sender<bool>,
+}
+
+impl AsyncFetchListener for FetchResponse {
+    fn response_available(&self, response: Response) {
+        
+        let internal_complete = match response.internal_response {
+            Some(res) => { match res.response_type {
+                ResponseType::Basic | ResponseType::CORS => res.body.borrow().is_done(),
+                // if the internal response cannot have a body, it shouldn't block the "done" state
+                ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true,
+                ResponseType::Default => unreachable!()
+            }},
+            _ => true
+        };
+
+        if response.body.borrow().is_done() && internal_complete {
+            let _ = self.sender.send(true);
+        }
+    }
+}
+
+#[test]
+fn test_fetch_response_struct() {
+
+    let (tx, rx) = channel();
+    let listener = Arc::new(Mutex::new(FetchResponse {
+        sender: tx.clone()
+    }));
+
+    let mut response = Response::new();
+    *response.body.borrow_mut() = ResponseBody::Done(vec![]);
+
+    listener.lock().unwrap().response_available(response);
+
+    assert_eq!(rx.recv().unwrap(), true);
+}
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
 
@@ -327,7 +369,7 @@ fn test_fetch_redirect_count_failure() {
     };
 }
 
-fn test_fetch_redirect_updates_method_runner(tx: mpsc::Sender<bool>, status_code: StatusCode, method: Method) {
+fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: StatusCode, method: Method) {
 
     let handler_method = method.clone();
     let handler_tx = Arc::new(Mutex::new(tx));
@@ -384,7 +426,7 @@ fn test_fetch_redirect_updates_method_runner(tx: mpsc::Sender<bool>, status_code
 #[test]
 fn test_fetch_redirect_updates_method() {
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = channel();
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
     assert_eq!(rx.recv().unwrap(), true);
