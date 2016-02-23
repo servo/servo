@@ -395,7 +395,7 @@ pub unsafe extern "C" fn outerize_global(_cx: *mut JSContext, obj: HandleObject)
     debug!("outerizing");
     let win = root_from_handleobject::<window::Window>(obj).unwrap();
     let context = win.browsing_context();
-    context.as_ref().unwrap().window_proxy()
+    context.window_proxy()
 }
 
 /// Deletes the property `id` from `object`.
