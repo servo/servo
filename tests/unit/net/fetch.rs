@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::fetch::response::ResponseMethods;
 use hyper::header::{AccessControlAllowHeaders, AccessControlAllowOrigin};
 use hyper::header::{CacheControl, ContentLanguage, ContentType, Expires, LastModified};
 use hyper::header::{Headers, HttpDate, Location, SetCookie, Pragma};
@@ -11,57 +10,29 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use net::fetch::methods::fetch;
+use net::fetch::methods::{fetch, fetch_async};
+use net::fetch::response::ResponseMethods;
 use net_traits::request::{Context, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener};
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::{Arc, Mutex};
 use time::{self, Duration};
 use unicase::UniCase;
 use url::{Origin, OpaqueOrigin, Url};
 
 // TODO write a struct that impls Handler for storing test values
 
-struct FetchResponse {
-    sender: Sender<bool>,
+struct FetchResponseCollector {
+    sender: Sender<Response>,
 }
 
-impl AsyncFetchListener for FetchResponse {
+impl AsyncFetchListener for FetchResponseCollector {
     fn response_available(&self, response: Response) {
-        
-        let internal_complete = match response.internal_response {
-            Some(res) => { match res.response_type {
-                ResponseType::Basic | ResponseType::CORS => res.body.borrow().is_done(),
-                // if the internal response cannot have a body, it shouldn't block the "done" state
-                ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true,
-                ResponseType::Default => unreachable!()
-            }},
-            _ => true
-        };
-
-        if response.body.borrow().is_done() && internal_complete {
-            let _ = self.sender.send(true);
-        }
+        let _ = self.sender.send(response);
     }
-}
-
-#[test]
-fn test_fetch_response_struct() {
-
-    let (tx, rx) = channel();
-    let listener = Arc::new(Mutex::new(FetchResponse {
-        sender: tx.clone()
-    }));
-
-    let mut response = Response::new();
-    *response.body.borrow_mut() = ResponseBody::Done(vec![]);
-
-    listener.lock().unwrap().response_available(response);
-
-    assert_eq!(rx.recv().unwrap(), true);
 }
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
@@ -462,4 +433,44 @@ fn test_fetch_redirect_updates_method() {
     // for SeeOther, Method should always be changed, so this should be true
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.try_recv().is_err(), true);
+}
+
+fn response_is_done(response: &Response) -> bool {
+
+    let internal_complete = match response.internal_response {
+        Some(ref res) => { match res.response_type {
+            ResponseType::Basic | ResponseType::CORS => res.body.borrow().is_done(),
+            // if the internal response cannot have a body, it shouldn't block the "done" state
+            ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true,
+            ResponseType::Default => unreachable!()
+        }},
+        _ => true
+    };
+
+    response.body.borrow().is_done() && internal_complete
+}
+
+#[test]
+fn test_fetch_async_returns_complete_response() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = url.origin();
+    let mut request = Request::new(url, Context::Fetch, origin, false);
+    request.referer = Referer::NoReferer;
+
+    let (tx, rx) = channel();
+    let listener = Box::new(FetchResponseCollector {
+        sender: tx.clone()
+    });
+
+    fetch_async(request, false, listener);
+    let _ = server.close();
+
+    let fetch_response = rx.recv().unwrap();
+    assert_eq!(response_is_done(&fetch_response), true);
 }
