@@ -425,7 +425,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
-        if mozbrowser_enabled() {
+        // We don't want to allow mozbrowser iframes within iframes
+        let is_root_pipeline = window_from_node(self).r().parent_info().is_none();
+        if mozbrowser_enabled() && is_root_pipeline {
             let element = self.upcast::<Element>();
             element.has_attribute(&atom!("mozbrowser"))
         } else {
@@ -454,12 +456,15 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
     fn Reload(&self, _hardReload: bool) -> Fallible<()> {
-        if mozbrowser_enabled() {
+        if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc() {
                 self.navigate_or_reload_child_browsing_context(None);
             }
+            Ok(())
+        } else {
+            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
+            Err(Error::NotSupported)
         }
-        Ok(())
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
