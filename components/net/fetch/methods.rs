@@ -154,7 +154,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             false
         };
 
-        if (!cors_flag && same_origin) ||
+        if (same_origin && !cors_flag ) ||
             (current_url.scheme == "data" && request.same_origin_data.get()) ||
             current_url.scheme == "about" ||
             request.mode == RequestMode::Navigate {
@@ -200,51 +200,53 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // Step 11
     // no need to check if response is a network error, since the type would not be `Default`
     let mut response = if response.response_type == ResponseType::Default {
-        let old_response = Rc::new(response);
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CORSTainting => ResponseType::CORS,
             ResponseTainting::Opaque => ResponseType::Opaque,
         };
-        Response::to_filtered(old_response, response_type)
+        response.to_filtered(response_type)
     } else {
         response
     };
 
-    // Step 12
-    let mut internal_response = if response.is_network_error() {
-        Rc::new(Response::network_error())
-    } else {
-        response.internal_response.clone().unwrap()
-    };
+    {
+        // Step 12
+        let network_error_res = Response::network_error();
+        let mut internal_response = if response.is_network_error() {
+            &network_error_res
+        } else {
+            response.get_actual_response()
+        };
 
-    // Step 13
-    // TODO this step
+        // Step 13
+        // TODO this step
 
-    // Step 14
-    if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
-        match *request.method.borrow() {
-            Method::Head | Method::Connect => true,
-            _ => false })
-        {
-        // when the Fetch implementation does asynchronous retrieval of the body,
-        // we will need to make sure nothing tries to write to the body at this point
-        *internal_response.body.borrow_mut() = ResponseBody::Empty;
+        // Step 14
+        if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
+            match *request.method.borrow() {
+                Method::Head | Method::Connect => true,
+                _ => false })
+            {
+            // when the Fetch implementation does asynchronous retrieval of the body,
+            // we will need to make sure nothing tries to write to the body at this point
+            *internal_response.body.borrow_mut() = ResponseBody::Empty;
+        }
+
+        // Step 15
+        // TODO be able to compare response integrity against request integrity metadata
+        // if !response.is_network_error() {
+
+        //     // Substep 1
+        //     // TODO wait for response
+
+        //     // Substep 2
+        //     if response.termination_reason.is_none() {
+        //         response = Response::network_error();
+        //         internal_response = Response::network_error();
+        //     }
+        // }
     }
-
-    // Step 15
-    // TODO be able to compare response integrity against request integrity metadata
-    // if !response.is_network_error() {
-
-    //     // Substep 1
-    //     // TODO wait for response
-
-    //     // Substep 2
-    //     if response.termination_reason.is_none() {
-    //         response = Response::network_error();
-    //         internal_response = Response::network_error();
-    //     }
-    // }
 
     // Step 16
     if request.synchronous {
@@ -260,22 +262,32 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         // TODO queue a fetch task on request to process end-of-file
     }
 
-    // Step 18
-    // TODO this step
+    {
+        // Step 12 repeated to use internal_response
+        let network_error_res = Response::network_error();
+        let mut internal_response = if response.is_network_error() {
+            &network_error_res
+        } else {
+            response.get_actual_response()
+        };
 
-    match *internal_response.body.borrow() {
-        // Step 20
-        ResponseBody::Empty => {
-            // Substep 1
-            // Substep 2
-        },
+        // Step 18
+        // TODO this step
 
-        // Step 19
-        _ => {
-            // Substep 1
-            // Substep 2
-        }
-    };
+        match *internal_response.body.borrow() {
+            // Step 20
+            ResponseBody::Empty => {
+                // Substep 1
+                // Substep 2
+            },
+
+            // Step 19
+            _ => {
+                // Substep 1
+                // Substep 2
+            }
+        };
+    }
 
     // TODO remove this line when asynchronous fetches are supported
     return response;
@@ -338,10 +350,10 @@ fn http_fetch(request: Rc<Request>,
               authentication_fetch_flag: bool) -> Response {
 
     // Step 1
-    let mut response: Option<Rc<Response>> = None;
+    let mut response: Option<Response> = None;
 
     // Step 2
-    let mut actual_response: Option<Rc<Response>> = None;
+    // nothing to do, since actual_response is a function on response
 
     // Step 3
     if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
@@ -352,10 +364,7 @@ fn http_fetch(request: Rc<Request>,
         if let Some(ref res) = response {
 
             // Substep 2
-            actual_response = match res.internal_response {
-                Some(ref internal_res) => Some(internal_res.clone()),
-                None => Some(res.clone())
-            };
+            // nothing to do, since actual_response is a function on response
 
             // Substep 3
             if (res.response_type == ResponseType::Opaque &&
@@ -367,17 +376,16 @@ fn http_fetch(request: Rc<Request>,
                res.response_type == ResponseType::Error {
                 return Response::network_error();
             }
-        }
 
-        // Substep 4
-        if let Some(ref res) = actual_response {
-            if res.url_list.borrow().is_empty() {
-                *res.url_list.borrow_mut() = request.url_list.borrow().clone();
+            // Substep 4
+            let actual_response = res.get_actual_response();
+            if actual_response.url_list.borrow().is_empty() {
+                *actual_response.url_list.borrow_mut() = request.url_list.borrow().clone();
             }
-        }
 
-        // Substep 5
-        // TODO: set response's CSP list on actual_response
+            // Substep 5
+            // TODO: set response's CSP list on actual_response
+        }
     }
 
     // Step 4
@@ -437,29 +445,32 @@ fn http_fetch(request: Rc<Request>,
             return Response::network_error();
         }
 
-        response = Some(Rc::new(fetch_result));
-        actual_response = response.clone();
+        fetch_result.return_internal.set(false);
+        response = Some(fetch_result);
     }
 
-    // response and actual_response are guaranteed to be something by now
+    // response is guaranteed to be something by now
     let mut response = response.unwrap();
-    let actual_response = actual_response.unwrap();
 
     // Step 5
-    match actual_response.status.unwrap() {
+    match response.get_actual_response().status.unwrap() {
 
         // Code 301, 302, 303, 307, 308
         StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
         StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
 
             response = match request.redirect_mode.get() {
-                RedirectMode::Error => Rc::new(Response::network_error()),
+                RedirectMode::Error => Response::network_error(),
                 RedirectMode::Manual => {
-                   Rc::new(Response::to_filtered(actual_response, ResponseType::OpaqueRedirect))
+                    response.to_filtered(ResponseType::OpaqueRedirect)
                 },
-                RedirectMode::Follow => Rc::new(http_redirect_fetch(request, response, cors_flag))
+                RedirectMode::Follow => {
+                    // set back to default
+                    response.return_internal.set(true);
+                    http_redirect_fetch(request, Rc::new(response), cors_flag)
+                }
             }
-        }
+        },
 
         // Code 401
         StatusCode::Unauthorized => {
@@ -467,8 +478,7 @@ fn http_fetch(request: Rc<Request>,
             // Step 1
             // FIXME: Figure out what to do with request window objects
             if cors_flag || request.credentials_mode != CredentialsMode::Include {
-                drop(actual_response);
-                return Rc::try_unwrap(response).ok().unwrap();
+                return response;
             }
 
             // Step 2
@@ -501,7 +511,7 @@ fn http_fetch(request: Rc<Request>,
                               authentication_fetch_flag);
         }
 
-        _ => drop(actual_response)
+        _ => { }
     }
 
     // Step 6
@@ -509,8 +519,10 @@ fn http_fetch(request: Rc<Request>,
         // TODO: Create authentication entry for this request
     }
 
+    // set back to default
+    response.return_internal.set(true);
     // Step 7
-    Rc::try_unwrap(response).ok().unwrap()
+    response
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
@@ -519,21 +531,17 @@ fn http_redirect_fetch(request: Rc<Request>,
                        cors_flag: bool) -> Response {
 
     // Step 1
-    let actual_response = match response.internal_response {
-        Some(ref res) => res.clone(),
-        _ => response.clone()
-    };
+    assert_eq!(response.return_internal.get(), true);
 
     // Step 3
     // this step is done early, because querying if Location is available says
     // if it is None or Some, making it easy to seperate from the retrieval failure case
-    if !actual_response.headers.has::<Location>() {
-        drop(actual_response);
+    if !response.get_actual_response().headers.has::<Location>() {
         return Rc::try_unwrap(response).ok().unwrap();
     }
 
     // Step 2
-    let location = match actual_response.headers.get::<Location>() {
+    let location = match response.get_actual_response().headers.get::<Location>() {
         Some(&Location(ref location)) => location.clone(),
         // Step 4
         _ => return Response::network_error(),
@@ -582,7 +590,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     }
 
     // Step 13
-    let status_code = actual_response.status.unwrap();
+    let status_code = response.get_actual_response().status.unwrap();
     if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
         *request.method.borrow() == Method::Post) ||
         status_code == StatusCode::SeeOther {
