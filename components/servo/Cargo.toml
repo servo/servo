@@ -53,10 +53,10 @@ path = "../../tests/reftest.rs"
 harness = false
 
 [dependencies.webrender_traits]
-git = "https://github.com/glennw/webrender_traits"
+git = "https://github.com/servo/webrender_traits"
 
 [dependencies.webrender]
-git = "https://github.com/glennw/webrender"
+git = "https://github.com/servo/webrender"
 
 [features]
 default = ["glutin_app", "window", "webdriver"]

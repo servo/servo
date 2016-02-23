@@ -21,7 +21,7 @@ git = "https://github.com/servo/ipc-channel"
 path = "../plugins"
 
 [dependencies.webrender_traits]
-git = "https://github.com/glennw/webrender_traits"
+git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
 bitflags = "0.3"
