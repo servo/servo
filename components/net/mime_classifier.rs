@@ -294,7 +294,7 @@ impl ByteMatcher {
         } else if data == self.pattern {
             Some(self.pattern.len())
         } else {
-            data[..data.len() - self.pattern.len()].iter()
+            data[..data.len() - self.pattern.len() + 1].iter()
                 .position(|x| !self.leading_ignore.contains(x))
                 .and_then(|start|
                     if data[start..].iter()
@@ -316,15 +316,19 @@ impl MIMEChecker for ByteMatcher {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.pattern.len() == 0 {
+            return Err(format!(
+                "Zero length pattern for {}/{}",
+                self.content_type.0, self.content_type.1
+                ))
+        }
         if self.pattern.len() != self.mask.len() {
-            Err(format!(
-                "Unequal pattern and mask length for {}/{}", 
+            return Err(format!(
+                "Unequal pattern and mask length for {}/{}",
                 self.content_type.0, self.content_type.1
             ))
         }
-        else {
-            Ok(())
-        }
+        Ok(())
     }
 }
 
