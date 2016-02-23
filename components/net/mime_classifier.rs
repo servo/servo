@@ -317,7 +317,10 @@ impl MIMEChecker for ByteMatcher {
 
     fn validate(&self) -> Result<(), String> {
         if self.pattern.len() != self.mask.len() {
-            Err(format!("Unequal pattern and mask length for pattern {:?}", self.pattern))
+            Err(format!(
+                "Unequal pattern and mask length for {}/{}", 
+                self.content_type.0, self.content_type.1
+            ))
         }
         else {
             Ok(())
