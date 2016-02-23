@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation;
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -188,9 +189,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         }
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
-        self.upcast::<Element>()
-            .as_maybe_activatable()
-            .map(|a| a.synthetic_click_activation(false, false, false, false));
+        activation::synthetic_click_activation(self.upcast::<Element>(),false, false, false, false, true)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus

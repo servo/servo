@@ -29,55 +29,59 @@ pub trait Activatable {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
+}
 
-    // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
-    fn synthetic_click_activation(&self,
-                                  ctrlKey: bool,
-                                  shiftKey: bool,
-                                  altKey: bool,
-                                  metaKey: bool) {
-        let element = self.as_element();
-        // Step 1
-        if element.click_in_progress() {
-            return;
-        }
-        // Step 2
-        element.set_click_in_progress(true);
-        // Step 3
-        self.pre_click_activation();
-
-        // Step 4
-        // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
-        let win = window_from_node(element);
-        let target = element.upcast();
-        let mouse = MouseEvent::new(win.r(),
-                                    DOMString::from("click"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::NotCancelable,
-                                    Some(win.r()),
-                                    1,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    ctrlKey,
-                                    shiftKey,
-                                    altKey,
-                                    metaKey,
-                                    0,
-                                    None);
-        let event = mouse.upcast::<Event>();
-        event.fire(target);
-
-        // Step 5
-        if event.DefaultPrevented() {
-            self.canceled_activation();
-        } else {
-            // post click activation
-            self.activation_behavior(event, target);
-        }
-
-        // Step 6
-        element.set_click_in_progress(false);
+// https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
+pub fn synthetic_click_activation(element: &Element,
+                              ctrlKey: bool,
+                              shiftKey: bool,
+                              altKey: bool,
+                              metaKey: bool,
+                              fromClick: bool) {
+    //let element = self.as_element();
+    // Step 1
+    if element.click_in_progress() {
+        return;
     }
+    // Step 2
+    element.set_click_in_progress(true);
+    // Step 3
+    element.as_maybe_activatable().map(|a| a.pre_click_activation());
+    //self.pre_click_activation();
+
+    // Step 4
+    // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
+    let win = window_from_node(element);
+    let target = element.upcast();
+    let mouse = MouseEvent::new(win.r(),
+                                DOMString::from("click"),
+                                EventBubbles::DoesNotBubble,
+                                EventCancelable::NotCancelable,
+                                Some(win.r()),
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                ctrlKey,
+                                shiftKey,
+                                altKey,
+                                metaKey,
+                                0,
+                                None);
+    let event = mouse.upcast::<Event>();
+    event.fire(target);
+
+    // Step 5
+    if event.DefaultPrevented() {
+        //self.canceled_activation();
+        element.as_maybe_activatable().map(|a| a.canceled_activation());
+    } else {
+        // post click activation
+        //self.activation_behavior(event, target);
+        element.as_maybe_activatable().map(|a| a.activation_behavior(event, target));
+    }
+
+    // Step 6
+    element.set_click_in_progress(false);
 }

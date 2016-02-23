@@ -4,6 +4,7 @@
 
 use devtools_traits::CSSError;
 use document_loader::{DocumentLoader, LoadType};
+use dom::activation;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
@@ -1077,9 +1078,7 @@ impl Document {
             Key::Space if !prevented && state == KeyState::Released => {
                 let maybe_elem = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
-                    if let Some(a) = el.as_maybe_activatable() {
-                        a.synthetic_click_activation(ctrl, alt, shift, meta);
-                    }
+                    activation::synthetic_click_activation(el,false, false, false, false, false)
                 }
             }
             Key::Enter if !prevented && state == KeyState::Released => {

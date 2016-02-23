@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation;
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
@@ -63,9 +64,7 @@ impl Activatable for HTMLLabelElement {
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        self.upcast::<Element>()
-            .as_maybe_activatable()
-            .map(|a| a.synthetic_click_activation(false, false, false, false));
+        activation::synthetic_click_activation(self.upcast::<Element>(),false, false, false, false, false));
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
