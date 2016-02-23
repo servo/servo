@@ -314,8 +314,8 @@ impl Window {
         &self.compositor
     }
 
-    pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
-        self.browsing_context.get()
+    pub fn browsing_context(&self) -> Root<BrowsingContext> {
+        self.browsing_context.get().unwrap()
     }
 
     pub fn page(&self) -> &Page {
@@ -426,7 +426,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
     fn Document(&self) -> Root<Document> {
-        self.browsing_context().as_ref().unwrap().active_document()
+        self.browsing_context().active_document()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
@@ -456,7 +456,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
-        self.browsing_context().as_ref().unwrap().frame_element().map(Root::from_ref)
+        self.browsing_context().frame_element().map(Root::from_ref)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
@@ -1283,12 +1283,12 @@ impl Window {
     }
 
     pub fn parent(&self) -> Option<Root<Window>> {
-        let browsing_context = self.browsing_context().unwrap();
+        let browsing_context = self.browsing_context();
 
         browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element);
             let context = window.browsing_context();
-            context.unwrap().active_window()
+            context.active_window()
         })
     }
 }
