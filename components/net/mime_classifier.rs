@@ -1006,8 +1006,8 @@ impl ByteMatcher {
     //The string "%PDF-", the PDF signature.
     fn application_pdf() -> ByteMatcher {
         ByteMatcher {
-            pattern: b"%PDF",
-            mask: b"\xFF\xFF\xFF\xFF",
+            pattern: b"%PDF-",
+            mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "pdf"),
             leading_ignore: &[]
         }
