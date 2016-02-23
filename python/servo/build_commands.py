@@ -348,7 +348,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_gonk(self, jobs=None, verbose=False, release=False):
-        self.ensure_bootstrapped()
+        targets = ["arm-linux-androideabi"]
+        self.ensure_bootstrapped(targets=targets)
 
         opts = []
         if jobs is not None:
