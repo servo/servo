@@ -13,15 +13,14 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
-use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
-use js::glue::{GetProxyPrivate, SetProxyExtra};
-use js::jsapi::{Handle, JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue};
-use js::jsapi::{HandleId, HandleObject, MutableHandle, MutableHandleValue};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GetClass};
-use js::jsapi::{JSContext, JSErrNum, JSObject, JSPropertyDescriptor};
-use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_DefinePropertyById6, JS_GetOwnPropertyDescriptorById};
-use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
+use js::glue::{CreateWrapperProxyHandler, GetProxyPrivate, NewWindowProxy};
+use js::glue::{ProxyTraps, SetProxyExtra};
+use js::jsapi::{Handle, HandleId, HandleObject, JSAutoCompartment, JSAutoRequest, JSContext};
+use js::jsapi::{JSErrNum, JSObject, JSPropertyDescriptor, JS_DefinePropertyById6};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
+use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
+use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
+use js::jsval::{ObjectValue, PrivateValue, UndefinedValue};
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -177,11 +176,11 @@ unsafe extern "C" fn defineProperty(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn hasOwn(cx: *mut JSContext,
-                            proxy: HandleObject,
-                            id: HandleId,
-                            bp: *mut bool)
-                            -> bool {
+unsafe extern "C" fn has(cx: *mut JSContext,
+                         proxy: HandleObject,
+                         id: HandleId,
+                         bp: *mut bool)
+                         -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if window.is_some() {
         *bp = true;
@@ -190,7 +189,7 @@ unsafe extern "C" fn hasOwn(cx: *mut JSContext,
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = false;
-    if !JS_AlreadyHasOwnPropertyById(cx, target.handle(), id, &mut found) {
+    if !JS_HasPropertyById(cx, target.handle(), id, &mut found) {
         return false;
     }
 
@@ -248,13 +247,13 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     enumerate: None,
     preventExtensions: None,
     isExtensible: None,
-    has: None,
+    has: Some(has),
     get: Some(get),
     set: Some(set),
     call: None,
     construct: None,
     getPropertyDescriptor: Some(get_property_descriptor),
-    hasOwn: Some(hasOwn),
+    hasOwn: None,
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
     hasInstance: None,
