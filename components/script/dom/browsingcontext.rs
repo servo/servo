@@ -12,15 +12,15 @@ use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
-use js::JSCLASS_IS_GLOBAL;
-use js::glue::{CreateWrapperProxyHandler, GetProxyPrivate, NewWindowProxy};
-use js::glue::{ProxyTraps, SetProxyExtra};
+use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
+use js::glue::{GetProxyPrivate, SetProxyExtra};
 use js::jsapi::{Handle, HandleId, HandleObject, JSAutoCompartment, JSAutoRequest, JSContext};
 use js::jsapi::{JSErrNum, JSObject, JSPropertyDescriptor, JS_DefinePropertyById6};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
-use js::jsval::{ObjectValue, PrivateValue, UndefinedValue};
+use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
+use js::{JSCLASS_IS_GLOBAL, JSPROP_READONLY};
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -138,7 +138,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
         let mut val = RootedValue::new(cx, UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
         (*desc.ptr).value = val.ptr;
-        fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, true);
+        fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, JSPROP_READONLY);
         return true;
     }
 

@@ -2602,13 +2602,25 @@ class CGDefineProxyHandler(CGAbstractMethod):
         if self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete'
 
-        body = """\
+        getOwnEnumerablePropertyKeys = "own_property_keys"
+        if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
+            getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys"
+
+        args = {
+            "defineProperty": customDefineProperty,
+            "delete": customDelete,
+            "getOwnEnumerablePropertyKeys": getOwnEnumerablePropertyKeys,
+            "trace": TRACE_HOOK_NAME,
+            "finalize": FINALIZE_HOOK_NAME,
+        }
+
+        return CGGeneric("""\
 let traps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-    defineProperty: Some(%s),
+    defineProperty: Some(%(defineProperty)s),
     ownPropertyKeys: Some(own_property_keys),
-    delete_: Some(%s),
+    delete_: Some(%(delete)s),
     enumerate: None,
     preventExtensions: Some(proxyhandler::prevent_extensions),
     isExtensible: Some(proxyhandler::is_extensible),
@@ -2619,7 +2631,7 @@ let traps = ProxyTraps {
     construct: None,
     getPropertyDescriptor: Some(get_property_descriptor),
     hasOwn: Some(hasOwn),
-    getOwnEnumerablePropertyKeys: None,
+    getOwnEnumerablePropertyKeys: Some(%(getOwnEnumerablePropertyKeys)s),
     nativeCall: None,
     hasInstance: None,
     objectClassIs: None,
@@ -2627,16 +2639,15 @@ let traps = ProxyTraps {
     fun_toString: None,
     boxedValue_unbox: None,
     defaultValue: None,
-    trace: Some(%s),
-    finalize: Some(%s),
+    trace: Some(%(trace)s),
+    finalize: Some(%(finalize)s),
     objectMoved: None,
     isCallable: None,
     isConstructor: None,
 };
 
 CreateProxyHandler(&traps, &Class as *const _ as *const _)\
-""" % (customDefineProperty, customDelete, TRACE_HOOK_NAME, FINALIZE_HOOK_NAME)
-        return CGGeneric(body)
+""" % args)
 
 
 class CGDefineDOMInterfaceMethod(CGAbstractMethod):
@@ -4321,10 +4332,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             get = "let index = get_array_index_from_id(cx, id);\n"
 
         if indexedGetter:
-            readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
+            attrs = "JSPROP_ENUMERATE"
+            if self.descriptor.operations['IndexedSetter'] is None:
+                attrs += " | JSPROP_READONLY"
             fillDescriptor = ("desc.get().value = result_root.ptr;\n"
                               "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\n"
-                              "return true;" % readonly)
+                              "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
@@ -4338,10 +4351,18 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
+            attrs = []
+            if not self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
+                attrs.append("JSPROP_ENUMERATE")
+            if self.descriptor.operations['NamedSetter'] is None:
+                attrs.append("JSPROP_READONLY")
+            if attrs:
+                attrs = " | ".join(attrs)
+            else:
+                attrs = "0"
             fillDescriptor = ("desc.get().value = result_root.ptr;\n"
                               "fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, %s);\n"
-                              "return true;" % readonly)
+                              "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
                 'successCode': fillDescriptor,
@@ -4493,6 +4514,49 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                     let rooted = RootedString::new(cx, jsstring);
                     let jsid = INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
                     let rooted_jsid = RootedId::new(cx, jsid);
+                    AppendToAutoIdVector(props, rooted_jsid.handle().get());
+                }
+                """)
+
+        body += dedent(
+            """
+            let expando = get_expando_object(proxy);
+            if !expando.is_null() {
+                let rooted_expando = RootedObject::new(cx, expando);
+                GetPropertyKeys(cx, rooted_expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+            }
+
+            return true;
+            """)
+
+        return body
+
+    def definition_body(self):
+        return CGGeneric(self.getBody())
+
+
+class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        assert (descriptor.operations["IndexedGetter"] and
+                descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"))
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('HandleObject', 'proxy'),
+                Argument('*mut AutoIdVector', 'props')]
+        CGAbstractExternMethod.__init__(self, descriptor,
+                                        "getOwnEnumerablePropertyKeys", "bool", args)
+        self.descriptor = descriptor
+
+    def getBody(self):
+        body = dedent(
+            """
+            let unwrapped_proxy = UnwrapProxy(proxy);
+            """)
+
+        if self.descriptor.operations['IndexedGetter']:
+            body += dedent(
+                """
+                for i in 0..(*unwrapped_proxy).Length() {
+                    let rooted_jsid = RootedId::new(cx, int_to_jsid(i as i32));
                     AppendToAutoIdVector(props, rooted_jsid.handle().get());
                 }
                 """)
@@ -4963,6 +5027,8 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_ownPropertyKeys(descriptor))
+                if descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
+                    cgThings.append(CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_className(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))

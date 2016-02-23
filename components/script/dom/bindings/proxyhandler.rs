@@ -8,6 +8,7 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
+use js::JSPROP_GETTER;
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::{GetProxyHandler, SetProxyExtra};
@@ -18,7 +19,6 @@ use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor};
 use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
 use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
 use js::jsval::ObjectValue;
-use js::{JSPROP_ENUMERATE, JSPROP_GETTER, JSPROP_READONLY};
 use libc;
 use std::{mem, ptr};
 
@@ -135,9 +135,9 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject) -> *mut JSOb
 /// and writable if `readonly` is true.
 pub fn fill_property_descriptor(desc: &mut JSPropertyDescriptor,
                                 obj: *mut JSObject,
-                                readonly: bool) {
+                                attrs: u32) {
     desc.obj = obj;
-    desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
+    desc.attrs = attrs;
     desc.getter = None;
     desc.setter = None;
 }

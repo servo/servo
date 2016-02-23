@@ -337,8 +337,8 @@ impl HTMLCollectionMethods for HTMLCollection {
 
         // Step 2.
         self.elements_iter().find(|elem| {
-            elem.get_string_attribute(&atom!("name")) == key ||
-            elem.get_string_attribute(&atom!("id")) == key
+            elem.get_string_attribute(&atom!("id")) == key ||
+            (elem.namespace() == &ns!(html) && elem.get_string_attribute(&atom!("name")) == key)
         })
     }
 
