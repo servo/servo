@@ -299,7 +299,7 @@ impl ByteMatcher {
                 .and_then(|start|
                     if data[start..].iter()
                         .zip(self.pattern.iter()).zip(self.mask.iter())
-                        .all(|((&data, &pattern), &mask)| (data & mask) == (pattern & mask)) {
+                        .all(|((&data, &pattern), &mask)| (data & mask) == pattern) {
                         Some(start + self.pattern.len())
                     } else {
                         None
@@ -325,6 +325,14 @@ impl MIMEChecker for ByteMatcher {
         if self.pattern.len() != self.mask.len() {
             return Err(format!(
                 "Unequal pattern and mask length for {}/{}",
+                self.content_type.0, self.content_type.1
+            ))
+        }
+        if self.pattern.iter().zip(self.mask.iter()).any(
+            |(&pattern, &mask)| pattern & mask != pattern
+        ) {
+            return Err(format!(
+                "Pattern not pre-masked for {}/{}",
                 self.content_type.0, self.content_type.1
             ))
         }
