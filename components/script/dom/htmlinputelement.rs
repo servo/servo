@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use caseless::compatibility_caseless_match_str;
-use dom::activation::Activatable;
+use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -1091,7 +1091,12 @@ impl Activatable for HTMLInputElement {
         match submit_button {
             Some(ref button) => {
                 if button.is_instance_activatable() {
-                    button.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
+                    synthetic_click_activation(button.as_element(),
+                                               ctrlKey,
+                                               shiftKey,
+                                               altKey,
+                                               metaKey,
+                                               ActivationSource::NotFromClick)
                 }
             }
             None => {

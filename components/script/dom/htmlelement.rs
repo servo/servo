@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -9,7 +10,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
-use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
@@ -200,15 +200,14 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
-        if let Some(i) = self.downcast::<HTMLInputElement>() {
-            if i.Disabled() {
-                return;
-            }
+        if !self.upcast::<Element>().get_disabled_state() {
+            synthetic_click_activation(self.upcast::<Element>(),
+                                       false,
+                                       false,
+                                       false,
+                                       false,
+                                       ActivationSource::FromClick)
         }
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
-        self.upcast::<Element>()
-            .as_maybe_activatable()
-            .map(|a| a.synthetic_click_activation(false, false, false, false));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
