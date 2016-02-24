@@ -17,8 +17,8 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::{TNode, UnsafeNode};
 use style::parallel::{CHUNK_SIZE, WorkQueueData};
 use style::parallel::{run_queue_with_custom_work_data_type};
-use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
-use traversal::{BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
+use traversal::AssignBSizesAndStoreOverflow;
+use traversal::{AssignISizes, BubbleISizes, PostorderNodeMutTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
@@ -200,23 +200,6 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {}
 
-impl<'a> ParallelPreorderFlowTraversal for ComputeAbsolutePositions<'a> {
-    fn run_parallel(&self,
-                    unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
-        self.run_parallel_helper(unsafe_flows,
-                                 proxy,
-                                 compute_absolute_positions,
-                                 build_display_list)
-    }
-
-    fn should_record_thread_ids(&self) -> bool {
-        false
-    }
-}
-
-impl<'a> ParallelPostorderFlowTraversal for BuildDisplayList<'a> {}
-
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
                        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
     let shared_layout_context = proxy.user_data();
@@ -237,28 +220,6 @@ fn assign_block_sizes_and_store_overflow(
     assign_block_sizes_traversal.run_parallel(unsafe_flow)
 }
 
-fn compute_absolute_positions(
-        unsafe_flows: UnsafeFlowList,
-        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
-    let shared_layout_context = proxy.user_data();
-    let layout_context = LayoutContext::new(shared_layout_context);
-    let compute_absolute_positions_traversal = ComputeAbsolutePositions {
-        layout_context: &layout_context,
-    };
-    compute_absolute_positions_traversal.run_parallel(unsafe_flows, proxy);
-}
-
-fn build_display_list(unsafe_flow: UnsafeFlow,
-                      shared_layout_context: &SharedLayoutContext) {
-    let layout_context = LayoutContext::new(shared_layout_context);
-
-    let build_display_list_traversal = BuildDisplayList {
-        layout_context: &layout_context,
-    };
-
-    build_display_list_traversal.run_parallel(unsafe_flow);
-}
-
 pub fn traverse_flow_tree_preorder(
         root: &mut FlowRef,
         profiler_metadata: Option<TimerMetadata>,
@@ -276,23 +237,6 @@ pub fn traverse_flow_tree_preorder(
                 time_profiler_chan, || {
             queue.push(WorkUnit {
                 fun: assign_inline_sizes,
-                data: (box vec![mut_owned_flow_to_unsafe_flow(root)], 0),
-            })
-        });
-    }, shared_layout_context);
-}
-
-pub fn build_display_list_for_subtree(
-        root: &mut FlowRef,
-        profiler_metadata: Option<TimerMetadata>,
-        time_profiler_chan: time::ProfilerChan,
-        shared_layout_context: &SharedLayoutContext,
-        queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
-    run_queue_with_custom_work_data_type(queue, |queue| {
-        profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
-                time_profiler_chan, || {
-            queue.push(WorkUnit {
-                fun: compute_absolute_positions,
                 data: (box vec![mut_owned_flow_to_unsafe_flow(root)], 0),
             })
         });

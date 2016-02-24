@@ -860,19 +860,7 @@ impl LayoutThread {
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            match (&mut self.parallel_traversal, opts::get().parallel_display_list_building) {
-                (&mut Some(ref mut traversal), true) => {
-                    parallel::build_display_list_for_subtree(layout_root,
-                                                             metadata,
-                                                             sender,
-                                                             shared_layout_context,
-                                                             traversal);
-                }
-                _ => {
-                    sequential::build_display_list_for_subtree(layout_root,
-                                                               shared_layout_context);
-                }
-            }
+            sequential::build_display_list_for_subtree(layout_root, shared_layout_context);
 
             if data.goal == ReflowGoal::ForDisplay {
                 debug!("Done building display list.");
