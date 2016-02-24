@@ -30956,10 +30956,6 @@
         "url": "/websockets/Send-data.htm"
       },
       {
-        "path": "websockets/opening-handshake/003-sets-origin.worker.js",
-        "url": "/websockets/opening-handshake/003-sets-origin.worker"
-      },
-      {
         "path": "websockets/Send-data.worker.js",
         "url": "/websockets/Send-data.worker"
       },
@@ -31386,6 +31382,10 @@
       {
         "path": "websockets/opening-handshake/001.html",
         "url": "/websockets/opening-handshake/001.html"
+      },
+      {
+        "path": "websockets/opening-handshake/003-sets-origin.worker.js",
+        "url": "/websockets/opening-handshake/003-sets-origin.worker"
       },
       {
         "path": "websockets/opening-handshake/003.html",
