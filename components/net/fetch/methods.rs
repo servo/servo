@@ -27,6 +27,7 @@ use std::cell::RefCell;
 use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::thread;
 use url::idna::domain_to_ascii;
 use url::{Origin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
@@ -185,7 +186,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // Step 11
     // no need to check if response is a network error, since the type would not be `Default`
     let mut response = if response.response_type == ResponseType::Default {
-        let old_response = Rc::new(response);
+        let old_response = response;
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CORSTainting => ResponseType::CORS,
@@ -198,7 +199,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 12
     let mut internal_response = if Response::is_network_error(&response) {
-        Rc::new(Response::network_error())
+        Arc::new(Response::network_error())
     } else {
         response.internal_response.clone().unwrap()
     };
@@ -338,7 +339,7 @@ fn http_fetch(request: Rc<Request>,
 
             // Substep 2
             actual_response = match res.internal_response {
-                Some(ref internal_res) => Some(internal_res.clone()),
+                Some(ref internal_res) => Some(Rc::new((**internal_res).clone())),
                 None => Some(res.clone())
             };
 
@@ -440,7 +441,8 @@ fn http_fetch(request: Rc<Request>,
             response = match request.redirect_mode.get() {
                 RedirectMode::Error => Rc::new(Response::network_error()),
                 RedirectMode::Manual => {
-                   Rc::new(Response::to_filtered(actual_response, ResponseType::OpaqueRedirect))
+                    let res = Rc::try_unwrap(actual_response).ok().unwrap();
+                    Rc::new(Response::to_filtered(res, ResponseType::OpaqueRedirect))
                 },
                 RedirectMode::Follow => Rc::new(http_redirect_fetch(request, response, cors_flag))
             }
@@ -505,7 +507,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
     // Step 1
     let actual_response = match response.internal_response {
-        Some(ref res) => res.clone(),
+        Some(ref res) => Rc::new((**res).clone()).clone(),
         _ => response.clone()
     };
 

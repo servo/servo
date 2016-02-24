@@ -8,12 +8,13 @@ use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, Respo
 use std::ascii::AsciiExt;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use url::Url;
 
 pub trait ResponseMethods {
     fn new() -> Response;
-    fn to_filtered(Rc<Response>, ResponseType) -> Response;
+    fn to_filtered(Response, ResponseType) -> Response;
 }
 
 impl ResponseMethods for Response {
@@ -34,7 +35,7 @@ impl ResponseMethods for Response {
 
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
-    fn to_filtered(old_response: Rc<Response>, filter_type: ResponseType) -> Response {
+    fn to_filtered(old_response: Response, filter_type: ResponseType) -> Response {
 
         assert!(filter_type != ResponseType::Error);
         assert!(filter_type != ResponseType::Default);
@@ -44,8 +45,8 @@ impl ResponseMethods for Response {
         }
 
         let old_headers = old_response.headers.clone();
-        let mut response = (*old_response).clone();
-        response.internal_response = Some(old_response);
+        let mut response = old_response.clone();
+        response.internal_response = Some(Arc::new(old_response));
         response.response_type = filter_type;
 
         match filter_type {
