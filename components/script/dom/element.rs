@@ -925,7 +925,7 @@ impl Element {
             None => qname.local.clone(),
             Some(ref prefix) => {
                 let name = format!("{}:{}", &**prefix, &*qname.local);
-                Atom::from(&*name)
+                Atom::from(name)
             },
         };
         let value = self.parse_attribute(&qname.ns, &qname.local, value);

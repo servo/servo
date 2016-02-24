@@ -406,7 +406,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         unsafe {
             let mut length: u32 = 0;
             let p = Gecko_LocalName(self.element, &mut length);
-            Atom::from(&*String::from_utf16(slice::from_raw_parts(p, length as usize)).unwrap())
+            Atom::from(String::from_utf16(slice::from_raw_parts(p, length as usize)).unwrap())
         }
         */
     }
@@ -417,7 +417,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         unsafe {
             let mut length: u32 = 0;
             let p = Gecko_Namespace(self.element, &mut length);
-            Namespace(Atom::from(&*String::from_utf16(slice::from_raw_parts(p, length as usize)).unwrap()))
+            Namespace(Atom::from(String::from_utf16(slice::from_raw_parts(p, length as usize)).unwrap()))
         }
         */
     }

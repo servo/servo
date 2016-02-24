@@ -536,7 +536,7 @@ impl Document {
             // Step 3 & 4
             String::from_utf8(percent_decode(fragid.as_bytes())).ok()
                 // Step 5
-                .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(&*decoded_fragid)))
+                .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
                 // Step 6
                 .or_else(|| self.get_anchor_by_name(fragid))
                 // Step 7

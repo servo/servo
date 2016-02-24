@@ -230,7 +230,7 @@ impl FontCache {
                     let family_name = LowercaseString::new(family.name());
 
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
-                    templates.add_template(Atom::from(&*url.to_string()), Some(bytes));
+                    templates.add_template(Atom::from(url.to_string()), Some(bytes));
                     drop(result.send(()));
                 }
                 Command::Exit(result) => {

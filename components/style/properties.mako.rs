@@ -1793,7 +1793,7 @@ pub mod longhands {
                 value.push_str(" ");
                 value.push_str(&ident);
             }
-            Ok(FontFamily::FamilyName(Atom::from(&*value)))
+            Ok(FontFamily::FamilyName(Atom::from(value)))
         }
     </%self:longhand>
 
