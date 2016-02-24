@@ -390,7 +390,7 @@ impl EventTarget {
                                                           b"colno\0" as *const u8 as *const c_char,
                                                           b"error\0" as *const u8 as *const c_char];
         // step 10
-        let is_error = ty == &Atom::from("error") && self.is::<Window>();
+        let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = unsafe {
             if is_error {
                 &ERROR_ARG_NAMES[..]
