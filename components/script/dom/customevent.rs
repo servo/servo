@@ -53,7 +53,7 @@ impl CustomEvent {
                        init: &CustomEventBinding::CustomEventInit)
                        -> Fallible<Root<CustomEvent>> {
         Ok(CustomEvent::new(global,
-                            Atom::from(&*type_),
+                            Atom::from(type_),
                             init.parent.bubbles,
                             init.parent.cancelable,
                             unsafe { HandleValue::from_marked_location(&init.detail) }))
@@ -87,7 +87,7 @@ impl CustomEventMethods for CustomEvent {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: HandleValue) {
-        self.init_custom_event(Atom::from(&*type_), can_bubble, cancelable, detail)
+        self.init_custom_event(Atom::from(type_), can_bubble, cancelable, detail)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

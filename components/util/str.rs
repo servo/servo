@@ -11,6 +11,7 @@ use std::fmt;
 use std::iter::{Filter, Peekable};
 use std::ops::{Deref, DerefMut};
 use std::str::{Bytes, CharIndices, FromStr, Split, from_utf8};
+use string_cache::Atom;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct DOMString(String);
@@ -93,6 +94,12 @@ impl From<String> for DOMString {
 impl<'a> From<&'a str> for DOMString {
     fn from(contents: &str) -> DOMString {
         DOMString::from(String::from(contents))
+    }
+}
+
+impl From<DOMString> for Atom {
+    fn from(contents: DOMString) -> Atom {
+        Atom::from(contents.0)
     }
 }
 

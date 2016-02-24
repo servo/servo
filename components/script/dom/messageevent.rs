@@ -67,7 +67,7 @@ impl MessageEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         let data = RootedValue::new(global.get_cx(), init.data);
-        let ev = MessageEvent::new(global, Atom::from(&*type_), init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(global, Atom::from(type_), init.parent.bubbles, init.parent.cancelable,
                                    data.handle(),
                                    init.origin.clone(), init.lastEventId.clone());
         Ok(ev)

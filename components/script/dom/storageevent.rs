@@ -76,7 +76,7 @@ impl StorageEvent {
         } else {
             EventCancelable::NotCancelable
         };
-        let event = StorageEvent::new(global, Atom::from(&*type_),
+        let event = StorageEvent::new(global, Atom::from(type_),
                                       bubbles, cancelable,
                                       key, oldValue, newValue,
                                       url, storageArea);

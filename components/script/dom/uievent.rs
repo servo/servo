@@ -92,7 +92,7 @@ impl UIEventMethods for UIEvent {
             return;
         }
 
-        event.init_event(Atom::from(&*type_), can_bubble, cancelable);
+        event.init_event(Atom::from(type_), can_bubble, cancelable);
         self.view.set(view);
         self.detail.set(detail);
     }
