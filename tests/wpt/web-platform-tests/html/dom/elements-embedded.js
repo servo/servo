@@ -5,7 +5,7 @@ var embeddedElements = {
     alt: "string",
     src: "url",
     srcset: "string",
-    crossOrigin: {type: "enum", keywords: ["", "anonymous", "use-credentials"]},
+    crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
     useMap: "string",
     isMap: "boolean",
     width: {type: "unsigned long", customGetter: true},
@@ -84,7 +84,7 @@ var embeddedElements = {
   video: {
     // HTMLMediaElement
     src: "url",
-    crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}},
+    crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
     // As with "keytype", we have no missing value default defined here.
     preload: {type: "enum", keywords: ["none", "metadata", "auto"], nonCanon: {"": "auto"}, defaultVal: null},
     autoplay: "boolean",
@@ -100,7 +100,7 @@ var embeddedElements = {
   audio: {
     // HTMLMediaElement
     src: "url",
-    crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}},
+    crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
     // As with "keytype", we have no missing value default defined here.
     preload: {type: "enum", keywords: ["none", "metadata", "auto"], nonCanon: {"": "auto"}, defaultVal: null},
     autoplay: "boolean",

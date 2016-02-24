@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API IDL tests for Controlling User Agent</title>
+<link rel="author" title="Louay Bassbouss" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<script id="untested_idl" type="text/plain">
+interface Navigator {
+};
+interface EventTarget {
+};
+interface EventHandler {
+};
+interface Event {
+};
+dictionary EventInit {
+};
+</script>
+
+<script id='idl' type="text/plain">
+partial interface Navigator {
+    [SameObject]
+    readonly attribute Presentation? presentation;
+};
+
+interface Presentation {
+};
+
+partial interface Presentation {
+    attribute PresentationRequest? defaultRequest;
+};
+
+[Constructor(DOMString url)]
+interface PresentationRequest : EventTarget {
+    Promise<PresentationConnection> start();
+    Promise<PresentationConnection> reconnect(DOMString presentationId);
+    Promise<PresentationAvailability> getAvailability();
+    attribute EventHandler onconnectionavailable;
+};
+
+interface PresentationAvailability : EventTarget {
+    readonly attribute boolean value;
+    attribute EventHandler onchange;
+};
+
+[Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict)]
+interface PresentationConnectionAvailableEvent : Event {
+    [SameObject]
+    readonly attribute PresentationConnection connection;
+};
+
+dictionary PresentationConnectionAvailableEventInit : EventInit {
+    required PresentationConnection connection;
+};
+
+enum PresentationConnectionState {
+    "connecting",
+    "connected",
+    "closed",
+    "terminated"
+};
+
+enum BinaryType {
+    "blob",
+    "arraybuffer"
+};
+
+interface PresentationConnection : EventTarget {
+    readonly attribute DOMString? id;
+    readonly attribute PresentationConnectionState state;
+    void close();
+    void terminate();
+    attribute EventHandler onconnect;
+    attribute EventHandler onclose;
+    attribute EventHandler onterminate;
+    // Communication
+    attribute BinaryType binaryType;
+    attribute EventHandler onmessage;
+    void send(DOMString message);
+    void send(Blob data);
+    void send(ArrayBuffer data);
+    void send(ArrayBufferView data);
+};
+
+enum PresentationConnectionClosedReason {
+    "error",
+    "closed",
+    "wentaway"
+};
+
+[Constructor(DOMString type, PresentationConnectionClosedEventInit eventInitDict)]
+interface PresentationConnectionClosedEvent : Event {
+    readonly attribute PresentationConnectionClosedReason reason;
+    readonly attribute DOMString message;
+};
+
+dictionary PresentationConnectionClosedEventInit : EventInit {
+    required PresentationConnectionClosedReason reason;
+    DOMString message;
+};
+</script>
+
+<script>
+    (function() {
+        "use strict";
+        var idl_array = new IdlArray();
+        var idls = document.getElementById('idl').textContent;
+        idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
+        idl_array.add_idls(idls);
+        idl_array.add_objects({
+            Presentation: ['navigator.presentation'],
+            PresentationRequest: ['navigator.presentation.defaultRequest', 'new PresentationRequest("/presentation-api/receiving-ua/idlharness.html")']
+        });
+        idl_array.test();
+    })();
+</script>
+

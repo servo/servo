@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Invalid referrerpolicy attribute value</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <h1>Invalid referrerpolicy attribute value</h1>
+    <pre>Running...</pre>
+
+    <script>
+      test(function () {
+          var elements = ["iframe", "img", "a", "area"];
+          for (var i = 0; i < elements.length; i++) {
+              var elem = document.createElement(elements[i]);
+              elem.referrerpolicy = "unsafe-url";
+              assert_equals(elem.referrerpolicy, "unsafe-url");
+              elem.referrerpolicy = "not-valid-value";
+              assert_equals(elem.referrerpolicy, "");
+          }
+      }, "Invalid referrerpolicy values not reflected");
+    </script>
+  </body>
+</html>
