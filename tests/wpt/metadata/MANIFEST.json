@@ -32070,6 +32070,10 @@
         "url": "/websockets/opening-handshake/001.html"
       },
       {
+        "path": "websockets/opening-handshake/003-sets-origin.worker.js",
+        "url": "/websockets/opening-handshake/003-sets-origin.worker"
+      },
+      {
         "path": "websockets/opening-handshake/003.html",
         "url": "/websockets/opening-handshake/003.html"
       },
