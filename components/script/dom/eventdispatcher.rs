@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::RootedVec;
+use dom::document::Document;
 use dom::event::{Event, EventPhase};
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use dom::node::Node;
@@ -152,6 +153,13 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
             chain.push(JS::from_ref(ancestor.upcast()));
+        }
+        let top_most_ancestor_or_target =
+            Root::from_ref(chain.r().last().cloned().unwrap_or(target));
+        if let Some(document) = Root::downcast::<Document>(top_most_ancestor_or_target) {
+            if event.type_() != atom!("load") && document.browsing_context().is_some() {
+                chain.push(JS::from_ref(document.window().upcast()));
+            }
         }
     }
 
