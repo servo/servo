@@ -8,7 +8,6 @@ use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, Respo
 use std::ascii::AsciiExt;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use url::Url;
 
@@ -46,7 +45,7 @@ impl ResponseMethods for Response {
 
         let old_headers = old_response.headers.clone();
         let mut response = old_response.clone();
-        response.internal_response = Some(Arc::new(old_response));
+        response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
 
         match filter_type {

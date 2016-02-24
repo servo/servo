@@ -27,7 +27,6 @@ use std::cell::RefCell;
 use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::thread;
 use url::idna::domain_to_ascii;
 use url::{Origin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
@@ -199,7 +198,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 12
     let mut internal_response = if Response::is_network_error(&response) {
-        Arc::new(Response::network_error())
+        Box::new(Response::network_error())
     } else {
         response.internal_response.clone().unwrap()
     };

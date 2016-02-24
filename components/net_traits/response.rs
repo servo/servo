@@ -7,7 +7,6 @@
 use hyper::header::Headers;
 use hyper::status::StatusCode;
 use std::cell::RefCell;
-use std::sync::Arc;
 use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
@@ -86,7 +85,7 @@ pub struct Response {
     pub https_state: HttpsState,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
-    pub internal_response: Option<Arc<Response>>,
+    pub internal_response: Option<Box<Response>>,
 }
 
 impl Response {
