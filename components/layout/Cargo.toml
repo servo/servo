@@ -70,7 +70,7 @@ heapsize_plugin = "0.1.2"
 libc = "0.2"
 log = "0.3"
 rustc-serialize = "0.3"
-selectors = {version = "0.5", features = ["heap_size"]}
+selectors = {version = "0.5.1", features = ["heap_size"]}
 serde = "0.6"
 serde_json = "0.6"
 serde_macros = "0.6"
