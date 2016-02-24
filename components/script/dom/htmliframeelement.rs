@@ -303,7 +303,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
-            MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
+            MozBrowserEvent::Connected | MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
             }
