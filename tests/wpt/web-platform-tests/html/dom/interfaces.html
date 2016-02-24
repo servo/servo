@@ -859,7 +859,7 @@ typedef (Int8Array or Uint8Array or Uint8ClampedArray or
 [NoInterfaceObject, Exposed=Window]
 interface HTMLHyperlinkElementUtils {
   stringifier attribute USVString href;
-           attribute USVString origin;
+  readonly attribute USVString origin;
            attribute USVString protocol;
            attribute USVString username;
            attribute USVString password;
@@ -871,11 +871,11 @@ interface HTMLHyperlinkElementUtils {
            attribute USVString hash;
 };
 
-interface HTMLAllCollection : HTMLCollection {
-  // inherits length and 'getter'
-  Element? item(unsigned long index);
+interface HTMLAllCollection {
+  readonly attribute unsigned long length;
+  getter Element? item(unsigned long index);
   (HTMLCollection or Element)? item(DOMString name);
-  legacycaller getter (HTMLCollection or Element)? namedItem(DOMString name); // shadows inherited namedItem()
+  legacycaller getter (HTMLCollection or Element)? namedItem(DOMString name);
 };
 
 interface HTMLFormControlsCollection : HTMLCollection {
@@ -1048,7 +1048,7 @@ interface HTMLBaseElement : HTMLElement {
 
 interface HTMLLinkElement : HTMLElement {
            attribute DOMString href;
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            attribute DOMString rel;
   [PutForwards=value] readonly attribute DOMTokenList relList;
            attribute DOMString media;
@@ -1173,7 +1173,7 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString src;
            attribute DOMString srcset;
            attribute DOMString sizes;
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            attribute DOMString useMap;
            attribute boolean isMap;
            attribute unsigned long width;
@@ -1286,7 +1286,7 @@ interface HTMLMediaElement : HTMLElement {
   // network state
            attribute DOMString src;
   readonly attribute DOMString currentSrc;
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
   const unsigned short NETWORK_EMPTY = 0;
   const unsigned short NETWORK_IDLE = 1;
   const unsigned short NETWORK_LOADING = 2;
@@ -1949,7 +1949,7 @@ interface HTMLScriptElement : HTMLElement {
            attribute DOMString charset;
            attribute boolean async;
            attribute boolean defer;
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            attribute DOMString text;
 
   // also has obsolete members
@@ -2304,7 +2304,7 @@ Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
 interface BarProp {
-           attribute boolean visible;
+  readonly attribute boolean visible;
 };
 
 enum ScrollRestoration { "auto", "manual" };
@@ -2322,7 +2322,7 @@ interface History {
 
 [Unforgeable] interface Location {
   stringifier attribute USVString href;
-           attribute USVString origin;
+  readonly attribute USVString origin;
            attribute USVString protocol;
            attribute USVString host;
            attribute USVString hostname;

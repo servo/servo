@@ -16,6 +16,9 @@ The keys for each test case are:
     and that the getters of each corresponding attribute in that URL’s [API]
     should return the corresponding value.
 
+    The `origin` key may be missing.
+    In that case, the API’s `origin` attribute is not tested.
+
 [parsing]: https://url.spec.whatwg.org/#concept-basic-url-parser
 [API]: https://url.spec.whatwg.org/#api
 
