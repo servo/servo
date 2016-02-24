@@ -8,6 +8,7 @@ use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, Wants
 use compositor_thread::{CompositorEventListener, CompositorProxy};
 use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
 use constellation::SendableFrameTree;
+use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
@@ -36,7 +37,6 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, TouchEventType, TouchId};
-use scrolling::ScrollingTimerProxy;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -133,8 +133,8 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     channel_to_self: Box<CompositorProxy + Send>,
 
-    /// A handle to the scrolling timer.
-    scrolling_timer: ScrollingTimerProxy,
+    /// A handle to the delayed composition timer.
+    delayed_composition_timer: DelayedCompositionTimerProxy,
 
     /// The type of composition to perform
     composite_target: CompositeTarget,
@@ -214,7 +214,7 @@ pub struct ScrollZoomEvent {
 #[derive(PartialEq, Debug)]
 enum CompositionRequest {
     NoCompositingNecessary,
-    CompositeOnScrollTimeout(u64),
+    DelayedComposite(u64),
     CompositeNow(CompositingReason),
 }
 
@@ -346,7 +346,7 @@ impl RenderNotifier {
 
 impl webrender_traits::RenderNotifier for RenderNotifier {
     fn new_frame_ready(&mut self) {
-        self.compositor_proxy.recomposite();
+        self.compositor_proxy.recomposite(CompositingReason::NewWebRenderFrame);
     }
 
     fn pipeline_size_changed(&mut self,
@@ -402,7 +402,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             viewport: None,
             hidpi_factor: hidpi_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
-            scrolling_timer: ScrollingTimerProxy::new(state.sender),
+            delayed_composition_timer: DelayedCompositionTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
@@ -430,8 +430,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn create(window: Rc<Window>, state: InitialCompositorState)
-                  -> IOCompositor<Window> {
+    pub fn create(window: Rc<Window>, state: InitialCompositorState) -> IOCompositor<Window> {
         let mut compositor = IOCompositor::new(window, state);
 
         if let Some(ref mut webrender) = compositor.webrender {
@@ -475,7 +474,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         self.time_profiler_chan.send(time::ProfilerMsg::Exit);
         self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
-        self.scrolling_timer.shutdown();
+        self.delayed_composition_timer.shutdown();
 
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
@@ -598,20 +597,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.load_end(back, forward);
             }
 
-            (Msg::ScrollTimeout(timestamp), ShutdownState::NotShuttingDown) => {
-                debug!("scroll timeout, drawing unpainted content!");
-                if let CompositionRequest::CompositeOnScrollTimeout(this_timestamp) =
+            (Msg::DelayedCompositionTimeout(timestamp), ShutdownState::NotShuttingDown) => {
+                debug!("delayed composition timeout!");
+                if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {
                     if timestamp == this_timestamp {
                         self.composition_request = CompositionRequest::CompositeNow(
-                            CompositingReason::HitScrollTimeout)
+                            CompositingReason::DelayedCompositeTimeout)
                     }
                 }
             }
 
-            (Msg::RecompositeAfterScroll, ShutdownState::NotShuttingDown) => {
-                self.composition_request =
-                    CompositionRequest::CompositeNow(CompositingReason::ContinueScroll)
+            (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
+                self.composition_request = CompositionRequest::CompositeNow(reason)
             }
 
             (Msg::KeyEvent(key, state, modified), ShutdownState::NotShuttingDown) => {
@@ -707,13 +705,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
-                if self.pipeline_details(pipeline_id).animation_callbacks_running {
-                    return
+                if !self.pipeline_details(pipeline_id).animation_callbacks_running {
+                    self.pipeline_details(pipeline_id).animation_callbacks_running =
+                        true;
+                    self.tick_animations_for_pipeline(pipeline_id);
                 }
-                self.pipeline_details(pipeline_id).animation_callbacks_running =
-                    true;
-                self.tick_animations_for_pipeline(pipeline_id);
-                self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::NoAnimationsPresent => {
                 self.pipeline_details(pipeline_id).animations_running = false;
@@ -1073,16 +1069,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn start_scrolling_timer_if_necessary(&mut self) {
+    fn schedule_delayed_composite_if_necessary(&mut self) {
         match self.composition_request {
             CompositionRequest::CompositeNow(_) |
-            CompositionRequest::CompositeOnScrollTimeout(_) => return,
+            CompositionRequest::DelayedComposite(_) => return,
             CompositionRequest::NoCompositingNecessary => {}
         }
 
         let timestamp = precise_time_ns();
-        self.scrolling_timer.scroll_event_processed(timestamp);
-        self.composition_request = CompositionRequest::CompositeOnScrollTimeout(timestamp);
+        self.delayed_composition_timer.schedule_composite(timestamp);
+        self.composition_request = CompositionRequest::DelayedComposite(timestamp);
     }
 
     fn assign_painted_buffers(&mut self,
@@ -1531,23 +1527,28 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn perform_updates_after_scroll(&mut self) {
         self.send_updated_display_ports_to_layout();
         if self.send_buffer_requests_for_all_layers() {
-            self.start_scrolling_timer_if_necessary();
+            self.schedule_delayed_composite_if_necessary();
         } else {
-            self.channel_to_self.send(Msg::RecompositeAfterScroll);
+            self.channel_to_self.send(Msg::Recomposite(CompositingReason::ContinueScroll));
         }
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
     fn process_animations(&mut self) {
+        let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running {
-                self.tick_animations_for_pipeline(*pipeline_id)
+                pipeline_ids.push(*pipeline_id);
             }
+        }
+        for pipeline_id in &pipeline_ids {
+            self.tick_animations_for_pipeline(*pipeline_id)
         }
     }
 
-    fn tick_animations_for_pipeline(&self, pipeline_id: PipelineId) {
+    fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
+        self.schedule_delayed_composite_if_necessary();
         self.constellation_chan.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
     }
 
@@ -2262,7 +2263,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
 
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary |
-            CompositionRequest::CompositeOnScrollTimeout(_) => {}
+            CompositionRequest::DelayedComposite(_) => {}
             CompositionRequest::CompositeNow(_) => {
                 self.composite()
             }
@@ -2296,7 +2297,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             while self.shutdown_state != ShutdownState::ShuttingDown {
                 let msg = self.port.recv_compositor_msg();
                 let need_recomposite = match msg {
-                    Msg::RecompositeAfterScroll => true,
+                    Msg::Recomposite(_) => true,
                     _ => false,
                 };
                 let keep_going = self.handle_browser_message(msg);
@@ -2327,8 +2328,8 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
 /// Why we performed a composite. This is used for debugging.
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum CompositingReason {
-    /// We hit the scroll timeout and are therefore drawing unrendered content.
-    HitScrollTimeout,
+    /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
+    DelayedCompositeTimeout,
     /// The window has been scrolled and we're starting the first recomposite.
     Scroll,
     /// A scroll has continued and we need to recomposite again.
@@ -2343,4 +2344,6 @@ pub enum CompositingReason {
     NewPaintedBuffers,
     /// The window has been zoomed.
     Zoom,
+    /// A new WebRender frame has arrived.
+    NewWebRenderFrame,
 }

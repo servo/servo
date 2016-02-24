@@ -66,11 +66,11 @@ mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;
 pub mod constellation;
+mod delayed_composition;
 mod headless;
 pub mod pipeline;
 #[cfg(not(target_os = "windows"))]
 pub mod sandboxing;
-mod scrolling;
 mod surface_map;
 mod timer_scheduler;
 mod touch;

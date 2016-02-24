@@ -1196,8 +1196,8 @@ impl LayoutThread {
         self.tick_animations(&mut rw_data);
 
         self.script_chan
-          .send(ConstellationControlMsg::TickAllAnimations(self.id))
-          .unwrap();
+            .send(ConstellationControlMsg::TickAllAnimations(self.id))
+            .unwrap();
     }
 
     pub fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
