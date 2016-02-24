@@ -789,81 +789,33 @@ impl Document {
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
-                                   prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
-        // Build a list of elements that are currently under the mouse.
-        let mouse_over_address = client_point.as_ref().map(|client_point| {
-            let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                                          client_point.y + self.window.PageYOffset() as f32);
-            self.hit_test(&page_point, true)
-        }).unwrap_or(None);
+                                   prev_mouse_over_target: &MutNullableHeap<JS<Element>>) {
+        let page_point = match client_point {
+            None => {
+                // If there's no point, there's no target under the mouse
+                // FIXME: dispatch mouseout here. We have no point.
+                prev_mouse_over_target.set(None);
+                return;
+            }
+            Some(ref client_point) => {
+                Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                             client_point.y + self.window.PageYOffset() as f32)
+            }
+        };
 
-        let mut mouse_over_targets = RootedVec::<JS<Element>>::new();
+        let client_point = client_point.unwrap();
 
-        if let Some(address) = mouse_over_address {
+        let maybe_new_target = self.hit_test(&page_point, true).and_then(|address| {
             let node = node::from_untrusted_node_address(js_runtime, address);
-            for node in node.inclusive_ancestors()
-                            .filter_map(Root::downcast::<Element>) {
-                mouse_over_targets.push(JS::from_rooted(&node));
-            }
-        }
+            node.inclusive_ancestors()
+                .filter_map(Root::downcast::<Element>)
+                .next()
+        });
 
-        // Werther the topmost element we are hovering now is diffrent than the previous
-        let is_different_topmost_target = mouse_over_targets.is_empty() ||
-                                          prev_mouse_over_targets.is_empty() ||
-                                          prev_mouse_over_targets[0].upcast::<Node>().to_trusted_node_address() !=
-                                              mouse_over_targets[0].upcast::<Node>().to_trusted_node_address();
-
-        // Remove hover from any elements in the previous list that are no longer
-        // under the mouse.
-        for (index, target) in prev_mouse_over_targets.iter().enumerate() {
-            // Hover state is reset as appropiate later
-            target.set_hover_state(false);
-
-            // https://www.w3.org/TR/uievents/#event-type-mouseout
-            //
-            // mouseout must be dispatched when the mouse moves off an element or when pointer
-            // mouse moves from an element onto the boundaries of one of its descendent elements.
-            let has_to_dispatch_mouse_out = index == 0 && is_different_topmost_target;
-
-            if has_to_dispatch_mouse_out {
-                let target = target.upcast();
-                if let Some(client_point) = client_point {
-                    self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
-                }
-            }
-        }
-
-        // Set hover state for any elements in the current mouse over list.
-        // Check if any of them changed state to determine whether to
-        // force a reflow below.
-        for (index, target) in mouse_over_targets.r().iter().enumerate() {
-            target.set_hover_state(true);
-
-            // https://www.w3.org/TR/uievents/#event-type-mouseover
-            //
-            // Mouseover must be fired when a pointing device is moved onto the boundaries of an
-            // element (we only fire it in the first because it bubbles), or when the pointer has
-            // moved from our children to ours.
-            //
-            // The below condition adresses both situations.
-            let has_to_dispatch_mouse_over = index == 0 && is_different_topmost_target;
-
-            if has_to_dispatch_mouse_over {
-                let target = target.upcast();
-                if let Some(client_point) = client_point {
-                    self.fire_mouse_event(client_point, target, "mouseover".to_owned());
-                }
-            }
-        }
-
-        // Send mousemove event to topmost target
-        if let Some(address) = mouse_over_address {
-            let top_most_node = node::from_untrusted_node_address(js_runtime,
-                                                                  address);
-            let client_point = client_point.unwrap(); // Must succeed because hit test succeeded.
-
+        // Send mousemove event to topmost target, and forward it if it's an iframe
+        if let Some(ref new_target) = maybe_new_target {
             // If the target is an iframe, forward the event to the child document.
-            if let Some(iframe) = top_most_node.downcast::<HTMLIFrameElement>() {
+            if let Some(iframe) = new_target.downcast::<HTMLIFrameElement>() {
                 if let Some(pipeline_id) = iframe.pipeline_id() {
                     let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                     let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
@@ -875,14 +827,41 @@ impl Document {
                 return;
             }
 
-            let target = top_most_node.upcast();
-            self.fire_mouse_event(client_point, target, "mousemove".to_owned());
+            self.fire_mouse_event(client_point, new_target.upcast(), "mousemove".to_owned());
         }
 
-        // Store the current mouse over targets for next frame
-        prev_mouse_over_targets.clear();
-        prev_mouse_over_targets.append(&mut *mouse_over_targets);
+        // Nothing more to do here, the mousemove is sent, and the element under the mouse hasn't
+        // changed
+        if maybe_new_target == prev_mouse_over_target.get() {
+            return;
+        }
 
+        // Here we know the target has changed, so we must update the state,
+        // dispatch mouseout to the previous one, and mouseover to the new one.
+        if let Some(old_target) = prev_mouse_over_target.get() {
+            for element in old_target.upcast::<Node>()
+                                     .inclusive_ancestors()
+                                     .filter_map(Root::downcast::<Element>) {
+                element.set_hover_state(false);
+            }
+
+            // Remove hover state to old target and its parents
+            self.fire_mouse_event(client_point, old_target.upcast(), "mouseout".to_owned());
+        }
+
+        if let Some(ref new_target) = maybe_new_target {
+            for element in new_target.upcast::<Node>()
+                                     .inclusive_ancestors()
+                                     .filter_map(Root::downcast::<Element>) {
+                element.set_hover_state(true);
+            }
+            self.fire_mouse_event(client_point, &new_target.upcast(), "mouseover".to_owned());
+            prev_mouse_over_target.set(Some(new_target.r()));
+        } else {
+            prev_mouse_over_target.set(None);
+        }
+
+        // Store the current mouse over target for next frame
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
