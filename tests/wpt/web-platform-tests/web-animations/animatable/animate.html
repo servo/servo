@@ -9,8 +9,6 @@
 <link rel="stylesheet" href="/resources/testharness.css">
 <body>
 <div id="log"></div>
-<iframe src="data:text/html;charset=utf-8," width="10" height="10"
-  id="iframe"></iframe>
 <script>
 'use strict';
 
@@ -104,13 +102,20 @@ test(function(t) {
 }, 'Element.animate() correctly sets the Animation\'s timeline');
 
 async_test(function(t) {
-  var iframe = document.getElementById('iframe');
+  var iframe = document.createElement('iframe');
+  iframe.src = 'data:text/html;charset=utf-8,';
+  iframe.width = 10;
+  iframe.height = 10;
+
   iframe.addEventListener('load', t.step_func(function() {
     var div = createDiv(t, iframe.contentDocument);
     var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
     assert_equals(anim.timeline, iframe.contentDocument.timeline);
+    iframe.remove();
     t.done();
   }));
+
+  document.body.appendChild(iframe);
 }, 'Element.animate() correctly sets the Animation\'s timeline when ' +
    'triggered on an element in a different document');
 

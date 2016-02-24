@@ -82,19 +82,17 @@ cache_test(function(cache) {
   }, 'Cache.add with request with null body (not consumed)');
 
 cache_test(function(cache) {
-    return cache.add('this-does-not-exist-please-dont-create-it')
-      .then(function(result) {
-          assert_equals(result, undefined,
-                        'Cache.add should resolve with undefined on success.');
-        });
+    return assert_promise_rejects(
+      cache.add('this-does-not-exist-please-dont-create-it'),
+      new TypeError(),
+      'Cache.add should reject if response is !ok');
   }, 'Cache.add with request that results in a status of 404');
 
 cache_test(function(cache) {
-    return cache.add('../resources/fetch-status.py?status=500')
-      .then(function(result) {
-          assert_equals(result, undefined,
-                        'Cache.add should resolve with undefined on success.');
-        });
+    return assert_promise_rejects(
+      cache.add('../resources/fetch-status.php?status=500'),
+      new TypeError(),
+      'Cache.add should reject if response is !ok');
   }, 'Cache.add with request that results in a status of 500');
 
 cache_test(function(cache) {
@@ -213,38 +211,19 @@ cache_test(function(cache) {
     var requests = urls.map(function(url) {
         return new Request(url);
       });
-    return cache.addAll(requests)
-      .then(function(result) {
-          assert_equals(result, undefined,
-                        'Cache.addAll should resolve with undefined on ' +
-                        'success.');
-          return Promise.all(
-            urls.map(function(url) { return cache.match(url); }));
-        })
-      .then(function(responses) {
-          assert_class_string(
-            responses[0], 'Response',
-            'Cache.addAll should put a resource in the cache.');
-          assert_class_string(
-            responses[1], 'Response',
-            'Cache.addAll should put a resource in the cache.');
-          assert_equals(
-            responses[1].status, 404,
-            'Cache.addAll should put a 404 resource in the cache.');
-          assert_class_string(
-            responses[2], 'Response',
-            'Cache.addAll should put a resource in the cache.');
-          return Promise.all(
-            responses.map(function(response) { return response.text(); }));
-        })
-      .then(function(bodies) {
-          assert_equals(
-            bodies[0], 'a simple text file\n',
-            'Cache.add should retrieve the correct body.');
-          assert_equals(
-            bodies[2], '<!DOCTYPE html>\n<title>Empty doc</title>\n',
-            'Cache.add should retrieve the correct body.');
-        });
+    return assert_promise_rejects(
+      cache.addAll(requests),
+      new TypeError(),
+      'Cache.addAll should reject with TypeError if any request fails')
+      .then(function() {
+          return Promise.all(urls.map(function(url) { return cache.match(url); }));
+      })
+      .then(function(matches) {
+          assert_array_equals(
+            matches,
+            [undefined, undefined, undefined],
+            'If any response fails, no response should be added to cache');
+      });
   }, 'Cache.addAll with a mix of succeeding and failing requests');
 
 cache_test(function(cache) {

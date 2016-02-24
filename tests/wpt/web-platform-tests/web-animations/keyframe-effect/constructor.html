@@ -473,143 +473,71 @@ test(function(t) {
    "KeyframeEffectOptions object");
 
 var gKeyframeEffectOptionTests = [
-  { desc:     "an empty KeyframeEffectOption",
-    input:    {},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: "auto",
-               direction: "normal"} },
-  { desc:     "a normal KeyframeEffectOption",
-    input:    {delay: 1000,
-               fill: "auto",
-               iterations: 5.5,
-               duration: "auto",
-               direction: "alternate"},
-    expected: {delay: 1000,
-               fill: "auto",
-               iterations: 5.5,
-               duration: "auto",
-               direction: "alternate"} },
+  { desc:     "an empty KeyframeEffectOptions object",
+    input:    { },
+    expected: { } },
+  { desc:     "a normal KeyframeEffectOptions object",
+    input:    { delay: 1000,
+                fill: "auto",
+                iterations: 5.5,
+                duration: "auto",
+                direction: "alternate" },
+    expected: { delay: 1000,
+                fill: "auto",
+                iterations: 5.5,
+                duration: "auto",
+                direction: "alternate" } },
   { desc:     "a double value",
     input:    3000,
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: 3000,
-               direction: "normal"} },
+    expected: { duration: 3000 } },
   { desc:     "+Infinity",
     input:    Infinity,
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: Infinity,
-               direction: "normal"} },
+    expected: { duration: Infinity } },
   { desc:     "-Infinity",
     input:    -Infinity,
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: -Infinity,
-               direction: "normal"} },
+    expected: { duration: -Infinity } },
   { desc:     "NaN",
     input:    NaN,
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: NaN,
-               direction: "normal"} },
+    expected: { duration: NaN } },
   { desc:     "a negative value",
     input:    -1,
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: -1,
-               direction: "normal"} },
+    expected: { duration: -1 } },
   { desc:     "an Infinity duration",
-    input:    {duration: Infinity},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: Infinity,
-               direction: "normal"} },
+    input:    { duration: Infinity },
+    expected: { duration: Infinity } },
   { desc:     "a negative Infinity duration",
-    input:    {duration: -Infinity},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: -Infinity,
-               direction: "normal"} },
+    input:    { duration: -Infinity },
+    expected: { duration: -Infinity } },
   { desc:     "a NaN duration",
-    input:    {duration: NaN},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: NaN,
-               direction: "normal"} },
+    input:    { duration: NaN },
+    expected: { duration: NaN } },
   { desc:     "a negative duration",
-    input:    {duration: -1},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: -1,
-               direction: "normal"} },
+    input:    { duration: -1 },
+    expected: { duration: -1 } },
   { desc:     "a string duration",
-    input:    {duration: "merrychristmas"},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: "merrychristmas",
-               direction: "normal"} },
+    input:    { duration: "merrychristmas" },
+    expected: { duration: "merrychristmas" } },
   { desc:     "an auto duration",
-    input:    {duration: "auto"},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: "auto",
-               direction: "normal"} },
+    input:    { duration: "auto" },
+    expected: { duration: "auto" } },
   { desc:     "an Infinity iterations",
-    input:    {iterations: Infinity},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: Infinity,
-               duration: "auto",
-               direction: "normal"} },
+    input:    { iterations: Infinity },
+    expected: { iterations: Infinity } },
   { desc:     "a negative Infinity iterations",
-    input:    {iterations: -Infinity},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: -Infinity,
-               duration: "auto",
-               direction: "normal"} },
+    input:    { iterations: -Infinity },
+    expected: { iterations: -Infinity } },
   { desc:     "a NaN iterations",
-    input:    {iterations: NaN},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: NaN,
-               duration: "auto",
-               direction: "normal"} },
+    input:    { iterations: NaN },
+    expected: { iterations: NaN } },
   { desc:     "a negative iterations",
-    input:    {iterations: -1},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: -1,
-               duration: "auto",
-               direction: "normal"} },
+    input:    { iterations: -1 },
+    expected: { iterations: -1 } },
   { desc:     "an auto fill",
-    input:    {fill: "auto"},
-    expected: {delay: 0,
-               fill: "auto",
-               iterations: 1,
-               duration: "auto",
-               direction: "normal"} },
+    input:    { fill: "auto" },
+    expected: { fill: "auto" } },
   { desc:     "a forwards fill",
-    input:    {fill: "forwards"},
-    expected: {delay: 0,
-               fill: "forwards",
-               iterations: 1,
-               duration: "auto",
-               direction: "normal"} }
+    input:    { fill: "forwards" },
+    expected: { fill: "forwards" } }
 ];
 
 gKeyframeEffectOptionTests.forEach(function(stest) {
@@ -618,16 +546,43 @@ gKeyframeEffectOptionTests.forEach(function(stest) {
                                             {left: ["10px", "20px"]},
                                             stest.input);
 
+    // Helper function to provide default expected values when the test does
+    // not supply them.
+    var expected = function(field, defaultValue) {
+      return field in stest.expected ? stest.expected[field] : defaultValue;
+    };
+
     var timing = effect.timing;
-    assert_equals(timing.delay, stest.expected.delay, "timing delay");
-    assert_equals(timing.fill, stest.expected.fill, "timing fill");
-    assert_equals(timing.iterations, stest.expected.iterations,
+    assert_equals(timing.delay, expected("delay", 0),
+                  "timing delay");
+    assert_equals(timing.fill, expected("fill", "auto"),
+                  "timing fill");
+    assert_equals(timing.iterations, expected("iterations", 1),
                   "timing iterations");
-    assert_equals(timing.duration, stest.expected.duration, "timing duration");
-    assert_equals(timing.direction, stest.expected.direction,
+    assert_equals(timing.duration, expected("duration", "auto"),
+                  "timing duration");
+    assert_equals(timing.direction, expected("direction", "normal"),
                   "timing direction");
+
   }, "a KeyframeEffectReadOnly constructed by " + stest.desc);
 });
+
+test(function(t) {
+  var effect = new KeyframeEffect(target,
+                                  { left: ["10px", "20px"] });
+
+  assert_class_string(effect, "KeyframeEffect");
+  assert_class_string(effect.timing, "AnimationEffectTiming");
+}, "KeyframeEffect constructor creates an AnimationEffectTiming timing object");
+
+test(function(t) {
+  var test_error = { name: "test" };
+
+  assert_throws(test_error, function() {
+    new KeyframeEffect(target, { get left() { throw test_error }})
+  });
+}, "KeyframeEffect constructor propagates exceptions generated by accessing"
+   + " the options object");
 
 done();
 </script>
