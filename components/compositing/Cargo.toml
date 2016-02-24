@@ -82,10 +82,10 @@ git = "https://github.com/servo/gaol"
 git = "https://github.com/servo/gaol"
 
 [dependencies.webrender_traits]
-git = "https://github.com/glennw/webrender_traits"
+git = "https://github.com/servo/webrender_traits"
 
 [dependencies.webrender]
-git = "https://github.com/glennw/webrender"
+git = "https://github.com/servo/webrender"
 
 [dependencies]
 app_units = {version = "0.2.1", features = ["plugins"]}

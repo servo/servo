@@ -70,7 +70,7 @@ features = ["plugins"]
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies.webrender_traits]
-git = "https://github.com/glennw/webrender_traits"
+git = "https://github.com/servo/webrender_traits"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.2"

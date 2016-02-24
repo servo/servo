@@ -35,7 +35,7 @@ path = "../plugins"
 path = "../util"
 
 [dependencies.webrender_traits]
-git = "https://github.com/glennw/webrender_traits"
+git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
 cssparser = {version = "0.5.3", features = ["heap_size", "serde-serialization"]}
