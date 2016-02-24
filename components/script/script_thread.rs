@@ -27,10 +27,10 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, RootCollection, trace_roots};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
-use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
+use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
 use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
@@ -91,7 +91,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
-use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -543,7 +542,8 @@ pub struct ScriptThread {
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
+    /// The topmost element over the mouse.
+    topmost_mouse_over_target: MutNullableHeap<JS<Element>>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
@@ -789,7 +789,7 @@ impl ScriptThread {
             devtools_sender: ipc_devtools_sender,
 
             js_runtime: Rc::new(runtime),
-            mouse_over_targets: DOMRefCell::new(vec!()),
+            topmost_mouse_over_target: MutNullableHeap::new(Default::default()),
             closed_pipelines: DOMRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,
@@ -1979,46 +1979,55 @@ impl ScriptThread {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
 
-                let mut prev_mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
-                for target in &*self.mouse_over_targets.borrow_mut() {
-                    prev_mouse_over_targets.push(target.clone());
+                // Get the previous target temporarily
+                let prev_mouse_over_target = self.topmost_mouse_over_target.get();
+
+                document.handle_mouse_move_event(self.js_runtime.rt(), point,
+                                                 &self.topmost_mouse_over_target);
+
+                // Short-circuit if nothing changed
+                if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
+                    return;
                 }
 
-                // We temporarily steal the list of targets over which the mouse is to pass it to
-                // handle_mouse_move_event() in a safe RootedVec container.
-                let mut mouse_over_targets = RootedVec::new();
-                std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
-                document.handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
-
-                // Notify Constellation about anchors that are no longer mouse over targets.
-                for target in &*prev_mouse_over_targets {
-                    if !mouse_over_targets.contains(target) && target.is::<HTMLAnchorElement>() {
-                        let event = ConstellationMsg::NodeStatus(None);
-                        let ConstellationChan(ref chan) = self.constellation_chan;
-                        chan.send(event).unwrap();
-                        break;
-                    }
-                }
+                let mut state_already_changed = false;
 
                 // Notify Constellation about the topmost anchor mouse over target.
-                for target in &*mouse_over_targets {
-                    if target.is::<HTMLAnchorElement>() {
-                        let status = target.get_attribute(&ns!(), &atom!("href"))
-                            .and_then(|href| {
-                                let value = href.value();
-                                let url = document.url();
-                                url.join(&value).map(|url| url.serialize()).ok()
-                            });
+                if let Some(target) = self.topmost_mouse_over_target.get() {
+                    if let Some(anchor) = target.upcast::<Node>()
+                                                .inclusive_ancestors()
+                                                .filter_map(Root::downcast::<HTMLAnchorElement>)
+                                                .next() {
+                        let status = anchor.upcast::<Element>()
+                                           .get_attribute(&ns!(), &atom!("href"))
+                                           .and_then(|href| {
+                                               let value = href.value();
+                                               let url = document.url();
+                                               url.join(&value).map(|url| url.serialize()).ok()
+                                           });
+
                         let event = ConstellationMsg::NodeStatus(status);
                         let ConstellationChan(ref chan) = self.constellation_chan;
                         chan.send(event).unwrap();
-                        break;
+
+                        state_already_changed = true;
                     }
                 }
 
-                std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
+                // We might have to reset the anchor state
+                if !state_already_changed {
+                    if let Some(target) = prev_mouse_over_target {
+                        if let Some(_) = target.upcast::<Node>()
+                                               .inclusive_ancestors()
+                                               .filter_map(Root::downcast::<HTMLAnchorElement>)
+                                               .next() {
+                            let event = ConstellationMsg::NodeStatus(None);
+                            let ConstellationChan(ref chan) = self.constellation_chan;
+                            chan.send(event).unwrap();
+                        }
+                    }
+                }
             }
-
             TouchEvent(event_type, identifier, point) => {
                 let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
                 match event_type {
