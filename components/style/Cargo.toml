@@ -36,7 +36,7 @@ selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
-string_cache = {version = "0.2.9", features = ["heap_size"]}
+string_cache = {version = "0.2.10", features = ["heap_size"]}
 time = "0.1"
 url = {version = "0.5.5", features = ["heap_size"]}
 

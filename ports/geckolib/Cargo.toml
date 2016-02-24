@@ -21,7 +21,7 @@ log = "0.3"
 num_cpus = "0.2.2"
 selectors = {version = "0.5", features = ["heap_size"]}
 smallvec = "0.1"
-string_cache = {version = "0.2.9", features = ["heap_size"]}
+string_cache = {version = "0.2.10", features = ["heap_size"]}
 url = {version = "0.5.5", features = ["heap_size"]}
 
 [dependencies.plugins]

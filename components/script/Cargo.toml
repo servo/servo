@@ -84,7 +84,7 @@ rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size"]}
 serde = "0.6"
 smallvec = "0.1"
-string_cache = {version = "0.2.9", features = ["heap_size", "unstable"]}
+string_cache = {version = "0.2.10", features = ["heap_size", "unstable"]}
 time = "0.1.12"
 unicase = "1.0"
 url = {version = "0.5.5", features = ["heap_size"]}
