@@ -129,6 +129,16 @@ impl DOMTokenListMethods for DOMTokenList {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-value
+    fn Value(&self) -> DOMString {
+        self.element.get_string_attribute(&self.local_name)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-value
+    fn SetValue(&self, value: DOMString) {
+        self.element.set_tokenlist_attribute(&self.local_name, value);
+    }
+
     // https://dom.spec.whatwg.org/#concept-dtl-serialize
     fn Stringifier(&self) -> DOMString {
         self.element.get_string_attribute(&self.local_name)

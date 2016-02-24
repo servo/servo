@@ -28,7 +28,7 @@ interface Element : Node {
            attribute DOMString id;
   [Pure]
            attribute DOMString className;
-  [SameObject]
+  [SameObject, PutForwards=value]
   readonly attribute DOMTokenList classList;
 
   [SameObject]
