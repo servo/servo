@@ -1932,11 +1932,9 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
         let name = Atom::from(&*local_name);
-        // repetition used because string_cache::atom::Atom is non-copyable
-        let l_name = Atom::from(&*local_name);
         let value = AttrValue::String(DOMString::new());
 
-        Ok(Attr::new(&self.window, name, value, l_name, ns!(), None, None))
+        Ok(Attr::new(&self.window, name.clone(), value, name, ns!(), None, None))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattributens
