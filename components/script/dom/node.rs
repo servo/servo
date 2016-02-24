@@ -518,7 +518,11 @@ impl Node {
     }
 
     pub fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
-        self == parent || parent.ancestors().any(|ancestor| ancestor.r() == self)
+        self == parent || self.is_ancestor_of(parent)
+    }
+
+    pub fn is_ancestor_of(&self, parent: &Node) -> bool {
+        parent.ancestors().any(|ancestor| ancestor.r() == self)
     }
 
     pub fn following_siblings(&self) -> NodeSiblingIterator {
