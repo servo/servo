@@ -19,50 +19,63 @@
     </tbody>
 </table>
 <script>
-test(function() {
-    var event_type = "click";
-    var target = document.getElementById("target");
-    var targets = [
-        window,
+function targetsForDocumentChain(document) {
+    return [
         document,
         document.documentElement,
         document.body,
         document.getElementById("table"),
         document.getElementById("table-body"),
-        document.getElementById("parent"),
-        target,
+        document.getElementById("parent")
     ];
-    var expected_targets = targets.concat(target);
-    var phases = [
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.AT_TARGET,
-        Event.AT_TARGET,
-    ];
+}
 
+function testChain(document, targetParents, phases, label) {
+    test(function() {
+        var event_type = "click";
+        var target = document.getElementById("target");
+        var targets = targetParents.concat(target);
+        var expected_targets = targets.concat(target);
 
-    var actual_targets = [], actual_phases = [];
-    var test_event = function(evt) {
-        actual_targets.push(evt.currentTarget);
-        actual_phases.push(evt.eventPhase);
-    }
+        var actual_targets = [], actual_phases = [];
+        var test_event = function(evt) {
+            actual_targets.push(evt.currentTarget);
+            actual_phases.push(evt.eventPhase);
+        }
 
-    for (var i = 0; i < targets.length; i++) {
-        targets[i].addEventListener(event_type, test_event, true);
-        targets[i].addEventListener(event_type, test_event, false);
-    }
+        for (var i = 0; i < targets.length; i++) {
+            targets[i].addEventListener(event_type, test_event, true);
+            targets[i].addEventListener(event_type, test_event, false);
+        }
 
-    var evt = document.createEvent("Event");
-    evt.initEvent(event_type, false, true);
+        var evt = document.createEvent("Event");
+        evt.initEvent(event_type, false, true);
 
-    target.dispatchEvent(evt);
+        target.dispatchEvent(evt);
 
-    assert_array_equals(actual_targets, expected_targets, "targets");
-    assert_array_equals(actual_phases, phases, "phases");
-}, "Event.dispatchEvent with Event.bubbles set to false.");
+        assert_array_equals(actual_targets, expected_targets, "targets");
+        assert_array_equals(actual_phases, phases, "phases");
+    }, label + ": Event.dispatchEvent with Event.bubbles set to false.");
+}
+
+var phasesForDocumentChain = [
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.AT_TARGET,
+    Event.AT_TARGET,
+];
+
+chainWithWindow = [window].concat(targetsForDocumentChain(document));
+testChain(
+    document, chainWithWindow, [Event.CAPTURING_PHASE].concat(phasesForDocumentChain),
+    "In document with a browsing context");
+
+var documentClone = document.cloneNode(true);
+testChain(
+    documentClone, targetsForDocumentChain(documentClone), phasesForDocumentChain,
+    "In document without a browsing context");
 </script>
