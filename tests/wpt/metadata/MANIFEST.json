@@ -34514,6 +34514,12 @@
     "deleted": [],
     "items": {
       "testharness": {
+        "dom/lists/DOMTokenList-value.html": [
+          {
+            "path": "dom/lists/DOMTokenList-value.html",
+            "url": "/dom/lists/DOMTokenList-value.html"
+          }
+        ],
         "html/webappapis/scripting/events/event-handler-processing-algorithm.html": [
           {
             "path": "html/webappapis/scripting/events/event-handler-processing-algorithm.html",
