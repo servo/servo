@@ -42,9 +42,10 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
-use query::{process_node_geometry_request, process_offset_parent_query, process_resolved_style_request};
+use query::{process_node_geometry_request, process_offset_parent_query};
+use query::{process_resolved_style_request, process_margin_style_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
-use script::layout_interface::{LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{LayoutRPC, OffsetParentResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
 use script::reporter::CSSErrorReporter;
@@ -117,6 +118,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
+
+    /// A queued response for the offset parent/rect of a node.
+    pub margin_style_response: MarginStyleResponse,
 }
 
 /// Information needed by the layout thread.
@@ -455,6 +459,7 @@ impl LayoutThread {
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
+                    margin_style_response: MarginStyleResponse::empty(),
               })),
               error_reporter: CSSErrorReporter {
                   pipelineid: id,
@@ -986,6 +991,9 @@ impl LayoutThread {
                     ReflowQueryType::OffsetParentQuery(_) => {
                         rw_data.offset_parent_response = OffsetParentResponse::empty();
                     },
+                    ReflowQueryType::MarginStyleQuery(_) => {
+                        rw_data.margin_style_response = MarginStyleResponse::empty();
+                    },
                     ReflowQueryType::NoQuery => {}
                 }
                 return;
@@ -1128,6 +1136,10 @@ impl LayoutThread {
                 ReflowQueryType::OffsetParentQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.offset_parent_response = process_offset_parent_query(node, &mut root_flow);
+                },
+                ReflowQueryType::MarginStyleQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.margin_style_response = process_margin_style_query(node);
                 },
                 ReflowQueryType::NoQuery => {}
             }

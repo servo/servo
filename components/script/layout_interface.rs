@@ -23,6 +23,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::context::ReflowGoal;
+use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
 use style::selector_impl::PseudoElement;
 use style::servo::Stylesheet;
 use url::Url;
@@ -109,8 +110,28 @@ pub trait LayoutRPC {
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
+    /// Query layout for the resolve values of the margin properties for an element.
+    fn margin_style(&self) -> MarginStyleResponse;
 }
 
+#[derive(Clone)]
+pub struct MarginStyleResponse {
+    pub top: margin_top::computed_value::T,
+    pub right: margin_right::computed_value::T,
+    pub bottom: margin_bottom::computed_value::T,
+    pub left: margin_left::computed_value::T,
+}
+
+impl MarginStyleResponse {
+    pub fn empty() -> MarginStyleResponse {
+        MarginStyleResponse {
+            top: margin_top::computed_value::T::Auto,
+            right: margin_right::computed_value::T::Auto,
+            bottom: margin_bottom::computed_value::T::Auto,
+            left: margin_left::computed_value::T::Auto,
+        }
+    }
+}
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
@@ -145,6 +166,7 @@ pub enum ReflowQueryType {
     NodeGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),
+    MarginStyleQuery(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.
