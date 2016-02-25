@@ -424,6 +424,8 @@ fn http_fetch(request: Rc<Request>,
 
         response = Some(Rc::new(fetch_result));
         actual_response = response.clone();
+    } else {
+        unreachable!();
     }
 
     // response and actual_response are guaranteed to be something by now
@@ -440,7 +442,7 @@ fn http_fetch(request: Rc<Request>,
             response = match request.redirect_mode.get() {
                 RedirectMode::Error => Rc::new(Response::network_error()),
                 RedirectMode::Manual => {
-                    let res = Rc::try_unwrap(actual_response).ok().unwrap();
+                    let res = (*actual_response).clone();
                     Rc::new(Response::to_filtered(res, ResponseType::OpaqueRedirect))
                 },
                 RedirectMode::Follow => Rc::new(http_redirect_fetch(request, response, cors_flag))

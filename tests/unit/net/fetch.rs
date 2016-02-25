@@ -17,7 +17,7 @@ use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener};
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::{self, Duration};
 use unicase::UniCase;
