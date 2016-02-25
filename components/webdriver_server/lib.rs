@@ -55,6 +55,21 @@ use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse
 use webdriver::response::{WebDriverResponse, WindowSizeResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
+macro_rules! script_command_handle {
+    ($self_:ident, $i0:ident, $t:path) => {
+        $self_.constellation_chan.send(ConstellationMsg::WebDriverCommand(
+                WebDriverCommandMsg::ScriptCommand(try!($self_.frame_pipeline()),
+                                                   $t($i0)))
+                                      ).unwrap();
+    };
+    ($self_:ident, $i0:ident, $t:path, $($e:expr),*) => {
+        $self_.constellation_chan.send(ConstellationMsg::WebDriverCommand(
+                WebDriverCommandMsg::ScriptCommand(try!($self_.frame_pipeline()),
+                                                   $t($($e),*, $i0)))
+                                      ).unwrap();
+    };
+}
+
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),
                 (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs),
@@ -336,13 +351,8 @@ impl Handler {
     }
 
     fn handle_current_url(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.root_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
-                                                         WebDriverScriptCommand::GetUrl(sender));
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetUrl);
 
         let url = receiver.recv().unwrap();
 
@@ -350,13 +360,9 @@ impl Handler {
     }
 
     fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.root_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
-                                                         WebDriverScriptCommand::GetWindowSize(sender));
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetWindowSize);
 
         match receiver.recv().unwrap() {
             Some(window_size) => {
@@ -369,14 +375,9 @@ impl Handler {
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.root_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let element_id = element.id.clone();
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
-                                                         WebDriverScriptCommand::IsEnabled(element_id, sender));
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::IsEnabled, element.id.clone());
 
         match receiver.recv().unwrap() {
             Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse::new(is_enabled.to_json()))),
@@ -385,14 +386,9 @@ impl Handler {
     }
 
     fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.root_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let element_id = element.id.clone();
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
-                                                         WebDriverScriptCommand::IsSelected(element_id, sender));
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::IsSelected, element.id.clone());
 
         match receiver.recv().unwrap() {
             Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse::new(is_selected.to_json()))),
@@ -422,12 +418,10 @@ impl Handler {
     }
 
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.root_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
-                                                         WebDriverScriptCommand::GetTitle(sender));
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetTitle);
+
         let value = receiver.recv().unwrap();
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
@@ -447,17 +441,15 @@ impl Handler {
     }
 
     fn handle_find_element(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                            "Unsupported locator strategy"))
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        script_command_handle!(self, sender, WebDriverScriptCommand::FindElementCSS, parameters.value.clone());
+
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let value_resp = value.map(|x| WebElement::new(x).to_json()).to_json();
@@ -519,17 +511,13 @@ impl Handler {
 
 
     fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                            "Unsupported locator strategy"))
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::FindElementCSS, parameters.value.clone());
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let resp_value: Vec<Json> = value.into_iter().map(
@@ -543,12 +531,8 @@ impl Handler {
 
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementRect(element.id.clone(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetElementRect, element.id.clone());
         match receiver.recv().unwrap() {
             Ok(rect) => {
                 let response = ElementRectResponse::new(rect.origin.x, rect.origin.y,
@@ -561,12 +545,8 @@ impl Handler {
     }
 
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetElementText, element.id.clone());
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -575,23 +555,15 @@ impl Handler {
     }
 
     fn handle_active_element(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetActiveElement(sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetActiveElement);
         let value = receiver.recv().unwrap().map(|x| WebElement::new(x).to_json());
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
 
     fn handle_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetElementTagName, element.id.clone());
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -600,12 +572,9 @@ impl Handler {
     }
 
     fn handle_element_attribute(&self, element: &WebElement, name: &str) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementAttribute(element.id.clone(), name.to_owned(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetElementAttribute, element.id.clone(),
+                               name.to_owned());
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -614,12 +583,9 @@ impl Handler {
     }
 
     fn handle_element_css(&self, element: &WebElement, name: &str) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.frame_pipeline());
-
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetElementCSS(element.id.clone(), name.to_owned(), sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        script_command_handle!(self, sender, WebDriverScriptCommand::GetElementCSS, element.id.clone(),
+                               name.to_owned());
         match receiver.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
