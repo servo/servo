@@ -178,47 +178,27 @@ impl<'a> LayoutContext<'a> {
 
     pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<ImageOrMetadataAvailable> {
+        // If we are emitting an output file, load the image synchronously.
+        if opts::get().output_file.is_some() || opts::get().exit_after_load {
+            return self.get_or_request_image(url, use_placeholder)
+                       .map(|img| ImageOrMetadataAvailable::ImageAvailable(img));
+        }
         // See if the image is already available
         let result = self.shared.image_cache_thread.find_image_or_metadata(url.clone(),
-                                                                         use_placeholder);
-
+                                                                           use_placeholder);
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
-            Err(state) => {
-                // If we are emitting an output file, then we need to block on
-                // image load or we risk emitting an output file missing the image.
-                let is_sync = opts::get().output_file.is_some() ||
-                              opts::get().exit_after_load;
-
-                match (state, is_sync) {
-                    // Image failed to load, so just return nothing
-                    (ImageState::LoadError, _) => None,
-                    // Not loaded, test mode - load the image synchronously
-                    (_, true) => {
-                        let (sync_tx, sync_rx) = ipc::channel().unwrap();
-                        self.shared.image_cache_thread.request_image(url,
-                                                                   ImageCacheChan(sync_tx),
-                                                                   None);
-                        match sync_rx.recv().unwrap().image_response {
-                            ImageResponse::Loaded(image) |
-                            ImageResponse::PlaceholderLoaded(image) =>
-                                Some(ImageOrMetadataAvailable::ImageAvailable(image)),
-                            ImageResponse::None | ImageResponse::MetadataLoaded(_) =>
-                                None,
-                        }
-                    }
-                    // Not yet requested, async mode - request image or metadata from the cache
-                    (ImageState::NotRequested, false) => {
-                        let sender = self.shared.image_cache_sender.lock().unwrap().clone();
-                        self.shared.image_cache_thread.request_image_and_metadata(url, sender, None);
-                        None
-                    }
-                    // Image has been requested, is still pending. Return no image
-                    // for this paint loop. When the image loads it will trigger
-                    // a reflow and/or repaint.
-                    (ImageState::Pending, false) => None,
-                }
+            // Image failed to load, so just return nothing
+            Err(ImageState::LoadError) => None,
+            // Not yet requested, async mode - request image or metadata from the cache
+            Err(ImageState::NotRequested) => {
+                let sender = self.shared.image_cache_sender.lock().unwrap().clone();
+                self.shared.image_cache_thread.request_image_and_metadata(url, sender, None);
+                None
             }
+            // Image has been requested, is still pending. Return no image for this paint loop.
+            // When the image loads it will trigger a reflow and/or repaint.
+            Err(ImageState::Pending) => None,
         }
     }
 
