@@ -9,7 +9,6 @@
 
 import contextlib
 import os
-import fnmatch
 import itertools
 import re
 import StringIO
@@ -21,44 +20,59 @@ from licenseck import licenses
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".lock", ".py", ".toml", ".webidl"]
 
 ignored_files = [
-    # Upstream
-    os.path.join(".", "support", "*"),
-    os.path.join(".", "tests", "wpt", "css-tests", "*"),
-    os.path.join(".", "tests", "wpt", "harness", "*"),
-    os.path.join(".", "tests", "wpt", "sync", "*"),
-    os.path.join(".", "tests", "wpt", "sync_css", "*"),
-    os.path.join(".", "tests", "wpt", "update", "*"),
-    os.path.join(".", "tests", "wpt", "web-platform-tests", "*"),
-    os.path.join(".", "python", "mach", "*"),
-    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser", "*"),
-    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply", "*"),
-    os.path.join(".", "python", "_virtualenv", "*"),
-
     # Generated and upstream code combined with our own. Could use cleanup
-    os.path.join(".", "target", "*"),
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
-    os.path.join(".", "ports", "cef", "*"),
     os.path.join(".", "ports", "geckolib", "bindings.rs"),
-
     # MIT license
     os.path.join(".", "components", "util", "deque", "mod.rs"),
+    # Hidden files
+    os.path.join(".", "."),
+]
 
-    # Hidden files/directories
-    os.path.join(".", ".*"),
+ignored_dirs = [
+    # Upstream
+    os.path.join(".", "support"),
+    os.path.join(".", "tests", "wpt", "css-tests"),
+    os.path.join(".", "tests", "wpt", "harness"),
+    os.path.join(".", "tests", "wpt", "update"),
+    os.path.join(".", "tests", "wpt", "web-platform-tests"),
+    os.path.join(".", "python", "mach"),
+    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser"),
+    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply"),
+    os.path.join(".", "python", "_virtualenv"),
+    # Generated and upstream code combined with our own. Could use cleanup
+    os.path.join(".", "target"),
+    os.path.join(".", "ports", "cef"),
+    # Hidden directories
+    os.path.join(".", "."),
 ]
 
 
-def should_check(file_name):
-    if os.path.basename(file_name) == "Cargo.lock":
-        return True
-    if ".#" in file_name:
-        return False
-    if os.path.splitext(file_name)[1] not in filetypes_to_check:
-        return False
-    for pattern in ignored_files:
-        if fnmatch.fnmatch(file_name, pattern):
-            return False
-    return True
+# A simple wrapper for iterators to show progress (note that it's inefficient for giant iterators)
+def progress_wrapper(iterator):
+    list_of_stuff = list(iterator)
+    total_files, progress = len(list_of_stuff), 0
+    for idx, thing in enumerate(list_of_stuff):
+        progress = int(float(idx + 1) / total_files * 100)
+        sys.stdout.write('\r  Progress: %s%% (%d/%d)' % (progress, idx + 1, total_files))
+        sys.stdout.flush()
+        yield thing
+
+
+def filter_files(start_dir, faster, progress):
+    file_iter = get_file_list(start_dir, faster, ignored_dirs)
+    if progress:
+        file_iter = progress_wrapper(file_iter)
+    for file_name in file_iter:
+        if os.path.basename(file_name) == "Cargo.lock":
+            yield file_name
+        if ".#" in file_name:
+            continue
+        if os.path.splitext(file_name)[1] not in filetypes_to_check:
+            continue
+        if any(file_name.startswith(ignored_file) for ignored_file in ignored_files):
+            continue
+        yield file_name
 
 
 EMACS_HEADER = "/* -*- Mode:"
@@ -499,6 +513,7 @@ def check_spec(file_name, lines):
 
 
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions):
+    print 'Checking files for tidiness...'
     for filename in files_to_check:
         with open(filename, "r") as f:
             contents = f.read()
@@ -512,9 +527,14 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def get_wpt_files(only_changed_files=False):
-    for f in get_file_list("./tests/wpt/web-platform-tests/", only_changed_files):
-        yield f[len("./tests/wpt/web-platform-tests/"):]
+def get_wpt_files(only_changed_files, progress):
+    print '\nRunning the WPT lint...'
+    wpt_dir = os.path.join(".", "tests", "wpt", "web-platform-tests" + os.sep)
+    file_iter = get_file_list(os.path.join(wpt_dir), only_changed_files)
+    if progress:
+        file_iter = progress_wrapper(file_iter)
+    for f in file_iter:
+        yield f[len(wpt_dir):]
 
 
 def check_wpt_lint_errors(files):
@@ -526,7 +546,7 @@ def check_wpt_lint_errors(files):
         yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
-def get_file_list(directory, only_changed_files=False):
+def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
     if only_changed_files:
         # only check the files that have been changed since the last merge
         args = ["git", "log", "-n1", "--author=bors-servo", "--format=%H"]
@@ -536,30 +556,35 @@ def get_file_list(directory, only_changed_files=False):
         # also check untracked files
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
-        return (os.path.join(".", f) for f in file_list.splitlines())
+        for f in file_list.splitlines():
+            yield os.path.join('.', f)
+    elif exclude_dirs:
+        for root, dirs, files in os.walk(directory, topdown=True):
+            # modify 'dirs' in-place so that we don't do unwanted traversals in excluded directories
+            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in ignored_dirs)]
+            for rel_path in files:
+                yield os.path.join(root, rel_path)
     else:
-        return (os.path.join(r, f) for r, _, files in os.walk(directory) for f in files)
+        for root, _, files in os.walk(directory):
+            for f in files:
+                yield os.path.join(root, f)
 
 
-def scan(faster=False):
+def scan(faster=False, progress=True):
     # standard checks
-    files_to_check = filter(should_check, get_file_list(".", faster))
+    files_to_check = filter_files('.', faster, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
     # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster))
-
+    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
     # collect errors
     errors = itertools.chain(errors, wpt_lint_errors)
 
     error = None
     for error in errors:
-        print "\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
-
+        print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
     if error is None:
-        print "\033[92mtidy reported no errors.\033[0m"
-        return 0
-    else:
-        return 1
+        print "\n\033[92mtidy reported no errors.\033[0m"
+    return int(error is not None)
