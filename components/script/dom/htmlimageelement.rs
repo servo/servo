@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -14,10 +15,11 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -28,7 +30,7 @@ use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
 use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
-use util::str::DOMString;
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -171,6 +173,9 @@ pub trait LayoutHTMLImageElementHelpers {
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url>;
+
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
@@ -182,6 +187,28 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
         (*self.unsafe_get()).url.borrow_for_layout().clone()
+    }
+
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .map(AttrValue::as_dimension)
+                .cloned()
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &atom!("height"))
+                .map(AttrValue::as_dimension)
+                .cloned()
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 }
 
@@ -214,7 +241,9 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    make_uint_setter!(SetWidth, "width");
+    fn SetWidth(&self, value: u32) {
+        image_dimension_setter(self.upcast(), atom!("width"), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
@@ -224,7 +253,9 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    make_uint_setter!(SetHeight, "height");
+    fn SetHeight(&self, value: u32) {
+        image_dimension_setter(self.upcast(), atom!("height"), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
@@ -310,9 +341,22 @@ impl VirtualMethods for HTMLImageElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("name") => AttrValue::from_atomic(value),
-            &atom!("width") | &atom!("height") |
+            &atom!("width") | &atom!("height") => AttrValue::from_dimension(value),
             &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value, 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
+}
+
+fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
+    // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
+    // a dimension for rendering.
+    let value = if value > UNSIGNED_LONG_MAX {
+        0
+    } else {
+        value
+    };
+    let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
+    let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
+    element.set_attribute(&attr, value);
 }
