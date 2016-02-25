@@ -16,9 +16,10 @@ import StringIO
 import site
 import subprocess
 import sys
+import json
 from licenseck import licenses
 
-filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".lock", ".py", ".toml", ".webidl"]
+filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".lock", ".py", ".toml", ".webidl", ".json"]
 
 ignored_files = [
     # Upstream
@@ -67,7 +68,7 @@ MAX_LICENSE_LINESPAN = max(len(license.splitlines()) for license in licenses)
 
 
 def check_license(file_name, lines):
-    if file_name.endswith(".toml") or file_name.endswith(".lock"):
+    if file_name.endswith(".toml") or file_name.endswith(".lock") or file_name.endswith(".json"):
         raise StopIteration
     while lines and (lines[0].startswith(EMACS_HEADER) or lines[0].startswith(VIM_HEADER)):
         lines = lines[1:]
@@ -79,7 +80,7 @@ def check_license(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if file_name.endswith(".lock"):
+    if file_name.endswith(".lock") or file_name.endswith(".json"):
         raise StopIteration
     max_length = 120
     if len(line.rstrip('\n')) > max_length:
@@ -455,6 +456,18 @@ def check_webidl_spec(file_name, contents):
     yield 0, "No specification link found."
 
 
+def check_json(filename, contents):
+    if not filename.endswith(".json"):
+        raise StopIteration
+
+    try:
+        json.loads(contents)
+    except ValueError as e:
+        match = re.search(r"line (\d+) ", e.message)
+        line_no = match and match.group(1)
+        yield (line_no, e.message)
+
+
 def check_spec(file_name, lines):
     base_path = "components/script/dom/"
     if base_path not in file_name:
@@ -544,7 +557,7 @@ def get_file_list(directory, only_changed_files=False):
 def scan(faster=False):
     # standard checks
     files_to_check = filter(should_check, get_file_list(".", faster))
-    checking_functions = (check_flake8, check_lock, check_webidl_spec)
+    checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
