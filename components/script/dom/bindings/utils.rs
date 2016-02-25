@@ -4,6 +4,7 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
+use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
@@ -18,17 +19,18 @@ use js;
 use js::error::throw_type_error;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
-use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT};
-use js::glue::{RUST_JSID_TO_INT, UnwrapObject};
+use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
+use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{CallArgs, CompartmentOptions, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSClass, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTraceOp, JSTracer, JSVersion, JSWrapObjectCallbacks};
-use js::jsapi::{JS_DeletePropertyById1, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetProperty, JS_GetPrototype};
-use js::jsapi::{JS_GetReservedSlot, JS_HasProperty, JS_HasPropertyById, JS_InitStandardClasses};
-use js::jsapi::{JS_IsExceptionPending, JS_NewGlobalObject, JS_ObjectToOuterObject, JS_SetProperty};
-use js::jsapi::{JS_SetReservedSlot, MutableHandleValue, ObjectOpResult, OnNewGlobalHookOption};
-use js::jsapi::{RootedObject};
+use js::jsapi::{JS_DeletePropertyById1, JS_EnumerateStandardClasses, JS_FireOnNewGlobalObject};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetLatin1StringCharsAndLength};
+use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
+use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject, JS_NewGlobalObject};
+use js::jsapi::{JS_ObjectToOuterObject, JS_ResolveStandardClass, JS_SetProperty};
+use js::jsapi::{JS_SetReservedSlot, JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
+use js::jsapi::{OnNewGlobalHookOption, RootedObject};
 use js::jsval::{JSVal};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::rust::{GCMethods, ToString};
@@ -38,6 +40,7 @@ use std::default::Default;
 use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
+use std::slice;
 use util::non_geckolib::jsstring_to_str;
 
 /// Proxy handler for a WindowProxy.
@@ -334,7 +337,6 @@ pub fn create_dom_global(cx: *mut JSContext,
                            PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
 
         let _ac = JSAutoCompartment::new(cx, obj.ptr);
-        JS_InitStandardClasses(cx, obj.handle());
         JS_FireOnNewGlobalObject(cx, obj.handle());
         obj.ptr
     }
@@ -364,6 +366,56 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
                          &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>));
         }
     }
+}
+
+/// Enumerate lazy properties of a global object.
+pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: HandleObject) -> bool {
+    assert!(JS_IsGlobalObject(obj.get()));
+    if !JS_EnumerateStandardClasses(cx, obj) {
+        return false;
+    }
+    for init_fun in InterfaceObjectMap::MAP.values() {
+        init_fun(cx, obj);
+    }
+    true
+}
+
+/// Resolve a lazy global property, for interface objects and named constructors.
+pub unsafe extern "C" fn resolve_global(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        id: HandleId,
+        rval: *mut bool)
+        -> bool {
+    assert!(JS_IsGlobalObject(obj.get()));
+    if !JS_ResolveStandardClass(cx, obj, id, rval) {
+        return false;
+    }
+    if *rval {
+        return true;
+    }
+    if !RUST_JSID_IS_STRING(id) {
+        *rval = false;
+        return true;
+    }
+
+    let string = RUST_JSID_TO_STRING(id);
+    if !JS_StringHasLatin1Chars(string) {
+        *rval = false;
+        return true;
+    }
+    let mut length = 0;
+    let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
+    assert!(!ptr.is_null());
+    let bytes = slice::from_raw_parts(ptr, length as usize);
+
+    if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
+        init_fun(cx, obj);
+        *rval = true;
+    } else {
+        *rval = false;
+    }
+    true
 }
 
 unsafe extern "C" fn wrap(cx: *mut JSContext,

@@ -34494,7 +34494,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "WebIDL/ecmascript-binding/interface-object.html": [
+          {
+            "path": "WebIDL/ecmascript-binding/interface-object.html",
+            "url": "/WebIDL/ecmascript-binding/interface-object.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

@@ -1768,17 +1768,21 @@ class CGDOMJSClass(CGThing):
     def define(self):
         args = {
             "domClass": DOMClass(self.descriptor),
+            "enumerateHook": "None",
             "finalizeHook": FINALIZE_HOOK_NAME,
             "flags": "0",
             "name": str_to_const_array(self.descriptor.interface.identifier.name),
             "outerObjectHook": self.descriptor.outerObjectHook,
+            "resolveHook": "None",
             "slots": "1",
             "traceHook": TRACE_HOOK_NAME,
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
+            args["enumerateHook"] = "Some(enumerate_global)"
             args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
+            args["resolveHook"] = "Some(resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
@@ -1793,8 +1797,8 @@ static Class: DOMJSClass = DOMJSClass {
         delProperty: None,
         getProperty: None,
         setProperty: None,
-        enumerate: None,
-        resolve: None,
+        enumerate: %(enumerateHook)s,
+        resolve: %(resolveHook)s,
         convert: None,
         finalize: Some(%(finalizeHook)s),
         call: None,
@@ -2276,11 +2280,8 @@ JS_SetPrototype(cx, obj.handle(), proto.handle());
 %(copyUnforgeable)s
 (*raw).init_reflector(obj.ptr);
 
-let ret = Root::from_ref(&*raw);
-
-RegisterBindings::Register(cx, obj.handle());
-
-ret""" % {'copyUnforgeable': unforgeable, 'createObject': create})
+Root::from_ref(&*raw)\
+""" % {'copyUnforgeable': unforgeable, 'createObject': create})
 
 
 class CGIDLInterface(CGThing):
@@ -2375,9 +2376,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global')]
-        if not descriptor.interface.isCallback():
-            args.append(Argument('*mut ProtoOrIfaceArray', 'cache'))
+        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
+                Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
         self.properties = properties
@@ -2387,7 +2387,14 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
-create_callback_interface_object(cx, global, sConstants, %s);""" % str_to_const_array(name))
+let mut interface = RootedObject::new(cx, ptr::null_mut());
+create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
+assert!(!interface.ptr.is_null());
+(*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.ptr;
+if <*mut JSObject>::needs_post_barrier(interface.ptr) {
+    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize));
+}
+""" % {"id": name, "name": str_to_const_array(name)})
 
         if len(self.descriptor.prototypeChain) == 1:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
@@ -2668,14 +2675,14 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 
     def definition_body(self):
         if self.descriptor.interface.isCallback():
-            code = "CreateInterfaceObjects(cx, global);"
+            function = "GetConstructorObject"
         else:
-            code = """\
+            function = "GetProtoObject"
+        return CGGeneric("""\
+assert!(!global.get().is_null());
 let mut proto = RootedObject::new(cx, ptr::null_mut());
-GetProtoObject(cx, global, proto.handle_mut());
-assert!(!proto.ptr.is_null());
-"""
-        return CGGeneric("assert!(!global.get().is_null());\n" + code)
+%s(cx, global, proto.handle_mut());
+assert!(!proto.ptr.is_null());""" % function)
 
 
 def needCx(returnType, arguments, considerTypes):
@@ -4952,7 +4959,8 @@ class CGDescriptor(CGThing):
         cgThings = []
         if not descriptor.interface.isCallback():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
-        if descriptor.interface.hasInterfaceObject() and descriptor.hasDescendants():
+        if (descriptor.interface.hasInterfaceObject() and
+                descriptor.shouldHaveGetConstructorObjectMethod()):
             cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
         for m in descriptor.interface.members:
@@ -5277,23 +5285,6 @@ class CGDictionary(CGThing):
         return deps
 
 
-class CGRegisterProtos(CGAbstractMethod):
-    def __init__(self, config):
-        arguments = [
-            Argument('*mut JSContext', 'cx'),
-            Argument('HandleObject', 'global'),
-        ]
-        CGAbstractMethod.__init__(self, None, 'Register', 'void', arguments,
-                                  unsafe=False, pub=True)
-        self.config = config
-
-    def definition_body(self):
-        return CGList([
-            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(cx, global);" % desc.name)
-            for desc in self.config.getDescriptors(hasInterfaceObject=True, register=True)
-        ], "\n")
-
-
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
@@ -5436,12 +5427,12 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMClass, DOMJSClass}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
-            'dom::bindings::utils::{finalize_global, find_enum_string_index, generic_getter}',
-            'dom::bindings::utils::{generic_lenient_getter, generic_lenient_setter}',
+            'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
+            'dom::bindings::utils::{generic_getter, generic_lenient_getter, generic_lenient_setter}',
             'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',
             'dom::bindings::utils::{get_dictionary_property, get_property_on_prototype}',
             'dom::bindings::utils::{get_proto_or_iface_array, has_property_on_prototype}',
-            'dom::bindings::utils::{is_platform_object, set_dictionary_property}',
+            'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property}',
             'dom::bindings::utils::{throwing_constructor, trace_global}',
             'dom::bindings::trace::{JSTraceable, RootedTraceable}',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
@@ -6085,11 +6076,43 @@ class GlobalGenRoots():
     """
 
     @staticmethod
+    def InterfaceObjectMap(config):
+        mods = [
+            "dom::bindings::codegen",
+            "js::jsapi::{HandleObject, JSContext}",
+            "phf",
+        ]
+        imports = CGList([CGGeneric("use %s;" % mod) for mod in mods], "\n")
+
+        pairs = []
+        for d in config.getDescriptors(hasInterfaceObject=True):
+            binding = toBindingNamespace(d.name)
+            pairs.append((d.name, binding))
+            for ctor in d.interface.namedConstructors:
+                pairs.append((ctor.identifier.name, binding))
+        pairs.sort(key=operator.itemgetter(0))
+        mappings = [
+            CGGeneric('b"%s" => codegen::Bindings::%s::DefineDOMInterface as fn(_, _),' % pair)
+            for pair in pairs
+        ]
+        mapType = "phf::Map<&'static [u8], fn(*mut JSContext, HandleObject)>"
+        phf = CGWrapper(
+            CGIndenter(CGList(mappings, "\n")),
+            pre="pub static MAP: %s = phf_map! {\n" % mapType,
+            post="\n};\n")
+
+        return CGList([
+            CGGeneric(AUTOGENERATED_WARNING_COMMENT),
+            CGList([imports, phf], "\n\n")
+        ])
+
+    @staticmethod
     def PrototypeList(config):
         # Prototype ID enum.
         interfaces = config.getDescriptors(isCallback=False)
         protos = [d.name for d in interfaces]
-        constructors = [d.name for d in interfaces if d.hasDescendants()]
+        constructors = [d.name for d in config.getDescriptors(hasInterfaceObject=True)
+                        if d.shouldHaveGetConstructorObjectMethod()]
         proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
@@ -6115,15 +6138,12 @@ class GlobalGenRoots():
     def RegisterBindings(config):
         # TODO - Generate the methods we want
         code = CGList([
-            CGRegisterProtos(config),
             CGRegisterProxyHandlers(config),
         ], "\n")
 
         return CGImports(code, [], [], [
             'dom::bindings::codegen',
             'dom::bindings::codegen::PrototypeList::Proxies',
-            'js::jsapi::JSContext',
-            'js::jsapi::HandleObject',
             'libc',
         ], ignored_warnings=[])
 

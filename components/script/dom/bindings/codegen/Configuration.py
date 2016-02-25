@@ -345,6 +345,10 @@ class Descriptor(DescriptorProvider):
         return (self.interface.getUserData("hasConcreteDescendant", False) or
                 self.interface.getUserData("hasProxyDescendant", False))
 
+    def shouldHaveGetConstructorObjectMethod(self):
+        assert self.interface.hasInterfaceObject()
+        return self.interface.isCallback() or self.hasDescendants()
+
     def isGlobal(self):
         """
         Returns true if this is the primary interface for a global object
