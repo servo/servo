@@ -150,6 +150,18 @@ impl MIMEClassifier {
          }
     }
 
+    pub fn validate(&self) -> Result<(), String> {
+        try!(self.image_classifier.validate());
+        try!(self.audio_video_classifier.validate());
+        try!(self.scriptable_classifier.validate());
+        try!(self.plaintext_classifier.validate());
+        try!(self.archive_classifier.validate());
+        try!(self.binary_or_plaintext.validate());
+        try!(self.feeds_classifier.validate());
+        try!(self.font_classifier.validate());
+        Ok(())
+    }
+
     //some sort of iterator over the classifiers might be better?
     fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> (String, String) {
         let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::OFF;
@@ -231,6 +243,8 @@ pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(St
 //Interface used for composite types
 trait MIMEChecker {
     fn classify(&self, data: &[u8]) -> Option<(String, String)>;
+    /// Validate the MIME checker configuration
+    fn validate(&self) -> Result<(), String>;
 }
 
 trait Matches {
@@ -280,12 +294,12 @@ impl ByteMatcher {
         } else if data == self.pattern {
             Some(self.pattern.len())
         } else {
-            data[..data.len() - self.pattern.len()].iter()
+            data[..data.len() - self.pattern.len() + 1].iter()
                 .position(|x| !self.leading_ignore.contains(x))
                 .and_then(|start|
                     if data[start..].iter()
                         .zip(self.pattern.iter()).zip(self.mask.iter())
-                        .all(|((&data, &pattern), &mask)| (data & mask) == (pattern & mask)) {
+                        .all(|((&data, &pattern), &mask)| (data & mask) == pattern) {
                         Some(start + self.pattern.len())
                     } else {
                         None
@@ -299,6 +313,30 @@ impl MIMEChecker for ByteMatcher {
         self.matches(data).map(|_| {
             (self.content_type.0.to_owned(), self.content_type.1.to_owned())
         })
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        if self.pattern.len() == 0 {
+            return Err(format!(
+                "Zero length pattern for {}/{}",
+                self.content_type.0, self.content_type.1
+                ))
+        }
+        if self.pattern.len() != self.mask.len() {
+            return Err(format!(
+                "Unequal pattern and mask length for {}/{}",
+                self.content_type.0, self.content_type.1
+            ))
+        }
+        if self.pattern.iter().zip(self.mask.iter()).any(
+            |(&pattern, &mask)| pattern & mask != pattern
+        ) {
+            return Err(format!(
+                "Pattern not pre-masked for {}/{}",
+                self.content_type.0, self.content_type.1
+            ))
+        }
+        Ok(())
     }
 }
 
@@ -316,7 +354,12 @@ impl MIMEChecker for TagTerminatedByteMatcher {
                 None
             })
     }
+
+    fn validate(&self) -> Result<(), String> {
+        self.matcher.validate()
+    }
 }
+
 pub struct Mp4Matcher;
 
 impl Mp4Matcher {
@@ -350,6 +393,10 @@ impl MIMEChecker for Mp4Matcher {
             None
         }
     }
+
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 struct BinaryOrPlaintextClassifier;
@@ -375,6 +422,11 @@ impl MIMEChecker for BinaryOrPlaintextClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         as_string_option(Some(self.classify_impl(data)))
     }
+
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
+    }
+
 }
 struct GroupedClassifier {
     byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
@@ -472,6 +524,13 @@ impl MIMEChecker for GroupedClassifier {
             .iter()
             .filter_map(|matcher| matcher.classify(data))
             .next()
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        for byte_matcher in &self.byte_matchers {
+            try!(byte_matcher.validate())
+        }
+        Ok(())
     }
 }
 
@@ -576,6 +635,10 @@ impl MIMEChecker for FeedsClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
        as_string_option(self.classify_impl(data))
     }
+
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 //Contains hard coded byte matchers
@@ -630,7 +693,7 @@ impl ByteMatcher {
     fn image_webp() -> ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WEBPVP",
-            mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00,\xFF\xFF\xFF\xFF\xFF\xFF",
+            mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: ("image", "webp"),
             leading_ignore: &[]
         }
@@ -693,7 +756,7 @@ impl ByteMatcher {
     //The string "OggS" followed by NUL, the Ogg container signature.
     fn application_ogg() -> ByteMatcher {
         ByteMatcher {
-            pattern: b"OggS",
+            pattern: b"OggS\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "ogg"),
             leading_ignore: &[]
@@ -744,7 +807,7 @@ impl ByteMatcher {
         TagTerminatedByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<HTML",
-                mask: b"\xFF\xDF\xDF\xDF\xDF\xFF",
+                mask: b"\xFF\xDF\xDF\xDF\xDF",
                 content_type: ("text", "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
@@ -943,7 +1006,7 @@ impl ByteMatcher {
     //The string "%PDF-", the PDF signature.
     fn application_pdf() -> ByteMatcher {
         ByteMatcher {
-            pattern: b"%PDF",
+            pattern: b"%PDF-",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("application", "pdf"),
             leading_ignore: &[]
