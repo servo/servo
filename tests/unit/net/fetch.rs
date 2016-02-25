@@ -437,17 +437,19 @@ fn test_fetch_redirect_updates_method() {
 
 fn response_is_done(response: &Response) -> bool {
 
-    let internal_complete = match response.internal_response {
-        Some(ref res) => { match res.response_type {
-            ResponseType::Basic | ResponseType::CORS => res.body.borrow().is_done(),
-            // if the internal response cannot have a body, it shouldn't block the "done" state
-            ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true,
-            ResponseType::Default => unreachable!()
-        }},
-        _ => true
+    let response_complete = match response.response_type {
+        ResponseType::Default | ResponseType::Basic | ResponseType::CORS => response.body.borrow().is_done(),
+        // if the internal response cannot have a body, it shouldn't block the "done" state
+        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true
     };
 
-    response.body.borrow().is_done() && internal_complete
+    let internal_complete = if let Some(ref res) = response.internal_response {
+        res.body.borrow().is_done()
+    } else {
+        true
+    };
+
+    response_complete && internal_complete
 }
 
 #[test]
