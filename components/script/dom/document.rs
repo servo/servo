@@ -584,9 +584,17 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         match state {
-            DocumentReadyState::Loading => update_with_current_time(&self.dom_loading),
+            DocumentReadyState::Loading => {
+                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserconnected
+                self.trigger_mozbrowser_event(MozBrowserEvent::Connected);
+                update_with_current_time(&self.dom_loading);
+            },
+            DocumentReadyState::Complete => {
+                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
+                self.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
+                update_with_current_time(&self.dom_complete);
+            },
             DocumentReadyState::Interactive => update_with_current_time(&self.dom_interactive),
-            DocumentReadyState::Complete => update_with_current_time(&self.dom_complete),
         };
 
         self.ready_state.set(state);
@@ -2586,9 +2594,6 @@ impl DocumentProgressHandler {
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         document.notify_constellation_load();
-
-        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-        document.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,

@@ -415,6 +415,8 @@ pub enum MozBrowserEvent {
     Error,
     /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange(String, String, String),
+    /// Sent when the browser `<iframe>` has reached the server.
+    Connected,
     /// Sent when the browser `<iframe>` has finished loading all its assets.
     LoadEnd,
     /// Sent when the browser `<iframe>` starts to load a new page.
@@ -441,6 +443,7 @@ impl MozBrowserEvent {
         match *self {
             MozBrowserEvent::AsyncScroll => "mozbrowserasyncscroll",
             MozBrowserEvent::Close => "mozbrowserclose",
+            MozBrowserEvent::Connected => "mozbrowserconnected",
             MozBrowserEvent::ContextMenu => "mozbrowsercontextmenu",
             MozBrowserEvent::Error => "mozbrowsererror",
             MozBrowserEvent::IconChange(_, _, _) => "mozbrowsericonchange",

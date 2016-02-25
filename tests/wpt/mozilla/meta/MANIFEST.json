@@ -5934,6 +5934,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/iframe_reload_twice.html"
           }
         ],
+        "mozilla/mozbrowser/mozbrowser_loadevents.html": [
+          {
+            "path": "mozilla/mozbrowser/mozbrowser_loadevents.html",
+            "url": "/_mozilla/mozilla/mozbrowser/mozbrowser_loadevents.html"
+          }
+        ],
         "mozilla/mozbrowser/mozbrowsericonchange_event.html": [
           {
             "path": "mozilla/mozbrowser/mozbrowsericonchange_event.html",
