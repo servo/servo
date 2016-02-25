@@ -396,7 +396,7 @@ impl<'a, Impl: SelectorImpl> AtRuleParser for TopLevelRuleParser<'a, Impl> {
                     self.state.set(State::Namespaces);
 
                     let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into_owned());
-                    let url = Namespace(Atom::from(&*try!(input.expect_url_or_string())));
+                    let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
                     return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(prefix, url)))
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"

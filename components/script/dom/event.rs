@@ -96,7 +96,7 @@ impl Event {
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
         let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-        Ok(Event::new(global, Atom::from(&*type_), bubbles, cancelable))
+        Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
     }
 
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
@@ -240,7 +240,7 @@ impl EventMethods for Event {
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
-         self.init_event(Atom::from(&*type_), bubbles, cancelable)
+         self.init_event(Atom::from(type_), bubbles, cancelable)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

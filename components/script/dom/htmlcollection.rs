@@ -115,9 +115,9 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
-        let tag_atom = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let tag_atom = Atom::from(&*tag);
         tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let ascii_lower_tag = Atom::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
         HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
     }
 
@@ -148,7 +148,7 @@ impl HTMLCollection {
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
-        let local = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let local = Atom::from(tag);
         let ns = namespace_from_domstring(maybe_ns);
         let qname = QualName::new(ns, local);
         HTMLCollection::by_qual_tag_name(window, root, qname)

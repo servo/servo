@@ -79,7 +79,7 @@ impl WebGLContextEvent {
             EventCancelable::NotCancelable
         };
 
-        Ok(WebGLContextEvent::new(global, Atom::from(&*type_),
+        Ok(WebGLContextEvent::new(global, Atom::from(type_),
                                   bubbles,
                                   cancelable,
                                   status_message))

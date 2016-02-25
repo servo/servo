@@ -340,7 +340,7 @@ impl HTMLElement {
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         // FIXME(ajeffrey): Convert directly from DOMString to Atom
-        let local_name = Atom::from(&*to_snake_case(local_name));
+        let local_name = Atom::from(to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(), &local_name).map(|attr| {
             DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
         })
@@ -348,7 +348,7 @@ impl HTMLElement {
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
         // FIXME(ajeffrey): Convert directly from DOMString to Atom
-        let local_name = Atom::from(&*to_snake_case(local_name));
+        let local_name = Atom::from(to_snake_case(local_name));
         self.upcast::<Element>().remove_attribute(&ns!(), &local_name);
     }
 
