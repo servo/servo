@@ -22,6 +22,9 @@ use dom::htmlinputelement::HTMLInputElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
 use dom::window::ScriptHelpers;
+use euclid::point::Point2D;
+use euclid::rect::Rect;
+use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
@@ -37,15 +40,7 @@ use util::str::DOMString;
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
     let document = page.document();
-    let node = document.upcast::<Node>();
-
-    for candidate in node.traverse_preorder() {
-        if candidate.get_unique_id() == node_id {
-            return Some(candidate);
-        }
-    }
-
-    None
+    document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.get_unique_id() == node_id)
 }
 
 #[allow(unsafe_code)]
@@ -183,6 +178,44 @@ pub fn handle_get_active_element(page: &Rc<Page>,
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
     reply.send(String::from(page.document().Title())).unwrap();
+}
+
+pub fn handle_get_rect(page: &Rc<Page>,
+                       pipeline: PipelineId,
+                       element_id: String,
+                       reply: IpcSender<Result<Rect<f64>, ()>>) {
+    reply.send(match find_node_by_unique_id(&*page, pipeline, element_id) {
+        Some(elem) => {
+            // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
+            match elem.downcast::<HTMLElement>() {
+                Some(html_elem) => {
+                    // Step 1
+                    let mut x = 0;
+                    let mut y = 0;
+
+                    let mut offset_parent = html_elem.GetOffsetParent();
+
+                    // Step 2
+                    while let Some(element) = offset_parent {
+                        offset_parent = match element.downcast::<HTMLElement>() {
+                            Some(elem) => {
+                                x += elem.OffsetLeft();
+                                y += elem.OffsetTop();
+                                elem.GetOffsetParent()
+                            },
+                            None => None
+                        };
+                    }
+                    // Step 3
+                    Ok(Rect::new(Point2D::new(x as f64, y as f64),
+                                 Size2D::new(html_elem.OffsetWidth() as f64,
+                                             html_elem.OffsetHeight() as f64)))
+                },
+                None => Err(())
+            }
+        },
+        None => Err(())
+    }).unwrap();
 }
 
 pub fn handle_get_text(page: &Rc<Page>,

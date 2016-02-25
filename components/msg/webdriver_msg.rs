@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use constellation_msg::{PipelineId, WindowSizeData};
+use euclid::rect::Rect;
 use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json::{Json, ToJson};
 use url::Url;
@@ -17,6 +18,7 @@ pub enum WebDriverScriptCommand {
     GetActiveElement(IpcSender<Option<String>>),
     GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
+    GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),

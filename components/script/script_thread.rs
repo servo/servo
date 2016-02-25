@@ -1246,6 +1246,8 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_attribute(&page, pipeline_id, node_id, name, reply),
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) =>
                 webdriver_handlers::handle_get_css(&page, pipeline_id, node_id, name, reply),
+            WebDriverScriptCommand::GetElementRect(node_id, reply) =>
+                webdriver_handlers::handle_get_rect(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
