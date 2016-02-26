@@ -32,8 +32,9 @@
       var headerDict = {"name1": "value1",
                         "name2": "value2",
                         "name3": "value3",
-                        "name5": undefined,
                         "name4": null,
+                        "name5": undefined,
+                        "name6": 1,
                         "Content-Type": "value4"
       };
 
@@ -43,24 +44,28 @@
 
       test(function() {
         var headers = new Headers(headerSeq);
-        for (name in headerDict)
+        for (name in headerDict) {
           assert_equals(headers.get(name), String(headerDict[name]),
             "name: " + name + " has value: " + headerDict[name]);
+        }
+        assert_equals(headers.get("length"), null, "init should be treated as a sequence, not as a dictionary");
       }, "Create headers with sequence");
 
       test(function() {
         var headers = new Headers(headerDict);
-        for (name in headerDict)
+        for (name in headerDict) {
           assert_equals(headers.get(name), String(headerDict[name]),
             "name: " + name + " has value: " + headerDict[name]);
+        }
       }, "Create headers with OpenEndedDictionary");
 
       test(function() {
         var headers = new Headers(headerDict);
         var headers2 = new Headers(headers);
-        for (name in headerDict)
+        for (name in headerDict) {
           assert_equals(headers2.get(name), String(headerDict[name]),
             "name: " + name + " has value: " + headerDict[name]);
+        }
       }, "Create headers whith existing headers");
 
       test(function() {
@@ -102,10 +107,89 @@
         var headers = new Headers(headerDict);
         for (name in headerDict)
           assert_equals(headers.get(name), String(headerDict[name]),
-            "name: " + name + "has value: " + headerDict[name]);
+            "name: " + name + " has value: " + headerDict[name]);
 
         assert_equals(headers.get("nameNotInHeaders"), null, "header: nameNotInHeaders has no value");
       }, "Check get method");
-    </script>
+
+      var headerEntriesDict = {"name1": "value1",
+                               "Name2": "value2",
+                               "name": "value3",
+                               "content-Type": "value4",
+                               "Content-Typ": "value5",
+                               "Content-Types": "value6"
+      };
+      var sortedHeaderDict = {};
+      var sortedHeaderKeys = Object.keys(headerEntriesDict).map(function(value) {
+        sortedHeaderDict[value.toLowerCase()] = headerEntriesDict[value];
+        return value.toLowerCase();
+      }).sort();
+
+      test(function() {
+        var headers = new Headers(headerEntriesDict);
+        var actual = headers.keys();
+        sortedHeaderKeys.forEach(function(key) {
+            entry = actual.next();
+            assert_false(entry.done);
+            assert_equals(entry.value, key);
+        });
+        assert_true(actual.next().done);
+        assert_true(actual.next().done);
+      }, "Check keys method");
+
+      test(function() {
+        var headers = new Headers(headerEntriesDict);
+        var actual = headers.values();
+
+        sortedHeaderKeys.forEach(function(key) {
+            entry = actual.next();
+            assert_false(entry.done);
+            assert_equals(entry.value, sortedHeaderDict[key]);
+        });
+        assert_true(actual.next().done);
+        assert_true(actual.next().done);
+      }, "Check values method");
+
+      test(function() {
+        var headers = new Headers(headerEntriesDict);
+        var actual = headers.entries();
+
+        sortedHeaderKeys.forEach(function(key) {
+            entry = actual.next();
+            assert_false(entry.done);
+            assert_equals(entry.value[0], key);
+            assert_equals(entry.value[1], sortedHeaderDict[key]);
+        });
+        assert_true(actual.next().done);
+        assert_true(actual.next().done);
+      }, "Check entries method");
+
+      test(function() {
+        var headers = new Headers(headerEntriesDict);
+        var actual = headers[Symbol.iterator]();
+
+        sortedHeaderKeys.forEach(function(key) {
+            entry = actual.next();
+            assert_false(entry.done);
+            assert_equals(entry.value[0], key);
+            assert_equals(entry.value[1], sortedHeaderDict[key]);
+        });
+        assert_true(actual.next().done);
+        assert_true(actual.next().done);
+      }, "Check Symbol.iterator method");
+
+      test(function() {
+        var headers = new Headers(headerEntriesDict);
+        var reference = sortedHeaderKeys[Symbol.iterator]();
+        headers.forEach(function(value, key, container) {
+            assert_equals(headers, container);
+            entry = reference.next();
+            assert_false(entry.done);
+            assert_equals(key, entry.value);
+            assert_equals(value, sortedHeaderDict[entry.value]);
+        });
+        assert_true(reference.next().done);
+      }, "Check forEach method");
+   </script>
   </body>
 </html>
