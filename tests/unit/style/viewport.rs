@@ -16,10 +16,11 @@ use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
 use style_traits::viewport::*;
+use url::Url;
 
 macro_rules! stylesheet {
     ($css:expr, $origin:ident, $error_reporter:expr) => {
-        Stylesheet::from_str($css, url!("http://localhost"), Origin::$origin, $error_reporter);
+        Stylesheet::from_str($css, Url::parse("http://localhost").unwrap(), Origin::$origin, $error_reporter);
     }
 }
 
@@ -279,7 +280,7 @@ fn multiple_stylesheets_cascading() {
 
 #[test]
 fn constrain_viewport() {
-    let url = url!("http://localhost");
+    let url = Url::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
 
     macro_rules! from_css {
