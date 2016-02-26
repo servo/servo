@@ -52,4 +52,33 @@ test(function() {
     var evt = document.createEvent("U\u0131Event");
   });
 }, "Should throw NOT_SUPPORTED_ERR for unrecognized arguments");
+
+/*
+The following are event interfaces which do actually exist, but must still
+throw since they're absent from the table in the spec
+for document.createEvent().
+This list is not exhaustive.
+*/
+var someNonCreateableEvents = [
+  "AnimationEvent",
+  "DragEvent",
+  "ErrorEvent",
+  "FocusEvent",
+  "PointerEvent",
+  "TransitionEvent",
+  "WheelEvent"
+];
+someNonCreateableEvents.forEach(function (eventInterface) {
+  test(function () {
+    assert_throws("NOT_SUPPORTED_ERR", function () {
+      var evt = document.createEvent(eventInterface);
+    });
+  }, 'Should throw NOT_SUPPORTED_ERR for non-legacy event interface "' + eventInterface + '"');
+
+  test(function () {
+    assert_throws("NOT_SUPPORTED_ERR", function () {
+      var evt = document.createEvent(eventInterface + "s");
+    });
+  }, 'Should throw NOT_SUPPORTED_ERR for pluralized non-legacy event interface "' + eventInterface + '"');
+});
 </script>
