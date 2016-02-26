@@ -27,6 +27,7 @@ use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, speci
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use range::*;
 use rustc_serialize::{Encodable, Encoder};
 use script::dom::htmlcanvaselement::HTMLCanvasData;
 use std::borrow::ToOwned;
@@ -47,7 +48,6 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use util::range::*;
 use util::str::slice_chars;
 use wrapper::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 

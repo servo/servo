@@ -1,0 +1,17 @@
+[package]
+
+name = "range"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "range"
+path = "lib.rs"
+
+[dependencies]
+heapsize = "0.3.0"
+heapsize_plugin = "0.1.2"
+num = "0.1.24"
+rustc-serialize = "0.3"
+serde = "0.6"
+serde_macros = "0.6"

@@ -12,8 +12,6 @@
 #![feature(plugin)]
 #![feature(reflect_marker)]
 #![feature(step_by)]
-#![feature(step_trait)]
-#![feature(zero_one)]
 
 #![plugin(heapsize_plugin, plugins, serde_macros)]
 
@@ -35,7 +33,6 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate num as num_lib;
 extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
@@ -58,7 +55,6 @@ pub mod non_geckolib;
 pub mod opts;
 pub mod prefs;
 pub mod print_tree;
-pub mod range;
 pub mod resource_files;
 pub mod str;
 pub mod thread;

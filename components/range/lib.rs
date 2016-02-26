@@ -2,7 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use num_lib;
+#![feature(custom_derive)]
+#![feature(plugin)]
+#![feature(step_trait)]
+#![feature(zero_one)]
+
+#![plugin(heapsize_plugin)]
+#![plugin(serde_macros)]
+
+extern crate heapsize;
+extern crate num as num_lib;
+extern crate rustc_serialize;
+extern crate serde;
+
 use std::cmp::{self, max, min};
 use std::fmt;
 use std::iter;
@@ -95,15 +107,15 @@ macro_rules! int_range_index {
             }
         }
 
-        impl $crate::range::Int for $Self_ {
+        impl $crate::Int for $Self_ {
             #[inline]
-            fn zero() -> $Self_ { $Self_($crate::range::Int::zero()) }
+            fn zero() -> $Self_ { $Self_($crate::Int::zero()) }
             #[inline]
-            fn one() -> $Self_ { $Self_($crate::range::Int::one()) }
+            fn one() -> $Self_ { $Self_($crate::Int::one()) }
             #[inline]
-            fn max_value() -> $Self_ { $Self_($crate::range::Int::max_value()) }
+            fn max_value() -> $Self_ { $Self_($crate::Int::max_value()) }
             #[inline]
-            fn from_usize(n: usize) -> Option<$Self_> { $crate::range::Int::from_usize(n).map($Self_) }
+            fn from_usize(n: usize) -> Option<$Self_> { $crate::Int::from_usize(n).map($Self_) }
         }
 
         impl ::std::ops::Add<$Self_> for $Self_ {

@@ -59,6 +59,8 @@ extern crate net_traits;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;
+#[macro_use]
+extern crate range;
 extern crate rustc_serialize;
 extern crate serde;
 
@@ -73,7 +75,6 @@ extern crate style_traits;
 extern crate time;
 extern crate unicode_script;
 extern crate url;
-#[macro_use]
 extern crate util;
 extern crate webrender_traits;
 

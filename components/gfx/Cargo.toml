@@ -52,6 +52,9 @@ path = "../msg"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
+[dependencies.range]
+path = "../range"
+
 [dependencies.style]
 path = "../style"
 
