@@ -1880,7 +1880,7 @@ impl ScriptThread {
         };
 
         if load_data.url.scheme == "javascript" {
-            load_data.url = url!("about:blank");
+            load_data.url = Url::parse("about:blank").unwrap();
         }
 
         resource_thread.send(ControlMsg::Load(NetLoadData {

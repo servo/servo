@@ -16,7 +16,6 @@ optional = true
 
 [dependencies]
 tenacious = "0.1.2"
-url = {version = "0.5.7", features = ["heap_size"]}
 
 [features]
 default = []

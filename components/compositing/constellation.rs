@@ -868,7 +868,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                           parent_info,
                           window_size,
                           None,
-                          LoadData::new(url!("about:failure")));
+                          LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
@@ -951,7 +951,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If no url is specified, reload.
             let new_url = load_info.url.clone()
                 .or_else(|| old_pipeline.map(|old_pipeline| old_pipeline.url.clone()))
-                .unwrap_or_else(|| url!("about:blank"));
+                .unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
