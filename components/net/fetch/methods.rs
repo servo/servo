@@ -166,7 +166,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             request.response_tainting.set(ResponseTainting::CORSTainting);
             request.redirect_mode.set(RedirectMode::Error);
             let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
-            if Response::is_network_error(&response) {
+            if response.is_network_error() {
                 // TODO clear cache entries using request
             }
             response
@@ -187,13 +187,12 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // Step 11
     // no need to check if response is a network error, since the type would not be `Default`
     let mut response = if response.response_type == ResponseType::Default {
-        let old_response = response;
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CORSTainting => ResponseType::CORS,
             ResponseTainting::Opaque => ResponseType::Opaque,
         };
-        Response::to_filtered(old_response, response_type)
+        response.to_filtered(response_type)
     } else {
         response
     };
@@ -201,7 +200,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     {
         // Step 12
         let network_error_res = Response::network_error();
-        let mut internal_response = if Response::is_network_error(&response) {
+        let mut internal_response = if response.is_network_error() {
             &network_error_res
         } else {
             // convert Option<Box<Response> into &Response
@@ -212,7 +211,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         // TODO this step
 
         // Step 14
-        if !Response::is_network_error(&response) && (is_null_body_status(&internal_response.status) ||
+        if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
             match *request.method.borrow() {
                 Method::Head | Method::Connect => true,
                 _ => false })
@@ -224,7 +223,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
         // Step 15
         // TODO be able to compare response integrity against request integrity metadata
-        // if !Response::is_network_error(&response) {
+        // if !response.is_network_error() {
 
         //     // Substep 1
         //     // TODO wait for response
@@ -254,7 +253,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     {
         // Step 12 repeated to use internal_response
         let network_error_res = Response::network_error();
-        let mut internal_response = if Response::is_network_error(&response) {
+        let mut internal_response = if response.is_network_error() {
             &network_error_res
         } else {
             // convert Option<Box<Response> into &Response
@@ -343,8 +342,7 @@ fn http_fetch(request: Rc<Request>,
     let mut response: Option<Response> = None;
 
     // Step 2
-    let mut fetch_result = Response::new();
-    let mut actual_response: Option<&Response> = None;
+    // nothing to do, since actual_response is a function on response
 
     // Step 3
     if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
@@ -355,10 +353,7 @@ fn http_fetch(request: Rc<Request>,
         if let Some(ref res) = response {
 
             // Substep 2
-            actual_response = match res.internal_response {
-                Some(ref internal_res) => Some(&(**internal_res)),
-                None => Some(&res)
-            };
+            // nothing to do, since actual_response is a function on response
 
             // Substep 3
             if (res.response_type == ResponseType::Opaque &&
@@ -370,17 +365,16 @@ fn http_fetch(request: Rc<Request>,
                res.response_type == ResponseType::Error {
                 return Response::network_error();
             }
-        }
 
-        // Substep 4
-        if let Some(ref res) = actual_response {
-            if res.url_list.borrow().is_empty() {
-                *res.url_list.borrow_mut() = request.url_list.borrow().clone();
+            // Substep 4
+            let actual_response = res.get_actual_response();
+            if actual_response.url_list.borrow().is_empty() {
+                *actual_response.url_list.borrow_mut() = request.url_list.borrow().clone();
             }
-        }
 
-        // Substep 5
-        // TODO: set response's CSP list on actual_response
+            // Substep 5
+            // TODO: set response's CSP list on actual_response
+        }
     }
 
     // Step 4
@@ -433,7 +427,7 @@ fn http_fetch(request: Rc<Request>,
         };
 
         // Substep 4
-        fetch_result = http_network_or_cache_fetch(request.clone(), credentials, authentication_fetch_flag);
+        let fetch_result = http_network_or_cache_fetch(request.clone(), credentials, authentication_fetch_flag);
 
         // Substep 5
         if cors_flag && cors_check(request.clone(), &fetch_result).is_err() {
@@ -441,15 +435,16 @@ fn http_fetch(request: Rc<Request>,
         }
 
         response = Some(fetch_result.clone());
-        actual_response = Some(&fetch_result);
+        if let Some(ref res) = response {
+            res.return_internal.set(false);
+        }
     }
 
-    // response and actual_response are guaranteed to be something by now
+    // response is guaranteed to be something by now
     let mut response = response.unwrap();
-    let actual_response = actual_response.unwrap();
 
     // Step 5
-    match actual_response.status.unwrap() {
+    match response.get_actual_response().status.unwrap() {
 
         // Code 301, 302, 303, 307, 308
         StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
@@ -458,8 +453,7 @@ fn http_fetch(request: Rc<Request>,
             response = match request.redirect_mode.get() {
                 RedirectMode::Error => Response::network_error(),
                 RedirectMode::Manual => {
-                    let res = (*actual_response).clone();
-                    Response::to_filtered(res, ResponseType::OpaqueRedirect)
+                    response.to_filtered(ResponseType::OpaqueRedirect)
                 },
                 RedirectMode::Follow => http_redirect_fetch(request, Rc::new(response), cors_flag)
             }
@@ -471,9 +465,8 @@ fn http_fetch(request: Rc<Request>,
             // Step 1
             // FIXME: Figure out what to do with request window objects
             if cors_flag || request.credentials_mode != CredentialsMode::Include {
-                drop(actual_response);
                 return response;
-                }
+            }
 
             // Step 2
             // TODO: Spec says requires testing on multiple WWW-Authenticate headers
@@ -505,13 +498,16 @@ fn http_fetch(request: Rc<Request>,
                               authentication_fetch_flag);
         }
 
-        _ => drop(actual_response)
+        _ => {}
     }
 
     // Step 6
     if authentication_fetch_flag {
         // TODO: Create authentication entry for this request
     }
+
+    // set to default, since each function should have its own control over it
+    response.return_internal.set(true);
 
     // Step 7
     response
@@ -522,61 +518,18 @@ fn http_redirect_fetch(request: Rc<Request>,
                        response: Rc<Response>,
                        cors_flag: bool) -> Response {
 
-    // Nikki's solution for working around borrow issues, which works
-    // let return_early = false;
-    // {
-    //     // Step 1
-    //     let actual_response = match response.internal_response {
-    //         Some(ref res) => &(**res),
-    //         _ => &*response
-    //     };
+    // Step 1
+    // nothing to do, since actual_response is a function on response
 
-    //     // Step 3
-    //     // this step is done early, because querying if Location is available says
-    //     // if it is None or Some, making it easy to seperate from the retrieval failure case
-    //     if !actual_response.headers.has::<Location>() {
-    //         return_early = true;
-    //     }
-    // }
-
-    // if return_early {
-    //     return Rc::try_unwrap(response).ok().unwrap();
-    // }
-    
-    // // Step 1 repeated
-    // let actual_response = match response.internal_response {
-    //     Some(ref res) => &(**res),
-    //     _ => &*response
-    // };
-
-    // KiChjang's suggestion for a combined step 1 + 3 (not finished)
-    let actual_response = if response.internal_response.is_some() {
-        if !response.internal_response.unwrap().headers.has::<Location>() {
-            return *response.internal_response.unwrap();
-        }
-        &*response.internal_response.unwrap()
-    } else {
-        if !response.headers.has::<Location>() {
-            return Rc::try_unwrap(response).ok().unwrap();
-        }
-        &*response
-    };
-
-    // original Step 1
-    // let actual_response = match response.internal_response {
-    //     Some(ref res) => &(**res),
-    //     _ => &*response
-    // };
-
-    // original Step 3
+    // Step 3
     // this step is done early, because querying if Location is available says
     // if it is None or Some, making it easy to seperate from the retrieval failure case
-    // if !actual_response.headers.has::<Location>() {
-    //     return Rc::try_unwrap(response).ok().unwrap();
-    // }
+    if !response.get_actual_response().headers.has::<Location>() {
+        return Rc::try_unwrap(response).ok().unwrap();
+    }
 
     // Step 2
-    let location = match actual_response.headers.get::<Location>() {
+    let location = match response.get_actual_response().headers.get::<Location>() {
         Some(&Location(ref location)) => location.clone(),
         // Step 4
         _ => return Response::network_error(),
@@ -621,7 +574,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     }
 
     // Step 13
-    let status_code = actual_response.status.unwrap();
+    let status_code = response.get_actual_response().status.unwrap();
     if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
         *request.method.borrow() == Method::Post) ||
         status_code == StatusCode::SeeOther {
@@ -911,7 +864,7 @@ fn http_network_fetch(request: Rc<Request>,
     // TODO this step isn't possible yet
 
     // Step 8
-    if Response::is_network_error(&response) && request.cache_mode.get() == CacheMode::NoStore {
+    if response.is_network_error() && request.cache_mode.get() == CacheMode::NoStore {
         // TODO update response in the HTTP cache for request
     }
 
