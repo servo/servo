@@ -6,6 +6,7 @@ from mozlog.formatters import base
 import collections
 import os
 import sys
+import subprocess
 
 DEFAULT_MOVE_UP_CODE = u"\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
@@ -28,6 +29,7 @@ class GroupingFormatter(base.BaseFormatter):
 
         # TODO(mrobinson, 8313): We need to add support for Windows terminals here.
         if self.interactive:
+            self.line_width = int(subprocess.check_output(['stty', 'size']).split()[1])
             self.move_up, self.clear_eol = self.get_move_up_and_clear_eol_codes()
 
         self.expected = {
@@ -88,8 +90,12 @@ class GroupingFormatter(base.BaseFormatter):
 
         if self.running_tests:
             indent = " " * len(new_display)
+            if self.interactive:
+                max_width = self.line_width - len(new_display)
+            else:
+                max_width = sys.maxsize
             return new_display + ("\n%s" % indent).join(
-                self.running_tests.values()) + "\n"
+                val[:max_width] for val in self.running_tests.values()) + "\n"
         else:
             return new_display + "No tests running.\n"
 
