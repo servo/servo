@@ -4,7 +4,7 @@ import subprocess
 import sys
 import urlparse
 
-from wptrunner.update.sync import LoadManifest
+from wptrunner.update.sync import LoadManifest, UpdateCheckout
 from wptrunner.update.tree import get_unique_name
 from wptrunner.update.base import Step, StepRunner, exit_clean, exit_unclean
 
@@ -364,7 +364,8 @@ class PRDeleteBranch(Step):
 
 class SyncToUpstreamRunner(StepRunner):
     """Runner for syncing local changes to upstream"""
-    steps = [LoadManifest,
+    steps = [UpdateCheckout,
+             LoadManifest,
              CheckoutBranch,
              GetLastSyncCommit,
              GetBaseCommit,
