@@ -41,7 +41,8 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString step;
            attribute DOMString type;
            attribute DOMString defaultValue;
-  [TreatNullAs=EmptyString] attribute DOMString value;
+[TreatNullAs=EmptyString, SetterThrows]
+           attribute DOMString value;
   //         attribute Date? valueAsDate;
   //         attribute unrestricted double valueAsNumber;
   //         attribute double valueLow;
