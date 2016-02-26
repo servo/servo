@@ -11,6 +11,7 @@ use style::media_queries::*;
 use style::servo::Stylesheet;
 use style::stylesheets::{Origin, CSSRuleIteratorExt};
 use style::values::specified;
+use url::Url;
 
 pub struct CSSErrorReporterTest;
 
@@ -23,7 +24,7 @@ impl ParseErrorReporter for CSSErrorReporterTest {
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
-    let url = url!("http://localhost");
+    let url = Url::parse("http://localhost").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest));
     let mut rule_count = 0;
     for rule in stylesheet.rules().media() {
@@ -34,7 +35,7 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str)
 }
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
-    let url = url!("http://localhost");
+    let url = Url::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest));
     let rule_count = ss.effective_rules(device).style().count();
     assert!(rule_count == expected_rule_count, css.to_owned());

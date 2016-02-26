@@ -21,7 +21,7 @@ fn test_exit() {
 fn test_bad_scheme() {
     let resource_thread = new_resource_thread("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
-    let url = url!("bogus://whatever");
+    let url = Url::parse("bogus://whatever").unwrap();
     resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, None),
                                         LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
@@ -158,13 +158,13 @@ fn test_replace_hosts() {
 
     let host_table: *mut HashMap<String, String> = Box::into_raw(host_table_box);
 
-    let url = url!("http://foo.bar.com:8000/foo");
+    let url = Url::parse("http://foo.bar.com:8000/foo").unwrap();
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "127.0.0.1");
 
-    let url = url!("http://servo.test.server");
+    let url = Url::parse("http://servo.test.server").unwrap();
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "127.0.0.2");
 
-    let url = url!("http://a.foo.bar.com");
+    let url = Url::parse("http://a.foo.bar.com").unwrap();
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "a.foo.bar.com");
 }
 
