@@ -282,7 +282,6 @@ name = "plugins"
 version = "0.0.1"
 dependencies = [
  "tenacious 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

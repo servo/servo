@@ -781,7 +781,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                           parent_info,
                           window_size,
                           None,
-                          LoadData::new(url!("about:failure")));
+                          LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
     }
@@ -847,7 +847,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let new_url = match (old_pipeline_id, load_info.url) {
             (_, Some(ref url)) => url.clone(),
             (Some(old_pipeline_id), None) => self.pipeline(old_pipeline_id).url.clone(),
-            (None, None) => url!("about:blank"),
+            (None, None) => Url::parse("about:blank").unwrap(),
         };
 
         // Compare the pipeline's url to the new url. If the origin is the same,
