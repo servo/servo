@@ -214,6 +214,9 @@ class PostBuildCommands(CommandBase):
         env = self.build_env()
         binary_path = self.get_binary_path(release, dev, android=True)
 
+        # Set the Android SDK version target
+        env['ANDROID_TARGET'] = 'android-18'
+
         if dev:
             env["NDK_DEBUG"] = "1"
             env["ANT_FLAVOR"] = "debug"
