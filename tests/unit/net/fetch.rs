@@ -471,8 +471,8 @@ fn test_fetch_async_returns_complete_response() {
     });
 
     fetch_async(request, false, listener);
+    let fetch_response = rx.recv().unwrap();
     let _ = server.close();
 
-    let fetch_response = rx.recv().unwrap();
     assert_eq!(response_is_done(&fetch_response), true);
 }

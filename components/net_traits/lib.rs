@@ -9,7 +9,6 @@
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(custom_attribute)]
-#![feature(rc_counts)]
 #![plugin(heapsize_plugin, serde_macros)]
 
 extern crate heapsize;
