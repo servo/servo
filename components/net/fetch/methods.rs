@@ -130,7 +130,9 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 8
     if !request.synchronous && !recursive_flag {
-        // TODO run the remaining steps in parallel
+        spawn_named(format!("fetch for {:?}", request.get_last_url_string()), move || {
+            // TODO run remaining steps in parallel
+        })
     }
 
     // Step 9
@@ -341,6 +343,7 @@ fn http_fetch(request: Rc<Request>,
     let mut response: Option<Response> = None;
 
     // Step 2
+    let mut fetch_result = Response::new();
     let mut actual_response: Option<&Response> = None;
 
     // Step 3
@@ -381,7 +384,6 @@ fn http_fetch(request: Rc<Request>,
     }
 
     // Step 4
-    let mut fetch_result = Response::new();
     if response.is_none() {
 
         // Substep 1
@@ -520,19 +522,58 @@ fn http_redirect_fetch(request: Rc<Request>,
                        response: Rc<Response>,
                        cors_flag: bool) -> Response {
 
-    // Step 1
-    let actual_response = match response.internal_response {
-        Some(ref res) => &(**res),
-        _ => &*response
+    // Nikki's solution for working around borrow issues, which works
+    // let return_early = false;
+    // {
+    //     // Step 1
+    //     let actual_response = match response.internal_response {
+    //         Some(ref res) => &(**res),
+    //         _ => &*response
+    //     };
+
+    //     // Step 3
+    //     // this step is done early, because querying if Location is available says
+    //     // if it is None or Some, making it easy to seperate from the retrieval failure case
+    //     if !actual_response.headers.has::<Location>() {
+    //         return_early = true;
+    //     }
+    // }
+
+    // if return_early {
+    //     return Rc::try_unwrap(response).ok().unwrap();
+    // }
+    
+    // // Step 1 repeated
+    // let actual_response = match response.internal_response {
+    //     Some(ref res) => &(**res),
+    //     _ => &*response
+    // };
+
+    // KiChjang's suggestion for a combined step 1 + 3 (not finished)
+    let actual_response = if response.internal_response.is_some() {
+        if !response.internal_response.unwrap().headers.has::<Location>() {
+            return *response.internal_response.unwrap();
+        }
+        &*response.internal_response.unwrap()
+    } else {
+        if !response.headers.has::<Location>() {
+            return Rc::try_unwrap(response).ok().unwrap();
+        }
+        &*response
     };
 
-    // Step 3
+    // original Step 1
+    // let actual_response = match response.internal_response {
+    //     Some(ref res) => &(**res),
+    //     _ => &*response
+    // };
+
+    // original Step 3
     // this step is done early, because querying if Location is available says
     // if it is None or Some, making it easy to seperate from the retrieval failure case
-    if !actual_response.headers.has::<Location>() {
-        drop(actual_response);
-        return Rc::try_unwrap(response).ok().unwrap();
-    }
+    // if !actual_response.headers.has::<Location>() {
+    //     return Rc::try_unwrap(response).ok().unwrap();
+    // }
 
     // Step 2
     let location = match actual_response.headers.get::<Location>() {
