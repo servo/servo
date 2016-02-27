@@ -57,7 +57,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
 On Arch Linux:
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu
+sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu
 ```
 
 On Gentoo Linux:
