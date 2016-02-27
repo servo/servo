@@ -11,14 +11,14 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use net::fetch::methods::fetch;
-use net_traits::request::{Context, RedirectMode, Referer, Request, RequestMode};
+use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, mpsc};
 use time::{self, Duration};
 use unicase::UniCase;
-use url::{Origin, OpaqueOrigin, Url};
+use url::{Origin as UrlOrigin, OpaqueOrigin, Url};
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -42,15 +42,15 @@ fn test_fetch_response_is_not_network_error() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin();
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
 
-    if Response::is_network_error(&fetch_response) {
+    if fetch_response.is_network_error() {
         panic!("fetch response shouldn't be a network error");
     }
 }
@@ -64,15 +64,15 @@ fn test_fetch_response_body_matches_const_message() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin();
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
 
-    assert!(!Response::is_network_error(&fetch_response));
+    assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
     match *fetch_response.body.borrow() {
@@ -97,15 +97,15 @@ fn test_fetch_response_is_basic_filtered() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin();
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
 
-    assert!(!Response::is_network_error(&fetch_response));
+    assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
     let headers = fetch_response.headers;
@@ -146,16 +146,16 @@ fn test_fetch_response_is_cors_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will stop it from defaulting to a basic filtered response
-    let origin = Origin::UID(OpaqueOrigin::new());
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     request.mode = RequestMode::CORSMode;
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
 
-    assert!(!Response::is_network_error(&fetch_response));
+    assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::CORS);
 
     let headers = fetch_response.headers;
@@ -181,15 +181,15 @@ fn test_fetch_response_is_opaque_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
-    let origin = Origin::UID(OpaqueOrigin::new());
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
 
-    assert!(!Response::is_network_error(&fetch_response));
+    assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
 
     assert!(fetch_response.url_list.into_inner().len() == 0);
@@ -232,16 +232,16 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
 
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin();
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     request.redirect_mode = Cell::new(RedirectMode::Manual);
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
 
-    assert!(!Response::is_network_error(&fetch_response));
+    assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::OpaqueRedirect);
 
     // this also asserts that status message is "the empty byte sequence"
@@ -280,12 +280,12 @@ fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Respo
 
     let (mut server, url) = make_server(handler);
 
-    let origin = url.origin();
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
 
-    let fetch_response = fetch(wrapped_request, false);
+    let fetch_response = fetch(wrapped_request);
     let _ = server.close();
     fetch_response
 }
@@ -299,7 +299,7 @@ fn test_fetch_redirect_count_ceiling() {
 
     let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
 
-    assert!(!Response::is_network_error(&fetch_response));
+    assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
     match *fetch_response.body.borrow() {
@@ -319,7 +319,7 @@ fn test_fetch_redirect_count_failure() {
 
     let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
 
-    assert!(Response::is_network_error(&fetch_response));
+    assert!(fetch_response.is_network_error());
 
     match *fetch_response.body.borrow() {
         ResponseBody::Done(_) | ResponseBody::Receiving(_) => panic!(),
@@ -370,14 +370,14 @@ fn test_fetch_redirect_updates_method_runner(tx: mpsc::Sender<bool>, status_code
     };
 
     let (mut server, url) = make_server(handler);
-    let origin = url.origin();
 
-    let mut request = Request::new(url, Context::Fetch, origin, false);
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     *request.method.borrow_mut() = method;
     let wrapped_request = Rc::new(request);
 
-    let _ = fetch(wrapped_request, false);
+    let _ = fetch(wrapped_request);
     let _ = server.close();
 }
 
