@@ -523,7 +523,16 @@ pub fn modify_request_headers(headers: &mut Headers,
         port: doc_url.port_or_default()
     };
     headers.set(host);
-    headers.set(UserAgent(user_agent.to_owned()));
+
+    // If the user-agent has not already been set, then use the
+    // browser's default user-agent or the user-agent override
+    // from the command line. If the user-agent is set, don't
+    // modify it, as setting of the user-agent by the user is
+    // allowed.
+    // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 8
+    if !headers.has::<UserAgent>() {
+        headers.set(UserAgent(user_agent.to_owned()));
+    }
 
     set_default_accept(headers);
     set_default_accept_encoding(headers);
