@@ -13,7 +13,6 @@ euclid = {version = "0.6.2", features = ["plugins"]}
 gleam = "0.2"
 libc = "0.2"
 log = "0.3"
-stb_image = "0.2"
 url = {version = "0.5.5", features = ["heap_size"]}
 
 [dependencies.servo]

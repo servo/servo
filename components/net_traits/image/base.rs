@@ -4,9 +4,7 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, GenericImage, ImageFormat};
-use stb_image::image as stb_image2;
 use util::opts;
-use util::vec::byte_swap;
 
 pub use msg::constellation_msg::{Image, ImageMetadata, PixelFormat};
 
@@ -49,41 +47,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
             debug!("{}", msg);
             None
         }
-        Ok(ImageFormat::JPEG) => {
-            // For JPEG images, we use stb_image because piston_image does not yet support progressive
-            // JPEG.
-
-            // Can't remember why we do this. Maybe it's what cairo wants
-            static FORCE_DEPTH: usize = 4;
-
-            match stb_image2::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
-                stb_image2::LoadResult::ImageU8(mut image) => {
-                    assert!(image.depth == 4);
-                    // handle gif separately because the alpha-channel has to be premultiplied
-                    if is_gif(buffer) {
-                        byte_swap_and_premultiply(&mut image.data);
-                    } else {
-                        byte_swap(&mut image.data);
-                    }
-                    Some(Image {
-                        width: image.width as u32,
-                        height: image.height as u32,
-                        format: PixelFormat::RGBA8,
-                        bytes: IpcSharedMemory::from_bytes(&image.data[..]),
-                        id: None,
-                    })
-                }
-                stb_image2::LoadResult::ImageF32(_image) => {
-                    debug!("HDR images not implemented");
-                    None
-                }
-                stb_image2::LoadResult::Error(e) => {
-                    debug!("stb_image failed: {}", e);
-                    None
-                }
-            }
-        }
-        _ => {
+        Ok(_) => {
             match piston_image::load_from_memory(buffer) {
                 Ok(image) => {
                     let mut rgba = match image {

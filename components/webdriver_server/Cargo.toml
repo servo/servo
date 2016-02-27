@@ -26,7 +26,7 @@ git = "https://github.com/jgraham/webdriver-rust.git"
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-image = "0.5.0"
+image = "0.7"
 log = "0.3"
 hyper = "0.7"
 rustc-serialize = "0.3.4"
