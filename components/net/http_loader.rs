@@ -513,6 +513,7 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool
 }
 
 pub fn modify_request_headers(headers: &mut Headers,
+                              url: &Url,
                               doc_url: &Url,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
@@ -538,7 +539,7 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept_encoding(headers);
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
-        set_request_cookies(doc_url.clone(), headers, cookie_jar);
+        set_request_cookies(url.clone(), headers, cookie_jar);
 
         // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
         if !headers.has::<Authorization<Basic>>() {
@@ -734,7 +735,7 @@ pub fn load<A>(load_data: LoadData,
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
-        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
+        modify_request_headers(&mut request_headers, &url, &doc_url, &user_agent, &cookie_jar, &load_data);
 
         let response = try!(obtain_response(request_factory, &url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
