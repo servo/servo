@@ -40,7 +40,6 @@ extern crate msg;
 extern crate util;
 extern crate style;
 extern crate style_traits;
-extern crate stb_image;
 
 extern crate libc;
 extern crate url as std_url;
