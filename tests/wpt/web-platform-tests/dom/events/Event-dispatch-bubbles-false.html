@@ -19,32 +19,21 @@
     </tbody>
 </table>
 <script>
-test(function() {
-    var event_type = "click";
-    var target = document.getElementById("target");
-    var targets = [
-        window,
+function targetsForDocumentChain(document) {
+    return [
         document,
         document.documentElement,
         document.body,
         document.getElementById("table"),
         document.getElementById("table-body"),
-        document.getElementById("parent"),
-        target,
+        document.getElementById("parent")
     ];
-    var expected_targets = targets.concat(target);
-    var phases = [
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.CAPTURING_PHASE,
-        Event.AT_TARGET,
-        Event.AT_TARGET,
-    ];
+}
 
+function testChain(document, targetParents, phases, event_type) {
+    var target = document.getElementById("target");
+    var targets = targetParents.concat(target);
+    var expected_targets = targets.concat(target);
 
     var actual_targets = [], actual_phases = [];
     var test_event = function(evt) {
@@ -64,5 +53,46 @@ test(function() {
 
     assert_array_equals(actual_targets, expected_targets, "targets");
     assert_array_equals(actual_phases, phases, "phases");
-}, "Event.dispatchEvent with Event.bubbles set to false.");
+}
+
+var phasesForDocumentChain = [
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.CAPTURING_PHASE,
+    Event.AT_TARGET,
+    Event.AT_TARGET,
+];
+
+test(function () {
+    var chainWithWindow = [window].concat(targetsForDocumentChain(document));
+    testChain(
+        document, chainWithWindow, [Event.CAPTURING_PHASE].concat(phasesForDocumentChain), "click");
+}, "In window.document with click event");
+
+test(function () {
+    testChain(document, targetsForDocumentChain(document), phasesForDocumentChain, "load");
+}, "In window.document with load event")
+
+test(function () {
+    var documentClone = document.cloneNode(true);
+    testChain(
+        documentClone, targetsForDocumentChain(documentClone), phasesForDocumentChain, "click");
+}, "In window.document.cloneNode(true)");
+
+test(function () {
+    var newDocument = new Document();
+    newDocument.appendChild(document.documentElement.cloneNode(true));
+    testChain(
+        newDocument, targetsForDocumentChain(newDocument), phasesForDocumentChain, "click");
+}, "In new Document()");
+
+test(function () {
+    var HTMLDocument = document.implementation.createHTMLDocument();
+    HTMLDocument.body.appendChild(document.getElementById("table").cloneNode(true));
+    testChain(
+        HTMLDocument, targetsForDocumentChain(HTMLDocument), phasesForDocumentChain, "click");
+}, "In DOMImplementation.createHTMLDocument()");
 </script>
