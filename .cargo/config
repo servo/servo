@@ -1,0 +1,2 @@
+paths = [ "support/rust-openssl", "support/rust-libressl-static" ]
+
