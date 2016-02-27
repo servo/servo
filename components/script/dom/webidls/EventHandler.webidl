@@ -23,18 +23,22 @@ typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
 [NoInterfaceObject]
 interface GlobalEventHandlers {
+           attribute EventHandler onblur;
+           attribute EventHandler onchange;
            attribute EventHandler onclick;
+           attribute EventHandler ondblclick;
            attribute OnErrorEventHandler onerror;
-           attribute EventHandler onload;
            attribute EventHandler oninput;
            attribute EventHandler onkeydown;
            attribute EventHandler onkeypress;
            attribute EventHandler onkeyup;
-           attribute EventHandler onchange;
+           attribute EventHandler onload;
+           attribute EventHandler onmouseover;
            attribute EventHandler onreset;
+           attribute EventHandler onresize;
            attribute EventHandler onsubmit;
            attribute EventHandler ontoggle;
-           attribute EventHandler onresize;
+
 };
 
 [NoInterfaceObject]
