@@ -69,7 +69,9 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
-[Constructor]
+[Constructor,
+ Constructor(sequence<unrestricted double> numberSequence),
+  Constructor(unrestricted double num)]
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;

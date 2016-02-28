@@ -47,7 +47,7 @@ use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType};
-use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
+use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject, JS_NewStringCopyN};
 use js::jsapi::{JS_StringHasLatin1Chars, JS_WrapValue};
 use js::jsapi::{Type};
 use js::jsval::{ObjectValue, StringValue};
@@ -457,4 +457,11 @@ pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JS
     unsafe {
         array_buffer_view_data_checked(abv).map(|data| data.to_vec())
     }
+}
+
+/// Returns whether `value` is an array-like object.
+/// Note: Currently only Arrays are supported.
+/// TODO: Expand this to support sequences and other array-like objects
+pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
+    JS_IsArrayObject(cx, value)
 }
