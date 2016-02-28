@@ -7,7 +7,6 @@
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
-#![feature(fnbox)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(reflect_marker)]
@@ -59,7 +58,6 @@ pub mod resource_files;
 pub mod str;
 pub mod thread;
 pub mod thread_state;
-pub mod threadpool;
 pub mod tid;
 pub mod time;
 pub mod vec;
