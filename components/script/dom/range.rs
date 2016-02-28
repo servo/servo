@@ -774,7 +774,7 @@ impl RangeMethods for Range {
                 let mut reference_node = Root::from_ref(start_node);
                 while let Some(parent) = reference_node.GetParentNode() {
                     if parent.is_inclusive_ancestor_of(end_node) {
-                        return (parent, reference_node.index())
+                        return (parent, reference_node.index() + 1)
                     }
                     reference_node = parent;
                 }
