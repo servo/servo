@@ -25,6 +25,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate openssl;
 extern crate rustc_serialize;
+extern crate threadpool;
 extern crate time;
 extern crate url;
 extern crate util;
