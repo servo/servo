@@ -471,12 +471,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // Get an iterator for the current frame tree. Specify self.root_frame_id to
     // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
     fn current_frame_tree_iter(&self, frame_id_root: Option<FrameId>) -> FrameTreeIterator {
-        let mut stack = vec!();
-        if let Some(frame_id_root) = frame_id_root {
-            stack.push(frame_id_root);
-        }
         FrameTreeIterator {
-            stack: stack,
+            stack: frame_id_root.into_iter().collect(),
             pipelines: &self.pipelines,
             frames: &self.frames,
         }
