@@ -471,12 +471,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // Get an iterator for the current frame tree. Specify self.root_frame_id to
     // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
     fn current_frame_tree_iter(&self, frame_id_root: Option<FrameId>) -> FrameTreeIterator {
-        let mut stack = vec!();
-        if let Some(frame_id_root) = frame_id_root {
-            stack.push(frame_id_root);
-        }
         FrameTreeIterator {
-            stack: stack,
+            stack: frame_id_root.into_iter().collect(),
             pipelines: &self.pipelines,
             frames: &self.frames,
         }
@@ -973,8 +969,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
-                let old_pipeline = self.pipelines.get(&source_id).unwrap();
-                old_pipeline.freeze();
+                self.pipeline(source_id).freeze();
                 Some(new_pipeline_id)
             }
         }
@@ -1146,10 +1141,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
                            resp_chan: IpcSender<Option<PipelineId>>) {
-        let current_pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
-            let frame = self.frames.get(&frame_id).unwrap();
-            frame.current
-        });
+        let current_pipeline_id = frame_id.or(self.root_frame_id)
+                                          .map(|frame_id| self.frame(frame_id).current);
         let pipeline_id = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
             .map(|x| x.new_pipeline_id).or(current_pipeline_id);
@@ -1257,10 +1250,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 }
             },
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
-                let current_pipeline_id = self.root_frame_id.map(|frame_id| {
-                    let frame = self.frames.get(&frame_id).unwrap();
-                    frame.current
-                });
+                let current_pipeline_id = self.root_frame_id
+                                              .map(|frame_id| self.frame(frame_id).current);
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
@@ -1398,20 +1389,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some(root_frame_id) = self.root_frame_id {
             // Send Resize (or ResizeInactive) messages to each
             // pipeline in the frame tree.
-            let frame = self.frames.get(&root_frame_id).unwrap();
+            let frame = self.frame(root_frame_id);
 
-            let pipeline = self.pipelines.get(&frame.current).unwrap();
+            let pipeline = self.pipeline(frame.current);
             let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
 
             for pipeline_id in frame.prev.iter().chain(&frame.next) {
-                let pipeline = self.pipelines.get(pipeline_id).unwrap();
+                let pipeline = self.pipeline(*pipeline_id);
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
             }
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
         for pending_frame in &self.pending_frames {
-            let pipeline = self.pipelines.get(&pending_frame.new_pipeline_id).unwrap();
+            let pipeline = self.pipeline(pending_frame.new_pipeline_id);
             if pipeline.parent_info.is_none() {
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id,
                                                                                   new_size));
