@@ -72,7 +72,7 @@ interface Range {
   [Pure]
   boolean intersectsNode(Node node);
 
-  // stringifier;
+  stringifier;
 };
 
 // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
