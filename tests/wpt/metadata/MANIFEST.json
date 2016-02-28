@@ -34520,6 +34520,12 @@
             "url": "/dom/lists/DOMTokenList-value.html"
           }
         ],
+        "dom/ranges/Range-stringifier.html": [
+          {
+            "path": "dom/ranges/Range-stringifier.html",
+            "url": "/dom/ranges/Range-stringifier.html"
+          }
+        ],
         "html/webappapis/scripting/events/event-handler-processing-algorithm.html": [
           {
             "path": "html/webappapis/scripting/events/event-handler-processing-algorithm.html",
