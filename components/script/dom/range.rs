@@ -750,7 +750,7 @@ impl RangeMethods for Range {
             if let Some(text) = start_node.downcast::<CharacterData>() {
                 return text.ReplaceData(start_offset,
                                         end_offset - start_offset,
-                                        DOMString::from(""));
+                                        DOMString::new());
             }
         }
 
@@ -758,10 +758,15 @@ impl RangeMethods for Range {
         let mut contained_children: RootedVec<JS<Node>> = RootedVec::new();
         let ancestor = self.CommonAncestorContainer();
 
-        for child in start_node.following_nodes(ancestor.r()) {
-            if self.contains(child.r()) &&
-               !contained_children.contains(&JS::from_ref(child.GetParentNode().unwrap().r())) {
+        let mut iter = start_node.following_nodes(ancestor.r());
+
+        let mut next = iter.next();
+        while let Some(child) = next {
+            if self.contains(child.r()) {
                 contained_children.push(JS::from_ref(child.r()));
+                next = iter.next_skipping_children();
+            } else {
+                next = iter.next();
             }
         }
 
@@ -778,7 +783,7 @@ impl RangeMethods for Range {
                     }
                     reference_node = parent;
                 }
-                panic!()
+                unreachable!()
             }
 
             compute_reference(start_node.r(), end_node.r())
@@ -786,9 +791,9 @@ impl RangeMethods for Range {
 
         // Step 7.
         if let Some(text) = start_node.downcast::<CharacterData>() {
-            try!(text.ReplaceData(start_offset,
-                                  start_node.len() - start_offset,
-                                  DOMString::from("")));
+            text.ReplaceData(start_offset,
+                             start_node.len() - start_offset,
+                             DOMString::new()).unwrap();
         }
 
         // Step 8.
@@ -798,12 +803,13 @@ impl RangeMethods for Range {
 
         // Step 9.
         if let Some(text) = end_node.downcast::<CharacterData>() {
-            try!(text.ReplaceData(0, end_offset, DOMString::from("")));
+            text.ReplaceData(0, end_offset, DOMString::new()).unwrap();
         }
 
         // Step 10.
-        try!(self.SetStart(new_node.r(), new_offset));
-        self.SetEnd(new_node.r(), new_offset)
+        self.SetStart(new_node.r(), new_offset).unwrap();
+        self.SetEnd(new_node.r(), new_offset).unwrap();
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-surroundcontents
