@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Range stringifier</title>
+<link rel="author" title="KiChjang" href="mailto:kungfukeith11@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=test>Test div</div>
+<div id=another>Another div</div>
+<div id=last>Last div</div>
+<div id=log></div>
+<script>
+test(function() {
+  var r = new Range();
+  var testDiv = document.getElementById("test");
+  r.selectNodeContents(testDiv);
+  assert_equals(r.collapsed, false);
+  assert_equals(r.toString(), testDiv.textContent);
+
+  var textNode = testDiv.childNodes[0];
+  r.setStart(textNode, 0);
+  r.setEnd(textNode, 4);
+  assert_equals(r.collapsed, false);
+  assert_equals(r.toString(), "Test");
+
+  var anotherDiv = document.getElementById("another");
+  r.setStart(testDiv, 0);
+  r.setEnd(anotherDiv, 0);
+  assert_equals(r.toString(), "Test div\n");
+
+  var lastDiv = document.getElementById("last");
+  var lastText = lastDiv.childNodes[0];
+  r.setStart(textNode, 5);
+  r.setEnd(lastText, 4);
+  assert_equals(r.toString(), "div\nAnother div\nLast");
+});
+</script>

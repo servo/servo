@@ -118,7 +118,7 @@ impl Range {
 
         // Step 11.
         let contained_children: Vec<Root<Node>> =
-            common_ancestor.children().filter(|n| Range::contains(self, n)).collect();
+            common_ancestor.children().filter(|n| self.contains(n)).collect();
 
         // Step 12.
         if contained_children.iter().any(|n| n.is_doctype()) {
@@ -849,6 +849,49 @@ impl RangeMethods for Range {
 
         // Step 7.
         self.SelectNode(new_parent)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-range-stringifier
+    fn Stringifier(&self) -> DOMString {
+        let start_node = self.StartContainer();
+        let end_node = self.EndContainer();
+
+        // Step 1.
+        let mut s = DOMString::new();
+
+        if let Some(text_node) = start_node.downcast::<Text>() {
+            let char_data = text_node.upcast::<CharacterData>();
+
+            // Step 2.
+            if start_node == end_node {
+                return char_data.SubstringData(self.StartOffset(),
+                    self.EndOffset() - self.StartOffset()).unwrap();
+            }
+
+            // Step 3.
+            s.push_str(&*char_data.SubstringData(self.StartOffset(),
+                char_data.Length() - self.StartOffset()).unwrap());
+        }
+
+        // Step 4.
+        let ancestor = self.CommonAncestorContainer();
+        let mut iter = start_node.following_nodes(ancestor.r())
+                                 .filter_map(Root::downcast::<Text>);
+
+        while let Some(child) = iter.next() {
+            if self.contains(child.upcast()) {
+                s.push_str(&*child.upcast::<CharacterData>().Data());
+            }
+        }
+
+        // Step 5.
+        if let Some(text_node) = end_node.downcast::<Text>() {
+            let char_data = text_node.upcast::<CharacterData>();
+            s.push_str(&*char_data.SubstringData(0, self.EndOffset()).unwrap());
+        }
+
+        // Step 6.
+        s
     }
 }
 
