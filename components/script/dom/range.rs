@@ -658,6 +658,9 @@ impl RangeMethods for Range {
         let start_offset = self.StartOffset();
 
         // Step 1.
+        if &*start_node == node {
+            return Err(Error::HierarchyRequest);
+        }
         match start_node.type_id() {
             // Handled under step 2.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
