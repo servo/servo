@@ -89,6 +89,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
+use origin::Origin;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
@@ -212,6 +213,10 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
+    /// The document's origin.
+    origin: Origin,
+    /// The document's effective script origin.
+    effective_script_origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1494,6 +1499,16 @@ impl Document {
         let target = node.upcast();
         event.fire(target);
     }
+
+    /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
+    fn is_cookie_averse(&self) -> bool {
+        self.browsing_context.is_none() ||
+        !url_uses_server_based_naming_authority(&self.url)
+    }
+}
+
+fn url_uses_server_based_naming_authority(url: &Url) -> bool {
+    url.scheme == "http" || url.scheme == "https"
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -1541,6 +1556,26 @@ impl Document {
         } else {
             (DocumentReadyState::Complete, true)
         };
+
+        // Incomplete implementation of Document origin specification at
+        // https://html.spec.whatwg.org/multipage/#origin:document
+        // using "has a browsing context" as a signifier for "served
+        // over the network".
+        let origin = if browsing_context.is_some() {
+            // Served over network, uses a URL scheme with server-based naming authority
+            if url_uses_server_based_naming_authority(&url) {
+                Origin::new(&url).alias()
+            } else {
+                Origin::opaque_identifier()
+            }
+        } else {
+            // Default to DOM standard behaviour
+            Origin::opaque_identifier()
+        };
+        // This is an incomplete simplification, since the only cases we implement
+        // for origins require the effective script origin to alias the document's
+        // origin.
+        let effective_script_origin = origin.alias();
 
         Document {
             node: Node::new_document_node(),
@@ -1604,6 +1639,8 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
+            origin: origin,
+            effective_script_origin: effective_script_origin,
         }
     }
 
@@ -1793,15 +1830,15 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
-        // TODO: This should use the effective script origin when it exists
-        let origin = self.window.get_url();
-
-        if let Some(&Host::Ipv6(ipv6)) = origin.host() {
-            // Omit square brackets for IPv6 addresses.
-            return DOMString::from(ipv6.to_string());
+        if let Some(host) = self.effective_script_origin.host() {
+            if let Host::Ipv6(ipv6) = host {
+                // Omit square brackets for IPv6 addresses.
+                return DOMString::from(ipv6.to_string());
+            }
+            DOMString::from(host.serialize())
+        } else {
+            DOMString::new()
         }
-
-        DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
@@ -2397,11 +2434,14 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn GetCookie(&self) -> Fallible<DOMString> {
-        // TODO: return empty string for cookie-averse Document
-        let url = self.url();
-        if !is_scheme_host_port_tuple(&url) {
+        if self.is_cookie_averse() {
+            return Ok(DOMString::new());
+        }
+
+        if !self.origin.is_scheme_host_port_tuple() {
             return Err(Error::Security);
         }
+        let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
         let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
@@ -2410,11 +2450,14 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
-        // TODO: ignore for cookie-averse Document
-        let url = self.url();
-        if !is_scheme_host_port_tuple(url) {
+        if self.is_cookie_averse() {
+            return Ok(());
+        }
+
+        if !self.origin.is_scheme_host_port_tuple() {
             return Err(Error::Security);
         }
+        let url = self.url();
         let _ = self.window
                     .resource_thread()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
@@ -2553,10 +2596,6 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#handler-onreadystatechange
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
-}
-
-fn is_scheme_host_port_tuple(url: &Url) -> bool {
-    url.host().is_some() && url.port_or_default().is_some()
 }
 
 fn update_with_current_time(marker: &Cell<u64>) {
