@@ -1146,10 +1146,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
                            resp_chan: IpcSender<Option<PipelineId>>) {
-        let current_pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
-            let frame = self.frames.get(&frame_id).unwrap();
-            frame.current
-        });
+        let current_pipeline_id = frame_id.or(self.root_frame_id)
+                                          .map(|frame_id| self.frame(frame_id).current);
         let pipeline_id = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
             .map(|x| x.new_pipeline_id).or(current_pipeline_id);
@@ -1257,10 +1255,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 }
             },
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
-                let current_pipeline_id = self.root_frame_id.map(|frame_id| {
-                    let frame = self.frames.get(&frame_id).unwrap();
-                    frame.current
-                });
+                let current_pipeline_id = self.root_frame_id
+                                              .map(|frame_id| self.frame(frame_id).current);
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
@@ -1398,7 +1394,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some(root_frame_id) = self.root_frame_id {
             // Send Resize (or ResizeInactive) messages to each
             // pipeline in the frame tree.
-            let frame = self.frames.get(&root_frame_id).unwrap();
+            let frame = self.frame(root_frame_id);
 
             let pipeline = self.pipelines.get(&frame.current).unwrap();
             let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
