@@ -840,6 +840,49 @@ impl RangeMethods for Range {
         // Step 7.
         self.SelectNode(new_parent)
     }
+
+    // https://dom.spec.whatwg.org/#dom-range-stringifier
+    fn Stringifier(&self) -> DOMString {
+        let start_node = self.StartContainer();
+        let end = self.EndContainer();
+
+        // Step 1.
+        let mut s = DOMString::new();
+
+        if start_node.downcast::<Text>().is_some() {
+            let char_data = start_node.downcast::<CharacterData>().unwrap();
+
+            // Step 2.
+            if start_node == end_node {
+                return char_data.SubstringData(self.StartOffset(),
+                    self.EndOffset() - self.StartOffset()).unwrap();
+            }
+
+            // Step 3.
+            s.push_str(&*char_data.SubstringData(self.StartOffset(),
+                char_data.Length() - self.StartOffset()).unwrap());
+        }
+
+        // Step 4.
+        let ancestor = self.CommonAncestorContainer();
+
+        for child in start_node.following_nodes(ancestor.r()) {
+            let child = child.r();
+            if self.contains(child && child.downcast::<Text>().is_some() {
+                s.push_str(&*child.downcast::<CharacterData>().unwrap().Data());
+            }
+        }
+
+        // Step 5.
+        if end.downcast::<Text>().is_some() {
+            let char_data = end.downcast::<CharacterData>().unwrap();
+            s.push_str(&*char_data.SubstringData(self.StartOffset(),
+                self.EndOffset() - self.StartOffset()).unwrap());
+        }
+
+        // Step 6.
+        s
+    }
 }
 
 #[derive(JSTraceable)]
