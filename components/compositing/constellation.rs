@@ -973,8 +973,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
-                let old_pipeline = self.pipelines.get(&source_id).unwrap();
-                old_pipeline.freeze();
+                self.pipeline(source_id).freeze();
                 Some(new_pipeline_id)
             }
         }
@@ -1396,18 +1395,18 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // pipeline in the frame tree.
             let frame = self.frame(root_frame_id);
 
-            let pipeline = self.pipelines.get(&frame.current).unwrap();
+            let pipeline = self.pipeline(frame.current);
             let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
 
             for pipeline_id in frame.prev.iter().chain(&frame.next) {
-                let pipeline = self.pipelines.get(pipeline_id).unwrap();
+                let pipeline = self.pipeline(*pipeline_id);
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
             }
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
         for pending_frame in &self.pending_frames {
-            let pipeline = self.pipelines.get(&pending_frame.new_pipeline_id).unwrap();
+            let pipeline = self.pipeline(pending_frame.new_pipeline_id);
             if pipeline.parent_info.is_none() {
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id,
                                                                                   new_size));
