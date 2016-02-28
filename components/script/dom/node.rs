@@ -1051,21 +1051,18 @@ pub struct FollowingNodeIterator {
     root: Root<Node>,
 }
 
-impl Iterator for FollowingNodeIterator {
-    type Item = Root<Node>;
-
-    // https://dom.spec.whatwg.org/#concept-tree-following
-    fn next(&mut self) -> Option<Root<Node>> {
+impl FollowingNodeIterator {
+    /// Skips iterating the children of the current node
+    pub fn next_skipping_children(&mut self) -> Option<Root<Node>> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
         };
 
-        if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            return current.GetFirstChild()
-        }
+        self.next_skipping_children_impl(current)
+    }
 
+    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<Node>> {
         if self.root == current {
             self.current = None;
             return None;
@@ -1087,6 +1084,25 @@ impl Iterator for FollowingNodeIterator {
         }
         self.current = None;
         None
+    }
+}
+
+impl Iterator for FollowingNodeIterator {
+    type Item = Root<Node>;
+
+    // https://dom.spec.whatwg.org/#concept-tree-following
+    fn next(&mut self) -> Option<Root<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        if let Some(first_child) = current.GetFirstChild() {
+            self.current = Some(first_child);
+            return current.GetFirstChild()
+        }
+
+        self.next_skipping_children_impl(current)
     }
 }
 
