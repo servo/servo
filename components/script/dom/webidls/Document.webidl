@@ -180,3 +180,8 @@ partial interface Document {
 
       TouchList createTouchList(Touch... touches);
 };
+
+// https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+partial interface Document {
+  Element? elementFromPoint(double x, double y);
+};
