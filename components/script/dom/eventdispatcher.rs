@@ -67,7 +67,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     /* capturing */
     event.set_phase(EventPhase::Capturing);
     for cur_target in chain.iter().rev() {
-        if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
+        if let Some(listeners) = cur_target.get_listeners_for(&type_, Some(ListenerPhase::Capturing)) {
             event.set_current_target(cur_target);
             for listener in &listeners {
                 handle_event(window.r(), listener, *cur_target, event);
@@ -90,7 +90,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     event.set_phase(EventPhase::AtTarget);
     event.set_current_target(target);
 
-    if let Some(listeners) = target.get_listeners(&type_) {
+    if let Some(listeners) = target.get_listeners_for(&type_, None) {
         for listener in listeners {
             handle_event(window.r(), &listener, target, event);
 
@@ -113,7 +113,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
 
     event.set_phase(EventPhase::Bubbling);
     for cur_target in chain {
-        if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
+        if let Some(listeners) = cur_target.get_listeners_for(&type_, Some(ListenerPhase::Bubbling)) {
             event.set_current_target(cur_target);
             for listener in &listeners {
                 handle_event(window.r(), listener, *cur_target, event);
