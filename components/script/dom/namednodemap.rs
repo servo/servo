@@ -99,8 +99,15 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.owner.attrs().iter().map(|attr| {
-            DOMString::from(&**attr.name()) // FIXME(ajeffrey): Convert directly from &Atom to DOMString
-        }).collect()
+        let mut string_vec = vec!();
+        for attr in self.owner.attrs().iter() {
+            // FIXME(ajeffrey): Convert directly from &Atom to DOMString
+            let s = DOMString::from(&**attr.name());
+            if self.owner.html_element_in_html_document() && s != &*s.to_lowercase() {
+                continue
+            } else if !string_vec.contains(&s) {
+                string_vec.push(s);
+            }
+        } string_vec
     }
 }
