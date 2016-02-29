@@ -47,6 +47,8 @@ fn handle_event(window: Option<&Window>, listener: &CompiledEventListener,
     listener.call_or_handle_event(current_target, event, Report);
 }
 
+// See dispatch_event.
+// https://dom.spec.whatwg.org/#concept-event-dispatch
 fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&EventTarget]) {
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
@@ -62,71 +64,47 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
         _ => None,
     };
 
-    let type_ = event.type_();
-
-    /* capturing */
+    // Step 5.
     event.set_phase(EventPhase::Capturing);
+
+    // Step 6.
     for object in event_path.iter().rev() {
-        let listeners = object.get_listeners_for(&type_, Some(ListenerPhase::Capturing));
-        event.set_current_target(object);
-        for listener in &listeners {
-            handle_event(window.r(), listener, *object, event);
-
-            if event.stop_immediate() {
-                return;
-            }
-        }
-
+        invoke(window.r(), object, event, Some(ListenerPhase::Capturing));
         if event.stop_propagation() {
             return;
         }
     }
-
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    /* at target */
+    // Step 7.
     event.set_phase(EventPhase::AtTarget);
-    event.set_current_target(target);
 
-    for listener in target.get_listeners_for(&type_, None) {
-        handle_event(window.r(), &listener, target, event);
-
-        if event.stop_immediate() {
-            return;
-        }
-    }
+    // Step 8.
+    invoke(window.r(), target, event, None);
     if event.stop_propagation() {
         return;
     }
-
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    /* bubbling */
     if !event.bubbles() {
         return;
     }
 
+    // Step 9.1.
     event.set_phase(EventPhase::Bubbling);
+
+    // Step 9.2.
     for object in event_path {
-        let listeners = object.get_listeners_for(&type_, Some(ListenerPhase::Bubbling));
-        event.set_current_target(object);
-        for listener in &listeners {
-            handle_event(window.r(), listener, *object, event);
-
-            if event.stop_immediate() {
-                return;
-            }
-        }
-
+        invoke(window.r(), object, event, Some(ListenerPhase::Bubbling));
         if event.stop_propagation() {
             return;
         }
     }
 }
 
-// See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
+// https://dom.spec.whatwg.org/#concept-event-dispatch
 pub fn dispatch_event(target: &EventTarget,
                       target_override: Option<&EventTarget>,
                       event: &Event) -> bool {
@@ -135,18 +113,24 @@ pub fn dispatch_event(target: &EventTarget,
     assert_eq!(event.phase(), EventPhase::None);
     assert!(event.GetCurrentTarget().is_none());
 
-    event.set_target(match target_override {
-        Some(target_override) => target_override,
-        None => target.clone(),
-    });
+    // Step 2.
+    event.set_target(target_override.unwrap_or(target));
 
     if event.stop_propagation() {
+        // If the event's stop propagation flag is set, we can skip everything because
+        // it prevents the calls of the invoke algorithm in the spec and we asserted
+        // at the beginning that steps 10-12 don't need to be executed.
         return !event.DefaultPrevented();
     }
 
+    // Step 1. Postponed here for the reason stated above.
     event.set_dispatching(true);
 
+    // Step 3. The "invoke" algorithm is only used on `target` separately,
+    // so we don't put it in the path.
     let mut event_path: RootedVec<JS<EventTarget>> = RootedVec::new();
+
+    // Step 4.
     if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
             event_path.push(JS::from_ref(ancestor.upcast()));
@@ -160,9 +144,10 @@ pub fn dispatch_event(target: &EventTarget,
         }
     }
 
+    // Steps 5-9. In a separate function to short-circuit various things easily.
     dispatch_to_listeners(event, target, event_path.r());
 
-    /* default action */
+    // Default action.
     let target = event.GetTarget();
     match target {
         Some(ref target) => {
@@ -174,9 +159,67 @@ pub fn dispatch_event(target: &EventTarget,
         None => {}
     }
 
+    // Step 10.
     event.set_dispatching(false);
+
+    // Step 11.
     event.set_phase(EventPhase::None);
+
+    // Step 12.
     event.clear_current_target();
 
+    // Step 13.
     !event.DefaultPrevented()
+}
+
+// https://dom.spec.whatwg.org/#concept-event-listener-invoke
+fn invoke(window: Option<&Window>,
+          object: &EventTarget,
+          event: &Event,
+          specific_listener_phase: Option<ListenerPhase>) {
+    // Step 1.
+    assert!(!event.stop_propagation());
+
+    // Steps 2-3.
+    let listeners = object.get_listeners_for(&event.type_(), specific_listener_phase);
+
+    // Step 4.
+    event.set_current_target(object);
+
+    // Step 5.
+    inner_invoke(window, object, event, &listeners);
+
+    // TODO: step 6.
+}
+
+// https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
+fn inner_invoke(window: Option<&Window>,
+                object: &EventTarget,
+                event: &Event,
+                listeners: &[CompiledEventListener])
+                -> bool {
+    // Step 1.
+    let mut found = false;
+
+    // Step 2.
+    for listener in listeners {
+        // Steps 2.1 and 2.3-2.4 are not done because `listeners` contain only the
+        // relevant ones for this invoke call during the dispatch algorithm.
+
+        // Step 2.2.
+        found = true;
+
+        // TODO: step 2.5.
+
+        // Step 2.6.
+        handle_event(window, listener, object, event);
+        if event.stop_immediate() {
+            return found;
+        }
+
+        // TODO: step 2.7.
+    }
+
+    // Step 3.
+    found
 }
