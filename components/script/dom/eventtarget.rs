@@ -301,16 +301,12 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &Atom) -> Option<Vec<CompiledEventListener>> {
-        self.handlers.borrow_mut().get_mut(type_).map(|listeners| {
-            listeners.get_listeners(None, self, type_)
-        })
-    }
-
-    pub fn get_listeners_for(&self, type_: &Atom, desired_phase: ListenerPhase)
-                             -> Option<Vec<CompiledEventListener>> {
-        self.handlers.borrow_mut().get_mut(type_).map(|listeners| {
-            listeners.get_listeners(Some(desired_phase), self, type_)
+    pub fn get_listeners_for(&self,
+                             type_: &Atom,
+                             specific_phase: Option<ListenerPhase>)
+                             -> Vec<CompiledEventListener> {
+        self.handlers.borrow_mut().get_mut(type_).map_or(vec![], |listeners| {
+            listeners.get_listeners(specific_phase, self, type_)
         })
     }
 
