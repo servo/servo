@@ -303,10 +303,10 @@ impl EventTarget {
 
     pub fn get_listeners_for(&self,
                              type_: &Atom,
-                             desired_phase: Option<ListenerPhase>)
+                             specific_phase: Option<ListenerPhase>)
                              -> Vec<CompiledEventListener> {
         self.handlers.borrow_mut().get_mut(type_).map_or(vec![], |listeners| {
-            listeners.get_listeners(desired_phase, self, type_)
+            listeners.get_listeners(specific_phase, self, type_)
         })
     }
 

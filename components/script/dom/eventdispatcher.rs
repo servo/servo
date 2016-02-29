@@ -47,7 +47,7 @@ fn handle_event(window: Option<&Window>, listener: &CompiledEventListener,
     listener.call_or_handle_event(current_target, event, Report);
 }
 
-fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTarget]) {
+fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&EventTarget]) {
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
@@ -66,11 +66,11 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
 
     /* capturing */
     event.set_phase(EventPhase::Capturing);
-    for cur_target in chain.iter().rev() {
-        let listeners = cur_target.get_listeners_for(&type_, Some(ListenerPhase::Capturing));
-        event.set_current_target(cur_target);
+    for object in event_path.iter().rev() {
+        let listeners = object.get_listeners_for(&type_, Some(ListenerPhase::Capturing));
+        event.set_current_target(object);
         for listener in &listeners {
-            handle_event(window.r(), listener, *cur_target, event);
+            handle_event(window.r(), listener, *object, event);
 
             if event.stop_immediate() {
                 return;
@@ -109,11 +109,11 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     }
 
     event.set_phase(EventPhase::Bubbling);
-    for cur_target in chain {
-        let listeners = cur_target.get_listeners_for(&type_, Some(ListenerPhase::Bubbling));
-        event.set_current_target(cur_target);
+    for object in event_path {
+        let listeners = object.get_listeners_for(&type_, Some(ListenerPhase::Bubbling));
+        event.set_current_target(object);
         for listener in &listeners {
-            handle_event(window.r(), listener, *cur_target, event);
+            handle_event(window.r(), listener, *object, event);
 
             if event.stop_immediate() {
                 return;
@@ -127,15 +127,16 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
 }
 
 // See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
+pub fn dispatch_event(target: &EventTarget,
+                      target_override: Option<&EventTarget>,
                       event: &Event) -> bool {
     assert!(!event.dispatching());
     assert!(event.initialized());
     assert_eq!(event.phase(), EventPhase::None);
     assert!(event.GetCurrentTarget().is_none());
 
-    event.set_target(match pseudo_target {
-        Some(pseudo_target) => pseudo_target,
+    event.set_target(match target_override {
+        Some(target_override) => target_override,
         None => target.clone(),
     });
 
@@ -145,21 +146,21 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
 
     event.set_dispatching(true);
 
-    let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
+    let mut event_path: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
-            chain.push(JS::from_ref(ancestor.upcast()));
+            event_path.push(JS::from_ref(ancestor.upcast()));
         }
         let top_most_ancestor_or_target =
-            Root::from_ref(chain.r().last().cloned().unwrap_or(target));
+            Root::from_ref(event_path.r().last().cloned().unwrap_or(target));
         if let Some(document) = Root::downcast::<Document>(top_most_ancestor_or_target) {
             if event.type_() != atom!("load") && document.browsing_context().is_some() {
-                chain.push(JS::from_ref(document.window().upcast()));
+                event_path.push(JS::from_ref(document.window().upcast()));
             }
         }
     }
 
-    dispatch_to_listeners(event, target, chain.r());
+    dispatch_to_listeners(event, target, event_path.r());
 
     /* default action */
     let target = event.GetTarget();
