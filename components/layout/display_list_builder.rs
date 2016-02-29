@@ -335,7 +335,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let border_radii = build_border_radius(absolute_bounds, style.get_border());
         let mut clip = (*clip).clone();
         if !border_radii.is_square() {
-            clip = clip.intersect_with_rounded_rect(absolute_bounds, &border_radii)
+            clip.intersect_with_rounded_rect(absolute_bounds, &border_radii)
         }
 
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -1472,6 +1472,12 @@ impl FragmentDisplayListBuilding for Fragment {
                 current_clip.intersect_rect(&bounds)
             }
             _ => {}
+        }
+
+        let border_radii = build_border_radius(stacking_relative_border_box,
+                                               self.style.get_border());
+        if !border_radii.is_square() {
+            current_clip.intersect_with_rounded_rect(stacking_relative_border_box, &border_radii)
         }
     }
 

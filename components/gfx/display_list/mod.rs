@@ -762,9 +762,7 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: &Rect<Au>,
-               metadata: DisplayItemMetadata,
-               clip: &ClippingRegion)
+    pub fn new(bounds: &Rect<Au>, metadata: DisplayItemMetadata, clip: &ClippingRegion)
                -> BaseDisplayItem {
         // Detect useless clipping regions here and optimize them to `ClippingRegion::max()`.
         // The painting backend may want to optimize out clipping regions and this makes it easier
@@ -887,13 +885,11 @@ impl ClippingRegion {
 
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
-    pub fn intersect_with_rounded_rect(mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>)
-                                       -> ClippingRegion {
+    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>) {
         self.complex.push(ComplexClippingRegion {
             rect: *rect,
             radii: *radii,
         });
-        self
     }
 
     /// Translates this clipping region by the given vector.
