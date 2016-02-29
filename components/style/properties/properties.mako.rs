@@ -248,6 +248,10 @@ mod property_bit_field {
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
+// TODO: Because normal & important are stored in seperate lists, it is impossible to know their
+// exact declaration order. They should be changed into one list, adding an important/normal
+// flag to PropertyDeclaration
+
 #[derive(Debug, PartialEq, HeapSizeOf)]
 pub struct PropertyDeclarationBlock {
     #[ignore_heap_size_of = "#7038"]
@@ -255,6 +259,122 @@ pub struct PropertyDeclarationBlock {
     #[ignore_heap_size_of = "#7038"]
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
+
+impl PropertyDeclarationBlock {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    pub fn serialize(&self) -> String {
+        // Step 1
+        let mut result_list = String::new();
+
+        // Step 2
+        let mut already_serialized = HashSet::new();
+
+        // Step 3
+        // restore order of declarations since PropertyDeclarationBlock is stored in reverse order
+        let declarations = self.normal.iter().rev().chain(self.important.iter().rev()).collect::<Vec<_>>();
+
+
+        for declaration in &declarations {
+            // Step 3.1
+            let property = declaration.name().to_string();
+
+            // Step 3.2
+            if already_serialized.contains(&property) {
+                continue;
+            }
+
+            // Step 3.3
+            let mut shorthands = Vec::from(declaration.shorthands());
+            if shorthands.len() > 0 {
+                shorthands.sort_by(|a,b| a.longhands().len().cmp(&b.longhands().len()));
+
+                // Step 3.3.1
+                let mut longhands = declarations.iter().cloned()
+                .filter(|d| !already_serialized.contains(&d.name().to_string()))
+                    .collect::<Vec<_>>();
+
+                // Step 3.3.2
+                for shorthand in shorthands {
+                    let properties = shorthand.longhands();
+
+                    // Substep 2 & 3
+                    let mut current_longhands = Vec::new();
+                    let mut missing_properties: HashSet<_> = HashSet::from_iter(
+                        properties.iter().map(|&s| s.to_owned())
+                    );
+
+                    for longhand in longhands.iter().cloned() {
+                        let longhand_string = longhand.name().to_string();
+                        if !properties.contains(&&*longhand_string) {
+                            continue;
+                        }
+
+                        missing_properties.remove(&longhand_string);
+                        current_longhands.push(longhand);
+                    }
+
+                    // Substep 1
+                    if current_longhands.len() == 0 || missing_properties.len() > 0 {
+                        continue;
+                    }
+
+                    // Substep 4
+                    let important_count = current_longhands.iter()
+                        .filter(|l| self.important.contains(l))
+                        .count();
+
+                    let is_important = important_count > 0;
+                    if is_important && important_count != current_longhands.len() {
+                        continue;
+                    }
+
+                    // TODO: serialize shorthand does not take is_important into account currently
+                    // Substep 5
+                    let value = shorthand.serialize_shorthand(&current_longhands[..]);
+
+                    // Substep 6
+                    if value.is_empty() {
+                        continue;
+                    }
+
+                    // Substep 7 & 8
+                    result_list.push_str(&format!("{}: {}; ", &shorthand.to_name(), value));
+
+                    for current_longhand in current_longhands {
+                        // Substep 9
+                        already_serialized.insert(current_longhand.name().to_string());
+                        let index_to_remove = longhands.iter().position(|l| l == &current_longhand);
+                        if let Some(index) = index_to_remove {
+                            // Substep 10
+                            longhands.remove(index);
+                        }
+                     }
+                 }
+            }
+
+            // Step 3.3.4
+            if already_serialized.contains(&property) {
+                continue;
+            }
+
+            // Step 3.3.5
+            let mut value = declaration.value();
+            if self.important.contains(declaration) {
+                value.push_str(" ! important");
+            }
+            // Steps 3.3.6 & 3.3.7
+            result_list.push_str(&format!("{}: {}; ", &property, value));
+
+            // Step 3.3.8
+            already_serialized.insert(property);
+        }
+
+        result_list.pop(); // remove trailling whitespace
+        // Step 4
+        result_list
+    }
+}
+
 
 pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
                              -> PropertyDeclarationBlock {
@@ -392,6 +512,10 @@ pub enum Shorthand {
     % endfor
 }
 
+use std::borrow::ToOwned;
+use std::iter::FromIterator;
+use util::str::str_join;
+
 impl Shorthand {
     pub fn from_name(name: &str) -> Option<Shorthand> {
         match_ignore_ascii_case! { name,
@@ -399,6 +523,14 @@ impl Shorthand {
                 "${property.name}" => Some(Shorthand::${property.camel_case}),
             % endfor
             _ => None
+        }
+    }
+
+    pub fn to_name(&self) -> &str {
+        match *self {
+            % for property in SHORTHANDS:
+                Shorthand::${property.camel_case} => "${property.name}",
+            % endfor
         }
     }
 
@@ -414,6 +546,29 @@ impl Shorthand {
             % for property in data.shorthands:
                 Shorthand::${property.camel_case} => ${property.ident.upper()},
             % endfor
+        }
+    }
+
+    pub fn serialize_shorthand(self, declarations: &[&PropertyDeclaration]) -> String {
+        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+        if let Some(css) = declarations[0].with_variables_from_shorthand(self) {
+            if declarations[1..]
+                   .iter()
+                   .all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+                css.to_owned()
+            } else {
+                String::new()
+            }
+        } else {
+            if declarations.iter().any(|d| d.with_variables()) {
+                String::new()
+            } else {
+                let str_iter = declarations.iter().map(|d| d.value());
+                // FIXME: this needs property-specific code, which probably should be in style/
+                // "as appropriate according to the grammar of shorthand "
+                // https://drafts.csswg.org/cssom/#serialize-a-css-value
+                str_join(str_iter, " ")
+            }
         }
     }
 }
@@ -669,6 +824,38 @@ impl PropertyDeclaration {
             % endfor
 
             _ => PropertyDeclarationParseResult::UnknownProperty
+        }
+    }
+
+    pub fn shorthands(&self) -> &[Shorthand] {
+        // first generate longhand to shorthands lookup map
+        <%
+            longhand_to_shorthand_map = {}
+            for shorthand in SHORTHANDS:
+                for sub_property in shorthand.sub_properties:
+                    if sub_property.ident not in longhand_to_shorthand_map:
+                        longhand_to_shorthand_map[sub_property.ident] = []
+
+                    longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
+
+            for shorthand_list in longhand_to_shorthand_map.itervalues():
+                shorthand_list.sort()
+        %>
+
+        // based on lookup results for each longhand, create result arrays
+        % for property in LONGHANDS:
+            static ${property.ident.upper()}: &'static [Shorthand] = &[
+                % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
+                    Shorthand::${shorthand},
+                % endfor
+            ];
+        % endfor
+
+        match *self {
+            % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(_) => ${property.ident.upper()},
+            % endfor
+            _ => &[] // include outlet for Custom enum value
         }
     }
 }
