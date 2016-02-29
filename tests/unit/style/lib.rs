@@ -20,6 +20,7 @@ extern crate util;
 #[cfg(test)] mod attr;
 #[cfg(test)] mod logical_geometry;
 #[cfg(test)] mod media_queries;
+#[cfg(test)] mod properties;
 #[cfg(test)] mod stylesheets;
 #[cfg(test)] mod viewport;
 
