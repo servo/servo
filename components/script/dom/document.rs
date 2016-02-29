@@ -62,7 +62,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -78,6 +78,7 @@ use dom::window::{ReflowReason, Window};
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
@@ -2553,6 +2554,35 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#handler-onreadystatechange
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
+
+    #[allow(unsafe_code)]
+    // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<Root<Element>> {
+        let x = *x as f32;
+        let y = *y as f32;
+        let point = &Point2D { x: x, y: y };
+        let window = window_from_node(self);
+        let viewport = window.window_size().unwrap().visible_viewport;
+
+        if x < 0.0 || y < 0.0 || x > viewport.width.get() || y > viewport.height.get() {
+            return None;
+        }
+
+        let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
+
+        match self.hit_test(point)  {
+            Some(untrusted_node_address) => {
+                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                let parent_node = node.GetParentNode().unwrap();
+                let element_ref = node.downcast::<Element>().unwrap_or_else(|| {
+                    parent_node.downcast::<Element>().unwrap()
+                });
+
+                Some(Root::from_ref(element_ref))
+            },
+            None => self.GetDocumentElement()
+        }
+    }
 }
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
