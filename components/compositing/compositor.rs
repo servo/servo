@@ -353,10 +353,11 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
                              pipeline_id: webrender_traits::PipelineId,
                              size: Option<Size2D<f32>>) {
         let pipeline_id = pipeline_id.from_webrender();
-        let size = size.unwrap_or(Size2D::zero());
 
-        self.constellation_chan.send(ConstellationMsg::FrameSize(pipeline_id,
-                                                                 size)).unwrap();
+        if let Some(size) = size {
+            self.constellation_chan.send(ConstellationMsg::FrameSize(pipeline_id,
+                                                                     size)).unwrap();
+        }
     }
 }
 
