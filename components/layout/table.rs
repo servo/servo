@@ -658,21 +658,22 @@ pub struct ColumnComputedInlineSize {
 }
 
 pub trait VecExt<T> {
-    fn push_or_set(&mut self, index: usize, value: T);
-    fn push_or_mutate(&mut self, index: usize, zero: T) -> &mut T;
+    fn push_or_set(&mut self, index: usize, value: T) -> &mut T;
+    fn get_mut_or_push(&mut self, index: usize, zero: T) -> &mut T;
 }
 
 impl<T> VecExt<T> for Vec<T> {
-    fn push_or_set(&mut self, index: usize, value: T) {
+    fn push_or_set(&mut self, index: usize, value: T) -> &mut T {
         if index < self.len() {
             self[index] = value
         } else {
             debug_assert!(index == self.len());
             self.push(value)
         }
+        &mut self[index]
     }
 
-    fn push_or_mutate(&mut self, index: usize, zero: T) -> &mut T {
+    fn get_mut_or_push(&mut self, index: usize, zero: T) -> &mut T {
         if index >= self.len() {
             debug_assert!(index == self.len());
             self.push(zero)
@@ -697,7 +698,7 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
                                                   .enumerate() {
         child_table_row.final_collapsed_borders.inline.push_or_set(i, *this_inline_border);
 
-        let inline_spacing = inline_spacing.push_or_mutate(i, Au(0));
+        let inline_spacing = inline_spacing.get_mut_or_push(i, Au(0));
         *inline_spacing = cmp::max(*inline_spacing, this_inline_border.width)
     }
 
@@ -733,7 +734,7 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
                                                  .block_end
                                                  .iter()
                                                  .enumerate() {
-        let next_block = next_block.push_or_mutate(i, *this_block_border);
+        let next_block = next_block.push_or_set(i, *this_block_border);
         match next_block_borders {
             NextBlockCollapsedBorders::FromNextRow(next_block_borders) => {
                 if next_block_borders.len() > i {
