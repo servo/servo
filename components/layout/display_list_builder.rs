@@ -1470,6 +1470,13 @@ impl FragmentDisplayListBuilding for Fragment {
             _ => {}
         }
 
+        let border_radii = build_border_radius(stacking_relative_border_box,
+                                               self.style.get_border());
+        if !border_radii.is_square() {
+            current_clip = current_clip.intersect_with_rounded_rect(stacking_relative_border_box,
+                                                                    &border_radii)
+        }
+
         current_clip
     }
 

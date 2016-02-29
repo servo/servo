@@ -788,6 +788,18 @@
             "url": "/_mozilla/css/border_radius_clip_a.html"
           }
         ],
+        "css/border_radius_clipping_contents_a.html": [
+          {
+            "path": "css/border_radius_clipping_contents_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_clipping_contents_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_clipping_contents_a.html"
+          }
+        ],
         "css/border_radius_dashed_a.html": [
           {
             "path": "css/border_radius_dashed_a.html",
