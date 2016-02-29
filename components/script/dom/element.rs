@@ -697,89 +697,129 @@ impl Element {
         }
     }
 
-    pub fn remove_inline_style_property(&self, property: &str) {
-        let mut inline_declarations = self.style_attribute.borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let index = declarations.normal
-                                    .iter()
-                                    .position(|decl| decl.matches(property));
-            if let Some(index) = index {
-                Arc::make_mut(&mut declarations.normal).remove(index);
-                return;
-            }
+    fn sync_property_with_attrs_style(&self) {
+        let mut style_str = String::new();
 
-            let index = declarations.important
-                                    .iter()
-                                    .position(|decl| decl.matches(property));
-            if let Some(index) = index {
-                Arc::make_mut(&mut declarations.important).remove(index);
-                return;
+        if let &Some(ref declarations) = &*self.style_attribute().borrow() {
+            style_str.push_str(&declarations.serialize());
+        }
+
+        let new_style = AttrValue::String(style_str);
+
+        if let Some(style_attr) = self.attrs.borrow().iter().find(|a| a.name() == &atom!("style")) {
+            style_attr.set_value(new_style, self);
+            return;
+        }
+
+        self.push_new_attribute(
+            atom!("style"),
+            new_style,
+            atom!("style"),
+            ns!(),
+            Some(atom!("style"))
+        );
+    }
+
+    pub fn remove_inline_style_property(&self, property: &str) {
+        fn remove(element: &Element, property: &str) {
+            let mut inline_declarations = element.style_attribute.borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+                let index = declarations.normal
+                                        .iter()
+                                        .position(|decl| decl.matches(property));
+                if let Some(index) = index {
+                    Arc::make_mut(&mut declarations.normal).remove(index);
+                    return;
+                }
+
+                let index = declarations.important
+                                        .iter()
+                                        .position(|decl| decl.matches(property));
+                if let Some(index) = index {
+                    Arc::make_mut(&mut declarations.important).remove(index);
+                    return;
+                }
             }
         }
+
+        remove(self, property);
+        self.sync_property_with_attrs_style();
     }
 
     pub fn update_inline_style(&self,
                                property_decl: PropertyDeclaration,
                                style_priority: StylePriority) {
-        let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let existing_declarations = if style_priority == StylePriority::Important {
-                &mut declarations.important
+
+        fn update(element: &Element, property_decl: PropertyDeclaration, style_priority: StylePriority) {
+            let mut inline_declarations = element.style_attribute().borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+                let existing_declarations = if style_priority == StylePriority::Important {
+                    &mut declarations.important
+                } else {
+                    &mut declarations.normal
+                };
+
+                // Usually, the reference count will be 1 here. But transitions could make it greater
+                // than that.
+                let existing_declarations = Arc::make_mut(existing_declarations);
+                for declaration in &mut *existing_declarations {
+                    if declaration.name() == property_decl.name() {
+                        *declaration = property_decl;
+                        return;
+                    }
+                }
+
+                // inserting instead of pushing since the declarations are in reverse order
+                existing_declarations.insert(0, property_decl);
+                return;
+            }
+
+            let (important, normal) = if style_priority == StylePriority::Important {
+                (vec![property_decl], vec![])
             } else {
-                &mut declarations.normal
+                (vec![], vec![property_decl])
             };
 
-            // Usually, the reference count will be 1 here. But transitions could make it greater
-            // than that.
-            let existing_declarations = Arc::make_mut(existing_declarations);
-            for declaration in &mut *existing_declarations {
-                if declaration.name() == property_decl.name() {
-                    *declaration = property_decl;
-                    return;
-                }
-            }
-            existing_declarations.push(property_decl);
-            return;
+            *inline_declarations = Some(PropertyDeclarationBlock {
+                important: Arc::new(important),
+                normal: Arc::new(normal),
+            });
         }
 
-        let (important, normal) = if style_priority == StylePriority::Important {
-            (vec![property_decl], vec![])
-        } else {
-            (vec![], vec![property_decl])
-        };
-
-        *inline_declarations = Some(PropertyDeclarationBlock {
-            important: Arc::new(important),
-            normal: Arc::new(normal),
-        });
+        update(self, property_decl, style_priority);
+        self.sync_property_with_attrs_style();
     }
 
     pub fn set_inline_style_property_priority(&self,
                                               properties: &[&str],
                                               style_priority: StylePriority) {
-        let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let (from, to) = if style_priority == StylePriority::Important {
-                (&mut declarations.normal, &mut declarations.important)
-            } else {
-                (&mut declarations.important, &mut declarations.normal)
-            };
+        {
+            let mut inline_declarations = self.style_attribute().borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+              let (from, to) = if style_priority == StylePriority::Important {
+                  (&mut declarations.normal, &mut declarations.important)
+              } else {
+                  (&mut declarations.important, &mut declarations.normal)
+              };
 
-            // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
-            // could make them greater than that.
-            let from = Arc::make_mut(from);
-            let to = Arc::make_mut(to);
-            let mut new_from = Vec::new();
-            for declaration in from.drain(..) {
-                let name = declaration.name();
-                if properties.iter().any(|p| name == **p) {
-                    to.push(declaration)
-                } else {
-                    new_from.push(declaration)
-                }
+              // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
+              // could make them greater than that.
+              let from = Arc::make_mut(from);
+              let to = Arc::make_mut(to);
+              let mut new_from = Vec::new();
+              for declaration in from.drain(..) {
+                  let name = declaration.name();
+                  if properties.iter().any(|p| name == **p) {
+                      to.push(declaration)
+                  } else {
+                      new_from.push(declaration)
+                  }
+              }
+              mem::replace(from, new_from);
             }
-            mem::replace(from, new_from);
         }
+
+        self.sync_property_with_attrs_style();
     }
 
     pub fn get_inline_style_declaration(&self,
