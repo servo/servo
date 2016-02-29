@@ -21,7 +21,7 @@ use style::computed_values::{border_collapse, border_spacing};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
-use table_row::{self, CollapsedBordersForRow};
+use table_row;
 use util::print_tree::PrintTree;
 
 /// A table formatting context.
@@ -41,10 +41,6 @@ pub struct TableRowGroupFlow {
     /// The direction of the columns, propagated down from the table during the inline-size
     /// assignment phase.
     pub table_writing_mode: WritingMode,
-
-    /// Information about the borders for each cell that we bubble up to our parent. This is only
-    /// computed if `border-collapse` is `collapse`.
-    pub preliminary_collapsed_borders: CollapsedBordersForRow,
 
     /// The final width of the borders in the inline direction for each cell, computed by the
     /// entire table and pushed down into each row during inline size computation.
@@ -73,7 +69,6 @@ impl TableRowGroupFlow {
                 vertical: Au(0),
             },
             table_writing_mode: writing_mode,
-            preliminary_collapsed_borders: CollapsedBordersForRow::new(),
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
         }
