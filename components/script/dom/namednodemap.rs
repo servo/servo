@@ -13,6 +13,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::window::Window;
+use std::ascii::AsciiExt;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -99,8 +100,18 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.owner.attrs().iter().map(|attr| {
-            DOMString::from(&**attr.name()) // FIXME(ajeffrey): Convert directly from &Atom to DOMString
-        }).collect()
+        let mut names = vec!();
+        let html_element_in_html_document = self.owner.html_element_in_html_document();
+        for attr in self.owner.attrs().iter() {
+            let s = &**attr.name();
+            if html_element_in_html_document && !s.bytes().all(|b| b.to_ascii_lowercase() == b) {
+                continue
+            }
+
+            if !names.iter().any(|name| &*name == s) {
+                names.push(DOMString::from(s));
+            }
+        }
+        names
     }
 }
