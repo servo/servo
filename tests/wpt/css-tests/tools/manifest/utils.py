@@ -21,6 +21,12 @@ def is_blacklisted(url):
             return True
     return False
 
+def from_os_path(path):
+    return path.replace(os.path.sep, "/")
+
+def to_os_path(path):
+    return path.replace("/", os.path.sep)
+
 class ContextManagerStringIO(StringIO):
     def __enter__(self):
         return self

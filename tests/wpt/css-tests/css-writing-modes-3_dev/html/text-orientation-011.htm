@@ -1,82 +1,53 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
-	<head>
-		<title>CSS Writing Modes Test: text-orientation - upright</title>
-		<link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com">
-		<link rel="help" title="5.1. Orienting Text: the‘text-orientation’property" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">
-		<meta http-equiv="content-language" content="en, ja">
-		<meta name="flags" content="ahem font">
-		<meta name="assert" content="This test checks that 'text-orientation: upright' causes characters from horizontal-only scripts are rendered upright, i.e. in their standard horizontal orientation, in vertical writing modes. This is effective to verify 1.block flow direction, 2.inline direction and 3.glyph orientation.">
-		<style type="text/css">
-				@font-face
-				{
-					font-family: "mplus-1p-regular";
-					src: url("support/mplus-1p-regular.woff") format("woff");
-					/* filesize: 803300 bytes (784.5 KBytes) */
-					/*
-					mplus-1p-regular.ttf can be downloaded at/from [TBD later]
-					*/
-				}
-				.view_ahem
-				{
-					background: pink;
-					border: 1px solid black;
-					color: blue;
-					font: 20px/1 "Ahem";
-					height: 3em;
-					margin: 10px;
-					width: 3em;
-					white-space: pre;
-				}
-				#test_ahem
-				{
-					text-orientation: upright;				/* The property to be tested */
-					writing-mode: vertical-rl;
-				}
-				#control_ahem
-				{
-					writing-mode: horizontal-tb;
-				}
-				.view
-				{
-					border: 1px solid gray;
-					font-family: "mplus-1p-regular";
-					font-size: 1.5em;
-					line-height: 1.5;
-					margin-bottom: 10px;
-					width: 3em;
-					writing-mode: vertical-rl;
-				}
-				#test
-				{
-					text-orientation: upright;					/* The property to be tested */
-				}
-				#control
-				{
-				}
-				.tcy  /* tate-cyu-yoko: horizontal-in-vertical */
-				{
-					text-combine-upright: all;
-				}
-		</style>
-	</head>
-	<body lang="en">
-		<!--
-			This test consists of a pair of sub-tests which complements each other.
-			Logically, the test should verify 1.block flow direction, 2.inline direction
-			and 3.glyph orientation. The "Ahem" sub-test comes first and checks 1. and 2. ,
-			whereas "glyph" sub-test comes later and also checks 3.
-		-->
-		<p>Test passes if a pair of rectangles is <strong>identical</strong> including <strong>layout</strong> and <strong>orientation</strong>.</p>
-		<p>Note that different advances (letter spacings) are considered as PASS.</p>
-		<div class="view_ahem"><span id="test_ahem">123
- 56
-7  </span></div>
-		<div class="view_ahem"><span id="control_ahem">7 1
- 52
- 63</span></div>
-		<hr>
-		<div class="view" lang="ja"><span id="test">月火水Abc<br>def木金土</span></div>
-		<div class="view" lang="ja"><span id="control">月火水<span class="tcy">A</span><span class="tcy">b</span><span class="tcy">c</span><br><span class="tcy">d</span><span class="tcy">e</span><span class="tcy">f</span>木金土</span></div>
-	</body>
+
+ <head>
+
+  <title>CSS Writing Modes Test: text-orientation - upright</title>
+
+  <link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" title="5.1 Orienting Text: the 'text-orientation' property" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">
+
+  <meta name="flags" content="">
+  <meta name="assert" content="This test checks that 'text-orientation: upright' causes characters from horizontal-only scripts to be rendered upright, i.e. in their standard horizontal orientation, in vertical writing modes.">
+
+  <style type="text/css">
+  @font-face
+    {
+      font-family: "CSS Full-Width Orientation Test";
+      src: url("support/adobe-fonts/CSSFWOrientationTest.otf") format("opentype");
+    }
+
+  div
+    {
+      color: blue;
+      font-family: "CSS Full-Width Orientation Test";
+      font-size: 180px;
+      line-height: 3;
+      text-orientation: upright;
+      writing-mode: vertical-rl;
+    }
+
+  span
+    {
+      color: orange;
+    }
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 2 rectangles with a white <strong>triangle pointing up</strong> and if the orange rectangle is below the blue rectangle.</p>
+
+  <div>F<span>A</span></div>
+
+  <!--
+  Unfortunately, we can not compare text with images even with web-fonts. Rendering varies
+  by platform, like Retina (high-res) Mac will fail if you compare text with
+  pre-rendered image. Koji Ishii, 2016-01-17
+  -->
+
+ </body>
 </html>
