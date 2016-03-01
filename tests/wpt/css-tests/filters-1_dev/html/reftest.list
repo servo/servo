@@ -17,6 +17,10 @@ filter-contrast-003.htm == reference/filter-contrast-003-ref.htm
 filter-external-001-test.htm == reference/filter-external-001-ref.htm
 filter-external-002-test.htm == reference/filter-external-001-ref.htm
 filter-grayscale-001.htm == reference/filter-grayscale-ref.htm
+filter-grayscale-002.htm == reference/filter-grayscale-ref.htm
+filter-grayscale-003.htm == reference/filter-grayscale-ref.htm
+filter-grayscale-004.htm == reference/filter-grayscale-ref.htm
+filter-grayscale-005.htm == reference/filter-grayscale-ref.htm
 filter-hue_rotate-001-test.htm == reference/filter-hue_rotate-001-ref.htm
 filter-invert-001-test.htm == reference/filter-invert-001-ref.htm
 filter-invert-002-test.htm == reference/filter-invert-002-ref.htm

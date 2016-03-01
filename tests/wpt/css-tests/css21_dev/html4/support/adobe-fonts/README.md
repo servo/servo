@@ -17,7 +17,7 @@ Pre-built font binaries
 ----
 The installable font resources (font binaries) are not part of the source files.
 They are available at  https://github.com/adobe-fonts/css-orientation-test/
-The latest version of the font binaries is 1.005 (October 2015).
+The latest version of the font binaries is 1.005 (April 4th 2015).
 
 
 Requirements
