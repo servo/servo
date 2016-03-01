@@ -12,8 +12,9 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use euclid::Point2D;
-use flow::{IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, OpaqueFlow};
+use flow::{BaseFlow, IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, OpaqueFlow};
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS};
+use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::DisplayList;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -133,7 +134,7 @@ impl TableFlow {
 
     /// Updates the minimum and preferred inline-size calculation for a single row. This is
     /// factored out into a separate function because we process children of rowgroups too.
-    fn update_column_inline_sizes_for_row(child: &mut Flow,
+    fn update_column_inline_sizes_for_row(row: &mut TableRowFlow,
                                           column_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
                                           computation: &mut IntrinsicISizesContribution,
                                           first_row: bool,
@@ -142,8 +143,6 @@ impl TableFlow {
         // not defined in the column group.
         //
         // FIXME: Need to read inline-sizes from either table-header-group OR the first table-row.
-        debug_assert!(child.is_table_row());
-        let row = child.as_table_row();
         match table_layout {
             TableLayout::Fixed => {
                 // Fixed table layout only looks at the first row.
@@ -230,6 +229,28 @@ impl Flow for TableFlow {
         // Don't use `compute_intrinsic_inline_sizes` here because that will count padding as
         // part of the table, which we don't want to do—it belongs to the table wrapper instead.
 
+        // Get column inline sizes from colgroups
+        for kid in self.block_flow.base.child_iter().filter(|kid| kid.is_table_colgroup()) {
+            for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
+                self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
+                    minimum_length: match *specified_inline_size {
+                        LengthOrPercentageOrAuto::Auto |
+                        LengthOrPercentageOrAuto::Calc(_) |
+                        LengthOrPercentageOrAuto::Percentage(_) => Au(0),
+                        LengthOrPercentageOrAuto::Length(length) => length,
+                    },
+                    percentage: match *specified_inline_size {
+                        LengthOrPercentageOrAuto::Auto |
+                        LengthOrPercentageOrAuto::Calc(_) |
+                        LengthOrPercentageOrAuto::Length(_) => 0.0,
+                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
+                    },
+                    preferred: Au(0),
+                    constrained: false,
+                })
+            }
+        }
+
         self.collapsed_inline_direction_border_widths_for_table = Vec::new();
         self.collapsed_block_direction_border_widths_for_table = vec![Au(0)];
 
@@ -250,133 +271,47 @@ impl Flow for TableFlow {
         };
 
         let mut computation = IntrinsicISizesContribution::new();
-        let mut previous_collapsed_block_end_borders = if collapsing_borders {
+        let mut previous_collapsed_block_end_borders =
             PreviousBlockCollapsedBorders::FromTable(CollapsedBorder::block_start(
                     &*self.block_flow.fragment.style,
-                    CollapsedBorderProvenance::FromTable))
-        } else {
-            PreviousBlockCollapsedBorders::NotCollapsingBorders
-        };
+                    CollapsedBorderProvenance::FromTable));
         let mut first_row = true;
 
         {
-            let mut iterator = self.block_flow.base.child_iter().peekable();
-            while let Some(kid) = iterator.next() {
-                if kid.is_table_colgroup() {
-                    for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
-                        self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
-                            minimum_length: match *specified_inline_size {
-                                LengthOrPercentageOrAuto::Auto |
-                                LengthOrPercentageOrAuto::Calc(_) |
-                                LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                                LengthOrPercentageOrAuto::Length(length) => length,
-                            },
-                            percentage: match *specified_inline_size {
-                                LengthOrPercentageOrAuto::Auto |
-                                LengthOrPercentageOrAuto::Calc(_) |
-                                LengthOrPercentageOrAuto::Length(_) => 0.0,
-                                LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
-                            },
-                            preferred: Au(0),
-                            constrained: false,
-                        })
-                    }
-                } else if kid.is_table_row() {
-                    TableFlow::update_column_inline_sizes_for_row(
-                            kid,
-                            &mut self.column_intrinsic_inline_sizes,
-                            &mut computation,
-                            first_row,
-                            self.table_layout);
-                    if collapsing_borders {
-                        let next_index_and_sibling = iterator.peek();
-                        let next_collapsed_borders_in_block_direction =
-                            match next_index_and_sibling {
-                                Some(next_sibling) => {
-                                    if next_sibling.is_table_rowgroup() {
-                                        NextBlockCollapsedBorders::FromNextRow(
-                                            &next_sibling.as_table_rowgroup()
-                                                         .preliminary_collapsed_borders
-                                                         .block_start)
-                                    } else {
-                                        NextBlockCollapsedBorders::FromNextRow(
-                                            &next_sibling.as_table_row()
-                                                         .preliminary_collapsed_borders
-                                                         .block_start)
-                                    }
-                                }
-                                None => {
-                                    NextBlockCollapsedBorders::FromTable(
-                                        CollapsedBorder::block_end(&*self.block_flow.fragment.style,
-                                                                   CollapsedBorderProvenance::FromTable))
-                                }
-                            };
-                        perform_border_collapse_for_row(
-                            kid.as_mut_table_row(),
-                            table_inline_collapsed_borders.as_ref().unwrap(),
-                            previous_collapsed_block_end_borders,
-                            next_collapsed_borders_in_block_direction,
-                            &mut self.collapsed_inline_direction_border_widths_for_table,
-                            &mut self.collapsed_block_direction_border_widths_for_table);
-                        previous_collapsed_block_end_borders =
-                            PreviousBlockCollapsedBorders::FromPreviousRow(
-                                kid.as_table_row().final_collapsed_borders.block_end.clone())
-                    }
-                    first_row = false
-                } else if kid.is_table_rowgroup() {
-                    let mut iterator = flow::mut_base(kid).child_iter().peekable();
-                    while let Some(grandkid) = iterator.next() {
-                        let grandkid_next_sibling = iterator.peek();
-                        let next_collapsed_borders_in_block_direction = if collapsing_borders {
-                            match grandkid_next_sibling {
-                                Some(grandkid_next_sibling) => {
-                                    if grandkid_next_sibling.is_table_rowgroup() {
-                                        NextBlockCollapsedBorders::FromNextRow(
-                                            &grandkid_next_sibling.as_table_rowgroup()
-                                                                  .preliminary_collapsed_borders
-                                                                  .block_start)
-                                    } else {
-                                        NextBlockCollapsedBorders::FromNextRow(
-                                            &grandkid_next_sibling.as_table_row()
-                                                                  .preliminary_collapsed_borders
-                                                                  .block_start)
-                                    }
-                                }
-                                None => {
-                                    NextBlockCollapsedBorders::FromTable(
-                                        CollapsedBorder::block_end(
-                                            &*self.block_flow.fragment.style,
-                                            CollapsedBorderProvenance::FromTable))
-                                }
+            let mut iterator = TableRowIterator::new(&mut self.block_flow.base).peekable();
+            while let Some(row) = iterator.next() {
+                TableFlow::update_column_inline_sizes_for_row(row,
+                        &mut self.column_intrinsic_inline_sizes,
+                        &mut computation,
+                        first_row,
+                        self.table_layout);
+                if collapsing_borders {
+                    let next_index_and_sibling = iterator.peek();
+                    let next_collapsed_borders_in_block_direction =
+                        match next_index_and_sibling {
+                            Some(next_sibling) => {
+                                NextBlockCollapsedBorders::FromNextRow(
+                                    &next_sibling.as_table_row()
+                                                 .preliminary_collapsed_borders
+                                                 .block_start)
                             }
-                        } else {
-                            NextBlockCollapsedBorders::NotCollapsingBorders
+                            None => {
+                                NextBlockCollapsedBorders::FromTable(
+                                    CollapsedBorder::block_end(&*self.block_flow.fragment.style,
+                                                               CollapsedBorderProvenance::FromTable))
+                            }
                         };
-
-                        TableFlow::update_column_inline_sizes_for_row(
-                            grandkid,
-                            &mut self.column_intrinsic_inline_sizes,
-                            &mut computation,
-                            first_row,
-                            self.table_layout);
-                        if collapsing_borders {
-                            perform_border_collapse_for_row(
-                                grandkid.as_mut_table_row(),
-                                table_inline_collapsed_borders.as_ref().unwrap(),
-                                previous_collapsed_block_end_borders,
-                                next_collapsed_borders_in_block_direction,
-                                &mut self.collapsed_inline_direction_border_widths_for_table,
-                                &mut self.collapsed_block_direction_border_widths_for_table);
-                            previous_collapsed_block_end_borders =
-                                PreviousBlockCollapsedBorders::FromPreviousRow(
-                                    grandkid.as_table_row()
-                                            .final_collapsed_borders
-                                            .block_end
-                                            .clone())
-                        }
-                        first_row = false
-                    }
+                    perform_border_collapse_for_row(row,
+                        table_inline_collapsed_borders.as_ref().unwrap(),
+                        previous_collapsed_block_end_borders,
+                        next_collapsed_borders_in_block_direction,
+                        &mut self.collapsed_inline_direction_border_widths_for_table,
+                        &mut self.collapsed_block_direction_border_widths_for_table);
+                    previous_collapsed_block_end_borders =
+                        PreviousBlockCollapsedBorders::FromPreviousRow(
+                            row.final_collapsed_borders.block_end.clone())
                 }
+                first_row = false
             }
         }
 
@@ -658,21 +593,22 @@ pub struct ColumnComputedInlineSize {
 }
 
 pub trait VecExt<T> {
-    fn push_or_set(&mut self, index: usize, value: T);
-    fn push_or_mutate(&mut self, index: usize, zero: T) -> &mut T;
+    fn push_or_set(&mut self, index: usize, value: T) -> &mut T;
+    fn get_mut_or_push(&mut self, index: usize, zero: T) -> &mut T;
 }
 
 impl<T> VecExt<T> for Vec<T> {
-    fn push_or_set(&mut self, index: usize, value: T) {
+    fn push_or_set(&mut self, index: usize, value: T) -> &mut T {
         if index < self.len() {
             self[index] = value
         } else {
             debug_assert!(index == self.len());
             self.push(value)
         }
+        &mut self[index]
     }
 
-    fn push_or_mutate(&mut self, index: usize, zero: T) -> &mut T {
+    fn get_mut_or_push(&mut self, index: usize, zero: T) -> &mut T {
         if index >= self.len() {
             debug_assert!(index == self.len());
             self.push(zero)
@@ -697,7 +633,7 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
                                                   .enumerate() {
         child_table_row.final_collapsed_borders.inline.push_or_set(i, *this_inline_border);
 
-        let inline_spacing = inline_spacing.push_or_mutate(i, Au(0));
+        let inline_spacing = inline_spacing.get_mut_or_push(i, Au(0));
         *inline_spacing = cmp::max(*inline_spacing, this_inline_border.width)
     }
 
@@ -722,7 +658,6 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
             child_table_row.final_collapsed_borders.block_start =
                 vec![collapsed_border; child_table_row.block_flow.base.children.len()]
         }
-        PreviousBlockCollapsedBorders::NotCollapsingBorders => {}
     }
 
     // Compute block-end borders.
@@ -733,7 +668,7 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
                                                  .block_end
                                                  .iter()
                                                  .enumerate() {
-        let next_block = next_block.push_or_mutate(i, *this_block_border);
+        let next_block = next_block.push_or_set(i, *this_block_border);
         match next_block_borders {
             NextBlockCollapsedBorders::FromNextRow(next_block_borders) => {
                 if next_block_borders.len() > i {
@@ -743,7 +678,6 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
             NextBlockCollapsedBorders::FromTable(ref next_block_borders) => {
                 next_block.combine(next_block_borders);
             }
-            NextBlockCollapsedBorders::NotCollapsingBorders => {}
         }
         *block_spacing = cmp::max(*block_spacing, next_block.width)
     }
@@ -850,11 +784,52 @@ struct TableInlineCollapsedBorders {
 enum PreviousBlockCollapsedBorders {
     FromPreviousRow(Vec<CollapsedBorder>),
     FromTable(CollapsedBorder),
-    NotCollapsingBorders,
 }
 
 enum NextBlockCollapsedBorders<'a> {
     FromNextRow(&'a [CollapsedBorder]),
     FromTable(CollapsedBorder),
-    NotCollapsingBorders,
+}
+
+/// Iterator over all the rows of a table
+struct TableRowIterator<'a> {
+    kids: MutFlowListIterator<'a>,
+    grandkids: Option<MutFlowListIterator<'a>>,
+}
+
+impl<'a> TableRowIterator<'a> {
+    fn new(base: &'a mut BaseFlow) -> Self {
+        TableRowIterator {
+            kids: base.child_iter(),
+            grandkids: None,
+        }
+    }
+}
+
+impl<'a> Iterator for TableRowIterator<'a> {
+    type Item = &'a mut TableRowFlow;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        // If we're inside a rowgroup, iterate through the rowgroup's children.
+        if let Some(ref mut grandkids) = self.grandkids {
+            if let Some(grandkid) = grandkids.next() {
+                return Some(grandkid.as_mut_table_row())
+            }
+        }
+        // Otherwise, iterate through the table's children.
+        self.grandkids = None;
+        match self.kids.next() {
+            Some(kid) => {
+                if kid.is_table_rowgroup() {
+                    self.grandkids = Some(flow::mut_base(kid).child_iter());
+                    self.next()
+                } else if kid.is_table_row() {
+                    Some(kid.as_mut_table_row())
+                } else {
+                    self.next() // Skip children that are not rows or rowgroups
+                }
+            }
+            None => None
+        }
+    }
 }

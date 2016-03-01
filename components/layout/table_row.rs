@@ -823,7 +823,8 @@ fn perform_inline_direction_border_collapse_for_row(
         child_table_cell: &mut TableCellFlow,
         iterator: &mut Peekable<Enumerate<MutFlowListIterator>>,
         preliminary_collapsed_borders: &mut CollapsedBordersForRow) {
-    let inline_collapsed_border = preliminary_collapsed_borders.inline.push_or_mutate(
+    println!("    perform_inline_direction_border_collapse_for_row");
+    let inline_collapsed_border = preliminary_collapsed_borders.inline.push_or_set(
         child_index + 1,
         CollapsedBorder::inline_end(&*child_table_cell.block_flow.fragment.style,
                                     CollapsedBorderProvenance::FromPreviousTableCell));
@@ -838,9 +839,9 @@ fn perform_inline_direction_border_collapse_for_row(
     let block_start_border =
         CollapsedBorder::block_start(&*child_table_cell.block_flow.fragment.style,
                                      CollapsedBorderProvenance::FromNextTableCell);
-    preliminary_collapsed_borders.block_start.push_or_mutate(child_index, block_start_border);
+    preliminary_collapsed_borders.block_start.push_or_set(child_index, block_start_border);
     let block_end_border =
         CollapsedBorder::block_end(&*child_table_cell.block_flow.fragment.style,
                                    CollapsedBorderProvenance::FromPreviousTableCell);
-    preliminary_collapsed_borders.block_end.push_or_mutate(child_index, block_end_border);
+    preliminary_collapsed_borders.block_end.push_or_set(child_index, block_end_border);
 }
