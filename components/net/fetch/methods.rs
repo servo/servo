@@ -451,7 +451,7 @@ fn http_fetch(request: Rc<Request>,
 
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
-    
+
     // Step 5
     match response.get_actual_response().status.unwrap() {
 

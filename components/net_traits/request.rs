@@ -111,7 +111,7 @@ pub enum CORSSettings {
 pub struct Request {
     pub method: RefCell<Method>,
     pub local_urls_only: bool,
-    pub sanboxed_storage_area_urls: bool,
+    pub sandboxed_storage_area_urls: bool,
     pub headers: RefCell<Headers>,
     pub unsafe_request: bool,
     pub body: RefCell<Option<Vec<u8>>>,
@@ -155,7 +155,7 @@ impl Request {
          Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
-            sanboxed_storage_area_urls: false,
+            sandboxed_storage_area_urls: false,
             headers: RefCell::new(Headers::new()),
             unsafe_request: false,
             body: RefCell::new(None),
@@ -193,7 +193,7 @@ impl Request {
         Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
-            sanboxed_storage_area_urls: false,
+            sandboxed_storage_area_urls: false,
             headers: RefCell::new(Headers::new()),
             unsafe_request: false,
             body: RefCell::new(None),
