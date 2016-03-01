@@ -216,8 +216,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         let mut internal_response = if response.is_network_error() {
             &network_error_res
         } else {
-            // convert Option<Box<Response> into &Response
-            &**response.internal_response.as_ref().unwrap()
+            response.get_actual_response()
         };
 
         // Step 13
@@ -269,8 +268,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         let mut internal_response = if response.is_network_error() {
             &network_error_res
         } else {
-            // convert Option<Box<Response> into &Response
-            &**response.internal_response.as_ref().unwrap()
+            response.get_actual_response()
         };
 
         // Step 18
@@ -453,7 +451,7 @@ fn http_fetch(request: Rc<Request>,
 
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
-
+    
     // Step 5
     match response.get_actual_response().status.unwrap() {
 
@@ -466,7 +464,11 @@ fn http_fetch(request: Rc<Request>,
                 RedirectMode::Manual => {
                     response.to_filtered(ResponseType::OpaqueRedirect)
                 },
-                RedirectMode::Follow => http_redirect_fetch(request, Rc::new(response), cors_flag)
+                RedirectMode::Follow => {
+                    // set back to default
+                    response.return_internal.set(true);
+                    http_redirect_fetch(request, Rc::new(response), cors_flag)
+                }
             }
         },
 
@@ -509,7 +511,7 @@ fn http_fetch(request: Rc<Request>,
                               authentication_fetch_flag);
         }
 
-        _ => {}
+        _ => { }
     }
 
     // Step 6
@@ -517,9 +519,8 @@ fn http_fetch(request: Rc<Request>,
         // TODO: Create authentication entry for this request
     }
 
-    // set to default, since each function should have its own control over it
+    // set back to default
     response.return_internal.set(true);
-
     // Step 7
     response
 }
@@ -530,7 +531,7 @@ fn http_redirect_fetch(request: Rc<Request>,
                        cors_flag: bool) -> Response {
 
     // Step 1
-    assert!(response.return_internal.get());
+    assert_eq!(response.return_internal.get(), true);
 
     // Step 3
     // this step is done early, because querying if Location is available says
