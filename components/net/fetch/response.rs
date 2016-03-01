@@ -9,6 +9,7 @@ use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 pub trait ResponseMethods {
@@ -24,7 +25,7 @@ impl ResponseMethods for Response {
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
             headers: Headers::new(),
-            body: RefCell::new(ResponseBody::Empty),
+            body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             internal_response: None,
