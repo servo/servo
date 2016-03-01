@@ -53,6 +53,16 @@ ignored_dirs = [
 ]
 
 
+def has_elements(iter):
+    from itertools import tee
+    iter, any_check = tee(iter)
+    try:
+        any_check.next()
+        return True, iter
+    except StopIteration:
+        return False, iter
+
+
 # A simple wrapper for iterators to show progress (note that it's inefficient for giant iterators)
 def progress_wrapper(iterator):
     list_of_stuff = list(iterator)
@@ -66,18 +76,23 @@ def progress_wrapper(iterator):
 
 def filter_files(start_dir, faster, progress):
     file_iter = get_file_list(start_dir, faster, ignored_dirs)
-    if progress:
-        file_iter = progress_wrapper(file_iter)
-    for file_name in file_iter:
-        if os.path.basename(file_name) == "Cargo.lock":
+    (has_element, file_iter) = has_elements(file_iter)
+    if has_element:
+        yield "hasvalue"
+        if progress:
+            file_iter = progress_wrapper(file_iter)
+        for file_name in file_iter:
+            if os.path.basename(file_name) == "Cargo.lock":
+                yield file_name
+            if ".#" in file_name:
+                continue
+            if os.path.splitext(file_name)[1] not in filetypes_to_check:
+                continue
+            if any(file_name.startswith(ignored_file) for ignored_file in ignored_files):
+                continue
             yield file_name
-        if ".#" in file_name:
-            continue
-        if os.path.splitext(file_name)[1] not in filetypes_to_check:
-            continue
-        if any(file_name.startswith(ignored_file) for ignored_file in ignored_files):
-            continue
-        yield file_name
+    else:
+        yield
 
 
 EMACS_HEADER = "/* -*- Mode:"
@@ -545,13 +560,16 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 
 def get_wpt_files(only_changed_files, progress):
-    print '\nRunning the WPT lint...'
     wpt_dir = os.path.join(".", "tests", "wpt", "web-platform-tests" + os.sep)
     file_iter = get_file_list(os.path.join(wpt_dir), only_changed_files)
-    if progress:
-        file_iter = progress_wrapper(file_iter)
-    for f in file_iter:
-        yield f[len(wpt_dir):]
+    (has_element, file_iter) = has_elements(file_iter)
+    if has_element:
+        print '\nRunning the WPT lint...'
+        if progress:
+            file_iter = progress_wrapper(file_iter)
+        for f in file_iter:
+            yield f[len(wpt_dir):]
+        print '\r'
 
 
 def check_wpt_lint_errors(files):
@@ -573,6 +591,7 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
         # also check untracked files
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
+        # file_list = ""  # uncomment this line to easely check if file_list is empty
         for f in file_list.splitlines():
             yield os.path.join('.', f)
     elif exclude_dirs:
@@ -590,18 +609,19 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 def scan(faster=False, progress=True):
     # standard checks
     files_to_check = filter_files('.', faster, progress)
-    checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
-    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
-    errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
+    if files_to_check.next() == "hasvalue":
+        checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
+        line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
+        errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
+        if not faster:
+            # wpt lint checks
+            wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
+            # collect errors
+            errors = itertools.chain(errors, wpt_lint_errors)
 
-    # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
-    # collect errors
-    errors = itertools.chain(errors, wpt_lint_errors)
-
-    error = None
-    for error in errors:
-        print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
-    if error is None:
-        print "\n\033[92mtidy reported no errors.\033[0m"
-    return int(error is not None)
+        error = None
+        for error in errors:
+            print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+        if error is None:
+            print "\n\033[92mtidy reported no errors.\033[0m"
+        return int(error is not None)
