@@ -88,7 +88,7 @@ fn test_fetch_response_body_matches_const_message() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
-    match *fetch_response.body.borrow() {
+    match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
@@ -210,7 +210,7 @@ fn test_fetch_response_is_opaque_filtered() {
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());
-    match fetch_response.body.into_inner() {
+    match *fetch_response.body.lock().unwrap() {
         ResponseBody::Empty => { },
         _ => panic!()
     }
@@ -260,7 +260,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());
-    match fetch_response.body.into_inner() {
+    match *fetch_response.body.lock().unwrap() {
         ResponseBody::Empty => { },
         _ => panic!()
     }
@@ -315,7 +315,7 @@ fn test_fetch_redirect_count_ceiling() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
-    match *fetch_response.body.borrow() {
+    match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
@@ -334,7 +334,7 @@ fn test_fetch_redirect_count_failure() {
 
     assert!(fetch_response.is_network_error());
 
-    match *fetch_response.body.borrow() {
+    match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(_) | ResponseBody::Receiving(_) => panic!(),
         _ => { }
     };
@@ -438,13 +438,15 @@ fn test_fetch_redirect_updates_method() {
 fn response_is_done(response: &Response) -> bool {
 
     let response_complete = match response.response_type {
-        ResponseType::Default | ResponseType::Basic | ResponseType::CORS => response.body.borrow().is_done(),
+        ResponseType::Default | ResponseType::Basic | ResponseType::CORS => {
+            (*response.body.lock().unwrap()).is_done()
+        }
         // if the internal response cannot have a body, it shouldn't block the "done" state
         ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true
     };
 
     let internal_complete = if let Some(ref res) = response.internal_response {
-        res.body.borrow().is_done()
+        res.body.lock().unwrap().is_done()
     } else {
         true
     };
