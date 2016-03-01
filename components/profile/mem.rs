@@ -463,6 +463,7 @@ mod system_reporter {
                    newp: *mut c_void, newlen: size_t) -> c_int;
     }
 
+    #[cfg(not(target_os = "windows"))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
@@ -496,6 +497,11 @@ mod system_reporter {
         }
 
         Some(value as usize)
+    }
+
+    #[cfg(target_os = "windows")]
+    fn jemalloc_stat(value_name: &str) -> Option<usize> {
+        None
     }
 
     // Like std::macros::try!, but for Option<>.
