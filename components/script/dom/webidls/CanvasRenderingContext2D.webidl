@@ -24,11 +24,33 @@ interface CanvasRenderingContext2D {
 
   // for contexts that aren't directly fixed to a specific canvas
   //void commit(); // push the image to the output bitmap
+};
+CanvasRenderingContext2D implements CanvasState;
+CanvasRenderingContext2D implements CanvasTransform;
+CanvasRenderingContext2D implements CanvasCompositing;
+CanvasRenderingContext2D implements CanvasImageSmoothing;
+CanvasRenderingContext2D implements CanvasFillStrokeStyles;
+CanvasRenderingContext2D implements CanvasShadowStyles;
+CanvasRenderingContext2D implements CanvasRect;
+CanvasRenderingContext2D implements CanvasDrawPath;
+CanvasRenderingContext2D implements CanvasUserInterface;
+CanvasRenderingContext2D implements CanvasText;
+CanvasRenderingContext2D implements CanvasDrawImage;
+CanvasRenderingContext2D implements CanvasHitRegion;
+CanvasRenderingContext2D implements CanvasImageData;
+CanvasRenderingContext2D implements CanvasPathDrawingStyles;
+CanvasRenderingContext2D implements CanvasTextDrawingStyles;
+CanvasRenderingContext2D implements CanvasPath;
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasState {
   // state
   void save(); // push state on state stack
   void restore(); // pop state stack and restore state
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasTransform {
   // transformations (default transform is the identity matrix)
   void scale(unrestricted double x, unrestricted double y);
   void rotate(unrestricted double angle);
@@ -49,14 +71,24 @@ interface CanvasRenderingContext2D {
                     unrestricted double f);
   // void setTransform(optional DOMMatrixInit matrix);
   void resetTransform();
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasCompositing {
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
   attribute DOMString globalCompositeOperation; // (default source-over)
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasImageSmoothing {
   // image smoothing
   attribute boolean imageSmoothingEnabled; // (default true)
   // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
+};
+
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasFillStrokeStyles {
 
   // colours and styles (see also the CanvasDrawingStyles interface)
   attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
@@ -66,13 +98,19 @@ interface CanvasRenderingContext2D {
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
   [Throws]
   CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasShadowStyles {
   // shadows
   attribute unrestricted double shadowOffsetX; // (default 0)
   attribute unrestricted double shadowOffsetY; // (default 0)
   attribute unrestricted double shadowBlur; // (default 0)
   attribute DOMString shadowColor; // (default transparent black)
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasRect {
   // rects
   //[LenientFloat]
   void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
@@ -80,7 +118,10 @@ interface CanvasRenderingContext2D {
   void fillRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   //[LenientFloat]
   void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasDrawPath {
   // path API (see also CanvasPathMethods)
   void beginPath();
   void fill(optional CanvasFillRule fillRule = "nonzero");
@@ -100,14 +141,25 @@ interface CanvasRenderingContext2D {
   //                      optional CanvasFillRule fillRule = "nonzero");
   //boolean isPointInStroke(unrestricted double x, unrestricted double y);
   //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasUserInterface {
+  // TODO?
+};
+
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasText {
   // text (see also the CanvasDrawingStyles interface)
   //void fillText(DOMString text, unrestricted double x, unrestricted double y,
   //              optional unrestricted double maxWidth);
   //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
   //                optional unrestricted double maxWidth);
   //TextMetrics measureText(DOMString text);
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasDrawImage {
   // drawing images
   [Throws]
   void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy);
@@ -119,12 +171,18 @@ interface CanvasRenderingContext2D {
                                           unrestricted double sw, unrestricted double sh,
                                           unrestricted double dx, unrestricted double dy,
                                           unrestricted double dw, unrestricted double dh);
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasHitRegion {
   // hit regions
   //void addHitRegion(optional HitRegionOptions options);
   //void removeHitRegion(DOMString id);
   //void clearHitRegions();
+};
 
+[NoInterfaceObject]//,Exposed=(Window,Worker)]
+interface CanvasImageData {
   // pixel manipulation
   [Throws]
   ImageData createImageData(double sw, double sh);
@@ -138,8 +196,9 @@ interface CanvasRenderingContext2D {
                     double dirtyX, double dirtyY,
                     double dirtyWidth, double dirtyHeight);
 };
-CanvasRenderingContext2D implements CanvasDrawingStyles;
-CanvasRenderingContext2D implements CanvasPathMethods;
+CanvasRenderingContext2D implements CanvasPathDrawingStyles;
+CanvasRenderingContext2D implements CanvasTextDrawingStyles;
+CanvasRenderingContext2D implements CanvasPath;
 
 enum CanvasLineCap { "butt", "round", "square" };
 enum CanvasLineJoin { "round", "bevel", "miter"};
@@ -148,7 +207,7 @@ enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic
 enum CanvasDirection { "ltr", "rtl", "inherit" };
 
 [NoInterfaceObject]
-interface CanvasDrawingStyles {
+interface CanvasPathDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
   attribute CanvasLineCap lineCap; // "butt", "round", "square" (default "butt")
@@ -159,7 +218,10 @@ interface CanvasDrawingStyles {
   //void setLineDash(sequence<unrestricted double> segments); // default empty
   //sequence<unrestricted double> getLineDash();
   //attribute unrestricted double lineDashOffset;
+};
 
+[NoInterfaceObject]
+interface CanvasTextDrawingStyles {
   // text
   //attribute DOMString font; // (default 10px sans-serif)
   //attribute CanvasTextAlign textAlign; // "start", "end", "left", "right", "center" (default: "start")
@@ -169,7 +231,7 @@ interface CanvasDrawingStyles {
 };
 
 [NoInterfaceObject]
-interface CanvasPathMethods {
+interface CanvasPath {
   // shared path API methods
   void closePath();
   void moveTo(unrestricted double x, unrestricted double y);
