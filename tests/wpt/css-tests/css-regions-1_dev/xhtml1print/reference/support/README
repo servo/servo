@@ -21,7 +21,6 @@ The square-* images all use 15x15 cells with one pixel borders.
 
 The pattern-* images use cells of various sizes:
 
-   pattern-gg-gr.png         20x20
    pattern-grg-rgr-grg.png   20x20
    pattern-rgr-grg-rgr.png   20x20
    pattern-tr.png            15x15
