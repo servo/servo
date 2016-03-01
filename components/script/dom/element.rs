@@ -1421,6 +1421,16 @@ impl ElementMethods for Element {
                      rect.size.height.to_f64_px())
     }
 
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
+    fn ScrollWidth(&self) -> i32 {
+        self.upcast::<Node>().get_scroll_area().size.width
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
+    fn ScrollHeight(&self) -> i32 {
+        self.upcast::<Node>().get_scroll_area().size.height
+    }
+
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
     fn ClientTop(&self) -> i32 {
         self.upcast::<Node>().get_client_rect().origin.y
