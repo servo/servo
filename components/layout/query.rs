@@ -51,6 +51,25 @@ impl LayoutRPC for LayoutRPCImpl {
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
+    /// Requests the node containing the point of interest.
+    fn hit_test(&self) -> HitTestResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        let &(ref result, update_cursor) = &rw_data.hit_test_response;
+        if update_cursor {
+            // Compute the new cursor.
+            let cursor = match *result {
+                None => Cursor::DefaultCursor,
+                Some(dim) => dim.pointing.unwrap(),
+            };
+            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
+        }
+        HitTestResponse {
+            node_address: result.map(|dim| dim.node.to_untrusted_node_address()),
+        }
+    }
+
     fn node_geometry(&self) -> NodeGeometryResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
@@ -64,33 +83,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
-    }
-
-    /// Requests the node containing the point of interest.
-    fn hit_test(&self, point: Point2D<f32>, update_cursor: bool) -> Result<HitTestResponse, ()> {
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        let display_list = rw_data.display_list.as_ref().expect("Tried to hit test without a DisplayList!");
-
-        let result = display_list.hit_test(point);
-
-        if update_cursor {
-            let cursor = if !result.is_empty() {
-                result[0].pointing.unwrap()
-            } else {
-                Cursor::DefaultCursor
-            };
-
-            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
-        };
-
-        if !result.is_empty() {
-            Ok(HitTestResponse(result[0].node.to_untrusted_node_address()))
-        } else {
-            Err(())
-        }
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {

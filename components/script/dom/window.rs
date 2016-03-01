@@ -56,7 +56,7 @@ use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_thread::{DOMManipulationTaskSource, UserInteractionTaskSource, NetworkingTaskSource};
 use script_thread::{HistoryTraversalTaskSource, FileReadingTaskSource, SendableMainThreadScriptChan};
 use script_thread::{ScriptChan, ScriptPort, MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
-use script_traits::ConstellationControlMsg;
+use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
@@ -218,6 +218,11 @@ pub struct Window {
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
     page_clip_rect: Cell<Rect<Au>>,
+
+    /// Flag to suppress reflows. The first reflow will come either with
+    /// RefreshTick or with FirstLoad. Until those first reflows, we want to
+    /// suppress others like MissingExplicitReflow.
+    suppress_reflow: Cell<bool>,
 
     /// A counter of the number of pending reflows for this window.
     pending_reflow_count: Cell<u32>,
@@ -933,16 +938,33 @@ impl Window {
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
-    /// Reflows the page unconditionally. This method will wait for the layout thread to complete
-    /// (but see the `TODO` below). If there is no window size yet, the page is presumed invisible
-    /// and no reflow is performed.
+    /// Reflows the page unconditionally if possible and not suppressed. This
+    /// method will wait for the layout thread to complete (but see the `TODO`
+    /// below). If there is no window size yet, the page is presumed invisible
+    /// and no reflow is performed. If reflow is suppressed, no reflow will be
+    /// performed for ForDisplay goals.
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn force_reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+        // Check if we need to unsuppress reflow. Note that this needs to be
+        // *before* any early bailouts, or reflow might never be unsuppresed!
+        match reason {
+            ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
+            _ => (),
+        }
+
+        // If there is no window size, we have nothing to do.
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
             None => return,
         };
+
+        let for_display = query_type == ReflowQueryType::NoQuery;
+        if for_display && self.suppress_reflow.get() {
+            debug!("Suppressing reflow pipeline {} for goal {:?} reason {:?} before FirstLoad or RefreshTick",
+                   self.id, goal, reason);
+            return;
+        }
 
         debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
 
@@ -957,7 +979,7 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
-            debug_reflow_events(&goal, &query_type, &reason);
+            debug_reflow_events(self.id, &goal, &query_type, &reason);
         }
 
         let document = self.Document();
@@ -1015,7 +1037,9 @@ impl Window {
 
             // If window_size is `None`, we don't reflow, so the document stays dirty.
             // Otherwise, we shouldn't need a reflow immediately after a reflow.
-            assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
+            assert!(!self.Document().needs_reflow() ||
+                    self.window_size.get().is_none() ||
+                    self.suppress_reflow.get());
         } else {
             debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
         }
@@ -1072,6 +1096,14 @@ impl Window {
                     ReflowQueryType::NodeGeometryQuery(node_geometry_request),
                     ReflowReason::Query);
         self.layout_rpc.node_geometry().client_rect
+    }
+
+    pub fn hit_test_query(&self, hit_test_request: Point2D<f32>, update_cursor: bool)
+                          -> Option<UntrustedNodeAddress> {
+        self.reflow(ReflowGoal::ForDisplay,
+                    ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
+                    ReflowReason::Query);
+        self.layout_rpc.hit_test().node_address
     }
 
     pub fn resolved_style_query(&self,
@@ -1377,6 +1409,7 @@ impl Window {
             layout_rpc: layout_rpc,
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
+            suppress_reflow: Cell::new(true),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
 
@@ -1413,8 +1446,8 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
     (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
-fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
-    let mut debug_msg = "****".to_owned();
+fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
+    let mut debug_msg = format!("**** pipeline={}", id);
     debug_msg.push_str(match *goal {
         ReflowGoal::ForDisplay => "\tForDisplay",
         ReflowGoal::ForScriptQuery => "\tForScriptQuery",
@@ -1424,6 +1457,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+        ReflowQueryType::HitTestQuery(_n, _o) => "\tHitTestQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
