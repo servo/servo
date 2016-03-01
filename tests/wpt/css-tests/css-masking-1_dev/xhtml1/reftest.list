@@ -56,4 +56,8 @@ clip-rect-comma-003.xht == reference/clip-no-clipping-ref.xht
 clip-rect-comma-004.xht == reference/clip-no-clipping-ref.xht
 clip-rule-001.xht == reference/clip-rule-rectangle-border-ref.xht
 clip-rule-002.xht == reference/clip-rule-rectangle-border-ref.xht
+mask-composite-1a.xht == reference/mask-composite-1-ref.xht
+mask-composite-1b.xht == reference/mask-composite-1-ref.xht
+mask-composite-2a.xht == reference/mask-composite-2-ref.xht
+mask-composite-2b.xht == reference/mask-composite-2-ref.xht
 test-mask.xht == reference/test-mask-ref.xht

@@ -3,8 +3,7 @@
     <title>CSS Test: CSSOM View elementFromPoint</title>
     <meta charset="UTF-8">
     <link href="mailto:pwx.frontend@gmail.com" rel="author" title="Chris">
-    <link href="http://www.w3.org/TR/cssom-view/#extensions-to-the-document-interface" rel="help">
-    <link href="http://www.w3.org/TR/cssom-view/#widl-Document-elementFromPoint-Element-float-x-float-y" rel="help">
+    <link href="https://www.w3.org/TR/cssom-view/#dom-document-elementfrompoint" rel="help">
     <meta content="dom" name="flags">
     <script src="/resources/testharness.js" type="text/javascript"></script>
     <script src="/resources/testharnessreport.js" type="text/javascript"></script>
@@ -20,10 +19,10 @@
   "test some point of the element: right line": {},
   "test some point of the element: bottom left corner": {},
   "test some point of the element: bottom line": {},
-  "test some point of the element: botom right corner": {},
+  "test some point of the element: bottom right corner": {},
   "Point (0, 0), return root element(HTML)": {},
   " test negative x ": {},
-  " test nagetive y ": {},
+  " test negative y ": {},
   "test outside of viewport": {},
   "test the top of layer": {}
 }
@@ -91,7 +90,7 @@
                 // 下边线
                 {x: 50, y: 110, r: 'bottom line'},
                 // 右下角
-                {x: 110, y: 110, r: 'botom right corner'}
+                {x: 110, y: 110, r: 'bottom right corner'}
             ];
             var i = 0, len = wrap.length, item;
             for ( ; i < len; i++ ) {
@@ -114,7 +113,7 @@
         test( function () {
             var elem = document.elementFromPoint( 0, -1000 );
             assert_true( elem == null, 'negative y, return null' );
-        }, ' test nagetive y ');
+        }, ' test negative y ');
 
         test( function () {
             var elem = document.elementFromPoint( 100000, 0 );

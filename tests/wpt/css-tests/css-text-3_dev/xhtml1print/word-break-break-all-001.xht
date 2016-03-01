@@ -1,68 +1,24 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
-	<head>
-		<title>CSS Test: word-break - break-all - basic cases</title>
-  <style type="text/css">
-    @page { font: italic 8pt sans-serif; color: gray;
-            margin: 7%;
-            counter-increment: page;
-            @top-left { content: "CSS Text Module Level 3 CR Test Suite"; }
-            @top-right { content: "Test word-break-break-all-001"; }
-            @bottom-right { content: counter(page); }
-          }
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8" />
+<title>word-break: break-all, latin</title>
+<meta content="word-break: break-all means lines may break between any two typographic letter units." name="assert" />
+<link href="https://drafts.csswg.org/css-text-3/#word-break-property" rel="help" />
+<link href="reference/word-break-break-all-ref-001.xht" rel="match" />
+<link href="mailto:ishida@w3.org" rel="author" title="Richard Ishida" />
+<style type="text/css">
+.test { word-break: break-all; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px;  padding: 10px; width: 390px; font: 36px/1 sans-serif; }
 </style>
-		<link rel="author" title="Satoshi Umehara" href="mailto:umehara@est.co.jp"/>
-		<link rel="help" title="CSS Text Level 3: 5.2. Word Breaking Rules: the ‘word-break’ property" href="http://www.w3.org/TR/css-text-3/#word-break"/>
-		<link rel="match" href="reference/word-break-break-all-001-ref.xht"/>
-		<meta name="flags" content="font"/>
-		<meta name="assert" content="Lines may break between any two grapheme clusters within words."/>
-		<style type="text/css">
-			<![CDATA[
-				.test span {
-					word-break: break-all;
-				}
-				/* the CSS below is not part of the test */
-				p.test, p.control {
-					border: 1px solid gray;
-					color: blue;
-					font-family: "IPAMincho", "IPAGothic", "IPA明朝", "IPAゴシック";
-					width: 10em;
-				}
-				span.attention {
-					color: red;
-				}
-			]]>
-		</style>
-	</head>
-	<body>
-		<p>
-			Test passes if each pair of upper and lower text in the square box is identical.
-		</p>
-		<hr/>
-		<p class="test">
-			<span>Filler Text Filler Text Filler Text</span>
-		</p>
-		<p class="control">
-			<span>Filler Text Filler T<br/>ext Filler Text</span>
-		</p>
-		<hr/>
-		<p class="test">
-			<span>満たすための文字 Filler Text</span>
-		</p>
-		<p class="control">
-			<span>満たすための文字 Fil<br/>ler Text</span>
-		</p>
-		<hr/>
-		<p class="test">
-			<span>満たすための文字満たすための文字</span>
-		</p>
-		<p class="control">
-			<span>満たすための文字満た<br/>すための文字</span>
-		</p>
-		<hr/>
-		<p>
-			<span class="attention">* You will need a Japanese font.</span><br/>
-			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and reload this page.
-		</p>
-	</body>
-</html>
+</head>
+<body>
+<div id="instructions">Test passes if the two orange boxes are the same.</div>
+<div class="test"><div id="testdiv"><span id="testspan">Latin latin latin latin</span></div></div>
+<div class="ref"><span>Latin latin latin lati<br />n</span></div>
+<script>
+var sentenceWidth = document.getElementById('testspan').offsetWidth
+document.getElementById('testdiv').style.width = String(sentenceWidth - 5)+'px'
+</script>
+
+</body></html>

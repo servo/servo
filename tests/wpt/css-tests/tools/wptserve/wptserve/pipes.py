@@ -313,9 +313,12 @@ class FirstWrapper(object):
             return ""
 
 
-@pipe()
-def sub(request, response):
+@pipe(opt(nullable(str)))
+def sub(request, response, escape_type="html"):
     """Substitute environment information about the server and request into the script.
+
+    :param escape_type: String detailing the type of escaping to use. Known values are
+                        "html" and "none", with "html" the default for historic reasons.
 
     The format is a very limited template language. Substitutions are
     enclosed by {{ and }}. There are several avaliable substitutions:
@@ -359,12 +362,12 @@ def sub(request, response):
     """
     content = resolve_content(response)
 
-    new_content = template(request, content)
+    new_content = template(request, content, escape_type=escape_type)
 
     response.content = new_content
     return response
 
-def template(request, content):
+def template(request, content, escape_type="html"):
     #TODO: There basically isn't any error handling here
     tokenizer = ReplacementTokenizer()
 
@@ -406,6 +409,8 @@ def template(request, content):
                      "query": "?%s" % request.url_parts.query}
         elif field == "uuid()":
             value = str(uuid.uuid4())
+        elif field == "url_base":
+            value = request.url_base
         else:
             raise Exception("Undefined template variable %s" % field)
 
@@ -417,9 +422,12 @@ def template(request, content):
         if variable is not None:
             variables[variable] = value
 
+        escape_func = {"html": lambda x:escape(x, quote=True),
+                       "none": lambda x:x}[escape_type]
+
         #Should possibly support escaping for other contexts e.g. script
         #TODO: read the encoding of the response
-        return escape(unicode(value)).encode("utf-8")
+        return escape_func(unicode(value)).encode("utf-8")
 
     template_regexp = re.compile(r"{{([^}]*)}}")
     new_content, count = template_regexp.subn(config_replacement, content)

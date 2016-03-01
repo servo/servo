@@ -5,10 +5,10 @@
 testname	revision	result	comment
 html4/break-before-always-001.htm	72a4a1eec3cbec490943a8993258bb32a5285250	?
 xhtml1/break-before-always-001.xht	72a4a1eec3cbec490943a8993258bb32a5285250	?
-html4/grid-inline-multicol-001.htm	40b1c5d5aa0df0497e38f2cfbaba0f4e4bcc963f	?
-xhtml1/grid-inline-multicol-001.xht	40b1c5d5aa0df0497e38f2cfbaba0f4e4bcc963f	?
-html4/grid-multicol-001.htm	521dbe45e2022be1140904fe6d2513370d6bfef3	?
-xhtml1/grid-multicol-001.xht	521dbe45e2022be1140904fe6d2513370d6bfef3	?
+html4/grid-inline-multicol-001.htm	e531f2cacb3048f0e59b4dbcc8efb181362c35b6	?
+xhtml1/grid-inline-multicol-001.xht	e531f2cacb3048f0e59b4dbcc8efb181362c35b6	?
+html4/grid-multicol-001.htm	88839c1417842812d49f6ca916e7056d6f8ed9f8	?
+xhtml1/grid-multicol-001.xht	88839c1417842812d49f6ca916e7056d6f8ed9f8	?
 html4/multicol-basic-001.htm	d11e495020e6f10073c7f0686381b325d4f0bcaf	?
 xhtml1/multicol-basic-001.xht	d11e495020e6f10073c7f0686381b325d4f0bcaf	?
 html4/multicol-basic-002.htm	1d18cddcf79d2692f993eecf1936e2e7098dcdfc	?
@@ -135,10 +135,10 @@ html4/multicol-inherit-004.htm	1453ea7dad4bd33d43538cf01e4b38d4e0a18d4f	?
 xhtml1/multicol-inherit-004.xht	1453ea7dad4bd33d43538cf01e4b38d4e0a18d4f	?
 html4/multicol-list-item-001.htm	f1663e0916be86eddfabcd90b9eb0c95486bcea0	?
 xhtml1/multicol-list-item-001.xht	f1663e0916be86eddfabcd90b9eb0c95486bcea0	?
-html4/multicol-margin-001.htm	583a0f73b20b2d397ea11eea3ba10ee05ed2d2d6	?
-xhtml1/multicol-margin-001.xht	583a0f73b20b2d397ea11eea3ba10ee05ed2d2d6	?
-html4/multicol-margin-002.htm	b0045aadd4646a989acba06f30dba37075c6fbc5	?
-xhtml1/multicol-margin-002.xht	b0045aadd4646a989acba06f30dba37075c6fbc5	?
+html4/multicol-margin-001.htm	315c42d753506ebe8b90d3cc49e60dca6a1b9eb7	?
+xhtml1/multicol-margin-001.xht	315c42d753506ebe8b90d3cc49e60dca6a1b9eb7	?
+html4/multicol-margin-002.htm	60dab0407503a48faf82712a62c3805bcd3fedbf	?
+xhtml1/multicol-margin-002.xht	60dab0407503a48faf82712a62c3805bcd3fedbf	?
 html4/multicol-margin-child-001.htm	1f39de251cb320795304e849601e7c5f72ff82b3	?
 xhtml1/multicol-margin-child-001.xht	1f39de251cb320795304e849601e7c5f72ff82b3	?
 html4/multicol-nested-002.htm	394336c2879d1774e494055c40da1c2f22689445	?
