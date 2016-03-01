@@ -2,68 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::marker::PhantomData;
 use std::ops;
 use super::smallvec::VecLike;
-
-/// FIXME(pcwalton): Workaround for lack of unboxed closures. This is called in
-/// performance-critical code, so a closure is insufficient.
-pub trait Comparator<K, T> {
-    fn compare(&self, key: &K, value: &T) -> Ordering;
-}
-
-pub trait BinarySearchMethods<T: Ord + PartialOrd + PartialEq> {
-    fn binary_search_(&self, key: &T) -> Option<&T>;
-    fn binary_search_index(&self, key: &T) -> Option<usize>;
-}
-
-pub trait FullBinarySearchMethods<T> {
-    fn binary_search_index_by<K, C: Comparator<K, T>>(&self, key: &K, cmp: C) -> Option<usize>;
-}
-
-impl<T: Ord + PartialOrd + PartialEq> BinarySearchMethods<T> for [T] {
-    fn binary_search_(&self, key: &T) -> Option<&T> {
-        self.binary_search_index(key).map(|i| &self[i])
-    }
-
-    fn binary_search_index(&self, key: &T) -> Option<usize> {
-        self.binary_search_index_by(key, DefaultComparator)
-    }
-}
-
-impl<T> FullBinarySearchMethods<T> for [T] {
-    fn binary_search_index_by<K, C: Comparator<K, T>>(&self, key: &K, cmp: C) -> Option<usize> {
-        if self.is_empty() {
-            return None;
-        }
-
-        let mut low: isize = 0;
-        let mut high: isize = (self.len() as isize) - 1;
-
-        while low <= high {
-            // http://googleresearch.blogspot.com/2006/06/extra-extra-read-all-about-it-nearly.html
-            let mid = ((low as usize) + (high as usize)) >> 1;
-            let midv = &self[mid];
-
-            match cmp.compare(key, midv) {
-                Ordering::Greater => low = (mid as isize) + 1,
-                Ordering::Less => high = (mid as isize) - 1,
-                Ordering::Equal => return Some(mid),
-            }
-        }
-        None
-    }
-}
-
-struct DefaultComparator;
-
-impl<T: PartialEq + PartialOrd + Ord> Comparator<T, T> for DefaultComparator {
-    fn compare(&self, key: &T, value: &T) -> Ordering {
-        (*key).cmp(value)
-    }
-}
-
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 pub fn byte_swap(data: &mut [u8]) {

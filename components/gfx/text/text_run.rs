@@ -12,7 +12,6 @@ use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
-use util::vec::{Comparator, FullBinarySearchMethods};
 use webrender_traits;
 
 thread_local! {
@@ -63,14 +62,12 @@ pub struct NaturalWordSliceIterator<'a> {
     reverse: bool,
 }
 
-struct CharIndexComparator;
-
-impl Comparator<CharIndex, GlyphRun> for CharIndexComparator {
-    fn compare(&self, key: &CharIndex, value: &GlyphRun) -> Ordering {
-        if *key < value.range.begin() {
-            Ordering::Less
-        } else if *key >= value.range.end() {
+impl GlyphRun {
+    fn compare(&self, key: &CharIndex) -> Ordering {
+        if *key < self.range.begin() {
             Ordering::Greater
+        } else if *key >= self.range.end() {
+            Ordering::Less
         } else {
             Ordering::Equal
         }
@@ -314,11 +311,12 @@ impl<'a> TextRun {
                 }
             }
 
-            let result = (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator);
-            if let Some(result) = result {
+            if let Ok(result) = (&**self.glyphs).binary_search_by(|current| current.compare(&index)) {
                 index_of_first_glyph_run_cache.set(Some((self_ptr, index, result)));
+                Some(result)
+            } else {
+                None
             }
-            result
         })
     }
 
