@@ -219,6 +219,11 @@ pub struct Window {
     /// to prevent creating display list items for content that is far away from the viewport.
     page_clip_rect: Cell<Rect<Au>>,
 
+    /// Flag to suppress reflows. The first reflow will come either with
+    /// RefreshTick or with FirstLoad. Until those first reflows, we want to
+    /// suppress others like MissingExplicitReflow.
+    suppress_reflow: Cell<bool>,
+
     /// A counter of the number of pending reflows for this window.
     pending_reflow_count: Cell<u32>,
 
@@ -957,7 +962,7 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
-            debug_reflow_events(&goal, &query_type, &reason);
+            debug_reflow_events(self.id, &goal, &query_type, &reason);
         }
 
         let document = self.Document();
@@ -1011,11 +1016,20 @@ impl Window {
         let for_display = query_type == ReflowQueryType::NoQuery;
 
         if !for_display || self.Document().needs_reflow() {
-            self.force_reflow(goal, query_type, reason);
+            match reason {
+                ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
+                _ => (),
+            }
 
-            // If window_size is `None`, we don't reflow, so the document stays dirty.
-            // Otherwise, we shouldn't need a reflow immediately after a reflow.
-            assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
+            if !self.suppress_reflow.get() {
+                self.force_reflow(goal, query_type, reason);
+
+                // If window_size is `None`, we don't reflow, so the document stays dirty.
+                // Otherwise, we shouldn't need a reflow immediately after a reflow.
+                assert!(!self.Document().needs_reflow() || self.window_size.get().is_none());
+            } else {
+                debug!("Suppressing reflows before FirstLoad or RefreshTick");
+            }
         } else {
             debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
         }
@@ -1377,6 +1391,7 @@ impl Window {
             layout_rpc: layout_rpc,
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
+            suppress_reflow: Cell::new(true),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
 
@@ -1413,8 +1428,8 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
     (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
-fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
-    let mut debug_msg = "****".to_owned();
+fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
+    let mut debug_msg = format!("**** pipeline={}", id);
     debug_msg.push_str(match *goal {
         ReflowGoal::ForDisplay => "\tForDisplay",
         ReflowGoal::ForScriptQuery => "\tForScriptQuery",
