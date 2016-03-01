@@ -1074,6 +1074,13 @@ impl Window {
         self.layout_rpc.node_geometry().client_rect
     }
 
+    pub fn scroll_rect_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeScrollGeometryQuery(node),
+                    ReflowReason::Query);
+        self.layout_rpc.node_scroll_geometry().client_rect
+    }
+
     pub fn resolved_style_query(&self,
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
@@ -1425,6 +1432,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+        ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
         ReflowQueryType::MarginStyleQuery(_n) => "\tMarginStyleQuery",

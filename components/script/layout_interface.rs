@@ -104,6 +104,8 @@ pub trait LayoutRPC {
     fn content_boxes(&self) -> ContentBoxesResponse;
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
+    /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
+    fn node_scroll_geometry(&self) -> NodeGeometryResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
@@ -164,6 +166,7 @@ pub enum ReflowQueryType {
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
+    NodeScrollGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),
     MarginStyleQuery(TrustedNodeAddress),
