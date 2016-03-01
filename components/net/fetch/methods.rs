@@ -27,6 +27,7 @@ use std::cell::RefCell;
 use std::io::Read;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use url::idna::domain_to_ascii;
 use url::{Origin as UrlOrigin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
@@ -228,9 +229,8 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
                 Method::Head | Method::Connect => true,
                 _ => false })
             {
-            // when the Fetch implementation does asynchronous retrieval of the body,
-            // we will need to make sure nothing tries to write to the body at this point
-            *internal_response.body.borrow_mut() = ResponseBody::Empty;
+            let mut body = internal_response.lock().unwrap();
+            *body = ResponseBody::Empty;
         }
 
         // Step 15
@@ -274,7 +274,10 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         // Step 18
         // TODO this step
 
-        match *internal_response.body.borrow() {
+        let mut body = internal_response.lock().unwrap();
+        // *body = ResponseBody::Empty;
+        
+        match body {
             // Step 20
             ResponseBody::Empty => {
                 // Substep 1
@@ -840,9 +843,11 @@ fn http_network_fetch(request: Rc<Request>,
             response.status = Some(res.response.status);
             response.headers = res.response.headers.clone();
 
-            let mut body = vec![];
-            res.response.read_to_end(&mut body);
-            *response.body.borrow_mut() = ResponseBody::Done(body);
+            let mut new_body = vec![];
+            res.response.read_to_end(&mut new_body);
+            let mut body = response.lock().unwrap();
+            *body = ResponseBody::Done(new_body);
+            // *response.body.borrow_mut() = ResponseBody::Done(new_body);
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)

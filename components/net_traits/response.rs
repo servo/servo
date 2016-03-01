@@ -8,6 +8,7 @@ use hyper::header::{AccessControlExposeHeaders, Headers};
 use hyper::status::StatusCode;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
@@ -81,7 +82,7 @@ pub struct Response {
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
     pub headers: Headers,
-    pub body: RefCell<ResponseBody>,
+    pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
@@ -100,7 +101,7 @@ impl Response {
             url_list: RefCell::new(vec![]),
             status: None,
             headers: Headers::new(),
-            body: RefCell::new(ResponseBody::Empty),
+            body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             internal_response: None,
@@ -188,14 +189,18 @@ impl Response {
                 response.url = None;
                 response.headers = Headers::new();
                 response.status = None;
-                response.body = RefCell::new(ResponseBody::Empty);
+                let mut body = response.lock().unwrap();
+                *body = ResponseBody::Done(new_body);
+                // response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
-                response.body = RefCell::new(ResponseBody::Empty);
+                let mut body = response.lock().unwrap();
+                *body = ResponseBody::Done(new_body);
+                // response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             }
         }
