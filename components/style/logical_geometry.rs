@@ -10,6 +10,17 @@ use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
 
+pub enum BlockFlowDirection {
+    TopToBottom,
+    RightToLeft,
+    LeftToRight
+}
+
+pub enum InlineBaseDirection {
+    LeftToRight,
+    RightToLeft
+}
+
 bitflags!(
     #[derive(HeapSizeOf, RustcEncodable)]
     flags WritingMode: u8 {
@@ -83,6 +94,24 @@ impl WritingMode {
             (false, _) => PhysicalSide::Bottom,
             (true, true) => PhysicalSide::Right,
             (true, false) => PhysicalSide::Left,
+        }
+    }
+
+    #[inline]
+    pub fn block_flow_direction(&self) -> BlockFlowDirection {
+        match (self.is_vertical(), self.is_vertical_lr()) {
+            (false, _) => BlockFlowDirection::TopToBottom,
+            (true, true) => BlockFlowDirection::LeftToRight,
+            (true, false) => BlockFlowDirection::RightToLeft,
+        }
+    }
+
+    #[inline]
+    pub fn inline_base_direction(&self) -> InlineBaseDirection {
+        if self.intersects(FLAG_RTL) {
+            InlineBaseDirection::RightToLeft
+        } else {
+            InlineBaseDirection::LeftToRight
         }
     }
 

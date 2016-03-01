@@ -8,6 +8,7 @@ use app_units::Au;
 use construct::ConstructionResult;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::size::Size2D;
 use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
@@ -20,11 +21,12 @@ use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse}
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use sequential;
+use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values;
-use style::logical_geometry::WritingMode;
+use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
@@ -33,6 +35,19 @@ use style_traits::cursor::Cursor;
 use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
+
+// https://drafts.csswg.org/cssom-view/#overflow-directions
+fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
+    // might be worthwhile to add an inline_base_direction
+    match (writing_mode.block_flow_direction(), writing_mode.inline_base_direction()) {
+        (BlockFlowDirection::TopToBottom, InlineBaseDirection::LeftToRight) |
+            (BlockFlowDirection::LeftToRight, InlineBaseDirection::LeftToRight) => OverflowDirection::RightAndDown,
+        (BlockFlowDirection::TopToBottom, InlineBaseDirection::RightToLeft) |
+            (BlockFlowDirection::RightToLeft, InlineBaseDirection::LeftToRight) => OverflowDirection::LeftAndDown,
+        (BlockFlowDirection::RightToLeft, InlineBaseDirection::RightToLeft) => OverflowDirection::LeftAndUp,
+        (BlockFlowDirection::LeftToRight, InlineBaseDirection::RightToLeft) => OverflowDirection::RightAndUp
+    }
+}
 
 impl LayoutRPC for LayoutRPCImpl {
 
@@ -75,6 +90,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let rw_data = rw_data.lock().unwrap();
         NodeGeometryResponse {
             client_rect: rw_data.client_rect_response
+        }
+    }
+
+    fn node_scroll_geometry(&self) -> NodeGeometryResponse {
+        NodeGeometryResponse {
+            client_rect: self.0.lock().unwrap().scroll_rect_response
         }
     }
 
@@ -172,6 +193,14 @@ enum PositionProperty {
     Bottom,
     Width,
     Height,
+}
+
+#[derive(Debug)]
+enum OverflowDirection {
+    RightAndDown,
+    LeftAndDown,
+    LeftAndUp,
+    RightAndUp,
 }
 
 struct PositionRetrievingFragmentBorderBoxIterator {
@@ -291,6 +320,26 @@ impl FragmentLocatingFragmentIterator {
     }
 }
 
+struct FragmentLocatingScrollIterator {
+    node_address: OpaqueNode,
+    scroll_rect: Rect<i32>,
+    level: Option<i32>,
+    is_child: bool,
+    overflow_direction: OverflowDirection,
+}
+
+impl FragmentLocatingScrollIterator {
+    fn new(node_address: OpaqueNode) -> FragmentLocatingScrollIterator {
+        FragmentLocatingScrollIterator {
+            node_address: node_address,
+            scroll_rect: Rect::zero(),
+            level: None,
+            is_child: false,
+            overflow_direction: OverflowDirection::RightAndDown
+        }
+    }
+}
+
 struct ParentBorderBoxInfo {
     node_address: OpaqueNode,
     border_box: Rect<Au>,
@@ -333,6 +382,64 @@ impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
         fragment.node == self.node_address
+    }
+}
+
+// https://drafts.csswg.org/cssom-view/#scrolling-area
+impl FragmentBorderBoxIterator for FragmentLocatingScrollIterator {
+    fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
+        let style_structs::Border {
+            border_top_width: top_border,
+            border_right_width: right_border,
+            border_bottom_width: bottom_border,
+            border_left_width: left_border,
+            ..
+        } = *fragment.style.get_border();
+        let right_padding = (border_box.size.width - right_border - left_border).to_px();
+        let bottom_padding = (border_box.size.height - bottom_border - top_border).to_px();
+        let top_padding = top_border.to_px();
+        let left_padding = left_border.to_px();
+        match self.level {
+            Some(start_level) if level <= start_level => { self.is_child = false; }
+            Some(_) => {
+                let rect = match self.overflow_direction {
+                    OverflowDirection::RightAndDown => {
+                        let bottom = max(bottom_padding, fragment.margin.bottom(fragment.style.writing_mode).to_px());
+                        let right = max(right_padding, fragment.margin.right(fragment.style.writing_mode).to_px());
+                        Rect::new(self.scroll_rect.origin, Size2D::new(right, bottom))
+                    },
+                    OverflowDirection::LeftAndDown => {
+                        let bottom = max(bottom_padding, fragment.margin.bottom(fragment.style.writing_mode).to_px());
+                        let left = min(left_padding, fragment.margin.right(fragment.style.writing_mode).to_px());
+                        Rect::new(Point2D::new(left, self.scroll_rect.origin.y),
+                                  Size2D::new(self.scroll_rect.size.width, bottom))
+                    },
+                    OverflowDirection::LeftAndUp => {
+                        let top = min(top_padding, fragment.margin.top(fragment.style.writing_mode).to_px());
+                        let left = min(left_padding, fragment.margin.right(fragment.style.writing_mode).to_px());
+                        Rect::new(Point2D::new(left, top), self.scroll_rect.size)
+                    },
+                    OverflowDirection::RightAndUp => {
+                        let top = min(top_padding, fragment.margin.top(fragment.style.writing_mode).to_px());
+                        let right = max(right_padding, fragment.margin.right(fragment.style.writing_mode).to_px());
+                        Rect::new(Point2D::new(self.scroll_rect.origin.x, top),
+                                  Size2D::new(right, self.scroll_rect.size.height))
+                    }
+                };
+                self.scroll_rect = self.scroll_rect.union(&rect);
+            }
+            None => {
+                self.level = Some(level);
+                self.is_child = true;
+                self.overflow_direction = overflow_direction(&fragment.style.writing_mode);
+                self.scroll_rect = Rect::new(Point2D::new(top_padding, left_padding),
+                                             Size2D::new(right_padding, bottom_padding));
+            },
+        };
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address) || self.is_child
     }
 }
 
@@ -398,6 +505,13 @@ pub fn process_node_geometry_request<'ln, N: LayoutNode<'ln>>(requested_node: N,
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
+}
+
+pub fn process_node_scroll_geometry_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+        -> Rect<i32> {
+    let mut iterator = FragmentLocatingScrollIterator::new(requested_node.opaque());
+    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    iterator.scroll_rect
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
