@@ -10,17 +10,30 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use net::fetch::methods::fetch;
+use net::fetch::methods::{fetch, fetch_async};
+use net::fetch::response::ResponseMethods;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use net_traits::{AsyncFetchListener};
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 use time::{self, Duration};
 use unicase::UniCase;
 use url::{Origin as UrlOrigin, OpaqueOrigin, Url};
 
 // TODO write a struct that impls Handler for storing test values
+
+struct FetchResponseCollector {
+    sender: Sender<Response>,
+}
+
+impl AsyncFetchListener for FetchResponseCollector {
+    fn response_available(&self, response: Response) {
+        let _ = self.sender.send(response);
+    }
+}
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
 
@@ -327,7 +340,7 @@ fn test_fetch_redirect_count_failure() {
     };
 }
 
-fn test_fetch_redirect_updates_method_runner(tx: mpsc::Sender<bool>, status_code: StatusCode, method: Method) {
+fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: StatusCode, method: Method) {
 
     let handler_method = method.clone();
     let handler_tx = Arc::new(Mutex::new(tx));
@@ -384,7 +397,7 @@ fn test_fetch_redirect_updates_method_runner(tx: mpsc::Sender<bool>, status_code
 #[test]
 fn test_fetch_redirect_updates_method() {
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = channel();
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
     assert_eq!(rx.recv().unwrap(), true);
@@ -420,4 +433,46 @@ fn test_fetch_redirect_updates_method() {
     // for SeeOther, Method should always be changed, so this should be true
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.try_recv().is_err(), true);
+}
+
+fn response_is_done(response: &Response) -> bool {
+
+    let response_complete = match response.response_type {
+        ResponseType::Default | ResponseType::Basic | ResponseType::CORS => response.body.borrow().is_done(),
+        // if the internal response cannot have a body, it shouldn't block the "done" state
+        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true
+    };
+
+    let internal_complete = if let Some(ref res) = response.internal_response {
+        res.body.borrow().is_done()
+    } else {
+        true
+    };
+
+    response_complete && internal_complete
+}
+
+#[test]
+fn test_fetch_async_returns_complete_response() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
+    request.referer = Referer::NoReferer;
+
+    let (tx, rx) = channel();
+    let listener = Box::new(FetchResponseCollector {
+        sender: tx.clone()
+    });
+
+    fetch_async(request, listener);
+    let fetch_response = rx.recv().unwrap();
+    let _ = server.close();
+
+    assert_eq!(response_is_done(&fetch_response), true);
 }
