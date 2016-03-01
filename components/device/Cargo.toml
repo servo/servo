@@ -1,0 +1,11 @@
+[package]
+name = "device"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "device"
+path = "lib.rs"
+
+[dependencies.blurz]
+git = "https://github.com/dati91/blurz"
