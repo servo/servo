@@ -51,6 +51,36 @@ impl LayoutRPC for LayoutRPCImpl {
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
+    /// Requests the node containing the point of interest.
+    fn hit_test(&self) -> HitTestResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        HitTestResponse {
+            node_address: rw_data.hit_test_response.map(|node| node.to_untrusted_node_address()),
+        }
+    }
+
+    fn mouse_over(&self) -> MouseOverResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        let result = &rw_data.mouse_over_response;
+        // Compute the new cursor.
+        let cursor = if !result.is_empty() {
+            result[0].pointing.unwrap()
+        } else {
+            Cursor::DefaultCursor
+        };
+        let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+        constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
+
+        let response_list = result.iter()
+            .map(|metadata| metadata.node.to_untrusted_node_address())
+            .collect();
+        MouseOverResponse {
+            node_addresses: response_list
+        }
+    }
+
     fn node_geometry(&self) -> NodeGeometryResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
@@ -64,55 +94,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
-    }
-
-    /// Requests the node containing the point of interest.
-    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        let result = match rw_data.display_list {
-            None => panic!("Tried to hit test without a DisplayList"),
-            Some(ref display_list) => display_list.hit_test(point),
-        };
-
-        if result.is_empty() {
-            return Err(());
-        }
-
-        Ok(HitTestResponse(result[0].node.to_untrusted_node_address()))
-    }
-
-    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        let mouse_over_list = {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            let result = match rw_data.display_list {
-                None => panic!("Tried to hit test without a DisplayList"),
-                Some(ref display_list) => display_list.hit_test(point),
-            };
-
-            // Compute the new cursor.
-            let cursor = if !result.is_empty() {
-                result[0].pointing.unwrap()
-            } else {
-                Cursor::DefaultCursor
-            };
-            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
-            result
-        };
-
-        if mouse_over_list.is_empty() {
-            Err(())
-        } else {
-            let response_list =
-                mouse_over_list.iter()
-                               .map(|metadata| metadata.node.to_untrusted_node_address())
-                               .collect();
-            Ok(MouseOverResponse(response_list))
-        }
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
