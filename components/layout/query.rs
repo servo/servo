@@ -20,6 +20,7 @@ use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, Of
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use sequential;
+use std::cmp::{max, min};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
@@ -56,6 +57,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let rw_data = rw_data.lock().unwrap();
         NodeGeometryResponse {
             client_rect: rw_data.client_rect_response
+        }
+    }
+
+    fn node_scroll_geometry(&self) -> NodeGeometryResponse {
+        NodeGeometryResponse {
+            client_rect: self.0.lock().unwrap().scroll_rect_response
         }
     }
 
@@ -332,6 +339,24 @@ impl FragmentLocatingFragmentIterator {
     }
 }
 
+struct FragmentLocatingScrollIterator {
+    node_address: OpaqueNode,
+    scroll_rect: Rect<i32>,
+    level: Option<i32>,
+    is_child: bool,
+}
+
+impl FragmentLocatingScrollIterator {
+    fn new(node_address: OpaqueNode) -> FragmentLocatingScrollIterator {
+        FragmentLocatingScrollIterator {
+            node_address: node_address,
+            scroll_rect: Rect::zero(),
+            level: None,
+            is_child: false,
+        }
+    }
+}
+
 struct ParentBorderBoxInfo {
     node_address: OpaqueNode,
     border_box: Rect<Au>,
@@ -374,6 +399,38 @@ impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
         fragment.node == self.node_address
+    }
+}
+
+// https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface
+impl FragmentBorderBoxIterator for FragmentLocatingScrollIterator {
+    fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
+        if let Some(start_level) = self.level {
+            if level <= start_level {
+                self.is_child = false;
+                return;
+            }
+        } else {
+            self.level = Some(level);
+            self.is_child = true;
+        }
+        let style_structs::Border {
+            border_top_width: top_width,
+            border_right_width: right_width,
+            border_bottom_width: bottom_width,
+            border_left_width: left_width,
+            ..
+        } = *fragment.style.get_border();
+        self.scroll_rect.origin.y = min(self.scroll_rect.origin.y, border_box.origin.y.to_px());
+        self.scroll_rect.origin.x = min(self.scroll_rect.origin.x, border_box.origin.x.to_px());
+        self.scroll_rect.size.width = max(self.scroll_rect.size.width,
+                                          (border_box.size.width - left_width - right_width).to_px());
+        self.scroll_rect.size.height = max(self.scroll_rect.size.height,
+                                          (border_box.size.height - top_width - bottom_width).to_px());
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        fragment.contains_node(self.node_address) || self.is_child
     }
 }
 
@@ -439,6 +496,13 @@ pub fn process_node_geometry_request<'ln, N: LayoutNode<'ln>>(requested_node: N,
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
+}
+
+pub fn process_node_scroll_geometry_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+        -> Rect<i32> {
+    let mut iterator = FragmentLocatingScrollIterator::new(requested_node.opaque());
+    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    iterator.scroll_rect
 }
 
 /// Return the resolved value of property for a given (pseudo)element.

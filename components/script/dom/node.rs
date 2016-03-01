@@ -18,6 +18,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -37,16 +38,21 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
+use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
+use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg};
 use libc::{self, c_void, uintptr_t};
@@ -571,6 +577,29 @@ impl Node {
 
     pub fn get_client_rect(&self) -> Rect<i32> {
         window_from_node(self).client_rect_query(self.to_trusted_node_address())
+    }
+
+    // https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface
+    pub fn get_scroll_rect(&self) -> Rect<i32> {
+        let window = window_from_node(self);
+        let scroll_rect = window.scroll_rect_query(self.to_trusted_node_address());
+        let document = self.owner_doc();
+        match (self.is::<HTMLBodyElement>(), document.quirks_mode(), self.is::<HTMLHtmlElement>()) {
+            // if the element is the root element and the document is in Quirks Mode return 0
+            (false, QuirksMode::Quirks, true) => Rect::new(Point2D::new(0, 0), Size2D::new(0, 0)),
+            // if the element is the root element and the document is in Quirks Mode
+            // return the viewport origin and the max of the scroll area size and
+            // the viewport size
+            (false, _, true) => Rect::new(Point2D::new(window.ScrollX(), window.ScrollY()),
+                                          Size2D::new(max(window.InnerWidth(), scroll_rect.size.width),
+                                                      max(window.InnerHeight(), scroll_rect.size.height))),
+            // if the element is the body element return the viewport origin and the
+            // max of the scroll area size and the viewport size
+            (true, QuirksMode::Quirks, _) => Rect::new(Point2D::new(window.ScrollX(), window.ScrollY()),
+                                                       Size2D::new(max(window.InnerWidth(), scroll_rect.size.width),
+                                                                   max(window.InnerHeight(), scroll_rect.size.height))),
+            _ => scroll_rect
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
