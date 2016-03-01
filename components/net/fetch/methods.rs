@@ -154,7 +154,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             false
         };
 
-        if (!cors_flag && same_origin) ||
+        if (same_origin && !cors_flag ) ||
             (current_url.scheme == "data" && request.same_origin_data.get()) ||
             current_url.scheme == "about" ||
             request.mode == RequestMode::Navigate {
