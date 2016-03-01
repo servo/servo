@@ -189,8 +189,8 @@ impl Response {
                 response.url = None;
                 response.headers = Headers::new();
                 response.status = None;
-                let mut body = response.lock().unwrap();
-                *body = ResponseBody::Done(new_body);
+                let mut body = response.body.lock().unwrap();
+                *body = ResponseBody::Empty;
                 // response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
@@ -198,8 +198,8 @@ impl Response {
             ResponseType::OpaqueRedirect => {
                 response.headers = Headers::new();
                 response.status = None;
-                let mut body = response.lock().unwrap();
-                *body = ResponseBody::Done(new_body);
+                let mut body = response.body.lock().unwrap();
+                *body = ResponseBody::Empty;
                 // response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             }

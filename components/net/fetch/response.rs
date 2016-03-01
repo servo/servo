@@ -8,8 +8,8 @@ use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, Respo
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 pub trait ResponseMethods {

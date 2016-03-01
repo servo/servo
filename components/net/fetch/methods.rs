@@ -229,7 +229,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
                 Method::Head | Method::Connect => true,
                 _ => false })
             {
-            let mut body = internal_response.lock().unwrap();
+            let mut body = internal_response.body.lock().unwrap();
             *body = ResponseBody::Empty;
         }
 
@@ -271,25 +271,10 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             response.get_actual_response()
         };
 
+        // TODO these steps
         // Step 18
-        // TODO this step
-
-        let mut body = internal_response.lock().unwrap();
-        // *body = ResponseBody::Empty;
-        
-        match body {
-            // Step 20
-            ResponseBody::Empty => {
-                // Substep 1
-                // Substep 2
-            },
-
-            // Step 19
-            _ => {
-                // Substep 1
-                // Substep 2
-            }
-        };
+        // Step 19
+        // Step 20
     }
 
     // TODO remove this line when asynchronous fetches are supported
@@ -845,7 +830,7 @@ fn http_network_fetch(request: Rc<Request>,
 
             let mut new_body = vec![];
             res.response.read_to_end(&mut new_body);
-            let mut body = response.lock().unwrap();
+            let mut body = response.body.lock().unwrap();
             *body = ResponseBody::Done(new_body);
             // *response.body.borrow_mut() = ResponseBody::Done(new_body);
         },
