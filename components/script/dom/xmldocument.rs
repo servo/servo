@@ -73,22 +73,6 @@ impl XMLDocument {
         }
         doc
     }
-
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLDocument>> {
-        let win = global.as_window();
-        let doc = win.Document();
-        let doc = doc.r();
-        let docloader = DocumentLoader::new(&*doc.loader());
-
-        Ok(XMLDocument::new(win,
-                            None,
-                            None,
-                            IsHTMLDocument::NonHTMLDocument,
-                            None,
-                            None,
-                            DocumentSource::NotFromParser,
-                            docloader))
-    }
 }
 
 impl XMLDocumentMethods for XMLDocument {
