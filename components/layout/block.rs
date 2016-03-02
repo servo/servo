@@ -1622,14 +1622,18 @@ impl BlockFlow {
         }
     }
 
-    pub fn establishes_pseudo_stacking_context(&self) -> bool {
+    pub fn block_stacking_context_type(&self) -> BlockStackingContextType {
         if self.fragment.establishes_stacking_context() {
-            return false;
+            return BlockStackingContextType::StackingContext
         }
 
-        self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-        self.fragment.style.get_box().position != position::T::static_ ||
-        self.base.flags.is_float()
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
+                self.fragment.style.get_box().position != position::T::static_ ||
+                self.base.flags.is_float() {
+            BlockStackingContextType::PseudoStackingContext
+        } else {
+            BlockStackingContextType::NonstackingContext
+        }
     }
 
     pub fn has_scrolling_overflow(&self) -> bool {
@@ -3037,3 +3041,12 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
+
+/// A stacking context, a pseudo-stacking context, or a non-stacking context.
+#[derive(Copy, Clone, PartialEq)]
+pub enum BlockStackingContextType {
+    NonstackingContext,
+    PseudoStackingContext,
+    StackingContext,
+}
+

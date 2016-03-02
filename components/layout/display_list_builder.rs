@@ -12,7 +12,7 @@
 
 use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
-use block::BlockFlow;
+use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasMsg, CanvasPixelData, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::num::Zero;
@@ -1607,8 +1607,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                            parent_id: StackingContextId,
                                            contexts: &mut Vec<Box<StackingContext>>)
                                            -> StackingContextId {
-        if !self.fragment.establishes_stacking_context() &&
-           !self.establishes_pseudo_stacking_context() {
+        let block_stacking_context_type = self.block_stacking_context_type();
+        if block_stacking_context_type == BlockStackingContextType::NonstackingContext {
             self.base.stacking_context_id = parent_id;
             self.base.collect_stacking_contexts_for_children(parent_id, contexts);
             return parent_id;
@@ -1630,7 +1630,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.collect_stacking_contexts_for_children(inner_stacking_context_id,
                                                          &mut child_contexts);
 
-        if self.establishes_pseudo_stacking_context() {
+        if block_stacking_context_type == BlockStackingContextType::PseudoStackingContext {
             let creation_mode = if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                                    self.fragment.style.get_box().position != position::T::static_ {
                 StackingContextCreationMode::PseudoPositioned
@@ -1698,10 +1698,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
                                     border_painting_mode: BorderPaintingMode) {
+        let establishes_stacking_context = self.fragment.establishes_stacking_context();
         let background_border_section = if self.base.flags.is_float() {
             DisplayListSection::BackgroundAndBorders
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            if self.fragment.establishes_stacking_context() {
+            if establishes_stacking_context {
                 DisplayListSection::BackgroundAndBorders
             } else {
                 DisplayListSection::BlockBackgroundsAndBorders
@@ -1711,7 +1712,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         // Add the box that starts the block context.
-        let translated_clip = if self.fragment.establishes_stacking_context() {
+        let translated_clip = if establishes_stacking_context {
             Some(self.base.clip.translate(&-self.base.stacking_relative_position))
         } else {
             None
