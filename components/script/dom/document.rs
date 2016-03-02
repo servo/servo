@@ -98,10 +98,10 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::{BTreeMap, HashMap};
 use std::default::Default;
-use std::iter::FromIterator;
+use std::mem;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -185,7 +185,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: DOMRefCell<HashMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<BTreeMap<u32, Box<FnBox(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -1248,11 +1248,8 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        let animation_frame_list;
-        {
-            let mut list = self.animation_frame_list.borrow_mut();
-            animation_frame_list = Vec::from_iter(list.drain());
-        }
+        let animation_frame_list =
+            mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
         let performance = self.window.Performance();
         let performance = performance.r();
         let timing = performance.Now();
@@ -1590,7 +1587,7 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec![]),
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DOMRefCell::new(HashMap::new()),
+            animation_frame_list: DOMRefCell::new(BTreeMap::new()),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),

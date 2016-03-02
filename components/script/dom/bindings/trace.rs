@@ -70,7 +70,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
@@ -240,6 +240,16 @@ impl<K, V, S> JSTraceable for HashMap<K, V, S>
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
         for (k, v) in &*self {
+            k.trace(trc);
+            v.trace(trc);
+        }
+    }
+}
+
+impl<K: Ord + JSTraceable, V: JSTraceable> JSTraceable for BTreeMap<K, V> {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        for (k, v) in self {
             k.trace(trc);
             v.trace(trc);
         }
