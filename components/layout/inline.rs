@@ -1680,9 +1680,10 @@ impl Flow for InlineFlow {
                                                       CoordinateSystem::Parent);
             let stacking_relative_content_box =
                 fragment.stacking_relative_content_box(&stacking_relative_border_box);
-            let clip = fragment.clipping_region_for_children(&self.base.clip,
-                                                             &stacking_relative_border_box,
-                                                             false);
+            let mut clip = self.base.clip.clone();
+            fragment.adjust_clipping_region_for_children(&mut clip,
+                                                         &stacking_relative_border_box,
+                                                         false);
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {

@@ -231,19 +231,17 @@ pub trait FragmentDisplayListBuilding {
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>);
 
-    /// Returns the appropriate clipping region for descendants of this fragment.
-    fn clipping_region_for_children(&self,
-                                    current_clip: &ClippingRegion,
-                                    stacking_relative_border_box: &Rect<Au>,
-                                    is_absolutely_positioned: bool)
-                                    -> ClippingRegion;
+    /// Adjusts the clipping region for descendants of this fragment as appropriate.
+    fn adjust_clipping_region_for_children(&self,
+                                           current_clip: &mut ClippingRegion,
+                                           stacking_relative_border_box: &Rect<Au>,
+                                           is_absolutely_positioned: bool);
 
-    /// Calculates the clipping rectangle for a fragment, taking the `clip` property into account
+    /// Adjusts the clipping rectangle for a fragment to take the `clip` property into account
     /// per CSS 2.1 § 11.1.2.
-    fn calculate_style_specified_clip(&self,
-                                      parent_clip: &ClippingRegion,
-                                      stacking_relative_border_box: &Rect<Au>)
-                                      -> ClippingRegion;
+    fn adjust_clip_for_style(&self,
+                             parent_clip: &mut ClippingRegion,
+                             stacking_relative_border_box: &Rect<Au>);
 
     /// Builds the display items necessary to paint the selection and/or caret for this fragment,
     /// if any.
@@ -481,7 +479,8 @@ impl FragmentDisplayListBuilding for Fragment {
             // Clip.
             //
             // TODO: Check the bounds to see if a clip item is actually required.
-            let clip = clip.clone().intersect_rect(&bounds);
+            let mut clip = clip.clone();
+            clip.intersect_rect(&bounds);
 
             // Background image should be positioned on the padding box basis.
             let border = style.logical_border_width().to_physical(style.writing_mode);
@@ -580,7 +579,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                          clip: &ClippingRegion,
                                                          gradient: &LinearGradient,
                                                          style: &ComputedValues) {
-        let clip = clip.clone().intersect_rect(absolute_bounds);
+        let mut clip = clip.clone();
+        clip.intersect_rect(absolute_bounds);
 
         // This is the distance between the center and the ending point; i.e. half of the distance
         // between the starting point and the ending point.
@@ -893,15 +893,14 @@ impl FragmentDisplayListBuilding for Fragment {
         }), DisplayListSection::Content);
     }
 
-    fn calculate_style_specified_clip(&self,
-                                      parent_clip: &ClippingRegion,
-                                      stacking_relative_border_box: &Rect<Au>)
-                                      -> ClippingRegion {
+    fn adjust_clip_for_style(&self,
+                             parent_clip: &mut ClippingRegion,
+                             stacking_relative_border_box: &Rect<Au>) {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match (self.style().get_box().position,
                                      self.style().get_effects().clip.0) {
             (position::T::absolute, Some(style_clip_rect)) => style_clip_rect,
-            _ => return (*parent_clip).clone(),
+            _ => return,
         };
 
         // FIXME(pcwalton, #2795): Get the real container size.
@@ -910,7 +909,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let right = style_clip_rect.right.unwrap_or(stacking_relative_border_box.size.width);
         let bottom = style_clip_rect.bottom.unwrap_or(stacking_relative_border_box.size.height);
         let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
-        (*parent_clip).clone().intersect_rect(&Rect::new(clip_origin, clip_size))
+        parent_clip.intersect_rect(&Rect::new(clip_origin, clip_size))
     }
 
     fn build_display_items_for_selection_if_necessary(&self,
@@ -995,7 +994,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Calculate the clip rect. If there's nothing to render at all, don't even construct
         // display list items.
-        let clip = self.calculate_style_specified_clip(clip, &stacking_relative_border_box);
+        let mut clip = (*clip).clone();
+        self.adjust_clip_for_style(&mut clip, &stacking_relative_border_box);
         if !clip.might_intersect_rect(&stacking_relative_border_box) {
             return;
         }
@@ -1424,19 +1424,17 @@ impl FragmentDisplayListBuilding for Fragment {
                                       layer_info))
     }
 
-    fn clipping_region_for_children(&self,
-                                    current_clip: &ClippingRegion,
-                                    stacking_relative_border_box: &Rect<Au>,
-                                    is_absolutely_positioned: bool)
-                                    -> ClippingRegion {
+    fn adjust_clipping_region_for_children(&self,
+                                           current_clip: &mut ClippingRegion,
+                                           stacking_relative_border_box: &Rect<Au>,
+                                           is_absolutely_positioned: bool) {
         // Don't clip if we're text.
         if self.is_scanned_text_fragment() {
-            return (*current_clip).clone()
+            return
         }
 
         // Account for style-specified `clip`.
-        let mut current_clip = self.calculate_style_specified_clip(current_clip,
-                                                                   stacking_relative_border_box);
+        self.adjust_clip_for_style(current_clip, stacking_relative_border_box);
 
         // Clip according to the values of `overflow-x` and `overflow-y`.
         //
@@ -1452,7 +1450,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
                 bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
                 bounds.size.width = max_x - bounds.origin.x;
-                current_clip = current_clip.intersect_rect(&bounds)
+                current_clip.intersect_rect(&bounds)
             }
             _ => {}
         }
@@ -1464,12 +1462,10 @@ impl FragmentDisplayListBuilding for Fragment {
                 let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
                 bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
                 bounds.size.height = max_y - bounds.origin.y;
-                current_clip = current_clip.intersect_rect(&bounds)
+                current_clip.intersect_rect(&bounds)
             }
             _ => {}
         }
-
-        current_clip
     }
 
     fn build_display_list_for_text_fragment(&self,
@@ -1715,10 +1711,14 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         // Add the box that starts the block context.
-        let clip = if self.fragment.establishes_stacking_context() {
-            self.base.clip.translate(&-self.base.stacking_relative_position)
+        let translated_clip = if self.fragment.establishes_stacking_context() {
+            Some(self.base.clip.translate(&-self.base.stacking_relative_position))
         } else {
-            self.base.clip.clone()
+            None
+        };
+        let clip = match translated_clip {
+            Some(ref translated_clip) => translated_clip,
+            None => &self.base.clip,
         };
 
         self.fragment
@@ -1732,7 +1732,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     .relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_section,
-                                &clip,
+                                clip,
                                 &self.base.stacking_relative_position_of_display_port);
 
         // Add children.

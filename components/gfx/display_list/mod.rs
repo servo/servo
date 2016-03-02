@@ -761,16 +761,13 @@ impl ClippingRegion {
         }
     }
 
-    /// Returns the intersection of this clipping region and the given rectangle.
+    /// Mutates this clipping region to intersect with the given rectangle.
     ///
     /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
     /// complexity.
     #[inline]
-    pub fn intersect_rect(self, rect: &Rect<Au>) -> ClippingRegion {
-        ClippingRegion {
-            main: self.main.intersection(rect).unwrap_or(Rect::zero()),
-            complex: self.complex,
-        }
+    pub fn intersect_rect(&mut self, rect: &Rect<Au>) {
+        self.main = self.main.intersection(rect).unwrap_or(Rect::zero())
     }
 
     /// Returns true if this clipping region might be nonempty. This can return false positives,

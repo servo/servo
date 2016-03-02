@@ -1152,7 +1152,8 @@ impl BaseFlow {
 
         for item in items.iter() {
             let base_item = item.item.base();
-            let paint_bounds = base_item.clip.clone().intersect_rect(&base_item.bounds);
+            let mut paint_bounds = base_item.clip.clone();
+            paint_bounds.intersect_rect(&base_item.bounds);
             if !paint_bounds.might_be_nonempty() {
                 continue;
             }
