@@ -1954,8 +1954,10 @@ impl Flow for BlockFlow {
             self.base.position.size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
+        //
+        // `clip` is in the child coordinate system.
+        let mut clip;
         let origin_for_children;
-        let clip_in_child_coordinate_system;
         let is_stacking_context = self.fragment.establishes_stacking_context();
         if is_stacking_context {
             // We establish a stacking context, so the position of our children is vertically
@@ -1966,12 +1968,11 @@ impl Flow for BlockFlow {
             // FIXME(pcwalton): Is this vertical-writing-direction-safe?
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
             origin_for_children = Point2D::new(-margin.left, Au(0));
-            clip_in_child_coordinate_system =
-                self.base.clip.translate(&-self.base.stacking_relative_position);
+            clip = self.base.clip.translate(&-self.base.stacking_relative_position);
         } else {
             let relative_offset = relative_offset.to_physical(self.base.writing_mode);
             origin_for_children = self.base.stacking_relative_position + relative_offset;
-            clip_in_child_coordinate_system = self.base.clip.clone();
+            clip = self.base.clip.clone();
         }
 
         let stacking_relative_position_of_display_port_for_children =
@@ -2003,8 +2004,8 @@ impl Flow for BlockFlow {
                                                   .early_absolute_position_info
                                                   .relative_containing_block_mode,
                                               CoordinateSystem::Own);
-        let clip = self.fragment.clipping_region_for_children(
-            &clip_in_child_coordinate_system,
+        self.fragment.adjust_clipping_region_for_children(
+            &mut clip,
             &stacking_relative_border_box,
             self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
 
