@@ -1643,18 +1643,24 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 StackingContextCreationMode::PseudoFloat
             };
 
-            let mut stacking_context =
-                    self.fragment.create_stacking_context(stacking_context_id,
-                                                          &self.base,
-                                                          ScrollPolicy::Scrollable,
-                                                          creation_mode);
-            let (mut floating, mut positioned) = child_contexts.into_iter().partition(|context| {
-                context.context_type == StackingContextType::PseudoFloat
-            });
+            let stacking_context_index = contexts.len();
+            contexts.push(self.fragment.create_stacking_context(stacking_context_id,
+                                                                &self.base,
+                                                                ScrollPolicy::Scrollable,
+                                                                creation_mode));
 
-            stacking_context.children.append(&mut floating);
-            contexts.push(stacking_context);
-            contexts.append(&mut positioned);
+            let mut floating = vec![];
+            for child_context in child_contexts.into_iter() {
+                if child_context.context_type == StackingContextType::PseudoFloat {
+                    // Floating.
+                    floating.push(child_context)
+                } else {
+                    // Positioned.
+                    contexts.push(child_context)
+                }
+            }
+
+            contexts[stacking_context_index].children = floating;
             return stacking_context_id;
         }
 
@@ -1670,7 +1676,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::InnerScrollWrapper);
-            inner_stacking_context.children.append(&mut child_contexts);
+            inner_stacking_context.children = child_contexts;
 
             let mut outer_stacking_context = self.fragment.create_stacking_context(
                 stacking_context_id,
@@ -1685,7 +1691,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::Normal);
-            stacking_context.children.append(&mut child_contexts);
+            stacking_context.children = child_contexts;
             stacking_context
         };
 
