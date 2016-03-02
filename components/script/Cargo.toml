@@ -77,6 +77,7 @@ hyper = { version = "0.7", features = [ "serde-serialization" ] }
 image = "0.5.0"
 libc = "0.2"
 log = "0.3"
+mime = "0.1"
 num = "0.1.24"
 rand = "0.3"
 phf = "0.7.13"

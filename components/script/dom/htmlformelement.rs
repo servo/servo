@@ -285,7 +285,7 @@ impl HTMLFormElement {
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => {
-                let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
+                let mime: mime::Mime = mime!(Application/WwwFormUrlEncoded);
                 load_data.headers.set(ContentType(mime));
 
                 serialize(form_data.iter().map(|d| (&*d.name, match d.value {
@@ -295,13 +295,12 @@ impl HTMLFormElement {
             }
             FormEncType::FormDataEncoded => {
                 let boundary = generate_boundary();
-                let mime = "multipart/formdata; boundary=".to_owned() + &boundary;
-                let mime: mime::Mime = (&mime).parse().unwrap();
+                let mime: mime::Mime = mime!(Multipart/FormData; Boundary=(&boundary));
                 load_data.headers.set(ContentType(mime));
 
                 generate_multipart_data(&mut form_data, boundary)
             }
-            FormEncType::TextPlainEncoded => "".to_owned() // TODO: Add serializers for the other encoding types
+            FormEncType::TextPlainEncoded => "".to_owned()
         };
 
         // Step 18
