@@ -6,13 +6,14 @@
 
 use app_units::Au;
 use context::{LayoutContext, SharedLayoutContext};
+use display_list_builder::DisplayListBuildState;
 use euclid::point::Point2D;
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use gfx::display_list::StackingContext;
+use gfx::display_list::{DisplayListEntry, StackingContext};
 use style::dom::TNode;
 use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
@@ -77,13 +78,19 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       root_stacking_context: &mut StackingContext,
-                                      shared_layout_context: &SharedLayoutContext) {
+                                      shared_layout_context: &SharedLayoutContext)
+                                      -> Vec<DisplayListEntry> {
     let flow_root = flow_ref::deref_mut(root);
     let layout_context = LayoutContext::new(shared_layout_context);
     flow_root.traverse_preorder(&ComputeAbsolutePositions { layout_context: &layout_context });
     flow_root.collect_stacking_contexts(root_stacking_context.id,
                                         &mut root_stacking_context.children);
-    flow_root.traverse_postorder(&BuildDisplayList { layout_context: &layout_context });
+    let mut build_display_list = BuildDisplayList {
+        state: DisplayListBuildState::new(&layout_context,
+                                          flow::base(&**root).stacking_context_id),
+    };
+    build_display_list.traverse(&mut *flow_root);
+    build_display_list.state.items
 }
 
 pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,

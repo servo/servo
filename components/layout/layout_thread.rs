@@ -875,9 +875,10 @@ impl LayoutThread {
                                      false,
                                      None);
 
-            sequential::build_display_list_for_subtree(layout_root,
-                                                       &mut root_stacking_context,
-                                                       shared_layout_context);
+            let display_list_entries =
+                sequential::build_display_list_for_subtree(layout_root,
+                                                           &mut root_stacking_context,
+                                                           shared_layout_context);
 
             if data.goal == ReflowGoal::ForDisplay {
                 debug!("Done building display list.");
@@ -900,11 +901,9 @@ impl LayoutThread {
                                                                        ScrollPolicy::Scrollable,
                                                                        None,
                                                                        root_background_color));
-                let display_list = DisplayList::new(
-                    root_stacking_context,
-                    &mut flow::mut_base(flow_ref::deref_mut(layout_root))
-                                        .display_list_building_result);
 
+                let display_list = DisplayList::new(root_stacking_context,
+                                                    &mut Some(display_list_entries));
                 if opts::get().dump_display_list {
                     display_list.print();
                 }

@@ -215,23 +215,27 @@ impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
 pub struct BuildDisplayList<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
+    pub state: DisplayListBuildState<'a>,
 }
 
-impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
+impl<'a> BuildDisplayList<'a> {
     #[inline]
-    fn process(&self, flow: &mut Flow) {
-        let mut state = DisplayListBuildState::new(
-            self.layout_context, flow::base(flow).stacking_context_id);
-        flow.build_display_list(&mut state);
-        flow::mut_base(flow).display_list_building_result = Some(state.items);
-        flow::mut_base(flow).restyle_damage.remove(REPAINT);
+    pub fn traverse(&mut self, flow: &mut Flow) {
+        if self.should_process() {
+            self.state.push_stacking_context_id(flow::base(flow).stacking_context_id);
+            flow.build_display_list(&mut self.state);
+            flow::mut_base(flow).restyle_damage.remove(REPAINT);
+            self.state.pop_stacking_context_id();
+        }
+
+        for kid in flow::child_iter(flow) {
+            self.traverse(kid);
+        }
     }
 
     #[inline]
-    fn should_process(&self, _: &mut Flow) -> bool {
-        self.layout_context.shared_context().goal == ReflowGoal::ForDisplay
+    fn should_process(&self) -> bool {
+        self.state.layout_context.shared_context().goal == ReflowGoal::ForDisplay
     }
 }
