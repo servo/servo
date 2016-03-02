@@ -828,7 +828,6 @@ fn perform_inline_direction_border_collapse_for_row(
         child_table_cell: &mut TableCellFlow,
         iterator: &mut Peekable<Enumerate<MutFlowListIterator>>,
         preliminary_collapsed_borders: &mut CollapsedBordersForRow) {
-    println!("    perform_inline_direction_border_collapse_for_row");
     let inline_collapsed_border = preliminary_collapsed_borders.inline.push_or_set(
         child_index + 1,
         CollapsedBorder::inline_end(&*child_table_cell.block_flow.fragment.style,
