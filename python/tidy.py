@@ -555,6 +555,9 @@ def get_wpt_files(only_changed_files, progress):
 
 def check_wpt_lint_errors(files):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
+    # check if run by test-tidy script form main directory or from test_tidy.py script, from python/tidy_test
+    if not os.path.isdir(wpt_working_dir):
+        wpt_working_dir = os.path.abspath(os.path.join("../../", "tests", "wpt", "web-platform-tests"))
     site.addsitedir(wpt_working_dir)
     from tools.lint import lint
     returncode = lint.lint(files)
