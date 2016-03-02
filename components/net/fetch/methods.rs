@@ -828,25 +828,31 @@ fn http_network_fetch(request: Rc<Request>,
             let res_body = response.body.clone();
             thread::spawn(move || {
 
-                *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+                let mut new_body = vec![];
+                res.response.read_to_end(&mut new_body);
+                *res_body.lock().unwrap() = ResponseBody::Done(new_body);
 
-                loop {
-                    match read_block(&mut res.response) {
-                        Ok(ReadResult::Payload(ref mut new_body)) => {
-                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-                                (body).append(new_body);
-                            }
-                        },
-                        Ok(ReadResult::EOF) | Err(_) => break
-                    }
+                // TODO: the vec storage format is much too slow for these operations,
+                // response.body needs to use something else before this code can be used
+                // *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
-                }
+                // loop {
+                //     match read_block(&mut res.response) {
+                //         Ok(ReadResult::Payload(ref mut new_body)) => {
+                //             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                //                 (body).append(new_body);
+                //             }
+                //         },
+                //         Ok(ReadResult::EOF) | Err(_) => break
+                //     }
 
-                let mut completed_body = res_body.lock().unwrap();
-                if let ResponseBody::Receiving(ref body) = *completed_body {
-                    // TODO cloning seems sub-optimal, but I couldn't figure anything else out
-                    *res_body.lock().unwrap() = ResponseBody::Done((*body).clone());
-                }
+                // }
+
+                // let mut completed_body = res_body.lock().unwrap();
+                // if let ResponseBody::Receiving(ref body) = *completed_body {
+                //     // TODO cloning seems sub-optimal, but I couldn't figure anything else out
+                //     *res_body.lock().unwrap() = ResponseBody::Done((*body).clone());
+                // }
             });
         },
         Err(e) =>
