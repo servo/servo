@@ -5574,6 +5574,12 @@
             "url": "/_mozilla/mozilla/collections.html"
           }
         ],
+        "mozilla/deterministic-raf.html": [
+          {
+            "path": "mozilla/deterministic-raf.html",
+            "url": "/_mozilla/mozilla/deterministic-raf.html"
+          }
+        ],
         "mozilla/documentElement.html": [
           {
             "path": "mozilla/documentElement.html",
