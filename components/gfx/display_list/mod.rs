@@ -508,7 +508,7 @@ pub struct StackingContext {
     pub layer_info: Option<LayerInfo>,
 
     /// Children of this StackingContext.
-    pub children: Vec<StackingContext>,
+    pub children: Vec<Box<StackingContext>>,
 }
 
 impl StackingContext {

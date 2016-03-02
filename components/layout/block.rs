@@ -2109,7 +2109,7 @@ impl Flow for BlockFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent_id: StackingContextId,
-                                 contexts: &mut Vec<StackingContext>)
+                                 contexts: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId {
         self.collect_stacking_contexts_for_block(parent_id, contexts)
     }

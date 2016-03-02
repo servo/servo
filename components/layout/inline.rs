@@ -1750,7 +1750,7 @@ impl Flow for InlineFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent_id: StackingContextId,
-                                 contexts: &mut Vec<StackingContext>)
+                                 contexts: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId {
         self.collect_stacking_contexts_for_inline(parent_id, contexts)
     }
