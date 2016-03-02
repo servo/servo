@@ -47,7 +47,7 @@ use std::slice::IterMut;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::{fmt, mem, raw};
-use style::computed_values::{clear, display, empty_cells, float, position, text_align};
+use style::computed_values::{clear, display, empty_cells, float, position, overflow_x, text_align};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ComputedValues};
@@ -271,11 +271,43 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
             FlowClass::TableCell => {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
+
+                let overflow_x = self.as_block().fragment.style.get_box().overflow_x;
+                let overflow_y = self.as_block().fragment.style.get_box().overflow_y;
+
                 for kid in mut_base(self).children.iter_mut() {
                     let mut kid_overflow = base(kid).overflow;
                     let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
                                                                       container_size);
                     kid_overflow.translate(&kid_position.origin);
+
+                    // If the overflow for this flow is hidden on a given axis, just
+                    // put the existing overflow in the kid rect, so that the union
+                    // has no effect on this axis.
+                    match overflow_x {
+                        overflow_x::T::hidden => {
+                            kid_overflow.paint.origin.x = overflow.paint.origin.x;
+                            kid_overflow.paint.size.width = overflow.paint.size.width;
+                            kid_overflow.scroll.origin.x = overflow.scroll.origin.x;
+                            kid_overflow.scroll.size.width = overflow.scroll.size.width;
+                        }
+                        overflow_x::T::scroll |
+                        overflow_x::T::auto |
+                        overflow_x::T::visible => {}
+                    }
+
+                    match overflow_y.0 {
+                        overflow_x::T::hidden => {
+                            kid_overflow.paint.origin.y = overflow.paint.origin.y;
+                            kid_overflow.paint.size.height = overflow.paint.size.height;
+                            kid_overflow.scroll.origin.y = overflow.scroll.origin.y;
+                            kid_overflow.scroll.size.height = overflow.scroll.size.height;
+                        }
+                        overflow_x::T::scroll |
+                        overflow_x::T::auto |
+                        overflow_x::T::visible => {}
+                    }
+
                     overflow.union(&kid_overflow)
                 }
             }
