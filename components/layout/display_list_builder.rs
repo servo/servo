@@ -1614,8 +1614,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.stacking_context_id = stacking_context_id;
 
         let inner_stacking_context_id = if self.has_scrolling_overflow() {
-            StackingContextId::new_of_type(self.base.flow_id(),
-                                           self.fragment.fragment_type())
+            StackingContextId::new_of_type(self.base.flow_id(), self.fragment.fragment_type())
         } else {
             stacking_context_id
         };
