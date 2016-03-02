@@ -15,7 +15,7 @@ use euclid::point::Point2D;
 use euclid::size::Size2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
-use script_traits::MouseButton;
+use script_traits::{MouseButton, TouchEventType};
 use std::cell::{Cell, RefCell};
 
 pub struct ServoCefBrowserHost {
@@ -469,7 +469,9 @@ full_cef_class_impl! {
             let delta_y: c_int = delta_y;
             let delta = Point2D::typed(delta_x as f32, delta_y as f32);
             let origin = Point2D::typed((*event).x as i32, (*event).y as i32);
-            this.downcast().send_window_event(WindowEvent::Scroll(delta, origin))
+            this.downcast().send_window_event(WindowEvent::Scroll(delta,
+                                                                  origin,
+                                                                  TouchEventType::Move))
         }}
 
         fn get_zoom_level(&this,) -> c_double {{
