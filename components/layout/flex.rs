@@ -31,7 +31,6 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::properties::style_structs;
 use style::values::computed::LengthOrPercentageOrAuto;
-use util::opts;
 
 // A mode describes which logical axis a flex axis is parallel with.
 // The logical axises are inline and block, the flex axises are main and cross.
@@ -422,10 +421,6 @@ impl Flow for FlexFlow {
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_flex(state);
-
-        if opts::get().validate_display_list_geometry {
-            self.block_flow.base.validate_display_list_geometry();
-        }
     }
 
     fn collect_stacking_contexts(&mut self,

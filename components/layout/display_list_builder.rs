@@ -1853,10 +1853,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
             self.base.build_display_items_for_debugging_tint(state,
                                                              self.fragments.fragments[0].node);
         }
-
-        if opts::get().validate_display_list_geometry {
-            self.base.validate_display_list_geometry();
-        }
     }
 }
 

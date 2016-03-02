@@ -64,7 +64,6 @@ use style::properties::ComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
-use util::opts;
 use util::print_tree::PrintTree;
 
 /// Information specific to floated blocks.
@@ -2122,9 +2121,6 @@ impl Flow for BlockFlow {
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
         self.fragment.restyle_damage.remove(REPAINT);
-        if opts::get().validate_display_list_geometry {
-            self.base.validate_display_list_geometry();
-        }
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

@@ -25,7 +25,6 @@ use style::computed_values::{list_style_type, position};
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use text;
-use util::opts;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]
@@ -144,9 +143,6 @@ impl Flow for ListItemFlow {
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_list_item(state);
-        if opts::get().validate_display_list_geometry {
-            self.block_flow.base.validate_display_list_geometry();
-        }
     }
 
     fn collect_stacking_contexts(&mut self,
