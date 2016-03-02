@@ -61,6 +61,7 @@ extern crate phf;
 extern crate profile_traits;
 extern crate rand;
 extern crate ref_slice;
+extern crate regex;
 extern crate rustc_serialize;
 extern crate script_traits;
 extern crate selectors;
