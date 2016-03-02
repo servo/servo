@@ -52,7 +52,7 @@ use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
 use util::print_tree::PrintTree;
 use webrender;
-use webrender_traits;
+use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -195,6 +195,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The id of the pipeline that was last sent a mouse move event, if any.
     last_mouse_move_recipient: Option<PipelineId>,
 
+    /// Whether a scroll is in progress; i.e. whether the user's fingers are down.
+    scroll_in_progress: bool,
+
     /// The webrender renderer, if enabled.
     webrender: Option<webrender::Renderer>,
 
@@ -202,6 +205,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     webrender_api: Option<webrender_traits::RenderApi>,
 }
 
+#[derive(Copy, Clone)]
 pub struct ScrollZoomEvent {
     /// Change the pinch zoom level by this factor
     magnification: f32,
@@ -209,6 +213,8 @@ pub struct ScrollZoomEvent {
     delta: TypedPoint2D<DevicePixel, f32>,
     /// Apply changes to the frame at this location
     cursor: TypedPoint2D<DevicePixel, i32>,
+    /// The scroll event phase.
+    phase: ScrollEventPhase,
 }
 
 #[derive(PartialEq, Debug)]
@@ -426,6 +432,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
             pending_subpages: HashSet::new(),
             last_mouse_move_recipient: None,
+            scroll_in_progress: false,
             webrender: state.webrender,
             webrender_api: webrender_api,
         }
@@ -1183,8 +1190,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            WindowEvent::Scroll(delta, cursor) => {
-                self.on_scroll_window_event(delta, cursor);
+            WindowEvent::Scroll(delta, cursor, phase) => {
+                match phase {
+                    TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
+                    TouchEventType::Up | TouchEventType::Cancel => {
+                        self.on_scroll_end_window_event(delta, cursor);
+                    }
+                    TouchEventType::Down => {
+                        self.on_scroll_start_window_event(delta, cursor);
+                    }
+                }
             }
 
             WindowEvent::Zoom(magnification) => {
@@ -1367,6 +1382,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     magnification: magnification,
                     delta: scroll_delta,
                     cursor: cursor,
+                    phase: ScrollEventPhase::Move(true),
                 });
                 self.composite_if_necessary(CompositingReason::Zoom);
             }
@@ -1420,8 +1436,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             magnification: 1.0,
             delta: delta,
             cursor: cursor,
+            phase: ScrollEventPhase::Move(self.scroll_in_progress),
         });
+        self.composite_if_necessary(CompositingReason::Scroll);
+    }
 
+    fn on_scroll_start_window_event(&mut self,
+                                    delta: TypedPoint2D<DevicePixel, f32>,
+                                    cursor: TypedPoint2D<DevicePixel, i32>) {
+        self.scroll_in_progress = true;
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: 1.0,
+            delta: delta,
+            cursor: cursor,
+            phase: ScrollEventPhase::Start,
+        });
+        self.composite_if_necessary(CompositingReason::Scroll);
+    }
+
+    fn on_scroll_end_window_event(&mut self,
+                                  delta: TypedPoint2D<DevicePixel, f32>,
+                                  cursor: TypedPoint2D<DevicePixel, i32>) {
+        self.scroll_in_progress = false;
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: 1.0,
+            delta: delta,
+            cursor: cursor,
+            phase: ScrollEventPhase::End,
+        });
         self.composite_if_necessary(CompositingReason::Scroll);
     }
 
@@ -1431,19 +1473,41 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.webrender_api {
             Some(ref webrender_api) => {
                 // Batch up all scroll events into one, or else we'll do way too much painting.
-                let mut total_delta = None;
-                let mut last_cursor = Point2D::zero();
+                let mut last_combined_event: Option<ScrollZoomEvent> = None;
                 for scroll_event in self.pending_scroll_zoom_events.drain(..) {
-                    let this_delta = scroll_event.delta / self.scene.scale;
-                    last_cursor = scroll_event.cursor.as_f32() / self.scene.scale;
-                    match total_delta {
-                        None => total_delta = Some(this_delta),
-                        Some(ref mut total_delta) => *total_delta = *total_delta + this_delta,
+                    let this_delta = scroll_event.delta;
+                    let this_cursor = scroll_event.cursor;
+                    if let Some(combined_event) = last_combined_event {
+                        if combined_event.phase != scroll_event.phase {
+                            webrender_api.scroll(
+                                (combined_event.delta / self.scene.scale).to_untyped(),
+                                (combined_event.cursor.as_f32() / self.scene.scale).to_untyped(),
+                                combined_event.phase);
+                            last_combined_event = None
+                        }
+                    }
+
+                    match last_combined_event {
+                        None => {
+                            last_combined_event = Some(ScrollZoomEvent {
+                                magnification: scroll_event.magnification,
+                                delta: this_delta,
+                                cursor: this_cursor,
+                                phase: scroll_event.phase,
+                            })
+                        }
+                        Some(ref mut last_combined_event) => {
+                            last_combined_event.delta = last_combined_event.delta + this_delta;
+                        }
                     }
                 }
+
                 // TODO(gw): Support zoom (WR issue #28).
-                if let Some(total_delta) = total_delta {
-                    webrender_api.scroll(total_delta.to_untyped(), last_cursor.to_untyped());
+                if let Some(combined_event) = last_combined_event {
+                    webrender_api.scroll(
+                        (combined_event.delta / self.scene.scale).to_untyped(),
+                        (combined_event.cursor.as_f32() / self.scene.scale).to_untyped(),
+                        combined_event.phase);
                 }
             }
             None => {
@@ -1610,6 +1674,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             magnification: magnification,
             delta: Point2D::typed(0.0, 0.0), // TODO: Scroll to keep the center in view?
             cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
+            phase: ScrollEventPhase::Move(true),
         });
         self.composite_if_necessary(CompositingReason::Zoom);
     }
@@ -2009,6 +2074,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::NoCompositingNecessary;
         self.process_pending_scroll_events();
         self.process_animations();
+        self.start_scrolling_bounce_if_necessary();
 
         Ok(rv)
     }
@@ -2212,6 +2278,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             print_tree.end_level();
         } else {
             print_tree.add_item(layer_string);
+        }
+    }
+
+    fn start_scrolling_bounce_if_necessary(&mut self) {
+        if self.scroll_in_progress {
+            return
+        }
+
+        match self.webrender {
+            Some(ref webrender) if webrender.layers_are_bouncing_back() => {}
+            _ => return,
+        }
+
+        if let Some(ref webrender_api) = self.webrender_api {
+            webrender_api.tick_scrolling_bounce_animations()
         }
     }
 }
