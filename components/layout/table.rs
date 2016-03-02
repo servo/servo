@@ -467,7 +467,7 @@ impl Flow for TableFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent_id: StackingContextId,
-                                 contexts: &mut Vec<StackingContext>)
+                                 contexts: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }

@@ -224,7 +224,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     fn collect_stacking_contexts(&mut self,
                                  _parent_id: StackingContextId,
-                                 _: &mut Vec<StackingContext>)
+                                 _: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId;
 
     /// If this is a float, places it. The default implementation does nothing.
@@ -1171,7 +1171,7 @@ impl BaseFlow {
 
     pub fn collect_stacking_contexts_for_children(&mut self,
                                                   parent_id: StackingContextId,
-                                                  contexts: &mut Vec<StackingContext>) {
+                                                  contexts: &mut Vec<Box<StackingContext>>) {
         for kid in self.children.iter_mut() {
             kid.collect_stacking_contexts(parent_id, contexts);
         }

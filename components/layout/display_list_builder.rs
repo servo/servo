@@ -67,8 +67,7 @@ pub struct DisplayListBuildState<'a> {
 }
 
 impl<'a> DisplayListBuildState<'a> {
-    pub fn new(layout_context: &'a LayoutContext,
-               stacking_context_id: StackingContextId)
+    pub fn new(layout_context: &'a LayoutContext, stacking_context_id: StackingContextId)
                -> DisplayListBuildState<'a> {
         DisplayListBuildState {
             layout_context: layout_context,
@@ -287,7 +286,7 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
-                               -> StackingContext;
+                               -> Box<StackingContext>;
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -1277,7 +1276,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
-                               -> StackingContext {
+                               -> Box<StackingContext> {
         let border_box = match mode {
             StackingContextCreationMode::InnerScrollWrapper => {
                 Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
@@ -1411,18 +1410,18 @@ impl FragmentDisplayListBuilding for Fragment {
             _ => StackingContextType::Real,
         };
 
-        StackingContext::new(id,
-                             context_type,
-                             &border_box,
-                             &overflow,
-                             self.effective_z_index(),
-                             filters,
-                             self.style().get_effects().mix_blend_mode,
-                             transform,
-                             perspective,
-                             establishes_3d_context,
-                             scrolls_overflow_area,
-                             layer_info)
+        Box::new(StackingContext::new(id,
+                                      context_type,
+                                      &border_box,
+                                      &overflow,
+                                      self.effective_z_index(),
+                                      filters,
+                                      self.style().get_effects().mix_blend_mode,
+                                      transform,
+                                      perspective,
+                                      establishes_3d_context,
+                                      scrolls_overflow_area,
+                                      layer_info))
     }
 
     fn clipping_region_for_children(&self,
@@ -1600,7 +1599,7 @@ impl FragmentDisplayListBuilding for Fragment {
 pub trait BlockFlowDisplayListBuilding {
     fn collect_stacking_contexts_for_block(&mut self,
                                            parent_id: StackingContextId,
-                                           contexts: &mut Vec<StackingContext>)
+                                           contexts: &mut Vec<Box<StackingContext>>)
                                            -> StackingContextId;
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
@@ -1610,7 +1609,7 @@ pub trait BlockFlowDisplayListBuilding {
 impl BlockFlowDisplayListBuilding for BlockFlow {
     fn collect_stacking_contexts_for_block(&mut self,
                                            parent_id: StackingContextId,
-                                           contexts: &mut Vec<StackingContext>)
+                                           contexts: &mut Vec<Box<StackingContext>>)
                                            -> StackingContextId {
         if !self.fragment.establishes_stacking_context() &&
            !self.establishes_pseudo_stacking_context() {
@@ -1742,7 +1741,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 pub trait InlineFlowDisplayListBuilding {
     fn collect_stacking_contexts_for_inline(&mut self,
                                             parent_id: StackingContextId,
-                                            contexts: &mut Vec<StackingContext>)
+                                            contexts: &mut Vec<Box<StackingContext>>)
                                             -> StackingContextId;
     fn build_display_list_for_inline_fragment_at_index(&mut self,
                                                        state: &mut DisplayListBuildState,
@@ -1753,7 +1752,7 @@ pub trait InlineFlowDisplayListBuilding {
 impl InlineFlowDisplayListBuilding for InlineFlow {
     fn collect_stacking_contexts_for_inline(&mut self,
                                             parent_id: StackingContextId,
-                                            contexts: &mut Vec<StackingContext>)
+                                            contexts: &mut Vec<Box<StackingContext>>)
                                             -> StackingContextId {
         self.base.stacking_context_id = parent_id;
 

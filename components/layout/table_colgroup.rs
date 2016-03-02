@@ -96,7 +96,7 @@ impl Flow for TableColGroupFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent_id: StackingContextId,
-                                 _: &mut Vec<StackingContext>)
+                                 _: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId {
         parent_id
     }
