@@ -5,7 +5,7 @@
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
-use http_loader::{create_http_connector, obtain_response};
+use http_loader::{create_http_connector, obtain_response, read_block, ReadResult};
 use hyper::client::response::Response as HyperResponse;
 use hyper::header::{Accept, CacheControl, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView, Pragma};
@@ -141,9 +141,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // TODO this step
 
     // Step 8
-    if !request.synchronous && !recursive_flag {
-        // TODO run the remaining steps in parallel
-    }
+    // this step is obsoleted by fetch_async
 
     // Step 9
     let mut response = if response.is_none() {
@@ -823,16 +821,33 @@ fn http_network_fetch(request: Rc<Request>,
     let mut response = Response::new();
     match wrapped_response {
         Ok(mut res) => {
-            // is it okay for res.version to be unused?
             response.url = Some(res.response.url.clone());
             response.status = Some(res.response.status);
             response.headers = res.response.headers.clone();
 
-            let mut new_body = vec![];
-            res.response.read_to_end(&mut new_body);
-            let mut body = response.body.lock().unwrap();
-            *body = ResponseBody::Done(new_body);
-            // *response.body.borrow_mut() = ResponseBody::Done(new_body);
+            let res_body = response.body.clone();
+            thread::spawn(move || {
+
+                *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+
+                loop {
+                    match read_block(&mut res.response) {
+                        Ok(ReadResult::Payload(ref mut new_body)) => {
+                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                                (body).append(new_body);
+                            }
+                        },
+                        Ok(ReadResult::EOF) | Err(_) => break
+                    }
+
+                }
+
+                let mut completed_body = res_body.lock().unwrap();
+                if let ResponseBody::Receiving(ref body) = *completed_body {
+                    // TODO cloning seems sub-optimal, but I couldn't figure anything else out
+                    *res_body.lock().unwrap() = ResponseBody::Done((*body).clone());
+                }
+            });
         },
         Err(e) =>
             response.termination_reason = Some(TerminationReason::Fatal)
