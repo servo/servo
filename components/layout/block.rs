@@ -29,8 +29,8 @@
 
 use app_units::{Au, MAX_AU};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{FragmentDisplayListBuilding};
+use display_list_builder::BlockFlowDisplayListBuilding;
+use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{BLOCK_POSITION_IS_STATIC};
@@ -45,7 +45,7 @@ use flow_list::FlowList;
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
 use fragment::{SpecificFragmentInfo};
-use gfx::display_list::{ClippingRegion, DisplayList};
+use gfx::display_list::{ClippingRegion, StackingContext, StackingContextId};
 use gfx_traits::LayerId;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use layout_debug;
@@ -1622,6 +1622,29 @@ impl BlockFlow {
         }
     }
 
+    pub fn establishes_pseudo_stacking_context(&self) -> bool {
+        if self.fragment.establishes_stacking_context() {
+            return false;
+        }
+
+        self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
+        self.fragment.style.get_box().position != position::T::static_ ||
+        self.base.flags.is_float()
+    }
+
+    pub fn has_scrolling_overflow(&self) -> bool {
+        if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            return false;
+        }
+
+        match (self.fragment.style().get_box().overflow_x,
+               self.fragment.style().get_box().overflow_y.0) {
+            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
+            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => true,
+            (_, _) => false,
+        }
+    }
+
     pub fn compute_inline_sizes(&mut self, layout_context: &LayoutContext) {
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
@@ -2084,10 +2107,15 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_for_block(box DisplayList::new(),
-                                          layout_context,
-                                          BorderPaintingMode::Separate);
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.collect_stacking_contexts_for_block(parent_id, contexts)
+    }
+
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
+        self.build_display_list_for_block(state, BorderPaintingMode::Separate);
         self.fragment.restyle_damage.remove(REPAINT);
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();

@@ -17,11 +17,13 @@ use app_units::Au;
 use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use gfx::display_list::{StackingContext, StackingContextId};
 use model::MaybeAuto;
 use std::cmp::{max, min};
 use std::fmt;
@@ -443,8 +445,15 @@ impl Flow for TableWrapperFlow {
         self.block_flow.generated_containing_block_size(flow)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.build_display_list(layout_context)
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
+        self.block_flow.build_display_list(state);
+    }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

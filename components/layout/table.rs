@@ -10,13 +10,13 @@ use app_units::Au;
 use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::Point2D;
 use flow::{BaseFlow, IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, OpaqueFlow};
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::DisplayList;
+use gfx::display_list::{StackingContext, StackingContextId};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
@@ -452,7 +452,7 @@ impl Flow for TableFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         let border_painting_mode = match self.block_flow
                                              .fragment
                                              .style
@@ -462,9 +462,14 @@ impl Flow for TableFlow {
             border_collapse::T::collapse => BorderPaintingMode::Hidden,
         };
 
-        self.block_flow.build_display_list_for_block(box DisplayList::new(),
-                                                     layout_context,
-                                                     border_painting_mode);
+        self.block_flow.build_display_list_for_block(state, border_painting_mode);
+    }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<StackingContext>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
