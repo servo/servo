@@ -18,7 +18,7 @@ use context::LayoutContext;
 use euclid::num::Zero;
 use euclid::{Matrix4, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
-use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
+use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::{SpecificFragmentInfo};
@@ -86,21 +86,15 @@ impl<'a> DisplayListBuildState<'a> {
             });
     }
 
-    fn append_from(&mut self, other_list: &mut Option<Vec<DisplayListEntry>>) {
-        if let Some(mut other) = other_list.take() {
-            self.items.append(&mut other);
-        }
-    }
-
     fn stacking_context_id(&self) -> StackingContextId {
         self.stacking_context_id_stack.last().unwrap().clone()
     }
 
-    fn push_stacking_context_id(&mut self, stacking_context_id: StackingContextId) {
+    pub fn push_stacking_context_id(&mut self, stacking_context_id: StackingContextId) {
         self.stacking_context_id_stack.push(stacking_context_id);
     }
 
-    fn pop_stacking_context_id(&mut self) {
+    pub fn pop_stacking_context_id(&mut self) {
         self.stacking_context_id_stack.pop();
         assert!(!self.stacking_context_id_stack.is_empty());
     }
@@ -1736,11 +1730,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                 clip,
                                 &self.base.stacking_relative_position_of_display_port);
 
-        // Add children.
-        for kid in self.base.children.iter_mut() {
-            state.append_from(&mut flow::mut_base(kid).display_list_building_result);
-        }
-
         self.base.build_display_items_for_debugging_tint(state, self.fragment.node);
     }
 }
@@ -1805,22 +1794,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                     DisplayListSection::Content,
                                     &self.base.clip,
                                     &self.base.stacking_relative_position_of_display_port);
-
-        match fragment.specific {
-            SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                state.append_from(&mut flow::mut_base(block_flow).display_list_building_result)
-            }
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                state.append_from(&mut flow::mut_base(block_flow).display_list_building_result)
-            }
-            SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                state.append_from(&mut flow::mut_base(block_flow).display_list_building_result)
-            }
-            _ => {}
-        }
     }
 
     fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState) {
