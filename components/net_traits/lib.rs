@@ -19,7 +19,6 @@ extern crate ipc_channel;
 extern crate log;
 extern crate msg;
 extern crate serde;
-extern crate stb_image;
 extern crate url;
 extern crate util;
 extern crate websocket;

@@ -18,7 +18,7 @@ doc = false
 bench = false
 
 [dev-dependencies]
-image = "0.5.0"
+image = "0.7"
 
 [dev-dependencies.gfx_tests]
 path = "../../tests/unit/gfx"

@@ -23,10 +23,9 @@ path = "../plugins"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
-image = "0.5.0"
+image = "0.7"
 log = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
-stb_image = "0.2"
 url = {version = "0.5.5", features = ["heap_size"]}
 websocket = "0.15.0"
