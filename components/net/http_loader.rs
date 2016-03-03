@@ -632,7 +632,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         if let Some(pipeline_id) = *pipeline_id {
             send_request_to_devtools(
                 devtools_chan.clone(), request_id.clone().into(),
-                connection_url.clone(), method.clone(), request_headers.clone(),
+                url.clone(), method.clone(), request_headers.clone(),
                 cloned_data, pipeline_id, time::now()
             );
         }
