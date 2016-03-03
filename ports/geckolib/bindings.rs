@@ -28,15 +28,18 @@ pub type intptr_t = int64_t;
 pub type uintptr_t = uint64_t;
 pub type intmax_t = ::libc::c_long;
 pub type uintmax_t = ::libc::c_ulong;
-pub enum RawGeckoNode { }
-pub enum RawGeckoElement { }
-pub enum RawGeckoDocument { }
+pub enum nsINode { }
+pub type RawGeckoNode = nsINode;
+pub enum Element { }
+pub type RawGeckoElement = Element;
+pub enum nsIDocument { }
+pub type RawGeckoDocument = nsIDocument;
 pub enum ServoNodeData { }
 pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
 extern "C" {
     pub fn Gecko_ChildrenCount(node: *mut RawGeckoNode) -> uint32_t;
-    pub fn Gecko_NodeIsElement(node: *mut RawGeckoNode) -> i32;
+    pub fn Gecko_NodeIsElement(node: *mut RawGeckoNode) -> bool;
     pub fn Gecko_GetParentNode(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_GetFirstChild(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
     pub fn Gecko_GetLastChild(node: *mut RawGeckoNode) -> *mut RawGeckoNode;
@@ -56,12 +59,12 @@ extern "C" {
      -> *mut RawGeckoElement;
     pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> uint8_t;
     pub fn Gecko_IsHTMLElementInHTMLDocument(element: *mut RawGeckoElement)
-     -> i32;
-    pub fn Gecko_IsLink(element: *mut RawGeckoElement) -> i32;
-    pub fn Gecko_IsTextNode(node: *mut RawGeckoNode) -> i32;
-    pub fn Gecko_IsVisitedLink(element: *mut RawGeckoElement) -> i32;
-    pub fn Gecko_IsUnvisitedLink(element: *mut RawGeckoElement) -> i32;
-    pub fn Gecko_IsRootElement(element: *mut RawGeckoElement) -> i32;
+     -> bool;
+    pub fn Gecko_IsLink(element: *mut RawGeckoElement) -> bool;
+    pub fn Gecko_IsTextNode(node: *mut RawGeckoNode) -> bool;
+    pub fn Gecko_IsVisitedLink(element: *mut RawGeckoElement) -> bool;
+    pub fn Gecko_IsUnvisitedLink(element: *mut RawGeckoElement) -> bool;
+    pub fn Gecko_IsRootElement(element: *mut RawGeckoElement) -> bool;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
@@ -76,7 +79,7 @@ extern "C" {
                                    set: *mut RawServoStyleSet);
     pub fn Servo_RemoveStyleSheet(sheet: *mut RawServoStyleSheet,
                                   set: *mut RawServoStyleSet);
-    pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> i32;
+    pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
