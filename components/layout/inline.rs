@@ -1680,9 +1680,10 @@ impl Flow for InlineFlow {
                                                       CoordinateSystem::Parent);
             let stacking_relative_content_box =
                 fragment.stacking_relative_content_box(&stacking_relative_border_box);
-            let clip = fragment.clipping_region_for_children(&self.base.clip,
-                                                             &stacking_relative_border_box,
-                                                             false);
+            let mut clip = self.base.clip.clone();
+            fragment.adjust_clipping_region_for_children(&mut clip,
+                                                         &stacking_relative_border_box,
+                                                         false);
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
@@ -1750,7 +1751,7 @@ impl Flow for InlineFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent_id: StackingContextId,
-                                 contexts: &mut Vec<StackingContext>)
+                                 contexts: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId {
         self.collect_stacking_contexts_for_inline(parent_id, contexts)
     }

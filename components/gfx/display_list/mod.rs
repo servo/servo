@@ -21,15 +21,22 @@ use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
 use euclid::rect::TypedRect;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
+use fnv::FnvHasher;
 use gfx_traits::{LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
 use range::Range;
+use serde::de::{self, Deserialize, Deserializer, MapVisitor, Visitor};
+use serde::ser::impls::MapIteratorVisitor;
+use serde::ser::{Serialize, Serializer};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
+use std::hash::{BuildHasherDefault, Hash};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
 use style::computed_values::{pointer_events};
@@ -141,10 +148,75 @@ pub struct StackingContextOffsets {
     pub outlines: u32,
 }
 
+/// A FNV-based hash map. This is not serializable by `serde` by default, so we provide an
+/// implementation ourselves.
+pub struct FnvHashMap<K, V>(pub HashMap<K, V, BuildHasherDefault<FnvHasher>>);
+
+impl<K, V> Deref for FnvHashMap<K, V> {
+    type Target = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<K, V> DerefMut for FnvHashMap<K, V> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<K, V> Serialize for FnvHashMap<K, V> where K: Eq + Hash + Serialize, V: Serialize {
+    #[inline]
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
+        serializer.visit_map(MapIteratorVisitor::new(self.iter(), Some(self.len())))
+    }
+}
+
+impl<K, V> Deserialize for FnvHashMap<K, V> where K: Eq + Hash + Deserialize, V: Deserialize {
+    #[inline]
+    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error> where D: Deserializer {
+        deserializer.visit_map(FnvHashMapVisitor::new())
+    }
+}
+/// A visitor that produces a map.
+pub struct FnvHashMapVisitor<K, V> {
+    marker: PhantomData<FnvHashMap<K, V>>,
+}
+
+impl<K, V> FnvHashMapVisitor<K, V> {
+    /// Construct a `FnvHashMapVisitor<T>`.
+    pub fn new() -> Self {
+        FnvHashMapVisitor {
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<K, V> Visitor for FnvHashMapVisitor<K, V> where K: Eq + Hash + Deserialize, V: Deserialize {
+    type Value = FnvHashMap<K, V>;
+
+    #[inline]
+    fn visit_unit<E>(&mut self) -> Result<FnvHashMap<K, V>, E> where E: de::Error {
+        Ok(FnvHashMap(HashMap::with_hasher(Default::default())))
+    }
+
+    #[inline]
+    fn visit_map<Visitor>(&mut self, mut visitor: Visitor)
+                          -> Result<FnvHashMap<K, V>, Visitor::Error>
+                          where Visitor: MapVisitor {
+        let mut values = FnvHashMap(HashMap::with_hasher(Default::default()));
+        while let Some((key, value)) = try!(visitor.visit()) {
+            HashMap::insert(&mut values, key, value);
+        }
+        try!(visitor.end());
+        Ok(values)
+    }
+}
+
 #[derive(HeapSizeOf, Deserialize, Serialize)]
 pub struct DisplayList {
     pub list: Vec<DisplayListEntry>,
-    pub offsets: HashMap<StackingContextId, StackingContextOffsets>,
+    pub offsets: FnvHashMap<StackingContextId, StackingContextOffsets>,
     pub root_stacking_context: StackingContext,
 }
 
@@ -157,7 +229,7 @@ impl DisplayList {
             None => panic!("Tried to create empty display list."),
         };
 
-        let mut offsets = HashMap::new();
+        let mut offsets = FnvHashMap(HashMap::with_hasher(Default::default()));
         DisplayList::sort_and_count_stacking_contexts(&mut root_stacking_context, &mut offsets, 0);
 
         let mut display_list = DisplayList {
@@ -201,7 +273,9 @@ impl DisplayList {
 
     fn sort_and_count_stacking_contexts(
             stacking_context: &mut StackingContext,
-            offsets: &mut HashMap<StackingContextId, StackingContextOffsets>,
+            offsets: &mut HashMap<StackingContextId,
+                                  StackingContextOffsets,
+                                  BuildHasherDefault<FnvHasher>>,
             mut current_offset: u32)
             -> u32 {
         stacking_context.children.sort();
@@ -508,7 +582,7 @@ pub struct StackingContext {
     pub layer_info: Option<LayerInfo>,
 
     /// Children of this StackingContext.
-    pub children: Vec<StackingContext>,
+    pub children: Vec<Box<StackingContext>>,
 }
 
 impl StackingContext {
@@ -761,16 +835,13 @@ impl ClippingRegion {
         }
     }
 
-    /// Returns the intersection of this clipping region and the given rectangle.
+    /// Mutates this clipping region to intersect with the given rectangle.
     ///
     /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
     /// complexity.
     #[inline]
-    pub fn intersect_rect(self, rect: &Rect<Au>) -> ClippingRegion {
-        ClippingRegion {
-            main: self.main.intersection(rect).unwrap_or(Rect::zero()),
-            complex: self.complex,
-        }
+    pub fn intersect_rect(&mut self, rect: &Rect<Au>) {
+        self.main = self.main.intersection(rect).unwrap_or(Rect::zero())
     }
 
     /// Returns true if this clipping region might be nonempty. This can return false positives,

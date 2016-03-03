@@ -64,7 +64,6 @@ use style::properties::ComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
-use util::opts;
 use util::print_tree::PrintTree;
 
 /// Information specific to floated blocks.
@@ -1622,14 +1621,18 @@ impl BlockFlow {
         }
     }
 
-    pub fn establishes_pseudo_stacking_context(&self) -> bool {
+    pub fn block_stacking_context_type(&self) -> BlockStackingContextType {
         if self.fragment.establishes_stacking_context() {
-            return false;
+            return BlockStackingContextType::StackingContext
         }
 
-        self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-        self.fragment.style.get_box().position != position::T::static_ ||
-        self.base.flags.is_float()
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
+                self.fragment.style.get_box().position != position::T::static_ ||
+                self.base.flags.is_float() {
+            BlockStackingContextType::PseudoStackingContext
+        } else {
+            BlockStackingContextType::NonstackingContext
+        }
     }
 
     pub fn has_scrolling_overflow(&self) -> bool {
@@ -1954,8 +1957,10 @@ impl Flow for BlockFlow {
             self.base.position.size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
+        //
+        // `clip` is in the child coordinate system.
+        let mut clip;
         let origin_for_children;
-        let clip_in_child_coordinate_system;
         let is_stacking_context = self.fragment.establishes_stacking_context();
         if is_stacking_context {
             // We establish a stacking context, so the position of our children is vertically
@@ -1966,12 +1971,11 @@ impl Flow for BlockFlow {
             // FIXME(pcwalton): Is this vertical-writing-direction-safe?
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
             origin_for_children = Point2D::new(-margin.left, Au(0));
-            clip_in_child_coordinate_system =
-                self.base.clip.translate(&-self.base.stacking_relative_position);
+            clip = self.base.clip.translate(&-self.base.stacking_relative_position);
         } else {
             let relative_offset = relative_offset.to_physical(self.base.writing_mode);
             origin_for_children = self.base.stacking_relative_position + relative_offset;
-            clip_in_child_coordinate_system = self.base.clip.clone();
+            clip = self.base.clip.clone();
         }
 
         let stacking_relative_position_of_display_port_for_children =
@@ -2003,8 +2007,8 @@ impl Flow for BlockFlow {
                                                   .early_absolute_position_info
                                                   .relative_containing_block_mode,
                                               CoordinateSystem::Own);
-        let clip = self.fragment.clipping_region_for_children(
-            &clip_in_child_coordinate_system,
+        self.fragment.adjust_clipping_region_for_children(
+            &mut clip,
             &stacking_relative_border_box,
             self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
 
@@ -2109,7 +2113,7 @@ impl Flow for BlockFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent_id: StackingContextId,
-                                 contexts: &mut Vec<StackingContext>)
+                                 contexts: &mut Vec<Box<StackingContext>>)
                                  -> StackingContextId {
         self.collect_stacking_contexts_for_block(parent_id, contexts)
     }
@@ -2117,9 +2121,6 @@ impl Flow for BlockFlow {
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
         self.fragment.restyle_damage.remove(REPAINT);
-        if opts::get().validate_display_list_geometry {
-            self.base.validate_display_list_geometry();
-        }
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
@@ -3036,3 +3037,12 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
+
+/// A stacking context, a pseudo-stacking context, or a non-stacking context.
+#[derive(Copy, Clone, PartialEq)]
+pub enum BlockStackingContextType {
+    NonstackingContext,
+    PseudoStackingContext,
+    StackingContext,
+}
+

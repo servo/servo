@@ -12,13 +12,13 @@
 
 use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
-use block::BlockFlow;
+use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasMsg, CanvasPixelData, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::num::Zero;
 use euclid::{Matrix4, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
-use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
+use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::{SpecificFragmentInfo};
@@ -67,8 +67,7 @@ pub struct DisplayListBuildState<'a> {
 }
 
 impl<'a> DisplayListBuildState<'a> {
-    pub fn new(layout_context: &'a LayoutContext,
-               stacking_context_id: StackingContextId)
+    pub fn new(layout_context: &'a LayoutContext, stacking_context_id: StackingContextId)
                -> DisplayListBuildState<'a> {
         DisplayListBuildState {
             layout_context: layout_context,
@@ -87,21 +86,15 @@ impl<'a> DisplayListBuildState<'a> {
             });
     }
 
-    fn append_from(&mut self, other_list: &mut Option<Vec<DisplayListEntry>>) {
-        if let Some(mut other) = other_list.take() {
-            self.items.append(&mut other);
-        }
-    }
-
     fn stacking_context_id(&self) -> StackingContextId {
         self.stacking_context_id_stack.last().unwrap().clone()
     }
 
-    fn push_stacking_context_id(&mut self, stacking_context_id: StackingContextId) {
+    pub fn push_stacking_context_id(&mut self, stacking_context_id: StackingContextId) {
         self.stacking_context_id_stack.push(stacking_context_id);
     }
 
-    fn pop_stacking_context_id(&mut self) {
+    pub fn pop_stacking_context_id(&mut self) {
         self.stacking_context_id_stack.pop();
         assert!(!self.stacking_context_id_stack.is_empty());
     }
@@ -232,19 +225,17 @@ pub trait FragmentDisplayListBuilding {
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>);
 
-    /// Returns the appropriate clipping region for descendants of this fragment.
-    fn clipping_region_for_children(&self,
-                                    current_clip: &ClippingRegion,
-                                    stacking_relative_border_box: &Rect<Au>,
-                                    is_absolutely_positioned: bool)
-                                    -> ClippingRegion;
+    /// Adjusts the clipping region for descendants of this fragment as appropriate.
+    fn adjust_clipping_region_for_children(&self,
+                                           current_clip: &mut ClippingRegion,
+                                           stacking_relative_border_box: &Rect<Au>,
+                                           is_absolutely_positioned: bool);
 
-    /// Calculates the clipping rectangle for a fragment, taking the `clip` property into account
+    /// Adjusts the clipping rectangle for a fragment to take the `clip` property into account
     /// per CSS 2.1 § 11.1.2.
-    fn calculate_style_specified_clip(&self,
-                                      parent_clip: &ClippingRegion,
-                                      stacking_relative_border_box: &Rect<Au>)
-                                      -> ClippingRegion;
+    fn adjust_clip_for_style(&self,
+                             parent_clip: &mut ClippingRegion,
+                             stacking_relative_border_box: &Rect<Au>);
 
     /// Builds the display items necessary to paint the selection and/or caret for this fragment,
     /// if any.
@@ -287,7 +278,7 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
-                               -> StackingContext;
+                               -> Box<StackingContext>;
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -482,7 +473,8 @@ impl FragmentDisplayListBuilding for Fragment {
             // Clip.
             //
             // TODO: Check the bounds to see if a clip item is actually required.
-            let clip = clip.clone().intersect_rect(&bounds);
+            let mut clip = clip.clone();
+            clip.intersect_rect(&bounds);
 
             // Background image should be positioned on the padding box basis.
             let border = style.logical_border_width().to_physical(style.writing_mode);
@@ -581,7 +573,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                          clip: &ClippingRegion,
                                                          gradient: &LinearGradient,
                                                          style: &ComputedValues) {
-        let clip = clip.clone().intersect_rect(absolute_bounds);
+        let mut clip = clip.clone();
+        clip.intersect_rect(absolute_bounds);
 
         // This is the distance between the center and the ending point; i.e. half of the distance
         // between the starting point and the ending point.
@@ -894,15 +887,14 @@ impl FragmentDisplayListBuilding for Fragment {
         }), DisplayListSection::Content);
     }
 
-    fn calculate_style_specified_clip(&self,
-                                      parent_clip: &ClippingRegion,
-                                      stacking_relative_border_box: &Rect<Au>)
-                                      -> ClippingRegion {
+    fn adjust_clip_for_style(&self,
+                             parent_clip: &mut ClippingRegion,
+                             stacking_relative_border_box: &Rect<Au>) {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match (self.style().get_box().position,
                                      self.style().get_effects().clip.0) {
             (position::T::absolute, Some(style_clip_rect)) => style_clip_rect,
-            _ => return (*parent_clip).clone(),
+            _ => return,
         };
 
         // FIXME(pcwalton, #2795): Get the real container size.
@@ -911,7 +903,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let right = style_clip_rect.right.unwrap_or(stacking_relative_border_box.size.width);
         let bottom = style_clip_rect.bottom.unwrap_or(stacking_relative_border_box.size.height);
         let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
-        (*parent_clip).clone().intersect_rect(&Rect::new(clip_origin, clip_size))
+        parent_clip.intersect_rect(&Rect::new(clip_origin, clip_size))
     }
 
     fn build_display_items_for_selection_if_necessary(&self,
@@ -996,7 +988,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Calculate the clip rect. If there's nothing to render at all, don't even construct
         // display list items.
-        let clip = self.calculate_style_specified_clip(clip, &stacking_relative_border_box);
+        let mut clip = (*clip).clone();
+        self.adjust_clip_for_style(&mut clip, &stacking_relative_border_box);
         if !clip.might_intersect_rect(&stacking_relative_border_box) {
             return;
         }
@@ -1277,7 +1270,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
-                               -> StackingContext {
+                               -> Box<StackingContext> {
         let border_box = match mode {
             StackingContextCreationMode::InnerScrollWrapper => {
                 Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
@@ -1411,33 +1404,31 @@ impl FragmentDisplayListBuilding for Fragment {
             _ => StackingContextType::Real,
         };
 
-        StackingContext::new(id,
-                             context_type,
-                             &border_box,
-                             &overflow,
-                             self.effective_z_index(),
-                             filters,
-                             self.style().get_effects().mix_blend_mode,
-                             transform,
-                             perspective,
-                             establishes_3d_context,
-                             scrolls_overflow_area,
-                             layer_info)
+        Box::new(StackingContext::new(id,
+                                      context_type,
+                                      &border_box,
+                                      &overflow,
+                                      self.effective_z_index(),
+                                      filters,
+                                      self.style().get_effects().mix_blend_mode,
+                                      transform,
+                                      perspective,
+                                      establishes_3d_context,
+                                      scrolls_overflow_area,
+                                      layer_info))
     }
 
-    fn clipping_region_for_children(&self,
-                                    current_clip: &ClippingRegion,
-                                    stacking_relative_border_box: &Rect<Au>,
-                                    is_absolutely_positioned: bool)
-                                    -> ClippingRegion {
+    fn adjust_clipping_region_for_children(&self,
+                                           current_clip: &mut ClippingRegion,
+                                           stacking_relative_border_box: &Rect<Au>,
+                                           is_absolutely_positioned: bool) {
         // Don't clip if we're text.
         if self.is_scanned_text_fragment() {
-            return (*current_clip).clone()
+            return
         }
 
         // Account for style-specified `clip`.
-        let mut current_clip = self.calculate_style_specified_clip(current_clip,
-                                                                   stacking_relative_border_box);
+        self.adjust_clip_for_style(current_clip, stacking_relative_border_box);
 
         // Clip according to the values of `overflow-x` and `overflow-y`.
         //
@@ -1453,7 +1444,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
                 bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
                 bounds.size.width = max_x - bounds.origin.x;
-                current_clip = current_clip.intersect_rect(&bounds)
+                current_clip.intersect_rect(&bounds)
             }
             _ => {}
         }
@@ -1465,12 +1456,10 @@ impl FragmentDisplayListBuilding for Fragment {
                 let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
                 bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
                 bounds.size.height = max_y - bounds.origin.y;
-                current_clip = current_clip.intersect_rect(&bounds)
+                current_clip.intersect_rect(&bounds)
             }
             _ => {}
         }
-
-        current_clip
     }
 
     fn build_display_list_for_text_fragment(&self,
@@ -1600,7 +1589,7 @@ impl FragmentDisplayListBuilding for Fragment {
 pub trait BlockFlowDisplayListBuilding {
     fn collect_stacking_contexts_for_block(&mut self,
                                            parent_id: StackingContextId,
-                                           contexts: &mut Vec<StackingContext>)
+                                           contexts: &mut Vec<Box<StackingContext>>)
                                            -> StackingContextId;
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
@@ -1610,10 +1599,10 @@ pub trait BlockFlowDisplayListBuilding {
 impl BlockFlowDisplayListBuilding for BlockFlow {
     fn collect_stacking_contexts_for_block(&mut self,
                                            parent_id: StackingContextId,
-                                           contexts: &mut Vec<StackingContext>)
+                                           contexts: &mut Vec<Box<StackingContext>>)
                                            -> StackingContextId {
-        if !self.fragment.establishes_stacking_context() &&
-           !self.establishes_pseudo_stacking_context() {
+        let block_stacking_context_type = self.block_stacking_context_type();
+        if block_stacking_context_type == BlockStackingContextType::NonstackingContext {
             self.base.stacking_context_id = parent_id;
             self.base.collect_stacking_contexts_for_children(parent_id, contexts);
             return parent_id;
@@ -1625,8 +1614,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.stacking_context_id = stacking_context_id;
 
         let inner_stacking_context_id = if self.has_scrolling_overflow() {
-            StackingContextId::new_of_type(self.base.flow_id(),
-                                           self.fragment.fragment_type())
+            StackingContextId::new_of_type(self.base.flow_id(), self.fragment.fragment_type())
         } else {
             stacking_context_id
         };
@@ -1635,7 +1623,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.collect_stacking_contexts_for_children(inner_stacking_context_id,
                                                          &mut child_contexts);
 
-        if self.establishes_pseudo_stacking_context() {
+        if block_stacking_context_type == BlockStackingContextType::PseudoStackingContext {
             let creation_mode = if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                                    self.fragment.style.get_box().position != position::T::static_ {
                 StackingContextCreationMode::PseudoPositioned
@@ -1644,18 +1632,24 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 StackingContextCreationMode::PseudoFloat
             };
 
-            let mut stacking_context =
-                    self.fragment.create_stacking_context(stacking_context_id,
-                                                          &self.base,
-                                                          ScrollPolicy::Scrollable,
-                                                          creation_mode);
-            let (mut floating, mut positioned) = child_contexts.into_iter().partition(|context| {
-                context.context_type == StackingContextType::PseudoFloat
-            });
+            let stacking_context_index = contexts.len();
+            contexts.push(self.fragment.create_stacking_context(stacking_context_id,
+                                                                &self.base,
+                                                                ScrollPolicy::Scrollable,
+                                                                creation_mode));
 
-            stacking_context.children.append(&mut floating);
-            contexts.push(stacking_context);
-            contexts.append(&mut positioned);
+            let mut floating = vec![];
+            for child_context in child_contexts.into_iter() {
+                if child_context.context_type == StackingContextType::PseudoFloat {
+                    // Floating.
+                    floating.push(child_context)
+                } else {
+                    // Positioned.
+                    contexts.push(child_context)
+                }
+            }
+
+            contexts[stacking_context_index].children = floating;
             return stacking_context_id;
         }
 
@@ -1671,7 +1665,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::InnerScrollWrapper);
-            inner_stacking_context.children.append(&mut child_contexts);
+            inner_stacking_context.children = child_contexts;
 
             let mut outer_stacking_context = self.fragment.create_stacking_context(
                 stacking_context_id,
@@ -1686,7 +1680,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::Normal);
-            stacking_context.children.append(&mut child_contexts);
+            stacking_context.children = child_contexts;
             stacking_context
         };
 
@@ -1697,10 +1691,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
                                     border_painting_mode: BorderPaintingMode) {
+        let establishes_stacking_context = self.fragment.establishes_stacking_context();
         let background_border_section = if self.base.flags.is_float() {
             DisplayListSection::BackgroundAndBorders
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            if self.fragment.establishes_stacking_context() {
+            if establishes_stacking_context {
                 DisplayListSection::BackgroundAndBorders
             } else {
                 DisplayListSection::BlockBackgroundsAndBorders
@@ -1710,10 +1705,14 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         // Add the box that starts the block context.
-        let clip = if self.fragment.establishes_stacking_context() {
-            self.base.clip.translate(&-self.base.stacking_relative_position)
+        let translated_clip = if establishes_stacking_context {
+            Some(self.base.clip.translate(&-self.base.stacking_relative_position))
         } else {
-            self.base.clip.clone()
+            None
+        };
+        let clip = match translated_clip {
+            Some(ref translated_clip) => translated_clip,
+            None => &self.base.clip,
         };
 
         self.fragment
@@ -1727,13 +1726,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     .relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_section,
-                                &clip,
+                                clip,
                                 &self.base.stacking_relative_position_of_display_port);
-
-        // Add children.
-        for kid in self.base.children.iter_mut() {
-            state.append_from(&mut flow::mut_base(kid).display_list_building_result);
-        }
 
         self.base.build_display_items_for_debugging_tint(state, self.fragment.node);
     }
@@ -1742,7 +1736,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 pub trait InlineFlowDisplayListBuilding {
     fn collect_stacking_contexts_for_inline(&mut self,
                                             parent_id: StackingContextId,
-                                            contexts: &mut Vec<StackingContext>)
+                                            contexts: &mut Vec<Box<StackingContext>>)
                                             -> StackingContextId;
     fn build_display_list_for_inline_fragment_at_index(&mut self,
                                                        state: &mut DisplayListBuildState,
@@ -1753,7 +1747,7 @@ pub trait InlineFlowDisplayListBuilding {
 impl InlineFlowDisplayListBuilding for InlineFlow {
     fn collect_stacking_contexts_for_inline(&mut self,
                                             parent_id: StackingContextId,
-                                            contexts: &mut Vec<StackingContext>)
+                                            contexts: &mut Vec<Box<StackingContext>>)
                                             -> StackingContextId {
         self.base.stacking_context_id = parent_id;
 
@@ -1799,22 +1793,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                     DisplayListSection::Content,
                                     &self.base.clip,
                                     &self.base.stacking_relative_position_of_display_port);
-
-        match fragment.specific {
-            SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                state.append_from(&mut flow::mut_base(block_flow).display_list_building_result)
-            }
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                state.append_from(&mut flow::mut_base(block_flow).display_list_building_result)
-            }
-            SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                state.append_from(&mut flow::mut_base(block_flow).display_list_building_result)
-            }
-            _ => {}
-        }
     }
 
     fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState) {
@@ -1846,10 +1824,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         if !self.fragments.fragments.is_empty() {
             self.base.build_display_items_for_debugging_tint(state,
                                                              self.fragments.fragments[0].node);
-        }
-
-        if opts::get().validate_display_list_geometry {
-            self.base.validate_display_list_geometry();
         }
     }
 }

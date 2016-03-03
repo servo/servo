@@ -163,9 +163,6 @@ pub struct Opts {
     /// Emits notifications when there is a relayout.
     pub relayout_event: bool,
 
-    /// Whether to show an error when display list geometry escapes flow overflow regions.
-    pub validate_display_list_geometry: bool,
-
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
 
@@ -254,9 +251,6 @@ pub struct DebugOptions {
     /// Write layout trace to an external file for debugging.
     pub trace_layout: bool,
 
-    /// Display an error when display list geometry escapes overflow region.
-    pub validate_display_list_geometry: bool,
-
     /// Disable the style sharing cache.
     pub disable_share_style_cache: bool,
 
@@ -308,7 +302,6 @@ impl DebugOptions {
                 "show-parallel-layout" => debug_options.show_parallel_layout = true,
                 "paint-flashing" => debug_options.paint_flashing = true,
                 "trace-layout" => debug_options.trace_layout = true,
-                "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
                 "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
                 "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
@@ -351,8 +344,6 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("show-parallel-layout", "Mark which thread laid each flow out with colors.");
     print_option("paint-flashing", "Overlay repainted areas with a random color.");
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
-    print_option("validate-display-list-geometry",
-                 "Display an error when display list geometry escapes overflow region.");
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
     print_option("parallel-display-list-building", "Build display lists in parallel.");
@@ -486,7 +477,6 @@ pub fn default_opts() -> Opts {
         dump_display_list_optimized: false,
         dump_layer_tree: false,
         relayout_event: false,
-        validate_display_list_geometry: false,
         profile_script_events: false,
         profile_heartbeats: false,
         disable_share_style_cache: false,
@@ -727,7 +717,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_display_list_optimized: debug_options.dump_display_list_optimized,
         dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
-        validate_display_list_geometry: debug_options.validate_display_list_geometry,
         disable_share_style_cache: debug_options.disable_share_style_cache,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
