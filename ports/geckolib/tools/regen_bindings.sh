@@ -30,4 +30,4 @@ fi
 # library in DYLD_LIBRARY_PATH.
 #
 # /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
-./rust-bindgen/target/debug/bindgen -I$DIST_INCLUDE -o ../bindings.rs $DIST_INCLUDE/mozilla/ServoBindings.h
+./rust-bindgen/target/debug/bindgen -x c++ -std=gnu++0x -I$DIST_INCLUDE -o ../bindings.rs $DIST_INCLUDE/mozilla/ServoBindings.h
