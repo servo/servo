@@ -36,8 +36,9 @@ use util::thread::spawn_named;
 pub fn fetch_async(request: Request, listener: Box<AsyncFetchListener + Send>) {
     spawn_named(format!("fetch for {:?}", request.current_url_string()), move || {
         let request = Rc::new(request);
-        let res = fetch(request);
-        listener.response_available(res);
+        let fetch_response = fetch(request);
+        fetch_response.wait_until_done();
+        listener.response_available(fetch_response);
     })
 }
 
@@ -236,7 +237,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         // if !response.is_network_error() {
 
         //     // Substep 1
-        //     // TODO wait for response
+        //     response.wait_until_done();
 
         //     // Substep 2
         //     if response.termination_reason.is_none() {
@@ -248,7 +249,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 16
     if request.synchronous {
-        // TODO wait for internal_response
+        response.get_actual_response().wait_until_done();
         return response;
     }
 
@@ -269,13 +270,17 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             response.get_actual_response()
         };
 
-        // TODO these steps
         // Step 18
+        // TODO this step
+
         // Step 19
+        internal_response.wait_until_done();
+
         // Step 20
+        // TODO this step
     }
 
-    // TODO remove this line when asynchronous fetches are supported
+    // TODO remove this line when only asynchronous fetches are used
     return response;
 }
 
@@ -828,6 +833,7 @@ fn http_network_fetch(request: Rc<Request>,
             let res_body = response.body.clone();
             thread::spawn(move || {
 
+                *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
                 let mut new_body = vec![];
                 res.response.read_to_end(&mut new_body);
                 *res_body.lock().unwrap() = ResponseBody::Done(new_body);

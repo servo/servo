@@ -116,6 +116,16 @@ impl Response {
         }
     }
 
+    pub fn wait_until_done(&self) {
+        match *self.body.lock().unwrap() {
+            ResponseBody::Empty | ResponseBody::Done(_) => {},
+            _ => {
+                while !self.body.lock().unwrap().is_done() {
+                }
+            }
+        }
+    }
+
     pub fn get_actual_response(&self) -> &Response {
         if self.return_internal.get() && self.internal_response.is_some() {
             &**self.internal_response.as_ref().unwrap()
@@ -191,7 +201,6 @@ impl Response {
                 response.status = None;
                 let mut body = response.body.lock().unwrap();
                 *body = ResponseBody::Empty;
-                // response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
@@ -200,7 +209,6 @@ impl Response {
                 response.status = None;
                 let mut body = response.body.lock().unwrap();
                 *body = ResponseBody::Empty;
-                // response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             }
         }
