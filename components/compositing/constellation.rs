@@ -9,6 +9,7 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptThread`,
 //! `LayoutThread`, and `PaintThread`.
 
+use AnimationTickType;
 use CompositorMsg as FromCompositorMsg;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
@@ -585,8 +586,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got window resize message");
                 self.handle_resized_window_msg(new_size);
             }
-            Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id)) => {
-                self.handle_tick_animation(pipeline_id)
+            Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id, tick_type)) => {
+                self.handle_tick_animation(pipeline_id, tick_type)
             }
             Request::Compositor(FromCompositorMsg::WebDriverCommand(command)) => {
                 debug!("constellation got webdriver command message");
@@ -912,12 +913,22 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                                                                                animation_state))
     }
 
-    fn handle_tick_animation(&mut self, pipeline_id: PipelineId) {
-        self.pipeline(pipeline_id)
-            .layout_chan
-            .0
-            .send(LayoutControlMsg::TickAnimations)
-            .unwrap();
+    fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
+        match tick_type {
+            AnimationTickType::Script => {
+                self.pipeline(pipeline_id)
+                    .script_chan
+                    .send(ConstellationControlMsg::TickAllAnimations(pipeline_id))
+                    .unwrap();
+            }
+            AnimationTickType::Layout => {
+                self.pipeline(pipeline_id)
+                    .layout_chan
+                    .0
+                    .send(LayoutControlMsg::TickAnimations)
+                    .unwrap();
+            }
+        }
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use AnimationTickType;
 use CompositorMsg as ConstellationMsg;
 use compositor_thread::{CompositorEventListener, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg};
@@ -98,7 +99,7 @@ impl CompositorEventListener for NullCompositor {
                     AnimationState::NoAnimationsPresent |
                     AnimationState::NoAnimationCallbacksPresent => {}
                     AnimationState::AnimationCallbacksPresent => {
-                        let msg = ConstellationMsg::TickAnimation(pipeline_id);
+                        let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
                         self.constellation_chan.send(msg).unwrap()
                     }
                 }
