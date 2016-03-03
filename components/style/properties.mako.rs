@@ -5704,9 +5704,10 @@ mod property_bit_field {
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
+
 // TODO: Because normal & important are stored in seperate lists, it is impossible to know their
 // exact declaration order. They should be changed into one list, adding an important/normal
-// flag to PropertyDeclaration
+// flag to PropertyDeclaration.
 
 #[derive(Debug, PartialEq, HeapSizeOf)]
 pub struct PropertyDeclarationBlock {
@@ -5723,16 +5724,13 @@ impl PropertyDeclarationBlock {
         let mut result_list = String::new();
 
         // Step 2
-        let mut already_serialized = HashSet::new();
+        let mut already_serialized = Vec::new();
 
         // Step 3
         // restore order of declarations since PropertyDeclarationBlock is stored in reverse order
-        let declarations = self.normal.iter().rev().chain(self.important.iter().rev()).collect::<Vec<_>>();
-
-
-        for declaration in &declarations {
+        for declaration in self.important.iter().chain(self.normal.iter()).rev() {
             // Step 3.1
-            let property = declaration.name().to_string();
+            let property = declaration.name();
 
             // Step 3.2
             if already_serialized.contains(&property) {
@@ -5740,13 +5738,12 @@ impl PropertyDeclarationBlock {
             }
 
             // Step 3.3
-            let mut shorthands = Vec::from(declaration.shorthands());
-            if shorthands.len() > 0 {
-                shorthands.sort_by(|a,b| a.longhands().len().cmp(&b.longhands().len()));
+            let shorthands = declaration.shorthands();
+            if !shorthands.is_empty() {
 
                 // Step 3.3.1
-                let mut longhands = declarations.iter().cloned()
-                .filter(|d| !already_serialized.contains(&d.name().to_string()))
+                let mut longhands = self.important.iter().chain(self.normal.iter()).rev()
+                    .filter(|d| !already_serialized.contains(&d.name()))
                     .collect::<Vec<_>>();
 
                 // Step 3.3.2
@@ -5770,7 +5767,7 @@ impl PropertyDeclarationBlock {
                     }
 
                     // Substep 1
-                    if current_longhands.len() == 0 || missing_properties.len() > 0 {
+                    if current_longhands.is_empty() || !missing_properties.is_empty() {
                         continue;
                     }
 
@@ -5798,7 +5795,7 @@ impl PropertyDeclarationBlock {
 
                     for current_longhand in current_longhands {
                         // Substep 9
-                        already_serialized.insert(current_longhand.name().to_string());
+                        already_serialized.push(current_longhand.name());
                         let index_to_remove = longhands.iter().position(|l| l == &current_longhand);
                         if let Some(index) = index_to_remove {
                             // Substep 10
@@ -5822,7 +5819,7 @@ impl PropertyDeclarationBlock {
             result_list.push_str(&format!("{}: {}; ", &property, value));
 
             // Step 3.3.8
-            already_serialized.insert(property);
+            already_serialized.push(property);
         }
 
         result_list.pop(); // remove trailling whitespace
