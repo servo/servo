@@ -838,7 +838,7 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
         let cookie = Cookie::new_wrapped(
             cookie_pair,
             &cookie_url,
-            CookieSource::NonHTTP
+            CookieSource::HTTP
         ).unwrap();
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
