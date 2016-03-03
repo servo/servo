@@ -22,7 +22,6 @@ use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
-use util::resource_files::set_resources_path;
 use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
 
 /*
@@ -41,10 +40,6 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         None => return,
     };
     let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
-
-    // FIXME(bholley): Don't hardcode resources path. We may want to use Gecko's UA stylesheets
-    // anyway.
-    set_resources_path(Some("/files/mozilla/stylo/servo/resources/".to_owned()));
 
     let _needs_dirtying = data.stylist.update(&data.stylesheets, data.stylesheets_changed);
     data.stylesheets_changed = false;

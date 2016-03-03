@@ -19,7 +19,7 @@ pub trait SelectorImplExt : SelectorImpl + Sized {
 
     fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>];
 
-    fn get_quirks_mode_stylesheet() -> &'static Stylesheet<Self>;
+    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet<Self>>;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
@@ -135,7 +135,7 @@ impl SelectorImplExt for ServoSelectorImpl {
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> &'static Stylesheet<Self> {
-        &*QUIRKS_MODE_STYLESHEET
+    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet<Self>> {
+        Some(&*QUIRKS_MODE_STYLESHEET)
     }
 }
