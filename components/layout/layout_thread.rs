@@ -22,7 +22,7 @@ use euclid::size::Size2D;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo};
+use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
 use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
@@ -113,6 +113,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
+
+    /// A queued response for the node at a given point
+    pub hit_test_response: (Option<DisplayItemMetadata>, bool),
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: Option<String>,
@@ -458,6 +461,7 @@ impl LayoutThread {
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
+                    hit_test_response: (None, false),
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
@@ -977,6 +981,9 @@ impl LayoutThread {
                     ReflowQueryType::ContentBoxesQuery(_) => {
                         rw_data.content_boxes_response = Vec::new();
                     },
+                    ReflowQueryType::HitTestQuery(_, _) => {
+                        rw_data.hit_test_response = (None, false);
+                    },
                     ReflowQueryType::NodeGeometryQuery(_) => {
                         rw_data.client_rect_response = Rect::zero();
                     },
@@ -1118,6 +1125,18 @@ impl LayoutThread {
                 ReflowQueryType::ContentBoxesQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow);
+                },
+                ReflowQueryType::HitTestQuery(point, update_cursor) => {
+                    let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+                    let result = match rw_data.display_list {
+                        None => panic!("Tried to hit test with no display list"),
+                        Some(ref dl) => dl.hit_test(point),
+                    };
+                    rw_data.hit_test_response = if result.len() > 0 {
+                        (Some(result[0]), update_cursor)
+                    } else {
+                        (None, update_cursor)
+                    };
                 },
                 ReflowQueryType::NodeGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

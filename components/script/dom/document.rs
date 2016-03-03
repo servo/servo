@@ -80,7 +80,6 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::HitTestResponse;
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
@@ -93,7 +92,7 @@ use num::ToPrimitive;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
-use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{TouchEventType, TouchId};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -563,17 +562,6 @@ impl Document {
                 .map(Root::upcast)
     }
 
-    pub fn hit_test(&self, page_point: &Point2D<f32>, update_cursor: bool) -> Option<UntrustedNodeAddress> {
-        assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().hit_test(*page_point, update_cursor) {
-            Ok(HitTestResponse(node_address)) => Some(node_address),
-            Err(()) => {
-                debug!("layout query error");
-                None
-            }
-        }
-    }
-
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         match state {
@@ -685,7 +673,7 @@ impl Document {
 
         let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                                       client_point.y + self.window.PageYOffset() as f32);
-        let node = match self.hit_test(&page_point, false) {
+        let node = match self.window.hit_test_query(page_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -814,7 +802,7 @@ impl Document {
 
         let client_point = client_point.unwrap();
 
-        let maybe_new_target = self.hit_test(&page_point, true).and_then(|address| {
+        let maybe_new_target = self.window.hit_test_query(page_point, true).and_then(|address| {
             let node = node::from_untrusted_node_address(js_runtime, address);
             node.inclusive_ancestors()
                 .filter_map(Root::downcast::<Element>)
@@ -908,7 +896,7 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = match self.hit_test(&point, false) {
+        let node = match self.window.hit_test_query(point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false,
         };
@@ -2575,7 +2563,7 @@ impl DocumentMethods for Document {
 
         let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
-        match self.hit_test(point, false)  {
+        match self.window.hit_test_query(*point, false) {
             Some(untrusted_node_address) => {
                 let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
                 let parent_node = node.GetParentNode().unwrap();
