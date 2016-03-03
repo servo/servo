@@ -127,8 +127,8 @@ pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheetHasRules(raw_sheet: *mut RawServoStyleSheet) -> ::libc::c_int {
-    with_arc_stylesheet(raw_sheet, |sheet| if sheet.rules.is_empty() { 0 } else { 1 })
+pub extern "C" fn Servo_StyleSheetHasRules(raw_sheet: *mut RawServoStyleSheet) -> bool {
+    with_arc_stylesheet(raw_sheet, |sheet| !sheet.rules.is_empty())
 }
 
 
