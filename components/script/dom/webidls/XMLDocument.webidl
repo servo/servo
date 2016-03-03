@@ -9,5 +9,4 @@
  */
 
 // https://dom.spec.whatwg.org/#interface-document
-[Constructor]
 interface XMLDocument : Document {};
