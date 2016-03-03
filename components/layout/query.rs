@@ -16,7 +16,7 @@ use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
+use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use sequential;
@@ -67,51 +67,29 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 
     /// Requests the node containing the point of interest.
-    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
+    fn hit_test(&self, point: Point2D<f32>, update_cursor: bool) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
-        let result = match rw_data.display_list {
-            None => panic!("Tried to hit test without a DisplayList"),
-            Some(ref display_list) => display_list.hit_test(point),
-        };
+        let display_list = rw_data.display_list.as_ref().expect("Tried to hit test without a DisplayList!");
 
-        if result.is_empty() {
-            return Err(());
-        }
+        let result = display_list.hit_test(point);
 
-        Ok(HitTestResponse(result[0].node.to_untrusted_node_address()))
-    }
-
-    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        let mouse_over_list = {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            let result = match rw_data.display_list {
-                None => panic!("Tried to hit test without a DisplayList"),
-                Some(ref display_list) => display_list.hit_test(point),
-            };
-
-            // Compute the new cursor.
+        if update_cursor {
             let cursor = if !result.is_empty() {
                 result[0].pointing.unwrap()
             } else {
                 Cursor::DefaultCursor
             };
+
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
             constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
-            result
         };
 
-        if mouse_over_list.is_empty() {
-            Err(())
+        if !result.is_empty() {
+            Ok(HitTestResponse(result[0].node.to_untrusted_node_address()))
         } else {
-            let response_list =
-                mouse_over_list.iter()
-                               .map(|metadata| metadata.node.to_untrusted_node_address())
-                               .collect();
-            Ok(MouseOverResponse(response_list))
+            Err(())
         }
     }
 

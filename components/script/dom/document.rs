@@ -80,7 +80,7 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{HitTestResponse, MouseOverResponse};
+use layout_interface::HitTestResponse;
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
@@ -563,22 +563,14 @@ impl Document {
                 .map(Root::upcast)
     }
 
-    pub fn hit_test(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+    pub fn hit_test(&self, page_point: &Point2D<f32>, update_cursor: bool) -> Option<UntrustedNodeAddress> {
         assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().hit_test(*page_point) {
+        match self.window.layout().hit_test(*page_point, update_cursor) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
                 None
             }
-        }
-    }
-
-    pub fn get_nodes_under_mouse(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().mouse_over(*page_point) {
-            Ok(MouseOverResponse(node_address)) => node_address,
-            Err(()) => vec![],
         }
     }
 
@@ -693,7 +685,7 @@ impl Document {
 
         let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                                       client_point.y + self.window.PageYOffset() as f32);
-        let node = match self.hit_test(&page_point) {
+        let node = match self.hit_test(&page_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -806,63 +798,33 @@ impl Document {
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
-                                   prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
-        // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = client_point.as_ref().map(|client_point| {
-            let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                                          client_point.y + self.window.PageYOffset() as f32);
-            self.get_nodes_under_mouse(&page_point)
-        }).unwrap_or(vec![]);
-        let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
-            node::from_untrusted_node_address(js_runtime, *node_address)
-                .inclusive_ancestors()
+                                   prev_mouse_over_target: &MutNullableHeap<JS<Element>>) {
+        let page_point = match client_point {
+            None => {
+                // If there's no point, there's no target under the mouse
+                // FIXME: dispatch mouseout here. We have no point.
+                prev_mouse_over_target.set(None);
+                return;
+            }
+            Some(ref client_point) => {
+                Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                             client_point.y + self.window.PageYOffset() as f32)
+            }
+        };
+
+        let client_point = client_point.unwrap();
+
+        let maybe_new_target = self.hit_test(&page_point, true).and_then(|address| {
+            let node = node::from_untrusted_node_address(js_runtime, address);
+            node.inclusive_ancestors()
                 .filter_map(Root::downcast::<Element>)
                 .next()
-                .unwrap()
-        }).collect::<RootedVec<JS<Element>>>();
+        });
 
-        // Remove hover from any elements in the previous list that are no longer
-        // under the mouse.
-        for target in prev_mouse_over_targets.iter() {
-            if !mouse_over_targets.contains(target) {
-                let target_ref = &**target;
-                if target_ref.get_hover_state() {
-                    target_ref.set_hover_state(false);
-
-                    let target = target_ref.upcast();
-
-                    // FIXME: we should be dispatching this event but we lack an actual
-                    //        point to pass to it.
-                    if let Some(client_point) = client_point {
-                        self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
-                    }
-                }
-            }
-        }
-
-        // Set hover state for any elements in the current mouse over list.
-        // Check if any of them changed state to determine whether to
-        // force a reflow below.
-        for target in mouse_over_targets.r() {
-            if !target.get_hover_state() {
-                target.set_hover_state(true);
-
-                let target = target.upcast();
-
-                if let Some(client_point) = client_point {
-                    self.fire_mouse_event(client_point, target, "mouseover".to_owned());
-                }
-            }
-        }
-
-        // Send mousemove event to topmost target
-        if mouse_over_addresses.len() > 0 {
-            let top_most_node = node::from_untrusted_node_address(js_runtime,
-                                                                  mouse_over_addresses[0]);
-            let client_point = client_point.unwrap(); // Must succeed because hit test succeeded.
-
+        // Send mousemove event to topmost target, and forward it if it's an iframe
+        if let Some(ref new_target) = maybe_new_target {
             // If the target is an iframe, forward the event to the child document.
-            if let Some(iframe) = top_most_node.downcast::<HTMLIFrameElement>() {
+            if let Some(iframe) = new_target.downcast::<HTMLIFrameElement>() {
                 if let Some(pipeline_id) = iframe.pipeline_id() {
                     let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                     let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
@@ -874,13 +836,59 @@ impl Document {
                 return;
             }
 
-            let target = top_most_node.upcast();
-            self.fire_mouse_event(client_point, target, "mousemove".to_owned());
+            self.fire_mouse_event(client_point, new_target.upcast(), "mousemove".to_owned());
         }
 
-        // Store the current mouse over targets for next frame
-        prev_mouse_over_targets.clear();
-        prev_mouse_over_targets.append(&mut *mouse_over_targets);
+        // Nothing more to do here, mousemove is sent,
+        // and the element under the mouse hasn't changed.
+        if maybe_new_target == prev_mouse_over_target.get() {
+            return;
+        }
+
+        let old_target_is_ancestor_of_new_target = match (prev_mouse_over_target.get(), maybe_new_target.as_ref()) {
+            (Some(old_target), Some(new_target))
+                => old_target.upcast::<Node>().is_ancestor_of(new_target.upcast::<Node>()),
+            _   => false,
+        };
+
+        // Here we know the target has changed, so we must update the state,
+        // dispatch mouseout to the previous one, mouseover to the new one,
+        if let Some(old_target) = prev_mouse_over_target.get() {
+            // If the old target is an ancestor of the new target, this can be skipped
+            // completely, since the node's hover state will be reseted below.
+            if !old_target_is_ancestor_of_new_target {
+                for element in old_target.upcast::<Node>()
+                                         .inclusive_ancestors()
+                                         .filter_map(Root::downcast::<Element>) {
+                    element.set_hover_state(false);
+                }
+            }
+
+            // Remove hover state to old target and its parents
+            self.fire_mouse_event(client_point, old_target.upcast(), "mouseout".to_owned());
+
+            // TODO: Fire mouseleave here only if the old target is
+            // not an ancestor of the new target.
+        }
+
+        if let Some(ref new_target) = maybe_new_target {
+            for element in new_target.upcast::<Node>()
+                                     .inclusive_ancestors()
+                                     .filter_map(Root::downcast::<Element>) {
+                if element.get_hover_state() {
+                    break;
+                }
+
+                element.set_hover_state(true);
+            }
+
+            self.fire_mouse_event(client_point, &new_target.upcast(), "mouseover".to_owned());
+
+            // TODO: Fire mouseenter here.
+        }
+
+        // Store the current mouse over target for next frame.
+        prev_mouse_over_target.set(maybe_new_target.as_ref().map(|target| target.r()));
 
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
@@ -900,7 +908,7 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = match self.hit_test(&point) {
+        let node = match self.hit_test(&point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false,
         };
@@ -2567,7 +2575,7 @@ impl DocumentMethods for Document {
 
         let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
-        match self.hit_test(point)  {
+        match self.hit_test(point, false)  {
             Some(untrusted_node_address) => {
                 let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
                 let parent_node = node.GetParentNode().unwrap();
