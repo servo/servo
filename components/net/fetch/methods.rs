@@ -535,11 +535,14 @@ fn http_redirect_fetch(request: Rc<Request>,
     let location = match response.get_actual_response().headers.get::<Location>() {
         Some(&Location(ref location)) => location.clone(),
         // Step 4
-        _ => return Response::network_error(),
+        _ => return Response::network_error()
     };
 
     // Step 5
-    let location_url = UrlParser::new().base_url(&request.current_url()).parse(&*location);
+    let location_url = match response.get_actual_response().url {
+        Some(ref url) => UrlParser::new().base_url(url).parse(&*location),
+        _ => unreachable!()
+    };
 
     // Step 6
     let location_url = match location_url {
@@ -654,29 +657,38 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         http_request.headers.borrow_mut().set(UserAgent(global_user_agent().to_owned()));
     }
 
-    // Step 9
-    if http_request.cache_mode.get() == CacheMode::Default && is_no_store_cache(&http_request.headers.borrow()) {
-        http_request.cache_mode.set(CacheMode::NoStore);
+    match http_request.cache_mode.get() {
+
+        // Step 9
+        CacheMode::Default if is_no_store_cache(&http_request.headers.borrow()) => {
+            http_request.cache_mode.set(CacheMode::NoStore);
+        },
+
+        // Step 10
+        CacheMode::NoCache if !http_request.headers.borrow().has::<CacheControl>() => {
+            http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::MaxAge(0)]));
+        },
+
+        // Step 11
+        CacheMode::Reload => {
+            // Substep 1
+            if !http_request.headers.borrow().has::<Pragma>() {
+                http_request.headers.borrow_mut().set(Pragma::NoCache);
+            }
+
+            // Substep 2
+            if !http_request.headers.borrow().has::<CacheControl>() {
+                http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::NoCache]));
+            }
+        },
+
+        _ => {}
     }
-
-    // Step 10
-    if http_request.cache_mode.get() == CacheMode::Reload {
-
-        // Substep 1
-        if !http_request.headers.borrow().has::<Pragma>() {
-            http_request.headers.borrow_mut().set(Pragma::NoCache);
-        }
-
-        // Substep 2
-        if !http_request.headers.borrow().has::<CacheControl>() {
-            http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::NoCache]));
-        }
-    }
-
-    // Step 11
-    // modify_request_headers(http_request.headers.borrow());
 
     // Step 12
+    // modify_request_headers(http_request.headers.borrow());
+
+    // Step 13
     // TODO some of this step can't be implemented yet
     if credentials_flag {
 
@@ -714,13 +726,13 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 13
-    // TODO this step can't be implemented
-
     // Step 14
-    let mut response: Option<Response> = None;
+    // TODO this step can't be implemented yet
 
     // Step 15
+    let mut response: Option<Response> = None;
+
+    // Step 16
     // TODO have a HTTP cache to check for a completed response
     let complete_http_response_from_cache: Option<Response> = None;
     if http_request.cache_mode.get() != CacheMode::NoStore &&
@@ -752,20 +764,20 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             // TODO this substep
         }
 
-    // Step 16
+    // Step 17
     // TODO have a HTTP cache to check for a partial response
     } else if http_request.cache_mode.get() == CacheMode::Default ||
         http_request.cache_mode.get() == CacheMode::ForceCache {
         // TODO this substep
     }
 
-    // Step 17
+    // Step 18
     if response.is_none() {
         response = Some(http_network_fetch(request.clone(), http_request.clone(), credentials_flag));
     }
     let response = response.unwrap();
 
-    // Step 18
+    // Step 19
     if let Some(status) = response.status {
         if status == StatusCode::NotModified &&
             (http_request.cache_mode.get() == CacheMode::Default ||
@@ -791,7 +803,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 19
+    // Step 20
     response
 }
 
