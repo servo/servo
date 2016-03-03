@@ -170,6 +170,10 @@ version = "0.2"
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
+[dependencies.browserhtml]
+git = "https://github.com/browserhtml/browserhtml"
+branch = "gh-pages"
+
 [dependencies]
 bitflags = "0.3"
 env_logger = "0.3"
