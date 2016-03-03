@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorMsg as ConstellationMsg;
+use AnimationTickType;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
 use compositor_thread::{CompositorEventListener, CompositorProxy};
@@ -1550,7 +1551,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
         self.schedule_delayed_composite_if_necessary();
-        self.constellation_chan.send(ConstellationMsg::TickAnimation(pipeline_id)).unwrap()
+        let animation_callbacks_running = self.pipeline_details(pipeline_id).animation_callbacks_running;
+        let animation_type = if animation_callbacks_running {
+            AnimationTickType::Script
+        } else {
+            AnimationTickType::Layout
+        };
+        self.constellation_chan.send(ConstellationMsg::TickAnimation(pipeline_id, animation_type)).unwrap()
     }
 
     fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
