@@ -100,8 +100,10 @@ def check_length(file_name, idx, line):
     if file_name.endswith(".lock") or file_name.endswith(".json"):
         raise StopIteration
     max_length = 120
-    if len(line.rstrip('\n')) > max_length:
-        yield (idx + 1, "Line is longer than %d characters" % max_length)
+    current_line = line.rstrip('\n')
+    if len(current_line) > max_length:
+        if '{' in current_line or not current_line.startswith('use'):
+            yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
 def check_whatwg_specific_url(idx, line):
