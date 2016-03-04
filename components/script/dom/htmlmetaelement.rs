@@ -73,6 +73,7 @@ impl HTMLMetaElement {
                         rules: vec![CSSRule::Viewport(translated_rule)],
                         origin: Origin::Author,
                         media: None,
+                        depends_on_viewport_size: true,
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();
