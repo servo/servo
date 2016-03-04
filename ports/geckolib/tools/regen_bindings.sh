@@ -17,6 +17,7 @@ fi
 export RUST_BACKTRACE=1
 export LIBCLANG_PATH=`pwd`/llvm/build/Release+Asserts/lib
 export DYLD_LIBRARY_PATH=`pwd`/llvm/build/Release+Asserts/lib
+export LD_LIBRARY_PATH=`pwd`/llvm/build/Release+Asserts/lib
 export DIST_INCLUDE=$1/dist/include
 
 # Check for the include directory.
