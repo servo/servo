@@ -5752,18 +5752,20 @@ impl PropertyDeclarationBlock {
 
                     // Substep 2 & 3
                     let mut current_longhands = Vec::new();
-                    let mut missing_properties: HashSet<_> = HashSet::from_iter(
-                        properties.iter().map(|&s| s.to_owned())
-                    );
+                    let mut missing_properties = properties.iter().collect::<Vec<_>>();
 
                     for longhand in longhands.iter().cloned() {
-                        let longhand_string = longhand.name().to_string();
-                        if !properties.contains(&&*longhand_string) {
+                        let longhand_name = longhand.name();
+                        if !properties.iter().any(|p| &longhand_name == *p) {
                             continue;
                         }
 
-                        missing_properties.remove(&longhand_string);
                         current_longhands.push(longhand);
+
+                        let index_to_remove = missing_properties.iter().position(|l| longhand_name == ***l);
+                        if let Some(index) = index_to_remove {
+                            missing_properties.remove(index);
+                        }
                     }
 
                     // Substep 1
@@ -5965,8 +5967,6 @@ pub enum Shorthand {
     % endfor
 }
 
-use std::borrow::ToOwned;
-use std::iter::FromIterator;
 use util::str::str_join;
 
 impl Shorthand {
