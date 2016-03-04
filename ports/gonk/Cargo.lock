@@ -121,6 +121,11 @@ version = "0.3.20"
 source = "git+https://github.com/ende76/brotli-rs#c243045b88b2d2924c35269586fa9b770184c74c"
 
 [[package]]
+name = "browserhtml"
+version = "0.1.2"
+source = "git+https://github.com/browserhtml/browserhtml?branch=gh-pages#120c811302a9993f3aad103fbb695847693969ea"
+
+[[package]]
 name = "byteorder"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1642,6 +1647,7 @@ name = "servo"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "browserhtml 0.1.2 (git+https://github.com/browserhtml/browserhtml?branch=gh-pages)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
