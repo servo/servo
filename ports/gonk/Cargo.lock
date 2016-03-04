@@ -154,7 +154,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "azure 0.4.3 (git+https://github.com/servo/rust-azure)",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "heapsize 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -332,7 +332,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cssparser"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -948,7 +948,7 @@ dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
@@ -1148,7 +1148,7 @@ name = "msg"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1549,7 +1549,7 @@ dependencies = [
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "caseless 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1624,7 +1624,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1847,7 +1847,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1874,7 +1874,7 @@ dependencies = [
 name = "style_traits"
 version = "0.0.1"
 dependencies = [
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2035,7 +2035,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
