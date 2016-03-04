@@ -1314,23 +1314,30 @@ impl DisplayItem {
             return;
         }
 
-        if let DisplayItem::BorderClass(ref border) = *self {
-            // If the point is inside the border, it didn't hit the border!
-            let interior_rect =
-                Rect::new(
-                    Point2D::new(border.base.bounds.origin.x +
-                                 border.border_widths.left,
-                                 border.base.bounds.origin.y +
-                                 border.border_widths.top),
-                    Size2D::new(border.base.bounds.size.width -
+        match *self {
+            DisplayItem::BorderClass(ref border) => {
+                // If the point is inside the border, it didn't hit the border!
+                let interior_rect =
+                    Rect::new(
+                        Point2D::new(border.base.bounds.origin.x +
+                                     border.border_widths.left,
+                                     border.base.bounds.origin.y +
+                                     border.border_widths.top),
+                        Size2D::new(border.base.bounds.size.width -
                                     (border.border_widths.left +
                                      border.border_widths.right),
-                                border.base.bounds.size.height -
+                                    border.base.bounds.size.height -
                                     (border.border_widths.top +
                                      border.border_widths.bottom)));
-            if interior_rect.contains(&point) {
-                return;
+                if interior_rect.contains(&point) {
+                    return;
+                }
             }
+            DisplayItem::BoxShadowClass(_) => {
+                // Box shadows can never be hit.
+                return
+            }
+            _ => {}
         }
 
         // We found a hit!
