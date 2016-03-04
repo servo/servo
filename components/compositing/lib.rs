@@ -76,6 +76,13 @@ mod timer_scheduler;
 mod touch;
 pub mod windowing;
 
+/// Specifies whether the script or layout thread needs to be ticked for animation.
+#[derive(Deserialize, Serialize)]
+pub enum AnimationTickType {
+    Script,
+    Layout,
+}
+
 /// Messages from the compositor to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum CompositorMsg {
@@ -98,7 +105,7 @@ pub enum CompositorMsg {
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     ResizedWindow(WindowSizeData),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId),
+    TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
 }

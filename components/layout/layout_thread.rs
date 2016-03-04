@@ -1220,10 +1220,6 @@ impl LayoutThread {
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         self.tick_animations(&mut rw_data);
-
-        self.script_chan
-            .send(ConstellationControlMsg::TickAllAnimations(self.id))
-            .unwrap();
     }
 
     pub fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
