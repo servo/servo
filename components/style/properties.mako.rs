@@ -854,6 +854,9 @@ pub mod longhands {
 
     // CSS 2.1, Section 11 - Visual effects
 
+    // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
+    ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", internal=True)}
+
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     <%self:single_keyword_computed name="overflow-x" values="visible hidden scroll auto">
         use values::computed::Context;
@@ -5638,6 +5641,7 @@ mod property_bit_field {
 
 % for property in LONGHANDS:
     % if property.derived_from is None:
+        #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F, R>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
@@ -5661,6 +5665,7 @@ mod property_bit_field {
             }
         }
 
+        #[allow(non_snake_case)]
         #[inline(never)]
         fn substitute_variables_${property.ident}_slow<F, R>(
                 css: &String,
