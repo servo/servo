@@ -30,3 +30,6 @@ td[align="right"]   { text-align: right; }
 
 center { text-align: -servo-center; }
 
+input:not([type="radio"]):not([type="checkbox"]):not([type="reset"]):not([type="button"]):not([type="submit"]),
+textarea { cursor: text }
+
