@@ -1,0 +1,33 @@
+version: 1.0.{build}
+
+branches:
+  only:
+    - master
+
+platform:
+  - x64
+
+cache:
+  - .servo
+  - .cargo
+
+install:
+  - set MSYSTEM=MSYS
+  - set MSYS="winsymlinks=lnk"
+  - PATH C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
+  - bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
+  - bash -lc "pacman --noconfirm -Sy"
+  - bash -lc "pacman -Sy --needed --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
+  - bash -lc "easy_install-2.7 pip virtualenv"
+  - bash -lc "mv /mingw64/bin/python2.exe /mingw64/bin/python2-mingw64.exe"
+  - bash -lc "mv /mingw64/bin/python2.7.exe /mingw64/bin/python2.7-mingw64.exe"
+
+build_script:
+  - cmd: >-
+      set MSYSTEM=MINGW64
+
+      PATH C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
+
+      bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v"
+
+test: off
