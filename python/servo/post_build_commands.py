@@ -9,6 +9,7 @@
 
 from __future__ import print_function, unicode_literals
 
+from glob import glob
 import os
 import os.path as path
 import subprocess
@@ -32,6 +33,18 @@ def read_file(filename, if_exists=False):
         return f.read()
 
 
+def find_dep_path_newest(package, bin_path):
+    deps_path = path.join(path.split(bin_path)[0], "build")
+    with cd(deps_path):
+        print(os.getcwd())
+        candidates = glob(package + '-*')
+    candidates = (path.join(deps_path, c) for c in candidates)
+    candidate_times = sorted(((path.getmtime(c), c) for c in candidates), reverse=True)
+    if len(candidate_times) > 0:
+        return candidate_times[0][1]
+    return None
+
+
 @CommandProvider
 class PostBuildCommands(CommandBase):
     @Command('run',
@@ -50,10 +63,12 @@ class PostBuildCommands(CommandBase):
                           'have no effect without this.')
     @CommandArgument('--debugger', default=None, type=str,
                      help='Name of debugger to use.')
+    @CommandArgument('--browserhtml', '-b', action='store_true',
+                     help='Launch with Browser.html')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None):
+    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -110,6 +125,13 @@ class PostBuildCommands(CommandBase):
             # Prepend the debugger args.
             args = ([command] + self.debuggerInfo.args +
                     args + params)
+        elif browserhtml:
+            browserhtml_path = find_dep_path_newest('browserhtml', args[0])
+            if browserhtml_path is None:
+                print("Could not find browserhtml package; perhaps you haven't built Servo.")
+                return 1
+            args = args + ['-w', '-b', '--pref', 'dom.mozbrowser.enabled',
+                           path.join(browserhtml_path, 'out', 'index.html')]
         else:
             args = args + params
 
