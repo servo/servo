@@ -83,7 +83,7 @@ use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
 use webrender_helpers::WebRenderDisplayListConverter;
-use webrender_traits;
+use webrender_traits::{self, AuxiliaryListsBuilder};
 use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -931,12 +931,13 @@ impl LayoutThread {
 
                     // TODO(gw) For now only create a root scrolling layer!
                     let root_scroll_layer_id = webrender_traits::ScrollLayerId::new(pipeline_id, 0);
-                    let sc_id = rw_data.display_list.as_ref()
-                                                    .unwrap()
-                                                    .convert_to_webrender(&self.webrender_api.as_ref().unwrap(),
-                                                                          pipeline_id,
-                                                                          epoch,
-                                                                          Some(root_scroll_layer_id));
+                    let mut auxiliary_lists_builder = AuxiliaryListsBuilder::new();
+                    let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
+                        &self.webrender_api.as_ref().unwrap(),
+                        pipeline_id,
+                        epoch,
+                        Some(root_scroll_layer_id),
+                        &mut auxiliary_lists_builder);
                     let root_background_color = webrender_traits::ColorF::new(root_background_color.r,
                                                                        root_background_color.g,
                                                                        root_background_color.b,
@@ -949,7 +950,8 @@ impl LayoutThread {
                                                   root_background_color,
                                                   epoch,
                                                   pipeline_id,
-                                                  viewport_size);
+                                                  viewport_size,
+                                                  auxiliary_lists_builder.finalize());
                 } else {
                     self.paint_chan
                         .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
