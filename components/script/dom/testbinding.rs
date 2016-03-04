@@ -51,6 +51,16 @@ impl TestBinding {
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBinding>> {
         Ok(TestBinding::new(global))
     }
+
+    #[allow(unused_variables)]
+    pub fn Constructor_(global: GlobalRef, nums: Vec<f64>) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
+    }
+
+    #[allow(unused_variables)]
+    pub fn Constructor__(global: GlobalRef, num: f64) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
+    }
 }
 
 impl TestBindingMethods for TestBinding {

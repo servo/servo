@@ -433,7 +433,7 @@ class CGMethodCall(CGThing):
             # XXXbz Now we're supposed to check for distinguishingArg being
             # an array or a platform object that supports indexed
             # properties... skip that last for now.  It's a bit of a pain.
-            pickFirstSignature("%s.get().isObject() && IsArrayLike(cx, &%s.get().toObject())" %
+            pickFirstSignature("%s.get().is_object() && is_array_like(cx, %s)" %
                                (distinguishingArg, distinguishingArg),
                                lambda s:
                                    (s[1][distinguishingIndex].type.isArray() or
@@ -442,7 +442,7 @@ class CGMethodCall(CGThing):
 
             # Check for Date objects
             # XXXbz Do we need to worry about security wrappers around the Date?
-            pickFirstSignature("%s.get().isObject() && JS_ObjectIsDate(cx, &%s.get().toObject())" %
+            pickFirstSignature("%s.get().is_object() && JS_ObjectIsDate(cx, &%s.get().to_object())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isDate() or
                                           s[1][distinguishingIndex].type.isObject()))
@@ -5438,7 +5438,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
-            'dom::bindings::conversions::{ConversionBehavior, DOM_OBJECT_SLOT, IDLInterface}',
+            'dom::bindings::conversions::{ConversionBehavior, DOM_OBJECT_SLOT}',
+            'dom::bindings::conversions::{IDLInterface, is_array_like}',
             'dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior}',
             'dom::bindings::conversions::{ToJSValConvertible, jsid_to_str, native_from_handlevalue}',
             'dom::bindings::conversions::{native_from_object, private_from_object, root_from_object}',
