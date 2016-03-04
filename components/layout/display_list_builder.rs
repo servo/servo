@@ -44,6 +44,7 @@ use std::default::Default;
 use std::sync::Arc;
 use std::{cmp, f32};
 use style::computed_values::filter::Filter;
+use style::computed_values::{_servo_overflow_clip_box as overflow_clip_box};
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position};
@@ -1430,6 +1431,25 @@ impl FragmentDisplayListBuilding for Fragment {
         // Account for style-specified `clip`.
         self.adjust_clip_for_style(current_clip, stacking_relative_border_box);
 
+        let overflow_x = self.style.get_box().overflow_x;
+        let overflow_y = self.style.get_box().overflow_y.0;
+
+        if let (overflow_x::T::visible, overflow_x::T::visible) = (overflow_x, overflow_y) {
+            return
+        }
+
+        let tmp;
+        let overflow_clip_rect = match self.style.get_box()._servo_overflow_clip_box {
+            overflow_clip_box::T::padding_box => {
+                // FIXME(SimonSapin): should be the padding box, not border box.
+                stacking_relative_border_box
+            }
+            overflow_clip_box::T::content_box => {
+                tmp = self.stacking_relative_content_box(stacking_relative_border_box);
+                &tmp
+            }
+        };
+
         // Clip according to the values of `overflow-x` and `overflow-y`.
         //
         // TODO(pcwalton): Support scrolling of non-absolutely-positioned elements.
@@ -1441,8 +1461,8 @@ impl FragmentDisplayListBuilding for Fragment {
             (overflow_x::T::auto, false) |
             (overflow_x::T::scroll, false) => {
                 let mut bounds = current_clip.bounding_rect();
-                let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
-                bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
+                let max_x = cmp::min(bounds.max_x(), overflow_clip_rect.max_x());
+                bounds.origin.x = cmp::max(bounds.origin.x, overflow_clip_rect.origin.x);
                 bounds.size.width = max_x - bounds.origin.x;
                 current_clip.intersect_rect(&bounds)
             }
@@ -1453,8 +1473,8 @@ impl FragmentDisplayListBuilding for Fragment {
             (overflow_x::T::auto, false) |
             (overflow_x::T::scroll, false) => {
                 let mut bounds = current_clip.bounding_rect();
-                let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
-                bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
+                let max_y = cmp::min(bounds.max_y(), overflow_clip_rect.max_y());
+                bounds.origin.y = cmp::max(bounds.origin.y, overflow_clip_rect.origin.y);
                 bounds.size.height = max_y - bounds.origin.y;
                 current_clip.intersect_rect(&bounds)
             }

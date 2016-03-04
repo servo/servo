@@ -51,26 +51,29 @@ def to_camel_case(ident):
     return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
 
 class Longhand(object):
-    def __init__(self, name, derived_from=None, custom_cascade=False, experimental=False):
+    def __init__(self, name, derived_from=None, custom_cascade=False, experimental=False,
+                 internal=False):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = THIS_STYLE_STRUCT
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
+        self.internal = internal
         if derived_from is None:
             self.derived_from = None
         else:
             self.derived_from = [ to_rust_ident(name) for name in derived_from ]
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, experimental=False):
+    def __init__(self, name, sub_properties, experimental=False, internal=False):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.derived_from = None
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
+        self.internal = internal
 
 class StyleStruct(object):
     def __init__(self, name, inherited):
@@ -109,7 +112,8 @@ pub mod longhands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=False)">
+    <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=False,
+                             internal=False)">
     <%
         if derived_from is not None:
             derived_from = derived_from.split()
@@ -117,7 +121,8 @@ pub mod longhands {
         property = Longhand(name,
                             derived_from=derived_from,
                             custom_cascade=custom_cascade,
-                            experimental=experimental)
+                            experimental=experimental,
+                            internal=internal)
         property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
@@ -234,9 +239,11 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="longhand(name, derived_from=None, custom_cascade=False, experimental=False)">
+    <%def name="longhand(name, derived_from=None, custom_cascade=False, experimental=False,
+                         internal=False)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}"
-                custom_cascade="${custom_cascade}" experimental="${experimental}">
+                custom_cascade="${custom_cascade}" experimental="${experimental}"
+                internal="${internal}">
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
@@ -247,9 +254,10 @@ pub mod longhands {
         </%self:raw_longhand>
     </%def>
 
-    <%def name="single_keyword_computed(name, values, custom_cascade=False, experimental=False)">
+    <%def name="single_keyword_computed(name, values, custom_cascade=False, experimental=False,
+                                        internal=False)">
         <%self:longhand name="${name}" custom_cascade="${custom_cascade}"
-            experimental="${experimental}">
+            experimental="${experimental}" internal="${internal}">
             pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
@@ -269,10 +277,11 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values, experimental=False)">
+    <%def name="single_keyword(name, values, experimental=False, internal=False)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
-                                       experimental="${experimental}">
+                                       experimental="${experimental}"
+                                       internal="${internal}">
             use values::computed::ComputedValueAsSpecified;
             impl ComputedValueAsSpecified for SpecifiedValue {}
         </%self:single_keyword_computed>
@@ -844,6 +853,9 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
+
+    // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
+    ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     <%self:single_keyword_computed name="overflow-x" values="visible hidden scroll auto">
@@ -5629,6 +5641,7 @@ mod property_bit_field {
 
 % for property in LONGHANDS:
     % if property.derived_from is None:
+        #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F, R>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
@@ -5652,6 +5665,7 @@ mod property_bit_field {
             }
         }
 
+        #[allow(non_snake_case)]
         #[inline(never)]
         fn substitute_variables_${property.ident}_slow<F, R>(
                 css: &String,
@@ -6054,6 +6068,11 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     "${property.name}" => {
+                        % if property.internal:
+                            if context.stylesheet_origin != Origin::UserAgent {
+                                return PropertyDeclarationParseResult::UnknownProperty
+                            }
+                        % endif
                         % if property.experimental:
                             if !::util::prefs::get_pref("${property.experimental}")
                                 .as_boolean().unwrap_or(false) {
@@ -6074,6 +6093,11 @@ impl PropertyDeclaration {
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
+                    % if shorthand.internal:
+                        if context.stylesheet_origin != Origin::UserAgent {
+                            return PropertyDeclarationParseResult::UnknownProperty
+                        }
+                    % endif
                     % if shorthand.experimental:
                         if !::util::prefs::get_pref("${shorthand.experimental}")
                             .as_boolean().unwrap_or(false) {
@@ -7011,7 +7035,7 @@ macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
-                % if property.derived_from is None:
+                % if property.derived_from is None and not property.internal:
                     % if '-' in property.name:
                         [${property.ident.capitalize()}, Set${property.ident.capitalize()}, "${property.name}"],
                     % endif
