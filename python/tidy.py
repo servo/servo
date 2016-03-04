@@ -366,7 +366,7 @@ def check_rust(file_name, lines):
         if line.startswith("use "):
             import_block = True
             indent = len(original_line) - len(line)
-            if not line.endswith(";"):
+            if not line.endswith(";") and '{' in line:
                 yield (idx + 1, "use statement spans multiple lines")
             # strip "use" from the begin and ";" from the end
             current_use = line[4:-1]
