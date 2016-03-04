@@ -46,6 +46,7 @@ pub struct Stylesheet<Impl: SelectorImpl> {
     /// List of media associated with the Stylesheet, if any.
     pub media: Option<MediaQueryList>,
     pub origin: Origin,
+    pub dirty_on_viewport_size_change: bool,
 }
 
 
@@ -113,27 +114,31 @@ impl<Impl: SelectorImpl> Stylesheet<Impl> {
             _impl: PhantomData,
         };
         let mut input = Parser::new(css);
-        let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+        input.look_for_viewport_percentages();
+
         let mut rules = Vec::new();
-        while let Some(result) = iter.next() {
-            match result {
-                Ok(rule) => {
-                    if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
-                        if let Some(prefix) = prefix.as_ref() {
-                            iter.parser.context.selector_context.namespace_prefixes.insert(
-                                prefix.clone(), namespace.clone());
-                        } else {
-                            iter.parser.context.selector_context.default_namespace =
-                                Some(namespace.clone());
+        {
+            let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+            while let Some(result) = iter.next() {
+                match result {
+                    Ok(rule) => {
+                        if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
+                            if let Some(prefix) = prefix.as_ref() {
+                                iter.parser.context.selector_context.namespace_prefixes.insert(
+                                    prefix.clone(), namespace.clone());
+                            } else {
+                                iter.parser.context.selector_context.default_namespace =
+                                    Some(namespace.clone());
+                            }
                         }
+                        rules.push(rule);
                     }
-                    rules.push(rule);
-                }
-                Err(range) => {
-                    let pos = range.start;
-                    let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                    let context = ParserContext::new(origin, &base_url, error_reporter.clone());
-                    log_css_error(iter.input, pos, &*message, &context);
+                    Err(range) => {
+                        let pos = range.start;
+                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
+                        let context = ParserContext::new(origin, &base_url, error_reporter.clone());
+                        log_css_error(iter.input, pos, &*message, &context);
+                    }
                 }
             }
         }
@@ -141,6 +146,7 @@ impl<Impl: SelectorImpl> Stylesheet<Impl> {
             origin: origin,
             rules: rules,
             media: None,
+            dirty_on_viewport_size_change: input.seen_viewport_percentages(),
         }
     }
 

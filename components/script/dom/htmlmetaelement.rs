@@ -73,6 +73,9 @@ impl HTMLMetaElement {
                         rules: vec![CSSRule::Viewport(translated_rule)],
                         origin: Origin::Author,
                         media: None,
+                        // Viewport constraints are always recomputed on resize; they don't need to
+                        // force all styles to be recomputed.
+                        dirty_on_viewport_size_change: false,
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();
