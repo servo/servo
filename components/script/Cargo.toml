@@ -85,7 +85,7 @@ phf_macros = "0.7.13"
 ref_slice = "0.1.0"
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size", "unstable"]}
-serde = "0.6"
+serde = {version = "0.6", features = ["nightly"]}
 smallvec = "0.1"
 string_cache = {version = "0.2.10", features = ["heap_size", "unstable"]}
 time = "0.1.12"

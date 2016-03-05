@@ -33,6 +33,6 @@ git = "https://github.com/servo/ipc-channel"
 git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
-serde = "0.6"
+serde = {version = "0.6", features = ["nightly"]}
 serde_macros = "0.6"
 url = {version = "0.5.5", features = ["heap_size"]}

@@ -75,7 +75,7 @@ libc = "0.2"
 log = "0.3"
 rustc-serialize = "0.3"
 selectors = {version = "0.5.1", features = ["heap_size", "unstable"]}
-serde = "0.6"
+serde = {version = "0.6", features = ["nightly"]}
 serde_json = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
