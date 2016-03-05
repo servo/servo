@@ -23,7 +23,7 @@ log = "0.3"
 mime = "0.1"
 rand = "0.3"
 rustc-serialize = "0.3"
-serde = "0.6"
+serde = {version = "0.6", features = ["nightly"]}
 serde_macros = "0.6"
 servo-skia = "0.20130412.0"
 smallvec = "0.1"
