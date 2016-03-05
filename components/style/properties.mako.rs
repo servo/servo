@@ -5705,7 +5705,7 @@ mod property_bit_field {
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
 
-// TODO: Because normal & important are stored in seperate lists, it is impossible to know their
+// TODO: Because normal & important are stored in separate lists, it is impossible to know their
 // exact declaration order. They should be changed into one list, adding an important/normal
 // flag to PropertyDeclaration.
 
@@ -5752,24 +5752,16 @@ impl PropertyDeclarationBlock {
 
                     // Substep 2 & 3
                     let mut current_longhands = Vec::new();
-                    let mut missing_properties = properties.iter().collect::<Vec<_>>();
 
-                    for longhand in longhands.iter().cloned() {
+                    for longhand in longhands.iter() {
                         let longhand_name = longhand.name();
-                        if !properties.iter().any(|p| &longhand_name == *p) {
-                            continue;
-                        }
-
-                        current_longhands.push(longhand);
-
-                        let index_to_remove = missing_properties.iter().position(|l| longhand_name == ***l);
-                        if let Some(index) = index_to_remove {
-                            missing_properties.remove(index);
+                        if properties.iter().any(|p| &longhand_name == *p) {
+                            current_longhands.push(*longhand);
                         }
                     }
 
                     // Substep 1
-                    if current_longhands.is_empty() || !missing_properties.is_empty() {
+                    if current_longhands.is_empty() || current_longhands.len() != properties.len() {
                         continue;
                     }
 
@@ -5793,7 +5785,7 @@ impl PropertyDeclarationBlock {
                     }
 
                     // Substep 7 & 8
-                    result_list.push_str(&format!("{}: {}; ", &shorthand.to_name(), value));
+                    result_list.push_str(&format!("{}: {}; ", &shorthand.name(), value));
 
                     for current_longhand in current_longhands {
                         // Substep 9
@@ -5979,7 +5971,7 @@ impl Shorthand {
         }
     }
 
-    pub fn to_name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match *self {
             % for property in SHORTHANDS:
                 Shorthand::${property.camel_case} => "${property.name}",
