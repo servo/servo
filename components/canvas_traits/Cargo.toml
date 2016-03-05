@@ -27,7 +27,6 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies.serde]
 version = "0.6"
-features = [ "nightly" ]
 
 [dependencies.plugins]
 path = "../plugins"
