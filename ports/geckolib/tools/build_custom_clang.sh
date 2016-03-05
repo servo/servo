@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run in the tools directory.
-cd `dirname $0`
+cd "$(dirname $0)"
 
 # Don't run twice.
 if [ -d llvm ]; then

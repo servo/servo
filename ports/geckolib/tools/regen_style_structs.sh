@@ -4,7 +4,7 @@
 cd `dirname $0`
 
 if [ $# -ne 1 ]; then
-  echo "Usage: $0 /path/to/objdir/"
+  echo "Usage: $0 /path/to/gecko/objdir"
   exit 1
 fi
 
@@ -16,11 +16,10 @@ fi
 
 # Need to find a way to avoid hardcoding these
 export RUST_BACKTRACE=1
-export LIBCLANG_PATH=`pwd`/llvm/build/Release+Asserts/lib
-export DYLD_LIBRARY_PATH=`pwd`/llvm/build/Release+Asserts/lib
-export LD_LIBRARY_PATH=`pwd`/llvm/build/Release+Asserts/lib
-export DIST_INCLUDE=$1/dist/include
-CLANG_SEARCH_DIRS=$(clang++ -print-search-dirs | grep 'libraries: ' | cut -d = -f 2)
+export LIBCLANG_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
+export DYLD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
+export LD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
+export DIST_INCLUDE="$1/dist/include"
 CLANG_SEARCH_DIRS=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
   if ($0 == "#include <...> search starts here:")                    \
     in_headers = 1;                                                  \
@@ -33,17 +32,31 @@ CLANG_SEARCH_DIRS=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
 }' | sed -e s/:$//g)
 
 # Check for the include directory.
-if [ ! -d $DIST_INCLUDE ]; then
+if [ ! -d "$DIST_INCLUDE" ]; then
   echo "$DIST_INCLUDE: directory not found"
   exit 1
 fi
 
-# Uncomment the following line to run rust-bindgen in a debugger on mac.
-# The absolute path is required to allow launching lldb with an untrusted
-# library in DYLD_LIBRARY_PATH.
+PLATFORM_DEPENDENT_DEFINES="";
+if [ "$(uname)" == "Linux" ]; then
+  PLATFORM_DEPENDENT_DEFINES+="-DOS_LINUX";
+else
+  PLATFORM_DEPENDENT_DEFINES+="-DOS_MACOSX";
+fi
+
+# Uncomment the following line to run rust-bindgen in a debugger on mac. The
+# absolute path is required to allow launching lldb with an untrusted library
+# in DYLD_LIBRARY_PATH.
 #
 # /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
-./rust-bindgen/target/debug/bindgen -x c++ -std=gnu++0x -ignore-functions -allow-unknown-types \
-  $CLANG_SEARCH_DIRS \
-  -I$DIST_INCLUDE -I$DIST_INCLUDE/nspr -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1 -DOS_MACOSX=1 -DMOZILLA_INTERNAL_API -DIMPL_LIBXUL \
-  -include $1/mozilla-config.h -o ../gecko_style_structs.rs $DIST_INCLUDE/nsStyleStruct.h
+./rust-bindgen/target/debug/bindgen                                 \
+  -x c++ -std=gnu++0x                                               \
+  -ignore-functions -allow-unknown-types                            \
+  $CLANG_SEARCH_DIRS                                                \
+  "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                          \
+  $PLATFORM_DEPENDENT_DEFINES                                       \
+  -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1                                \
+  -DMOZILLA_INTERNAL_API -DIMPL_LIBXUL                              \
+  -include "$1/mozilla-config.h"                                    \
+  -o ../gecko_style_structs.rs                                      \
+  "$DIST_INCLUDE/nsStyleStruct.h"
