@@ -31,6 +31,6 @@ image = "0.7"
 log = "0.3"
 hyper = "0.7"
 rustc-serialize = "0.3.4"
-regex = "0.1.33"
+regex = "0.1.55"
 url = {version = "0.5.5", features = ["heap_size"]}
 uuid = "0.1"

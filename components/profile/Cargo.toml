@@ -26,7 +26,7 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies]
 log = "0.3"
 libc = "0.2"
-regex = "0.1.14"
+regex = "0.1.55"
 time = "0.1.12"
 
 [target.x86_64-apple-darwin.dependencies.task_info]
