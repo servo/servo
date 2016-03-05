@@ -27,7 +27,8 @@ CLANG_SEARCH_DIRS=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
     in_headers = 0;                                                  \
   else if (in_headers == 1) {                                        \
     gsub(/^[ \t]+/, "", $0);                                         \
-    printf " -isystem %s", $0;                                       \
+    gsub(/[ \t].+$/, "", $0);                                        \
+    printf " -isystem \"%s\"", $0;                                   \
   }
 }' | sed -e s/:$//g)
 
