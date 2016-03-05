@@ -8,7 +8,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
-use properties::INITIAL_VALUES;
+use properties::{ComputedValues, TComputedValues};
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
 use std::fmt;
@@ -594,8 +594,8 @@ impl MaybeNew for ViewportConstraints {
         let context = Context {
             is_root_element: false,
             viewport_size: initial_viewport,
-            inherited_style: &*INITIAL_VALUES,
-            style: INITIAL_VALUES.clone(),
+            inherited_style: ComputedValues::initial_values(),
+            style: ComputedValues::initial_values().clone(),
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
