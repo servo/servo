@@ -15,17 +15,22 @@ if [ ! -d rust-bindgen ]; then
 fi
 
 # Need to find a way to avoid hardcoding these
-STD_LIB_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include
-STDXX_LIB_PATH=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1
-if [ ! -d $STD_LIB_PATH ] || [ ! -d $STDXX_LIB_PATH ]; then
-  echo "Please update the above environmental variables to point to your standard library."
-  exit 1
-fi
-
 export RUST_BACKTRACE=1
 export LIBCLANG_PATH=`pwd`/llvm/build/Release+Asserts/lib
 export DYLD_LIBRARY_PATH=`pwd`/llvm/build/Release+Asserts/lib
+export LD_LIBRARY_PATH=`pwd`/llvm/build/Release+Asserts/lib
 export DIST_INCLUDE=$1/dist/include
+CLANG_SEARCH_DIRS=$(clang++ -print-search-dirs | grep 'libraries: ' | cut -d = -f 2)
+CLANG_SEARCH_DIRS=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
+  if ($0 == "#include <...> search starts here:")                    \
+    in_headers = 1;                                                  \
+  else if ($0 == "End of search list.")                              \
+    in_headers = 0;                                                  \
+  else if (in_headers == 1) {                                        \
+    gsub(/^[ \t]+/, "", $0);                                         \
+    printf " -isystem %s", $0;                                       \
+  }
+}' | sed -e s/:$//g)
 
 # Check for the include directory.
 if [ ! -d $DIST_INCLUDE ]; then
@@ -38,4 +43,7 @@ fi
 # library in DYLD_LIBRARY_PATH.
 #
 # /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
-./rust-bindgen/target/debug/bindgen -x c++ -std=gnu++0x -ignore-functions -allow-unknown-types -isystem $STDXX_LIB_PATH -isystem $STD_LIB_PATH -I$DIST_INCLUDE -I$DIST_INCLUDE/nspr -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1 -DOS_MACOSX=1 -DMOZILLA_INTERNAL_API -DIMPL_LIBXUL  -include $1/mozilla-config.h -o ../gecko_style_structs.rs $DIST_INCLUDE/nsStyleStruct.h
+./rust-bindgen/target/debug/bindgen -x c++ -std=gnu++0x -ignore-functions -allow-unknown-types \
+  $CLANG_SEARCH_DIRS \
+  -I$DIST_INCLUDE -I$DIST_INCLUDE/nspr -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1 -DOS_MACOSX=1 -DMOZILLA_INTERNAL_API -DIMPL_LIBXUL \
+  -include $1/mozilla-config.h -o ../gecko_style_structs.rs $DIST_INCLUDE/nsStyleStruct.h

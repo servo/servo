@@ -9,12 +9,6 @@ if [ ! -d llvm ]; then
   exit 1
 fi
 
-# Don't run twice.
-if [ -d rust-bindgen ]; then
-  echo "rust-bindgen directory already exists."
-  exit 1
-fi
-
 # Check for multirust
 if [ ! -x "$(command -v multirust)" ]; then
     echo 'multirust must be installed.'
@@ -23,8 +17,14 @@ fi
 
 # Setup and build bindgen.
 export LIBCLANG_PATH=`pwd`/llvm/build/Release+Asserts/lib
-git clone https://github.com/bholley/rust-bindgen.git
-cd rust-bindgen
-git checkout sm-hacks
+# Don't run twice.
+if [ ! -d rust-bindgen ]; then
+  git clone https://github.com/bholley/rust-bindgen.git
+  cd rust-bindgen
+  git checkout sm-hacks
+else
+  cd rust-bindgen
+fi
+
 multirust override nightly
 cargo build
