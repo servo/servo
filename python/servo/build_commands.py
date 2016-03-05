@@ -285,10 +285,11 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
+        env = dict(self.build_env(), **{'RUST_LOG': 'cargo::ops::cargo_rustc::fingerprint=info'})
         build_start = time()
         with cd(path.join("ports", "cef")):
             ret = call(["cargo", "build"] + opts,
-                       env=self.build_env(), verbose=verbose)
+                       env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
