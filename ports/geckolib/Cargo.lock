@@ -509,6 +509,7 @@ name = "url"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
