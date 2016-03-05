@@ -137,7 +137,6 @@ optional = true
 
 [dependencies.log]
 version = "0.3"
-features = ["release_max_level_info"]
 
 [target.arm-linux-androideabi.dependencies.gaol]
 git = "https://github.com/servo/gaol"
