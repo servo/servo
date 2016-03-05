@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run in the tools directory.
-cd `dirname $0`
+cd "$(dirname $0)"
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 /path/to/gecko/objdir"
@@ -56,6 +56,8 @@ fi
   $CLANG_SEARCH_DIRS                                                \
   "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                          \
   $PLATFORM_DEPENDENT_DEFINES                                       \
+  -DMOZ_STRING_WITH_OBSOLETE_API=0                                  \
+  -DMOZ_STYLO_BINDINGS=1                                            \
   -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1                                \
   -DMOZILLA_INTERNAL_API -DIMPL_LIBXUL                              \
   -include "$1/mozilla-config.h"                                    \
