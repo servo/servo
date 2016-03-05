@@ -7,7 +7,6 @@ use bezier::Bezier;
 use cssparser::{Color, RGBA};
 use dom::{OpaqueNode, TRestyleDamage};
 use euclid::point::Point2D;
-use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::clip::computed_value::ClipRect;
@@ -25,6 +24,7 @@ use properties::longhands::transition_timing_function::computed_value::{Transiti
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
+use properties::{ComputedValues, TComputedValues};
 use std::cmp::Ordering;
 use std::iter::repeat;
 use std::sync::mpsc::Sender;
