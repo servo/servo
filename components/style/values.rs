@@ -100,6 +100,7 @@ pub mod specified {
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::AuExtensionMethods;
+    use super::computed::{TContext, ToComputedValue};
     use super::{CSSFloat, FONT_MEDIUM_PX};
     use url::Url;
 
@@ -1418,11 +1419,11 @@ pub mod specified {
         }
     }
 
-    impl super::computed::ToComputedValue for Time {
+    impl ToComputedValue for Time {
         type ComputedValue = Time;
 
         #[inline]
-        fn to_computed_value(&self, _: &super::computed::Context) -> Time {
+        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> Time {
             *self
         }
     }
@@ -1437,7 +1438,8 @@ pub mod specified {
 pub mod computed {
     use app_units::Au;
     use euclid::size::Size2D;
-    use properties::ComputedValues;
+    use properties::TComputedValues;
+    use properties::style_struct_traits::TFont;
     use std::fmt;
     use super::AuExtensionMethods;
     use super::specified::AngleOrCorner;
@@ -1446,21 +1448,39 @@ pub mod computed {
     pub use cssparser::Color as CSSColor;
     pub use super::specified::{Angle, BorderStyle, Time};
 
-    pub struct Context<'a> {
+    pub trait TContext {
+        type ConcreteComputedValues: TComputedValues;
+        fn is_root_element(&self) -> bool;
+        fn viewport_size(&self) -> Size2D<Au>;
+        fn inherited_style(&self) -> &Self::ConcreteComputedValues;
+        fn style(&self) -> &Self::ConcreteComputedValues;
+        fn mutate_style(&mut self) -> &mut Self::ConcreteComputedValues;
+    }
+
+    pub struct Context<'a, C: TComputedValues> {
         pub is_root_element: bool,
         pub viewport_size: Size2D<Au>,
-        pub inherited_style: &'a ComputedValues,
+        pub inherited_style: &'a C,
 
         /// Values access through this need to be in the properties "computed early":
         /// color, text-decoration, font-size, display, position, float, border-*-style, outline-style
-        pub style: ComputedValues,
+        pub style: C,
+    }
+
+    impl<'a, C: TComputedValues> TContext for Context<'a, C> {
+        type ConcreteComputedValues = C;
+        fn is_root_element(&self) -> bool { self.is_root_element }
+        fn viewport_size(&self) -> Size2D<Au> { self.viewport_size }
+        fn inherited_style(&self) -> &C { &self.inherited_style }
+        fn style(&self) -> &C { &self.style }
+        fn mutate_style(&mut self) -> &mut C { &mut self.style }
     }
 
     pub trait ToComputedValue {
         type ComputedValue;
 
         #[inline]
-        fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue;
+        fn to_computed_value<Cx: TContext>(&self, _context: &Cx) -> Self::ComputedValue;
     }
 
     pub trait ComputedValueAsSpecified {}
@@ -1469,7 +1489,7 @@ pub mod computed {
         type ComputedValue = T;
 
         #[inline]
-        fn to_computed_value(&self, _context: &Context) -> T {
+        fn to_computed_value<Cx: TContext>(&self, _context: &Cx) -> T {
             self.clone()
         }
     }
@@ -1478,7 +1498,7 @@ pub mod computed {
         type ComputedValue = CSSColor;
 
         #[inline]
-        fn to_computed_value(&self, _context: &Context) -> CSSColor {
+        fn to_computed_value<Cx: TContext>(&self, _context: &Cx) -> CSSColor {
             self.parsed
         }
     }
@@ -1489,17 +1509,17 @@ pub mod computed {
         type ComputedValue = Au;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> Au {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> Au {
             match *self {
                 specified::Length::Absolute(length) => length,
                 specified::Length::Calc(calc) => calc.to_computed_value(context).length(),
                 specified::Length::FontRelative(length) =>
-                    length.to_computed_value(context.style.get_font().font_size,
-                                             context.style.root_font_size),
+                    length.to_computed_value(context.style().get_font().clone_font_size(),
+                                             context.style().root_font_size()),
                 specified::Length::ViewportPercentage(length) =>
-                    length.to_computed_value(context.viewport_size),
+                    length.to_computed_value(context.viewport_size()),
                 specified::Length::ServoCharacterWidth(length) =>
-                    length.to_computed_value(context.style.get_font().font_size)
+                    length.to_computed_value(context.style().get_font().clone_font_size())
             }
         }
     }
@@ -1583,7 +1603,7 @@ pub mod computed {
     impl ToComputedValue for specified::CalcLengthOrPercentage {
         type ComputedValue = CalcLengthOrPercentage;
 
-        fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> CalcLengthOrPercentage {
             let mut length = None;
 
             if let Some(absolute) = self.absolute {
@@ -1593,13 +1613,13 @@ pub mod computed {
             for val in &[self.vw, self.vh, self.vmin, self.vmax] {
                 if let Some(val) = *val {
                     length = Some(length.unwrap_or(Au(0)) +
-                        val.to_computed_value(context.viewport_size));
+                        val.to_computed_value(context.viewport_size()));
                 }
             }
             for val in &[self.ch, self.em, self.ex, self.rem] {
                 if let Some(val) = *val {
                     length = Some(length.unwrap_or(Au(0)) + val.to_computed_value(
-                        context.style.get_font().font_size, context.style.root_font_size));
+                        context.style().get_font().clone_font_size(), context.style().root_font_size()));
                 }
             }
 
@@ -1621,7 +1641,7 @@ pub mod computed {
         type ComputedValue = BorderRadiusSize;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> BorderRadiusSize {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> BorderRadiusSize {
             let specified::BorderRadiusSize(s) = *self;
             let w = s.width.to_computed_value(context);
             let h = s.height.to_computed_value(context);
@@ -1664,7 +1684,7 @@ pub mod computed {
     impl ToComputedValue for specified::LengthOrPercentage {
         type ComputedValue = LengthOrPercentage;
 
-        fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> LengthOrPercentage {
             match *self {
                 specified::LengthOrPercentage::Length(value) => {
                     LengthOrPercentage::Length(value.to_computed_value(context))
@@ -1712,7 +1732,7 @@ pub mod computed {
         type ComputedValue = LengthOrPercentageOrAuto;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> LengthOrPercentageOrAuto {
             match *self {
                 specified::LengthOrPercentageOrAuto::Length(value) => {
                     LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
@@ -1764,7 +1784,7 @@ pub mod computed {
         type ComputedValue = LengthOrPercentageOrNone;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrNone {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> LengthOrPercentageOrNone {
             match *self {
                 specified::LengthOrPercentageOrNone::Length(value) => {
                     LengthOrPercentageOrNone::Length(value.to_computed_value(context))
@@ -1812,7 +1832,7 @@ pub mod computed {
         type ComputedValue = LengthOrNone;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> LengthOrNone {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> LengthOrNone {
             match *self {
                 specified::LengthOrNone::Length(specified::Length::Calc(calc)) => {
                     LengthOrNone::Length(calc.to_computed_value(context).length())
@@ -1840,7 +1860,7 @@ pub mod computed {
         type ComputedValue = Image;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> Image {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> Image {
             match *self {
                 specified::Image::Url(ref url) => Image::Url(url.clone()),
                 specified::Image::LinearGradient(ref linear_gradient) => {
@@ -1936,7 +1956,7 @@ pub mod computed {
         type ComputedValue = LinearGradient;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> LinearGradient {
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> LinearGradient {
             let specified::LinearGradient {
                 angle_or_corner,
                 ref stops

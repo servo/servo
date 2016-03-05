@@ -8,7 +8,7 @@ use animation::{self, Animation};
 use context::SharedStyleContext;
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
-use properties::{ComputedValues, PropertyDeclaration, cascade};
+use properties::{ComputedValues, PropertyDeclaration, TComputedValues, cascade};
 use selector_impl::SelectorImplExt;
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
