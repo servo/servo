@@ -42,11 +42,11 @@ log = "0.3"
 num_cpus = "0.2.2"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = {version = "0.5", features = ["heap_size"]}
+selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
-string_cache = {version = "0.2.10", features = ["heap_size"]}
+string_cache = {version = "0.2.10", features = ["heap_size", "unstable"]}
 url = {version = "0.5.5", features = ["heap_size", "serde_serialization"]}
 uuid = "0.1.17"
 
