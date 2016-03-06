@@ -92,7 +92,7 @@ impl LateLintPass for UnrootedPass {
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields() {
-                if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.node.id), false) {
+                if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
                 }
@@ -107,9 +107,9 @@ impl LateLintPass for UnrootedPass {
             match var.node.data {
                 hir::VariantData::Tuple(ref vec, _) => {
                     for ty in vec {
-                        cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.node.id).map(|t| {
+                        cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
                             if is_unrooted_ty(cx, t, false) {
-                                cx.span_lint(UNROOTED_MUST_ROOT, ty.node.ty.span,
+                                cx.span_lint(UNROOTED_MUST_ROOT, ty.ty.span,
                                              "Type must be rooted, use #[must_root] on \
                                               the enum definition to propagate")
                             }
