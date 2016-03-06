@@ -148,3 +148,149 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Should throw when there is no distinguishing index")
+
+    # Now let's test our whole distinguishability table
+    argTypes = [ "long", "short", "long?", "short?", "boolean",
+                 "boolean?", "DOMString", "ByteString", "Enum", "Enum2",
+                 "Interface", "Interface?",
+                 "AncestorInterface", "UnrelatedInterface",
+                 "ImplementedInterface", "CallbackInterface",
+                 "CallbackInterface?", "CallbackInterface2",
+                 "object", "Callback", "Callback2", "optional Dict",
+                 "optional Dict2", "sequence<long>", "sequence<short>",
+                 "MozMap<object>", "MozMap<Dict>", "MozMap<long>",
+                 "long[]", "short[]", "Date", "Date?", "any",
+                 "Promise<any>", "Promise<any>?",
+                 "USVString", "ArrayBuffer", "ArrayBufferView", "SharedArrayBuffer",
+                 "Uint8Array", "Uint16Array" ]
+    # When we can parse Date and RegExp, we need to add them here.
+
+    # Try to categorize things a bit to keep list lengths down
+    def allBut(list1, list2):
+        return [a for a in list1 if a not in list2 and
+                (a != "any" and a != "Promise<any>" and a != "Promise<any>?")]
+    numerics = [ "long", "short", "long?", "short?" ]
+    booleans = [ "boolean", "boolean?" ]
+    primitives = numerics + booleans
+    nonNumerics = allBut(argTypes, numerics)
+    nonBooleans = allBut(argTypes, booleans)
+    strings = [ "DOMString", "ByteString", "Enum", "Enum2", "USVString" ]
+    nonStrings = allBut(argTypes, strings)
+    nonObjects = primitives + strings
+    objects = allBut(argTypes, nonObjects )
+    bufferSourceTypes = ["ArrayBuffer", "ArrayBufferView", "Uint8Array", "Uint16Array"]
+    sharedBufferSourceTypes = ["SharedArrayBuffer"]
+    interfaces = [ "Interface", "Interface?", "AncestorInterface",
+                   "UnrelatedInterface", "ImplementedInterface" ] + bufferSourceTypes + sharedBufferSourceTypes
+    nullables = ["long?", "short?", "boolean?", "Interface?",
+                 "CallbackInterface?", "optional Dict", "optional Dict2",
+                 "Date?", "any", "Promise<any>?"]
+    dates = [ "Date", "Date?" ]
+    sequences = [ "sequence<long>", "sequence<short>" ]
+    arrays = [ "long[]", "short[]" ]
+    nonUserObjects = nonObjects + interfaces + dates + sequences
+    otherObjects = allBut(argTypes, nonUserObjects + ["object"])
+    notRelatedInterfaces = (nonObjects + ["UnrelatedInterface"] +
+                            otherObjects + dates + sequences + bufferSourceTypes + sharedBufferSourceTypes)
+    mozMaps = [ "MozMap<object>", "MozMap<Dict>", "MozMap<long>" ]
+
+    # Build a representation of the distinguishability table as a dict
+    # of dicts, holding True values where needed, holes elsewhere.
+    data = dict();
+    for type in argTypes:
+        data[type] = dict()
+    def setDistinguishable(type, types):
+        for other in types:
+            data[type][other] = True
+
+    setDistinguishable("long", nonNumerics)
+    setDistinguishable("short", nonNumerics)
+    setDistinguishable("long?", allBut(nonNumerics, nullables))
+    setDistinguishable("short?", allBut(nonNumerics, nullables))
+    setDistinguishable("boolean", nonBooleans)
+    setDistinguishable("boolean?", allBut(nonBooleans, nullables))
+    setDistinguishable("DOMString", nonStrings)
+    setDistinguishable("ByteString", nonStrings)
+    setDistinguishable("USVString", nonStrings)
+    setDistinguishable("Enum", nonStrings)
+    setDistinguishable("Enum2", nonStrings)
+    setDistinguishable("Interface", notRelatedInterfaces)
+    setDistinguishable("Interface?", allBut(notRelatedInterfaces, nullables))
+    setDistinguishable("AncestorInterface", notRelatedInterfaces)
+    setDistinguishable("UnrelatedInterface",
+                       allBut(argTypes, ["object", "UnrelatedInterface"]))
+    setDistinguishable("ImplementedInterface", notRelatedInterfaces)
+    setDistinguishable("CallbackInterface", nonUserObjects)
+    setDistinguishable("CallbackInterface?", allBut(nonUserObjects, nullables))
+    setDistinguishable("CallbackInterface2", nonUserObjects)
+    setDistinguishable("object", nonObjects)
+    setDistinguishable("Callback", nonUserObjects)
+    setDistinguishable("Callback2", nonUserObjects)
+    setDistinguishable("optional Dict", allBut(nonUserObjects, nullables))
+    setDistinguishable("optional Dict2", allBut(nonUserObjects, nullables))
+    setDistinguishable("sequence<long>",
+                       allBut(argTypes, sequences + arrays + ["object"]))
+    setDistinguishable("sequence<short>",
+                       allBut(argTypes, sequences + arrays + ["object"]))
+    setDistinguishable("MozMap<object>", nonUserObjects)
+    setDistinguishable("MozMap<Dict>", nonUserObjects)
+    setDistinguishable("MozMap<long>", nonUserObjects)
+    setDistinguishable("long[]", allBut(nonUserObjects, sequences))
+    setDistinguishable("short[]", allBut(nonUserObjects, sequences))
+    setDistinguishable("Date", allBut(argTypes, dates + ["object"]))
+    setDistinguishable("Date?", allBut(argTypes, dates + nullables + ["object"]))
+    setDistinguishable("any", [])
+    setDistinguishable("Promise<any>", [])
+    setDistinguishable("Promise<any>?", [])
+    setDistinguishable("ArrayBuffer", allBut(argTypes, ["ArrayBuffer", "object"]))
+    setDistinguishable("ArrayBufferView", allBut(argTypes, ["ArrayBufferView", "Uint8Array", "Uint16Array", "object"]))
+    setDistinguishable("Uint8Array", allBut(argTypes, ["ArrayBufferView", "Uint8Array", "object"]))
+    setDistinguishable("Uint16Array", allBut(argTypes, ["ArrayBufferView", "Uint16Array", "object"]))
+    setDistinguishable("SharedArrayBuffer", allBut(argTypes, ["SharedArrayBuffer", "object"]))
+
+    def areDistinguishable(type1, type2):
+        return data[type1].get(type2, False)
+
+    def checkDistinguishability(parser, type1, type2):
+        idlTemplate = """
+          enum Enum { "a", "b" };
+          enum Enum2 { "c", "d" };
+          interface Interface : AncestorInterface {};
+          interface AncestorInterface {};
+          interface UnrelatedInterface {};
+          interface ImplementedInterface {};
+          Interface implements ImplementedInterface;
+          callback interface CallbackInterface {};
+          callback interface CallbackInterface2 {};
+          callback Callback = any();
+          callback Callback2 = long(short arg);
+          dictionary Dict {};
+          dictionary Dict2 {};
+          interface _Promise {};
+          interface TestInterface {%s
+          };
+        """
+        methodTemplate = """
+            void myMethod(%s arg);"""
+        methods = (methodTemplate % type1) + (methodTemplate % type2)
+        idl = idlTemplate % methods
+        parser = parser.reset()
+        threw = False
+        try:
+            parser.parse(idl)
+            results = parser.finish()
+        except:
+            threw = True
+
+        if areDistinguishable(type1, type2):
+            harness.ok(not threw,
+                       "Should not throw for '%s' and '%s' because they are distinguishable" % (type1, type2))
+        else:
+            harness.ok(threw,
+                       "Should throw for '%s' and '%s' because they are not distinguishable" % (type1, type2))
+
+    # Enumerate over everything in both orders, since order matters in
+    # terms of our implementation of distinguishability checks
+    for type1 in argTypes:
+        for type2 in argTypes:
+            checkDistinguishability(parser, type1, type2)

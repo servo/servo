@@ -79,3 +79,15 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Should not allow a bogus default value for an enum")
+
+    # Now reset our parser
+    parser = parser.reset()
+    parser.parse("""
+      enum Enum {
+        "a",
+        "b",
+        "c",
+      };
+    """)
+    results = parser.finish()
+    harness.check(len(results), 1, "Should allow trailing comma in enum")
