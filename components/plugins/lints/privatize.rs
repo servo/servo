@@ -31,13 +31,10 @@ impl LateLintPass for PrivatizePass {
                         id: ast::NodeId) {
         if cx.tcx.has_attr(cx.tcx.map.local_def_id(id), "privatize") {
             for field in def.fields() {
-                match field.node {
-                    hir::StructField_ { kind: hir::NamedField(name, visibility), .. } if visibility == hir::Public => {
-                        cx.span_lint(PRIVATIZE, field.span,
-                                     &format!("Field {} is public where only private fields are allowed",
-                                              name));
-                    }
-                    _ => {}
+                if field.vis == hir::Public {
+                    cx.span_lint(PRIVATIZE, field.span,
+                                 &format!("Field {} is public where only private fields are allowed",
+                                          field.name));
                 }
             }
         }
