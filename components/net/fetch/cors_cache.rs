@@ -29,7 +29,7 @@ pub enum HeaderOrMethod {
 impl HeaderOrMethod {
     fn match_header(&self, header_name: &str) -> bool {
         match *self {
-            HeaderOrMethod::HeaderData(ref s) => s.eq_ignore_ascii_case(header_name),
+            HeaderOrMethod::HeaderData(ref s) => (&**s).eq_ignore_ascii_case(header_name),
             _ => false
         }
     }

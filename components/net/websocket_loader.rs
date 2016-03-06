@@ -51,7 +51,7 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     {
        let protocol_in_use = unwrap_websocket_protocol(response.protocol());
         if let Some(protocol_name) = protocol_in_use {
-                if !protocols.is_empty() && !protocols.iter().any(|p| p.eq_ignore_ascii_case(protocol_name)) {
+                if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
                     return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
             };
         };
