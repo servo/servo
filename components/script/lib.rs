@@ -60,6 +60,7 @@ extern crate phf;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;
+extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate rustc_serialize;
 extern crate script_traits;
