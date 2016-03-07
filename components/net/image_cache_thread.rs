@@ -327,17 +327,13 @@ impl ImageCache {
             webrender_api: webrender_api,
         };
 
-        cache.do_run();
-    }
-
-    fn do_run(&mut self) {
         let mut exit_sender: Option<IpcSender<()>> = None;
 
         loop {
             let result = {
-                let cmd_receiver = &self.cmd_receiver;
-                let progress_receiver = &self.progress_receiver;
-                let decoder_receiver = &self.decoder_receiver;
+                let cmd_receiver = &cache.cmd_receiver;
+                let progress_receiver = &cache.progress_receiver;
+                let decoder_receiver = &cache.decoder_receiver;
 
                 select! {
                     msg = cmd_receiver.recv() => {
@@ -354,19 +350,19 @@ impl ImageCache {
 
             match result {
                 SelectResult::Command(cmd) => {
-                    exit_sender = self.handle_cmd(cmd);
+                    exit_sender = cache.handle_cmd(cmd);
                 }
                 SelectResult::Progress(msg) => {
-                    self.handle_progress(msg);
+                    cache.handle_progress(msg);
                 }
                 SelectResult::Decoder(msg) => {
-                    self.handle_decoder(msg);
+                    cache.handle_decoder(msg);
                 }
             }
 
             // Can only exit when all pending loads are complete.
             if let Some(ref exit_sender) = exit_sender {
-                if self.pending_loads.is_empty() {
+                if cache.pending_loads.is_empty() {
                     exit_sender.send(()).unwrap();
                     break;
                 }
