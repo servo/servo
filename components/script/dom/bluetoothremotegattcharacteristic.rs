@@ -4,7 +4,8 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
+use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
+    BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
