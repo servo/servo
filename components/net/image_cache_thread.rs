@@ -554,12 +554,17 @@ impl ImageCache {
                 }
             }
             None => {
-                self.pending_loads.get_by_url(&url).as_ref().
-                    map_or(Err(ImageState::NotRequested), |pl| pl.metadata.as_ref().
-                    map_or(Err(ImageState::Pending), |meta|
-                           Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
-                          )
-                    )
+                let pl = match self.pending_loads.get_by_url(&url) {
+                    Some(pl) => pl,
+                    None => return Err(ImageState::NotRequested),
+                };
+
+                let meta = match pl.metadata {
+                    Some(ref meta) => meta,
+                    None => return Err(ImageState::Pending),
+                };
+
+                Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
             }
         }
     }
