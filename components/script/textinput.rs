@@ -36,7 +36,7 @@ pub struct TextInput<T: ClipboardProvider> {
     /// Current cursor input point
     pub edit_point: TextPoint,
     /// Beginning of selection range with edit_point as end that can span multiple lines.
-    selection_begin: Option<TextPoint>,
+    pub selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
     #[ignore_heap_size_of = "Can't easily measure this generic type"]
@@ -500,12 +500,40 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub fn get_absolute_insertion_point(&self) -> usize {
+        self.get_absolute_point_for_text_point(&self.edit_point)
+    }
+
+    pub fn get_absolute_point_for_text_point(&self, text_point: &TextPoint) -> usize {
         self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
-            if i < self.edit_point.line {
+            if i < text_point.line {
                 acc + val.len() + 1 // +1 for the \n
             } else {
                 acc
             }
-        }) + self.edit_point.index
+        }) + text_point.index
+    }
+
+    pub fn get_text_point_for_absolute_point(&self, abs_point: usize) -> TextPoint {
+        let mut index = abs_point;
+        let mut line = 0;
+
+        let last_line_idx = self.lines.len() - 1;
+        self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
+            if i != last_line_idx {
+                let line_end = max(val.len(), 1);
+                let new_acc = acc + line_end;
+                if abs_point > new_acc && index > line_end {
+                    index -= line_end + 1;
+                    line += 1;
+                }
+                new_acc
+            } else {
+                acc
+            }
+        });
+
+        TextPoint {
+            line: line, index: index
+        }
     }
 }
