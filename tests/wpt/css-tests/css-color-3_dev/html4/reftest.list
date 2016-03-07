@@ -1,5 +1,6 @@
 
 t31-color-currentColor-b.htm == reference/t31-color-currentColor-b-ref.htm
+t31-color-text-a.htm != reference/t31-color-text-a-ref.htm
 t32-opacity-offscreen-multiple-boxes-1-c.htm == reference/t32-opacity-offscreen-multiple-boxes-1-c-ref.htm
 t32-opacity-offscreen-multiple-boxes-2-c.htm == reference/t32-opacity-offscreen-multiple-boxes-2-c-ref.htm
 t421-rgb-func-int-a.htm == reference/t422-rgba-func-int-a-ref.htm

@@ -1,5 +1,6 @@
 
 t31-color-currentColor-b.xht == reference/t31-color-currentColor-b-ref.xht
+t31-color-text-a.xht != reference/t31-color-text-a-ref.xht
 t32-opacity-offscreen-multiple-boxes-1-c.xht == reference/t32-opacity-offscreen-multiple-boxes-1-c-ref.xht
 t32-opacity-offscreen-multiple-boxes-2-c.xht == reference/t32-opacity-offscreen-multiple-boxes-2-c-ref.xht
 t421-rgb-func-int-a.xht == reference/t422-rgba-func-int-a-ref.xht
