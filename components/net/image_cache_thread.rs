@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use immeta::load_from_buf;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelFormat};
 use net_traits::image_cache_thread::ImageResponder;
@@ -286,7 +286,51 @@ fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
 }
 
 impl ImageCache {
-    fn run(&mut self) {
+    fn run(resource_thread: ResourceThread,
+           webrender_api: Option<webrender_traits::RenderApi>,
+           ipc_command_receiver: IpcReceiver<ImageCacheCommand>) {
+        // Preload the placeholder image, used when images fail to load.
+        let mut placeholder_path = resources_dir_path();
+        placeholder_path.push("rippy.png");
+
+        let mut image_data = vec![];
+        let result = File::open(&placeholder_path).and_then(|mut file| {
+            file.read_to_end(&mut image_data)
+        });
+        let placeholder_image = result.ok().map(|_| {
+            let mut image = load_from_memory(&image_data).unwrap();
+            if let Some(ref webrender_api) = webrender_api {
+                let format = convert_format(image.format);
+                let mut bytes = Vec::new();
+                bytes.extend_from_slice(&*image.bytes);
+                image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
+            }
+            Arc::new(image)
+        });
+
+        // Ask the router to proxy messages received over IPC to us.
+        let cmd_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_command_receiver);
+
+        let (progress_sender, progress_receiver) = channel();
+        let (decoder_sender, decoder_receiver) = channel();
+        let mut cache = ImageCache {
+            cmd_receiver: cmd_receiver,
+            progress_sender: progress_sender,
+            progress_receiver: progress_receiver,
+            decoder_sender: decoder_sender,
+            decoder_receiver: decoder_receiver,
+            thread_pool: ThreadPool::new(4),
+            pending_loads: AllPendingLoads::new(),
+            completed_loads: HashMap::new(),
+            resource_thread: resource_thread,
+            placeholder_image: placeholder_image,
+            webrender_api: webrender_api,
+        };
+
+        cache.do_run();
+    }
+
+    fn do_run(&mut self) {
         let mut exit_sender: Option<IpcSender<()>> = None;
 
         loop {
@@ -551,48 +595,9 @@ impl ImageCache {
 pub fn new_image_cache_thread(resource_thread: ResourceThread,
                               webrender_api: Option<webrender_traits::RenderApi>) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
-    let (progress_sender, progress_receiver) = channel();
-    let (decoder_sender, decoder_receiver) = channel();
 
     spawn_named("ImageCacheThread".to_owned(), move || {
-
-        // Preload the placeholder image, used when images fail to load.
-        let mut placeholder_path = resources_dir_path();
-        placeholder_path.push("rippy.png");
-
-        let mut image_data = vec![];
-        let result = File::open(&placeholder_path).and_then(|mut file| {
-            file.read_to_end(&mut image_data)
-        });
-        let placeholder_image = result.ok().map(|_| {
-            let mut image = load_from_memory(&image_data).unwrap();
-            if let Some(ref webrender_api) = webrender_api {
-                let format = convert_format(image.format);
-                let mut bytes = Vec::new();
-                bytes.extend_from_slice(&*image.bytes);
-                image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
-            }
-            Arc::new(image)
-        });
-
-        // Ask the router to proxy messages received over IPC to us.
-        let cmd_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_command_receiver);
-
-        let mut cache = ImageCache {
-            cmd_receiver: cmd_receiver,
-            progress_sender: progress_sender,
-            progress_receiver: progress_receiver,
-            decoder_sender: decoder_sender,
-            decoder_receiver: decoder_receiver,
-            thread_pool: ThreadPool::new(4),
-            pending_loads: AllPendingLoads::new(),
-            completed_loads: HashMap::new(),
-            resource_thread: resource_thread,
-            placeholder_image: placeholder_image,
-            webrender_api: webrender_api,
-        };
-
-        cache.run();
+        ImageCache::run(resource_thread, webrender_api, ipc_command_receiver)
     });
 
     ImageCacheThread::new(ipc_command_sender)
