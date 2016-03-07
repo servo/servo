@@ -390,7 +390,7 @@ impl EventTarget {
         // TODO step 1.2 (browsing context/scripting enabled)
 
         // Step 1.3
-        let body: Vec<u16> = handler.source.utf16_units().collect();
+        let body: Vec<u16> = handler.source.encode_utf16().collect();
 
         // TODO step 1.5 (form owner)
 
