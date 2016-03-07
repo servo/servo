@@ -9,13 +9,13 @@ interface BluetoothRemoteGATTCharacteristic {
   readonly attribute BluetoothRemoteGATTService service;
   readonly attribute DOMString uuid;
   readonly attribute BluetoothCharacteristicProperties properties;
-  readonly attribute octet? value;
+  //readonly attribute sequence<byte>? value;
   BluetoothRemoteGATTDescriptor? getDescriptor(/*BluetoothDescriptorUUID descriptor*/);
   //Promise<BluetoothRemoteGATTDescriptor> getDescriptor(BluetoothDescriptorUUID descriptor);
   //Promise<sequence<BluetoothRemoteGATTDescriptor>>
   //getDescriptors(optional BluetoothDescriptorUUID descriptor);
   //Promise<DataView> readValue();
-  octet readValue();
+  sequence<byte> readValue();
   //Promise<void> writeValue(BufferSource value);
   //Promise<void> startNotifications();
   //Promise<void> stopNotifications();

@@ -21,34 +21,30 @@ pub struct BluetoothRemoteGATTCharacteristic {
     service: DOMRefCell<JS<BluetoothRemoteGATTService>>,
     uuid: DOMString,
     properties: DOMRefCell<JS<BluetoothCharacteristicProperties>>,
-    value: u8,
 }
 
 impl BluetoothRemoteGATTCharacteristic {
     pub fn new_inherited(service: &BluetoothRemoteGATTService,
                          uuid: DOMString,
-                         properties: &BluetoothCharacteristicProperties,
-                         value: u8)
+                         properties: &BluetoothCharacteristicProperties)
                          -> BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
             reflector_: Reflector::new(),
             service: DOMRefCell::new(JS::from_ref(&service)),
             uuid: uuid,
             properties: DOMRefCell::new(JS::from_ref(&properties)),
-            value: value,
         }
     }
 
     pub fn new(global: GlobalRef,
                service: &BluetoothRemoteGATTService,
                uuid: DOMString,
-               properties: &BluetoothCharacteristicProperties,
-               value: u8)
+               properties: &BluetoothCharacteristicProperties)
                -> Root<BluetoothRemoteGATTCharacteristic>{
         reflect_dom_object(box BluetoothRemoteGATTCharacteristic::new_inherited(service,
                                                                                 uuid,
                                                                                 properties,
-                                                                                value),
+                                                                                /*value*/),
                             global,
                             BluetoothRemoteGATTCharacteristicBinding::Wrap)
     }
@@ -71,11 +67,6 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         self.uuid.clone()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-value
-    fn GetValue(&self) -> Option<u8> {
-        Some(self.value)
-    }
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
     fn GetDescriptor(&self) -> Option<Root<BluetoothRemoteGATTDescriptor>> {
         //UNIMPLEMENTED
@@ -83,8 +74,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
-    fn ReadValue(&self) -> u8 {
+    fn ReadValue(&self) -> Vec<i8> {
         //UNIMPLEMENTED
-        0
+        vec!()
     }
 }

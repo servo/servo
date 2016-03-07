@@ -17,30 +17,26 @@ pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
     characteristic: DOMRefCell<JS<BluetoothRemoteGATTCharacteristic>>,
     uuid: DOMString,
-    value: u8,
 }
 
 impl BluetoothRemoteGATTDescriptor {
     pub fn new_inherited(characteristic: &BluetoothRemoteGATTCharacteristic,
-                         uuid: DOMString,
-                         value: u8)
+                         uuid: DOMString)
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
             characteristic: DOMRefCell::new(JS::from_ref(&characteristic)),
             uuid: uuid,
-            value: value,
         }
     }
 
     pub fn new(global: GlobalRef,
                characteristic: &BluetoothRemoteGATTCharacteristic,
-               uuid: DOMString,
-               value: u8)
+               uuid: DOMString)
                -> Root<BluetoothRemoteGATTDescriptor>{
         reflect_dom_object(box BluetoothRemoteGATTDescriptor::new_inherited(characteristic,
                                                                             uuid,
-                                                                            value),
+                                                                            /*value*/),
                             global,
                             BluetoothRemoteGATTDescriptorBinding::Wrap)
     }
@@ -58,14 +54,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         self.uuid.clone()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-value
-    fn GetValue(&self) -> Option<u8> {
-        Some(self.value)
-    }
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
-    fn ReadValue(&self) -> u8 {
+    fn ReadValue(&self) -> Vec<i8> {
         //UNIMPLEMENTED
-        0
+        vec!()
     }
 }
