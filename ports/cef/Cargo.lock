@@ -1486,6 +1486,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "ref_filter_map"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "ref_slice"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1561,6 +1566,7 @@ dependencies = [
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "rand 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ref_filter_map 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ref_slice 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
