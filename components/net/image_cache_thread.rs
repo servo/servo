@@ -18,7 +18,7 @@ use std::fs::File;
 use std::io::Read;
 use std::mem;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Select, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -335,26 +335,20 @@ impl ImageCache {
 
         loop {
             let result = {
-                let sel = Select::new();
+                let cmd_receiver = &self.cmd_receiver;
+                let progress_receiver = &self.progress_receiver;
+                let decoder_receiver = &self.decoder_receiver;
 
-                let mut cmd_handle = sel.handle(&self.cmd_receiver);
-                let mut progress_handle = sel.handle(&self.progress_receiver);
-                let mut decoder_handle = sel.handle(&self.decoder_receiver);
-
-                unsafe {
-                    cmd_handle.add();
-                    progress_handle.add();
-                    decoder_handle.add();
-                }
-
-                let ret = sel.wait();
-
-                if ret == cmd_handle.id() {
-                    SelectResult::Command(self.cmd_receiver.recv().unwrap())
-                } else if ret == decoder_handle.id() {
-                    SelectResult::Decoder(self.decoder_receiver.recv().unwrap())
-                } else {
-                    SelectResult::Progress(self.progress_receiver.recv().unwrap())
+                select! {
+                    msg = cmd_receiver.recv() => {
+                        SelectResult::Command(msg.unwrap())
+                    },
+                    msg = decoder_receiver.recv() => {
+                        SelectResult::Decoder(msg.unwrap())
+                    },
+                    msg = progress_receiver.recv() => {
+                        SelectResult::Progress(msg.unwrap())
+                    }
                 }
             };
 
