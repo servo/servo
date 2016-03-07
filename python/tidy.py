@@ -290,7 +290,7 @@ def check_rust(file_name, lines):
 
         # get rid of strings and chars because cases like regex expression, keep attributes
         if not line_is_attribute(line):
-            line = re.sub(r'"(\\"|[^\\"])*?"|' + r"'(\\'|[^\\\'])*?'", '', line)
+            line = re.sub(r'"(\\.|[^\\"])*?"|' + r"'(\\.|[^\\'])*?'", '', line)
 
         # get rid of comments
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
@@ -346,6 +346,8 @@ def check_rust(file_name, lines):
             for match in re.finditer(pattern, line):
                 if not filter_func(match, line):
                     continue
+
+                print line
                 yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
 
         # check alphabetical order of extern crates
