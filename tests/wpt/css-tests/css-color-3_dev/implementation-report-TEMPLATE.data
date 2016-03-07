@@ -5,8 +5,8 @@
 testname	revision	result	comment
 html4/t31-color-currentcolor-b.htm	51435ad4b7dd3607d521a4a541f0a3f6cb8a3ec2	?
 xhtml1/t31-color-currentcolor-b.xht	51435ad4b7dd3607d521a4a541f0a3f6cb8a3ec2	?
-html4/t31-color-text-a.htm	9538f997c484b1a56e62bf452ad69959dad4a25d	?
-xhtml1/t31-color-text-a.xht	9538f997c484b1a56e62bf452ad69959dad4a25d	?
+html4/t31-color-text-a.htm	e7be34e63f92ded17bbd9922e91c1d1ad7da2b00	?
+xhtml1/t31-color-text-a.xht	e7be34e63f92ded17bbd9922e91c1d1ad7da2b00	?
 html4/t32-opacity-basic-0.0-a.htm	826a3101a145e1b107604480ee65173b2a5ff82b	?
 xhtml1/t32-opacity-basic-0.0-a.xht	826a3101a145e1b107604480ee65173b2a5ff82b	?
 html4/t32-opacity-basic-0.6-a.htm	5b5a57257ed37e168206ede5c905d01516944971	?

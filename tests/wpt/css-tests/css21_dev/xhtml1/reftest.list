@@ -2694,6 +2694,7 @@ class-selector-004.xht == reference/no-red-filler-text-ref.xht
 class-selector-005.xht == reference/no-red-filler-text-ref.xht
 class-selector-006.xht == reference/filler-text-below-green.xht
 class-selector-007.xht == reference/no-red-filler-text-ref.xht
+class-selector-008.xht == reference/ref-this-text-should-be-green.xht
 clear-001.xht == reference/clear-001-ref.xht
 clear-002.xht == reference/clear-002-ref.xht
 clear-003.xht == reference/clear-003-ref.xht
@@ -3680,6 +3681,7 @@ first-line-pseudo-013.xht == reference/first-line-pseudo-013-ref.xht
 first-line-pseudo-014.xht == reference/first-line-pseudo-013-ref.xht
 first-line-pseudo-015.xht == reference/first-line-pseudo-015-ref.xht
 first-line-pseudo-016.xht == reference/first-line-pseudo-015-ref.xht
+first-line-pseudo-018.xht == reference/ref-this-text-should-be-green.xht
 first-line-selector-013.xht == reference/filler-text-below-green.xht
 fixed-table-layout-002a.xht == reference/fixed-table-layout-002a-ref.xht
 fixed-table-layout-003a01.xht == reference/fixed-table-layout-003a01-ref.xht

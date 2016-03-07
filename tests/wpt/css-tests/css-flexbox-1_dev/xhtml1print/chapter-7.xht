@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Flexible Box Layout Module Level 1 CR Test Suite</h1>
-  <h2>Flexibility (156 tests)</h2>
+  <h2>Flexibility (155 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -849,24 +849,13 @@
         </td>
       </tr>
     </tbody>
-    <tbody id="s7.1.#flex-basis">
-      <!-- 1 tests -->
-      <tr id="autoheight-regions-in-autoheight-flexbox-003-7.1.#flex-basis" class="ahem">
-        <td>
-            <a href="autoheight-regions-in-autoheight-flexbox-003.xht">autoheight-regions-in-autoheight-flexbox-003</a></td>
-        <td><a href="reference/autoheight-regions-in-autoheight-flexbox-003-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>CSS Regions: auto-height regions in auto-height flexbox with flex basis
-          <ul class="assert">
-            <li>Test checks that the computed height of auto-height regions placed in a flex container takes into the account the flex basis property. The space available inside the flex container should be distributed according to the flex basis property. In this particular case, each of the three regions must have a height equal to one third of the flex container's height.</li>
-          </ul>
-        </td>
-      </tr>
-    </tbody>
-    <tbody id="s7.1.#flex-grow-factor">
+    <tbody id="s7.1.#flex-flex-basis">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.1.#flex-shrink-factor">
+    <tbody id="s7.1.#flex-flex-grow-factor">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#flex-flex-shrink-factor">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.1.#flexible-length">
@@ -931,6 +920,12 @@
         </td>
       </tr>
     </tbody>
+    <tbody id="s7.1.#valdef-flex-basis-auto">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#valdef-flex-basis-content">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s7.1.#valdef-flex-flex-basis">
       <!-- 0 tests -->
     </tbody>
@@ -946,7 +941,7 @@
     <tbody id="s7.1.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1.1">+</a>
-        <a href="https://www.w3.org/TR/css-flexbox-1/#flex-common">7.1.1 Common Values of flex</a></th></tr>
+        <a href="https://www.w3.org/TR/css-flexbox-1/#flex-common">7.1.1 Basic Values of flex</a></th></tr>
       <!-- 5 tests -->
       <tr id="flexbox_flex-auto-7.1.1" class="">
         <td>
@@ -1355,12 +1350,6 @@
         <td>flexbox | transitioned flex-basis
         </td>
       </tr>
-    </tbody>
-    <tbody id="s7.2.3.#auto">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.2.3.#content">
-      <!-- 0 tests -->
     </tbody>
     <tbody id="s7.2.3.#propdef-flex-basis">
       <!-- 9 tests -->

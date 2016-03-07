@@ -25,8 +25,8 @@
             m12: 0, m22: 2, m32: 0, m42: 10,
             m13: 0, m23: 0, m33: 1, m43: 0,
             m14: 0, m24: 0, m34: 0, m44: 1,
-            is2D: true,
-            isIdentity: true
+            is2D: false,
+            isIdentity: false
         };
 
         test(function() {
@@ -41,7 +41,7 @@
                 0.0, 2.0, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0,
                 10.0, 10.0, 0.0, 1.0);
-            checkDOMMatrix(new DOMMatrix(float32Array), scaleTranslate2D);
+            checkDOMMatrix(new DOMMatrix(float32Array), scaleTranslate2D, false);
         },'testConstructor2');
         test(function() {
             var float32Array = new Float32Array(2.0, 0.0, 0.0, 2.0, 10.0, 10.0);
@@ -53,7 +53,7 @@
                 0.0, 2.0, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0,
                 10.0, 10.0, 0.0, 1.0]);
-            checkDOMMatrix(new DOMMatrix(float64Array), scaleTranslate2D);
+            checkDOMMatrix(new DOMMatrix(float64Array), scaleTranslate2D, false);
         },'testConstructor4');
         test(function() {
             var float64Array = new Float64Array(2.0, 0.0, 0.0, 2.0, 10.0, 10.0);
@@ -65,7 +65,7 @@
                 0.0, 2.0, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0,
                 10.0, 10.0, 0.0, 1.0];
-            checkDOMMatrix(new DOMMatrix(sequence), scaleTranslate2D);
+            checkDOMMatrix(new DOMMatrix(sequence), scaleTranslate2D, false);
         },'testConstructor6');
         test(function() {
             var sequence = [ 2.0, 0.0, 0.0, 2.0, 10.0, 10.0];
@@ -134,11 +134,14 @@
             assert_throws(new TypeError(), function() { new DOMMatrixReadOnly(string); });
         },'testConstructorIllegal1');
         test(function() {
-            var sequence = [ 2.0, 0.0, 0.0, 2.0, 10.0, 10.0];
+            var sequence = [ 2.0, 0.0, 0.0, 2.0, 10.0];
             assert_throws(new TypeError(), function() { new DOMMatrixReadOnly(sequence); });
         },'testConstructorIllegal2');
 
-        function checkDOMMatrix(m, exp) {
+        function checkDOMMatrix(m, exp, is2D) {
+            if (is2D === undefined) {
+              is2D = exp.is2D;
+            }
             assert_equals(m.m11, exp.m11, "Expected value for m11 is " + exp.m11);
             assert_equals(m.m12, exp.m12, "Expected value for m12 is " + exp.m12);
             assert_equals(m.m13, exp.m13, "Expected value for m13 is " + exp.m13);
@@ -155,7 +158,7 @@
             assert_equals(m.m42, exp.m42, "Expected value for m42 is " + exp.m42);
             assert_equals(m.m43, exp.m43, "Expected value for m43 is " + exp.m43);
             assert_equals(m.m44, exp.m44, "Expected value for m44 is " + exp.m44);
-            assert_equals(m.is2D, exp.is2D, "Expected value for is2D is " + exp.is2D);
+            assert_equals(m.is2D, is2D, "Expected value for is2D is " + is2D);
             assert_equals(m.isIdentity, exp.isIdentity, "Expected value for isIdentity is " + exp.isIdentity);
         }
 
