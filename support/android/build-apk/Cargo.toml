@@ -11,3 +11,5 @@ test = false
 doc = false
 bench = false
 
+[dependencies]
+walkdir = "0.1.5"

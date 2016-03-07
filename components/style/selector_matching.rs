@@ -146,7 +146,9 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         }
 
         if self.quirks_mode {
-            self.add_stylesheet(&Impl::get_quirks_mode_stylesheet());
+            if let Some(s) = Impl::get_quirks_mode_stylesheet() {
+                self.add_stylesheet(s);
+            }
         }
 
         for ref stylesheet in doc_stylesheets.iter() {

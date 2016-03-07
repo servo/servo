@@ -6,13 +6,13 @@ use app_units::Au;
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
+use range::Range;
 use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
-use util::range::Range;
-use util::vec::{Comparator, FullBinarySearchMethods};
+use webrender_traits;
 
 thread_local! {
     static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, CharIndex, usize)>> =
@@ -27,6 +27,7 @@ pub struct TextRun {
     pub font_template: Arc<FontTemplateData>,
     pub actual_pt_size: Au,
     pub font_metrics: FontMetrics,
+    pub font_key: Option<webrender_traits::FontKey>,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
     pub bidi_level: u8,
@@ -61,14 +62,12 @@ pub struct NaturalWordSliceIterator<'a> {
     reverse: bool,
 }
 
-struct CharIndexComparator;
-
-impl Comparator<CharIndex, GlyphRun> for CharIndexComparator {
-    fn compare(&self, key: &CharIndex, value: &GlyphRun) -> Ordering {
-        if *key < value.range.begin() {
-            Ordering::Less
-        } else if *key >= value.range.end() {
+impl GlyphRun {
+    fn compare(&self, key: &CharIndex) -> Ordering {
+        if *key < self.range.begin() {
             Ordering::Greater
+        } else if *key >= self.range.end() {
+            Ordering::Less
         } else {
             Ordering::Equal
         }
@@ -177,6 +176,7 @@ impl<'a> TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
             font_template: font.handle.template(),
+            font_key: font.font_key,
             actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
             bidi_level: bidi_level,
@@ -311,11 +311,12 @@ impl<'a> TextRun {
                 }
             }
 
-            let result = (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator);
-            if let Some(result) = result {
+            if let Ok(result) = (&**self.glyphs).binary_search_by(|current| current.compare(&index)) {
                 index_of_first_glyph_run_cache.set(Some((self_ptr, index, result)));
+                Some(result)
+            } else {
+                None
             }
-            result
         })
     }
 

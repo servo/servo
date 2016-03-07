@@ -30,6 +30,7 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
+use dom::browsingcontext::BrowsingContext;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -61,7 +62,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -77,8 +78,8 @@ use dom::window::{ReflowReason, Window};
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{HitTestResponse, MouseOverResponse};
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
@@ -91,15 +92,15 @@ use num::ToPrimitive;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
-use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{TouchEventType, TouchId};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::{BTreeMap, HashMap};
 use std::default::Default;
-use std::iter::FromIterator;
+use std::mem;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -129,6 +130,8 @@ enum ParserBlockedByScript {
 pub struct Document {
     node: Node,
     window: JS<Window>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
+    browsing_context: Option<JS<BrowsingContext>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -181,7 +184,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: DOMRefCell<HashMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<BTreeMap<u32, Box<FnBox(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -279,6 +282,12 @@ impl Document {
         self.loader.borrow_mut()
     }
 
+    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
+    #[inline]
+    pub fn browsing_context(&self) -> Option<&BrowsingContext> {
+        self.browsing_context.as_ref().map(|browsing_context| &**browsing_context)
+    }
+
     #[inline]
     pub fn window(&self) -> &Window {
         &*self.window
@@ -305,11 +314,13 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        let browsing_context = self.window.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
+        let browsing_context = match self.browsing_context() {
+            Some(browsing_context) => browsing_context,
+            None => return false,
+        };
         let active_document = browsing_context.active_document();
 
-        if self != active_document {
+        if self != &*active_document {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -525,7 +536,7 @@ impl Document {
             // Step 3 & 4
             String::from_utf8(percent_decode(fragid.as_bytes())).ok()
                 // Step 5
-                .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(&*decoded_fragid)))
+                .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
                 // Step 6
                 .or_else(|| self.get_anchor_by_name(fragid))
                 // Step 7
@@ -551,31 +562,20 @@ impl Document {
                 .map(Root::upcast)
     }
 
-    pub fn hit_test(&self, page_point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
-        assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().hit_test(*page_point) {
-            Ok(HitTestResponse(node_address)) => Some(node_address),
-            Err(()) => {
-                debug!("layout query error");
-                None
-            }
-        }
-    }
-
-    pub fn get_nodes_under_mouse(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        assert!(self.GetDocumentElement().is_some());
-        match self.window.layout().mouse_over(*page_point) {
-            Ok(MouseOverResponse(node_address)) => node_address,
-            Err(()) => vec![],
-        }
-    }
-
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         match state {
-            DocumentReadyState::Loading => update_with_current_time(&self.dom_loading),
+            DocumentReadyState::Loading => {
+                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserconnected
+                self.trigger_mozbrowser_event(MozBrowserEvent::Connected);
+                update_with_current_time(&self.dom_loading);
+            },
+            DocumentReadyState::Complete => {
+                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
+                self.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
+                update_with_current_time(&self.dom_complete);
+            },
             DocumentReadyState::Interactive => update_with_current_time(&self.dom_interactive),
-            DocumentReadyState::Complete => update_with_current_time(&self.dom_complete),
         };
 
         self.ready_state.set(state);
@@ -673,7 +673,7 @@ impl Document {
 
         let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                                       client_point.y + self.window.PageYOffset() as f32);
-        let node = match self.hit_test(&page_point) {
+        let node = match self.window.hit_test_query(page_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -786,63 +786,33 @@ impl Document {
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
-                                   prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
-        // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = client_point.as_ref().map(|client_point| {
-            let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                                          client_point.y + self.window.PageYOffset() as f32);
-            self.get_nodes_under_mouse(&page_point)
-        }).unwrap_or(vec![]);
-        let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
-            node::from_untrusted_node_address(js_runtime, *node_address)
-                .inclusive_ancestors()
+                                   prev_mouse_over_target: &MutNullableHeap<JS<Element>>) {
+        let page_point = match client_point {
+            None => {
+                // If there's no point, there's no target under the mouse
+                // FIXME: dispatch mouseout here. We have no point.
+                prev_mouse_over_target.set(None);
+                return;
+            }
+            Some(ref client_point) => {
+                Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                             client_point.y + self.window.PageYOffset() as f32)
+            }
+        };
+
+        let client_point = client_point.unwrap();
+
+        let maybe_new_target = self.window.hit_test_query(page_point, true).and_then(|address| {
+            let node = node::from_untrusted_node_address(js_runtime, address);
+            node.inclusive_ancestors()
                 .filter_map(Root::downcast::<Element>)
                 .next()
-                .unwrap()
-        }).collect::<RootedVec<JS<Element>>>();
+        });
 
-        // Remove hover from any elements in the previous list that are no longer
-        // under the mouse.
-        for target in prev_mouse_over_targets.iter() {
-            if !mouse_over_targets.contains(target) {
-                let target_ref = &**target;
-                if target_ref.get_hover_state() {
-                    target_ref.set_hover_state(false);
-
-                    let target = target_ref.upcast();
-
-                    // FIXME: we should be dispatching this event but we lack an actual
-                    //        point to pass to it.
-                    if let Some(client_point) = client_point {
-                        self.fire_mouse_event(client_point, &target, "mouseout".to_owned());
-                    }
-                }
-            }
-        }
-
-        // Set hover state for any elements in the current mouse over list.
-        // Check if any of them changed state to determine whether to
-        // force a reflow below.
-        for target in mouse_over_targets.r() {
-            if !target.get_hover_state() {
-                target.set_hover_state(true);
-
-                let target = target.upcast();
-
-                if let Some(client_point) = client_point {
-                    self.fire_mouse_event(client_point, target, "mouseover".to_owned());
-                }
-            }
-        }
-
-        // Send mousemove event to topmost target
-        if mouse_over_addresses.len() > 0 {
-            let top_most_node = node::from_untrusted_node_address(js_runtime,
-                                                                  mouse_over_addresses[0]);
-            let client_point = client_point.unwrap(); // Must succeed because hit test succeeded.
-
+        // Send mousemove event to topmost target, and forward it if it's an iframe
+        if let Some(ref new_target) = maybe_new_target {
             // If the target is an iframe, forward the event to the child document.
-            if let Some(iframe) = top_most_node.downcast::<HTMLIFrameElement>() {
+            if let Some(iframe) = new_target.downcast::<HTMLIFrameElement>() {
                 if let Some(pipeline_id) = iframe.pipeline_id() {
                     let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                     let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
@@ -854,13 +824,59 @@ impl Document {
                 return;
             }
 
-            let target = top_most_node.upcast();
-            self.fire_mouse_event(client_point, target, "mousemove".to_owned());
+            self.fire_mouse_event(client_point, new_target.upcast(), "mousemove".to_owned());
         }
 
-        // Store the current mouse over targets for next frame
-        prev_mouse_over_targets.clear();
-        prev_mouse_over_targets.append(&mut *mouse_over_targets);
+        // Nothing more to do here, mousemove is sent,
+        // and the element under the mouse hasn't changed.
+        if maybe_new_target == prev_mouse_over_target.get() {
+            return;
+        }
+
+        let old_target_is_ancestor_of_new_target = match (prev_mouse_over_target.get(), maybe_new_target.as_ref()) {
+            (Some(old_target), Some(new_target))
+                => old_target.upcast::<Node>().is_ancestor_of(new_target.upcast::<Node>()),
+            _   => false,
+        };
+
+        // Here we know the target has changed, so we must update the state,
+        // dispatch mouseout to the previous one, mouseover to the new one,
+        if let Some(old_target) = prev_mouse_over_target.get() {
+            // If the old target is an ancestor of the new target, this can be skipped
+            // completely, since the node's hover state will be reseted below.
+            if !old_target_is_ancestor_of_new_target {
+                for element in old_target.upcast::<Node>()
+                                         .inclusive_ancestors()
+                                         .filter_map(Root::downcast::<Element>) {
+                    element.set_hover_state(false);
+                }
+            }
+
+            // Remove hover state to old target and its parents
+            self.fire_mouse_event(client_point, old_target.upcast(), "mouseout".to_owned());
+
+            // TODO: Fire mouseleave here only if the old target is
+            // not an ancestor of the new target.
+        }
+
+        if let Some(ref new_target) = maybe_new_target {
+            for element in new_target.upcast::<Node>()
+                                     .inclusive_ancestors()
+                                     .filter_map(Root::downcast::<Element>) {
+                if element.get_hover_state() {
+                    break;
+                }
+
+                element.set_hover_state(true);
+            }
+
+            self.fire_mouse_event(client_point, &new_target.upcast(), "mouseover".to_owned());
+
+            // TODO: Fire mouseenter here.
+        }
+
+        // Store the current mouse over target for next frame.
+        prev_mouse_over_target.set(maybe_new_target.as_ref().map(|target| target.r()));
 
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
@@ -880,7 +896,7 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = match self.hit_test(&point) {
+        let node = match self.window.hit_test_query(point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false,
         };
@@ -1228,11 +1244,8 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        let animation_frame_list;
-        {
-            let mut list = self.animation_frame_list.borrow_mut();
-            animation_frame_list = Vec::from_iter(list.drain());
-        }
+        let animation_frame_list =
+            mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
         let performance = self.window.Performance();
         let performance = performance.r();
         let timing = performance.Now();
@@ -1507,6 +1520,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
 impl Document {
     pub fn new_inherited(window: &Window,
+                         browsing_context: Option<&BrowsingContext>,
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
@@ -1525,6 +1539,7 @@ impl Document {
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
+            browsing_context: browsing_context.map(JS::from_ref),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1568,7 +1583,7 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec![]),
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DOMRefCell::new(HashMap::new()),
+            animation_frame_list: DOMRefCell::new(BTreeMap::new()),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
@@ -1594,6 +1609,7 @@ impl Document {
         let docloader = DocumentLoader::new(&*doc.loader());
         Ok(Document::new(win,
                          None,
+                         None,
                          IsHTMLDocument::NonHTMLDocument,
                          None,
                          None,
@@ -1602,6 +1618,7 @@ impl Document {
     }
 
     pub fn new(window: &Window,
+               browsing_context: Option<&BrowsingContext>,
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
@@ -1610,6 +1627,7 @@ impl Document {
                doc_loader: DocumentLoader)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
+                                                                      browsing_context,
                                                                       url,
                                                                       doctype,
                                                                       content_type,
@@ -1672,6 +1690,7 @@ impl Document {
                 IsHTMLDocument::NonHTMLDocument
             };
             let new_doc = Document::new(self.window(),
+                                        None,
                                         None,
                                         doctype,
                                         None,
@@ -1751,17 +1770,12 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
-        // Step 1.
-        let target = self;
-        let browsing_context = self.window.browsing_context();
-        let browsing_context = browsing_context.as_ref();
-
-        match browsing_context {
+        match self.browsing_context() {
             Some(browsing_context) => {
                 // Step 2.
                 let candidate = browsing_context.active_document();
                 // Step 3.
-                if candidate == target {
+                if &*candidate == self {
                     true
                 } else {
                     false //TODO  Step 4.
@@ -1835,7 +1849,7 @@ impl DocumentMethods for Document {
             Vacant(entry) => {
                 let mut tag_copy = tag_name;
                 tag_copy.make_ascii_lowercase();
-                let ascii_lower_tag = Atom::from(&*tag_copy);
+                let ascii_lower_tag = Atom::from(tag_copy);
                 let result = HTMLCollection::by_atomic_tag_name(&self.window,
                                                                 self.upcast(),
                                                                 tag_atom,
@@ -1852,7 +1866,7 @@ impl DocumentMethods for Document {
                               tag_name: DOMString)
                               -> Root<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
-        let local = Atom::from(&*tag_name);
+        let local = Atom::from(tag_name);
         let qname = QualName::new(ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
@@ -1883,7 +1897,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
-        self.get_element_by_id(&Atom::from(&*id))
+        self.get_element_by_id(&Atom::from(id))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
@@ -1895,7 +1909,7 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(html), Atom::from(&*local_name));
+        let name = QualName::new(ns!(html), Atom::from(local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
@@ -1919,12 +1933,10 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = Atom::from(&*local_name);
-        // repetition used because string_cache::atom::Atom is non-copyable
-        let l_name = Atom::from(&*local_name);
+        let name = Atom::from(local_name);
         let value = AttrValue::String(DOMString::new());
 
-        Ok(Attr::new(&self.window, name, value, l_name, ns!(), None, None))
+        Ok(Attr::new(&self.window, name.clone(), value, name, ns!(), None, None))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattributens
@@ -1935,7 +1947,7 @@ impl DocumentMethods for Document {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
         let value = AttrValue::String(DOMString::new());
-        let qualified_name = Atom::from(&*qualified_name);
+        let qualified_name = Atom::from(qualified_name);
         Ok(Attr::new(&self.window,
                      local_name,
                      value,
@@ -2481,7 +2493,7 @@ impl DocumentMethods for Document {
                 _ => false,
             }
         }
-        let name = Atom::from(&*name);
+        let name = Atom::from(name);
         let root = self.upcast::<Node>();
         {
             // Step 1.
@@ -2535,6 +2547,35 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#handler-onreadystatechange
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
+
+    #[allow(unsafe_code)]
+    // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<Root<Element>> {
+        let x = *x as f32;
+        let y = *y as f32;
+        let point = &Point2D { x: x, y: y };
+        let window = window_from_node(self);
+        let viewport = window.window_size().unwrap().visible_viewport;
+
+        if x < 0.0 || y < 0.0 || x > viewport.width.get() || y > viewport.height.get() {
+            return None;
+        }
+
+        let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
+
+        match self.window.hit_test_query(*point, false) {
+            Some(untrusted_node_address) => {
+                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                let parent_node = node.GetParentNode().unwrap();
+                let element_ref = node.downcast::<Element>().unwrap_or_else(|| {
+                    parent_node.downcast::<Element>().unwrap()
+                });
+
+                Some(Root::from_ref(element_ref))
+            },
+            None => self.GetDocumentElement()
+        }
+    }
 }
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
@@ -2576,9 +2617,6 @@ impl DocumentProgressHandler {
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         document.notify_constellation_load();
-
-        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-        document.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,

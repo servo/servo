@@ -7,6 +7,7 @@
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
+use std::mem;
 use std::ops;
 use std::str;
 use std::str::FromStr;
@@ -24,14 +25,18 @@ impl ByteString {
     /// Returns `self` as a string, if it encodes valid UTF-8, and `None`
     /// otherwise.
     pub fn as_str(&self) -> Option<&str> {
-        let ByteString(ref vec) = *self;
-        str::from_utf8(&vec).ok()
+        str::from_utf8(&self.0).ok()
+    }
+
+    /// Returns ownership of the underlying Vec<u8> and copies an empty
+    /// vec in its place
+    pub fn bytes(&mut self) -> Vec<u8> {
+        mem::replace(&mut self.0, Vec::new())
     }
 
     /// Returns the length.
     pub fn len(&self) -> usize {
-        let ByteString(ref vector) = *self;
-        vector.len()
+        self.0.len()
     }
 
     /// Compare `self` to `other`, matching A–Z and a–z as equal.
@@ -43,77 +48,11 @@ impl ByteString {
     pub fn to_lower(&self) -> ByteString {
         ByteString::new(self.0.to_ascii_lowercase())
     }
+}
 
-    /// Returns whether `self` is a `token`, as defined by
-    /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
-    pub fn is_token(&self) -> bool {
-        let ByteString(ref vec) = *self;
-        is_token(vec)
-    }
-
-    /// Returns whether `self` is a `field-value`, as defined by
-    /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
-    pub fn is_field_value(&self) -> bool {
-        // Classifications of characters necessary for the [CRLF] (SP|HT) rule
-        #[derive(PartialEq)]
-        enum PreviousCharacter {
-            Other,
-            CR,
-            LF,
-            SPHT, // SP or HT
-        }
-        let ByteString(ref vec) = *self;
-        let mut prev = PreviousCharacter::Other; // The previous character
-        vec.iter().all(|&x| {
-            // http://tools.ietf.org/html/rfc2616#section-2.2
-            match x {
-                13  => { // CR
-                    if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT {
-                        prev = PreviousCharacter::CR;
-                        true
-                    } else {
-                        false
-                    }
-                },
-                10 => { // LF
-                    if prev == PreviousCharacter::CR {
-                        prev = PreviousCharacter::LF;
-                        true
-                    } else {
-                        false
-                    }
-                },
-                32 => { // SP
-                    if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
-                        prev = PreviousCharacter::SPHT;
-                        true
-                    } else if prev == PreviousCharacter::Other {
-                        // Counts as an Other here, since it's not preceded by a CRLF
-                        // SP is not a CTL, so it can be used anywhere
-                        // though if used immediately after a CR the CR is invalid
-                        // We don't change prev since it's already Other
-                        true
-                    } else {
-                        false
-                    }
-                },
-                9 => { // HT
-                    if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
-                        prev = PreviousCharacter::SPHT;
-                        true
-                    } else {
-                        false
-                    }
-                },
-                0...31 | 127 => false, // CTLs
-                x if x > 127 => false, // non ASCII
-                _ if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT => {
-                    prev = PreviousCharacter::Other;
-                    true
-                },
-                _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
-            }
-        })
+impl Into<Vec<u8>> for ByteString {
+    fn into(self) -> Vec<u8> {
+        self.0
     }
 }
 

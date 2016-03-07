@@ -2,6 +2,7 @@
 name = "msg"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+publish = false
 
 [lib]
 name = "msg"
@@ -19,6 +20,9 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies.plugins]
 path = "../plugins"
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
 bitflags = "0.3"

@@ -21,7 +21,7 @@ use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::{ByteString, USVString, is_token};
 use dom::blob::Blob;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
@@ -55,12 +55,11 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
-use std::string::ToString;
-use std::sync::mpsc::channel;
+use std::str;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
-use timers::{ScheduledCallback, TimerHandle};
+use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 use url::percent_encoding::{utf8_percent_encode, USERNAME_ENCODE_SET, PASSWORD_ENCODE_SET};
 use util::str::DOMString;
@@ -147,7 +146,7 @@ pub struct XMLHttpRequest {
     upload_events: Cell<bool>,
     send_flag: Cell<bool>,
 
-    timeout_cancel: DOMRefCell<Option<TimerHandle>>,
+    timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
@@ -197,6 +196,13 @@ impl XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#constructors
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
+    }
+
+    fn sync_in_window(&self) -> bool {
+        match self.global() {
+            GlobalRoot::Window(_) if self.sync.get() => true,
+            _ => false
+        }
     }
 
     fn check_cors(context: Arc<Mutex<XHRContext>>,
@@ -301,9 +307,23 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
+    fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
+        // Step 8
+        self.Open_(method, url, true, None, None)
+    }
+
+    // https://xhr.spec.whatwg.org/#the-open()-method
     fn Open_(&self, method: ByteString, url: USVString, async: bool,
-                 username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
-        self.sync.set(!async);
+             username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
+        // Step 1
+        match self.global() {
+            GlobalRoot::Window(ref window) => {
+                if !window.Document().r().is_fully_active() { return Err(Error::InvalidState); }
+            }
+            _ => {}
+        }
+
+        // Step 5
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
@@ -319,54 +339,55 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 _ => s.parse().ok()
             }
         });
-        // Step 2
+
         match maybe_method {
             // Step 4
             Some(Method::Connect) | Some(Method::Trace) => Err(Error::Security),
             Some(Method::Extension(ref t)) if &**t == "TRACK" => Err(Error::Security),
             Some(parsed_method) => {
                 // Step 3
-                if !method.is_token() {
+                if !is_token(&method) {
                     return Err(Error::Syntax)
                 }
 
-                *self.request_method.borrow_mut() = parsed_method;
-
-                // Step 6
+                // Step 2
                 let base = self.global().r().get_url();
+                // Step 6
                 let mut parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
-                    Err(_) => return Err(Error::Syntax) // Step 7
+                    // Step 7
+                    Err(_) => return Err(Error::Syntax)
                 };
 
-                // XXXManishearth Do some handling of username/passwords
-                if self.sync.get() {
-                    // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 || self.with_credentials.get() ||
-                       self.response_type.get() != XMLHttpRequestResponseType::_empty {
-                        return Err(Error::InvalidAccess)
-                    }
-                }
-
+                // Step 9
                 if parsed_url.host().is_some() {
                     if let Some(scheme_data) = parsed_url.relative_scheme_data_mut() {
                         if let Some(user_str) = username {
                             scheme_data.username = utf8_percent_encode(&user_str.0, USERNAME_ENCODE_SET);
 
                             // ensure that the password is mutated when a username is provided
-                            scheme_data.password = match password {
-                                Some(pass_str) => Some(utf8_percent_encode(&pass_str.0, PASSWORD_ENCODE_SET)),
-                                None => None
-                            }
+                            scheme_data.password = password.map(|pass_str| {
+                                utf8_percent_encode(&pass_str.0, PASSWORD_ENCODE_SET)
+                            });
                         }
                     }
                 }
 
-                // abort existing requests
+                // Step 10
+                if !async {
+                    // FIXME: This should only happen if the global environment is a document environment
+                    if self.timeout.get() != 0 || self.with_credentials.get() ||
+                       self.response_type.get() != XMLHttpRequestResponseType::_empty {
+                        return Err(Error::InvalidAccess)
+                    }
+                }
+                // Step 11 - abort existing requests
                 self.terminate_ongoing_fetch();
 
                 // Step 12
+                *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);
+                self.sync.set(!async);
                 *self.request_headers.borrow_mut() = Headers::new();
                 self.send_flag.set(false);
                 *self.status_text.borrow_mut() = ByteString::new(vec!());
@@ -378,64 +399,73 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 }
                 Ok(())
             },
+            // Step 3
             // This includes cases where as_str() returns None, and when is_token() returns false,
             // both of which indicate invalid extension method names
-            _ => Err(Error::Syntax), // Step 3
+            _ => Err(Error::Syntax)
         }
-    }
-
-    // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
-        self.Open_(method, url, true, None, None)
     }
 
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
-    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
+    fn SetRequestHeader(&self, name: ByteString, value: ByteString) -> ErrorResult {
+        // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(Error::InvalidState); // Step 1, 2
+            return Err(Error::InvalidState);
         }
-        if !name.is_token() || !value.is_field_value() {
-            return Err(Error::Syntax); // Step 3, 4
+
+        // Step 3
+        let value = trim_http_whitespace(&value);
+
+        // Step 4
+        if !is_token(&name) || !is_field_value(&value) {
+            return Err(Error::Syntax);
         }
         let name_lower = name.to_lower();
         let name_str = match name_lower.as_str() {
             Some(s) => {
-                match s {
-                    // Disallowed headers
-                    "accept-charset" | "accept-encoding" |
-                    "access-control-request-headers" |
-                    "access-control-request-method" |
-                    "connection" | "content-length" |
-                    "cookie" | "cookie2" | "date" |"dnt" |
-                    "expect" | "host" | "keep-alive" | "origin" |
-                    "referer" | "te" | "trailer" | "transfer-encoding" |
-                    "upgrade" | "user-agent" | "via" => {
-                        return Ok(()); // Step 5
-                    },
-                    _ => s
+                // Step 5
+                // Disallowed headers and header prefixes:
+                // https://fetch.spec.whatwg.org/#forbidden-header-name
+                let disallowedHeaders =
+                    ["accept-charset", "accept-encoding",
+                    "access-control-request-headers",
+                    "access-control-request-method",
+                    "connection", "content-length",
+                    "cookie", "cookie2", "date", "dnt",
+                    "expect", "host", "keep-alive", "origin",
+                    "referer", "te", "trailer", "transfer-encoding",
+                    "upgrade", "via"];
+
+                let disallowedHeaderPrefixes = ["sec-", "proxy-"];
+
+                if disallowedHeaders.iter().any(|header| *header == s) ||
+                   disallowedHeaderPrefixes.iter().any(|prefix| s.starts_with(prefix)) {
+                    return Ok(())
+                } else {
+                    s
                 }
             },
-            None => return Err(Error::Syntax)
+            None => unreachable!()
         };
 
-        debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), value.as_str());
+        debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), str::from_utf8(value).ok());
         let mut headers = self.request_headers.borrow_mut();
 
 
-        // Steps 6,7
-        match headers.get_raw(name_str) {
+        // Step 6
+        let value = match headers.get_raw(name_str) {
             Some(raw) => {
                 debug!("SetRequestHeader: old value = {:?}", raw[0]);
                 let mut buf = raw[0].clone();
                 buf.extend_from_slice(b", ");
-                buf.extend_from_slice(&value);
+                buf.extend_from_slice(value);
                 debug!("SetRequestHeader: new value = {:?}", buf);
-                value = ByteString::new(buf);
+                buf
             },
-            None => {}
-        }
+            None => value.into(),
+        };
 
-        headers.set_raw(name_str.to_owned(), vec![value.to_vec()]);
+        headers.set_raw(name_str.to_owned(), vec![value]);
         Ok(())
     }
 
@@ -446,26 +476,27 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-timeout-attribute
     fn SetTimeout(&self, timeout: u32) -> ErrorResult {
-        if self.sync.get() {
-            // FIXME: Not valid for a worker environment
-            Err(Error::InvalidAccess)
-        } else {
-            self.timeout.set(timeout);
-            if self.send_flag.get() {
-                if timeout == 0 {
-                    self.cancel_timeout();
-                    return Ok(());
-                }
-                let progress = time::now().to_timespec().sec - self.fetch_time.get();
-                if timeout > (progress * 1000) as u32 {
-                    self.set_timeout(timeout - (progress * 1000) as u32);
-                } else {
-                    // Immediately execute the timeout steps
-                    self.set_timeout(0);
-                }
-            }
-            Ok(())
+        // Step 1
+        if self.sync_in_window() {
+            return Err(Error::InvalidAccess);
         }
+        // Step 2
+        self.timeout.set(timeout);
+
+        if self.send_flag.get() {
+            if timeout == 0 {
+                self.cancel_timeout();
+                return Ok(());
+            }
+            let progress = time::now().to_timespec().sec - self.fetch_time.get();
+            if timeout > (progress * 1000) as u32 {
+                self.set_timeout(timeout - (progress * 1000) as u32);
+            } else {
+                // Immediately execute the timeout steps
+                self.set_timeout(0);
+            }
+        }
+        Ok(())
     }
 
     // https://xhr.spec.whatwg.org/#the-withcredentials-attribute
@@ -476,17 +507,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
     fn SetWithCredentials(&self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
+            // Step 1
             XMLHttpRequestState::HeadersReceived |
             XMLHttpRequestState::Loading |
             XMLHttpRequestState::Done => Err(Error::InvalidState),
+            // Step 2
             _ if self.send_flag.get() => Err(Error::InvalidState),
-            _ => match self.global() {
-                GlobalRoot::Window(_) if self.sync.get() => Err(Error::InvalidAccess),
-                _ => {
-                    self.with_credentials.set(with_credentials);
-                    Ok(())
-                },
-            },
+            // Step 3
+            _ if self.sync_in_window() => Err(Error::InvalidAccess),
+            // Step 4
+            _ => {
+                self.with_credentials.set(with_credentials);
+                Ok(())
+            }
         }
     }
 
@@ -497,14 +530,17 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-send()-method
     fn Send(&self, data: Option<SendParam>) -> ErrorResult {
+        // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(Error::InvalidState); // Step 1, 2
+            return Err(Error::InvalidState);
         }
 
+        // Step 3
         let data = match *self.request_method.borrow() {
-            Method::Get | Method::Head => None, // Step 3
+            Method::Get | Method::Head => None,
             _ => data
         };
+        // Step 4
         let extracted = data.as_ref().map(|d| d.extract());
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
 
@@ -516,23 +552,25 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some (ref e) if e.0.is_empty() => true,
             _ => false
         });
+        // Step 8
+        self.send_flag.set(true);
 
+        // Step 9
         if !self.sync.get() {
-            // Step 8
             let event_target = self.upload.upcast::<EventTarget>();
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
 
-            // Step 9
-            self.send_flag.set(true);
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
+            // Substep 1
             let gen_id = self.generation_id.get();
             self.dispatch_response_progress_event(atom!("loadstart"));
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
+            // Substep 2
             if !self.upload_complete.get() {
                 self.dispatch_upload_progress_event(atom!("loadstart"), Some(0));
                 if self.generation_id.get() != gen_id {
@@ -542,6 +580,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         }
 
+        // Step 5
         let global = self.global();
         let pipeline_id = global.r().pipeline();
         let mut load_data =
@@ -617,6 +656,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         self.fetch_time.set(time::now().to_timespec().sec);
         let rv = self.fetch(load_data, cors_request, global.r());
+        // Step 10
         if self.sync.get() {
             return rv;
         }
@@ -630,7 +670,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-abort()-method
     fn Abort(&self) {
+        // Step 1
         self.terminate_ongoing_fetch();
+        // Step 2
         let state = self.ready_state.get();
         if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
            state == XMLHttpRequestState::HeadersReceived ||
@@ -643,6 +685,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 return
             }
         }
+        // Step 3
         self.ready_state.set(XMLHttpRequestState::Unsent);
     }
 
@@ -677,15 +720,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-overridemimetype()-method
     fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
+        // Step 1
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => return Err(Error::InvalidState),
             _ => {},
         }
+        // Step 2
         let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
+        // Step 3
         *self.override_mime_type.borrow_mut() = Some(override_mime.clone());
+        // Step 4
         let value = override_mime.get_param(mime::Attr::Charset);
         *self.override_charset.borrow_mut() = value.and_then(|value| {
-                encoding_from_whatwg_label(value)
+            encoding_from_whatwg_label(value)
         });
         Ok(())
     }
@@ -697,16 +744,20 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+        // Step 1
         match self.global() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document => return Ok(()),
             _ => {}
         }
         match self.ready_state.get() {
+            // Step 2
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(Error::InvalidState),
             _ => {
-                if let (GlobalRoot::Window(_), true) = (self.global(), self.sync.get()) {
+                if self.sync_in_window() {
+                    // Step 3
                     Err(Error::InvalidAccess)
                 } else {
+                    // Step 4
                     self.response_type.set(response_type);
                     Ok(())
                 }
@@ -722,20 +773,25 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             match self.response_type.get() {
                 XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                     let ready_state = self.ready_state.get();
+                    // Step 2
                     if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
                         self.text_response().to_jsval(cx, rval.handle_mut());
                     } else {
+                    // Step 1
                         "".to_jsval(cx, rval.handle_mut());
                     }
                 },
+                // Step 1
                 _ if self.ready_state.get() != XMLHttpRequestState::Done => {
-                    return NullValue()
+                    return NullValue();
                 },
+                // Step 2
                 XMLHttpRequestResponseType::Document => {
-                    let op_doc = self.GetResponseXML();
-                    if let Ok(Some(doc)) = op_doc {
+                    let op_doc = self.document_response();
+                    if let Some(doc) = op_doc {
                         doc.to_jsval(cx, rval.handle_mut());
                     } else {
+                    // Substep 1
                         return NullValue();
                     }
                 },
@@ -759,10 +815,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 Ok(USVString(String::from(match self.ready_state.get() {
+                    // Step 3
                     XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
+                    // Step 2
                     _ => "".to_owned()
                 })))
             },
+            // Step 1
             _ => Err(Error::InvalidState)
         }
     }
@@ -771,20 +830,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
-                match self.ready_state.get() {
-                    XMLHttpRequestState::Done => {
-                        match self.response_xml.get() {
-                            Some(response) => Ok(Some(response)),
-                            None => {
-                                let response = self.document_response();
-                                self.response_xml.set(response.r());
-                                Ok(response)
-                            }
-                        }
-                    },
-                    _ => Ok(None)
+                // Step 3
+                if let XMLHttpRequestState::Done = self.ready_state.get() {
+                    Ok(self.response_xml.get().or_else(|| {
+                        let response = self.document_response();
+                        self.response_xml.set(response.r());
+                        response
+                    }))
+                } else {
+                // Step 2
+                    Ok(None)
                 }
-            },
+            }
+            // Step 1
             _ => { Err(Error::InvalidState) }
         }
     }
@@ -1006,39 +1064,15 @@ impl XMLHttpRequest {
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(&self, duration_ms: u32) {
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct ScheduledXHRTimeout {
-            #[ignore_heap_size_of = "Because it is non-owning"]
-            xhr: Trusted<XMLHttpRequest>,
-            generation_id: GenerationId,
-        }
-
-        impl ScheduledCallback for ScheduledXHRTimeout {
-            fn invoke(self: Box<Self>) {
-                let this = *self;
-                let xhr = this.xhr.root();
-                if xhr.ready_state.get() != XMLHttpRequestState::Done {
-                    xhr.process_partial_response(XHRProgress::Errored(this.generation_id, Error::Timeout));
-                }
-            }
-
-            fn box_clone(&self) -> Box<ScheduledCallback> {
-                box ScheduledXHRTimeout {
-                    xhr: self.xhr.clone(),
-                    generation_id: self.generation_id,
-                }
-            }
-        }
-
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
         let global = self.global();
-        let callback = ScheduledXHRTimeout {
+        let callback = OneshotTimerCallback::XhrTimeout(XHRTimeoutCallback {
             xhr: Trusted::new(self, global.r().networking_task_source()),
             generation_id: self.generation_id.get(),
-        };
+        });
         let duration = Length::new(duration_ms as u64);
-        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(box callback, duration));
+        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(callback, duration));
     }
 
     fn cancel_timeout(&self) {
@@ -1048,13 +1082,16 @@ impl XMLHttpRequest {
         }
     }
 
-    //FIXME: add support for XML encoding guess stuff using XML spec
+    // https://xhr.spec.whatwg.org/#text-response
     fn text_response(&self) -> String {
-        let encoding = self.final_charset().unwrap_or(UTF_8);
+        // Step 3, 5
+        let charset = self.final_charset().unwrap_or(UTF_8);
+        // TODO: Step 4 - add support for XML encoding guess stuff using XML spec
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
+        // Step 1, 2, 6
+        charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap()
     }
 
     // https://xhr.spec.whatwg.org/#blob-response
@@ -1064,28 +1101,38 @@ impl XMLHttpRequest {
             return response;
         }
         // Step 2
-        let mime = self.final_mime_type().as_ref().map(ToString::to_string).unwrap_or("".to_owned());
+        let mime = self.final_mime_type().as_ref().map(Mime::to_string).unwrap_or("".to_owned());
 
-        // Steps 3 && 4
+        // Step 3, 4
         let blob = Blob::new(self.global().r(), self.response.borrow().to_vec(), &mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
 
+    // https://xhr.spec.whatwg.org/#document-response
     fn document_response(&self) -> Option<Root<Document>> {
+        // Step 1
+        let response = self.response_xml.get();
+        if response.is_some() {
+            return self.response_xml.get();
+        }
+
         let mime_type = self.final_mime_type();
-        //TODO: prescan the response to determine encoding if final charset is null
+        // TODO: prescan the response to determine encoding if final charset is null
         let charset = self.final_charset().unwrap_or(UTF_8);
         let temp_doc: Root<Document>;
         match mime_type {
             Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
+                // Step 5
                 if self.response_type.get() == XMLHttpRequestResponseType::_empty {
                     return None;
                 }
+                // Step 6
                 else {
                     temp_doc = self.document_text_html();
                 }
             },
+            // Step 7
             Some(Mime(mime::TopLevel::Text, mime::SubLevel::Xml, _)) |
             Some(Mime(mime::TopLevel::Application, mime::SubLevel::Xml, _)) |
             None => {
@@ -1099,10 +1146,14 @@ impl XMLHttpRequest {
                     return None;
                 }
             },
+            // Step 4
             _ => { return None; }
         }
+        // Step 9
         temp_doc.set_encoding_name(DOMString::from(charset.name()));
-        Some(temp_doc)
+        // Step 13
+        self.response_xml.set(Some(temp_doc.r()));
+        return self.response_xml.get();
     }
 
     #[allow(unsafe_code)]
@@ -1120,7 +1171,7 @@ impl XMLHttpRequest {
             return NullValue();
         }
         // Step 4
-        let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap().to_owned();
+        let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
         let json_text: Vec<u16> = json_text.utf16_units().collect();
         // Step 5
         let mut rval = RootedValue::new(cx, UndefinedValue());
@@ -1142,7 +1193,7 @@ impl XMLHttpRequest {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let wr = wr.r();
-        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
         parse_html(document.r(), DOMString::from(decoded), wr.get_url(), ParseContext::Owner(Some(wr.pipeline())));
@@ -1153,7 +1204,7 @@ impl XMLHttpRequest {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let wr = wr.r();
-        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
+        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
         parse_xml(document.r(), DOMString::from(decoded), wr.get_url(), xml::ParseContext::Owner(Some(wr.pipeline())));
@@ -1177,6 +1228,7 @@ impl XMLHttpRequest {
             DOMString::from(format!("{}", mime))
         });
         Document::new(win,
+                      None,
                       parsed_url,
                       is_html_document,
                       content_type,
@@ -1301,6 +1353,22 @@ impl XMLHttpRequest {
     }
 }
 
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct XHRTimeoutCallback {
+    #[ignore_heap_size_of = "Because it is non-owning"]
+    xhr: Trusted<XMLHttpRequest>,
+    generation_id: GenerationId,
+}
+
+impl XHRTimeoutCallback {
+    pub fn invoke(self) {
+        let xhr = self.xhr.root();
+        if xhr.ready_state.get() != XMLHttpRequestState::Done {
+            xhr.process_partial_response(XHRProgress::Errored(self.generation_id, Error::Timeout));
+        }
+    }
+}
+
 trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
@@ -1329,4 +1397,92 @@ impl Extractable for SendParam {
             },
         }
     }
+}
+
+/// Returns whether `bs` is a `field-value`, as defined by
+/// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
+pub fn is_field_value(slice: &[u8]) -> bool {
+    // Classifications of characters necessary for the [CRLF] (SP|HT) rule
+    #[derive(PartialEq)]
+    enum PreviousCharacter {
+        Other,
+        CR,
+        LF,
+        SPHT, // SP or HT
+    }
+    let mut prev = PreviousCharacter::Other; // The previous character
+    slice.iter().all(|&x| {
+        // http://tools.ietf.org/html/rfc2616#section-2.2
+        match x {
+            13  => { // CR
+                if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT {
+                    prev = PreviousCharacter::CR;
+                    true
+                } else {
+                    false
+                }
+            },
+            10 => { // LF
+                if prev == PreviousCharacter::CR {
+                    prev = PreviousCharacter::LF;
+                    true
+                } else {
+                    false
+                }
+            },
+            32 => { // SP
+                if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
+                    prev = PreviousCharacter::SPHT;
+                    true
+                } else if prev == PreviousCharacter::Other {
+                    // Counts as an Other here, since it's not preceded by a CRLF
+                    // SP is not a CTL, so it can be used anywhere
+                    // though if used immediately after a CR the CR is invalid
+                    // We don't change prev since it's already Other
+                    true
+                } else {
+                    false
+                }
+            },
+            9 => { // HT
+                if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
+                    prev = PreviousCharacter::SPHT;
+                    true
+                } else {
+                    false
+                }
+            },
+            0...31 | 127 => false, // CTLs
+            x if x > 127 => false, // non ASCII
+            _ if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT => {
+                prev = PreviousCharacter::Other;
+                true
+            },
+            _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
+        }
+    })
+}
+
+/// Normalize `self`, as defined by
+/// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
+pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
+    const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
+
+    loop {
+        match slice.split_first() {
+            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    loop {
+        match slice.split_last() {
+            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    slice
 }

@@ -9,6 +9,7 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptThread`,
 //! `LayoutThread`, and `PaintThread`.
 
+use AnimationTickType;
 use CompositorMsg as FromCompositorMsg;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
@@ -63,6 +64,7 @@ use url::Url;
 use util::geometry::PagePx;
 use util::thread::spawn_named;
 use util::{opts, prefs};
+use webrender_traits;
 
 #[derive(Debug, PartialEq)]
 enum ReadyToSave {
@@ -181,6 +183,9 @@ pub struct Constellation<LTF, STF> {
 
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
+
+    // Webrender interface, if enabled.
+    webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
 
 /// State needed to construct a constellation.
@@ -203,6 +208,8 @@ pub struct InitialConstellationState {
     pub mem_profiler_chan: mem::ProfilerChan,
     /// Whether the constellation supports the clipboard.
     pub supports_clipboard: bool,
+    /// Optional webrender API reference (if enabled).
+    pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -347,6 +354,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 scheduler_chan: TimerScheduler::start(),
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
+                webrender_api_sender: state.webrender_api_sender,
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -399,6 +407,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 load_data: load_data,
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
                 pipeline_namespace_id: self.next_pipeline_namespace_id(),
+                webrender_api_sender: self.webrender_api_sender.clone(),
             });
 
         if spawning_paint_only {
@@ -463,12 +472,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // Get an iterator for the current frame tree. Specify self.root_frame_id to
     // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
     fn current_frame_tree_iter(&self, frame_id_root: Option<FrameId>) -> FrameTreeIterator {
-        let mut stack = vec!();
-        if let Some(frame_id_root) = frame_id_root {
-            stack.push(frame_id_root);
-        }
         FrameTreeIterator {
-            stack: stack,
+            stack: frame_id_root.into_iter().collect(),
             pipelines: &self.pipelines,
             frames: &self.frames,
         }
@@ -581,8 +586,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got window resize message");
                 self.handle_resized_window_msg(new_size);
             }
-            Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id)) => {
-                self.handle_tick_animation(pipeline_id)
+            Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id, tick_type)) => {
+                self.handle_tick_animation(pipeline_id, tick_type)
             }
             Request::Compositor(FromCompositorMsg::WebDriverCommand(command)) => {
                 debug!("constellation got webdriver command message");
@@ -908,12 +913,22 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                                                                                animation_state))
     }
 
-    fn handle_tick_animation(&mut self, pipeline_id: PipelineId) {
-        self.pipeline(pipeline_id)
-            .layout_chan
-            .0
-            .send(LayoutControlMsg::TickAnimations)
-            .unwrap();
+    fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
+        match tick_type {
+            AnimationTickType::Script => {
+                self.pipeline(pipeline_id)
+                    .script_chan
+                    .send(ConstellationControlMsg::TickAllAnimations(pipeline_id))
+                    .unwrap();
+            }
+            AnimationTickType::Layout => {
+                self.pipeline(pipeline_id)
+                    .layout_chan
+                    .0
+                    .send(LayoutControlMsg::TickAnimations)
+                    .unwrap();
+            }
+        }
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {
@@ -965,8 +980,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
-                let old_pipeline = self.pipelines.get(&source_id).unwrap();
-                old_pipeline.freeze();
+                self.pipeline(source_id).freeze();
                 Some(new_pipeline_id)
             }
         }
@@ -1138,10 +1152,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
                            resp_chan: IpcSender<Option<PipelineId>>) {
-        let current_pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
-            let frame = self.frames.get(&frame_id).unwrap();
-            frame.current
-        });
+        let current_pipeline_id = frame_id.or(self.root_frame_id)
+                                          .map(|frame_id| self.frame(frame_id).current);
         let pipeline_id = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
             .map(|x| x.new_pipeline_id).or(current_pipeline_id);
@@ -1196,7 +1208,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             size: &Size2D<i32>,
             response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
         let id = self.canvas_paint_threads.len();
-        let (out_of_process_sender, in_process_sender) = CanvasPaintThread::start(*size);
+        let webrender_api = self.webrender_api_sender.clone();
+        let (out_of_process_sender, in_process_sender) = CanvasPaintThread::start(*size,
+                                                                                  webrender_api);
         self.canvas_paint_threads.push(in_process_sender);
         response_sender.send((out_of_process_sender, id)).unwrap()
     }
@@ -1206,13 +1220,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             size: &Size2D<i32>,
             attributes: GLContextAttributes,
             response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>) {
-        let response = match WebGLPaintThread::start(*size, attributes) {
+        let webrender_api = self.webrender_api_sender.clone();
+        let response = match WebGLPaintThread::start(*size, attributes, webrender_api) {
             Ok((out_of_process_sender, in_process_sender)) => {
                 let id = self.webgl_paint_threads.len();
                 self.webgl_paint_threads.push(in_process_sender);
                 Ok((out_of_process_sender, id))
             },
-            Err(msg) => Err(msg.to_owned()),
+            Err(msg) => Err(msg),
         };
 
         response_sender.send(response).unwrap()
@@ -1246,10 +1261,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 }
             },
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
-                let current_pipeline_id = self.root_frame_id.map(|frame_id| {
-                    let frame = self.frames.get(&frame_id).unwrap();
-                    frame.current
-                });
+                let current_pipeline_id = self.root_frame_id
+                                              .map(|frame_id| self.frame(frame_id).current);
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
@@ -1387,20 +1400,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some(root_frame_id) = self.root_frame_id {
             // Send Resize (or ResizeInactive) messages to each
             // pipeline in the frame tree.
-            let frame = self.frames.get(&root_frame_id).unwrap();
+            let frame = self.frame(root_frame_id);
 
-            let pipeline = self.pipelines.get(&frame.current).unwrap();
+            let pipeline = self.pipeline(frame.current);
             let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
 
             for pipeline_id in frame.prev.iter().chain(&frame.next) {
-                let pipeline = self.pipelines.get(pipeline_id).unwrap();
+                let pipeline = self.pipeline(*pipeline_id);
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
             }
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
         for pending_frame in &self.pending_frames {
-            let pipeline = self.pipelines.get(&pending_frame.new_pipeline_id).unwrap();
+            let pipeline = self.pipeline(pending_frame.new_pipeline_id);
             if pipeline.parent_info.is_none() {
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id,
                                                                                   new_size));

@@ -157,8 +157,37 @@ pub enum TimelineMarkerType {
 /// The properties of a DOM node as computed by layout.
 #[derive(Deserialize, Serialize)]
 pub struct ComputedNodeLayout {
+    pub display: String,
+    pub position: String,
+    pub zIndex: String,
+    pub boxSizing: String,
+
+    pub autoMargins: AutoMargins,
+    pub marginTop: String,
+    pub marginRight: String,
+    pub marginBottom: String,
+    pub marginLeft: String,
+
+    pub borderTopWidth: String,
+    pub borderRightWidth: String,
+    pub borderBottomWidth: String,
+    pub borderLeftWidth: String,
+
+    pub paddingTop: String,
+    pub paddingRight: String,
+    pub paddingBottom: String,
+    pub paddingLeft: String,
+
     pub width: f32,
     pub height: f32,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct AutoMargins {
+    pub top: bool,
+    pub right: bool,
+    pub bottom: bool,
+    pub left: bool,
 }
 
 /// Messages to process in a particular script thread, as instructed by a devtools client.

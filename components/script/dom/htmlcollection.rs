@@ -103,19 +103,6 @@ impl HTMLCollection {
         }
     }
 
-    fn get_length(&self) -> u32 {
-        // Call validate_cache before calling this method!
-        if let Some(cached_length) = self.cached_length.get().to_option() {
-            // Cache hit
-            cached_length
-        } else {
-            // Cache miss, calculate the length
-            let length = self.elements_iter().count() as u32;
-            self.cached_length.set(OptionU32::some(length));
-            length
-        }
-    }
-
     fn set_cached_cursor(&self, index: u32, element: Option<Root<Element>>) -> Option<Root<Element>> {
         if let Some(element) = element {
             self.cached_cursor_index.set(OptionU32::some(index));
@@ -126,44 +113,11 @@ impl HTMLCollection {
         }
     }
 
-    fn get_item(&self, index: u32) -> Option<Root<Element>> {
-        // Call validate_cache before calling this method!
-        if let Some(element) = self.cached_cursor_element.get() {
-            // Cache hit, the cursor element is set
-            if let Some(cached_index) = self.cached_cursor_index.get().to_option() {
-                if cached_index == index {
-                    // The cursor is the element we're looking for
-                    Some(element)
-                } else if cached_index < index {
-                    // The cursor is before the element we're looking for
-                    // Iterate forwards, starting at the cursor.
-                    let offset = index - (cached_index + 1);
-                    let node: Root<Node> = Root::upcast(element);
-                    self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
-                } else {
-                    // The cursor is after the element we're looking for
-                    // Iterate backwards, starting at the cursor.
-                    let offset = cached_index - (index + 1);
-                    let node: Root<Node> = Root::upcast(element);
-                    self.set_cached_cursor(index, self.elements_iter_before(node.r()).nth(offset as usize))
-                }
-            } else {
-                // Cache miss
-                // Iterate forwards through all the nodes
-                self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
-            }
-        } else {
-            // Cache miss
-            // Iterate forwards through all the nodes
-            self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
-        }
-    }
-
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
-        let tag_atom = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let tag_atom = Atom::from(&*tag);
         tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let ascii_lower_tag = Atom::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
         HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
     }
 
@@ -194,7 +148,7 @@ impl HTMLCollection {
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
-        let local = Atom::from(&*tag); // FIXME(ajeffrey): Convert directly from DOMString to Atom
+        let local = Atom::from(tag);
         let ns = namespace_from_domstring(maybe_ns);
         let qname = QualName::new(ns, local);
         HTMLCollection::by_qual_tag_name(window, root, qname)
@@ -319,13 +273,51 @@ impl HTMLCollectionMethods for HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(&self) -> u32 {
         self.validate_cache();
-        self.get_length()
+
+        if let Some(cached_length) = self.cached_length.get().to_option() {
+            // Cache hit
+            cached_length
+        } else {
+            // Cache miss, calculate the length
+            let length = self.elements_iter().count() as u32;
+            self.cached_length.set(OptionU32::some(length));
+            length
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(&self, index: u32) -> Option<Root<Element>> {
         self.validate_cache();
-        self.get_item(index)
+
+        if let Some(element) = self.cached_cursor_element.get() {
+            // Cache hit, the cursor element is set
+            if let Some(cached_index) = self.cached_cursor_index.get().to_option() {
+                if cached_index == index {
+                    // The cursor is the element we're looking for
+                    Some(element)
+                } else if cached_index < index {
+                    // The cursor is before the element we're looking for
+                    // Iterate forwards, starting at the cursor.
+                    let offset = index - (cached_index + 1);
+                    let node: Root<Node> = Root::upcast(element);
+                    self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
+                } else {
+                    // The cursor is after the element we're looking for
+                    // Iterate backwards, starting at the cursor.
+                    let offset = cached_index - (index + 1);
+                    let node: Root<Node> = Root::upcast(element);
+                    self.set_cached_cursor(index, self.elements_iter_before(node.r()).nth(offset as usize))
+                }
+            } else {
+                // Cache miss
+                // Iterate forwards through all the nodes
+                self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+            }
+        } else {
+            // Cache miss
+            // Iterate forwards through all the nodes
+            self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
@@ -337,8 +329,8 @@ impl HTMLCollectionMethods for HTMLCollection {
 
         // Step 2.
         self.elements_iter().find(|elem| {
-            elem.get_string_attribute(&atom!("name")) == key ||
-            elem.get_string_attribute(&atom!("id")) == key
+            elem.get_string_attribute(&atom!("id")) == key ||
+            (elem.namespace() == &ns!(html) && elem.get_string_attribute(&atom!("name")) == key)
         })
     }
 

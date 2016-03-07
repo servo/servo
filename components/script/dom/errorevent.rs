@@ -99,7 +99,7 @@ impl ErrorEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         let error = RootedValue::new(global.get_cx(), init.error);
-        let event = ErrorEvent::new(global, Atom::from(&*type_),
+        let event = ErrorEvent::new(global, Atom::from(type_),
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num,

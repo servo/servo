@@ -2,6 +2,7 @@
 name = "layout_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+publish = false
 
 [lib]
 name = "layout_traits"
@@ -27,6 +28,9 @@ path = "../util"
 
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
 serde = "0.6"

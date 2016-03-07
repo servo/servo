@@ -26,6 +26,7 @@
 #![doc = "The script crate contains all matters DOM."]
 
 #![plugin(heapsize_plugin)]
+#![plugin(phf_macros)]
 #![plugin(plugins)]
 
 extern crate angle;
@@ -55,6 +56,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate num;
 extern crate offscreen_gl_context;
+extern crate phf;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;

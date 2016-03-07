@@ -2,6 +2,7 @@
 name = "net"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+publish = false
 
 [lib]
 name = "net"
@@ -28,6 +29,9 @@ path = "../msg"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+
 [dependencies]
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
 log = "0.3"
@@ -39,5 +43,5 @@ mime_guess = "1.1.1"
 flate2 = "0.2.0"
 uuid = "0.1.16"
 url = {version = "0.5.5", features = ["heap_size"]}
-websocket = "0.14.0"
+websocket = "0.15.0"
 immeta = "0.3.1"

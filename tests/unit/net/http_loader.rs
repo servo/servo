@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use cookie_rs::Cookie as CookiePair;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
@@ -92,13 +91,24 @@ fn redirect_to(host: String) -> MockResponse {
         headers,
         StatusCode::MovedPermanently,
         RawStatus(301, Cow::Borrowed("Moved Permanently")),
-        <[_]>::to_vec("".as_bytes())
+        b"".to_vec()
     )
 }
 
+fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
+    headers.set(Location(host.to_string()));
+
+    MockResponse::new(
+        headers,
+        StatusCode::MovedPermanently,
+        RawStatus(301, Cow::Borrowed("Moved Permanently")),
+        b"".to_vec()
+    )
+}
 
 enum ResponseType {
     Redirect(String),
+    RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers)
 }
@@ -119,6 +129,9 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::Redirect(location) => {
             Ok(redirect_to(location))
         },
+        ResponseType::RedirectWithHeaders(location, headers) => {
+            Ok(redirect_with_headers(location, headers))
+        }
         ResponseType::Text(b) => {
             Ok(respond_with(b))
         },
@@ -157,7 +170,6 @@ impl HttpRequest for AssertRequestMustHaveHeaders {
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         assert_eq!(self.request_headers, self.expected_headers);
-
         response_for_request_type(self.t)
     }
 }
@@ -169,9 +181,22 @@ struct AssertRequestMustIncludeHeaders {
 }
 
 impl AssertRequestMustIncludeHeaders {
-    fn new(t: ResponseType, expected_headers: Headers) -> Self {
-        assert!(expected_headers.len() != 0);
-        AssertRequestMustIncludeHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
+    fn new(t: ResponseType, expected_headers_op: Option<Headers>) -> Self {
+        match expected_headers_op {
+            Some(expected_headers) => {
+                assert!(expected_headers.len() != 0);
+                AssertRequestMustIncludeHeaders {
+                    expected_headers: expected_headers,
+                    request_headers: Headers::new(),
+                    t: t
+                }
+            }
+            None => AssertRequestMustIncludeHeaders {
+                expected_headers: Headers::new(),
+                request_headers: Headers::new(),
+                t: t
+            }
+        }
     }
 }
 
@@ -188,7 +213,6 @@ impl HttpRequest for AssertRequestMustIncludeHeaders {
                 self.expected_headers.get_raw(header.name()).unwrap()
             )
         }
-
         response_for_request_type(self.t)
     }
 }
@@ -224,7 +248,7 @@ impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
         Ok(
             AssertRequestMustIncludeHeaders::new(
                 ResponseType::Text(self.body.clone()),
-                self.expected_headers.clone()
+                Some(self.expected_headers.clone())
             )
         )
     }
@@ -1234,5 +1258,126 @@ fn test_load_errors_when_cancelled() {
                               &cancel_listener) {
         Err(LoadError::Cancelled(_, _)) => (),
         _ => panic!("expected load cancelled error!")
+    }
+}
+
+#[test]
+fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
+    let url_x = url!("http://mozilla.com");
+    let url_y = url!("http://mozilla.org");
+
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = AssertRequestMustIncludeHeaders;
+
+        fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
+            if url.domain().unwrap() == "mozilla.com" {
+                let mut expected_headers_x = Headers::new();
+                expected_headers_x.set_raw("Cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
+
+                Ok(AssertRequestMustIncludeHeaders::new(
+                    ResponseType::Redirect("http://mozilla.org".to_owned()), Some(expected_headers_x)))
+            } else if url.domain().unwrap() == "mozilla.org" {
+                let mut expected_headers_y = Headers::new();
+                expected_headers_y.set_raw(
+                    "Cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+
+                Ok(AssertRequestMustIncludeHeaders::new(
+                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())), Some(expected_headers_y)))
+            } else {
+                panic!("unexpected host {:?}", url)
+            }
+        }
+    }
+
+    let load_data = LoadData::new(LoadContext::Browsing, url_x.clone(), None);
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    {
+        let mut cookie_jar = cookie_jar.write().unwrap();
+        let cookie_x_url = url_x.clone();
+        let cookie_x = Cookie::new_wrapped(
+            CookiePair::new("mozillaIsNot".to_owned(), "dotCom".to_owned()),
+            &cookie_x_url,
+            CookieSource::HTTP
+        ).unwrap();
+
+        cookie_jar.push(cookie_x, CookieSource::HTTP);
+
+        let cookie_y_url = url_y.clone();
+        let cookie_y = Cookie::new_wrapped(
+            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
+            &cookie_y_url,
+            CookieSource::HTTP
+        ).unwrap();
+        cookie_jar.push(cookie_y, CookieSource::HTTP);
+    }
+
+    match load::<AssertRequestMustIncludeHeaders>(load_data,
+                              hsts_list,
+                              cookie_jar,
+                              None,
+                              &Factory,
+                              DEFAULT_USER_AGENT.to_owned(),
+                              &CancellationListener::new(None)) {
+        Err(e) => panic!("expected to follow a redirect {:?}", e),
+        Ok(mut lr) => {
+            let response = read_response(&mut lr);
+            assert_eq!(response, "Yay!".to_owned());
+        }
+    }
+}
+
+#[test]
+fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
+    let url = url!("http://mozilla.org/initial/");
+
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = AssertRequestMustIncludeHeaders;
+
+        fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
+            if url.path().unwrap()[0] == "initial" {
+                let mut initial_answer_headers = Headers::new();
+                initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
+                Ok(AssertRequestMustIncludeHeaders::new(
+                    ResponseType::RedirectWithHeaders("http://mozilla.org/subsequent/".to_owned(),
+                        initial_answer_headers),
+                    None))
+            } else if url.path().unwrap()[0] == "subsequent" {
+                let mut expected_subsequent_headers = Headers::new();
+                expected_subsequent_headers.set_raw("Cookie", vec![b"mozillaIs=theBest".to_vec()]);
+                Ok(AssertRequestMustIncludeHeaders::new(
+                    ResponseType::Text(b"Yay!".to_vec()),
+                    Some(expected_subsequent_headers)))
+            } else {
+                panic!("unexpected host {:?}", url)
+            }
+        }
+    }
+
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    match load::<AssertRequestMustIncludeHeaders>(load_data,
+                              hsts_list,
+                              cookie_jar,
+                              None,
+                              &Factory,
+                              DEFAULT_USER_AGENT.to_owned(),
+                              &CancellationListener::new(None)) {
+        Err(e) => panic!("expected to follow a redirect {:?}", e),
+        Ok(mut lr) => {
+            let response = read_response(&mut lr);
+            assert_eq!(response, "Yay!".to_owned());
+        }
     }
 }

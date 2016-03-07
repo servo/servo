@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Event handlers processing algorithm</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script
+ <body>
+ <div id="foo" style="width: 100px; height: 100px; background-color: black"></div>
+ <script>
+ async_test(function(t) {
+     var ev = new Event('mouseover', {cancelable: true});
+     document.getElementById("foo").onmouseover = t.step_func(function() { return true });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true)
+     t.done();
+ }, "mouseover listener returning true cancels event");
+
+ async_test(function(t) {
+     var ev = new Event('mouseover', {cancelable: true});
+     document.getElementById("foo").onmouseover = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, false);
+     t.done();
+ }, "mouseover listener returning false doesn't cancel event");
+
+ async_test(function(t) {
+     var ev = new Event('beforeunload', {cancelable: true});
+     window.onbeforeunload = t.step_func(function() {return null});
+     window.dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+     t.done();
+ }, "beforeunload listener returning null cancels event");
+
+ async_test(function(t) {
+     var ev = new Event('beforeunload', {cancelable: true});
+     window.onbeforeunload = t.step_func(function() {return true});
+     window.dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, false);
+     t.done();
+ }, "beforeunload listener returning non-null doesn't cancel event");
+
+ async_test(function(t) {
+     var ev = new Event("click", {cancelable: true});
+     document.getElementById("foo").onclick = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+     t.done();
+ }, "click listener returning false cancels event");
+
+ async_test(function(t) {
+     var ev = new Event("blur", {cancelable: true});
+     document.getElementById("foo").onblur = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+     t.done();
+ }, "blur listener returning false cancels event");
+
+ async_test(function(t) {
+     var ev = new Event("dblclick", {cancelable: true});
+     document.getElementById("foo").ondblclick = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+     t.done();
+ }, "dblclick listener returning false cancels event");
+</script>

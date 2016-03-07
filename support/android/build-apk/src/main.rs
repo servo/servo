@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//extern crate num;
-#![feature(dir_builder, fs_walk)]
+extern crate walkdir;
+
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
@@ -11,6 +11,7 @@ use std::fs::DirBuilder;
 use std::path::{Path, PathBuf};
 use std::process;
 use std::process::{Command, Stdio};
+use walkdir::WalkDir;
 
 fn main() {
     let (args, passthrough) = parse_arguments();
@@ -167,7 +168,7 @@ fn main() {
                                   .stderr(Stdio::inherit())
                                   .current_dir(directory.clone())
                                   .status();
-            if keytoolcreatecmd.is_err() || 
+            if keytoolcreatecmd.is_err() ||
                keytoolcreatecmd.unwrap().code().unwrap() != 0 {
                    println!("Error while using `keytool` to create the debug keystore.");
                    process::exit(1);
@@ -193,7 +194,7 @@ fn main() {
             println!("Error while using `jarsign` to sign the APK.");
             process::exit(1);
         }
-                 
+
         fs::copy(&directory.join("bin").join("Servo-release-unsigned.apk"),
                  &args.output).unwrap();
     }
@@ -263,25 +264,25 @@ fn find_native_libs(args: &Args) -> HashMap<String, PathBuf> {
     let mut native_shared_libs: HashMap<String, PathBuf> = HashMap::new();
 
     // Add requested .so files
-    fs::walk_dir(&args.target_path).and_then(|dir_walker| {
-        for path in dir_walker {
-            let path = path.unwrap().path();
-            match (path.file_name(), path.extension()) {
-                (Some(filename), Some(ext)) => {
-                    let filename = filename.to_str().unwrap();
-                    if filename.starts_with("lib")
-                        && ext == "so"
-                        && args.shared_libraries.contains(filename) {
-                            println!("Adding the file {:?}", filename);
-                            native_shared_libs.insert(filename.to_string(), path.clone());
-                            break;
-                        }
+    for dir_entry in WalkDir::new(&args.target_path) {
+        let dir_entry = dir_entry.unwrap();
+        let path = dir_entry.path();
+
+        match (path.file_name(), path.extension()) {
+            (Some(file_name), Some(extension)) => {
+                let file_name = file_name.to_str().unwrap();
+
+                if file_name.starts_with("lib")
+                    && extension == "so"
+                    && args.shared_libraries.contains(file_name) {
+                        println!("Adding the file {:?}", file_name);
+                        native_shared_libs.insert(file_name.to_string(), path.to_path_buf().clone());
+                        break;
                 }
-                _ => {}
             }
+            _ => {}
         }
-        Ok(())
-    }).ok();
+    }
 
     native_shared_libs
 }

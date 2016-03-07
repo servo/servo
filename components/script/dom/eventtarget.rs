@@ -5,6 +5,7 @@
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -188,13 +189,20 @@ impl CompiledEventListener {
                             let global = object.global();
                             let cx = global.r().get_cx();
                             let error = RootedValue::new(cx, event.Error(cx));
-                            let _ = handler.Call_(object,
-                                                  EventOrString::String(event.Message()),
-                                                  Some(event.Filename()),
-                                                  Some(event.Lineno()),
-                                                  Some(event.Colno()),
-                                                  Some(error.handle()),
-                                                  exception_handle);
+                            let return_value = handler.Call_(object,
+                                                             EventOrString::String(event.Message()),
+                                                             Some(event.Filename()),
+                                                             Some(event.Lineno()),
+                                                             Some(event.Colno()),
+                                                             Some(error.handle()),
+                                                             exception_handle);
+                            // Step 4
+                            if let Ok(return_value) = return_value {
+                                let return_value = RootedValue::new(cx, return_value);
+                                if return_value.handle().is_boolean() && return_value.handle().to_boolean() == true {
+                                    event.upcast::<Event>().PreventDefault();
+                                }
+                            }
                             return;
                         }
 
@@ -203,13 +211,26 @@ impl CompiledEventListener {
                     }
 
                     CommonEventHandler::EventHandler(ref handler) => {
-                        let _ = handler.Call_(object, event, exception_handle);
+                        if let Ok(value) = handler.Call_(object, event, exception_handle) {
+                            let global = object.global();
+                            let cx = global.r().get_cx();
+                            let value = RootedValue::new(cx, value);
+                            let value = value.handle();
+
+                            //Step 4
+                            let should_cancel = match event.type_() {
+                                atom!("mouseover") => value.is_boolean() && value.to_boolean() == true,
+                                atom!("beforeunload") => value.is_null(),
+                                _ => value.is_boolean() && value.to_boolean() == false
+                            };
+                            if should_cancel {
+                                event.PreventDefault();
+                            }
+                        }
                     }
                 }
-            },
+            }
         }
-
-        // TODO(#8490): step 4 (cancel event based on return value)
     }
 }
 
@@ -280,22 +301,18 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &Atom) -> Option<Vec<CompiledEventListener>> {
-        self.handlers.borrow_mut().get_mut(type_).map(|listeners| {
-            listeners.get_listeners(None, self, type_)
-        })
-    }
-
-    pub fn get_listeners_for(&self, type_: &Atom, desired_phase: ListenerPhase)
-                             -> Option<Vec<CompiledEventListener>> {
-        self.handlers.borrow_mut().get_mut(type_).map(|listeners| {
-            listeners.get_listeners(Some(desired_phase), self, type_)
+    pub fn get_listeners_for(&self,
+                             type_: &Atom,
+                             specific_phase: Option<ListenerPhase>)
+                             -> Vec<CompiledEventListener> {
+        self.handlers.borrow_mut().get_mut(type_).map_or(vec![], |listeners| {
+            listeners.get_listeners(specific_phase, self, type_)
         })
     }
 
     pub fn dispatch_event_with_target(&self,
-                                  target: &EventTarget,
-                                  event: &Event) -> bool {
+                                      target: &EventTarget,
+                                      event: &Event) -> bool {
         dispatch_event(self, Some(target), event)
     }
 
@@ -326,10 +343,10 @@ impl EventTarget {
                     EventListenerType::Inline(listener.unwrap_or(InlineEventListener::Null));
             }
             None => {
-                if listener.is_some() {
+                if let Some(listener) = listener {
                     entries.push(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
-                        listener: EventListenerType::Inline(listener.unwrap()),
+                        listener: EventListenerType::Inline(listener),
                     });
                 }
             }
@@ -390,7 +407,7 @@ impl EventTarget {
                                                           b"colno\0" as *const u8 as *const c_char,
                                                           b"error\0" as *const u8 as *const c_char];
         // step 10
-        let is_error = ty == &Atom::from("error") && self.is::<Window>();
+        let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = unsafe {
             if is_error {
                 &ERROR_ARG_NAMES[..]
@@ -494,7 +511,7 @@ impl EventTargetMethods for EventTarget {
                         capture: bool) {
         if let Some(listener) = listener {
             let mut handlers = self.handlers.borrow_mut();
-            let entry = match handlers.entry(Atom::from(&*ty)) {
+            let entry = match handlers.entry(Atom::from(ty)) {
                 Occupied(entry) => entry.into_mut(),
                 Vacant(entry) => entry.insert(EventListeners(vec!())),
             };
@@ -517,7 +534,7 @@ impl EventTargetMethods for EventTarget {
                            capture: bool) {
         if let Some(ref listener) = listener {
             let mut handlers = self.handlers.borrow_mut();
-            let entry = handlers.get_mut(&Atom::from(&*ty));
+            let entry = handlers.get_mut(&Atom::from(ty));
             for entry in entry {
                 let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                 let old_entry = EventListenerEntry {

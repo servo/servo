@@ -28,11 +28,13 @@ interface Element : Node {
            attribute DOMString id;
   [Pure]
            attribute DOMString className;
-  [SameObject]
+  [SameObject, PutForwards=value]
   readonly attribute DOMTokenList classList;
 
   [SameObject]
   readonly attribute NamedNodeMap attributes;
+  [Pure]
+  sequence<DOMString> getAttributeNames();
   [Pure]
   DOMString? getAttribute(DOMString name);
   [Pure]
@@ -47,6 +49,8 @@ interface Element : Node {
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
   void removeAttribute(DOMString name);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
+  [Throws]
+  Attr removeAttributeNode(Attr oldAttr);
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 

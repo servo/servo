@@ -70,7 +70,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
@@ -79,7 +79,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrIdentifier, AttrValue};
@@ -246,6 +246,16 @@ impl<K, V, S> JSTraceable for HashMap<K, V, S>
     }
 }
 
+impl<K: Ord + JSTraceable, V: JSTraceable> JSTraceable for BTreeMap<K, V> {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        for (k, v) in self {
+            k.trace(trc);
+            v.trace(trc);
+        }
+    }
+}
+
 impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
@@ -265,7 +275,7 @@ impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     }
 }
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, Uuid);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, Uuid);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);

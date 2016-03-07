@@ -37,13 +37,7 @@ test(function() {
     a.replaceChild(b, c);
   });
   assert_throws("NotFoundError", function() {
-    a.replaceChild(a, c);
-  });
-  assert_throws("NotFoundError", function() {
     a.replaceChild(b, a);
-  });
-  assert_throws("NotFoundError", function() {
-    a.replaceChild(a, a);
   });
 }, "If child's parent is not the context node, a NotFoundError exception should be thrown")
 test(function() {
@@ -67,6 +61,11 @@ test(function() {
 test(function() {
   var a = document.createElement("div");
   var b = document.createElement("div");
+
+  assert_throws("HierarchyRequestError", function() {
+    a.replaceChild(a, a);
+  });
+
   a.appendChild(b);
   assert_throws("HierarchyRequestError", function() {
     a.replaceChild(a, b);

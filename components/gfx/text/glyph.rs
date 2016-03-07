@@ -4,13 +4,12 @@
 
 use app_units::Au;
 use euclid::point::Point2D;
+use range::{self, EachIndex, Range, RangeIndex};
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 use simd::u32x4;
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
 use std::{fmt, mem, u16};
-use util::range::{self, EachIndex, Range, RangeIndex};
-use util::vec::*;
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
@@ -248,7 +247,7 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        let i = self.detail_lookup.binary_search_index(&key)
+        let i = self.detail_lookup.binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
 
         assert!(i + (count as usize) <= self.detail_buffer.len());
@@ -268,7 +267,7 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        let i = self.detail_lookup.binary_search_index(&key)
+        let i = self.detail_lookup.binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
 
         assert!(i + (detail_offset as usize) < self.detail_buffer.len());

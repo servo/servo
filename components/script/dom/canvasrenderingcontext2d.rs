@@ -12,6 +12,8 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -1209,39 +1211,43 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
-    fn LineCap(&self) -> DOMString {
-        let state = self.state.borrow();
-        match state.line_cap {
-            LineCapStyle::Butt => DOMString::from("butt"),
-            LineCapStyle::Round => DOMString::from("round"),
-            LineCapStyle::Square => DOMString::from("square"),
+    fn LineCap(&self) -> CanvasLineCap {
+        match self.state.borrow().line_cap {
+            LineCapStyle::Butt => CanvasLineCap::Butt,
+            LineCapStyle::Round => CanvasLineCap::Round,
+            LineCapStyle::Square => CanvasLineCap::Square,
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
-    fn SetLineCap(&self, cap_str: DOMString) {
-        if let Ok(cap) = LineCapStyle::from_str(&cap_str) {
-            self.state.borrow_mut().line_cap = cap;
-            self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineCap(cap))).unwrap()
+    fn SetLineCap(&self, cap: CanvasLineCap) {
+        let line_cap = match cap {
+            CanvasLineCap::Butt => LineCapStyle::Butt,
+            CanvasLineCap::Round => LineCapStyle::Round,
+            CanvasLineCap::Square => LineCapStyle::Square,
+        };
+        self.state.borrow_mut().line_cap = line_cap;
+        self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineCap(line_cap))).unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
+    fn LineJoin(&self) -> CanvasLineJoin {
+        match self.state.borrow().line_join {
+            LineJoinStyle::Round => CanvasLineJoin::Round,
+            LineJoinStyle::Bevel => CanvasLineJoin::Bevel,
+            LineJoinStyle::Miter => CanvasLineJoin::Miter,
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
-    fn LineJoin(&self) -> DOMString {
-        let state = self.state.borrow();
-        match state.line_join {
-            LineJoinStyle::Round => DOMString::from("round"),
-            LineJoinStyle::Bevel => DOMString::from("bevel"),
-            LineJoinStyle::Miter => DOMString::from("miter"),
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
-    fn SetLineJoin(&self, join_str: DOMString) {
-        if let Ok(join) = LineJoinStyle::from_str(&join_str) {
-            self.state.borrow_mut().line_join = join;
-            self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineJoin(join))).unwrap()
-        }
+    fn SetLineJoin(&self, join: CanvasLineJoin) {
+        let line_join = match join {
+            CanvasLineJoin::Round => LineJoinStyle::Round,
+            CanvasLineJoin::Bevel => LineJoinStyle::Bevel,
+            CanvasLineJoin::Miter => LineJoinStyle::Miter,
+        };
+        self.state.borrow_mut().line_join = line_join;
+        self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineJoin(line_join))).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit

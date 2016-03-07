@@ -32,7 +32,7 @@ impl LateLintPass for InheritancePass {
             // Find the reflector, if any
             let reflector_span = def.fields().iter().enumerate()
                                     .find(|&(ctr, f)| {
-                                        if match_lang_ty(cx, &*f.node.ty, "reflector") {
+                                        if match_lang_ty(cx, &*f.ty, "reflector") {
                                             if ctr > 0 {
                                                 cx.span_lint(INHERITANCE_INTEGRITY, f.span,
                                                              "The Reflector should be the first field of the DOM \
@@ -45,9 +45,9 @@ impl LateLintPass for InheritancePass {
                                     .map(|(_, f)| f.span);
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields().iter().enumerate().filter_map(|(ctr, f)| {
-                if let hir::TyPath(..) = f.node.ty.node {
+                if let hir::TyPath(..) = f.ty.node {
                     if let Some(&def::PathResolution { base_def: def, .. }) =
-                            cx.tcx.def_map.borrow().get(&f.node.ty.id) {
+                            cx.tcx.def_map.borrow().get(&f.ty.id) {
                         if let def::Def::PrimTy(_) = def {
                             return None;
                         }

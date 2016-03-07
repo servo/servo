@@ -179,6 +179,10 @@ class Request(object):
 
     Request path as it appears in the HTTP request.
 
+    .. attribute:: url_base
+
+    The prefix part of the path; typically / unless the handler has a url_base set
+
     .. attribute:: url
 
     Absolute URL for the request.
@@ -253,6 +257,7 @@ class Request(object):
                 host, port = host.split(":", 1)
 
         self.request_path = request_handler.path
+        self.url_base = "/"
 
         if self.request_path.startswith(scheme + "://"):
             self.url = request_handler.path

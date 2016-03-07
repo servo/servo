@@ -10,7 +10,6 @@ use style::error_reporting::StdoutErrorReporter;
 use style::selector_impl::SelectorImplExt;
 use style::stylesheets::Origin;
 use url::Url;
-use util::resource_files::read_resource_file;
 
 pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
 pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
@@ -18,56 +17,6 @@ pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorIm
 pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl>;
 
 pub struct GeckoSelectorImpl;
-
-// TODO: Replace this with Gecko's stylesheets
-lazy_static! {
-    static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
-        let mut stylesheets = vec!();
-        // FIXME: presentational-hints.css should be at author origin with zero specificity.
-        //        (Does it make a difference?)
-        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-            match read_resource_file(&[filename]) {
-                Ok(res) => {
-                    let ua_stylesheet = Stylesheet::from_bytes(
-                        &res,
-                        Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
-                        None,
-                        None,
-                        Origin::UserAgent,
-                        box StdoutErrorReporter);
-                    stylesheets.push(ua_stylesheet);
-                }
-                Err(..) => {
-                    error!("Failed to load UA stylesheet {}!", filename);
-                    process::exit(1);
-                }
-            }
-        }
-
-        stylesheets
-    };
-}
-
-lazy_static! {
-    static ref QUIRKS_MODE_STYLESHEET: Stylesheet = {
-        match read_resource_file(&["quirks-mode.css"]) {
-            Ok(res) => {
-                Stylesheet::from_bytes(
-                    &res,
-                    url!("chrome:///quirks-mode.css"),
-                    None,
-                    None,
-                    Origin::UserAgent,
-                    box StdoutErrorReporter)
-            },
-            Err(..) => {
-                error!("Stylist failed to load 'quirks-mode.css'!");
-                process::exit(1);
-            }
-        }
-    };
-}
-
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum PseudoElement {
@@ -294,14 +243,13 @@ impl SelectorImplExt for GeckoSelectorImpl {
         pc.state_flag()
     }
 
-    // FIXME: Don't use Servo's UA stylesheets, use Gecko's instead
     #[inline]
     fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
-        &*USER_OR_USER_AGENT_STYLESHEETS
+        &[]
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> &'static Stylesheet {
-        &*QUIRKS_MODE_STYLESHEET
+    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
+        None
     }
 }

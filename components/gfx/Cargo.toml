@@ -3,6 +3,7 @@
 name = "gfx"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+publish = false
 
 [lib]
 name = "gfx"
@@ -26,7 +27,7 @@ serde = "0.6"
 serde_macros = "0.6"
 servo-skia = "0.20130412.0"
 smallvec = "0.1"
-string_cache = {version = "0.2.9", features = ["heap_size"]}
+string_cache = {version = "0.2.10", features = ["heap_size"]}
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
 url = {version = "0.5.5", features = ["heap_size"]}
@@ -52,6 +53,9 @@ path = "../msg"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
+[dependencies.range]
+path = "../range"
+
 [dependencies.style]
 path = "../style"
 
@@ -68,6 +72,9 @@ features = ["plugins"]
 
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.2"

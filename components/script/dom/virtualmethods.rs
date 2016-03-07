@@ -83,6 +83,8 @@ pub trait VirtualMethods {
 
     /// Called when a Node is removed from a tree, where 'tree_in_doc'
     /// indicates whether the tree is part of a Document.
+    /// Implements removing steps:
+    /// https://dom.spec.whatwg.org/#concept-node-remove-ext
     fn unbind_from_tree(&self, context: &UnbindContext) {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);

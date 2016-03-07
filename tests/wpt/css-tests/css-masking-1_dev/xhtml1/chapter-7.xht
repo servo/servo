@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Masking Level 1 CR Test Suite</h1>
-  <h2>Positioned Masks (1 tests)</h2>
+  <h2>Positioned Masks (5 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -30,13 +30,13 @@
     <tbody id="s7">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#masking">7 Positioned Masks</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#masking">7 Positioned Masks</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-image">7.1 Mask Image Source: the mask-image property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-image">7.1 Mask Image Source: the mask-image property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.1.#mask-layer-image">
@@ -57,7 +57,7 @@
     <tbody id="s7.2">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.2">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-mode">7.2 Mask Image Interpretation: the mask-mode property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-mode">7.2 Mask Image Interpretation: the mask-mode property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.2.#propdef-mask-mode">
@@ -78,11 +78,11 @@
     <tbody id="s7.3">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.3">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-repeat">7.3 Tiling Mask Images: The mask-repeat property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-repeat">7.3 Tiling Mask Images: The mask-repeat property</a></th></tr>
       <!-- 1 tests -->
-      <tr id="test-mask-7.3" class="primary">
-        <td><strong>
-            <a href="test-mask.xht">test-mask</a></strong></td>
+      <tr id="test-mask-7.3" class="">
+        <td>
+            <a href="test-mask.xht">test-mask</a></td>
         <td><a href="reference/test-mask-ref.xht">=</a> </td>
         <td></td>
         <td>CSS Masking: mask-repeat:round repeat;
@@ -98,7 +98,7 @@
     <tbody id="s7.4">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.4">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-position">7.4 Positioning Mask Images: the mask-position property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-position">7.4 Positioning Mask Images: the mask-position property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.4.#propdef-mask-position">
@@ -107,7 +107,7 @@
     <tbody id="s7.5">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.5">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-clip">7.5 Masking Area: the mask-clip property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-clip">7.5 Masking Area: the mask-clip property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.5.#mask-painting-area">
@@ -143,7 +143,7 @@
     <tbody id="s7.6">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.6">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-origin">7.6 Positioning Area: the mask-origin property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-origin">7.6 Positioning Area: the mask-origin property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.6.#mask-positioning-area">
@@ -176,7 +176,7 @@
     <tbody id="s7.7">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.7">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-size">7.7 Sizing Mask Images: the mask-size property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-size">7.7 Sizing Mask Images: the mask-size property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.7.#propdef-mask-size">
@@ -185,8 +185,52 @@
     <tbody id="s7.8">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.8">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-composite">7.8 Compositing mask layers: the mask-composite property</a></th></tr>
-      <!-- 0 tests -->
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-composite">7.8 Compositing mask layers: the mask-composite property</a></th></tr>
+      <!-- 4 tests -->
+      <tr id="mask-composite-1a-7.8" class="">
+        <td>
+            <a href="mask-composite-1a.xht">mask-composite-1a</a></td>
+        <td><a href="reference/mask-composite-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-composite: compose vector image
+          <ul class="assert">
+            <li>Test checks that vector-mask-image can be composed correctly by different mask-composite value.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-composite-1b-7.8" class="">
+        <td>
+            <a href="mask-composite-1b.xht">mask-composite-1b</a></td>
+        <td><a href="reference/mask-composite-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-composite: compose raster image
+          <ul class="assert">
+            <li>Test checks that raster-mask-image can be composed correctly by different mask-composite value.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-composite-2a-7.8" class="">
+        <td>
+            <a href="mask-composite-2a.xht">mask-composite-2a</a></td>
+        <td><a href="reference/mask-composite-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-composite: compose vector image
+          <ul class="assert">
+            <li>Test checks that vector-mask-image can be composed correctly by different mask-composite value.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-composite-2b-7.8" class="">
+        <td>
+            <a href="mask-composite-2b.xht">mask-composite-2b</a></td>
+        <td><a href="reference/mask-composite-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-composite: compose raster image
+          <ul class="assert">
+            <li>Test checks that raster-mask-image can be composed correctly by different mask-composite value.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.8.#destination">
       <!-- 0 tests -->
@@ -215,7 +259,7 @@
     <tbody id="s7.9">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.9">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask">7.9 Mask Shorthand: the mask property</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask">7.9 Mask Shorthand: the mask property</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.9.#propdef-mask">
@@ -227,13 +271,13 @@
     <tbody id="s7.10">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.10">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#the-mask-image-rendering-model">7.10 The Mask Image Rendering Model</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#the-mask-image-rendering-model">7.10 The Mask Image Rendering Model</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.10.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.10.1">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#MaskValues">7.10.1 Mask processing</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#MaskValues">7.10.1 Mask processing</a></th></tr>
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.10.1.#mask-image">
@@ -242,7 +286,7 @@
     <tbody id="s7.10.2">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.10.2">+</a>
-        <a href="http://www.w3.org/TR/css-masking-1/#layering">7.10.2 Layering Multiple Mask Images</a></th></tr>
+        <a href="https://www.w3.org/TR/css-masking-1/#layering">7.10.2 Layering Multiple Mask Images</a></th></tr>
       <!-- 0 tests -->
     </tbody>
   </table>

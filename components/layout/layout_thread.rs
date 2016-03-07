@@ -22,11 +22,12 @@ use euclid::size::Size2D;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, StackingContext};
+use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
+use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx::paint_thread::{LayoutToPaintMsg, PaintLayer};
+use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
@@ -35,16 +36,17 @@ use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::LayoutThreadFactory;
 use log;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use msg::constellation_msg::{ConstellationChan, ConvertPipelineIdToWebRender, Failure, PipelineId};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
-use query::{process_node_geometry_request, process_offset_parent_query, process_resolved_style_request};
+use query::{process_node_geometry_request, process_offset_parent_query};
+use query::{process_resolved_style_request, process_margin_style_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
-use script::layout_interface::{LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{LayoutRPC, OffsetParentResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
 use script::reporter::CSSErrorReporter;
@@ -80,6 +82,8 @@ use util::opts;
 use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
+use webrender_helpers::WebRenderDisplayListConverter;
+use webrender_traits::{self, AuxiliaryListsBuilder};
 use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -96,7 +100,7 @@ pub struct LayoutThreadData {
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
 
     /// The root stacking context.
-    pub stacking_context: Option<Arc<StackingContext>>,
+    pub display_list: Option<Arc<DisplayList>>,
 
     /// Performs CSS selector matching and style resolution.
     pub stylist: Box<Stylist>,
@@ -110,11 +114,17 @@ pub struct LayoutThreadData {
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
 
+    /// A queued response for the node at a given point
+    pub hit_test_response: (Option<DisplayItemMetadata>, bool),
+
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: Option<String>,
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
+
+    /// A queued response for the offset parent/rect of a node.
+    pub margin_style_response: MarginStyleResponse,
 }
 
 /// Information needed by the layout thread.
@@ -221,6 +231,8 @@ pub struct LayoutThread {
     /// The CSS error reporter for all CSS loaded in this layout thread
     error_reporter: CSSErrorReporter,
 
+    // Webrender interface, if enabled.
+    webrender_api: Option<webrender_traits::RenderApi>,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -240,7 +252,8 @@ impl LayoutThreadFactory for LayoutThread {
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: IpcSender<()>,
-              content_process_shutdown_chan: IpcSender<()>) {
+              content_process_shutdown_chan: IpcSender<()>,
+              webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         thread::spawn_named_with_send_on_failure(format!("LayoutThread {:?}", id),
                                                thread_state::LAYOUT,
@@ -258,7 +271,8 @@ impl LayoutThreadFactory for LayoutThread {
                                              image_cache_thread,
                                              font_cache_thread,
                                              time_profiler_chan,
-                                             mem_profiler_chan.clone());
+                                             mem_profiler_chan.clone(),
+                                             webrender_api_sender);
 
                 let reporter_name = format!("layout-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
@@ -367,7 +381,8 @@ impl LayoutThread {
            image_cache_thread: ImageCacheThread,
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
-           mem_profiler_chan: mem::ProfilerChan)
+           mem_profiler_chan: mem::ProfilerChan,
+           webrender_api_sender: Option<webrender_traits::RenderApiSender>)
            -> LayoutThread {
         let device = Device::new(
             MediaType::Screen,
@@ -437,16 +452,19 @@ impl LayoutThread {
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
             viewport_size: Size2D::new(Au(0), Au(0)),
+            webrender_api: webrender_api_sender.map(|wr| wr.create_api()),
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
                     constellation_chan: constellation_chan,
-                    stacking_context: None,
+                    display_list: None,
                     stylist: stylist,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
+                    hit_test_response: (None, false),
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
+                    margin_style_response: MarginStyleResponse::empty(),
               })),
               error_reporter: CSSErrorReporter {
                   pipelineid: id,
@@ -658,12 +676,12 @@ impl LayoutThread {
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
-        let stacking_context = rw_data.stacking_context.as_ref();
+        let display_list = rw_data.display_list.as_ref();
         let formatted_url = &format!("url({})", *self.url.borrow());
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
+            size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
         // The LayoutThread has a context in TLS...
@@ -705,7 +723,8 @@ impl LayoutThread {
                                   self.time_profiler_chan.clone(),
                                   self.mem_profiler_chan.clone(),
                                   info.layout_shutdown_chan,
-                                  info.content_process_shutdown_chan);
+                                  info.content_process_shutdown_chan,
+                                  self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
@@ -846,19 +865,24 @@ impl LayoutThread {
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            match (&mut self.parallel_traversal, opts::get().parallel_display_list_building) {
-                (&mut Some(ref mut traversal), true) => {
-                    parallel::build_display_list_for_subtree(layout_root,
-                                                             metadata,
-                                                             sender,
-                                                             shared_layout_context,
-                                                             traversal);
-                }
-                _ => {
-                    sequential::build_display_list_for_subtree(layout_root,
-                                                               shared_layout_context);
-                }
-            }
+            let mut root_stacking_context =
+                StackingContext::new(StackingContextId::new(0),
+                                     StackingContextType::Real,
+                                     &Rect::zero(),
+                                     &Rect::zero(),
+                                     0,
+                                     filter::T::new(Vec::new()),
+                                     mix_blend_mode::T::normal,
+                                     Matrix4::identity(),
+                                     Matrix4::identity(),
+                                     true,
+                                     false,
+                                     None);
+
+            let display_list_entries =
+                sequential::build_display_list_for_subtree(layout_root,
+                                                           &mut root_stacking_context,
+                                                           shared_layout_context);
 
             if data.goal == ReflowGoal::ForDisplay {
                 debug!("Done building display list.");
@@ -873,44 +897,66 @@ impl LayoutThread {
                         root_flow.overflow.scroll.size
                     }
                 };
-                let mut display_list = box DisplayList::new();
-                display_list.append_from(&mut flow::mut_base(flow_ref::deref_mut(layout_root))
-                                         .display_list_building_result);
 
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                let stacking_context = Arc::new(StackingContext::new(display_list,
-                                                                     &origin,
-                                                                     &origin,
-                                                                     0,
-                                                                     filter::T::new(Vec::new()),
-                                                                     mix_blend_mode::T::normal,
-                                                                     Matrix4::identity(),
-                                                                     Matrix4::identity(),
-                                                                     true,
-                                                                     false,
-                                                                     None));
+                root_stacking_context.bounds = origin;
+                root_stacking_context.overflow = origin;
+                root_stacking_context.layer_info = Some(LayerInfo::new(layout_root.layer_id(),
+                                                                       ScrollPolicy::Scrollable,
+                                                                       None,
+                                                                       root_background_color));
+
+                let display_list = DisplayList::new(root_stacking_context,
+                                                    &mut Some(display_list_entries));
                 if opts::get().dump_display_list {
-                    stacking_context.print("DisplayList".to_owned());
+                    display_list.print();
                 }
                 if opts::get().dump_display_list_json {
-                    println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
+                    println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
                 }
 
-                rw_data.stacking_context = Some(stacking_context.clone());
-
-                let layer_info = LayerInfo::new(layout_root.layer_id(),
-                                                ScrollPolicy::Scrollable,
-                                                None);
-                let paint_layer = PaintLayer::new_with_stacking_context(layer_info,
-                                                                        stacking_context,
-                                                                        root_background_color);
+                let display_list = Arc::new(display_list);
+                rw_data.display_list = Some(display_list.clone());
 
                 debug!("Layout done!");
 
                 self.epoch.next();
-                self.paint_chan
-                    .send(LayoutToPaintMsg::PaintInit(self.epoch, paint_layer))
-                    .unwrap();
+
+                if opts::get().use_webrender {
+                    let api = self.webrender_api.as_ref().unwrap();
+                    // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
+                    let Epoch(epoch_number) = self.epoch;
+                    let epoch = webrender_traits::Epoch(epoch_number);
+                    let pipeline_id = self.id.to_webrender();
+
+                    // TODO(gw) For now only create a root scrolling layer!
+                    let root_scroll_layer_id = webrender_traits::ScrollLayerId::new(pipeline_id, 0);
+                    let mut auxiliary_lists_builder = AuxiliaryListsBuilder::new();
+                    let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
+                        &self.webrender_api.as_ref().unwrap(),
+                        pipeline_id,
+                        epoch,
+                        Some(root_scroll_layer_id),
+                        &mut auxiliary_lists_builder);
+                    let root_background_color = webrender_traits::ColorF::new(root_background_color.r,
+                                                                       root_background_color.g,
+                                                                       root_background_color.b,
+                                                                       root_background_color.a);
+
+                    let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
+                                                    self.viewport_size.height.to_f32_px());
+
+                    api.set_root_stacking_context(sc_id,
+                                                  root_background_color,
+                                                  epoch,
+                                                  pipeline_id,
+                                                  viewport_size,
+                                                  auxiliary_lists_builder.finalize());
+                } else {
+                    self.paint_chan
+                        .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
+                        .unwrap();
+                }
             }
         });
     }
@@ -937,6 +983,9 @@ impl LayoutThread {
                     ReflowQueryType::ContentBoxesQuery(_) => {
                         rw_data.content_boxes_response = Vec::new();
                     },
+                    ReflowQueryType::HitTestQuery(_, _) => {
+                        rw_data.hit_test_response = (None, false);
+                    },
                     ReflowQueryType::NodeGeometryQuery(_) => {
                         rw_data.client_rect_response = Rect::zero();
                     },
@@ -945,6 +994,9 @@ impl LayoutThread {
                     },
                     ReflowQueryType::OffsetParentQuery(_) => {
                         rw_data.offset_parent_response = OffsetParentResponse::empty();
+                    },
+                    ReflowQueryType::MarginStyleQuery(_) => {
+                        rw_data.margin_style_response = MarginStyleResponse::empty();
                     },
                     ReflowQueryType::NoQuery => {}
                 }
@@ -1076,6 +1128,18 @@ impl LayoutThread {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow);
                 },
+                ReflowQueryType::HitTestQuery(point, update_cursor) => {
+                    let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+                    let result = match rw_data.display_list {
+                        None => panic!("Tried to hit test with no display list"),
+                        Some(ref dl) => dl.hit_test(point),
+                    };
+                    rw_data.hit_test_response = if result.len() > 0 {
+                        (Some(result[0]), update_cursor)
+                    } else {
+                        (None, update_cursor)
+                    };
+                },
                 ReflowQueryType::NodeGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.client_rect_response = process_node_geometry_request(node, &mut root_flow);
@@ -1088,6 +1152,10 @@ impl LayoutThread {
                 ReflowQueryType::OffsetParentQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.offset_parent_response = process_offset_parent_query(node, &mut root_flow);
+                },
+                ReflowQueryType::MarginStyleQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.margin_style_response = process_margin_style_query(node);
                 },
                 ReflowQueryType::NoQuery => {}
             }
@@ -1154,10 +1222,6 @@ impl LayoutThread {
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         self.tick_animations(&mut rw_data);
-
-        self.script_chan
-          .send(ConstellationControlMsg::TickAllAnimations(self.id))
-          .unwrap();
     }
 
     pub fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {

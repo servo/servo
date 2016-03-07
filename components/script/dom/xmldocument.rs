@@ -6,11 +6,11 @@ use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLDocumentBinding::{self, XMLDocumentMethods};
-use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::location::Location;
 use dom::node::Node;
@@ -27,6 +27,7 @@ pub struct XMLDocument {
 
 impl XMLDocument {
     fn new_inherited(window: &Window,
+                     browsing_context: Option<&BrowsingContext>,
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
@@ -35,6 +36,7 @@ impl XMLDocument {
                      doc_loader: DocumentLoader) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(window,
+                                              browsing_context,
                                               url,
                                               is_html_document,
                                               content_type,
@@ -45,6 +47,7 @@ impl XMLDocument {
     }
 
     pub fn new(window: &Window,
+               browsing_context: Option<&BrowsingContext>,
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
@@ -54,6 +57,7 @@ impl XMLDocument {
                -> Root<XMLDocument> {
         let doc = reflect_dom_object(
             box XMLDocument::new_inherited(window,
+                                           browsing_context,
                                            url,
                                            doctype,
                                            content_type,
@@ -67,21 +71,6 @@ impl XMLDocument {
             node.set_owner_doc(&doc.r().document);
         }
         doc
-    }
-
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLDocument>> {
-        let win = global.as_window();
-        let doc = win.Document();
-        let doc = doc.r();
-        let docloader = DocumentLoader::new(&*doc.loader());
-
-        Ok(XMLDocument::new(win,
-                            None,
-                            IsHTMLDocument::NonHTMLDocument,
-                            None,
-                            None,
-                            DocumentSource::NotFromParser,
-                            docloader))
     }
 }
 

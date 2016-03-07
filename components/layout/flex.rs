@@ -9,7 +9,7 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use display_list_builder::FlexFlowDisplayListBuilding;
+use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use euclid::Point2D;
 use floats::FloatKind;
 use flow;
@@ -19,7 +19,7 @@ use flow::ImmutableFlowUtils;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::DisplayList;
+use gfx::display_list::{StackingContext, StackingContextId};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::MaybeAuto;
@@ -31,7 +31,6 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::properties::style_structs;
 use style::values::computed::LengthOrPercentageOrAuto;
-use util::opts;
 
 // A mode describes which logical axis a flex axis is parallel with.
 // The logical axises are inline and block, the flex axises are main and cross.
@@ -420,12 +419,15 @@ impl Flow for FlexFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_for_flex(Box::new(DisplayList::new()), layout_context);
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
+        self.build_display_list_for_flex(state);
+    }
 
-        if opts::get().validate_display_list_geometry {
-            self.block_flow.base.validate_display_list_geometry();
-        }
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<Box<StackingContext>>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

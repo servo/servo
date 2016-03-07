@@ -23,6 +23,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::context::ReflowGoal;
+use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
 use style::selector_impl::PseudoElement;
 use style::servo::Stylesheet;
 use url::Url;
@@ -104,21 +105,41 @@ pub trait LayoutRPC {
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the node containing the point of interest
-    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
-    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
+    fn hit_test(&self) -> HitTestResponse;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
+    /// Query layout for the resolve values of the margin properties for an element.
+    fn margin_style(&self) -> MarginStyleResponse;
 }
 
+#[derive(Clone)]
+pub struct MarginStyleResponse {
+    pub top: margin_top::computed_value::T,
+    pub right: margin_right::computed_value::T,
+    pub bottom: margin_bottom::computed_value::T,
+    pub left: margin_left::computed_value::T,
+}
+
+impl MarginStyleResponse {
+    pub fn empty() -> MarginStyleResponse {
+        MarginStyleResponse {
+            top: margin_top::computed_value::T::Auto,
+            right: margin_right::computed_value::T::Auto,
+            bottom: margin_bottom::computed_value::T::Auto,
+            left: margin_left::computed_value::T::Auto,
+        }
+    }
+}
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
+pub struct HitTestResponse {
+    pub node_address: Option<UntrustedNodeAddress>,
+}
 pub struct NodeGeometryResponse {
     pub client_rect: Rect<i32>,
 }
-pub struct HitTestResponse(pub UntrustedNodeAddress);
-pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 pub struct ResolvedStyleResponse(pub Option<String>);
 
 #[derive(Clone)]
@@ -142,9 +163,11 @@ pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
+    HitTestQuery(Point2D<f32>, bool),
     NodeGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),
+    MarginStyleQuery(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.

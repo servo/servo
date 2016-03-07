@@ -8,14 +8,10 @@
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
 #![feature(fnbox)]
-#![feature(heap_api)]
-#![feature(oom)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(reflect_marker)]
 #![feature(step_by)]
-#![feature(step_trait)]
-#![feature(zero_one)]
 
 #![plugin(heapsize_plugin, plugins, serde_macros)]
 
@@ -25,6 +21,7 @@ extern crate app_units;
 extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
+extern crate deque;
 extern crate euclid;
 extern crate getopts;
 extern crate heapsize;
@@ -36,7 +33,6 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate num as num_lib;
 extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
@@ -51,17 +47,14 @@ use std::sync::Arc;
 
 pub mod cache;
 pub mod debug_utils;
-pub mod deque;
 pub mod geometry;
 pub mod ipc;
 pub mod linked_list;
 #[cfg(feature = "non-geckolib")]
 pub mod non_geckolib;
 pub mod opts;
-pub mod persistent_list;
 pub mod prefs;
 pub mod print_tree;
-pub mod range;
 pub mod resource_files;
 pub mod str;
 pub mod thread;

@@ -4,6 +4,7 @@ name = "servo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 build = "build.rs"
+publish = false
 
 [lib]
 name = "servo"
@@ -18,7 +19,7 @@ doc = false
 bench = false
 
 [dev-dependencies]
-image = "0.5.0"
+image = "0.7"
 
 [dev-dependencies.gfx_tests]
 path = "../../tests/unit/gfx"
@@ -51,6 +52,12 @@ path = "../../tests/compiletest/plugin"
 name = "reftest"
 path = "../../tests/reftest.rs"
 harness = false
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+
+[dependencies.webrender]
+git = "https://github.com/servo/webrender"
 
 [features]
 default = ["glutin_app", "window", "webdriver"]
@@ -162,6 +169,10 @@ version = "0.2"
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+
+[dependencies.browserhtml]
+git = "https://github.com/browserhtml/browserhtml"
+branch = "gh-pages"
 
 [dependencies]
 bitflags = "0.3"

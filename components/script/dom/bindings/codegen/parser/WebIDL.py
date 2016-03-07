@@ -1069,6 +1069,12 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
 
             specialMembersSeen[memberType] = member
 
+        if (self.getExtendedAttribute("LegacyUnenumerableNamedProperties") and
+            "named getters" not in specialMembersSeen):
+            raise WebIDLError("[LegacyUnenumerableNamedProperties] used on an interface "
+                              "without a named getter",
+                              [self.location])
+
         if self._isOnGlobalProtoChain:
             # Make sure we have no named setters, creators, or deleters
             for memberType in ["setter", "creator", "deleter"]:
@@ -1417,7 +1423,8 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
                   identifier == "UnsafeInPrerendering" or
                   identifier == "LegacyEventInit" or
                   identifier == "ProbablyShortLivingObject" or
-                  identifier == "Abstract"):
+                  identifier == "Abstract" or
+                  identifier == "LegacyUnenumerableNamedProperties"):
                 # Known extended attributes that do not take values
                 if not attr.noArguments():
                     raise WebIDLError("[%s] must take no arguments" % identifier,
@@ -6431,7 +6438,8 @@ class Parser(Tokenizer):
         self.parser = yacc.yacc(module=self,
                                 outputdir=outputdir,
                                 tabmodule='webidlyacc',
-                                errorlog=logger
+                                errorlog=logger,
+                                debug=False
                                 # Pickling the grammar is a speedup in
                                 # some cases (older Python?) but a
                                 # significant slowdown in others.

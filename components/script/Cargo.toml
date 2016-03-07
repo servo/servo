@@ -2,6 +2,7 @@
 name = "script"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+publish = false
 
 build = "build.rs"
 
@@ -74,19 +75,21 @@ heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 html5ever = {version = "0.5.1", features = ["heap_size", "unstable"]}
 hyper = { version = "0.7", features = [ "serde-serialization" ] }
-image = "0.5.0"
+image = "0.7"
 libc = "0.2"
 log = "0.3"
 num = "0.1.24"
 rand = "0.3"
+phf = "0.7.13"
+phf_macros = "0.7.13"
 ref_slice = "0.1.0"
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size"]}
 serde = "0.6"
 smallvec = "0.1"
-string_cache = {version = "0.2.9", features = ["heap_size", "unstable"]}
+string_cache = {version = "0.2.10", features = ["heap_size", "unstable"]}
 time = "0.1.12"
 unicase = "1.0"
 url = {version = "0.5.5", features = ["heap_size"]}
 uuid = "0.1.16"
-websocket = "0.14.0"
+websocket = "0.15.0"

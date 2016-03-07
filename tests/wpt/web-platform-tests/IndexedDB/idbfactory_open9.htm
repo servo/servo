@@ -2,7 +2,6 @@
 <title>IDBFactory.open() - errors in version argument</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
 
 <script>
 function should_throw(val, name) {
@@ -26,7 +25,6 @@ should_throw(NaN)
 should_throw(Infinity)
 should_throw(-Infinity)
 should_throw("foo")
-should_throw(undefined)
 should_throw(null)
 should_throw(false)
 
@@ -46,17 +44,27 @@ should_throw({
 
 /* Valid */
 
-function should_work(val) {
+function should_work(val, expected_version) {
     var name = format_value(val);
-    var t = async_test("Calling open() with version argument " + name + " should not throw.")
-    var rq = createdb(t, val)
-    rq.onupgradeneeded = function() {
-        t.done()
-    }
+    var dbname = 'test-db-does-not-exist';
+    async_test(function(t) {
+        window.indexedDB.deleteDatabase(dbname);
+        var rq = window.indexedDB.open(dbname, val);
+        rq.onupgradeneeded = t.step_func(function() {
+            var db = rq.result;
+            assert_equals(db.version, expected_version, 'version');
+            rq.transaction.abort();
+        });
+        rq.onsuccess = t.unreached_func("open should fail");
+        rq.onerror = t.step_func(function() {
+            t.done()
+        });
+    }, "Calling open() with version argument " + name + " should not throw.")
 }
 
-should_work(1.5)
-should_work(Number.MAX_SAFE_INTEGER)  // 0x20000000000000 - 1
+should_work(1.5, 1)
+should_work(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)  // 0x20000000000000 - 1
+should_work(undefined, 1)
 
 </script>
 

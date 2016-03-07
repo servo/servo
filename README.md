@@ -25,6 +25,13 @@ On OS X (MacPorts):
 sudo port install python27 py27-virtualenv cmake
 ```
 
+On OS X 10.11, you also have to install openssl:
+
+``` sh
+brew install openssl
+brew link --force openssl
+```
+
 On Debian-based Linuxes:
 
 ``` sh
@@ -50,7 +57,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
 On Arch Linux:
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu
+sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu
 ```
 
 On Gentoo Linux:

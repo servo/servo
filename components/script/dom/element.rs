@@ -43,6 +43,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
+use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
@@ -54,7 +55,7 @@ use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElem
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
+use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
@@ -65,7 +66,8 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
-use selectors::matching::{DeclarationBlock, matches};
+use selectors::matching::{DeclarationBlock, ElementFlags, matches};
+use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
 use smallvec::VecLike;
@@ -75,6 +77,7 @@ use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, Namespace, QualName};
 use style::element_state::*;
 use style::error_reporting::ParseErrorReporter;
@@ -102,6 +105,7 @@ pub struct Element {
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
     state: Cell<ElementState>,
+    atomic_flags: AtomicElementFlags,
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -143,6 +147,7 @@ impl Element {
             attr_list: Default::default(),
             class_list: Default::default(),
             state: Cell::new(state),
+            atomic_flags: AtomicElementFlags::new(),
         }
     }
 
@@ -229,8 +234,8 @@ pub trait LayoutElementHelpers {
     fn namespace(&self) -> &Namespace;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
-
     fn get_state_for_layout(&self) -> ElementState;
+    fn insert_atomic_flags(&self, flags: ElementFlags);
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -388,6 +393,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
@@ -417,6 +424,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -583,6 +592,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             (*self.unsafe_get()).state.get()
         }
     }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn insert_atomic_flags(&self, flags: ElementFlags) {
+        unsafe {
+            (*self.unsafe_get()).atomic_flags.insert(flags);
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
@@ -605,7 +622,7 @@ impl Element {
         if self.html_element_in_html_document() {
             name.make_ascii_lowercase();
         }
-        Atom::from(&*name)
+        Atom::from(name)
     }
 
     pub fn namespace(&self) -> &Namespace {
@@ -913,7 +930,7 @@ impl Element {
             None => qname.local.clone(),
             Some(ref prefix) => {
                 let name = format!("{}:{}", &**prefix, &*qname.local);
-                Atom::from(&*name)
+                Atom::from(name)
             },
         };
         let value = self.parse_attribute(&qname.ns, &qname.local, value);
@@ -940,7 +957,7 @@ impl Element {
         }
 
         // Steps 2-5.
-        let name = Atom::from(&*name);
+        let name = Atom::from(name);
         let value = self.parse_attribute(&ns!(), &name, value);
         self.set_first_matching_attribute(name.clone(),
                                           value,
@@ -1211,6 +1228,11 @@ impl ElementMethods for Element {
         self.attr_list.or_init(|| NamedNodeMap::new(&window_from_node(self), self))
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-getattributenames
+    fn GetAttributeNames(&self) -> Vec<DOMString> {
+        self.attrs.borrow().iter().map(|attr| attr.Name()).collect()
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         self.GetAttributeNode(name)
@@ -1237,7 +1259,7 @@ impl ElementMethods for Element {
                           local_name: DOMString)
                           -> Option<Root<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
-        self.get_attribute(namespace, &Atom::from(&*local_name))
+        self.get_attribute(namespace, &Atom::from(local_name))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattribute
@@ -1265,7 +1287,7 @@ impl ElementMethods for Element {
                       value: DOMString) -> ErrorResult {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
-        let qualified_name = Atom::from(&*qualified_name);
+        let qualified_name = Atom::from(qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
             local_name.clone(), value, qualified_name, namespace.clone(), prefix,
@@ -1332,8 +1354,14 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-removeattributens
     fn RemoveAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) {
         let namespace = namespace_from_domstring(namespace);
-        let local_name = Atom::from(&*local_name);
+        let local_name = Atom::from(local_name);
         self.remove_attribute(&namespace, &local_name);
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-removeattributenode
+    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<Root<Attr>> {
+        self.remove_first_matching_attribute(|a| a == attr)
+            .ok_or(Error::NotFound)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattribute
@@ -1685,6 +1713,33 @@ impl VirtualMethods for Element {
         if let Some(ref value) = *self.id_attribute.borrow() {
             let doc = document_from_node(self);
             doc.unregister_named_element(self, value.clone());
+        }
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(ref s) = self.super_type() {
+            s.children_changed(mutation);
+        }
+
+        let flags = self.atomic_flags.get();
+        if flags.intersects(HAS_SLOW_SELECTOR) {
+            // All children of this node need to be restyled when any child changes.
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        } else {
+            if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+                if let Some(next_child) = mutation.next_child() {
+                    for child in next_child.inclusively_following_siblings() {
+                        if child.is::<Element>() {
+                            child.dirty(NodeDamage::OtherNodeDamage);
+                        }
+                    }
+                }
+            }
+            if flags.intersects(HAS_EDGE_CHILD_SELECTOR) {
+                if let Some(child) = mutation.modified_edge_element() {
+                    child.dirty(NodeDamage::OtherNodeDamage);
+                }
+            }
         }
     }
 }
@@ -2071,3 +2126,22 @@ impl<'a> AttributeMutation<'a> {
         }
     }
 }
+
+/// Thread-safe wrapper for ElementFlags set during selector matching
+#[derive(JSTraceable, HeapSizeOf)]
+struct AtomicElementFlags(AtomicUsize);
+
+impl AtomicElementFlags {
+    fn new() -> Self {
+        AtomicElementFlags(AtomicUsize::new(0))
+    }
+
+    fn get(&self) -> ElementFlags {
+        ElementFlags::from_bits_truncate(self.0.load(Ordering::Relaxed) as u8)
+    }
+
+    fn insert(&self, flags: ElementFlags) {
+        self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
+    }
+}
+

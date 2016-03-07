@@ -13,12 +13,12 @@ use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use util::thread::spawn_named;
-use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
-use websocket::client::sender::Sender;
 use websocket::header::{Headers, Origin, WebSocketProtocol};
 use websocket::message::Type;
+use websocket::receiver::Receiver;
 use websocket::result::{WebSocketError, WebSocketResult};
+use websocket::sender::Sender;
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
@@ -51,7 +51,7 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     {
        let protocol_in_use = unwrap_websocket_protocol(response.protocol());
         if let Some(protocol_name) = protocol_in_use {
-                if !protocols.is_empty() && !protocols.iter().any(|p| p.eq_ignore_ascii_case(protocol_name)) {
+                if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
                     return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
             };
         };
@@ -107,7 +107,11 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
             for message in receiver.incoming_messages() {
                 let message: Message = match message {
                     Ok(m) => m,
-                    Err(_) => break,
+                    Err(e) => {
+                        debug!("Error receiving incoming WebSocket message: {:?}", e);
+                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                        break;
+                    }
                 };
                 let message = match message.opcode {
                     Type::Text => MessageData::Text(String::from_utf8_lossy(&message.payload).into_owned()),

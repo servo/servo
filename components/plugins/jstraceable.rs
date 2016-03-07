@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ast;
-use syntax::ast::{MetaItem, Expr};
+use syntax::ast::{Expr, MetaItem, Mutability};
 use syntax::codemap::Span;
 use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::ext::build::AstBuilder;
@@ -50,7 +49,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 generics: ty::LifetimeBounds::empty(),
                 explicit_self: ty::borrowed_explicit_self(),
                 args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js", "jsapi", "JSTracer"))),
-                                   ty::Raw(ast::MutMutable))),
+                                   ty::Raw(Mutability::Mutable))),
                 ret_ty: ty::nil_ty(),
                 attributes: vec![quote_attr!(cx, #[inline])],
                 is_unsafe: false,
@@ -78,7 +77,7 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
     let mut stmts = Vec::new();
 
     let fields = match *substr.fields {
-        Struct(ref fs) | EnumMatching(_, _, ref fs) => fs,
+        Struct(_, ref fs) | EnumMatching(_, _, ref fs) => fs,
         _ => cx.span_bug(trait_span, "impossible substructure in `jstraceable`")
     };
 

@@ -180,6 +180,24 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-onblur
+    fn GetOnblur(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            window_from_node(self).GetOnblur()
+        } else {
+            self.upcast::<EventTarget>().get_event_handler_common("blur")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onblur
+    fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            window_from_node(self).SetOnblur(listener)
+        } else {
+            self.upcast::<EventTarget>().set_event_handler_common("blur", listener)
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
         if let Some(i) = self.downcast::<HTMLInputElement>() {
@@ -340,7 +358,7 @@ impl HTMLElement {
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         // FIXME(ajeffrey): Convert directly from DOMString to Atom
-        let local_name = Atom::from(&*to_snake_case(local_name));
+        let local_name = Atom::from(to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(), &local_name).map(|attr| {
             DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
         })
@@ -348,7 +366,7 @@ impl HTMLElement {
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
         // FIXME(ajeffrey): Convert directly from DOMString to Atom
-        let local_name = Atom::from(&*to_snake_case(local_name));
+        let local_name = Atom::from(to_snake_case(local_name));
         self.upcast::<Element>().remove_attribute(&ns!(), &local_name);
     }
 

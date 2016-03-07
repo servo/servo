@@ -94,10 +94,12 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
     @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False):
+                     help="Only check changed files and skip the WPT lint in tidy")
+    @CommandArgument('--no-progress', default=False, action="store_true",
+                     help="Don't show progress for tidy")
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False, no_progress=False):
         suites = OrderedDict([
-            ("tidy", {"kwargs": {"faster": faster},
+            ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress},
                       "include_arg": "include"}),
             ("ref", {"kwargs": {"kind": render_mode},
                      "paths": [path.abspath(path.join("tests", "ref"))],
@@ -292,9 +294,11 @@ class MachCommands(CommandBase):
              description='Run the source code tidiness check',
              category='testing')
     @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint")
-    def test_tidy(self, faster):
-        return tidy.scan(faster)
+                     help="Only check changed files and skip the WPT lint in tidy")
+    @CommandArgument('--no-progress', default=False, action="store_true",
+                     help="Don't show progress for tidy")
+    def test_tidy(self, faster, no_progress):
+        return tidy.scan(faster, not no_progress)
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -360,9 +364,12 @@ class MachCommands(CommandBase):
              description='Update the web platform tests',
              category='testing',
              parser=updatecommandline.create_parser())
-    def update_wpt(self, **kwargs):
+    @CommandArgument('--patch', action='store_true', default=False,
+                     help='Create an mq patch or git commit containing the changes')
+    def update_wpt(self, patch, **kwargs):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
+        kwargs["no_patch"] = not patch
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)

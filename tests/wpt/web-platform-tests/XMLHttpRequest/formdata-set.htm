@@ -80,8 +80,12 @@
         assert_equals(fd.get('key'), "value1");
     }, 'testFormDataSetToFormNull2');
     test(function() {
-        assert_object_equals(create_formdata(['key', new Blob(), 'blank.txt']).get('key'),
-                             new File(new Blob(), 'blank.txt'));
+        var fd = new FormData();
+        fd.set('key', new Blob([]), 'blank.txt');
+        var file = fd.get('key');
+
+        assert_true(file instanceof File);
+        assert_equals(file.name, 'blank.txt');
     }, 'testFormDataSetEmptyBlob');
 
     function create_formdata() {

@@ -7,6 +7,7 @@
 use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
@@ -15,12 +16,13 @@ use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_P
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{SpecificFragmentInfo};
-use gfx::display_list::OpaqueNode;
+use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
+use range::{Range, RangeIndex};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -34,7 +36,6 @@ use text;
 use unicode_bidi;
 use util;
 use util::print_tree::PrintTree;
-use util::range::{Range, RangeIndex};
 use wrapper::PseudoElementType;
 
 // From gfxFontConstants.h in Firefox
@@ -1679,9 +1680,10 @@ impl Flow for InlineFlow {
                                                       CoordinateSystem::Parent);
             let stacking_relative_content_box =
                 fragment.stacking_relative_content_box(&stacking_relative_border_box);
-            let clip = fragment.clipping_region_for_children(&self.base.clip,
-                                                             &stacking_relative_border_box,
-                                                             false);
+            let mut clip = self.base.clip.clone();
+            fragment.adjust_clipping_region_for_children(&mut clip,
+                                                         &stacking_relative_border_box,
+                                                         false);
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
@@ -1747,8 +1749,15 @@ impl Flow for InlineFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_for_inline(layout_context);
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<Box<StackingContext>>)
+                                 -> StackingContextId {
+        self.collect_stacking_contexts_for_inline(parent_id, contexts)
+    }
+
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
+        self.build_display_list_for_inline(state);
 
         for fragment in &mut self.fragments.fragments {
             fragment.restyle_damage.remove(REPAINT);

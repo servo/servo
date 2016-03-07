@@ -59,7 +59,7 @@ impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata-append
     fn Append(&self, name: USVString, value: USVString) {
         let mut data = self.data.borrow_mut();
-        match data.entry(Atom::from(&*name.0)) {
+        match data.entry(Atom::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(FormDatum::StringData(value.0)),
             Vacant  (entry) => { entry.insert(vec!(FormDatum::StringData(value.0))); }
         }
@@ -70,7 +70,7 @@ impl FormDataMethods for FormData {
     fn Append_(&self, name: USVString, value: &Blob, filename: Option<USVString>) {
         let blob = FormDatum::BlobData(JS::from_rooted(&self.get_file_or_blob(value, filename)));
         let mut data = self.data.borrow_mut();
-        match data.entry(Atom::from(&*name.0)) {
+        match data.entry(Atom::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(blob),
             Vacant(entry) => {
                 entry.insert(vec!(blob));
@@ -80,13 +80,13 @@ impl FormDataMethods for FormData {
 
     // https://xhr.spec.whatwg.org/#dom-formdata-delete
     fn Delete(&self, name: USVString) {
-        self.data.borrow_mut().remove(&Atom::from(&*name.0));
+        self.data.borrow_mut().remove(&Atom::from(name.0));
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
     fn Get(&self, name: USVString) -> Option<BlobOrUSVString> {
         self.data.borrow()
-                 .get(&Atom::from(&*name.0))
+                 .get(&Atom::from(name.0))
                  .map(|entry| match entry[0] {
                      FormDatum::StringData(ref s) => BlobOrUSVString::USVString(USVString(s.clone())),
                      FormDatum::BlobData(ref b) => BlobOrUSVString::Blob(Root::from_ref(&*b)),
@@ -96,7 +96,7 @@ impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata-getall
     fn GetAll(&self, name: USVString) -> Vec<BlobOrUSVString> {
         self.data.borrow()
-                 .get(&Atom::from(&*name.0))
+                 .get(&Atom::from(name.0))
                  .map_or(vec![], |data|
                     data.iter().map(|item| match *item {
                         FormDatum::StringData(ref s) => BlobOrUSVString::USVString(USVString(s.clone())),
@@ -107,7 +107,7 @@ impl FormDataMethods for FormData {
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has
     fn Has(&self, name: USVString) -> bool {
-        self.data.borrow().contains_key(&Atom::from(&*name.0))
+        self.data.borrow().contains_key(&Atom::from(name.0))
     }
 
     #[allow(unrooted_must_root)]
@@ -117,7 +117,7 @@ impl FormDataMethods for FormData {
             BlobOrUSVString::USVString(s) => FormDatum::StringData(s.0),
             BlobOrUSVString::Blob(b) => FormDatum::BlobData(JS::from_rooted(&b))
         };
-        self.data.borrow_mut().insert(Atom::from(&*name.0), vec!(val));
+        self.data.borrow_mut().insert(Atom::from(name.0), vec!(val));
     }
 }
 

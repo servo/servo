@@ -163,14 +163,8 @@ pub struct Opts {
     /// Emits notifications when there is a relayout.
     pub relayout_event: bool,
 
-    /// Whether to show an error when display list geometry escapes flow overflow regions.
-    pub validate_display_list_geometry: bool,
-
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
-
-    /// Whether to run absolute position calculation and display list construction in parallel.
-    pub parallel_display_list_building: bool,
 
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
@@ -183,6 +177,15 @@ pub struct Opts {
 
     /// Enable vsync in the compositor
     pub enable_vsync: bool,
+
+    /// True to enable the webrender painting/compositing backend.
+    pub use_webrender: bool,
+
+    /// True to show webrender profiling stats on screen.
+    pub webrender_stats: bool,
+
+    /// True if WebRender should use multisample antialiasing.
+    pub use_msaa: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -248,14 +251,8 @@ pub struct DebugOptions {
     /// Write layout trace to an external file for debugging.
     pub trace_layout: bool,
 
-    /// Display an error when display list geometry escapes overflow region.
-    pub validate_display_list_geometry: bool,
-
     /// Disable the style sharing cache.
     pub disable_share_style_cache: bool,
-
-    /// Build display lists in parallel.
-    pub parallel_display_list_building: bool,
 
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
@@ -272,6 +269,12 @@ pub struct DebugOptions {
 
     /// Disable vsync in the compositor
     pub disable_vsync: bool,
+
+    /// Show webrender profiling stats on screen.
+    pub webrender_stats: bool,
+
+    /// Use multisample antialiasing in WebRender.
+    pub use_msaa: bool,
 }
 
 
@@ -299,14 +302,14 @@ impl DebugOptions {
                 "show-parallel-layout" => debug_options.show_parallel_layout = true,
                 "paint-flashing" => debug_options.paint_flashing = true,
                 "trace-layout" => debug_options.trace_layout = true,
-                "validate-display-list-geometry" => debug_options.validate_display_list_geometry = true,
                 "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
-                "parallel-display-list-building" => debug_options.parallel_display_list_building = true,
                 "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
                 "load-webfonts-synchronously" => debug_options.load_webfonts_synchronously = true,
                 "disable-vsync" => debug_options.disable_vsync = true,
+                "wr-stats" => debug_options.webrender_stats = true,
+                "msaa" => debug_options.use_msaa = true,
                 "" => {},
                 _ => return Err(option)
             };
@@ -341,8 +344,6 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("show-parallel-layout", "Mark which thread laid each flow out with colors.");
     print_option("paint-flashing", "Overlay repainted areas with a random color.");
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
-    print_option("validate-display-list-geometry",
-                 "Display an error when display list geometry escapes overflow region.");
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
     print_option("parallel-display-list-building", "Build display lists in parallel.");
@@ -354,6 +355,8 @@ pub fn print_debug_usage(app: &str) -> ! {
                  "Load web fonts synchronously to avoid non-deterministic network-driven reflows");
     print_option("disable-vsync",
                  "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate");
+    print_option("wr-stats", "Show WebRender profiler on screen.");
+    print_option("msaa", "Use multisample antialiasing in WebRender.");
 
     println!("");
 
@@ -474,15 +477,16 @@ pub fn default_opts() -> Opts {
         dump_display_list_optimized: false,
         dump_layer_tree: false,
         relayout_event: false,
-        validate_display_list_geometry: false,
         profile_script_events: false,
         profile_heartbeats: false,
         disable_share_style_cache: false,
-        parallel_display_list_building: false,
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
         enable_vsync: true,
+        use_webrender: false,
+        webrender_stats: false,
+        use_msaa: false,
     }
 }
 
@@ -526,6 +530,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optflag("w", "webrender", "Use webrender backend");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -668,6 +673,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         (contents, url)
     }).collect();
 
+    let use_webrender = opt_match.opt_present("w") && !opt_match.opt_present("z");
+
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
@@ -710,13 +717,14 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_display_list_optimized: debug_options.dump_display_list_optimized,
         dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
-        validate_display_list_geometry: debug_options.validate_display_list_geometry,
         disable_share_style_cache: debug_options.disable_share_style_cache,
-        parallel_display_list_building: debug_options.parallel_display_list_building,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: opt_match.opt_present("b"),
         enable_vsync: !debug_options.disable_vsync,
+        use_webrender: use_webrender,
+        webrender_stats: debug_options.webrender_stats,
+        use_msaa: debug_options.use_msaa,
     };
 
     set_defaults(opts);

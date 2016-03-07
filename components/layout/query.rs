@@ -11,13 +11,13 @@ use euclid::rect::Rect;
 use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
+use gfx::display_list::OpaqueNode;
 use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
-use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan};
+use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use sequential;
 use std::ops::Deref;
@@ -51,6 +51,25 @@ impl LayoutRPC for LayoutRPCImpl {
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
+    /// Requests the node containing the point of interest.
+    fn hit_test(&self) -> HitTestResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        let &(ref result, update_cursor) = &rw_data.hit_test_response;
+        if update_cursor {
+            // Compute the new cursor.
+            let cursor = match *result {
+                None => Cursor::DefaultCursor,
+                Some(dim) => dim.pointing.unwrap(),
+            };
+            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
+        }
+        HitTestResponse {
+            node_address: result.map(|dim| dim.node.to_untrusted_node_address()),
+        }
+    }
+
     fn node_geometry(&self) -> NodeGeometryResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
@@ -66,70 +85,16 @@ impl LayoutRPC for LayoutRPCImpl {
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
     }
 
-    /// Requests the node containing the point of interest.
-    fn hit_test(&self, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        let resp = {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            match rw_data.stacking_context {
-                None => panic!("no root stacking context!"),
-                Some(ref stacking_context) => {
-                    let mut result = Vec::new();
-                    stacking_context.hit_test(point, &mut result, true);
-                    if !result.is_empty() {
-                        Some(HitTestResponse(result[0].node.to_untrusted_node_address()))
-                    } else {
-                        None
-                    }
-                }
-            }
-        };
-
-        if resp.is_some() {
-            return Ok(resp.unwrap());
-        }
-        Err(())
-    }
-
-    fn mouse_over(&self, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
-        let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-        {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            match rw_data.stacking_context {
-                None => panic!("no root stacking context!"),
-                Some(ref stacking_context) => {
-                    stacking_context.hit_test(point, &mut mouse_over_list, false);
-                }
-            }
-
-            // Compute the new cursor.
-            let cursor = if !mouse_over_list.is_empty() {
-                mouse_over_list[0].pointing.unwrap()
-            } else {
-                Cursor::DefaultCursor
-            };
-            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
-        }
-
-        if mouse_over_list.is_empty() {
-            Err(())
-        } else {
-            let response_list =
-                mouse_over_list.iter()
-                               .map(|metadata| metadata.node.to_untrusted_node_address())
-                               .collect();
-            Ok(MouseOverResponse(response_list))
-        }
-    }
-
     fn offset_parent(&self) -> OffsetParentResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.offset_parent_response.clone()
+    }
+
+    fn margin_style(&self) -> MarginStyleResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.margin_style_response.clone()
     }
 }
 
@@ -573,5 +538,19 @@ pub fn process_offset_parent_query<'ln, N: LayoutNode<'ln>>(requested_node: N, l
         None => {
             OffsetParentResponse::empty()
         }
+    }
+}
+
+pub fn process_margin_style_query<'ln, N: LayoutNode<'ln>>(requested_node: N)
+        -> MarginStyleResponse {
+    let layout_node = requested_node.to_threadsafe();
+    let style = &*layout_node.style();
+    let margin = style.get_margin();
+
+    MarginStyleResponse {
+        top: margin.margin_top,
+        right: margin.margin_right,
+        bottom: margin.margin_bottom,
+        left: margin.margin_left,
     }
 }

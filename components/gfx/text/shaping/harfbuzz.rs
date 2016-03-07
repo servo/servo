@@ -34,11 +34,11 @@ use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use libc::{c_char, c_int, c_uint, c_void};
 use platform::font::FontTable;
+use range::Range;
 use std::{char, cmp, ptr};
 use text::glyph::{CharIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
-use util::range::Range;
 
 macro_rules! hb_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (

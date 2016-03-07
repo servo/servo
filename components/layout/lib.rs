@@ -43,6 +43,8 @@ extern crate net_traits;
 extern crate plugins as servo_plugins;
 #[macro_use]
 extern crate profile_traits;
+#[macro_use]
+extern crate range;
 extern crate rustc_serialize;
 extern crate script;
 extern crate script_traits;
@@ -57,8 +59,8 @@ extern crate time;
 extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate url;
-#[macro_use]
 extern crate util;
+extern crate webrender_traits;
 
 #[macro_use]
 mod layout_debug;
@@ -84,6 +86,7 @@ mod model;
 mod multicol;
 mod opaque_node;
 mod parallel;
+mod persistent_list;
 mod query;
 mod sequential;
 mod table;
@@ -95,4 +98,5 @@ mod table_rowgroup;
 mod table_wrapper;
 mod text;
 mod traversal;
+mod webrender_helpers;
 mod wrapper;

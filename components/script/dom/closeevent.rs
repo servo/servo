@@ -67,7 +67,7 @@ impl CloseEvent {
             EventCancelable::NotCancelable
         };
         Ok(CloseEvent::new(global,
-                           Atom::from(&*type_),
+                           Atom::from(type_),
                            bubbles,
                            cancelable,
                            init.wasClean,

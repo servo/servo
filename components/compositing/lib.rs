@@ -48,6 +48,8 @@ extern crate time;
 extern crate url;
 #[macro_use]
 extern crate util;
+extern crate webrender;
+extern crate webrender_traits;
 
 pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
 pub use constellation::Constellation;
@@ -64,15 +66,22 @@ mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;
 pub mod constellation;
+mod delayed_composition;
 mod headless;
 pub mod pipeline;
 #[cfg(not(target_os = "windows"))]
 pub mod sandboxing;
-mod scrolling;
 mod surface_map;
 mod timer_scheduler;
 mod touch;
 pub mod windowing;
+
+/// Specifies whether the script or layout thread needs to be ticked for animation.
+#[derive(Deserialize, Serialize)]
+pub enum AnimationTickType {
+    Script,
+    Layout,
+}
 
 /// Messages from the compositor to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -96,7 +105,7 @@ pub enum CompositorMsg {
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     ResizedWindow(WindowSizeData),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId),
+    TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
 }

@@ -185,7 +185,6 @@ unsafe impl Send for OpaqueStyleAndLayoutData {}
 
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 
-
 impl OpaqueStyleAndLayoutData {
     /// Sends the style and layout data, if any, back to the layout thread to be destroyed.
     pub fn dispose(self, node: &Node) {
@@ -519,7 +518,11 @@ impl Node {
     }
 
     pub fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
-        self == parent || parent.ancestors().any(|ancestor| ancestor.r() == self)
+        self == parent || self.is_ancestor_of(parent)
+    }
+
+    pub fn is_ancestor_of(&self, parent: &Node) -> bool {
+        parent.ancestors().any(|ancestor| ancestor.r() == self)
     }
 
     pub fn following_siblings(&self) -> NodeSiblingIterator {
@@ -1052,21 +1055,18 @@ pub struct FollowingNodeIterator {
     root: Root<Node>,
 }
 
-impl Iterator for FollowingNodeIterator {
-    type Item = Root<Node>;
-
-    // https://dom.spec.whatwg.org/#concept-tree-following
-    fn next(&mut self) -> Option<Root<Node>> {
+impl FollowingNodeIterator {
+    /// Skips iterating the children of the current node
+    pub fn next_skipping_children(&mut self) -> Option<Root<Node>> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
         };
 
-        if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            return current.GetFirstChild()
-        }
+        self.next_skipping_children_impl(current)
+    }
 
+    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<Node>> {
         if self.root == current {
             self.current = None;
             return None;
@@ -1088,6 +1088,25 @@ impl Iterator for FollowingNodeIterator {
         }
         self.current = None;
         None
+    }
+}
+
+impl Iterator for FollowingNodeIterator {
+    type Item = Root<Node>;
+
+    // https://dom.spec.whatwg.org/#concept-tree-following
+    fn next(&mut self) -> Option<Root<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        if let Some(first_child) = current.GetFirstChild() {
+            self.current = Some(first_child);
+            return current.GetFirstChild()
+        }
+
+        self.next_skipping_children_impl(current)
     }
 }
 
@@ -1551,12 +1570,15 @@ impl Node {
                 Some(index)
             }
         };
-        // Step 6.
+        // Step 6. pre-removing steps for node iterators
+        // Step 7.
         let old_previous_sibling = node.GetPreviousSibling();
-        // Steps 7-8: mutation observers.
-        // Step 9.
+        // Step 8.
         let old_next_sibling = node.GetNextSibling();
+        // Steps 9-10 are handled in unbind_from_tree.
         parent.remove_child(node, cached_index);
+        // Step 11. transient registered observers
+        // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(
                 &ChildrenMutation::replace(old_previous_sibling.r(),
@@ -1602,7 +1624,8 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window, Some((*document.url()).clone()),
+                let document = Document::new(window, None,
+                                             Some((*document.url()).clone()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader);
                 Root::upcast::<Node>(document)
@@ -2394,6 +2417,54 @@ impl<'a> ChildrenMutation<'a> {
     fn replace_all(removed: &'a [&'a Node], added: &'a [&'a Node])
                    -> ChildrenMutation<'a> {
         ChildrenMutation::ReplaceAll { removed: removed, added: added }
+    }
+
+    /// Get the child that follows the added or removed children.
+    pub fn next_child(&self) -> Option<&Node> {
+        match *self {
+            ChildrenMutation::Append { .. } => None,
+            ChildrenMutation::Insert { next, .. } => Some(next),
+            ChildrenMutation::Prepend { next, .. } => Some(next),
+            ChildrenMutation::Replace { next, .. } => next,
+            ChildrenMutation::ReplaceAll { .. } => None,
+        }
+    }
+
+    /// If nodes were added or removed at the start or end of a container, return any
+    /// previously-existing child whose ":first-child" or ":last-child" status *may* have changed.
+    ///
+    /// NOTE: This does not check whether the inserted/removed nodes were elements, so in some
+    /// cases it will return a false positive.  This doesn't matter for correctness, because at
+    /// worst the returned element will be restyled unnecessarily.
+    pub fn modified_edge_element(&self) -> Option<Root<Node>> {
+        match *self {
+            // Add/remove at start of container: Return the first following element.
+            ChildrenMutation::Prepend { next, .. } |
+            ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
+                next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Add/remove at end of container: Return the last preceding element.
+            ChildrenMutation::Append { prev, .. } |
+            ChildrenMutation::Replace { prev: Some(prev), next: None, .. } => {
+                prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+            }
+            // Insert or replace in the middle:
+            ChildrenMutation::Insert { prev, next, .. } |
+            ChildrenMutation::Replace { prev: Some(prev), next: Some(next), .. } => {
+                if prev.inclusively_preceding_siblings().all(|node| !node.is::<Element>()) {
+                    // Before the first element: Return the first following element.
+                    next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+                } else if next.inclusively_following_siblings().all(|node| !node.is::<Element>()) {
+                    // After the last element: Return the last preceding element.
+                    prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+                } else {
+                    None
+                }
+            }
+
+            ChildrenMutation::Replace { prev: None, next: None, .. } => unreachable!(),
+            ChildrenMutation::ReplaceAll { .. } => None,
+        }
     }
 }
 

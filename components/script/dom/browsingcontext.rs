@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
@@ -11,40 +12,37 @@ use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
-use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra};
-use js::jsapi::{Handle, JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue};
-use js::jsapi::{HandleId, HandleObject, MutableHandle, MutableHandleValue};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GetClass};
-use js::jsapi::{JSContext, JSErrNum, JSObject, JSPropertyDescriptor};
-use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_DefinePropertyById6, JS_GetOwnPropertyDescriptorById};
+use js::jsapi::{Handle, HandleId, HandleObject, JSAutoCompartment, JSAutoRequest, JSContext};
+use js::jsapi::{JSErrNum, JSObject, JSPropertyDescriptor, JS_DefinePropertyById6};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
+use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
+use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
+use js::{JSCLASS_IS_GLOBAL, JSPROP_READONLY};
 
 #[dom_struct]
 pub struct BrowsingContext {
     reflector: Reflector,
-    history: Vec<SessionHistoryEntry>,
+    history: DOMRefCell<Vec<SessionHistoryEntry>>,
     active_index: usize,
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
-    pub fn new_inherited(document: &Document, frame_element: Option<&Element>) -> BrowsingContext {
+    pub fn new_inherited(frame_element: Option<&Element>) -> BrowsingContext {
         BrowsingContext {
             reflector: Reflector::new(),
-            history: vec![SessionHistoryEntry::new(document)],
+            history: DOMRefCell::new(vec![]),
             active_index: 0,
             frame_element: frame_element.map(JS::from_ref),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(document: &Document, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+    pub fn new(window: &Window, frame_element: Option<&Element>) -> Root<BrowsingContext> {
         unsafe {
-            let window = document.window();
-
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
 
@@ -58,7 +56,7 @@ impl BrowsingContext {
                 NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.ptr.is_null());
 
-            let object = box BrowsingContext::new_inherited(document, frame_element);
+            let object = box BrowsingContext::new_inherited(frame_element);
 
             let raw = Box::into_raw(object);
             SetProxyExtra(window_proxy.ptr, 0, PrivateValue(raw as *const _));
@@ -69,12 +67,18 @@ impl BrowsingContext {
         }
     }
 
-    pub fn active_document(&self) -> &Document {
-        &*self.history[self.active_index].document
+    pub fn init(&self, document: &Document) {
+        assert!(self.history.borrow().is_empty());
+        assert_eq!(self.active_index, 0);
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document));
     }
 
-    pub fn active_window(&self) -> &Window {
-        self.active_document().window()
+    pub fn active_document(&self) -> Root<Document> {
+        Root::from_ref(&*self.history.borrow()[self.active_index].document)
+    }
+
+    pub fn active_window(&self) -> Root<Window> {
+        Root::from_ref(self.active_document().window())
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -134,7 +138,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
         let mut val = RootedValue::new(cx, UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
         (*desc.ptr).value = val.ptr;
-        fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, true);
+        fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, JSPROP_READONLY);
         return true;
     }
 
@@ -172,11 +176,11 @@ unsafe extern "C" fn defineProperty(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn hasOwn(cx: *mut JSContext,
-                            proxy: HandleObject,
-                            id: HandleId,
-                            bp: *mut bool)
-                            -> bool {
+unsafe extern "C" fn has(cx: *mut JSContext,
+                         proxy: HandleObject,
+                         id: HandleId,
+                         bp: *mut bool)
+                         -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if window.is_some() {
         *bp = true;
@@ -185,7 +189,7 @@ unsafe extern "C" fn hasOwn(cx: *mut JSContext,
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = false;
-    if !JS_AlreadyHasOwnPropertyById(cx, target.handle(), id, &mut found) {
+    if !JS_HasPropertyById(cx, target.handle(), id, &mut found) {
         return false;
     }
 
@@ -243,13 +247,13 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     enumerate: None,
     preventExtensions: None,
     isExtensible: None,
-    has: None,
+    has: Some(has),
     get: Some(get),
     set: Some(set),
     call: None,
     construct: None,
     getPropertyDescriptor: Some(get_property_descriptor),
-    hasOwn: Some(hasOwn),
+    hasOwn: None,
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
     hasInstance: None,

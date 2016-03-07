@@ -9,9 +9,11 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
+use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use gfx::display_list::{StackingContext, StackingContextId};
 use layout_debug;
 use rustc_serialize::{Encodable, Encoder};
 use std::fmt;
@@ -21,7 +23,7 @@ use style::computed_values::{border_collapse, border_spacing};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
-use table_row::{self, CollapsedBordersForRow};
+use table_row;
 use util::print_tree::PrintTree;
 
 /// A table formatting context.
@@ -41,10 +43,6 @@ pub struct TableRowGroupFlow {
     /// The direction of the columns, propagated down from the table during the inline-size
     /// assignment phase.
     pub table_writing_mode: WritingMode,
-
-    /// Information about the borders for each cell that we bubble up to our parent. This is only
-    /// computed if `border-collapse` is `collapse`.
-    pub preliminary_collapsed_borders: CollapsedBordersForRow,
 
     /// The final width of the borders in the inline direction for each cell, computed by the
     /// entire table and pushed down into each row during inline size computation.
@@ -73,7 +71,6 @@ impl TableRowGroupFlow {
                 vertical: Au(0),
             },
             table_writing_mode: writing_mode,
-            preliminary_collapsed_borders: CollapsedBordersForRow::new(),
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
         }
@@ -208,9 +205,16 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         debug!("build_display_list_table_rowgroup: same process as block flow");
-        self.block_flow.build_display_list(layout_context)
+        self.block_flow.build_display_list(state);
+    }
+
+    fn collect_stacking_contexts(&mut self,
+                                 parent_id: StackingContextId,
+                                 contexts: &mut Vec<Box<StackingContext>>)
+                                 -> StackingContextId {
+        self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

@@ -8,6 +8,7 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+#[cfg(not(target_os = "windows"))]
 extern crate alloc_jemalloc;
 extern crate hbs_pow;
 extern crate ipc_channel;

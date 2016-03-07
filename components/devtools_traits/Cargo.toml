@@ -2,6 +2,7 @@
 name = "devtools_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+publish = false
 
 [lib]
 name = "devtools_traits"

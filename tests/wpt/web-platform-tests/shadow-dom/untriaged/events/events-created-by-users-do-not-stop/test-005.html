@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_05_04_05</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#events-that-are-always-stopped">
+<meta name="assert" content="The following events must not be stopped at the nearest shadow boundary if created by users: abort, error, select, change, load, reset, resize, scroll, selectstart">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_05_04_05_T01 = async_test('A_05_04_05_T01');
+
+A_05_04_05_T01.step(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.setAttribute('style', 'height:50%; width:100%');
+    host.setAttribute('id', 'host');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.createShadowRoot();
+
+    var inp1 = d.createElement('input');
+    inp1.setAttribute('id', 'inp1');
+    inp1.setAttribute('type', 'text');
+    inp1.setAttribute('value', '12345');
+    s.appendChild(inp1);
+    var pass = false;
+
+    s.addEventListener('load', A_05_04_05_T01.step_func(function(event) {
+        assert_equals(event.target.getAttribute('id'), 'inp1', 'Inside shadow tree: Wrong target');
+        pass = true;
+    }), false);
+
+    d.body.addEventListener('load', A_05_04_05_T01.step_func(function(event) {
+        assert_true(pass, 'Load event should first happen in shadow root, and check if the target is correct');
+        assert_true(true, 'Load event should not be stopped at Shadow boundary if created by users');
+        A_05_04_05_T01.done();
+    }), false);
+
+    var event = d.createEvent('UIEvent');
+    event.initUIEvent ('load', true, false);
+    inp1.dispatchEvent(event);
+
+}));
+</script>
+</body>
+</html>

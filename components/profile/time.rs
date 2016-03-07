@@ -58,6 +58,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutRestyleDamagePropagation |
             ProfilerCategory::LayoutNonIncrementalReset |
             ProfilerCategory::LayoutGeneratedContent |
+            ProfilerCategory::LayoutDisplayListSorting |
             ProfilerCategory::LayoutMain |
             ProfilerCategory::LayoutDispListBuild |
             ProfilerCategory::LayoutDamagePropagate |
@@ -79,6 +80,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutSelectorMatch => "Selector Matching",
             ProfilerCategory::LayoutTreeBuilder => "Tree Building",
             ProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
+            ProfilerCategory::LayoutDisplayListSorting => "Sorting Display List",
             ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
             ProfilerCategory::LayoutMain => "Primary Layout Pass",
             ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
@@ -96,6 +98,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptImageCacheMsg => "Script Image Cache Msg",
             ProfilerCategory::ScriptInputEvent => "Script Input Event",
             ProfilerCategory::ScriptNetworkEvent => "Script Network Event",
+            ProfilerCategory::ScriptPlannedNavigation => "Script Planned Navigation",
             ProfilerCategory::ScriptResize => "Script Resize",
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
