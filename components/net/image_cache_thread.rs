@@ -18,7 +18,7 @@ use std::fs::File;
 use std::io::Read;
 use std::mem;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -232,15 +232,8 @@ struct ResourceLoadInfo {
 
 /// Implementation of the image cache
 struct ImageCache {
-    // Receive commands from clients
-    cmd_receiver: Receiver<ImageCacheCommand>,
-
-    // Receive notifications from the resource thread
-    progress_receiver: Receiver<ResourceLoadInfo>,
     progress_sender: Sender<ResourceLoadInfo>,
 
-    // Receive notifications from the decoder thread pool
-    decoder_receiver: Receiver<DecoderMsg>,
     decoder_sender: Sender<DecoderMsg>,
 
     // Worker threads for decoding images.
@@ -314,11 +307,8 @@ impl ImageCache {
         let (progress_sender, progress_receiver) = channel();
         let (decoder_sender, decoder_receiver) = channel();
         let mut cache = ImageCache {
-            cmd_receiver: cmd_receiver,
             progress_sender: progress_sender,
-            progress_receiver: progress_receiver,
             decoder_sender: decoder_sender,
-            decoder_receiver: decoder_receiver,
             thread_pool: ThreadPool::new(4),
             pending_loads: AllPendingLoads::new(),
             completed_loads: HashMap::new(),
@@ -330,21 +320,15 @@ impl ImageCache {
         let mut exit_sender: Option<IpcSender<()>> = None;
 
         loop {
-            let result = {
-                let cmd_receiver = &cache.cmd_receiver;
-                let progress_receiver = &cache.progress_receiver;
-                let decoder_receiver = &cache.decoder_receiver;
-
-                select! {
-                    msg = cmd_receiver.recv() => {
-                        SelectResult::Command(msg.unwrap())
-                    },
-                    msg = decoder_receiver.recv() => {
-                        SelectResult::Decoder(msg.unwrap())
-                    },
-                    msg = progress_receiver.recv() => {
-                        SelectResult::Progress(msg.unwrap())
-                    }
+            let result = select! {
+                msg = cmd_receiver.recv() => {
+                    SelectResult::Command(msg.unwrap())
+                },
+                msg = decoder_receiver.recv() => {
+                    SelectResult::Decoder(msg.unwrap())
+                },
+                msg = progress_receiver.recv() => {
+                    SelectResult::Progress(msg.unwrap())
                 }
             };
 
