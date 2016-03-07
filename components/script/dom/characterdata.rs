@@ -78,7 +78,7 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
         let old_length = self.Length();
-        let new_length = data.utf16_units().count() as u32;
+        let new_length = data.encode_utf16().count() as u32;
         *self.data.borrow_mut() = data;
         self.content_changed();
         let node = self.upcast::<Node>();
@@ -87,7 +87,7 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(&self) -> u32 {
-        self.data.borrow().utf16_units().count() as u32
+        self.data.borrow().encode_utf16().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
@@ -151,7 +151,7 @@ impl CharacterDataMethods for CharacterData {
         // Steps 8-11.
         let node = self.upcast::<Node>();
         node.ranges().replace_code_units(
-            node, offset, count, arg.utf16_units().count() as u32);
+            node, offset, count, arg.encode_utf16().count() as u32);
         Ok(())
     }
 

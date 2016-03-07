@@ -820,7 +820,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
         let cx = global.r().get_cx();
         let _ar = JSAutoRequest::new(cx);
         let globalhandle = global.r().reflector().get_jsobject();
-        let code: Vec<u16> = code.utf16_units().collect();
+        let code: Vec<u16> = code.encode_utf16().collect();
         let filename = CString::new(filename).unwrap();
 
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());

@@ -18,7 +18,6 @@
 #![feature(peekable_is_empty)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
-#![feature(str_utf16)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
