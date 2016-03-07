@@ -28,7 +28,7 @@ test(function() {
 
   test(function() {
     input.setSelectionRange(0,input.value.length+1)
-    assert_equals(input.selectionEnd, input.value.length, "Arguments greater than the length of the value of the text field must be treated as pointing at the end of the text field");
+    assert_equals(input.selectionEnd, input.value.length-1, "Arguments greater than the length of the value of the text field must be treated as pointing at the end of the text field");
   },'input setSelectionRange(0,input.value.length+1)');
 
   test(function() {
