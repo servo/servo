@@ -797,6 +797,8 @@ impl XMLHttpRequest {
             }
         }
 
+        *self.response_url.borrow_mut() = metadata.final_url.serialize_no_fragment();
+
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(gen_id,
                                                                    metadata.headers,
@@ -901,7 +903,7 @@ impl XMLHttpRequest {
 
                 // Subsubsteps 5-7
                 self.send_flag.set(false);
-                *self.response_url.borrow_mut() = self.request_url.borrow().as_ref().unwrap().serialize_no_fragment();
+
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12
