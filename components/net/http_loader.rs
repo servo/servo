@@ -101,12 +101,12 @@ pub fn factory(user_agent: String,
     }
 }
 
-enum ReadResult {
+pub enum ReadResult {
     Payload(Vec<u8>),
     EOF,
 }
 
-fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
+pub fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     let mut buf = vec![0; 1024];
 
     match reader.read(&mut buf) {
