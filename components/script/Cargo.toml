@@ -82,6 +82,7 @@ num = "0.1.24"
 rand = "0.3"
 phf = "0.7.13"
 phf_macros = "0.7.13"
+ref_filter_map = "1.0"
 ref_slice = "0.1.0"
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size"]}
