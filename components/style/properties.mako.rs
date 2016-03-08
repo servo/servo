@@ -858,32 +858,7 @@ pub mod longhands {
     ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    <%self:single_keyword_computed name="overflow-x" values="visible hidden scroll auto">
-        use values::computed::Context;
-
-        pub fn compute_with_other_overflow_direction(value: SpecifiedValue,
-                                                     other_direction: SpecifiedValue)
-                                                     -> computed_value::T {
-            // CSS-OVERFLOW 3 states "Otherwise, if one cascaded values is one of the scrolling
-            // values and the other is `visible`, then computed values are the cascaded values with
-            // `visible` changed to `auto`."
-            match (value, other_direction) {
-                (SpecifiedValue::visible, SpecifiedValue::hidden) |
-                (SpecifiedValue::visible, SpecifiedValue::scroll) |
-                (SpecifiedValue::visible, SpecifiedValue::auto) => computed_value::T::auto,
-                _ => value,
-            }
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                compute_with_other_overflow_direction(*self, context.overflow_y.0)
-            }
-        }
-    </%self:single_keyword_computed>
+    ${single_keyword("overflow-x", "visible hidden scroll auto")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     <%self:longhand name="overflow-y">
@@ -911,10 +886,7 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                let computed_value::T(this) = *self;
-                computed_value::T(overflow_x::compute_with_other_overflow_direction(
-                        this,
-                        context.overflow_x))
+                computed_value::T(self.0.to_computed_value(context))
             }
         }
 
@@ -926,7 +898,6 @@ pub mod longhands {
             overflow_x::parse(context, input).map(SpecifiedValue)
         }
     </%self:longhand>
-
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -6639,8 +6610,6 @@ pub fn cascade(viewport_size: Size2D<Au>,
             display: longhands::display::get_initial_value(),
             color: inherited_style.get_color().color,
             text_decoration: longhands::text_decoration::get_initial_value(),
-            overflow_x: longhands::overflow_x::get_initial_value(),
-            overflow_y: longhands::overflow_y::get_initial_value(),
             positioned: false,
             floated: false,
             border_top_present: false,
@@ -6725,12 +6694,6 @@ pub fn cascade(viewport_size: Size2D<Au>,
                         longhands::position::SpecifiedValue::fixed => true,
                         _ => false,
                     }
-                }
-                PropertyDeclaration::OverflowX(ref value) => {
-                    context.overflow_x = get_specified!(get_box, overflow_x, value, error_reporter);
-                }
-                PropertyDeclaration::OverflowY(ref value) => {
-                    context.overflow_y = get_specified!(get_box, overflow_y, value, error_reporter);
                 }
                 PropertyDeclaration::Float(ref value) => {
                     context.floated = get_specified!(get_box, float, value, error_reporter)
@@ -6817,6 +6780,21 @@ pub fn cascade(viewport_size: Size2D<Au>,
             }
         }
     });
+
+    {
+        use computed_values::overflow_x::T as overflow;
+        use computed_values::overflow_y;
+        match (style.box_.overflow_x, style.box_.overflow_y.0) {
+            (overflow::visible, overflow::visible) => {}
+            (overflow::visible, _) => {
+                Arc::make_mut(&mut style.box_).overflow_x = overflow::auto
+            }
+            (_, overflow::visible) => {
+                Arc::make_mut(&mut style.box_).overflow_y = overflow_y::T(overflow::auto)
+            }
+            _ => {}
+        }
+    }
 
     // The initial value of border-*-width may be changed at computed value time.
     {

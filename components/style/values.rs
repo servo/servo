@@ -1450,8 +1450,6 @@ pub mod computed {
         pub font_size: longhands::font_size::computed_value::T,
         pub root_font_size: longhands::font_size::computed_value::T,
         pub display: longhands::display::computed_value::T,
-        pub overflow_x: longhands::overflow_x::computed_value::T,
-        pub overflow_y: longhands::overflow_y::computed_value::T,
         pub positioned: bool,
         pub floated: bool,
         pub border_top_present: bool,
