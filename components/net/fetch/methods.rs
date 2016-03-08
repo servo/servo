@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
-use fetch::response::ResponseMethods;
 use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
 use http_loader::{create_http_connector, obtain_response, read_block, ReadResult};
 use hyper::client::response::Response as HyperResponse;
