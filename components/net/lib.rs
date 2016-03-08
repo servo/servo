@@ -49,5 +49,4 @@ pub mod fetch {
     #![allow(dead_code, unused)] // XXXManishearth this is only temporary until the Fetch mod starts being used
     pub mod cors_cache;
     pub mod methods;
-    pub mod response;
 }

@@ -11,7 +11,6 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use net::fetch::methods::{fetch, fetch_async};
-use net::fetch::response::ResponseMethods;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener};

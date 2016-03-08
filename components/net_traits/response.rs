@@ -93,6 +93,22 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn new() -> Response {
+        Response {
+            response_type: ResponseType::Default,
+            termination_reason: None,
+            url: None,
+            url_list: RefCell::new(Vec::new()),
+            status: Some(StatusCode::Ok),
+            headers: Headers::new(),
+            body: Arc::new(Mutex::new(ResponseBody::Empty)),
+            cache_state: CacheState::None,
+            https_state: HttpsState::None,
+            internal_response: None,
+            return_internal: Cell::new(true)
+        }
+    }
+
     pub fn network_error() -> Response {
         Response {
             response_type: ResponseType::Error,
