@@ -17,7 +17,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
-use premultiplytable::PREMULTIPLY_TABLE;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::{Sender, channel};
@@ -633,12 +632,10 @@ impl<'a> CanvasPaintThread<'a> {
         for _ in 0 .. dest_rect.size.height {
             let mut src_offset = src_line;
             for _ in 0 .. dest_rect.size.width {
-                // Premultiply alpha and swap RGBA -> BGRA.
-                let alpha = imagedata[src_offset + 3] as usize;
-                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 2] as usize]);
-                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 1] as usize]);
-                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 0] as usize]);
-                dest.push(imagedata[src_offset + 3]);
+                let alpha = imagedata[src_offset + 3] as u16;
+                dest.push((imagedata[src_offset + 2] as u16 * alpha / 256) as u8);
+                dest.push((imagedata[src_offset + 1] as u16 * alpha / 256) as u8);
+                dest.push((imagedata[src_offset + 0] as u16 * alpha / 256) as u8);
                 src_offset += 4;
             }
             src_line += (image_size.width * 4) as usize;
