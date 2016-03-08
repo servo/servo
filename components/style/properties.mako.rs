@@ -6847,7 +6847,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     }
 
     if is_root_element {
-        context.root_font_size = context.font_size;
+        style.root_font_size = context.font_size;
     }
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
