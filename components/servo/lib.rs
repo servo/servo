@@ -20,30 +20,28 @@
 #[cfg(not(target_os = "windows"))]
 extern crate gaol;
 #[macro_use]
-extern crate util as _util;
+extern crate gleam;
 
-mod export {
-    extern crate canvas;
-    extern crate canvas_traits;
-    extern crate compositing;
-    extern crate devtools;
-    extern crate devtools_traits;
-    extern crate euclid;
-    extern crate gfx;
-    extern crate gleam;
-    extern crate ipc_channel;
-    extern crate layers;
-    extern crate layout;
-    extern crate msg;
-    extern crate net;
-    extern crate net_traits;
-    extern crate profile;
-    extern crate profile_traits;
-    extern crate script;
-    extern crate script_traits;
-    extern crate style;
-    extern crate url;
-}
+pub extern crate canvas;
+pub extern crate canvas_traits;
+pub extern crate compositing;
+pub extern crate devtools;
+pub extern crate devtools_traits;
+pub extern crate euclid;
+pub extern crate gfx;
+pub extern crate ipc_channel;
+pub extern crate layers;
+pub extern crate layout;
+pub extern crate msg;
+pub extern crate net;
+pub extern crate net_traits;
+pub extern crate profile;
+pub extern crate profile_traits;
+pub extern crate script;
+pub extern crate script_traits;
+pub extern crate style;
+pub extern crate url;
+pub extern crate util;
 
 #[cfg(feature = "webdriver")]
 extern crate webdriver_server;
@@ -87,27 +85,7 @@ use std::sync::mpsc::Sender;
 use util::opts;
 use util::resource_files::resources_dir_path;
 
-pub use _util as util;
-pub use export::canvas;
-pub use export::canvas_traits;
-pub use export::compositing;
-pub use export::devtools;
-pub use export::devtools_traits;
-pub use export::euclid;
-pub use export::gfx;
-pub use export::gleam::gl;
-pub use export::ipc_channel;
-pub use export::layers;
-pub use export::layout;
-pub use export::msg;
-pub use export::net;
-pub use export::net_traits;
-pub use export::profile;
-pub use export::profile_traits;
-pub use export::script;
-pub use export::script_traits;
-pub use export::style;
-pub use export::url;
+pub use gleam::gl;
 
 /// The in-process interface to Servo.
 ///
