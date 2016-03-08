@@ -19,9 +19,9 @@ use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList};
-use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
+use net::http_loader::{load, LoadError, LoadErrorType, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_thread::CancellationListener;
-use net_traits::{LoadData, CookieSource, LoadContext};
+use net_traits::{CookieSource, LoadData, LoadContext, NetworkError};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
@@ -1087,13 +1087,13 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
-
-    match load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
-                              DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
-        Err(LoadError::InvalidRedirect(_, msg)) => {
-            assert_eq!(msg, "redirect loop");
-        },
-        _ => panic!("expected max redirects to fail")
+    let load_result = load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
+                                          DEFAULT_USER_AGENT.to_owned(),
+                                          &CancellationListener::new(None));
+    match load_result {
+        Err(ref load_err) if load_err.error == LoadErrorType::InvalidRedirect =>
+            assert_eq!(&load_err.reason, "redirect loop"),
+        _ => panic!("expected max redirects to fail"),
     }
 }
 
@@ -1119,12 +1119,13 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    match load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
-                              DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
-        Err(LoadError::MaxRedirects(url)) => {
-            assert_eq!(url.domain().unwrap(), "mozilla.com")
-        },
-        _ => panic!("expected max redirects to fail")
+    let load_result = load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
+                                          DEFAULT_USER_AGENT.to_owned(),
+                                          &CancellationListener::new(None));
+    match load_result {
+        Err(ref load_err) if load_err.error == LoadErrorType::MaxRedirects =>
+            assert_eq!(load_err.url.domain().unwrap(), "mozilla.com"),
+        _ => panic!("expected max redirects to fail"),
     }
 }
 
@@ -1174,7 +1175,7 @@ impl HttpRequestFactory for DontConnectFactory {
     type R = MockRequest;
 
     fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
-        Err(LoadError::Connection(url, "should not have connected".to_owned()))
+        Err(LoadError::new(url, LoadErrorType::Connection, "should not have connected".to_owned()))
     }
 }
 
@@ -1186,15 +1187,12 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    match load::<MockRequest>(load_data,
-                              hsts_list,
-                              cookie_jar,
-                              None,
-                              &DontConnectFactory,
-                              DEFAULT_USER_AGENT.to_owned(),
-                              &CancellationListener::new(None)) {
-        Err(LoadError::UnsupportedScheme(_)) => {}
-        _ => panic!("expected ftp scheme to be unsupported")
+    let load_result = load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &DontConnectFactory,
+                                          DEFAULT_USER_AGENT.to_owned(),
+                                          &CancellationListener::new(None));
+    match load_result {
+        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme => (),
+        _ => panic!("expected ftp scheme to be unsupported"),
     }
 }
 
@@ -1206,15 +1204,12 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    match load::<MockRequest>(load_data,
-                              hsts_list,
-                              cookie_jar,
-                              None,
-                              &DontConnectFactory,
-                              DEFAULT_USER_AGENT.to_owned(),
-                              &CancellationListener::new(None)) {
-        Err(LoadError::UnsupportedScheme(_)) => {}
-        _ => panic!("expected ftp scheme to be unsupported")
+    let load_result = load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &DontConnectFactory,
+                                          DEFAULT_USER_AGENT.to_owned(),
+                                          &CancellationListener::new(None));
+    match load_result {
+        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme => (),
+        _ => panic!("expected ftp scheme to be unsupported"),
     }
 }
 
@@ -1249,15 +1244,12 @@ fn test_load_errors_when_cancelled() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    match load::<MockRequest>(load_data,
-                              hsts_list,
-                              cookie_jar,
-                              None,
-                              &Factory,
-                              DEFAULT_USER_AGENT.to_owned(),
-                              &cancel_listener) {
-        Err(LoadError::Cancelled(_, _)) => (),
-        _ => panic!("expected load cancelled error!")
+    let load_result = load::<MockRequest>(load_data, hsts_list, cookie_jar, None, &Factory,
+                                          DEFAULT_USER_AGENT.to_owned(),
+                                          &cancel_listener);
+    match load_result {
+        Err(ref load_err) if load_err.error == LoadErrorType::Cancelled => (),
+        _ => panic!("expected load cancellation!"),
     }
 }
 

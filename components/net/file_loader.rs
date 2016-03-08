@@ -6,7 +6,7 @@ use about_loader;
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -46,7 +46,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
             -> Result<LoadResult, String> {
     loop {
         if cancel_listener.is_cancelled() {
-            let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+            let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
             return Ok(LoadResult::Cancelled);
         }
 
@@ -80,7 +80,9 @@ pub fn factory(load_data: LoadData,
                         if cancel_listener.is_cancelled() {
                             if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
                                                                          senders, classifier, &[]) {
-                                let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+                                let _ = progress_chan.send(
+                                    Done(Err(NetworkError::Internal("load cancelled".to_owned())))
+                                );
                             }
                             return;
                         }
@@ -104,7 +106,7 @@ pub fn factory(load_data: LoadData,
                                 }
                             }
                             Err(e) => {
-                                send_error(load_data.url, e, senders);
+                                send_error(load_data.url, NetworkError::Internal(e), senders);
                             }
                         };
                     }
@@ -119,7 +121,7 @@ pub fn factory(load_data: LoadData,
                 }
             }
             Err(_) => {
-                send_error(load_data.url, "Could not parse path".to_owned(), senders);
+                send_error(load_data.url, NetworkError::Internal("Could not parse path".to_owned()), senders);
             }
         }
     });
