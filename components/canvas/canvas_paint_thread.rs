@@ -16,7 +16,6 @@ use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use num::ToPrimitive;
-use premultiplytable::PREMULTIPLY_TABLE;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::channel;
@@ -619,11 +618,12 @@ impl<'a> CanvasPaintThread<'a> {
         for _ in 0 .. dest_rect.size.height {
             let mut src_offset = src_line;
             for _ in 0 .. dest_rect.size.width {
-                // Premultiply alpha and swap RGBA -> BGRA.
-                let alpha = imagedata[src_offset + 3] as usize;
-                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 2] as usize]);
-                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 1] as usize]);
-                dest.push(PREMULTIPLY_TABLE[256 * alpha + imagedata[src_offset + 0] as usize]);
+                let alpha = imagedata[src_offset + 3] as u16;
+                // add 127 before dividing for more accurate rounding
+                let premultiply_channel = |channel: u8| (((channel as u16 * alpha) + 127) / 255) as u8;
+                dest.push(premultiply_channel(imagedata[src_offset + 2]));
+                dest.push(premultiply_channel(imagedata[src_offset + 1]));
+                dest.push(premultiply_channel(imagedata[src_offset + 0]));
                 dest.push(imagedata[src_offset + 3]);
                 src_offset += 4;
             }
