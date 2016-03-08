@@ -94,7 +94,6 @@ pub mod reporter;
 pub mod script_thread;
 pub mod textinput;
 mod timers;
-mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;

@@ -44,7 +44,6 @@ use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::str::FromStr;
 use std::{cmp, fmt};
-use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
 use util::str::DOMString;
 use util::vec::byte_swap;
@@ -1071,10 +1070,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         // Un-premultiply alpha
         for chunk in data.chunks_mut(4) {
-            let alpha = chunk[3] as usize;
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[0] as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[1] as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
+            let alpha = chunk[3] as u16;
+            if alpha != 0 {
+                chunk[0] = ((chunk[0] as u16 * 255 + (alpha / 2)) / alpha) as u8;
+                chunk[1] = ((chunk[0] as u16 * 255 + (alpha / 2)) / alpha) as u8;
+                chunk[2] = ((chunk[0] as u16 * 255 + (alpha / 2)) / alpha) as u8;
+            }
         }
 
         Ok(ImageData::new(self.global().r(), sw, sh, Some(data)))
