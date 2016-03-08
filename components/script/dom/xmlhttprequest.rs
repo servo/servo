@@ -1172,7 +1172,7 @@ impl XMLHttpRequest {
         }
         // Step 4
         let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
-        let json_text: Vec<u16> = json_text.utf16_units().collect();
+        let json_text: Vec<u16> = json_text.encode_utf16().collect();
         // Step 5
         let mut rval = RootedValue::new(cx, UndefinedValue());
         unsafe {

@@ -124,7 +124,7 @@ pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef
 #[no_mangle]
 pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
     slice_to_str(src, src_len as usize, |result| {
-        let conv = result.utf16_units().collect::<Vec<u16>>();
+        let conv = result.encode_utf16().collect::<Vec<u16>>();
         cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1);
         1
     })
@@ -286,7 +286,7 @@ pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, 
 #[no_mangle]
 pub extern "C" fn cef_string_ascii_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
     slice_to_str(src, src_len as usize, |result| {
-        let conv = result.utf16_units().collect::<Vec<u16>>();
+        let conv = result.encode_utf16().collect::<Vec<u16>>();
         cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1)
     })
 }
