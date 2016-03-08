@@ -23,9 +23,9 @@ fi
 
 # Don't try to clone twice.
 if [ ! -d rust-bindgen ]; then
-  git clone https://github.com/bholley/rust-bindgen.git
+  git clone https://github.com/ecoal95/rust-bindgen.git
   cd rust-bindgen
-  git checkout sm-hacks
+  git checkout sm-hacks-rebase-squashed
 else
   cd rust-bindgen
 fi

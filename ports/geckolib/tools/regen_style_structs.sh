@@ -50,16 +50,40 @@ fi
 # in DYLD_LIBRARY_PATH.
 #
 # /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
+# gdb -ex "break rust_panic" -ex run  --args                          \
 ./rust-bindgen/target/debug/bindgen                                 \
   -x c++ -std=gnu++0x                                               \
-  -ignore-functions -allow-unknown-types                            \
+  -allow-unknown-types                                              \
   $CLANG_SEARCH_DIRS                                                \
   "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                          \
   $PLATFORM_DEPENDENT_DEFINES                                       \
-  -DMOZ_STRING_WITH_OBSOLETE_API=0                                  \
+  -ignore-functions                                                 \
+  -enable-cxx-namespaces                                            \
+  -no-type-renaming                                                 \
+  -DMOZILLA_INTERNAL_API                                            \
   -DMOZ_STYLO_BINDINGS=1                                            \
   -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1                                \
-  -DMOZILLA_INTERNAL_API -DIMPL_LIBXUL                              \
+  -DIMPL_LIBXUL                                                     \
+  -match "nsString"                                                 \
+  -match "nsAString"                                                \
+  -match "nsSubstring"                                              \
+  -match "nsTSubstring"                                             \
+  -match "nsTString"                                                \
+  -blacklist-type "nsStringComparator"                              \
+  -blacklist-type "nsDefaultStringComparator"                       \
   -include "$1/mozilla-config.h"                                    \
   -o ../gecko_style_structs.rs                                      \
-  "$DIST_INCLUDE/nsStyleStruct.h"
+  "$DIST_INCLUDE/nsString.h"
+yes \
+  -match "nsStyleStruct"                                            \
+  -match "stdint"                                                   \
+  -match "nsColor"                                                  \
+  -match "nsCOMPtr"                                                 \
+  -match "RefPtr"                                                   \
+  -match "nsIURI"                                                   \
+  -match "nsCoord"                                                  \
+  -match "nsStyleCoord"                                             \
+  -match "nsTArray"                                                 \
+  -match "nsString"                                                 \
+  -match "imgIRequest"                                              \
+  # "$DIST_INCLUDE/nsStyleStruct.h"
