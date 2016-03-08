@@ -902,7 +902,12 @@ impl Activatable for HTMLInputElement {
         match submit_button {
             Some(ref button) => {
                 if button.is_instance_activatable() {
-                    activation::synthetic_click_activation(button.as_element(), ctrlKey, shiftKey, altKey, metaKey, ActivationSource::NotFromClick)
+                    activation::synthetic_click_activation(button.as_element(),
+                                                            ctrlKey,
+                                                            shiftKey,
+                                                            altKey,
+                                                            metaKey,
+                                                            ActivationSource::NotFromClick)
                 }
             }
             None => {

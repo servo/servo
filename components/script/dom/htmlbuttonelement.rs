@@ -258,6 +258,11 @@ impl Activatable for HTMLButtonElement {
         node.query_selector_iter(DOMString::from("button[type=submit]")).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
-            .map(|s| activation::synthetic_click_activation(s.r().as_element(), ctrlKey, shiftKey, altKey, metaKey, ActivationSource::NotFromClick));
+            .map(|s| activation::synthetic_click_activation(s.r().as_element(),
+                                                            ctrlKey,
+                                                            shiftKey,
+                                                            altKey,
+                                                            metaKey,
+                                                            ActivationSource::NotFromClick));
     }
 }

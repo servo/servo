@@ -31,7 +31,7 @@ pub trait Activatable {
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
 }
 
-//invoked because the click() method  
+//invoked because the click() method
 pub enum ActivationSource {
     FromClick,
     NotFromClick,
@@ -44,7 +44,6 @@ pub fn synthetic_click_activation(element: &Element,
                               altKey: bool,
                               metaKey: bool,
                               activationSource: ActivationSource) {
-    //let element = self.as_element();
     // Step 1
     if element.click_in_progress() {
         return;
@@ -53,12 +52,11 @@ pub fn synthetic_click_activation(element: &Element,
     element.set_click_in_progress(true);
     // Step 3
     element.as_maybe_activatable().map(|a| a.pre_click_activation());
-    //self.pre_click_activation();
 
     // Step 4
     // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
     let win = window_from_node(element);
-    let target = element.upcast();
+    let target = element.upcast::<EventTarget>();
     let mouse = MouseEvent::new(win.r(),
                                 DOMString::from("click"),
                                 EventBubbles::DoesNotBubble,
@@ -76,15 +74,17 @@ pub fn synthetic_click_activation(element: &Element,
                                 0,
                                 None);
     let event = mouse.upcast::<Event>();
-    event.fire(target);
+    match activationSource {
+        ActivationSource::FromClick => event.set_trusted(false),
+        ActivationSource::NotFromClick => {},
+    }
+    target.dispatch_event(event);
 
     // Step 5
     if event.DefaultPrevented() {
-        //self.canceled_activation();
         element.as_maybe_activatable().map(|a| a.canceled_activation());
     } else {
         // post click activation
-        //self.activation_behavior(event, target);
         element.as_maybe_activatable().map(|a| a.activation_behavior(event, target));
     }
 

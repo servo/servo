@@ -1079,7 +1079,13 @@ impl Document {
             Key::Space if !prevented && state == KeyState::Released => {
                 let maybe_elem = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
-                    activation::synthetic_click_activation(el,false, false, false, false, ActivationSource::NotFromClick)
+                    activation::synthetic_click_activation(
+                                                        el,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        ActivationSource::NotFromClick)
                 }
             }
             Key::Enter if !prevented && state == KeyState::Released => {

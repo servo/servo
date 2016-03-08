@@ -185,10 +185,10 @@ impl HTMLElementMethods for HTMLElement {
     fn Click(&self) {
         if !self.upcast::<Element>().get_disabled_state() {
             activation::synthetic_click_activation(self.upcast::<Element>(),
-                                                    false, 
-                                                    false, 
-                                                    false, 
-                                                    false, 
+                                                    false,
+                                                    false,
+                                                    false,
+                                                    false,
                                                     ActivationSource::FromClick)
         }
     }
