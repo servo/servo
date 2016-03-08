@@ -4,7 +4,6 @@
 
 #![feature(as_unsafe_cell)]
 #![feature(box_syntax)]
-#![feature(cell_extras)]
 #![feature(custom_derive)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
