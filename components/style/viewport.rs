@@ -602,8 +602,6 @@ impl MaybeNew for ViewportConstraints {
             display: longhands::display::get_initial_value(),
             color: longhands::color::get_initial_value(),
             text_decoration: longhands::text_decoration::get_initial_value(),
-            overflow_x: longhands::overflow_x::get_initial_value(),
-            overflow_y: longhands::overflow_y::get_initial_value(),
             positioned: false,
             floated: false,
             border_top_present: false,
