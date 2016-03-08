@@ -143,6 +143,7 @@ pub mod longhands {
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, PropertyDeclaration};
+            use properties::style_structs;
             use std::collections::HashMap;
             use std::sync::Arc;
             use values::computed::ToComputedValue;
@@ -190,8 +191,7 @@ pub mod longhands {
                         computed_value;
 
                     % if custom_cascade:
-                        cascade_property_custom(&computed_value,
-                                                declaration,
+                        cascade_property_custom(declaration,
                                                 inherited_style,
                                                 context,
                                                 seen,
@@ -498,17 +498,14 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        fn cascade_property_custom(_computed_value: &computed_value::T,
-                                   _declaration: &PropertyDeclaration,
+        fn cascade_property_custom(_declaration: &PropertyDeclaration,
                                    _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut Box<ParseErrorReporter + Send>) {
-            Arc::make_mut(&mut context.style.box_)._servo_display_for_hypothetical_box =
-                longhands::_servo_display_for_hypothetical_box::derive_from_display(&context);
-            Arc::make_mut(&mut context.style.inheritedtext)._servo_text_decorations_in_effect =
-                longhands::_servo_text_decorations_in_effect::derive_from_display(&context);
+            longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
+            longhands::_servo_text_decorations_in_effect::derive_from_display(context);
         }
     </%self:longhand>
 
@@ -546,9 +543,8 @@ pub mod longhands {
         }
 
         #[inline]
-        pub fn derive_from_display(context: &computed::Context)
-                                   -> computed_value::T {
-            context.style.box_.display
+        pub fn derive_from_display(context: &mut computed::Context) {
+            Arc::make_mut(&mut context.style.box_)._servo_display_for_hypothetical_box = context.style.box_.display;
         }
 
     </%self:longhand>
@@ -2207,16 +2203,13 @@ pub mod longhands {
             if !empty { Ok(result) } else { Err(()) }
         }
 
-        fn cascade_property_custom(_computed_value: &computed_value::T,
-                                   _declaration: &PropertyDeclaration,
+        fn cascade_property_custom(_declaration: &PropertyDeclaration,
                                    _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut Box<ParseErrorReporter + Send>) {
-            Arc::make_mut(&mut context.style.inheritedtext)._servo_text_decorations_in_effect =
-                longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(
-                    &context);
+            longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
         }
     </%self:longhand>
 
@@ -2291,19 +2284,18 @@ pub mod longhands {
             if result.line_through.is_none() {
                 result.line_through = maybe(context.style.text.text_decoration.line_through, context)
             }
+
             result
         }
 
         #[inline]
-        pub fn derive_from_text_decoration(context: &computed::Context)
-                                           -> computed_value::T {
-            derive(context)
+        pub fn derive_from_text_decoration(context: &mut computed::Context) {
+            Arc::make_mut(&mut context.style.inheritedtext)._servo_text_decorations_in_effect = derive(context);
         }
 
         #[inline]
-        pub fn derive_from_display(context: &computed::Context)
-                                   -> computed_value::T {
-            derive(context)
+        pub fn derive_from_display(context: &mut computed::Context) {
+            Arc::make_mut(&mut context.style.inheritedtext)._servo_text_decorations_in_effect = derive(context);
         }
     </%self:longhand>
 
@@ -6463,11 +6455,8 @@ fn cascade_with_cached_declarations(
 
                                 % if property.name in DERIVED_LONGHANDS:
                                     % for derived in DERIVED_LONGHANDS[property.name]:
-                                        Arc::make_mut(&mut context.style.${derived.style_struct.ident})
-                                             .${derived.ident} =
                                             longhands::${derived.ident}
-                                                     ::derive_from_${property.ident}(
-                                                         &context);
+                                                     ::derive_from_${property.ident}(&mut context);
                                     % endfor
                                 % endif
                             }
