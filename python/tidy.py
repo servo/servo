@@ -35,7 +35,8 @@ ignored_files = [
 
 ignored_dirs = [
     # Upstream
-    os.path.join(".", "support"),
+    os.path.join(".", "support", "android", "apk"),
+    os.path.join(".", "support", "rust-task_info"),
     os.path.join(".", "tests", "wpt", "css-tests"),
     os.path.join(".", "tests", "wpt", "harness"),
     os.path.join(".", "tests", "wpt", "update"),
