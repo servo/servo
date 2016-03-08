@@ -23,7 +23,7 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("Compositing", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutPerform", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutStyleRecalc", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("LayoutTextShaping", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    # ("LayoutTextShaping", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutRestyleDamagePropagation", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutNonIncrementalReset", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutSelectorMatch", HEARTBEAT_DEFAULT_WINDOW_SIZE),
@@ -56,7 +56,7 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("ScriptWorkerEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ApplicationHeartbeat", 100),
 ]
-ENERGY_READER_BIN = "energymon"
+ENERGY_READER_BIN = "energymon-file-provider"
 ENERGY_READER_TEMP_OUTPUT = "energymon.txt"
 SUMMARY_OUTPUT = "summary.txt"
 
@@ -179,7 +179,7 @@ def main():
     # Default benchmark
     benchmark = path.join(TOP_DIR, "tests", "html", "perf-rainbow.html")
     # Default renderer
-    renderer = "-c"
+    renderer = ""
     # Default output directory
     output_dir = "heartbeat_logs"
     # Default build target
@@ -199,9 +199,9 @@ def main():
     parser.add_argument("-d", "--debug",
                         action='store_true',
                         help="Use debug build instead of release build")
-    parser.add_argument("-g", "--gpu",
+    parser.add_argument("-w", "--webrender",
                         action='store_true',
-                        help="Rendering with GPU instead of CPU")
+                        help="Use webrender backend")
     parser.add_argument("-l", "--max_layout_threads",
                         help="Specify the maximum number of threads for layout, for example \"-l 5\"")
     parser.add_argument("-o", "--output",
@@ -222,8 +222,8 @@ def main():
         benchmark = args.benchmark
     if args.debug:
         build_target = "debug"
-    if args.gpu:
-        renderer = "-g"
+    if args.webrender:
+        renderer = "-w"
     if args.max_layout_threads:
         max_layout_threads = int(args.max_layout_threads)
     if args.output:

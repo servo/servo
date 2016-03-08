@@ -19,7 +19,7 @@ git = "https://github.com/energymon/energymon-rust.git"
 optional = true
 
 [dependencies.energy-monitor]
-version = "0.1.0"
+version = "0.2.0"
 optional = true
 
 [dependencies.plugins]
