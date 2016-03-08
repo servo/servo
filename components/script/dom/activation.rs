@@ -31,13 +31,19 @@ pub trait Activatable {
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
 }
 
+//invoked because the click() method  
+pub enum ActivationSource {
+    FromClick,
+    NotFromClick,
+}
+
 // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
 pub fn synthetic_click_activation(element: &Element,
                               ctrlKey: bool,
                               shiftKey: bool,
                               altKey: bool,
                               metaKey: bool,
-                              fromClick: bool) {
+                              activationSource: ActivationSource) {
     //let element = self.as_element();
     // Step 1
     if element.click_in_progress() {

@@ -4,6 +4,7 @@
 
 use dom::activation;
 use dom::activation::Activatable;
+use dom::activation::ActivationSource;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
@@ -64,7 +65,7 @@ impl Activatable for HTMLLabelElement {
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        activation::synthetic_click_activation(self.upcast::<Element>(),false, false, false, false, false));
+        activation::synthetic_click_activation(self.upcast::<Element>(),false, false, false, false, ActivationSource::NotFromClick);
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission

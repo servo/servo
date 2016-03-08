@@ -4,6 +4,7 @@
 
 use dom::activation;
 use dom::activation::Activatable;
+use dom::activation::ActivationSource;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -257,6 +258,6 @@ impl Activatable for HTMLButtonElement {
         node.query_selector_iter(DOMString::from("button[type=submit]")).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
-            .map(|s| activation::synthetic_click_activation(s.r().as_element(), ctrlKey, shiftKey, altKey, metaKey, false));
+            .map(|s| activation::synthetic_click_activation(s.r().as_element(), ctrlKey, shiftKey, altKey, metaKey, ActivationSource::NotFromClick));
     }
 }

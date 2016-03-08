@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation;
+use dom::activation::ActivationSource;
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -189,7 +190,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         }
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
-        activation::synthetic_click_activation(self.upcast::<Element>(),false, false, false, false, true)
+        activation::synthetic_click_activation(self.upcast::<Element>(),false, false, false, false, ActivationSource::FromClick)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
