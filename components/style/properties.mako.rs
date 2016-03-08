@@ -168,27 +168,34 @@ pub mod longhands {
                         return
                     }
                     seen.set_${property.ident}();
-                    let computed_value = ::properties::substitute_variables_${property.ident}(
-                        declared_value, &context.style.custom_properties, |value| match *value {
+
+                    {
+                    let custom_props = context.style.custom_properties.clone();
+                    ::properties::substitute_variables_${property.ident}(
+                        declared_value, &custom_props, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
-                                specified_value.to_computed_value(&context)
+                                Arc::make_mut(&mut context.style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
+                                    specified_value.to_computed_value(&context);
                             }
                             DeclaredValue::WithVariables { .. } => unreachable!(),
-                            DeclaredValue::Initial => get_initial_value(),
+                            DeclaredValue::Initial => {
+                                Arc::make_mut(&mut context.style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
+                                    get_initial_value();
+                            },
                             DeclaredValue::Inherit => {
                                 // This is a bit slow, but this is rare so it shouldn't
                                 // matter.
                                 //
                                 // FIXME: is it still?
                                 *cacheable = false;
-                                inherited_style.${THIS_STYLE_STRUCT.ident}
-                                               .${property.ident}
-                                               .clone()
+                                Arc::make_mut(&mut context.style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
+                                    inherited_style.${THIS_STYLE_STRUCT.ident}
+                                                   .${property.ident}
+                                                   .clone();
                             }
                         }, error_reporter
                     );
-                    Arc::make_mut(&mut context.style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
-                        computed_value;
+                    }
 
                     % if custom_cascade:
                         cascade_property_custom(declaration,
@@ -5579,13 +5586,12 @@ mod property_bit_field {
 % for property in LONGHANDS:
     % if property.derived_from is None:
         #[allow(non_snake_case)]
-        fn substitute_variables_${property.ident}<F, R>(
+        fn substitute_variables_${property.ident}<F>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
             error_reporter: &mut Box<ParseErrorReporter + Send>)
-            -> R
-            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) -> R
+            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
         {
             if let DeclaredValue::WithVariables {
                 ref css, first_token_type, ref base_url, from_shorthand
@@ -5596,15 +5602,15 @@ mod property_bit_field {
                                                             from_shorthand,
                                                             custom_properties,
                                                             f,
-                                                            error_reporter)
+                                                            error_reporter);
             } else {
-                f(value)
+                f(value);
             }
         }
 
         #[allow(non_snake_case)]
         #[inline(never)]
-        fn substitute_variables_${property.ident}_slow<F, R>(
+        fn substitute_variables_${property.ident}_slow<F>(
                 css: &String,
                 first_token_type: TokenSerializationType,
                 base_url: &Url,
@@ -5612,9 +5618,7 @@ mod property_bit_field {
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
                 error_reporter: &mut Box<ParseErrorReporter + Send>)
-                -> R
-                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
-                                -> R {
+                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
                 .and_then(|css| {
@@ -5648,7 +5652,7 @@ mod property_bit_field {
                     // Invalid at computed-value time.
                     DeclaredValue::${"Inherit" if property.style_struct.inherited else "Initial"}
                 )
-            )
+            );
         }
     % endif
 % endfor
@@ -6429,28 +6433,34 @@ fn cascade_with_cached_declarations(
                                         continue
                                     }
                                     seen.set_${property.ident}();
-                                    let computed_value =
+                                    let custom_props = context.style.custom_properties.clone();
                                     substitute_variables_${property.ident}(
-                                        declared_value, &context.style.custom_properties,
+                                        declared_value, &custom_props,
                                         |value| match *value {
                                             DeclaredValue::Value(ref specified_value)
-                                            => specified_value.to_computed_value(&context),
+                                            => {
+                                                Arc::make_mut(&mut context.style.${style_struct.ident})
+                                                    .${property.ident} = specified_value.to_computed_value(&context);
+                                            },
                                             DeclaredValue::Initial
-                                            => longhands::${property.ident}::get_initial_value(),
+                                            => {
+                                                Arc::make_mut(&mut context.style.${style_struct.ident})
+                                                    .${property.ident} =
+                                                    longhands::${property.ident}::get_initial_value();
+                                            },
                                             DeclaredValue::Inherit => {
                                                 // This is a bit slow, but this is rare so it shouldn't
                                                 // matter.
                                                 //
                                                 // FIXME: is it still?
-                                                parent_style.${style_struct.ident}
-                                                            .${property.ident}
-                                                            .clone()
+                                                Arc::make_mut(&mut context.style.${style_struct.ident})
+                                                    .${property.ident} = parent_style.${style_struct.ident}
+                                                                         .${property.ident}
+                                                                         .clone();
                                             }
                                             DeclaredValue::WithVariables { .. } => unreachable!()
                                         }, &mut error_reporter
                                     );
-                                    Arc::make_mut(&mut context.style.${style_struct.ident})
-                                        .${property.ident} = computed_value;
                                 % endif
 
                                 % if property.name in DERIVED_LONGHANDS:
