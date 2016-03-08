@@ -42,7 +42,7 @@ fn main() {
     if debug {
         env::set_var("NDK_DEBUG", "1");
         env::set_var("APP_OPTIM", "0");
-    } else{
+    } else {
         // Overrides android:debuggable propery in the .xml file.
         env::set_var("APP_OPTIM", "1");
     }
@@ -77,14 +77,14 @@ fn main() {
     }
 
     // Copy over the resources
-    let cpcmd= Command::new("cp")
-                            .arg("-R")
-                            .arg(&resdir)
-                            .arg(&directory.join("assets"))
-                            .stdout(Stdio::inherit())
-                            .stderr(Stdio::inherit())
-                            .current_dir(directory.clone())
-                            .status();
+    let cpcmd = Command::new("cp")
+                             .arg("-R")
+                             .arg(&resdir)
+                             .arg(&directory.join("assets"))
+                             .stdout(Stdio::inherit())
+                             .stderr(Stdio::inherit())
+                             .current_dir(directory.clone())
+                             .status();
     if cpcmd.is_err() || cpcmd.unwrap().code().unwrap() != 0 {
         println!("Error while copying files from the resources dir to the assets dir");
         process::exit(1);
@@ -237,10 +237,12 @@ fn parse_arguments() -> (Args, Vec<String>) {
                 result_output = Some(PathBuf::from(args.next().expect("-o must be followed by the output name")));
             },
             "-r" => {
-                result_root_path = Some(PathBuf::from(args.next().expect("-r must be followed by the enlistment root directory")));
+                result_root_path =
+                    Some(PathBuf::from(args.next().expect("-r must be followed by the enlistment root directory")));
             },
             "-t" => {
-                result_target_path = Some(PathBuf::from(args.next().expect("-t must be followed by the target output directory")));
+                result_target_path =
+                    Some(PathBuf::from(args.next().expect("-t must be followed by the target output directory")));
             },
             "-l" => {
                 let name = args.next().expect("-l must be followed by a library name");
