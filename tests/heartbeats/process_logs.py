@@ -359,6 +359,8 @@ def main():
     directory = 'heartbeat_logs'
     # Default output directory
     output_dir = 'plots'
+    # Default android
+    android = False
 
     # Parsing the input of the script
     parser = argparse.ArgumentParser(description="Process Heartbeat log files from characterization")
@@ -368,12 +370,19 @@ def main():
     parser.add_argument("-o", "--output",
                         default=output_dir,
                         help="Specify the log output directory, for example \"-o plots\"")
+    parser.add_argument("--android",
+                        action="store_true",
+                        dest="android",
+                        default=False,
+                        help="Specify if processing results from Android")
 
     args = parser.parse_args()
     if args.directory:
         directory = args.directory
     if args.output:
         output_dir = args.output
+    if args.android:
+        android = args.android
 
     if not os.path.exists(directory):
         print "Input directory does not exist: " + directory
@@ -385,10 +394,11 @@ def main():
 
     res = process_logs(directory)
 
-    best = find_best_executions(directory)
-    print 'Best time:', best[0]
-    print 'Best energy:', best[1]
-    print 'Best power:', best[2]
+    if not android:
+        best = find_best_executions(directory)
+        print 'Best time:', best[0]
+        print 'Best energy:', best[1]
+        print 'Best power:', best[2]
 
     os.makedirs(output_dir)
     plot_all_raw_totals(res, output_dir)
