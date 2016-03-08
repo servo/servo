@@ -687,6 +687,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::PipelineExited(pipeline_id), _) => {
+                debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.pending_subpages.remove(&pipeline_id);
             }
 

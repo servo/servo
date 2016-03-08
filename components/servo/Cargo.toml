@@ -60,9 +60,7 @@ git = "https://github.com/servo/webrender_traits"
 git = "https://github.com/servo/webrender"
 
 [features]
-default = ["glutin_app", "window", "webdriver"]
-window = ["glutin_app/window"]
-headless = ["glutin_app/headless"]
+default = ["glutin_app", "webdriver"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 
