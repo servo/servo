@@ -23,7 +23,7 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("Compositing", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutPerform", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutStyleRecalc", HEARTBEAT_DEFAULT_WINDOW_SIZE),
-    ("LayoutTextShaping", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    # ("LayoutTextShaping", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutRestyleDamagePropagation", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutNonIncrementalReset", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("LayoutSelectorMatch", HEARTBEAT_DEFAULT_WINDOW_SIZE),
@@ -56,7 +56,7 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("ScriptWorkerEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ApplicationHeartbeat", 100),
 ]
-ENERGY_READER_BIN = "energymon"
+ENERGY_READER_BIN = "energymon-file-provider"
 ENERGY_READER_TEMP_OUTPUT = "energymon.txt"
 SUMMARY_OUTPUT = "summary.txt"
 
