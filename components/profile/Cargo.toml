@@ -17,13 +17,11 @@ path = "../plugins"
 [dependencies.util]
 path = "../util"
 
-[dependencies.hbs-pow]
-git = "https://github.com/libheartbeats/heartbeats-simple-rust.git"
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
+hbs-pow = "0.2"
 log = "0.3"
 libc = "0.2"
 regex = "0.1.55"
