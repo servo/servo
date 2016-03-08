@@ -66,6 +66,7 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
+use ref_filter_map::ref_filter_map;
 use selectors::matching::{DeclarationBlock, ElementFlags, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -751,7 +752,7 @@ impl Element {
     pub fn get_inline_style_declaration(&self,
                                         property: &Atom)
                                         -> Option<Ref<PropertyDeclaration>> {
-        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
+        ref_filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.normal
                             .iter()
@@ -764,7 +765,7 @@ impl Element {
     pub fn get_important_inline_style_declaration(&self,
                                                   property: &Atom)
                                                   -> Option<Ref<PropertyDeclaration>> {
-        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
+        ref_filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.important
                             .iter()
