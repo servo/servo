@@ -537,10 +537,7 @@ impl<'a> CanvasPaintThread<'a> {
         })
     }
 
-    fn image_data(&self,
-                      dest_rect: Rect<i32>,
-                      canvas_size: Size2D<f64>,
-                      chan: IpcSender<Vec<u8>>) {
+    fn image_data(&self, dest_rect: Rect<i32>, canvas_size: Size2D<f64>, chan: IpcSender<Vec<u8>>) {
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
 
         // bgra -> rgba
