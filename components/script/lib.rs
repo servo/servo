@@ -6,7 +6,6 @@
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
 #![feature(box_syntax)]
-#![feature(cell_extras)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
