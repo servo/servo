@@ -102,4 +102,4 @@ url = {version = "0.5.5", features = ["heap_size"]}
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.2"
-core-text = "1.0"
+core-text = "1.1"
