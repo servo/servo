@@ -498,6 +498,24 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/setVisible
+    fn SetVisible(&self, visible: bool) -> Fallible<()> {
+        if self.Mozbrowser() {
+            if let Some(pipeline_id) = self.pipeline_id.get() {
+                let window = window_from_node(self);
+                let window = window.r();
+                let ConstellationChan(ref chan) = window.constellation_chan();
+                chan.send(ConstellationMsg::SetVisible(pipeline_id, visible)).unwrap();
+            }
+            Ok(())
+        } else {
+            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
+                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            Err(Error::NotSupported)
+        }
+    }
+
+
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
     fn Stop(&self) -> ErrorResult {
         Err(Error::NotSupported)

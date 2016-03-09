@@ -710,6 +710,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
                 }
             }
+            FromScriptMsg::SetVisible(pipeline_id, visible) => {
+                debug!("constellation got set visible messsage");
+                self.handle_set_visible_msg(pipeline_id, visible);
+            }
             FromScriptMsg::RemoveIFrame(pipeline_id, sender) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
@@ -1480,6 +1484,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
             }
         }
+    }
+
+    fn handle_set_visible_msg(&self, pipeline_id: PipelineId, visible: bool) {
+        self.pipeline(pipeline_id).set_visible(visible);
     }
 
     fn handle_create_canvas_paint_thread_msg(
