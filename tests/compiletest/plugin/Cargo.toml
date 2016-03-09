@@ -13,3 +13,6 @@ path = "../helper"
 
 [dependencies.plugins]
 path = "../../../components/plugins"
+
+[dependencies.script]
+path = "../../../components/script"
