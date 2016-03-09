@@ -185,3 +185,12 @@ partial interface Document {
 partial interface Document {
   Element? elementFromPoint(double x, double y);
 };
+
+// https://w3c.github.io/page-visibility/
+enum VisibilityState { "hidden", "visible", "prerender" };
+
+partial interface Document {
+    readonly attribute boolean hidden;
+    readonly attribute VisibilityState visibilityState;
+    attribute EventHandler onvisibilitychange;
+};

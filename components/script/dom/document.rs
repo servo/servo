@@ -216,6 +216,9 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
+    /// https://w3c.github.io/page-visibility/#dom-document
+    visibility_state: Cell<DocumentBinding::VisibilityState>,
+    hidden: Cell<bool>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1576,6 +1579,8 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
+            hidden: Cell::new(false), //TODO jmr0: likely not necessary to even have this field
+            visibility_state: Cell::new(DocumentBinding::VisibilityState::Hidden), //TODO jmr0: obviously wrong
         }
     }
 
@@ -2106,6 +2111,16 @@ impl DocumentMethods for Document {
         TouchList::new(&self.window, &touches)
     }
 
+    // https://w3c.github.io/page-visibility/#dom-document
+    fn VisibilityState(&self) -> DocumentBinding::VisibilityState {
+        self.visibility_state.get()
+    }
+
+    // https://w3c.github.io/page-visibility/#dom-document
+    fn Hidden(&self) -> bool {
+        self.hidden.get()
+    }
+
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
@@ -2581,6 +2596,10 @@ impl DocumentMethods for Document {
             None => self.GetDocumentElement()
         }
     }
+
+    // https://w3c.github.io/page-visibility/#dom-document
+    event_handler!(visibilitychange, GetOnvisibilitychange, SetOnvisibilitychange);
+
 }
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
