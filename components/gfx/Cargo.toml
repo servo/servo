@@ -10,9 +10,9 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = {version = "0.2.1", features = ["plugins"]}
+app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
-euclid = {version = "0.6.2", features = ["plugins"]}
+euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
 harfbuzz-sys = "0.1"
 heapsize = "0.3.0"
@@ -27,10 +27,10 @@ serde = "0.6"
 serde_macros = "0.6"
 servo-skia = "0.20130412.0"
 smallvec = "0.1"
-string_cache = {version = "0.2.10", features = ["heap_size"]}
+string_cache = {version = "0.2.11", features = ["heap_size"]}
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
-url = {version = "0.5.5", features = ["heap_size"]}
+url = {version = "0.5.7", features = ["heap_size"]}
 
 [dependencies.plugins]
 path = "../plugins"
@@ -79,7 +79,7 @@ git = "https://github.com/servo/webrender_traits"
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.2"
 core-graphics = "0.2"
-core-text = "1.0"
+core-text = "1.1"
 
 [target.i686-unknown-linux-gnu.dependencies]
 servo-fontconfig = "0.2"

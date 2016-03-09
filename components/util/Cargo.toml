@@ -28,11 +28,11 @@ optional = true
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
-app_units = {version = "0.2.1", features = ["plugins"]}
+app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
-cssparser = {version = "0.5.3", features = ["heap_size", "serde-serialization"]}
+cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 deque = "0.3.1"
-euclid = {version = "0.6.2", features = ["unstable", "plugins"]}
+euclid = {version = "0.6.4", features = ["unstable", "plugins"]}
 getopts = "0.2.11"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
@@ -46,8 +46,8 @@ selectors = {version = "0.5", features = ["heap_size"]}
 serde = "0.6"
 serde_macros = "0.6"
 smallvec = "0.1"
-string_cache = {version = "0.2.10", features = ["heap_size"]}
-url = {version = "0.5.5", features = ["heap_size", "serde_serialization"]}
+string_cache = {version = "0.2.11", features = ["heap_size"]}
+url = {version = "0.5.7", features = ["heap_size", "serde_serialization"]}
 uuid = "0.1.17"
 
 [target.x86_64-pc-windows-gnu.dependencies]

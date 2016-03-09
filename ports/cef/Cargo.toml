@@ -9,10 +9,10 @@ path = "lib.rs"
 crate-type = ["dylib"]
 
 [dependencies]
-euclid = {version = "0.6.2", features = ["plugins"]}
-gleam = "0.2"
+euclid = {version = "0.6.4", features = ["plugins"]}
+gleam = "0.2.8"
 libc = "0.2"
-url = {version = "0.5.5", features = ["heap_size"]}
+url = {version = "0.5.7", features = ["heap_size"]}
 
 [dependencies.servo]
 path = "../../components/servo"
@@ -71,10 +71,10 @@ features = ["plugins"]
 
 [target.x86_64-apple-darwin.dependencies]
 objc = "0.1"
-cocoa = "0.2"
+cocoa = "0.2.5"
 core-foundation = "0.2"
 core-graphics = "0.2"
-core-text = "1.0"
+core-text = "1.1"
 cgl = "0.1"
 
 [target.i686-unknown-linux-gnu.dependencies]

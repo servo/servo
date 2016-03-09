@@ -89,17 +89,17 @@ git = "https://github.com/servo/webrender_traits"
 git = "https://github.com/servo/webrender"
 
 [dependencies]
-app_units = {version = "0.2.1", features = ["plugins"]}
-euclid = {version = "0.6.2", features = ["plugins"]}
-gleam = "0.2"
+app_units = {version = "0.2.3", features = ["plugins"]}
+euclid = {version = "0.6.4", features = ["plugins"]}
+gleam = "0.2.8"
 image = "0.7"
 log = "0.3"
 num = "0.1.24"
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1.17"
-url = {version = "0.5.5", features = ["heap_size"]}
+url = {version = "0.5.7", features = ["heap_size"]}
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.2"
-core-text = "1.0"
+core-text = "1.1"
