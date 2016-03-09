@@ -64,7 +64,7 @@ features = ["unstable"]
 path = "../gfx_traits"
 
 [dependencies]
-app_units = {version = "0.2.1", features = ["plugins"]}
+app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
 caseless = "0.1.0"
 cssparser = {version = "0.5.3", features = ["heap_size", "serde-serialization"]}
