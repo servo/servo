@@ -290,6 +290,8 @@ pub struct JsTimers {
     active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
+    /// Used to introduce a minimum delay in event intervals
+    min_duration: Cell<Option<MsDuration>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -344,6 +346,7 @@ impl JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DOMRefCell::new(HashMap::new()),
             nesting_level: Cell::new(0),
+            min_duration: Cell::(None),
         }
     }
 

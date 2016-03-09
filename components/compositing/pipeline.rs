@@ -60,6 +60,8 @@ pub struct Pipeline {
     pub running_animations: bool,
     pub children: Vec<FrameId>,
     pub is_private: bool,
+    /// Pipeline visibility is used to aid in managing resources
+    pub visible: bool,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -383,6 +385,19 @@ impl Pipeline {
             warn!("Sending mozbrowser event to script failed ({}).", e);
         }
     }
+
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
+        match visible {
+            true => { 
+                self.script_chan.send(ConstellationControlMsg::SetVisible(self.id));
+            }
+            false => {
+                self.script_chan.send(ConstellationControlMsg::SetNonVisible(self.id));
+            }
+        }
+    }
+
 }
 
 #[derive(Deserialize, Serialize)]
