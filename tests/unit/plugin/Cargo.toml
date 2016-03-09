@@ -12,4 +12,4 @@ doctest = false
 path = "../../../components/plugins"
 
 [dependencies]
-url = {version = "0.5.5", features = ["heap_size"]}
+url = {version = "0.5.7", features = ["heap_size"]}

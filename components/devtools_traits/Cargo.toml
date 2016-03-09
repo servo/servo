@@ -29,5 +29,5 @@ rustc-serialize = "0.3"
 bitflags = "0.3"
 serde = "0.6"
 serde_macros = "0.6"
-url = {version = "0.5.5", features = ["heap_size"]}
+url = {version = "0.5.7", features = ["heap_size"]}
 
