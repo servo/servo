@@ -1472,6 +1472,7 @@ version = "0.0.1"
 dependencies = [
  "compiletest_helper 0.0.1",
  "plugins 0.0.1",
+ "script 0.0.1",
 ]
 
 [[package]]
