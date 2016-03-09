@@ -89,7 +89,7 @@ git = "https://github.com/servo/webrender_traits"
 git = "https://github.com/servo/webrender"
 
 [dependencies]
-app_units = {version = "0.2.1", features = ["plugins"]}
+app_units = {version = "0.2.3", features = ["plugins"]}
 euclid = {version = "0.6.2", features = ["plugins"]}
 gleam = "0.2"
 image = "0.7"
