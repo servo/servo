@@ -27,8 +27,6 @@ ignored_files = [
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
-    # MIT license
-    os.path.join(".", "components", "util", "deque", "mod.rs"),
     # Hidden files
     os.path.join(".", "."),
 ]
@@ -41,6 +39,8 @@ ignored_dirs = [
     os.path.join(".", "tests", "wpt", "harness"),
     os.path.join(".", "tests", "wpt", "update"),
     os.path.join(".", "tests", "wpt", "web-platform-tests"),
+    os.path.join(".", "tests", "wpt", "sync"),
+    os.path.join(".", "tests", "wpt", "sync_css"),
     os.path.join(".", "python", "mach"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply"),
