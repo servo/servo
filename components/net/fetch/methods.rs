@@ -3,30 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
-use http_loader::{NetworkHttpRequestFactory, WrappedHttpResponse};
-use http_loader::{create_http_connector, obtain_response, read_block, ReadResult};
-use hyper::client::response::Response as HyperResponse;
+use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
 use hyper::header::{Accept, CacheControl, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView, Pragma};
 use hyper::header::{AccessControlAllowCredentials, AccessControlAllowOrigin};
 use hyper::header::{Authorization, Basic, CacheDirective, ContentEncoding, Encoding};
-use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
+use hyper::header::{ContentType, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
+use net_traits::AsyncFetchListener;
 use net_traits::request::{CacheMode, CredentialsMode, Type, Origin, Window};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
-use net_traits::response::{CacheState, HttpsState, TerminationReason};
+use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use net_traits::{AsyncFetchListener, Metadata};
 use resource_thread::CancellationListener;
-use std::ascii::AsciiExt;
-use std::cell::RefCell;
 use std::io::Read;
 use std::rc::Rc;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use url::idna::domain_to_ascii;
 use url::{Origin as UrlOrigin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
@@ -144,7 +138,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // this step is obsoleted by fetch_async
 
     // Step 9
-    let mut response = if response.is_none() {
+    let response = if response.is_none() {
 
         let current_url = request.current_url();
         let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
@@ -198,7 +192,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 11
     // no need to check if response is a network error, since the type would not be `Default`
-    let mut response = if response.response_type == ResponseType::Default {
+    let response = if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CORSTainting => ResponseType::CORS,
@@ -212,7 +206,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     {
         // Step 12
         let network_error_res = Response::network_error();
-        let mut internal_response = if response.is_network_error() {
+        let internal_response = if response.is_network_error() {
             &network_error_res
         } else {
             response.get_actual_response()
@@ -265,7 +259,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     {
         // Step 12 repeated to use internal_response
         let network_error_res = Response::network_error();
-        let mut internal_response = if response.is_network_error() {
+        let internal_response = if response.is_network_error() {
             &network_error_res
         } else {
             response.get_actual_response()
@@ -319,21 +313,6 @@ fn basic_fetch(request: Rc<Request>) -> Response {
     }
 }
 
-fn http_fetch_async(request: Request,
-                    cors_flag: bool,
-                    cors_preflight_flag: bool,
-                    authentication_fetch_flag: bool,
-                    listener: Box<AsyncFetchListener + Send>) {
-
-    spawn_named(format!("http_fetch for {:?}", request.current_url_string()), move || {
-        let request = Rc::new(request);
-        let res = http_fetch(request, BasicCORSCache::new(),
-                             cors_flag, cors_preflight_flag,
-                             authentication_fetch_flag);
-        listener.response_available(res);
-    });
-}
-
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
 fn http_fetch(request: Rc<Request>,
               mut cache: BasicCORSCache,
@@ -385,9 +364,6 @@ fn http_fetch(request: Rc<Request>,
 
         // Substep 1
         if cors_preflight_flag {
-            let mut method_mismatch = false;
-            let mut header_mismatch = false;
-
             let origin = request.origin.borrow().clone();
             let url = request.current_url();
             let credentials = request.credentials_mode == CredentialsMode::Include;
@@ -397,9 +373,9 @@ fn http_fetch(request: Rc<Request>,
                 credentials: credentials
             }, request.method.borrow().clone());
 
-            method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
+            let method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
                 request.use_cors_preflight);
-            header_mismatch = request.headers.borrow().iter().any(|view|
+            let header_mismatch = request.headers.borrow().iter().any(|view|
                 !cache.match_header(CacheRequestDetails {
                     origin: origin.clone(),
                     destination: url.clone(),
@@ -808,8 +784,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch(request: Rc<Request>,
-                      http_request: Rc<Request>,
-                      credentials_flag: bool) -> Response {
+                      _http_request: Rc<Request>,
+                      _credentials_flag: bool) -> Response {
     // TODO: Implement HTTP network fetch spec
 
     // Step 1
@@ -846,7 +822,7 @@ fn http_network_fetch(request: Rc<Request>,
 
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
                 let mut new_body = vec![];
-                res.response.read_to_end(&mut new_body);
+                res.response.read_to_end(&mut new_body).unwrap();
 
                 let mut body = res_body.lock().unwrap();
                 assert!(*body != ResponseBody::Empty);
@@ -875,7 +851,7 @@ fn http_network_fetch(request: Rc<Request>,
                 // }
             });
         },
-        Err(e) =>
+        Err(_) =>
             response.termination_reason = Some(TerminationReason::Fatal)
     };
 
@@ -933,7 +909,7 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn preflight_fetch(request: Rc<Request>) -> Response {
+fn preflight_fetch(_request: Rc<Request>) -> Response {
     // TODO: Implement preflight fetch spec
     Response::network_error()
 }
@@ -1071,7 +1047,7 @@ fn includes_credentials(url: &Url) -> bool {
     false
 }
 
-fn response_needs_revalidation(response: &Response) -> bool {
+fn response_needs_revalidation(_response: &Response) -> bool {
     // TODO this function
     false
 }

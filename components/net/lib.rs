@@ -46,7 +46,6 @@ pub mod websocket_loader;
 
 /// An implementation of the [Fetch spec](https://fetch.spec.whatwg.org/)
 pub mod fetch {
-    #![allow(dead_code, unused)] // XXXManishearth this is only temporary until the Fetch mod starts being used
     pub mod cors_cache;
     pub mod methods;
 }
