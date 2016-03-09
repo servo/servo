@@ -828,7 +828,7 @@ dependencies = [
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gif 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "jpeg-decoder 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jpeg-decoder 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -877,7 +877,7 @@ dependencies = [
 
 [[package]]
 name = "jpeg-decoder"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
