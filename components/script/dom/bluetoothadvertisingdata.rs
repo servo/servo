@@ -28,10 +28,9 @@ impl BluetoothAdvertisingData {
     }
 
     pub fn new(global: GlobalRef, appearance: u16, txPower: i8, rssi: i8) -> Root<BluetoothAdvertisingData> {
-        reflect_dom_object(box BluetoothAdvertisingData::new_inherited(
-                           appearance,
-                           txPower,
-                           rssi),
+        reflect_dom_object(box BluetoothAdvertisingData::new_inherited(appearance,
+                                                                       txPower,
+                                                                       rssi),
                            global,
                            BluetoothAdvertisingDataBinding::Wrap)
     }

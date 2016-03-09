@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use util::str::DOMString;
@@ -15,7 +14,7 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
-    characteristic: DOMRefCell<JS<BluetoothRemoteGATTCharacteristic>>,
+    characteristic: MutHeap<JS<BluetoothRemoteGATTCharacteristic>>,
     uuid: DOMString,
 }
 
@@ -25,7 +24,7 @@ impl BluetoothRemoteGATTDescriptor {
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
-            characteristic: DOMRefCell::new(JS::from_ref(&characteristic)),
+            characteristic: MutHeap::new(characteristic),
             uuid: uuid,
         }
     }
@@ -35,8 +34,7 @@ impl BluetoothRemoteGATTDescriptor {
                uuid: DOMString)
                -> Root<BluetoothRemoteGATTDescriptor>{
         reflect_dom_object(box BluetoothRemoteGATTDescriptor::new_inherited(characteristic,
-                                                                            uuid,
-                                                                            /*value*/),
+                                                                            uuid),
                             global,
                             BluetoothRemoteGATTDescriptorBinding::Wrap)
     }
@@ -46,7 +44,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-characteristic
     fn Characteristic(&self) -> Root<BluetoothRemoteGATTCharacteristic> {
-       Root::from_ref(&self.characteristic.borrow())
+       self.characteristic.get()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-uuid

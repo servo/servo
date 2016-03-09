@@ -6,8 +6,11 @@
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothuuid
 
 interface BluetoothUUID {
+    [Throws]
     static UUID getService(BluetoothServiceUUID name);
+    [Throws]
     static UUID getCharacteristic(BluetoothCharacteristicUUID name);
+    [Throws]
     static UUID getDescriptor(BluetoothDescriptorUUID name);
     static UUID canonicalUUID([EnforceRange] unsigned long alias);
 };
