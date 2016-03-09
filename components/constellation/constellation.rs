@@ -407,6 +407,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     load_data: LoadData) {
         if self.shutting_down { return; }
 
+        let parent_visibility = if let Some((parent_pipeline_id, _, _)) = parent_info {
+            self.pipelines.get(&parent_pipeline_id).map(|pipeline| pipeline.visible)
+        } else {
+            None
+        };
+
         let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
             id: pipeline_id,
             parent_info: parent_info,
@@ -427,6 +433,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            parent_visibility: parent_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
         });
 
@@ -710,6 +717,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
                 }
             }
+            FromScriptMsg::SetVisible(pipeline_id, visible) => {
+                debug!("constellation got set visible messsage");
+                self.handle_set_visible_msg(pipeline_id, visible);
+            }
+            FromScriptMsg::VisibilityChangeComplete(pipeline_id, visible) => {
+                debug!("constellation got set visibility change complete message");
+                self.handle_visibility_change_complete(pipeline_id, visible);
+            }
             FromScriptMsg::RemoveIFrame(pipeline_id, sender) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
@@ -943,7 +958,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone(), None, None));
+        self.new_pipeline(root_pipeline_id, None, Some(window_size), None,
+                          LoadData::new(url.clone(), None, None));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -1478,6 +1494,35 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // In this case, it doesn't exist in the frame tree, but the pipeline
                 // still needs to be shut down.
                 self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
+            }
+        }
+    }
+
+    fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
+        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
+        let child_pipeline_ids: Vec<PipelineId> = self.current_frame_tree_iter(frame_id)
+                                                      .map(|frame| frame.current)
+                                                      .collect();
+        for id in child_pipeline_ids {
+            if let Some(pipeline) = self.pipelines.get_mut(&id) {
+                pipeline.change_visibility(visible);
+            }
+        }
+    }
+
+    fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
+        let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
+        if let Some((parent_pipeline_id, _, _)) = parent_pipeline_info {
+            let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
+                                                                                 pipeline_id,
+                                                                                 visibility);
+            let  result = match self.pipelines.get(&parent_pipeline_id) {
+                None => return warn!("Parent pipeline {:?} closed", parent_pipeline_id),
+                Some(parent_pipeline) => parent_pipeline.script_chan.send(visibility_msg),
+            };
+
+            if let Err(e) = result {
+                self.handle_send_error(parent_pipeline_id, e);
             }
         }
     }

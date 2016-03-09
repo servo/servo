@@ -96,20 +96,24 @@ dictionary BrowserElementOpenWindowEventDetail {
   // Element frameElement;
 };
 
+dictionary BrowserElementVisibilityChangeEventDetail {
+  boolean visible;
+};
+
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 
 [NoInterfaceObject]
 interface BrowserElementCommon {
-  //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
-  //void setVisible(boolean visible);
+  [Throws,
+   Pref="dom.mozbrowser.enabled",
+   CheckAnyPermissions="browser embed-widgets"]
+  void setVisible(boolean visible);
 
-  //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
-  //DOMRequest getVisible();
+  [Throws,
+   Pref="dom.mozbrowser.enabled",
+   CheckAnyPermissions="browser embed-widgets"]
+  boolean getVisible();
 
   //[Throws,
   // Pref="dom.mozBrowserFramesEnabled",
