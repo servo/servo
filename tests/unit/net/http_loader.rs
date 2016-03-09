@@ -18,10 +18,10 @@ use hyper::status::StatusCode;
 use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
-use net::hsts::{HSTSList};
+use net::hsts::{HSTSList, HSTSEntry};
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_thread::CancellationListener;
-use net_traits::{LoadData, CookieSource, LoadContext};
+use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
@@ -811,6 +811,50 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
                                                         body: <[_]>::to_vec(&*load_data.data.unwrap())
                                                     }, DEFAULT_USER_AGENT.to_owned(),
                                                     &CancellationListener::new(None));
+}
+
+#[test]
+fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_store() {
+    let url = url!("http://mozilla.com");
+    let secured_url = url!("https://mozilla.com");
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    {
+        let mut hsts_list = hsts_list.write().unwrap();
+        let entry = HSTSEntry::new(
+            "mozilla.com".to_owned(), IncludeSubdomains::Included, Some(1000000)
+        ).unwrap();
+        hsts_list.push(entry);
+    }
+
+    {
+        let mut cookie_jar = cookie_jar.write().unwrap();
+        let cookie_url = secured_url.clone();
+        let mut cookie_pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
+        cookie_pair.secure = true;
+
+        let cookie = Cookie::new_wrapped(
+            cookie_pair,
+            &cookie_url,
+            CookieSource::HTTP
+        ).unwrap();
+        cookie_jar.push(cookie, CookieSource::HTTP);
+    }
+
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+
+    let mut headers = Headers::new();
+    headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+
+    let _ = load::<AssertRequestMustIncludeHeaders>(
+        load_data.clone(), hsts_list, cookie_jar, None,
+        &AssertMustIncludeHeadersRequestFactory {
+            expected_headers: headers,
+            body: <[_]>::to_vec(&*load_data.data.unwrap())
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
 #[test]
