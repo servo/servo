@@ -10,7 +10,7 @@ crate-type = ["dylib"]
 
 [dependencies]
 euclid = {version = "0.6.4", features = ["plugins"]}
-gleam = "0.2"
+gleam = "0.2.8"
 libc = "0.2"
 url = {version = "0.5.7", features = ["heap_size"]}
 
