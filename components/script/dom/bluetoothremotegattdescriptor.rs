@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::Blue
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::ByteString;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use util::str::DOMString;
 
@@ -16,25 +17,30 @@ pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
     characteristic: MutHeap<JS<BluetoothRemoteGATTCharacteristic>>,
     uuid: DOMString,
+    value: ByteString,
 }
 
 impl BluetoothRemoteGATTDescriptor {
     pub fn new_inherited(characteristic: &BluetoothRemoteGATTCharacteristic,
-                         uuid: DOMString)
+                         uuid: DOMString,
+                         value: Vec<u8>)
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
             characteristic: MutHeap::new(characteristic),
             uuid: uuid,
+            value: ByteString::new(value),
         }
     }
 
     pub fn new(global: GlobalRef,
                characteristic: &BluetoothRemoteGATTCharacteristic,
-               uuid: DOMString)
+               uuid: DOMString,
+               value: Vec<u8>)
                -> Root<BluetoothRemoteGATTDescriptor>{
         reflect_dom_object(box BluetoothRemoteGATTDescriptor::new_inherited(characteristic,
-                                                                            uuid),
+                                                                            uuid,
+                                                                            value),
                             global,
                             BluetoothRemoteGATTDescriptorBinding::Wrap)
     }
@@ -52,9 +58,14 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         self.uuid.clone()
     }
 
+     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-value
+    fn GetValue(&self) -> Option<ByteString> {
+        Some(self.value.clone())
+    }
+
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
-    fn ReadValue(&self) -> Vec<i8> {
+    fn ReadValue(&self) -> ByteString {
         //UNIMPLEMENTED
-        vec!()
+        self.value.clone()
     }
 }
