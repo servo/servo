@@ -31,6 +31,7 @@ extern crate webrender_traits;
 extern crate websocket;
 
 pub mod about_loader;
+pub mod chrome_loader;
 pub mod cookie;
 pub mod cookie_storage;
 pub mod data_loader;
