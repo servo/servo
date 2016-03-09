@@ -23,7 +23,7 @@ use net::hsts::HstsEntry;
 use net::http_loader::LoadErrorType;
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
-use net_traits::{LoadData, CookieSource, LoadContext, NetworkError, IncludeSubdomains};
+use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
