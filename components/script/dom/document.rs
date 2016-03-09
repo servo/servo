@@ -2265,6 +2265,16 @@ impl DocumentMethods for Document {
         TouchList::new(&self.window, &touches)
     }
 
+    // https://w3c.github.io/page-visibility/#dom-document
+    fn VisibilityState(&self) -> DocumentBinding::VisibilityState {
+        self.visibility_state.get()
+    }
+
+    // https://w3c.github.io/page-visibility/#dom-document
+    fn Hidden(&self) -> bool {
+        self.hidden.get()
+    }
+
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
