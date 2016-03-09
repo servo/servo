@@ -53,6 +53,6 @@ url = {version = "0.5.5", features = ["heap_size"]}
 time = "0.1.17"
 errno = "0.1"
 libc = "0.2"
-euclid = {version = "0.6.2", features = ["plugins"]}
+euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2"
 servo-egl = "0.2"

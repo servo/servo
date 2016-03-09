@@ -41,4 +41,4 @@ git = "https://github.com/servo/webrender_traits"
 log = "0.3"
 num = "0.1.24"
 gleam = "0.2"
-euclid = {version = "0.6.2", features = ["plugins"]}
+euclid = {version = "0.6.4", features = ["plugins"]}

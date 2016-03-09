@@ -90,7 +90,7 @@ git = "https://github.com/servo/webrender"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
-euclid = {version = "0.6.2", features = ["plugins"]}
+euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2"
 image = "0.7"
 log = "0.3"
