@@ -21,7 +21,7 @@ use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList, HSTSEntry};
 use net::http_loader::{load, LoadError, LoadErrorType, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_thread::CancellationListener;
-use net_traits::{CookieSource, LoadData, LoadContext, NetworkError, IncludeSubdomains};
+use net_traits::{CookieSource, LoadData, LoadContext, IncludeSubdomains};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;

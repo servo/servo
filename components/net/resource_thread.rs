@@ -5,6 +5,7 @@
 //! A thread that takes a URL and streams back the binary data.
 
 use about_loader;
+use chrome_loader;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
@@ -345,6 +346,7 @@ impl ResourceManager {
 
         let cancel_listener = CancellationListener::new(cancel_resource);
         let loader = match &*load_data.url.scheme {
+            "chrome" => from_factory(chrome_loader::factory),
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
                 http_loader::factory(self.user_agent.clone(),
