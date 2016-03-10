@@ -44,6 +44,25 @@ use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
+/// https://html.spec.whatwg.org/multipage/#classic-script
+#[derive(Clone, HeapSizeOf, JSTraceable)]
+pub struct ClassicScript {
+    source_text: DOMString,
+    external: bool,
+    url: Url,
+}
+
+impl ClassicScript {
+    // https://html.spec.whatwg.org/multipage/#creating-a-classic-script
+    fn create(source_text: DOMString, external: bool, url: Url) -> ClassicScript {
+        ClassicScript {
+            source_text: source_text,
+            external: external,
+            url: url,
+        }
+    }
+}
+
 #[dom_struct]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -55,8 +74,6 @@ pub struct HTMLScriptElement {
     parser_inserted: Cell<bool>,
 
     /// https://html.spec.whatwg.org/multipage/#non-blocking
-    ///
-    /// (currently unused)
     non_blocking: Cell<bool>,
 
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
@@ -64,9 +81,6 @@ pub struct HTMLScriptElement {
 
     /// Document of the parser that created this element
     parser_document: JS<Document>,
-
-    /// The source this script was loaded from
-    load: DOMRefCell<Option<ScriptOrigin>>,
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
@@ -84,7 +98,6 @@ impl HTMLScriptElement {
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
-            load: DOMRefCell::new(None),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
@@ -125,10 +138,20 @@ pub enum ScriptOrigin {
     External(Result<(Metadata, Vec<u8>), String>),
 }
 
+#[derive(Copy, Clone)]
+enum ExternalScriptKind {
+    Deferred,
+    ParsingBlocking,
+    AsapInOrder,
+    Asap,
+}
+
 /// The context required for asynchronously loading an external script source.
 struct ScriptContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
+    /// Kind of script
+    kind: ExternalScriptKind,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -148,17 +171,47 @@ impl AsyncResponseListener for ScriptContext {
     }
 
     fn response_complete(&mut self, status: Result<(), String>) {
-        let load = status.map(|_| {
-            let data = mem::replace(&mut self.data, vec!());
+        let script = status.map(|_| {
             let metadata = self.metadata.take().unwrap();
-            (metadata, data)
+
+            // TODO(#9185): implement encoding determination.
+            // Step 8.
+            let source_text = UTF_8.decode(&self.data, DecoderTrap::Replace).unwrap();
+            ClassicScript {
+                source_text: source_text.into(),
+                external: true,
+                url: metadata.final_url,
+            }
         });
         let elem = self.elem.root();
-        // TODO: maybe set this to None again after script execution to save memory.
-        *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
-        elem.ready_to_be_parser_executed.set(true);
 
+        match self.kind {
+            ExternalScriptKind::ParsingBlocking => {
+                elem.ready_to_be_parser_executed.set(true);
+            }
+            ExternalScriptKind::Deferred => {
+                let document = document_from_node(&*elem);
+                document.deferred_script_loaded(&elem, script);
+            }
+            ExternalScriptKind::AsapInOrder => {
+                // XXX associated with the node document of the script element
+                //     **at the time the prepare a script algorithm started**.
+                let document = document_from_node(&*elem);
+                document.asap_in_order_script_loaded(&elem, script);
+            },
+            ExternalScriptKind::Asap => {
+                // XXX associated with the node document of the script element
+                //     **at the time the prepare a script algorithm started**.
+                let document = document_from_node(&*elem);
+                document.process_asap_script(&elem, script);
+            },
+        }
+
+        // This might have caused one of the conditions for spinning the event
+        // loop in the-end to have changed.
         let document = document_from_node(elem.r());
+        document.continue_the_end();
+
         document.finish_load(LoadType::Script(self.url.clone()));
     }
 }
@@ -277,17 +330,37 @@ impl HTMLScriptElement {
                         error!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
-                    }
+                    },
                     Ok(url) => url,
                 };
 
-                // Step 16.6.
+                // Preparation for step 18.
+                // Step 15.a: has src, has defer, was parser-inserted, is not async.
+                let kind = if element.has_attribute(&atom!("defer")) &&
+                   was_parser_inserted &&
+                   !async {
+                    ExternalScriptKind::Deferred
+                // Step 15.b: has src, was parser-inserted, is not async.
+                } else if was_parser_inserted &&
+                          !async {
+                    ExternalScriptKind::ParsingBlocking
+                // Step 15.d: has src, isn't async, isn't non-blocking.
+                } else if !async &&
+                          !self.non_blocking.get() {
+                    ExternalScriptKind::AsapInOrder
+                // Step 15.e: has src.
+                } else {
+                    ExternalScriptKind::Asap
+                };
+
+                // Step 14.5-7.
                 // TODO(#9186): use the fetch infrastructure.
                 let script_chan = window.networking_task_source();
                 let elem = Trusted::new(self, script_chan.clone());
 
                 let context = Arc::new(Mutex::new(ScriptContext {
                     elem: elem,
+                    kind: kind,
                     data: vec!(),
                     metadata: None,
                     url: url.clone(),
@@ -306,53 +379,43 @@ impl HTMLScriptElement {
                 });
 
                 doc.load_async(LoadType::Script(url), response_target);
-                true
-            },
-            None => false,
-        };
 
-        // Step 18.
-        let deferred = element.has_attribute(&atom!("defer"));
-        // Step 18.a: has src, has defer, was parser-inserted, is not async.
-        if is_external &&
-           deferred &&
-           was_parser_inserted &&
-           !async {
-            doc.add_deferred_script(self);
-            // Second part implemented in Document::process_deferred_scripts.
-            return NextParserState::Continue;
-        // Step 18.b: has src, was parser-inserted, is not async.
-        } else if is_external &&
-                  was_parser_inserted &&
-                  !async {
-            doc.set_pending_parsing_blocking_script(Some(self));
-            // Second part implemented in the load result handler.
-        // Step 18.c: has src, isn't async, isn't non-blocking.
-        } else if is_external &&
-                  !async &&
-                  !self.non_blocking.get() {
-            doc.push_asap_in_order_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 18.d: has src.
-        } else if is_external {
-            doc.add_asap_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 18.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
-        } else if !is_external &&
-                  was_parser_inserted &&
-                  // TODO: check for script nesting levels.
-                  doc.get_script_blocking_stylesheets_count() > 0 {
-            doc.set_pending_parsing_blocking_script(Some(self));
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
-            self.ready_to_be_parser_executed.set(true);
-        // Step 18.f: otherwise.
-        } else {
-            assert!(!text.is_empty());
-            self.ready_to_be_parser_executed.set(true);
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
-            self.execute();
-            return NextParserState::Continue;
-        }
+                // Step 15.
+                match kind {
+                    ExternalScriptKind::Deferred => {
+                        doc.add_deferred_script(self);
+                        return NextParserState::Continue;
+                    }
+                    ExternalScriptKind::ParsingBlocking =>
+                        doc.set_pending_parsing_blocking_script(Some(self)),
+                    ExternalScriptKind::AsapInOrder =>
+                        doc.push_asap_in_order_script(self),
+                    ExternalScriptKind::Asap =>
+                        doc.add_asap_script(self),
+                }
+            },
+            None => {
+                // Step 15.
+                // Step 15.c: doesn't have src, was parser-inserted, is blocked on stylesheet.
+                if was_parser_inserted &&
+                   // TODO: check for script nesting levels.
+                   doc.get_script_blocking_stylesheets_count() > 0 {
+                    doc.set_pending_parsing_blocking_script(Some(self));
+                    //*self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+                    self.ready_to_be_parser_executed.set(true);
+                // Step 15.f: otherwise.
+                } else {
+                    assert!(!text.is_empty());
+                    self.ready_to_be_parser_executed.set(true);
+                    self.execute(Ok(ClassicScript {
+                        source_text: text,
+                        external: false,
+                        url: base_url,
+                    }));
+                    return NextParserState::Continue;
+                }
+            },
+        };
 
         // TODO: make this suspension happen automatically.
         if was_parser_inserted {
@@ -368,7 +431,7 @@ impl HTMLScriptElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
-    pub fn execute(&self) {
+    pub fn execute(&self, script: Result<ClassicScript, String>) {
         assert!(self.ready_to_be_parser_executed.get());
 
         // Step 1.
@@ -377,29 +440,14 @@ impl HTMLScriptElement {
             return;
         }
 
-        let load = self.load.borrow_mut().take().unwrap();
-
-        // Step 2.
-        let (source, external, url) = match load {
-            // Step 2.a.
-            ScriptOrigin::External(Err(e)) => {
+        let script = match script {
+            // Step 2.
+            Err(e) => {
                 error!("error loading script {}", e);
                 self.dispatch_error_event();
                 return;
             }
-
-            // Step 2.b.1.a.
-            ScriptOrigin::External(Ok((metadata, bytes))) => {
-                // TODO(#9185): implement encoding determination.
-                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
-                 true,
-                 metadata.final_url)
-            },
-
-            // Step 2.b.1.c.
-            ScriptOrigin::Internal(text, url) => {
-                (text, false, url)
-            }
+            Ok(script) => script,
         };
 
         // Step 2.b.2.
@@ -424,9 +472,9 @@ impl HTMLScriptElement {
         // TODO: Create a script...
         let window = window_from_node(self);
         let mut rval = RootedValue::new(window.get_cx(), UndefinedValue());
-        window.evaluate_script_on_global_with_result(&*source,
-                                                         &*url.serialize(),
-                                                         rval.handle_mut());
+        window.evaluate_script_on_global_with_result(&*script.source_text,
+                                                     &*script.url.serialize(),
+                                                     rval.handle_mut());
 
         // Step 2.b.7.
         document.set_current_script(old_script.r());
@@ -439,7 +487,7 @@ impl HTMLScriptElement {
         self.dispatch_after_script_execute_event();
 
         // Step 2.b.10.
-        if external {
+        if script.external {
             self.dispatch_load_event();
         } else {
             let chan = window.dom_manipulation_task_source();
