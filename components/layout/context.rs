@@ -11,11 +11,12 @@ use app_units::Au;
 use canvas_traits::CanvasMsg;
 use euclid::Rect;
 use fnv::FnvHasher;
+use gfx::display_list::WebRenderImageInfo;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use gfx_traits::LayerId;
 use heapsize::HeapSizeOf;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -24,7 +25,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use style::context::{LocalStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use style::selector_impl::ServoSelectorImpl;
@@ -99,6 +100,11 @@ pub struct SharedLayoutContext {
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, BuildHasherDefault<FnvHasher>>>,
+
+    /// A cache of WebRender image info.
+    pub webrender_image_cache: Arc<RwLock<HashMap<(Url, UsePlaceholder),
+                                                  WebRenderImageInfo,
+                                                  BuildHasherDefault<FnvHasher>>>>,
 }
 
 pub struct LayoutContext<'a> {
@@ -202,4 +208,45 @@ impl<'a> LayoutContext<'a> {
         }
     }
 
+    pub fn get_webrender_image_for_url(&self,
+                                       url: &Url,
+                                       use_placeholder: UsePlaceholder,
+                                       fetch_image_data_as_well: bool)
+                                       -> Option<(WebRenderImageInfo, Option<IpcSharedMemory>)> {
+        if !fetch_image_data_as_well {
+            let webrender_image_cache = self.shared.webrender_image_cache.read().unwrap();
+            if let Some(existing_webrender_image) =
+                    webrender_image_cache.get(&((*url).clone(), use_placeholder)) {
+                return Some(((*existing_webrender_image).clone(), None))
+            }
+        }
+
+        match self.get_or_request_image_or_meta((*url).clone(), use_placeholder) {
+            Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
+                match image.id {
+                    None => None,
+                    Some(id) => {
+                        let cache_entry = WebRenderImageInfo {
+                            width: image.width,
+                            height: image.height,
+                            format: image.format,
+                            key: image.id,
+                        };
+                        if !fetch_image_data_as_well {
+                            let mut webrender_image_cache = self.shared
+                                                                .webrender_image_cache
+                                                                .write()
+                                                                .unwrap();
+                            webrender_image_cache.insert(((*url).clone(), use_placeholder),
+                                                         cache_entry);
+                            return Some((cache_entry, None))
+                        }
+                        Some((cache_entry, Some(image.bytes.clone())))
+                    }
+                }
+            }
+            None | Some(ImageOrMetadataAvailable::MetadataAvailable(_)) => None,
+        }
+    }
 }
+
