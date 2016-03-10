@@ -141,8 +141,7 @@ impl<'a> LayoutContext<'a> {
     pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<Arc<Image>> {
         // See if the image is already available
-        let result = self.shared.image_cache_thread.find_image(url.clone(),
-                                                             use_placeholder);
+        let result = self.shared.image_cache_thread.find_image(url.clone(), use_placeholder);
 
         match result {
             Ok(image) => Some(image),
@@ -183,7 +182,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
-                                -> Option<ImageOrMetadataAvailable> {
+                                        -> Option<ImageOrMetadataAvailable> {
         // If we are emitting an output file, load the image synchronously.
         if opts::get().output_file.is_some() || opts::get().exit_after_load {
             return self.get_or_request_image(url, use_placeholder)

@@ -343,7 +343,6 @@ impl FragmentDisplayListBuilding for Fragment {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a fragment".
         let background_color = style.resolve_color(style.get_background().background_color);
-
         // 'background-clip' determines the area within which the background is painted.
         // http://dev.w3.org/csswg/css-backgrounds-3/#the-background-clip
         let mut bounds = *absolute_bounds;
