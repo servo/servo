@@ -23,20 +23,23 @@ const BLUETOOTH_ASSIGNED_SERVICES: &'static [(&'static str, u32)] = &[
 //https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
     ("org.bluetooth.service.alert_notification", 0x1811_u32),
     ("org.bluetooth.service.automation_io", 0x1815_u32),
-    ("org.bluetooth.service.battery_service", 0x180f_u32)];
+    ("org.bluetooth.service.battery_service", 0x180f_u32)
+];
 
 const BLUETOOTH_ASSIGNED_CHARCTERISTICS: &'static [(&'static str, u32)] = &[
 //TODO(zakorgy) create all the characteristics
 //https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
     ("org.bluetooth.characteristic.aerobic_heart_rate_lower_limit", 0x2a7e_u32),
     ("org.bluetooth.characteristic.aerobic_heart_rate_upper_limit", 0x2a84_u32),
-    ("org.bluetooth.characteristic.battery_level", 0x2a19_u32)];
+    ("org.bluetooth.characteristic.battery_level", 0x2a19_u32)
+];
 
 const BLUETOOTH_ASSIGNED_DESCRIPTORS: &'static [(&'static str, u32)] = &[
 //TODO(zakorgy) create all the descriptors
 //https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
     ("org.bluetooth.descriptor.gatt.characteristic_extended_properties", 0x2900_u32),
-    ("org.bluetooth.descriptor.gatt.characteristic_user_description", 0x2901_u32)];
+    ("org.bluetooth.descriptor.gatt.characteristic_user_description", 0x2901_u32)
+];
 
 const BASE_UUID: &'static str = "-0000-1000-8000-00805f9b34fb";
 const SERVICE_PREFIX: &'static str = "org.bluetooth.service";

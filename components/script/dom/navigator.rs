@@ -22,7 +22,7 @@ impl Navigator {
     fn new_inherited() -> Navigator {
         Navigator {
             reflector_: Reflector::new(),
-            bluetooth: MutNullableHeap::new(None),
+            bluetooth: Default::default(),
         }
     }
 
@@ -68,11 +68,15 @@ impl NavigatorMethods for Navigator {
     fn AppVersion(&self) -> DOMString {
         navigatorinfo::AppVersion()
     }
+
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     fn Bluetooth(&self) -> Root<Bluetooth> {
         match self.bluetooth.get() {
             Some(bluetooth) => bluetooth,
-            None => Bluetooth::new(self.global().r()),
+            None => {
+                self.bluetooth.set(Some(Bluetooth::new(self.global().r()).r()));
+                self.bluetooth.get().unwrap()
+            }
         }
     }
 }
