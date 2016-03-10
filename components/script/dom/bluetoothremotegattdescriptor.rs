@@ -17,30 +17,27 @@ pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
     characteristic: MutHeap<JS<BluetoothRemoteGATTCharacteristic>>,
     uuid: DOMString,
-    value: ByteString,
+    value: Option<ByteString>,
 }
 
 impl BluetoothRemoteGATTDescriptor {
     pub fn new_inherited(characteristic: &BluetoothRemoteGATTCharacteristic,
-                         uuid: DOMString,
-                         value: Vec<u8>)
+                         uuid: DOMString)
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
             characteristic: MutHeap::new(characteristic),
             uuid: uuid,
-            value: ByteString::new(value),
+            value: None,
         }
     }
 
     pub fn new(global: GlobalRef,
                characteristic: &BluetoothRemoteGATTCharacteristic,
-               uuid: DOMString,
-               value: Vec<u8>)
+               uuid: DOMString)
                -> Root<BluetoothRemoteGATTDescriptor>{
         reflect_dom_object(box BluetoothRemoteGATTDescriptor::new_inherited(characteristic,
-                                                                            uuid,
-                                                                            value),
+                                                                            uuid),
                             global,
                             BluetoothRemoteGATTDescriptorBinding::Wrap)
     }
@@ -60,12 +57,12 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 
      // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-value
     fn GetValue(&self) -> Option<ByteString> {
-        Some(self.value.clone())
+        self.value.clone()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
     fn ReadValue(&self) -> ByteString {
         //UNIMPLEMENTED
-        self.value.clone()
+        ByteString::new(vec!())
     }
 }
