@@ -33,7 +33,7 @@ use style_traits::cursor::Cursor;
 use url::Url;
 use util::geometry::ScreenPx;
 #[cfg(feature = "window")]
-use util::opts;
+use util::opts::{self, RenderApi};
 
 #[cfg(feature = "window")]
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
@@ -157,9 +157,15 @@ impl Window {
     #[cfg(not(target_os = "android"))]
     fn gl_version() -> GlRequest {
         if opts::get().use_webrender {
-            GlRequest::Specific(Api::OpenGl, (3, 2))
-        } else {
-            GlRequest::Specific(Api::OpenGl, (2, 1))
+            return GlRequest::Specific(Api::OpenGl, (3, 2));
+        }
+        match opts::get().render_api {
+            RenderApi::GL => {
+                GlRequest::Specific(Api::OpenGl, (2, 1))
+            }
+            RenderApi::ES2 => {
+                GlRequest::Specific(Api::OpenGlEs, (2, 0))
+            }
         }
     }
 
@@ -672,7 +678,14 @@ impl WindowMethods for Window {
     fn native_display(&self) -> NativeDisplay {
         use x11::xlib;
         unsafe {
-            NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
+            match opts::get().render_api {
+                RenderApi::GL => {
+                    NativeDisplay::new(self.window.platform_display() as *mut xlib::Display)
+                },
+                RenderApi::ES2 => {
+                    NativeDisplay::new_egl_display()
+                }
+            }
         }
     }
 
