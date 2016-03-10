@@ -592,12 +592,7 @@ impl LineBreaker {
         // known good split point.
         if !fragment.white_space().allow_wrap() {
             debug!("LineBreaker: fragment can't split; falling back to last known good split point");
-            if !self.split_line_at_last_known_good_position() {
-                // No line breaking opportunity exists at all for this line. Overflow.
-                self.push_fragment_to_line(layout_context, fragment, line_flush_mode);
-            } else {
-                self.work_list.push_front(fragment);
-            }
+            self.split_line_at_last_known_good_position(layout_context, fragment, line_flush_mode);
             return;
         }
 
@@ -616,14 +611,10 @@ impl LineBreaker {
                     debug!("LineBreaker: fragment was unsplittable; deferring to next line");
                     self.work_list.push_front(fragment);
                     self.flush_current_line();
-                } else if self.split_line_at_last_known_good_position() {
-                    // We split the line at a known-good prior position. Restart with the current
-                    // fragment.
-                    self.work_list.push_front(fragment)
                 } else {
-                    // We failed to split and there is no known-good place on this line to split.
-                    // Overflow.
-                    self.push_fragment_to_line(layout_context, fragment, LineFlushMode::No)
+                    self.split_line_at_last_known_good_position(layout_context,
+                                                                fragment,
+                                                                LineFlushMode::No);
                 }
                 return
             }
@@ -724,13 +715,21 @@ impl LineBreaker {
         self.new_fragments.push(fragment);
     }
 
-    fn split_line_at_last_known_good_position(&mut self) -> bool {
+    fn split_line_at_last_known_good_position(&mut self,
+                                              layout_context: &LayoutContext,
+                                              cur_fragment: Fragment,
+                                              line_flush_mode: LineFlushMode) {
         let last_known_line_breaking_opportunity =
             match self.last_known_line_breaking_opportunity {
-                None => return false,
+                None => {
+                    // No line breaking opportunity exists at all for this line. Overflow.
+                    self.push_fragment_to_line(layout_context, cur_fragment, line_flush_mode);
+                    return;
+                }
                 Some(last_known_line_breaking_opportunity) => last_known_line_breaking_opportunity,
             };
 
+        self.work_list.push_front(cur_fragment);
         for fragment_index in (last_known_line_breaking_opportunity.get()..
                                self.pending_line.range.end().get()).rev() {
             debug_assert!(fragment_index == (self.new_fragments.len() as isize) - 1);
@@ -752,7 +751,6 @@ impl LineBreaker {
         // need to add that feature to the API to handle this case correctly.
         self.pending_line.range.extend_to(last_known_line_breaking_opportunity);
         self.flush_current_line();
-        true
     }
 
     /// Returns the indentation that needs to be applied before the fragment we're reflowing.

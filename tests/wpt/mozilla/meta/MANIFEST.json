@@ -2732,6 +2732,18 @@
             "url": "/_mozilla/css/li_absolute_containing_block_a.html"
           }
         ],
+        "css/line_break_nowrap.html": [
+          {
+            "path": "css/line_break_nowrap.html",
+            "references": [
+              [
+                "/_mozilla/css/line_break_nowrap_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/line_break_nowrap.html"
+          }
+        ],
         "css/line_breaking_whitespace_collapse_a.html": [
           {
             "path": "css/line_breaking_whitespace_collapse_a.html",
@@ -8918,6 +8930,18 @@
             ]
           ],
           "url": "/_mozilla/css/li_absolute_containing_block_a.html"
+        }
+      ],
+      "css/line_break_nowrap.html": [
+        {
+          "path": "css/line_break_nowrap.html",
+          "references": [
+            [
+              "/_mozilla/css/line_break_nowrap_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/line_break_nowrap.html"
         }
       ],
       "css/line_breaking_whitespace_collapse_a.html": [
