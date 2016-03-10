@@ -14,7 +14,6 @@ use net::fetch::methods::{fetch, fetch_async};
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{AsyncFetchListener};
-use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -247,7 +246,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
-    request.redirect_mode = Cell::new(RedirectMode::Manual);
+    request.redirect_mode.set(RedirectMode::Manual);
     let wrapped_request = Rc::new(request);
 
     let fetch_response = fetch(wrapped_request);
@@ -456,7 +455,7 @@ fn response_is_done(response: &Response) -> bool {
 #[test]
 fn test_fetch_async_returns_complete_response() {
 
-    static MESSAGE: &'static [u8] = b"";
+    static MESSAGE: &'static [u8] = b"this message should be retrieved in full";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
     };
@@ -475,5 +474,75 @@ fn test_fetch_async_returns_complete_response() {
     let fetch_response = rx.recv().unwrap();
     let _ = server.close();
 
+    assert_eq!(response_is_done(&fetch_response), true);
+}
+
+#[test]
+fn test_opaque_filtered_fetch_async_returns_complete_response() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    // an origin mis-match will fall through to an Opaque filtered response
+    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let mut request = Request::new(url, Some(origin), false);
+    request.referer = Referer::NoReferer;
+
+    let (tx, rx) = channel();
+    let listener = Box::new(FetchResponseCollector {
+        sender: tx.clone()
+    });
+
+    fetch_async(request, listener);
+    let fetch_response = rx.recv().unwrap();
+    let _ = server.close();
+
+    assert_eq!(fetch_response.response_type, ResponseType::Opaque);
+    assert_eq!(response_is_done(&fetch_response), true);
+}
+
+#[test]
+fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+
+        let redirects = match request.uri {
+            RequestUri::AbsolutePath(url) =>
+                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+            RequestUri::AbsoluteUri(url) =>
+                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+            _ => panic!()
+        };
+
+        if redirects == 1 {
+            response.send(MESSAGE).unwrap();
+        } else {
+            *response.status_mut() = StatusCode::Found;
+            let url = format!("{}", 1);
+            response.headers_mut().set(Location(url.to_owned()));
+        }
+    };
+
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
+    request.referer = Referer::NoReferer;
+    request.redirect_mode.set(RedirectMode::Manual);
+
+    let (tx, rx) = channel();
+    let listener = Box::new(FetchResponseCollector {
+        sender: tx.clone()
+    });
+
+    fetch_async(request, listener);
+    let fetch_response = rx.recv().unwrap();
+    let _ = server.close();
+
+    assert_eq!(fetch_response.response_type, ResponseType::OpaqueRedirect);
     assert_eq!(response_is_done(&fetch_response), true);
 }
