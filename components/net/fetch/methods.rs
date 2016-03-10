@@ -138,51 +138,51 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // this step is obsoleted by fetch_async
 
     // Step 9
-    let response = if response.is_none() {
+    let response = match response {
+        Some(response) => response,
+        None => {
+            let current_url = request.current_url();
+            let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
+                *origin == current_url.origin()
+            } else {
+                false
+            };
 
-        let current_url = request.current_url();
-        let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
-            *origin == current_url.origin()
-        } else {
-            false
-        };
+            if (same_origin && !cors_flag ) ||
+                (current_url.scheme == "data" && request.same_origin_data.get()) ||
+                current_url.scheme == "about" ||
+                request.mode == RequestMode::Navigate {
 
-        if (same_origin && !cors_flag ) ||
-            (current_url.scheme == "data" && request.same_origin_data.get()) ||
-            current_url.scheme == "about" ||
-            request.mode == RequestMode::Navigate {
+                basic_fetch(request.clone())
 
-            basic_fetch(request.clone())
+            } else if request.mode == RequestMode::SameOrigin {
+                Response::network_error()
 
-        } else if request.mode == RequestMode::SameOrigin {
-            Response::network_error()
+            } else if request.mode == RequestMode::NoCORS {
+                request.response_tainting.set(ResponseTainting::Opaque);
+                basic_fetch(request.clone())
 
-        } else if request.mode == RequestMode::NoCORS {
-            request.response_tainting.set(ResponseTainting::Opaque);
-            basic_fetch(request.clone())
+            } else if current_url.scheme != "http" && current_url.scheme != "https" {
+                Response::network_error()
 
-        } else if current_url.scheme != "http" && current_url.scheme != "https" {
-            Response::network_error()
+            } else if request.use_cors_preflight ||
+                (request.unsafe_request &&
+                 (!is_simple_method(&request.method.borrow()) ||
+                  request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
 
-        } else if request.use_cors_preflight ||
-            (request.unsafe_request &&
-             (!is_simple_method(&request.method.borrow()) ||
-              request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
+                request.response_tainting.set(ResponseTainting::CORSTainting);
+                request.redirect_mode.set(RedirectMode::Error);
+                let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
+                if response.is_network_error() {
+                    // TODO clear cache entries using request
+                }
+                response
 
-            request.response_tainting.set(ResponseTainting::CORSTainting);
-            request.redirect_mode.set(RedirectMode::Error);
-            let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
-            if response.is_network_error() {
-                // TODO clear cache entries using request
+            } else {
+                request.response_tainting.set(ResponseTainting::CORSTainting);
+                http_fetch(request.clone(), BasicCORSCache::new(), true, false, false)
             }
-            response
-
-        } else {
-            request.response_tainting.set(ResponseTainting::CORSTainting);
-            http_fetch(request.clone(), BasicCORSCache::new(), true, false, false)
         }
-    } else {
-        response.unwrap()
     };
 
     // Step 10
