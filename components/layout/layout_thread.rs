@@ -1291,9 +1291,8 @@ impl LayoutThread {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                if opts::get().nonincremental_layout ||
-                        flow_ref::deref_mut(&mut root_flow).compute_layout_damage()
-                                                           .contains(REFLOW_ENTIRE_DOCUMENT) {
+                let damage = flow_ref::deref_mut(&mut root_flow).compute_layout_damage();
+                if opts::get().nonincremental_layout || damage.contains(REFLOW_ENTIRE_DOCUMENT) {
                     flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
