@@ -436,7 +436,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
             }
             DisplayItem::ImageClass(ref item) => {
-                if let Some(id) = item.image.id {
+                if let Some(id) = item.webrender_image.key {
                     if item.stretch_size.width > Au(0) &&
                        item.stretch_size.height > Au(0) {
                         builder.push_image(level,

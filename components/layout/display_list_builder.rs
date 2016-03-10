@@ -29,7 +29,7 @@ use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem, LayeredItem, LayerInfo};
 use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, StackingContextId, StackingContextType};
-use gfx::display_list::{TextDisplayItem, TextOrientation, DisplayListEntry};
+use gfx::display_list::{TextDisplayItem, TextOrientation, DisplayListEntry, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
 use gfx_traits::{color, ScrollPolicy};
@@ -37,7 +37,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use net_traits::image::base::{Image, PixelFormat};
+use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
 use std::default::Default;
@@ -136,7 +136,7 @@ pub trait FragmentDisplayListBuilding {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &Image)
+                                     image: &WebRenderImageInfo)
                                      -> Size2D<Au>;
 
     /// Adds the display items necessary to paint the background image of this fragment to the
@@ -404,7 +404,7 @@ impl FragmentDisplayListBuilding for Fragment {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &Image)
+                                     image: &WebRenderImageInfo)
                                      -> Size2D<Au> {
         // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
         // wide.
@@ -462,14 +462,17 @@ impl FragmentDisplayListBuilding for Fragment {
                                                clip: &ClippingRegion,
                                                image_url: &Url) {
         let background = style.get_background();
-        let image =
-            state.layout_context.get_or_request_image(image_url.clone(), UsePlaceholder::No);
-        if let Some(image) = image {
+        let fetch_image_data_as_well = !opts::get().use_webrender;
+        let webrender_image =
+            state.layout_context.get_webrender_image_for_url(image_url,
+                                                             UsePlaceholder::No,
+                                                             fetch_image_data_as_well);
+        if let Some((webrender_image, image_data)) = webrender_image {
             debug!("(building display list) building background image");
 
             // Use `background-size` to get the size.
             let mut bounds = *absolute_bounds;
-            let image_size = self.compute_background_image_size(style, &bounds, &*image);
+            let image_size = self.compute_background_image_size(style, &bounds, &webrender_image);
 
             // Clip.
             //
@@ -560,7 +563,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     style,
                                                                     Cursor::DefaultCursor),
                                            &clip),
-                image: image.clone(),
+                webrender_image: webrender_image,
+                image_data: image_data.map(Arc::new),
                 stretch_size: Size2D::new(image_size.width, image_size.height),
                 image_rendering: style.get_effects().image_rendering.clone(),
             }), display_list_section);
@@ -1173,7 +1177,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                             &*self.style,
                                                                             Cursor::DefaultCursor),
                                                    clip),
-                        image: image.clone(),
+                        webrender_image: WebRenderImageInfo::from_image(image),
+                        image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size,
                         image_rendering: self.style.get_effects().image_rendering.clone(),
                     }), DisplayListSection::Content);
@@ -1214,13 +1219,13 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                                     &*self.style,
                                                                                     Cursor::DefaultCursor),
                                                            clip),
-                                image: Arc::new(Image {
+                                image_data: Some(Arc::new(canvas_data.image_data)),
+                                webrender_image: WebRenderImageInfo {
                                     width: width as u32,
                                     height: height as u32,
                                     format: PixelFormat::RGBA8,
-                                    bytes: canvas_data.image_data,
-                                    id: canvas_data.image_key,
-                                }),
+                                    key: canvas_data.image_key,
+                                },
                                 stretch_size: stacking_relative_content_box.size,
                                 image_rendering: image_rendering::T::Auto,
                             })
