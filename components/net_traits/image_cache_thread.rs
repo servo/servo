@@ -96,7 +96,7 @@ pub enum ImageCacheCommand {
     Exit(IpcSender<()>),
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Hash, Eq, Deserialize, Serialize)]
 pub enum UsePlaceholder {
     No,
     Yes,

@@ -24,8 +24,9 @@ use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use fnv::FnvHasher;
 use gfx_traits::{LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
+use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
-use net_traits::image::base::Image;
+use net_traits::image::base::{Image, PixelFormat};
 use paint_context::PaintContext;
 use range::Range;
 use serde::de::{self, Deserialize, Deserializer, MapVisitor, Visitor};
@@ -46,7 +47,7 @@ use text::TextRun;
 use text::glyph::CharIndex;
 use util::geometry::{self, MAX_RECT, ScreenPx};
 use util::print_tree::PrintTree;
-use webrender_traits::WebGLContextId;
+use webrender_traits::{self, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -986,8 +987,11 @@ pub enum TextOrientation {
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
+
+    pub webrender_image: WebRenderImageInfo,
+
     #[ignore_heap_size_of = "Because it is non-owning"]
-    pub image: Arc<Image>,
+    pub image_data: Option<Arc<IpcSharedMemory>>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
@@ -1203,10 +1207,14 @@ impl DisplayItem {
 
             DisplayItem::ImageClass(ref image_item) => {
                 debug!("Drawing image at {:?}.", image_item.base.bounds);
-                paint_context.draw_image(&image_item.base.bounds,
-                                         &image_item.stretch_size,
-                                         image_item.image.clone(),
-                                         image_item.image_rendering.clone());
+                paint_context.draw_image(
+                    &image_item.base.bounds,
+                    &image_item.stretch_size,
+                    &image_item.webrender_image,
+                    &image_item.image_data
+                               .as_ref()
+                               .expect("Non-WR painting needs image data!")[..],
+                    image_item.image_rendering.clone());
             }
 
             DisplayItem::WebGLClass(_) => {
@@ -1390,3 +1398,25 @@ impl StackingContextId {
         StackingContextId(fragment_type, id)
     }
 }
+
+#[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct WebRenderImageInfo {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    #[ignore_heap_size_of = "WebRender traits type, and tiny"]
+    pub key: Option<webrender_traits::ImageKey>,
+}
+
+impl WebRenderImageInfo {
+    #[inline]
+    pub fn from_image(image: &Image) -> WebRenderImageInfo {
+        WebRenderImageInfo {
+            width: image.width,
+            height: image.height,
+            format: image.format,
+            key: image.id,
+        }
+    }
+}
+

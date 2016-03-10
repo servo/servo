@@ -24,6 +24,7 @@ use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
 use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
+use gfx::display_list::{WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -39,6 +40,7 @@ use layout_traits::LayoutThreadFactory;
 use log;
 use msg::constellation_msg::{ConstellationChan, ConvertPipelineIdToWebRender, Failure, PipelineId};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::image_cache_thread::{UsePlaceholder};
 use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -84,7 +86,7 @@ use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
 use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
-use webrender_traits::{self, AuxiliaryListsBuilder};
+use webrender_traits;
 use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -234,6 +236,10 @@ pub struct LayoutThread {
 
     /// The CSS error reporter for all CSS loaded in this layout thread
     error_reporter: CSSErrorReporter,
+
+    webrender_image_cache: Arc<RwLock<HashMap<(Url, UsePlaceholder),
+                                              WebRenderImageInfo,
+                                              BuildHasherDefault<FnvHasher>>>>,
 
     // Webrender interface, if enabled.
     webrender_api: Option<webrender_traits::RenderApi>,
@@ -475,6 +481,8 @@ impl LayoutThread {
                   pipelineid: id,
                   script_chan: Arc::new(Mutex::new(script_chan)),
               },
+              webrender_image_cache:
+                  Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
         }
     }
 
@@ -516,6 +524,7 @@ impl LayoutThread {
             canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
             url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
+            webrender_image_cache: self.webrender_image_cache.clone(),
         }
     }
 
