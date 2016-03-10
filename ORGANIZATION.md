@@ -31,7 +31,7 @@
 	* profile
 		* Memory and time profilers.
 	* profile_traits
-  	* APIs to the profile crate for crates that don't want to depend on the profile crate for build speed reasons.
+  		* APIs to the profile crate for crates that don't want to depend on the profile crate for build speed reasons.
 	* script
 		* Implementation of the DOM (native Rust code and bindings to SpiderMonkey).
 	* script_traits
