@@ -83,7 +83,7 @@ use util::opts;
 use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
-use webrender_helpers::WebRenderDisplayListConverter;
+use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use webrender_traits::{self, AuxiliaryListsBuilder};
 use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
@@ -940,7 +940,6 @@ impl LayoutThread {
                 self.epoch.next();
 
                 if opts::get().use_webrender {
-                    let api = self.webrender_api.as_ref().unwrap();
                     // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
                     let Epoch(epoch_number) = self.epoch;
                     let epoch = webrender_traits::Epoch(epoch_number);
@@ -948,13 +947,13 @@ impl LayoutThread {
 
                     // TODO(gw) For now only create a root scrolling layer!
                     let root_scroll_layer_id = webrender_traits::ScrollLayerId::new(pipeline_id, 0);
-                    let mut auxiliary_lists_builder = AuxiliaryListsBuilder::new();
+                    let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
                     let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
-                        &self.webrender_api.as_ref().unwrap(),
+                        &mut self.webrender_api.as_mut().unwrap(),
                         pipeline_id,
                         epoch,
                         Some(root_scroll_layer_id),
-                        &mut auxiliary_lists_builder);
+                        &mut frame_builder);
                     let root_background_color = get_root_flow_background_color(
                         flow_ref::deref_mut(layout_root));
                     let root_background_color =
@@ -966,12 +965,16 @@ impl LayoutThread {
                     let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                                     self.viewport_size.height.to_f32_px());
 
+                    let api = self.webrender_api.as_ref().unwrap();
                     api.set_root_stacking_context(sc_id,
                                                   root_background_color,
                                                   epoch,
                                                   pipeline_id,
                                                   viewport_size,
-                                                  auxiliary_lists_builder.finalize());
+                                                  frame_builder.stacking_contexts,
+                                                  frame_builder.display_lists,
+                                                  frame_builder.auxiliary_lists_builder
+                                                               .finalize());
                 } else {
                     self.paint_chan
                         .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
