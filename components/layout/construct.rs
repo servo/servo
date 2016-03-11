@@ -45,7 +45,7 @@ use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
-use style::properties::{self, ComputedValues};
+use style::properties::{self, ComputedValues, TComputedValues};
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
