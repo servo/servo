@@ -101,7 +101,7 @@ impl BluetoothUUID {
                 if regex.is_match(&*dstring) {
                     Ok(dstring)
                 } else {
-            // Step 3
+                // Step 3
                     let concatenated = format!("{}.{}", prefix, dstring);
                     let is_in_table = assigned_numbers_table.iter()
                                                             .find(|p| p.0 == concatenated);

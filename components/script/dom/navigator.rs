@@ -74,8 +74,7 @@ impl NavigatorMethods for Navigator {
         match self.bluetooth.get() {
             Some(bluetooth) => bluetooth,
             None => {
-                self.bluetooth.set(Some(Bluetooth::new(self.global().r()).r()));
-                self.bluetooth.get().unwrap()
+                self.bluetooth.or_init(|| Bluetooth::new(self.global().r()))
             }
         }
     }
