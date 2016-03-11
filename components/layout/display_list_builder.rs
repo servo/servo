@@ -1141,28 +1141,22 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {
+                    let item = DisplayItem::IframeClass(box IframeDisplayItem {
+                        base: BaseDisplayItem::new(
+                            &stacking_relative_content_box,
+                            DisplayItemMetadata::new(self.node,
+                                                     &*self.style,
+                                                     Cursor::DefaultCursor),
+                            clip),
+                        iframe: fragment_info.pipeline_id,
+                    });
+
                     if opts::get().use_webrender {
-                        state.add_display_item(DisplayItem::IframeClass(box IframeDisplayItem {
-                            base: BaseDisplayItem::new(
-                                &stacking_relative_content_box,
-                                DisplayItemMetadata::new(self.node,
-                                                         &*self.style,
-                                                         Cursor::DefaultCursor),
-                                clip),
-                            iframe: fragment_info.pipeline_id,
-                        }), DisplayListSection::Content);
+                        state.add_display_item(item, DisplayListSection::Content);
                     } else {
-                        let layer_id = self.layer_id();
                         state.add_display_item(DisplayItem::LayeredItemClass(box LayeredItem {
-                            item: DisplayItem::NoopClass(
-                                box BaseDisplayItem::new(
-                                    &stacking_relative_content_box,
-                                    DisplayItemMetadata::new(self.node,
-                                                             &*self.style,
-                                                             Cursor::DefaultCursor),
-                                    clip)),
-                            layer_id: layer_id,
-                            layer_info: LayerInfo::new(layer_id,
+                            item: item,
+                            layer_info: LayerInfo::new(self.layer_id(),
                                                        ScrollPolicy::Scrollable,
                                                        Some(fragment_info.pipeline_id),
                                                        color::transparent()),
@@ -1248,7 +1242,6 @@ impl FragmentDisplayListBuilding for Fragment {
                     } else {
                         state.add_display_item(DisplayItem::LayeredItemClass(box LayeredItem {
                             item: display_item,
-                            layer_id: layer_id,
                             layer_info: LayerInfo::new(layer_id,
                                                        ScrollPolicy::Scrollable,
                                                        None,

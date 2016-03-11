@@ -744,7 +744,6 @@ pub enum DisplayItem {
     LineClass(Box<LineDisplayItem>),
     BoxShadowClass(Box<BoxShadowDisplayItem>),
     LayeredItemClass(Box<LayeredItem>),
-    NoopClass(Box<BaseDisplayItem>),
     IframeClass(Box<IframeDisplayItem>),
 }
 
@@ -1169,9 +1168,6 @@ pub struct LayeredItem {
     pub item: DisplayItem,
 
     /// The id of the layer this item belongs to.
-    pub layer_id: LayerId,
-
-    /// The id of the layer this item belongs to.
     pub layer_info: LayerInfo,
 }
 
@@ -1251,7 +1247,6 @@ impl DisplayItem {
 
             DisplayItem::LayeredItemClass(ref item) => item.item.draw_into_context(paint_context),
 
-            DisplayItem::NoopClass(_) => { }
             DisplayItem::IframeClass(..) => {}
         }
     }
@@ -1280,7 +1275,6 @@ impl DisplayItem {
             DisplayItem::LineClass(ref line) => &line.base,
             DisplayItem::BoxShadowClass(ref box_shadow) => &box_shadow.base,
             DisplayItem::LayeredItemClass(ref layered_item) => layered_item.item.base(),
-            DisplayItem::NoopClass(ref base_item) => base_item,
             DisplayItem::IframeClass(ref iframe) => &iframe.base,
         }
     }
@@ -1364,7 +1358,6 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::BoxShadowClass(_) => "BoxShadow".to_owned(),
                 DisplayItem::LayeredItemClass(ref layered_item) =>
                     format!("LayeredItem({:?})", layered_item.item),
-                DisplayItem::NoopClass(_) => "Noop".to_owned(),
                 DisplayItem::IframeClass(_) => "Iframe".to_owned(),
             },
             self.bounds(),

@@ -504,8 +504,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::LineClass(..) => {
                 println!("TODO DisplayItem::LineClass");
             }
-            DisplayItem::LayeredItemClass(..) |
-            DisplayItem::NoopClass(..) => {
+            DisplayItem::LayeredItemClass(..) => {
                 panic!("Unexpected in webrender!");
             }
             DisplayItem::BoxShadowClass(ref item) => {
