@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::activation::Activatable;
+use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -256,6 +256,11 @@ impl Activatable for HTMLButtonElement {
         node.query_selector_iter(DOMString::from("button[type=submit]")).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
-            .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+            .map(|s| synthetic_click_activation(s.r().as_element(),
+                                                ctrlKey,
+                                                shiftKey,
+                                                altKey,
+                                                metaKey,
+                                                ActivationSource::NotFromClick));
     }
 }
