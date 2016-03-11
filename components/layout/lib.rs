@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(as_unsafe_cell)]
+#![feature(box_patterns)]
 #![feature(box_syntax)]
 #![feature(custom_derive)]
 #![feature(mpsc_select)]

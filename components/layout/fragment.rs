@@ -256,6 +256,8 @@ fn clamp_size(size: Au,
 pub enum GeneratedContentInfo {
     ListItem,
     ContentItem(ContentItem),
+    /// Placeholder for elements with generated content that did not generate any fragments.
+    Empty,
 }
 
 /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was declared
@@ -1291,8 +1293,9 @@ impl Fragment {
     }
 
     /// Returns true if and only if this fragment is a generated content fragment.
-    pub fn is_generated_content(&self) -> bool {
+    pub fn is_unscanned_generated_content(&self) -> bool {
         match self.specific {
+            SpecificFragmentInfo::GeneratedContent(box GeneratedContentInfo::Empty) => false,
             SpecificFragmentInfo::GeneratedContent(..) => true,
             _ => false,
         }
