@@ -30,7 +30,7 @@ use std::{fmt, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, TComputedValues};
 use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;

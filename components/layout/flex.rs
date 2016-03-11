@@ -28,8 +28,8 @@ use std::cmp::max;
 use std::sync::Arc;
 use style::computed_values::{flex_direction, float};
 use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
 use style::properties::style_structs;
+use style::properties::{ComputedValues, TComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 
 // A mode describes which logical axis a flex axis is parallel with.

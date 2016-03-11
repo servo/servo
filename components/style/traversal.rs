@@ -123,7 +123,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
                                  node: N)
     where N: TNode,
-          C: StyleContext<'a, <N::ConcreteElement as Element>::Impl>,
+          C: StyleContext<'a, <N::ConcreteElement as Element>::Impl, N::ConcreteComputedValues>,
           <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a {
     // Initialize layout data.
     //
@@ -195,7 +195,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Add ourselves to the LRU cache.
                 if let Some(element) = shareable_element {
-                    style_sharing_candidate_cache.insert_if_possible(&element);
+                    style_sharing_candidate_cache.insert_if_possible::<'ln, N>(&element);
                 }
             }
             StyleSharingResult::StyleWasShared(index, damage) => {

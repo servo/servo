@@ -66,7 +66,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
 use style::dom::{TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, TComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
@@ -131,6 +131,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
+    type ConcreteComputedValues = ComputedValues;
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;
