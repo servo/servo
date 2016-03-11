@@ -124,14 +124,12 @@ impl Blob {
                         blobPropertyBag: &BlobBinding::BlobPropertyBag)
                         -> Fallible<Root<Blob>> {
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
-        // FIXME(ajeffrey): convert directly from a DOMString to a Vec<u8>
-        let bytes: Vec<u8> = String::from(blobParts).into_bytes();
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
             ""
         };
-        Ok(Blob::new(global, bytes, &typeString.to_ascii_lowercase()))
+        Ok(Blob::new(global, blobParts.into(), &typeString.to_ascii_lowercase()))
     }
 
     pub fn get_data(&self) -> &DataSlice {
