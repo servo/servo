@@ -844,10 +844,8 @@ impl InlineFlow {
             first_line_indentation: Au(0),
         };
 
-        for fragment in &flow.fragments.fragments {
-            if fragment.is_generated_content() {
-                flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT)
-            }
+        if flow.fragments.fragments.iter().any(Fragment::is_unscanned_generated_content) {
+            flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT);
         }
 
         flow

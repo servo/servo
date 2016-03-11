@@ -180,6 +180,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                                                                list_style_type,
                                                                RenderingMode::Suffix(".\u{00a0}"))
                 }
+                GeneratedContentInfo::Empty |
                 GeneratedContentInfo::ContentItem(ContentItem::String(_)) => {
                     // Nothing to do here.
                 }
@@ -242,9 +243,14 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
             }
         };
 
-        if let Some(new_info) = new_info {
-            fragment.specific = new_info
-        }
+        fragment.specific = match new_info {
+            Some(new_info) => new_info,
+            // If the fragment did not generate any content, replace it with a no-op placeholder
+            // so that it isn't processed again on the next layout.  FIXME (mbrubeck): When
+            // processing an inline flow, this traversal should be allowed to insert or remove
+            // fragments.  Then we can just remove these fragments rather than adding placeholders.
+            None => SpecificFragmentInfo::GeneratedContent(box GeneratedContentInfo::Empty)
+        };
     }
 
     fn reset_and_increment_counters_as_necessary(&mut self, fragment: &mut Fragment) {
