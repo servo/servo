@@ -8,18 +8,29 @@
 # except according to those terms.
 
 import contextlib
-import os
+import fnmatch
 import itertools
+import json
+import os
 import re
-import StringIO
 import site
+import StringIO
 import subprocess
 import sys
-import json
 from licenseck import licenses
 
-filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".lock", ".py", ".toml", ".webidl", ".json"]
+# File patterns to include in the non-WPT tidy check.
+file_patterns_to_check = ["*.rs", "*.rc", "*.cpp", "*.c",
+                          "*.h", "Cargo.lock", "*.py",
+                          "*.toml", "*.webidl", "*.json"]
 
+# File patterns that are ignored for all tidy and lint checks.
+file_patterns_to_ignore = [
+    "*.#*",
+    "*.pyc",
+]
+
+# Files that are ignored for all tidy and lint checks.
 ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
@@ -31,6 +42,7 @@ ignored_files = [
     os.path.join(".", "."),
 ]
 
+# Directories that are ignored for the non-WPT tidy check.
 ignored_dirs = [
     # Upstream
     os.path.join(".", "support", "android", "apk"),
@@ -64,21 +76,26 @@ def progress_wrapper(iterator):
         yield thing
 
 
+def filter_file(file_name):
+    if any(file_name.startswith(ignored_file) for ignored_file in ignored_files):
+        return False
+    base_name = os.path.basename(file_name)
+    if any(fnmatch.fnmatch(base_name, pattern) for pattern in file_patterns_to_ignore):
+        return False
+    return True
+
+
 def filter_files(start_dir, faster, progress):
     file_iter = get_file_list(start_dir, faster, ignored_dirs)
     if progress:
         file_iter = progress_wrapper(file_iter)
     for file_name in file_iter:
-        if os.path.basename(file_name) == "Cargo.lock":
-            yield file_name
-        if ".#" in file_name:
+        base_name = os.path.basename(file_name)
+        if not any(fnmatch.fnmatch(base_name, pattern) for pattern in file_patterns_to_check):
             continue
-        if os.path.splitext(file_name)[1] not in filetypes_to_check:
-            continue
-        if any(file_name.startswith(ignored_file) for ignored_file in ignored_files):
+        if not filter_file(file_name):
             continue
         yield file_name
-
 
 EMACS_HEADER = "/* -*- Mode:"
 VIM_HEADER = "/* vim:"
@@ -552,7 +569,8 @@ def get_wpt_files(only_changed_files, progress):
     if progress:
         file_iter = progress_wrapper(file_iter)
     for f in file_iter:
-        yield f[len(wpt_dir):]
+        if filter_file(f):
+            yield f[len(wpt_dir):]
 
 
 def check_wpt_lint_errors(files):
