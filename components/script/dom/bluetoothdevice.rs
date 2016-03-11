@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::{BluetoothDeviceMethods, VendorIDSource};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, MutHeap};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
@@ -18,13 +17,13 @@ pub struct BluetoothDevice {
     reflector_: Reflector,
     id: DOMString,
     name: DOMString,
-    adData: DOMRefCell<JS<BluetoothAdvertisingData>>,
+    adData: MutHeap<JS<BluetoothAdvertisingData>>,
     deviceClass: u32,
     vendorIDSource: VendorIDSource,
     vendorID: u32,
     productID: u32,
     productVersion: u32,
-    gatt: DOMRefCell<JS<BluetoothRemoteGATTServer>>,
+    gatt: MutHeap<JS<BluetoothRemoteGATTServer>>,
 }
 
 impl BluetoothDevice {
@@ -42,13 +41,13 @@ impl BluetoothDevice {
             reflector_: Reflector::new(),
             id: id,
             name: name,
-            adData: DOMRefCell::new(JS::from_ref(&adData)),
+            adData: MutHeap::new(adData),
             deviceClass: deviceClass,
             vendorIDSource: vendorIDSource,
             vendorID: vendorID,
             productID: productID,
             productVersion: productVersion,
-            gatt: DOMRefCell::new(JS::from_ref(&gatt)),
+            gatt: MutHeap::new(gatt),
         }
     }
 
@@ -91,7 +90,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-addata
     fn AdData(&self) -> Root<BluetoothAdvertisingData> {
-        Root::from_ref(&self.adData.borrow())
+        self.adData.get()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-deviceclass
@@ -121,6 +120,6 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
     fn Gatt(&self) -> Root<BluetoothRemoteGATTServer> {
-        Root::from_ref(&self.gatt.borrow())
+        self.gatt.get()
     }
 }

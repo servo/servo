@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding;
-use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
-    BluetoothCharacteristicPropertiesMethods;
+use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};

@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate uuid;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
@@ -17,7 +15,7 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct BluetoothRemoteGATTService {
     reflector_: Reflector,
-    device: DOMRefCell<JS<BluetoothDevice>>,
+    device: MutHeap<JS<BluetoothDevice>>,
     uuid: DOMString,
     isPrimary: bool,
 }
@@ -29,7 +27,7 @@ impl BluetoothRemoteGATTService {
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             reflector_: Reflector::new(),
-            device: DOMRefCell::new(JS::from_ref(&device)),
+            device: MutHeap::new(device),
             uuid: uuid,
             isPrimary: isPrimary,
         }
@@ -51,7 +49,7 @@ impl BluetoothRemoteGATTService {
 impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device
     fn Device(&self) -> Root<BluetoothDevice> {
-        Root::from_ref(&self.device.borrow())
+        self.device.get()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary

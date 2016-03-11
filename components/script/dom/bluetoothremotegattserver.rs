@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
@@ -16,7 +15,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct BluetoothRemoteGATTServer {
     reflector_: Reflector,
-    device: DOMRefCell<JS<BluetoothDevice>>,
+    device: MutHeap<JS<BluetoothDevice>>,
     connected: Cell<bool>,
 }
 
@@ -24,7 +23,7 @@ impl BluetoothRemoteGATTServer {
     pub fn new_inherited(device: &BluetoothDevice, is_connected: bool) -> BluetoothRemoteGATTServer {
         BluetoothRemoteGATTServer {
             reflector_: Reflector::new(),
-            device: DOMRefCell::new(JS::from_ref(&device)),
+            device: MutHeap::new(device),
             connected: Cell::new(is_connected),
         }
     }
@@ -42,13 +41,14 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-device
     fn Device(&self) -> Root<BluetoothDevice> {
-        Root::from_ref(&self.device.borrow())
+        self.device.get()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connected
     fn Connected(&self) -> bool {
         self.connected.get()
     }
+
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self) -> Root<BluetoothRemoteGATTServer> {
         if !self.connected.get() {
