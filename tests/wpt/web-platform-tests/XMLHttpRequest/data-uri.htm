@@ -23,14 +23,14 @@
         if (method.toUpperCase() !== 'GET') {
           assert_equals(client.status, 0);
           assert_equals(client.responseText, '');
-          assert_equals(client.statusText, 'OK');
+          assert_equals(client.statusText, '');
           test.done();
           return;
         }
 
         assert_equals(client.responseText, "Hello, World!");
         assert_equals(client.status, 200);
-        assert_equals(client.getResponseHeader('Content-Type'), charset);
+        assert_equals(client.getResponseHeader('Content-Type').replace(/;\s+/g, ';').toLowerCase(), charset);
         var allHeaders = client.getAllResponseHeaders();
         assert_regexp_match(allHeaders, /content\-type\:/i, 'getAllResponseHeaders() includes Content-Type');
         assert_false(/content\-length\:/i.test(allHeaders), 'getAllResponseHeaders() must not include Content-Length');
@@ -43,7 +43,7 @@
   do_test('GET', "data:text/plain,Hello, World!");
   do_test('GET', "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==", undefined, " (base64)");
   do_test('GET', "data:text/html,Hello, World!", 'text/html');
-  do_test('GET', "data:text/html;charset=UTF-8,Hello, World!", 'text/html;charset=UTF-8');
+  do_test('GET', "data:text/html;charset=UTF-8,Hello, World!", 'text/html;charset=utf-8');
   do_test('GET', "data:image/png,Hello, World!", 'image/png');
   do_test('POST', "data:text/plain,Hello, World!");
   do_test('PUT', "data:text/plain,Hello, World!");
