@@ -7,7 +7,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::float;
 use style::dom::TRestyleDamage;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, TComputedValues};
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
@@ -53,6 +53,7 @@ bitflags! {
 }
 
 impl TRestyleDamage for RestyleDamage {
+    type ConcreteComputedValues = ComputedValues;
     fn compute(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage { compute_damage(old, new) }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.

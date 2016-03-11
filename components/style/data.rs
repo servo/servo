@@ -2,26 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use properties::ComputedValues;
+use properties::TComputedValues;
 use selectors::parser::SelectorImpl;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
-pub struct PrivateStyleData<Impl: SelectorImpl> {
+pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: TComputedValues> {
     /// The results of CSS styling for this node.
-    pub style: Option<Arc<ComputedValues>>,
+    pub style: Option<Arc<ConcreteComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
-    pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ComputedValues>, BuildHasherDefault<::fnv::FnvHasher>>,
+    pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ConcreteComputedValues>,
+                            BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
 }
 
-impl<Impl: SelectorImpl> PrivateStyleData<Impl> {
-    pub fn new() -> PrivateStyleData<Impl> {
+impl<Impl, ConcreteComputedValues> PrivateStyleData<Impl, ConcreteComputedValues>
+    where Impl: SelectorImpl, ConcreteComputedValues: TComputedValues {
+    pub fn new() -> PrivateStyleData<Impl, ConcreteComputedValues> {
         PrivateStyleData {
             style: None,
             per_pseudo: HashMap::with_hasher(Default::default()),
