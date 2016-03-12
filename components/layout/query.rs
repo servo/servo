@@ -284,7 +284,7 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     }
 }
 
-pub fn process_content_box_request<'ln, N: LayoutNode<'ln>>(
+pub fn process_content_box_request<N: LayoutNode>(
         requested_node: N, layout_root: &mut FlowRef) -> Rect<Au> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
@@ -296,7 +296,7 @@ pub fn process_content_box_request<'ln, N: LayoutNode<'ln>>(
     }
 }
 
-pub fn process_content_boxes_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+pub fn process_content_boxes_request<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
@@ -490,14 +490,14 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 }
 
-pub fn process_node_geometry_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> Rect<i32> {
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
 }
 
-pub fn process_node_scroll_area_request<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> Rect<i32> {
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -529,7 +529,7 @@ pub fn process_node_scroll_area_request<'ln, N: LayoutNode<'ln>>(requested_node:
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
-pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
+pub fn process_resolved_style_request<N: LayoutNode>(
             requested_node: N, pseudo: &Option<PseudoElement>,
             property: &Atom, layout_root: &mut FlowRef) -> Option<String> {
     let layout_node = requested_node.to_threadsafe();
@@ -566,7 +566,7 @@ pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
     // There are probably other quirks.
     let applies = true;
 
-    fn used_value_for_position_property<'ln, N: LayoutNode<'ln>>(
+    fn used_value_for_position_property<N: LayoutNode>(
             layout_node: N::ConcreteThreadSafeLayoutNode,
             layout_root: &mut FlowRef,
             requested_node: N,
@@ -647,7 +647,7 @@ pub fn process_resolved_style_request<'ln, N: LayoutNode<'ln>>(
     }
 }
 
-pub fn process_offset_parent_query<'ln, N: LayoutNode<'ln>>(requested_node: N, layout_root: &mut FlowRef)
+pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -668,7 +668,7 @@ pub fn process_offset_parent_query<'ln, N: LayoutNode<'ln>>(requested_node: N, l
     }
 }
 
-pub fn process_margin_style_query<'ln, N: LayoutNode<'ln>>(requested_node: N)
+pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
         -> MarginStyleResponse {
     let layout_node = requested_node.to_threadsafe();
     let style = &*layout_node.style();
