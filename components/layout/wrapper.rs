@@ -79,7 +79,7 @@ pub type NonOpaqueStyleAndLayoutData = *mut RefCell<PrivateLayoutData>;
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 
-pub trait LayoutNode<'ln> : TNode<'ln> {
+pub trait LayoutNode<'ln> : TNode {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
@@ -130,7 +130,7 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> TNode<'ln> for ServoLayoutNode<'ln> {
+impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;
@@ -364,7 +364,7 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> TDocument<'ld> for ServoLayoutDocument<'ld> {
+impl<'ld> TDocument for ServoLayoutDocument<'ld> {
     type ConcreteNode = ServoLayoutNode<'ld>;
     type ConcreteElement = ServoLayoutElement<'ld>;
 
@@ -398,7 +398,7 @@ pub struct ServoLayoutElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
-impl<'le> TElement<'le> for ServoLayoutElement<'le> {
+impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type ConcreteDocument = ServoLayoutDocument<'le>;
 
@@ -406,7 +406,7 @@ impl<'le> TElement<'le> for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
+    fn style_attribute<'a>(&'a self) -> &'a Option<PropertyDeclarationBlock> {
         unsafe {
             &*self.element.style_attribute()
         }
