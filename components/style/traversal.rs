@@ -43,11 +43,11 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_thread_local_bloom_filter<'ln, N, Impl: SelectorImplExt>(parent_node: Option<N>,
-                                                              root: OpaqueNode,
-                                                              context: &SharedStyleContext<Impl>)
-                                                              -> Box<BloomFilter>
-                                                              where N: TNode<'ln> {
+fn take_thread_local_bloom_filter<N, Impl: SelectorImplExt>(parent_node: Option<N>,
+                                                            root: OpaqueNode,
+                                                            context: &SharedStyleContext<Impl>)
+                                                            -> Box<BloomFilter>
+                                                            where N: TNode {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -90,10 +90,10 @@ pub fn put_thread_local_bloom_filter<Impl: SelectorImplExt>(bf: Box<BloomFilter>
 }
 
 /// "Ancestors" in this context is inclusive of ourselves.
-fn insert_ancestors_into_bloom_filter<'ln, N>(bf: &mut Box<BloomFilter>,
-                                              mut n: N,
-                                              root: OpaqueNode)
-                                              where N: TNode<'ln> {
+fn insert_ancestors_into_bloom_filter<N>(bf: &mut Box<BloomFilter>,
+                                         mut n: N,
+                                         root: OpaqueNode)
+                                         where N: TNode {
     debug!("[{}] Inserting ancestors.", tid());
     let mut ancestors = 0;
     loop {
@@ -108,7 +108,7 @@ fn insert_ancestors_into_bloom_filter<'ln, N>(bf: &mut Box<BloomFilter>,
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
 }
 
-pub trait DomTraversalContext<'ln, N: TNode<'ln>>  {
+pub trait DomTraversalContext<N: TNode>  {
     type SharedContext: Sync + 'static;
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
     fn process_preorder(&self, node: N);
@@ -119,10 +119,10 @@ pub trait DomTraversalContext<'ln, N: TNode<'ln>>  {
 /// layout computation. This computes the styles applied to each node.
 #[inline]
 #[allow(unsafe_code)]
-pub fn recalc_style_at<'a, 'ln, N, C>(context: &'a C,
-                                      root: OpaqueNode,
-                                      node: N)
-    where N: TNode<'ln>,
+pub fn recalc_style_at<'a, N, C>(context: &'a C,
+                                 root: OpaqueNode,
+                                 node: N)
+    where N: TNode,
           C: StyleContext<'a, <N::ConcreteElement as Element>::Impl>,
           <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a {
     // Initialize layout data.

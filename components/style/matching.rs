@@ -29,7 +29,7 @@ use util::vec::ForgetfulSink;
 
 /// High-level interface to CSS selector matching.
 
-fn create_common_style_affecting_attributes_from_element<'le, E: TElement<'le>>(element: &E)
+fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
     for attribute_info in &common_style_affecting_attributes() {
@@ -212,7 +212,7 @@ impl StyleSharingCandidate {
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
     #[allow(unsafe_code)]
-    fn new<'le, E: TElement<'le>>(element: &E) -> Option<StyleSharingCandidate> {
+    fn new<E: TElement>(element: &E) -> Option<StyleSharingCandidate> {
         let parent_element = match element.parent_element() {
             None => return None,
             Some(parent_element) => parent_element,
@@ -254,11 +254,11 @@ impl StyleSharingCandidate {
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
-                   create_common_style_affecting_attributes_from_element::<'le, E>(&element)
+                   create_common_style_affecting_attributes_from_element::<E>(&element)
         })
     }
 
-    pub fn can_share_style_with<'a, E: TElement<'a>>(&self, element: &E) -> bool {
+    pub fn can_share_style_with<E: TElement>(&self, element: &E) -> bool {
         if *element.get_local_name() != self.local_name {
             return false
         }
@@ -343,7 +343,7 @@ impl StyleSharingCandidateCache {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible<'le, E: TElement<'le>>(&mut self, element: &E) {
+    pub fn insert_if_possible<E: TElement>(&mut self, element: &E) {
         match StyleSharingCandidate::new(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
@@ -364,7 +364,7 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-trait PrivateMatchMethods<'ln>: TNode<'ln>
+trait PrivateMatchMethods: TNode
     where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
     fn cascade_node_pseudo_element(&self,
                                    context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
@@ -483,10 +483,10 @@ trait PrivateMatchMethods<'ln>: TNode<'ln>
     }
 }
 
-impl<'ln, N: TNode<'ln>> PrivateMatchMethods<'ln> for N
+impl<N: TNode> PrivateMatchMethods for N
     where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
 
-trait PrivateElementMatchMethods<'le>: TElement<'le> {
+trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Option<Self::ConcreteNode>,
                                               candidate: &StyleSharingCandidate)
@@ -516,9 +516,9 @@ trait PrivateElementMatchMethods<'le>: TElement<'le> {
     }
 }
 
-impl<'le, E: TElement<'le>> PrivateElementMatchMethods<'le> for E {}
+impl<E: TElement> PrivateElementMatchMethods for E {}
 
-pub trait ElementMatchMethods<'le> : TElement<'le>
+pub trait ElementMatchMethods : TElement
     where Self::Impl: SelectorImplExt {
     fn match_element(&self,
                      stylist: &Stylist<Self::Impl>,
@@ -552,7 +552,7 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
                                       parent: Option<Self::ConcreteNode>)
-                                      -> StyleSharingResult<<Self::ConcreteNode as TNode<'le>>::ConcreteRestyleDamage> {
+                                      -> StyleSharingResult<<Self::ConcreteNode as TNode>::ConcreteRestyleDamage> {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
         }
@@ -570,7 +570,7 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
                     // Yay, cache hit. Share the style.
                     let node = self.as_node();
                     let style = &mut node.mutate_data().unwrap().style;
-                    let damage = <<Self as TElement<'le>>::ConcreteNode as TNode<'le>>
+                    let damage = <<Self as TElement>::ConcreteNode as TNode>
                                      ::ConcreteRestyleDamage::compute((*style).as_ref(), &*shared_style);
                     *style = Some(shared_style);
                     return StyleSharingResult::StyleWasShared(i, damage)
@@ -583,10 +583,10 @@ pub trait ElementMatchMethods<'le> : TElement<'le>
     }
 }
 
-impl<'le, E: TElement<'le>> ElementMatchMethods<'le> for E
+impl<E: TElement> ElementMatchMethods for E
     where E::Impl: SelectorImplExt {}
 
-pub trait MatchMethods<'ln> : TNode<'ln> {
+pub trait MatchMethods : TNode {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -716,4 +716,4 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
     }
 }
 
-impl<'ln, N: TNode<'ln>> MatchMethods<'ln> for N {}
+impl<N: TNode> MatchMethods for N {}

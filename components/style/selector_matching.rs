@@ -248,7 +248,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     /// The returned boolean indicates whether the style is *shareable*; that is, whether the
     /// matched selectors are simple enough to allow the matching logic to be reduced to the logic
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
-    pub fn push_applicable_declarations<'le, E, V>(
+    pub fn push_applicable_declarations<E, V>(
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
@@ -256,7 +256,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                         pseudo_element: Option<Impl::PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=Impl> + TElement<'le>,
+                                        where E: Element<Impl=Impl> + TElement,
                                               V: VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),

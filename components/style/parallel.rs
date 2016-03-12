@@ -39,10 +39,10 @@ pub fn run_queue_with_custom_work_data_type<To, F, SharedContext: Sync>(
     queue.run(shared);
 }
 
-pub fn traverse_dom<'ln, N, C>(root: N,
-                               queue_data: &C::SharedContext,
-                               queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
-                               where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
+pub fn traverse_dom<N, C>(root: N,
+                          queue_data: &C::SharedContext,
+                          queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
+                          where N: TNode, C: DomTraversalContext<N> {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
             fun:  top_down_dom::<N, C>,
@@ -53,9 +53,9 @@ pub fn traverse_dom<'ln, N, C>(root: N,
 
 /// A parallel top-down DOM traversal.
 #[inline(always)]
-fn top_down_dom<'ln, N, C>(unsafe_nodes: UnsafeNodeList,
-                           proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
-                           where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
+fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
+                      proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
+                      where N: TNode, C: DomTraversalContext<N> {
     let context = C::new(proxy.user_data(), unsafe_nodes.1);
 
     let mut discovered_child_nodes = Vec::new();
@@ -105,10 +105,10 @@ fn top_down_dom<'ln, N, C>(unsafe_nodes: UnsafeNodeList,
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
-fn bottom_up_dom<'ln, N, C>(root: OpaqueNode,
-                            unsafe_node: UnsafeNode,
-                            proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
-                            where N: TNode<'ln>, C: DomTraversalContext<'ln, N> {
+fn bottom_up_dom<N, C>(root: OpaqueNode,
+                       unsafe_node: UnsafeNode,
+                       proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
+                       where N: TNode, C: DomTraversalContext<N> {
     let context = C::new(proxy.user_data(), root);
 
     // Get a real layout node.
