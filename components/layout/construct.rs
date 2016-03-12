@@ -1674,10 +1674,7 @@ impl<'ln, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNo
 }
 
 /// Methods for interacting with HTMLObjectElement nodes
-trait ObjectElement<'a> {
-    /// Returns None if this node is not matching attributes.
-    fn get_type_and_data(&self) -> (Option<&'a str>, Option<&'a str>);
-
+trait ObjectElement {
     /// Returns true if this node has object data that is correct uri.
     fn has_object_data(&self) -> bool;
 
@@ -1685,21 +1682,20 @@ trait ObjectElement<'a> {
     fn object_data(&self) -> Option<Url>;
 }
 
-impl<'ln, N> ObjectElement<'ln> for N  where N: ThreadSafeLayoutNode<'ln> {
-    fn get_type_and_data(&self) -> (Option<&'ln str>, Option<&'ln str>) {
-        let elem = self.as_element();
-        (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")))
-    }
-
+impl<'ln, N> ObjectElement for N  where N: ThreadSafeLayoutNode<'ln> {
     fn has_object_data(&self) -> bool {
-        match self.get_type_and_data() {
+        let elem = self.as_element();
+        let type_and_data = (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")));
+        match type_and_data {
             (None, Some(uri)) => is_image_data(uri),
             _ => false
         }
     }
 
     fn object_data(&self) -> Option<Url> {
-        match self.get_type_and_data() {
+        let elem = self.as_element();
+        let type_and_data = (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")));
+        match type_and_data {
             (None, Some(uri)) if is_image_data(uri) => Url::parse(uri).ok(),
             _ => None
         }
