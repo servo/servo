@@ -10,27 +10,30 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable};
 use dom::document::Document;
 use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
-use dom::event::{Event};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::htmlinputelement::ChangeEventRunnable;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
-use dom::node::{document_from_node};
+use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use script_runtime::ScriptChan;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::ops::Range;
 use string_cache::Atom;
 use style::element_state::*;
+use task_source::user_interaction::UserInteractionTask;
 use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
 use util::str::DOMString;
 
@@ -373,7 +376,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         self.value_changed.set(true);
 
                         if event.IsTrusted() {
-                            ChangeEventRunnable::send(self.upcast::<Node>());
+                            let window = window_from_node(self);
+                            let textarea = Trusted::new(self.upcast::<EventTarget>());
+                            let task_source = window.user_interaction_task_source();
+                            let _ = task_source.queue(UserInteractionTask::FireEvent(
+                                atom!("input"),
+                                textarea,
+                                EventBubbles::Bubbles,
+                                EventCancelable::NotCancelable));
                         }
 
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
