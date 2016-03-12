@@ -4,11 +4,14 @@
 
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
+use encoding::all::UTF_8;
+use encoding::types::{EncoderTrap, Encoding};
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -120,16 +123,29 @@ impl Blob {
 
     // https://w3c.github.io/FileAPI/#constructorBlob
     pub fn Constructor_(global: GlobalRef,
-                        blobParts: DOMString,
+                        blobParts: Vec<BlobOrString>,
                         blobPropertyBag: &BlobBinding::BlobPropertyBag)
                         -> Fallible<Root<Blob>> {
-        // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
+
+        // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
+        let bytes: Vec<u8> = blobParts.iter()
+                                .flat_map(|bPart| {
+                                    match bPart {
+                                        &BlobOrString::String(ref s) => {
+                                            UTF_8.encode(s, EncoderTrap::Replace).unwrap()
+                                        },
+                                        &BlobOrString::Blob(ref b) => {
+                                            b.get_data().get_bytes().to_vec()
+                                        },
+                                    }
+                                })
+                                .collect();
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
             ""
         };
-        Ok(Blob::new(global, blobParts.into(), &typeString.to_ascii_lowercase()))
+        Ok(Blob::new(global, bytes, &typeString.to_ascii_lowercase()))
     }
 
     pub fn get_data(&self) -> &DataSlice {
