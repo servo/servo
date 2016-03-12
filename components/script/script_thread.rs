@@ -100,7 +100,7 @@ use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTa
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
-use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTask};
 use time::Tm;
 use url::{Url, Position};
 use util::opts;
@@ -222,6 +222,8 @@ pub enum MainThreadScriptMsg {
     Navigate(PipelineId, LoadData),
     /// Tasks that originate from the DOM manipulation task source
     DOMManipulation(DOMManipulationTask),
+    /// Tasks that originate from the user interaction task source
+    UserInteraction(UserInteractionTask),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -934,6 +936,8 @@ impl ScriptThread {
                 self.collect_reports(reports_chan),
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
+            MainThreadScriptMsg::UserInteraction(task) =>
+                task.handle_task(),
         }
     }
 

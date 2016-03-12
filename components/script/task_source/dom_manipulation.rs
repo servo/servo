@@ -19,6 +19,14 @@ impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
         self.0.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
     }
 
+    fn queue_event(&self,
+                   _target: Trusted<EventTarget>,
+                   _name: Atom,
+                   _bubbles: EventBubbles,
+                   _cancelable: EventCancelable) {
+        unimplemented!();
+    }
+
     fn clone(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
         box DOMManipulationTaskSource((&self.0).clone())
     }
