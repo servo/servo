@@ -384,15 +384,10 @@ impl FontCacheThread {
                                                 -> Option<FontTemplateInfo> {
 
         let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
-
-        let reply = response_port.recv().unwrap();
-
-        match reply {
-            Reply::GetFontTemplateReply(data) => {
-                data
-            }
-        }
+        self.chan
+            .send(Command::GetFontTemplate(family, desc, response_chan)).ok()
+            .and_then(|()| response_port.recv().ok())
+            .and_then(|reply| { let Reply::GetFontTemplateReply(data) = reply; data })
     }
 
     pub fn last_resort_font_template(&self, desc: FontTemplateDescriptor)
