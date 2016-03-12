@@ -45,7 +45,7 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_fragment_and_visibility_flag<'ln, N: ThreadSafeLayoutNode<'ln>>(
+    pub fn from_node_fragment_and_visibility_flag<N: ThreadSafeLayoutNode>(
             node: &N, fragment: Fragment, visible: bool) -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment, None),
