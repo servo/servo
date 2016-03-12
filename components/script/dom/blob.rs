@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -120,16 +121,28 @@ impl Blob {
 
     // https://w3c.github.io/FileAPI/#constructorBlob
     pub fn Constructor_(global: GlobalRef,
-                        blobParts: DOMString,
+                        blobParts: Vec<BlobOrString>,
                         blobPropertyBag: &BlobBinding::BlobPropertyBag)
                         -> Fallible<Root<Blob>> {
+        fn to_bytes(blob_or_string: &BlobOrString) -> &[u8] {
+            match *blob_or_string {
+                BlobOrString::Blob(ref b) => b.get_data().get_bytes(),
+                BlobOrString::String(ref s) => s.as_bytes(),
+            }
+        }
+
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
             ""
         };
-        Ok(Blob::new(global, blobParts.into(), &typeString.to_ascii_lowercase()))
+        let len = blobParts.iter().map(|p| to_bytes(p).len()).fold(0, |s, a| s + a);
+        let mut bytes = Vec::with_capacity(len);
+        for part in blobParts.iter().map(to_bytes) {
+            bytes.push(part);
+        }
+        Ok(Blob::new(global, Vec::new(), &typeString.to_ascii_lowercase()))
     }
 
     pub fn get_data(&self) -> &DataSlice {

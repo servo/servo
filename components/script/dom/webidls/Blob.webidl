@@ -8,7 +8,8 @@
 // Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts,
 //             optional BlobPropertyBag options)]
 [Constructor,
- Constructor(DOMString blobParts, optional BlobPropertyBag options),
+ Constructor(sequence<(Blob or DOMString)> blobParts,
+             optional BlobPropertyBag options),
  Exposed=Window/*,Worker*/]
 interface Blob {
 
